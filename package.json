@@ -1,0 +1,35 @@
+{
+  "name": "dreamliner",
+  "version": "0.1.0",
+  "description": "Dreamliner — a Discord moderation bot with file-based configuration",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "register-commands": "tsx src/scripts/register-commands.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.9.0",
+    "discord.js": "^14.19.3",
+    "drizzle-orm": "^0.43.1",
+    "yaml": "^2.7.1",
+    "zod": "^3.24.4",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.3",
+    "drizzle-kit": "^0.31.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

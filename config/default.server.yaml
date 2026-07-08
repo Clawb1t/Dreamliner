@@ -1,0 +1,489 @@
+# Default server configuration for Dreamliner.
+# Download via /config template, edit, then upload via /config upload.
+# Only include keys you want to override - missing keys inherit these defaults.
+
+emojis:
+  success: "<:checked:1524379445379465276>"
+  error: "<:redcheck:1524379423757959208>"
+  neutral: "<:greycheck:1524379394372669553>"
+  warning: "<:lowwarning:1524379341000151170>"
+  unchecked: "<:unchecked:1524379366996312104>"
+
+# Map role or user snowflakes to permission levels (higher = more access).
+# `levels: {}` is empty. To add entries, replace with indented keys (no braces):
+# levels:
+#   "ROLE_OR_USER_ID": 100
+#   "ROLE_OR_USER_ID": 50
+levels: {}
+
+# Server events: joins, leaves, edits, deletes, voice activity, role/nickname changes
+server_log_channel_id: "1111111111111111111"
+
+# Moderation: infractions, automod, censor, /clean, voice mod, cases, expirations
+moderation_log_channel_id: "1111111111111111111"
+
+# When true, command replies are only visible to the user who ran the command.
+ephemeral_responses: false
+
+plugins:
+  utility:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      jumbo_size: 128
+      autojoin_threads: true
+      info_on_single_result: true
+      can_search: false
+      can_clean: false
+      can_userinfo: false
+      can_server: false
+      can_channelinfo: false
+      can_messageinfo: false
+      can_inviteinfo: false
+      can_roleinfo: false
+      can_emojiinfo: false
+      can_snowflake: false
+      can_roles: false
+      can_level: false
+      can_context: false
+      can_source: false
+      can_nickname: false
+      can_vcmove: false
+      can_vckick: false
+      can_ping: false
+      can_about: false
+      can_help: false
+      can_reload_guild: false
+      can_avatar: false
+      can_jumbo: false
+      can_info: false
+      can_time: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_search: true
+          can_clean: true
+          can_userinfo: true
+          can_server: true
+          can_channelinfo: true
+          can_messageinfo: true
+          can_inviteinfo: true
+          can_roleinfo: true
+          can_emojiinfo: true
+          can_snowflake: true
+          can_roles: true
+          can_level: true
+          can_context: true
+          can_source: true
+          can_nickname: true
+          can_vcmove: true
+          can_vckick: true
+          can_help: true
+          can_avatar: true
+          can_jumbo: true
+          can_info: true
+          can_time: true
+      - level: ">=100"
+        config:
+          can_reload_guild: true
+          can_ping: true
+          can_about: true
+  infractions:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      confirm_actions: true
+      confirm_actions_expiry: 0
+      mute_role: "1111111111111111111"
+      case_log_channel: "1111111111111111111"
+      reason_edit_level: 100
+      duration_edit_level: 100
+      ban_delete_message_days: 0
+      softban_delete_message_days: 7
+      notify:
+        warn:
+          dm: true
+        mute:
+          dm: true
+        tempmute:
+          dm: true
+        kick:
+          dm: true
+        ban:
+          dm: true
+        tempban:
+          dm: true
+        softban:
+          dm: true
+      can_warn: false
+      can_note: false
+      can_mute: false
+      can_kick: false
+      can_ban: false
+      can_unban: false
+      can_softban: false
+      can_view: false
+      can_edit_reason: false
+      can_edit_duration: false
+      can_delete: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_warn: true
+          can_note: true
+          can_mute: true
+          can_kick: true
+          can_view: true
+          can_edit_reason: true
+          can_edit_duration: true
+      - level: ">=100"
+        config:
+          can_ban: true
+          can_unban: true
+          can_softban: true
+          can_delete: true
+  autorole:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      roles:
+        - role: "1111111111111111111"
+          delay_ms: 0
+  starboard:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      ignored_channels: []
+      boards:
+        main:
+          channel_id: "1111111111111111111"
+          stars_required: 3
+          enabled: true
+          show_star_count: true
+          copy_full_embed: true
+          count_self_stars: false
+          star_emoji:
+            - "⭐"
+  automod:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      enabled_rules:
+        - duplicate
+        - rate_limit
+      duplicate_window_ms: 30000
+      duplicate_max: 3
+      rate_limit_count: 5
+      rate_limit_window_ms: 10000
+      raid_join_count: 10
+      raid_join_window_ms: 30000
+      ignored_channels: []
+      ignored_roles: []
+      action: delete
+      mute_duration_ms: 600000
+      can_status: false
+      can_test: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_status: true
+          can_test: true
+  censor:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      rules: []
+      ignored_channels: []
+      can_list: false
+      can_add: false
+      can_remove: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_list: true
+          can_add: true
+          can_remove: true
+  admin:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_lockdown: false
+      can_unlock: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_lockdown: true
+          can_unlock: true
+  persist:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_add: false
+      can_remove: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_add: true
+          can_remove: true
+          can_list: true
+  slowmode:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      default_seconds: 5
+      can_set: false
+      can_clear: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_set: true
+          can_clear: true
+  roles:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_give: false
+      can_remove: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_give: true
+          can_remove: true
+          can_list: true
+  reaction_roles:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_delete: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_delete: true
+  role_buttons:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_delete: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_delete: true
+  self_grantable_roles:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      max_roles_per_panel: 10
+      can_configure: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_configure: true
+  pingable_roles:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_enable: false
+      can_disable: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_enable: true
+          can_disable: true
+  role_manager:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_delete: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_delete: true
+          can_list: true
+  welcome_message:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      message: "Welcome {user} to **{guild}**!"
+      can_set: false
+      can_test: false
+      can_disable: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_set: true
+          can_test: true
+          can_disable: true
+  tags:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_edit: false
+      can_delete: false
+      can_list: false
+      can_show: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_edit: true
+          can_delete: true
+          can_list: true
+          can_show: true
+  post:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_list: false
+      can_delete: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_list: true
+          can_delete: true
+  autodelete:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      default_delay_seconds: 60
+      can_set: false
+      can_clear: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_set: true
+          can_clear: true
+  autoreactions:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      rules: []
+      can_add: false
+      can_remove: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_add: true
+          can_remove: true
+          can_list: true
+  reminders:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_list: false
+      can_cancel: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_list: true
+          can_cancel: true
+  counters:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_set: false
+      can_delete: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_set: true
+          can_delete: true
+  companion_channels:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      name_template: "{user}'s channel"
+      can_create: false
+      can_delete: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_delete: true
+  name_history:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_view: false
+      can_search: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_view: true
+          can_search: true
+  username_saver:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      enabled: true
+  locate_user:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_locate: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_locate: true
+  stats:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_server: false
+      can_user: false
+      can_channel: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_server: true
+          can_user: true
+          can_channel: true
+  custom_events:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_create: false
+      can_delete: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_list: true
+      - level: ">=100"
+        config:
+          can_delete: true
+  command_aliases:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      message_triggers: true
+      can_create: false
+      can_delete: false
+      can_list: false
+      can_run: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_list: true
+          can_run: true
+      - level: ">=100"
+        config:
+          can_create: true
+          can_delete: true
