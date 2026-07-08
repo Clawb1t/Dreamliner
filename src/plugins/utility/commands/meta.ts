@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resultReply, embedReply, embedEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
 import { baseEmbed, buildPingEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 
 const startTime = Date.now();
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_DOCS_URL = "https://github.com/Clawb1t/Dreamliner/blob/main/docs";
+const REPO_URL = "https://github.com/Clawb1t/Dreamliner";
 
 function getVersion(): string {
   try {
@@ -19,6 +21,19 @@ function getVersion(): string {
   } catch {
     return "0.1.0";
   }
+}
+
+function aboutLinkRows(docsUrl: string): ActionRowBuilder<ButtonBuilder>[] {
+  return [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setLabel("Documentation").setStyle(ButtonStyle.Link).setURL(docsUrl),
+      new ButtonBuilder().setLabel("Repository").setStyle(ButtonStyle.Link).setURL(REPO_URL),
+    ),
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setLabel("Terms of Service").setStyle(ButtonStyle.Link).setURL(`${docsUrl}/terms-of-service.md`),
+      new ButtonBuilder().setLabel("Privacy Policy").setStyle(ButtonStyle.Link).setURL(`${docsUrl}/privacy-policy.md`),
+    ),
+  ];
 }
 
 export const metaCommands: SlashCommandDefinition[] = [
@@ -44,13 +59,13 @@ export const metaCommands: SlashCommandDefinition[] = [
       const auth = await requireUtilityPermission(ctx, "can_about");
       if (!auth) return;
       const uptime = formatDuration(Date.now() - startTime);
-      const docsUrl = process.env.DOCS_BASE_URL ?? "https://github.com/your-org/dreamliner/blob/main/docs";
+      const docsUrl = process.env.DOCS_BASE_URL ?? DEFAULT_DOCS_URL;
       const plugins = [
         "config", "utility", "infractions", "logs", "automod", "censor", "roles",
         "welcome_message", "tags", "reminders", "stats", "autorole", "starboard",
       ];
-      await ctx.interaction.reply(
-        embedReply(
+      await ctx.interaction.reply({
+        ...embedReply(
           setEmbedAuthor(baseEmbed(), "About", ctx.client, { emojis: ctx.guildConfig.emojis, tone: "neutral" })
             .addFields(
               embedField(
@@ -61,11 +76,11 @@ export const metaCommands: SlashCommandDefinition[] = [
                   Plugins: **${plugins.join(", ")}**
                 `),
               ),
-              embedField("Documentation", docsUrl),
             ),
           ctx.ephemeral,
         ),
-      );
+        components: aboutLinkRows(docsUrl),
+      });
     },
   },
   {
@@ -79,7 +94,7 @@ export const metaCommands: SlashCommandDefinition[] = [
       const auth = await requireUtilityPermission(ctx, "can_help");
       if (!auth) return;
       const query = (ctx.interaction.options.getString("query") ?? "").trim();
-      const docsUrl = process.env.DOCS_BASE_URL ?? "https://github.com/your-org/dreamliner/blob/main/docs";
+      const docsUrl = process.env.DOCS_BASE_URL ?? DEFAULT_DOCS_URL;
       await ctx.interaction.reply(buildHelpMessage(0, query, docsUrl, ctx.ephemeral, ctx.client, ctx.guildConfig.emojis));
     },
   },

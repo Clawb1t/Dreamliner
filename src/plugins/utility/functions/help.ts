@@ -319,11 +319,18 @@ export function buildHelpState(
   return { pages, plugins, pluginFirstPage, overviewPageIndex };
 }
 
-function buildPaginationRow(pageIndex: number, state: HelpState, query: string): ActionRowBuilder<ButtonBuilder> {
+function buildPaginationRow(
+  pageIndex: number,
+  state: HelpState,
+  query: string,
+  docsBaseUrl: string,
+): ActionRowBuilder<ButtonBuilder> {
   const { pages } = state;
   const suffix = querySuffix(query);
+  const page = pages[pageIndex] ?? pages[0];
+  const docsPath = page && page.plugin !== "overview" ? PLUGIN_DOCS[page.plugin] : "index.md";
 
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`${HELP_BUTTON_PREFIX}:prev:${pageIndex}${suffix}`)
       .setLabel("Previous")
@@ -335,6 +342,17 @@ function buildPaginationRow(pageIndex: number, state: HelpState, query: string):
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(pageIndex >= pages.length - 1),
   );
+
+  if (docsPath) {
+    row.addComponents(
+      new ButtonBuilder()
+        .setLabel("Documentation")
+        .setStyle(ButtonStyle.Link)
+        .setURL(`${docsBaseUrl}/${docsPath}`),
+    );
+  }
+
+  return row;
 }
 
 function buildPluginSelectRows(
@@ -393,8 +411,8 @@ function buildPluginSelectRows(
   return rows;
 }
 
-function buildHelpComponents(pageIndex: number, state: HelpState, query: string) {
-  return [buildPaginationRow(pageIndex, state, query), ...buildPluginSelectRows(pageIndex, state, query)];
+function buildHelpComponents(pageIndex: number, state: HelpState, query: string, docsBaseUrl: string) {
+  return [buildPaginationRow(pageIndex, state, query, docsBaseUrl), ...buildPluginSelectRows(pageIndex, state, query)];
 }
 
 export function buildHelpMessage(
@@ -410,15 +428,9 @@ export function buildHelpMessage(
   const safeIndex = Math.max(0, Math.min(pageIndex, state.pages.length - 1));
   const page = state.pages[safeIndex]!;
 
-  const docsPath = page.plugin !== "overview" ? PLUGIN_DOCS[page.plugin] : "index.md";
-  const embed = { ...page.embed };
-  if (embed.description && docsPath) {
-    embed.description = `${embed.description}\n[Documentation](${docsBaseUrl}/${docsPath})`;
-  }
-
   return {
-    embeds: [embed],
-    components: buildHelpComponents(safeIndex, state, query),
+    embeds: [page.embed],
+    components: buildHelpComponents(safeIndex, state, query, docsBaseUrl),
     ...(ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
   };
 }

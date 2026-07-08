@@ -139,7 +139,7 @@ These Terms are governed by the laws applicable where the Dreamliner operators a
 
 ## 15. Contact
 
-For questions about these Terms, contact the Dreamliner operators through the support channel linked from the bot’s documentation or invite materials.
+For questions about these Terms, open an issue on the [Dreamliner repository](https://github.com/Clawb1t/Dreamliner) or contact the operators through any support channel linked from the bot.
 
 Related documents:
 

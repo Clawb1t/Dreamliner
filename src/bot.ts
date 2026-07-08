@@ -222,7 +222,7 @@ async function handleHelpInteraction(
     return;
   }
 
-  const docsUrl = process.env.DOCS_BASE_URL ?? "https://github.com/your-org/dreamliner/blob/main/docs";
+  const docsUrl = process.env.DOCS_BASE_URL ?? "https://github.com/Clawb1t/Dreamliner/blob/main/docs";
 
   try {
     await run(interaction, docsUrl, guildConfig.emojis);

@@ -200,7 +200,7 @@ We may update this Privacy Policy from time to time. The "Last updated" date wil
 
 ## 14. Contact
 
-For privacy questions or data requests related to Dreamliner, contact the Dreamliner operators through the support channel linked from the bot’s documentation or invite materials.
+For privacy questions or data requests related to Dreamliner, open an issue on the [Dreamliner repository](https://github.com/Clawb1t/Dreamliner) or contact the operators through any support channel linked from the bot.
 
 Related documents:
 

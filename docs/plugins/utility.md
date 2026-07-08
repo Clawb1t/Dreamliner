@@ -197,11 +197,11 @@ Latency test (roundtrip and WebSocket).
 
 ### `/about`
 
-Bot version, uptime, loaded plugins, documentation link.
+Bot version, uptime, loaded plugins, with link buttons for documentation, repository, terms, and privacy.
 
 ### `/help`
 
-Browse commands by plugin with **Previous** / **Next** on the first row and a **plugin dropdown** on the second row. Optionally pass `query` to search across all commands.
+Browse commands by plugin with **Previous** / **Next** and a **Documentation** link button on the first row, plus a **plugin dropdown** on the second row. Optionally pass `query` to search across all commands.
 
 ### `/reload`
 
