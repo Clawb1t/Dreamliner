@@ -1,0 +1,12 @@
+node_modules
+dist
+data
+.git
+.env
+*.db
+*.db-journal
+.DS_Store
+README.md
+docs
+agent-transcripts
+.cursor

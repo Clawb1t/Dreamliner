@@ -96,6 +96,8 @@ Plus **per-server emoji prefixes** (success, error, neutral, warning, unchecked)
 | [🔐 Permissions](docs/permissions.md) | Bot perms, levels, and `can_*` flags |
 | [📜 Terms of Service](docs/terms-of-service.md) | Rules for using Dreamliner |
 | [🔒 Privacy Policy](docs/privacy-policy.md) | What data we process and why |
+| [🚀 Deploy on PebbleHost](docs/deploy-pebblehost.md) | Easiest hosting on PebbleHost panel |
+| [🖥️ Deploy to Hetzner](docs/deploy.md) | VPS with auto-deploy on push |
 
 ### Plugin docs
 

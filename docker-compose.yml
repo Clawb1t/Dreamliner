@@ -1,0 +1,11 @@
+services:
+  bot:
+    build: .
+    container_name: dreamliner
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: file:./data/dreamliner.db
+    volumes:
+      - ./data:/app/data

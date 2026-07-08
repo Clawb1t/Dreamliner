@@ -7,6 +7,8 @@ Dreamliner is a Discord moderation and server-management bot configured via YAML
 - [Getting started](getting-started.md)
 - [Configuration](configuration.md)
 - [Permissions setup](permissions.md)
+- [Deploy on PebbleHost](deploy-pebblehost.md)
+- [Deploy to Hetzner](deploy.md)
 
 ## Legal
 
