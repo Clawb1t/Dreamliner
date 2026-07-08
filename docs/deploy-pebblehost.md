@@ -32,10 +32,12 @@ Go to **Startup** / the settings screen that looks like this:
 | Setting | Value |
 |---------|--------|
 | **BOT LANGUAGE** | `NodeJS` |
-| **BOT START FILE** | `main.js` |
+| **BOT START FILE** | `main.js` (not `main.js` in another folder, and not `dist/index.js` until after a successful build) |
 | **NODE.JS VERSION** | `Node.js 20+` (24.x is fine) |
 
-PebbleHost does **not** expose a custom start command. Use the repo’s root **`main.js`** instead. That file installs deps if needed, builds TypeScript, then starts the bot.
+PebbleHost does **not** expose a custom start command. Set **BOT START FILE** to the repo root file **`main.js`**. That file builds TypeScript if `dist/` is missing, then starts the bot.
+
+If the console shows `npm start` → `node dist/index.js` and crashes with `Cannot find module .../dist/index.js`, your start file is wrong or outdated: upload the latest `main.js` / `package.json`, set **BOT START FILE** to `main.js`, then Start again.
 
 Use the green **Node.js Packages** button if you prefer installing packages from the panel; `main.js` still builds and launches Dreamliner.
 

@@ -16,4 +16,4 @@ RUN npm run build \
 ENV NODE_ENV=production
 ENV DATABASE_URL=file:./data/dreamliner.db
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "start:prod"]
