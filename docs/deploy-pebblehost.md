@@ -27,18 +27,17 @@ In the panel:
 
 ### Startup settings
 
-Go to **Startup** (names vary slightly):
+Go to **Startup** / the settings screen that looks like this:
 
 | Setting | Value |
 |---------|--------|
-| **Node.js version** | **20** (or newer LTS). Must be `>=20`. |
-| **Main file / start command** | Prefer a custom startup if available: `npm run panel:start` |
-| If you can only set a JS file | Build first, then set main file to `dist/index.js` |
+| **BOT LANGUAGE** | `NodeJS` |
+| **BOT START FILE** | `main.js` |
+| **NODE.JS VERSION** | `Node.js 20+` (24.x is fine) |
 
-If the egg only runs `node <file>`:
+PebbleHost does **not** expose a custom start command. Use the repo’s root **`main.js`** instead. That file installs deps if needed, builds TypeScript, then starts the bot.
 
-1. Open **Startup** and set Node to 20+.
-2. Use the **Console** once to install/build (see below), then point the main file at `dist/index.js`.
+Use the green **Node.js Packages** button if you prefer installing packages from the panel; `main.js` still builds and launches Dreamliner.
 
 ---
 
@@ -87,35 +86,25 @@ Enable your Discord intents (including **Message Content**) in the [Developer Po
 
 ## 5. First start
 
-### If startup is `npm run panel:start`
-
-Click **Start**. That script runs:
-
-1. `npm install`
-2. `npm run build`
-3. `npm start` (migrations run automatically on boot)
-
-### If you must use the console
-
-Stop the server, open **Console**, then run:
-
-```bash
-npm install
-npm run build
-npm run register-commands
-```
-
-Then set the main file to `dist/index.js` and click **Start**.
+1. Confirm **BOT START FILE** is `main.js`.
+2. Click **Start**.
+3. Watch the console: it should install (first time), build, then log in to Discord.
 
 ### Slash commands
 
-Register once after the first successful install/build:
+After the first successful boot, open the panel console (or stop and use a one-off command if your panel allows) and run:
 
 ```bash
 npm run register-commands
 ```
 
-Run again whenever you add or change slash commands and redeploy.
+Or from your PC (with the same `.env`):
+
+```bash
+npm run register-commands
+```
+
+Run again whenever you add or change slash commands.
 
 ---
 
