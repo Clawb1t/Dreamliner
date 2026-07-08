@@ -8,6 +8,11 @@ Dreamliner is a Discord moderation and server-management bot configured via YAML
 - [Configuration](configuration.md)
 - [Permissions setup](permissions.md)
 
+## Legal
+
+- [Terms of Service](terms-of-service.md)
+- [Privacy Policy](privacy-policy.md)
+
 ## Plugins
 
 ### Core

@@ -1,6 +1,6 @@
 # ✈️ Dreamliner
 
-**A Discord moderation & server-management bot** — YAML config, slash commands, no dashboard required.
+**A Discord moderation & server-management bot.** YAML config, slash commands, no dashboard required.
 
 Inspired by [Zeppelin](https://github.com/ZeppelinBot/Zeppelin). Configure your server by downloading a template, editing it, and uploading it back.
 
@@ -10,7 +10,7 @@ Inspired by [Zeppelin](https://github.com/ZeppelinBot/Zeppelin). Configure your 
 
 [**➕ Add Dreamliner to your server**](https://discord.com/oauth2/authorize?client_id=1524053555114151946&permissions=1099932494934&scope=bot%20applications.commands)
 
-> Recommended permissions are pre-selected. See [Permissions setup](docs/permissions.md) for what each one is for — Dreamliner does **not** need Administrator.
+> Recommended permissions are pre-selected. See [Permissions setup](docs/permissions.md) for what each one is for. Dreamliner does **not** need Administrator.
 
 ---
 
@@ -18,9 +18,9 @@ Inspired by [Zeppelin](https://github.com/ZeppelinBot/Zeppelin). Configure your 
 
 1. **Invite** Dreamliner with the link above  
 2. Run **`/config template`** (needs **Manage Server**)  
-3. Edit the YAML — set `levels`, channels, and plugins  
+3. Edit the YAML: set `levels`, channels, and plugins  
 4. Run **`/config upload`** with your file  
-5. You’re live — use **`/help`** anytime  
+5. You’re live. Use **`/help`** anytime  
 
 Full walkthrough: [Getting started](docs/getting-started.md)
 
@@ -94,6 +94,8 @@ Plus **per-server emoji prefixes** (success, error, neutral, warning, unchecked)
 | [🚦 Getting started](docs/getting-started.md) | Invite → template → upload |
 | [⚙️ Configuration](docs/configuration.md) | YAML format, emojis, logs, plugins |
 | [🔐 Permissions](docs/permissions.md) | Bot perms, levels, and `can_*` flags |
+| [📜 Terms of Service](docs/terms-of-service.md) | Rules for using Dreamliner |
+| [🔒 Privacy Policy](docs/privacy-policy.md) | What data we process and why |
 
 ### Plugin docs
 
@@ -161,10 +163,17 @@ Plus **per-server emoji prefixes** (success, error, neutral, warning, unchecked)
 
 ## 💡 Why Dreamliner?
 
-- 📁 **File-based config** — download, edit, upload; your YAML is the source of truth  
-- 🔒 **Fine-grained access** — levels + per-command `can_*` flags  
-- ✂️ **Slash-only** — clean Discord UX, no prefix spam  
-- 🧩 **Plugin architecture** — enable only what your server needs  
+- 📁 **File-based config:** download, edit, upload; your YAML is the source of truth  
+- 🔒 **Fine-grained access:** levels + per-command `can_*` flags  
+- ✂️ **Slash-only:** clean Discord UX, no prefix spam  
+- 🧩 **Plugin architecture:** enable only what your server needs  
+
+---
+
+## ⚖️ Legal
+
+- [Terms of Service](docs/terms-of-service.md)
+- [Privacy Policy](docs/privacy-policy.md)
 
 ---
 
