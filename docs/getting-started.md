@@ -8,11 +8,11 @@ Invite Dreamliner to your server with the permissions listed in [Permissions set
 
 At minimum you will need:
 
-- Manage Server (for `/config` commands)
-- Manage Messages (for `/clean`)
-- Ban Members (for `/bansearch`)
-- Move Members (for `/voice` commands)
-- Manage Nicknames (for `/nickname`)
+* Manage Server (for `/config` commands)
+* Manage Messages (for `/clean`)
+* Ban Members (for `/bansearch`)
+* Move Members (for `/voice` commands)
+* Manage Nicknames (for `/nickname`)
 
 The bot also needs standard read/send message permissions in channels where commands are used.
 
@@ -32,14 +32,14 @@ Open the YAML file in any text editor. Common first steps:
 
 1. Set `levels` - map your mod/admin role or user IDs to numeric levels (e.g. `50` for mods, `100` for admins).
 2. Adjust `emojis` if you want custom success/error/neutral/warning/unchecked prefixes.
-3. Enable and configure plugins under `plugins` - see [plugin documentation](index.md#plugins) for categories:
-   - **Core** - utility commands and infractions
-   - **Moderation** - automod, censor, lockdown, persist, slowmode
-   - **Roles** - role assignment, reaction roles, self-role panels
-   - **Automation** - welcome messages, tags, scheduled posts, counters, and more
-   - **Tracking** - name history, stats, locate user
-   - **Customization** - custom events and command aliases
-   - **Background** - autorole, starboard, and logs (no slash commands)
+3. Enable and configure plugins under `plugins` - see [plugin documentation](/broken/pages/ScBf0pRjbQl3XDFHSAMa#plugins) for categories:
+   * **Core** - utility commands and infractions
+   * **Moderation** - automod, censor, lockdown, persist, slowmode
+   * **Roles** - role assignment, reaction roles, self-role panels
+   * **Automation** - welcome messages, tags, scheduled posts, counters, and more
+   * **Tracking** - name history, stats, locate user
+   * **Customization** - custom events and command aliases
+   * **Background** - autorole, starboard, and logs (no slash commands)
 4. Tweak `plugins.utility` permissions and overrides.
 
 See [Permissions setup](permissions.md) for a full walkthrough and examples. See [Configuration](configuration.md) for the full YAML format.
@@ -70,9 +70,9 @@ Once a configuration is uploaded, moderators can use commands like `/search`, `/
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| "No configuration yet" | Run `/config template` → edit → `/config upload` |
+| Problem                      | Solution                                                |
+| ---------------------------- | ------------------------------------------------------- |
+| "No configuration yet"       | Run `/config template` → edit → `/config upload`        |
 | "You do not have permission" | See [Permissions setup](permissions.md#troubleshooting) |
-| Upload validation errors | Run `/config validate` to see specific field errors |
-| Commands not appearing | Ask the bot operator to run `pnpm register-commands` |
+| Upload validation errors     | Run `/config validate` to see specific field errors     |
+| Commands not appearing       | Ask the bot operator to run `pnpm register-commands`    |

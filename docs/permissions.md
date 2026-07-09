@@ -7,26 +7,26 @@ Dreamliner uses **two separate permission systems**. Both must be configured for
 
 A member needs **both** where applicable. For example, `/clean` requires `can_clean: true` in your config **and** the **Manage Messages** Discord permission on the member's roles.
 
----
+***
 
 ## Step 1: Bot invite permissions
 
 When inviting Dreamliner, grant at least these **bot permissions**:
 
-| Permission | Why |
-|------------|-----|
-| View Channels | See channels and run commands |
-| Send Messages | Reply to slash commands |
-| Embed Links | Link previews in some outputs |
-| Attach Files | `/config download`, `/source`, `/avatar` |
-| Read Message History | `/message`, `/context`, `/clean`, `/source` |
-| Manage Messages | `/clean` bulk delete |
-| Ban Members | `/bansearch`, `/ban`, `/unban`, `/softban` |
-| Kick Members | `/kick` |
-| Moderate Members | `/mute`, `/unmute` |
-| Move Members | `/voice move`, `/voice move-all`, `/voice disconnect` |
-| Manage Nicknames | `/nickname` on other members |
-| Manage Server | `/config` commands (checked on the **user**, not the bot) |
+| Permission           | Why                                                       |
+| -------------------- | --------------------------------------------------------- |
+| View Channels        | See channels and run commands                             |
+| Send Messages        | Reply to slash commands                                   |
+| Embed Links          | Link previews in some outputs                             |
+| Attach Files         | `/config download`, `/source`, `/avatar`                  |
+| Read Message History | `/message`, `/context`, `/clean`, `/source`               |
+| Manage Messages      | `/clean` bulk delete                                      |
+| Ban Members          | `/bansearch`, `/ban`, `/unban`, `/softban`                |
+| Kick Members         | `/kick`                                                   |
+| Moderate Members     | `/mute`, `/unmute`                                        |
+| Move Members         | `/voice move`, `/voice move-all`, `/voice disconnect`     |
+| Manage Nicknames     | `/nickname` on other members                              |
+| Manage Server        | `/config` commands (checked on the **user**, not the bot) |
 
 **Recommended:** use the `applications.commands` scope so slash commands appear.
 
@@ -36,7 +36,7 @@ The bot does **not** need Administrator. Grant only what you use.
 
 If commands fail in specific channels, check channel permission overwrites for the bot role. The bot needs **View Channel**, **Send Messages**, and **Use Application Commands** in every channel where commands are used.
 
----
+***
 
 ## Step 2: Upload a server configuration
 
@@ -48,7 +48,7 @@ Utility commands are disabled until a server admin uploads a config:
 
 Only members with Discord **Manage Server** can use `/config` commands.
 
----
+***
 
 ## Step 3: Assign permission levels
 
@@ -80,12 +80,12 @@ Quote every ID as a string so YAML does not alter large snowflakes. Comments aft
 
 A member's level is the **highest** value from:
 
-- Their user ID entry in `levels`, and
-- Every role they have that appears in `levels`.
+* Their user ID entry in `levels`, and
+* Every role they have that appears in `levels`.
 
 If a member has no matching entries, their level is **0**.
 
----
+***
 
 ## Step 4: Understand `can_*` flags
 
@@ -95,18 +95,18 @@ See [Utility plugin](plugins/utility.md) for the full flag → command mapping.
 
 Infraction commands use `plugins.infractions.config` flags such as `can_warn`, `can_ban`, `can_view`. See [Infractions plugin](plugins/infraction.md).
 
-Every other plugin uses the same pattern: `can_*` flags under `plugins.<name>.config`, usually granted at level `>=50` via overrides. See the [plugin index](index.md) for each plugin's permission flags.
+Every other plugin uses the same pattern: `can_*` flags under `plugins.<name>.config`, usually granted at level `>=50` via overrides. See the [plugin index](/broken/pages/ScBf0pRjbQl3XDFHSAMa) for each plugin's permission flags.
 
 Dreamliner ships with **built-in default overrides** (merged with your config unless you set `replaceDefaultOverrides: true`):
 
-| Level | Utility flags | Infraction flags |
-|-------|---------------|------------------|
-| `>=50` (mod tier) | Search, clean, info, nicknames, voice, help, etc. | Warn, note, mute, kick, view, edit reason/duration |
-| `>=100` (admin tier) | Above plus reload, ping, about | Above plus ban, unban, softban, delete |
+| Level                | Utility flags                                     | Infraction flags                                   |
+| -------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| `>=50` (mod tier)    | Search, clean, info, nicknames, voice, help, etc. | Warn, note, mute, kick, view, edit reason/duration |
+| `>=100` (admin tier) | Above plus reload, ping, about                    | Above plus ban, unban, softban, delete             |
 
 So with default overrides, a member at level **50+** can use most mod tools; level **100+** gets admin/meta tools.
 
----
+***
 
 ## Step 5: Example configurations
 
@@ -192,35 +192,35 @@ plugins:
           can_context: true
 ```
 
----
+***
 
 ## Step 6: Discord permissions per command
 
 Even with `can_*` enabled, some commands check the **member's** Discord permissions:
 
-| Command | Required Discord permission (on the user) |
-|---------|-------------------------------------------|
-| `/clean` | Manage Messages |
-| `/bansearch` | Ban Members |
-| `/voice move`, `/voice move-all`, `/voice disconnect` | Move Members |
-| `/nickname set`, `/nickname reset` (on others) | Manage Nicknames |
-| `/config` | Manage Server |
+| Command                                               | Required Discord permission (on the user) |
+| ----------------------------------------------------- | ----------------------------------------- |
+| `/clean`                                              | Manage Messages                           |
+| `/bansearch`                                          | Ban Members                               |
+| `/voice move`, `/voice move-all`, `/voice disconnect` | Move Members                              |
+| `/nickname set`, `/nickname reset` (on others)        | Manage Nicknames                          |
+| `/config`                                             | Manage Server                             |
 
 Voice and nickname commands also use Dreamliner's **act-on** rules: you cannot target members at or above your level, and you cannot moderate the server owner unless you are the owner.
 
----
+***
 
 ## Step 7: Who can change permissions
 
-| Action | Requirement |
-|--------|-------------|
-| Upload / download / validate config | Discord **Manage Server** |
-| Hot-reload config (`/reload`) | `can_reload_guild` in YAML (default: level 100+) |
-| Change `levels` or `can_*` flags | Edit YAML and `/config upload` |
+| Action                              | Requirement                                      |
+| ----------------------------------- | ------------------------------------------------ |
+| Upload / download / validate config | Discord **Manage Server**                        |
+| Hot-reload config (`/reload`)       | `can_reload_guild` in YAML (default: level 100+) |
+| Change `levels` or `can_*` flags    | Edit YAML and `/config upload`                   |
 
 There is no in-Discord permission editor. All permission changes go through the YAML file.
 
----
+***
 
 ## Override matching rules
 
@@ -228,28 +228,28 @@ Overrides are evaluated in order. Later matching overrides **merge on top** of e
 
 An override matches when **all** of its criteria match:
 
-| Criterion | Matches when |
-|-----------|----------------|
-| `level: ">=50"` | Member's computed level satisfies the comparison |
-| `channel: "ID"` | Command is run in that channel |
-| `category: "ID"` | Command channel is under that category |
-| `user: "ID"` | The member running the command is that user |
+| Criterion        | Matches when                                     |
+| ---------------- | ------------------------------------------------ |
+| `level: ">=50"`  | Member's computed level satisfies the comparison |
+| `channel: "ID"`  | Command is run in that channel                   |
+| `category: "ID"` | Command channel is under that category           |
+| `user: "ID"`     | The member running the command is that user      |
 
 If an override omits a criterion, that criterion is not checked.
 
----
+***
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| "No configuration yet" | No YAML uploaded | `/config template` → edit → `/config upload` |
-| "You do not have permission" | Missing `can_*` or level too low | Add role to `levels`, adjust overrides |
-| "You need Manage Server" | User lacks Discord perm | Grant Manage Server or have an admin upload config |
-| "You need Manage Messages" | `can_clean` ok but Discord perm missing | Add Manage Messages to mod role |
-| Command works for admins but not mods | Role not in `levels` or level &lt; 50 | Add mod role ID with value `50` |
-| Bot does not respond in a channel | Channel overwrite | Allow bot View Channel + Send Messages |
-| Changes after upload have no effect | Old config cached | `/reload` or re-upload |
+| Symptom                               | Likely cause                            | Fix                                                |
+| ------------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| "No configuration yet"                | No YAML uploaded                        | `/config template` → edit → `/config upload`       |
+| "You do not have permission"          | Missing `can_*` or level too low        | Add role to `levels`, adjust overrides             |
+| "You need Manage Server"              | User lacks Discord perm                 | Grant Manage Server or have an admin upload config |
+| "You need Manage Messages"            | `can_clean` ok but Discord perm missing | Add Manage Messages to mod role                    |
+| Command works for admins but not mods | Role not in `levels` or level < 50      | Add mod role ID with value `50`                    |
+| Bot does not respond in a channel     | Channel overwrite                       | Allow bot View Channel + Send Messages             |
+| Changes after upload have no effect   | Old config cached                       | `/reload` or re-upload                             |
 
 ### Verify a member's level
 
@@ -259,11 +259,11 @@ A member with `can_level` (mods by default) can run:
 /level member:@Someone
 ```
 
----
+***
 
 ## Related docs
 
-- [Getting started](getting-started.md) - first-time setup flow
-- [Configuration](configuration.md) - full YAML format
-- [Utility plugin](plugins/utility.md) - every `can_*` flag and command
-- [Infractions plugin](plugins/infraction.md) - moderation commands and case management
+* [Getting started](getting-started.md) - first-time setup flow
+* [Configuration](configuration.md) - full YAML format
+* [Utility plugin](plugins/utility.md) - every `can_*` flag and command
+* [Infractions plugin](plugins/infraction.md) - moderation commands and case management

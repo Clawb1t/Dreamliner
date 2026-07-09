@@ -54,11 +54,11 @@ emojis:
   unchecked: "<:unchecked:1524379366996312104>"
 ```
 
-- **success** - positive outcomes (saved, updated, reloaded, etc.)
-- **error** - permission denied, invalid input, not found, etc.
-- **neutral** - general information and commands
-- **warning** - soft failures and advisories (not configured, already exists, etc.)
-- **unchecked** - disabled or off states
+* **success** - positive outcomes (saved, updated, reloaded, etc.)
+* **error** - permission denied, invalid input, not found, etc.
+* **neutral** - general information and commands
+* **warning** - soft failures and advisories (not configured, already exists, etc.)
+* **unchecked** - disabled or off states
 
 Embed **author** always shows **Dreamliner** with the bot avatar. The **title** shows the emoji plus command title (e.g. success emoji + `Configuration saved`).
 
@@ -95,9 +95,9 @@ server_log_channel_id: "1234567890123456789"
 moderation_log_channel_id: "1234567890123456789"
 ```
 
-| Channel | Events |
-|---------|--------|
-| `server_log_channel_id` | Joins, leaves, message edits/deletes, voice activity, nickname/role changes |
+| Channel                     | Events                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| `server_log_channel_id`     | Joins, leaves, message edits/deletes, voice activity, nickname/role changes           |
 | `moderation_log_channel_id` | Infractions, automod, censor, `/clean`, voice mod commands, case updates, expirations |
 
 The legacy `log_channel_id` still works as a fallback for moderation logs. See [Logs plugin](plugins/logs.md) for the full event list and log format.
@@ -106,21 +106,21 @@ The legacy `log_channel_id` still works as a fallback for moderation logs. See [
 
 Each plugin is configured under `plugins.<name>`:
 
-| Field | Description |
-|-------|-------------|
-| `enabled` | Set `false` to disable (utility is enabled when section exists) |
-| `config` | Direct config values |
-| `overrides` | Context-specific overrides |
-| `replaceDefaultOverrides` | If `true`, ignore built-in default overrides |
+| Field                     | Description                                                     |
+| ------------------------- | --------------------------------------------------------------- |
+| `enabled`                 | Set `false` to disable (utility is enabled when section exists) |
+| `config`                  | Direct config values                                            |
+| `overrides`               | Context-specific overrides                                      |
+| `replaceDefaultOverrides` | If `true`, ignore built-in default overrides                    |
 
 ### Override criteria
 
-| Key | Matches |
-|-----|---------|
-| `level` | Member level (`">=50"`, `">100"`, etc.) |
-| `channel` | Specific channel ID |
-| `category` | Category channel ID |
-| `user` | Specific user ID |
+| Key        | Matches                                 |
+| ---------- | --------------------------------------- |
+| `level`    | Member level (`">=50"`, `">100"`, etc.) |
+| `channel`  | Specific channel ID                     |
+| `category` | Category channel ID                     |
+| `user`     | Specific user ID                        |
 
 ## Merge behavior
 
@@ -130,13 +130,13 @@ See also: [Autorole](plugins/autorole.md), [Logs](plugins/logs.md), [Starboard](
 
 ## Config commands
 
-| Command | Description |
-|---------|-------------|
-| `/config template` | Default template from bot operator |
-| `/config download` | Current effective config for this server |
-| `/config upload` | Validate and save a config file |
-| `/config validate` | Dry-run validation |
-| `/config update` | Apply new Dreamliner defaults while keeping your customizations |
+| Command            | Description                                                     |
+| ------------------ | --------------------------------------------------------------- |
+| `/config template` | Default template from bot operator                              |
+| `/config download` | Current effective config for this server                        |
+| `/config upload`   | Validate and save a config file                                 |
+| `/config validate` | Dry-run validation                                              |
+| `/config update`   | Apply new Dreamliner defaults while keeping your customizations |
 
 ### Workflow
 
@@ -159,14 +159,14 @@ Admins with `can_reload_guild` can run `/reload` to re-read the config from the 
 
 Dreamliner is organized into plugins under the `plugins:` key. Each plugin has its own `config`, optional `overrides`, and `enabled` flag.
 
-| Category | Plugins |
-|----------|---------|
-| Core | utility, infractions |
-| Moderation | automod, censor, admin, persist, slowmode |
-| Roles | roles, reaction_roles, role_buttons, self_grantable_roles, pingable_roles, role_manager, autorole |
-| Automation | welcome_message, tags, post, autodelete, autoreactions, reminders, counters, companion_channels |
-| Tracking | name_history, username_saver, locate_user, stats |
-| Customization | custom_events, command_aliases |
-| Background | starboard, logs |
+| Category      | Plugins                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------- |
+| Core          | utility, infractions                                                                                    |
+| Moderation    | automod, censor, admin, persist, slowmode                                                               |
+| Roles         | roles, reaction\_roles, role\_buttons, self\_grantable\_roles, pingable\_roles, role\_manager, autorole |
+| Automation    | welcome\_message, tags, post, autodelete, autoreactions, reminders, counters, companion\_channels       |
+| Tracking      | name\_history, username\_saver, locate\_user, stats                                                     |
+| Customization | custom\_events, command\_aliases                                                                        |
+| Background    | starboard, logs                                                                                         |
 
-See [Documentation index](index.md) for setup guides per plugin. The default template (`/config template`) includes all configurable fields.
+See [Documentation index](/broken/pages/ScBf0pRjbQl3XDFHSAMa) for setup guides per plugin. The default template (`/config template`) includes all configurable fields.
