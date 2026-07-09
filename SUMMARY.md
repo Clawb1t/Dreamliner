@@ -1,7 +1,7 @@
 # Table of contents
 
 * [✈️ Dreamliner](README.md)
-* [docs](docs/README.md)
+* [📖 Documentation](docs/README.md)
   * [Configuration](docs/configuration.md)
   * [Deploy on PebbleHost](docs/deploy-pebblehost.md)
   * [Deploy to Hetzner (auto-update on push)](docs/deploy.md)
@@ -10,7 +10,7 @@
   * [Permissions setup](docs/permissions.md)
   * [Privacy Policy](docs/privacy-policy.md)
   * [Terms of Service](docs/terms-of-service.md)
-  * [plugins](docs/plugins/README.md)
+  * [🔌 Dreamliner Plugins](docs/plugins/README.md)
     * [Admin plugin](docs/plugins/admin.md)
     * [Autodelete plugin](docs/plugins/autodelete.md)
     * [Automod plugin](docs/plugins/automod.md)

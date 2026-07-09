@@ -1,2 +1,2 @@
-# plugins
+# 🔌 Dreamliner Plugins
 
