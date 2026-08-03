@@ -1,12 +1,5 @@
 import { z } from "zod";
-
-const pluginOverrideSchema = z.strictObject({
-  level: z.string().optional(),
-  channel: z.string().optional(),
-  category: z.string().optional(),
-  user: z.string().optional(),
-  config: z.record(z.unknown()),
-});
+import { zPluginOverride } from "./pluginSection.js";
 
 export const zStarboardBoard = z.strictObject({
   channel_id: z.string(),
@@ -28,7 +21,7 @@ export const zStarboardConfig = z.strictObject({
 export const zStarboardPluginSection = z.strictObject({
   enabled: z.boolean().optional(),
   config: zStarboardConfig.partial().optional(),
-  overrides: z.array(pluginOverrideSchema).optional(),
+  overrides: z.array(zPluginOverride).optional(),
   replaceDefaultOverrides: z.boolean().optional(),
 });
 

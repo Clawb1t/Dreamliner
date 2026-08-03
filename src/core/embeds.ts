@@ -6,11 +6,11 @@ export const EMPTY_EMBED = "\u200b";
 export const PRE_EMBED_PADDING = `${EMPTY_EMBED}\n`;
 
 const DEFAULT_EMOJIS: EmojisConfig = {
-  success: "<:checked:1524379445379465276>",
-  error: "<:redcheck:1524379423757959208>",
-  neutral: "<:greycheck:1524379394372669553>",
-  warning: "<:lowwarning:1524379341000151170>",
-  unchecked: "<:unchecked:1524379366996312104>",
+  success: "<:blurplecheck:1533947878668763278>",
+  error: "<:redcheck:1533947951481749504>",
+  neutral: "<:greycheck:1533948078615298148>",
+  warning: "<:warning:1533948583995244734>",
+  unchecked: "<:greycheck:1533948078615298148>",
 };
 
 export type EmbedTone = "success" | "neutral" | "error" | "warning" | "unchecked";

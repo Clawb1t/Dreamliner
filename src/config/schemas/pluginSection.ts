@@ -5,6 +5,7 @@ export const zPluginOverride = z.strictObject({
   channel: z.string().optional(),
   category: z.string().optional(),
   user: z.string().optional(),
+  role: z.string().optional(),
   config: z.record(z.unknown()),
 });
 

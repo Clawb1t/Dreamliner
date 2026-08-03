@@ -1,12 +1,5 @@
 import { z } from "zod";
-
-const pluginOverrideSchema = z.strictObject({
-  level: z.string().optional(),
-  channel: z.string().optional(),
-  category: z.string().optional(),
-  user: z.string().optional(),
-  config: z.record(z.unknown()),
-});
+import { zPluginOverride } from "./pluginSection.js";
 
 export const zAutoroleRoleEntry = z.strictObject({
   role: z.string(),
@@ -22,7 +15,7 @@ export const zAutoroleConfig = z.strictObject({
 export const zAutorolePluginSection = z.strictObject({
   enabled: z.boolean().optional(),
   config: zAutoroleConfig.partial().optional(),
-  overrides: z.array(pluginOverrideSchema).optional(),
+  overrides: z.array(zPluginOverride).optional(),
   replaceDefaultOverrides: z.boolean().optional(),
 });
 

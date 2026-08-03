@@ -17,6 +17,7 @@ export type ConfigOverride = {
   channel?: string;
   category?: string;
   user?: string;
+  role?: string;
   config: Record<string, unknown>;
 };
 

@@ -65,11 +65,13 @@ export const infoCommands: SlashCommandDefinition[] = [
     permission: "can_server",
     data: new SlashCommandBuilder()
       .setName("server")
-      .setDescription("Show information about this server"),
+      .setDescription("Show detailed information about this server"),
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_server");
       if (!auth) return;
-      await ctx.interaction.reply(embedReply(buildServerInfoEmbed(ctx.interaction.guild!, ctx.guildConfig, ctx.client), ctx.ephemeral));
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+      const embed = await buildServerInfoEmbed(ctx.interaction.guild!, ctx.guildConfig, ctx.client);
+      await ctx.interaction.editReply(embedEdit(embed));
     },
   },
   {

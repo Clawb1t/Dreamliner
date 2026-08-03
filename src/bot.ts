@@ -29,6 +29,7 @@ import {
   handleSelfRoleSelectInteraction,
   SELF_ROLE_PREFIX,
 } from "./plugins/self_grantable_roles/index.js";
+import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
 
@@ -73,6 +74,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   });
 
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
+    if (interaction.isAutocomplete()) {
+      if (interaction.commandName === "permissions") {
+        await handlePermissionsAutocomplete(interaction).catch((error) => {
+          console.error("Permissions autocomplete error:", error);
+        });
+      }
+      return;
+    }
     if (interaction.isChatInputCommand()) {
       await handleSlashCommand(ctx, configManager, interaction);
       return;

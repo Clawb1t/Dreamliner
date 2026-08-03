@@ -6,11 +6,11 @@ Dreamliner server configuration is written in YAML. Each server has its own conf
 
 ```yaml
 emojis:
-  success: "<:checked:1524379445379465276>"
-  error: "<:redcheck:1524379423757959208>"
-  neutral: "<:greycheck:1524379394372669553>"
-  warning: "<:lowwarning:1524379341000151170>"
-  unchecked: "<:unchecked:1524379366996312104>"
+  success: "<:blurplecheck:1533947878668763278>"
+  error: "<:redcheck:1533947951481749504>"
+  neutral: "<:greycheck:1533948078615298148>"
+  warning: "<:warning:1533948583995244734>"
+  unchecked: "<:greycheck:1533948078615298148>"
 
 levels:
   "ROLE_OR_USER_SNOWFLAKE": 100   # Admin
@@ -47,11 +47,11 @@ The `emojis` block sets the icons used on command response embed titles:
 
 ```yaml
 emojis:
-  success: "<:checked:1524379445379465276>"
-  error: "<:redcheck:1524379423757959208>"
-  neutral: "<:greycheck:1524379394372669553>"
-  warning: "<:lowwarning:1524379341000151170>"
-  unchecked: "<:unchecked:1524379366996312104>"
+  success: "<:blurplecheck:1533947878668763278>"
+  error: "<:redcheck:1533947951481749504>"
+  neutral: "<:greycheck:1533948078615298148>"
+  warning: "<:warning:1533948583995244734>"
+  unchecked: "<:greycheck:1533948078615298148>"
 ```
 
 * **success** - positive outcomes (saved, updated, reloaded, etc.)
@@ -121,6 +121,9 @@ Each plugin is configured under `plugins.<name>`:
 | `channel`  | Specific channel ID                     |
 | `category` | Category channel ID                     |
 | `user`     | Specific user ID                        |
+| `role`     | Members who have this role ID           |
+
+For everyday grants (user / role / everyone) and level assignment, prefer `/permissions` instead of editing YAML. See [Permissions](permissions.md).
 
 ## Merge behavior
 
@@ -137,6 +140,7 @@ See also: [Autorole](plugins/autorole.md), [Logs](plugins/logs.md), [Starboard](
 | `/config upload`   | Validate and save a config file                                 |
 | `/config validate` | Dry-run validation                                              |
 | `/config update`   | Apply new Dreamliner defaults while keeping your customizations |
+| `/permissions ...` | Grant commands / set levels without re-uploading YAML           |
 
 ### Workflow
 

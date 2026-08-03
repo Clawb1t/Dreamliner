@@ -18,9 +18,9 @@ Inspired by [Zeppelin](https://github.com/ZeppelinBot/Zeppelin). Configure your 
 
 1. **Invite** Dreamliner with the link above
 2. Run **`/config template`** (needs **Manage Server**)
-3. Edit the YAML: set `levels`, channels, and plugins
+3. Edit the YAML: set channels and plugins (levels can also be set later with `/permissions`)
 4. Run **`/config upload`** with your file
-5. You’re live. Use **`/help`** anytime
+5. You’re live. Use **`/permissions`** to grant commands / set levels without re-uploading, and **`/help`** anytime
 
 Full walkthrough: [Getting started](docs/getting-started.md)
 

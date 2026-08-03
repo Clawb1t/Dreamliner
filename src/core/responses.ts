@@ -63,6 +63,13 @@ export function embedWithFilesReply(
   return { embeds: [embed], files, ...withEphemeral(ephemeral) };
 }
 
+export function embedWithFilesEdit(
+  embed: APIEmbed | EmbedBuilder,
+  files: AttachmentBuilder[],
+): InteractionEditReplyOptions {
+  return { embeds: [embed], files };
+}
+
 export function contentReply(content: string, ephemeral = false): InteractionReplyOptions {
   return { content, ...withEphemeral(ephemeral) };
 }

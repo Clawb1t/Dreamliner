@@ -208,6 +208,28 @@ export const guildStatsDaily = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.statDate] })],
 );
 
+export const guildStatsUserDaily = sqliteTable(
+  "guild_stats_user_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    statDate: text("stat_date").notNull(),
+    messages: integer("messages").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.statDate] })],
+);
+
+export const guildStatsChannelDaily = sqliteTable(
+  "guild_stats_channel_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    statDate: text("stat_date").notNull(),
+    messages: integer("messages").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.channelId, table.statDate] })],
+);
+
 export const customEvents = sqliteTable("custom_events", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   guildId: text("guild_id").notNull(),

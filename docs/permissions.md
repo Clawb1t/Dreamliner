@@ -26,7 +26,7 @@ When inviting Dreamliner, grant at least these **bot permissions**:
 | Moderate Members     | `/mute`, `/unmute`                                        |
 | Move Members         | `/voice move`, `/voice move-all`, `/voice disconnect`     |
 | Manage Nicknames     | `/nickname` on other members                              |
-| Manage Server        | `/config` commands (checked on the **user**, not the bot) |
+| Manage Server        | `/config` and `/permissions` (checked on the **user**, not the bot) |
 
 **Recommended:** use the `applications.commands` scope so slash commands appear.
 
@@ -215,10 +215,28 @@ Voice and nickname commands also use Dreamliner's **act-on** rules: you cannot t
 | Action                              | Requirement                                      |
 | ----------------------------------- | ------------------------------------------------ |
 | Upload / download / validate config | Discord **Manage Server**                        |
+| Manage levels / command grants      | Discord **Manage Server** (`/permissions`)       |
 | Hot-reload config (`/reload`)       | `can_reload_guild` in YAML (default: level 100+) |
-| Change `levels` or `can_*` flags    | Edit YAML and `/config upload`                   |
+| Edit full YAML                      | `/config download` → edit → `/config upload`     |
 
-There is no in-Discord permission editor. All permission changes go through the YAML file.
+### In-Discord permission editor
+
+Use `/permissions` (requires **Manage Server**) instead of downloading YAML for common changes:
+
+| Command | What it does |
+| ------- | ------------ |
+| `/permissions allow command:<name> user:@Someone` | Let a specific user run a command |
+| `/permissions allow command:<name> role:@Mods` | Let a role run a command |
+| `/permissions allow command:<name> everyone:True` | Let everyone run a command |
+| `/permissions deny ...` | Remove a grant made with `allow` |
+| `/permissions show command:<name>` | See defaults and configured grants |
+| `/permissions level set role:@Mods level:50` | Assign a permission level (mods = 50, admins = 100 by default) |
+| `/permissions level remove ...` | Clear a level entry |
+| `/permissions level list` | List configured levels |
+
+The `command` option supports autocomplete. Changes are saved into the server config immediately (same store as `/config upload`).
+
+YAML still supports advanced cases (channel/category restrictions, custom level override bundles). Role grants via `/permissions` use a `role:` override in config.
 
 ***
 
@@ -234,6 +252,7 @@ An override matches when **all** of its criteria match:
 | `channel: "ID"`  | Command is run in that channel                   |
 | `category: "ID"` | Command channel is under that category           |
 | `user: "ID"`     | The member running the command is that user      |
+| `role: "ID"`     | The member has that role                         |
 
 If an override omits a criterion, that criterion is not checked.
 

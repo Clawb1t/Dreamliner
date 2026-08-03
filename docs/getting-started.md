@@ -1,6 +1,6 @@
 # Getting started
 
-Dreamliner uses a **download → edit → upload** workflow for server configuration. There is no in-Discord setup wizard or web dashboard.
+Dreamliner uses a **download → edit → upload** workflow for server configuration. After the first upload, you can also manage levels and command access in Discord with `/permissions` (no re-upload needed).
 
 ## 1. Invite the bot
 
@@ -8,7 +8,7 @@ Invite Dreamliner to your server with the permissions listed in [Permissions set
 
 At minimum you will need:
 
-* Manage Server (for `/config` commands)
+* Manage Server (for `/config` and `/permissions` commands)
 * Manage Messages (for `/clean`)
 * Ban Members (for `/bansearch`)
 * Move Members (for `/voice` commands)

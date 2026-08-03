@@ -3,6 +3,7 @@ import { definePlugin } from "../../core/plugin.js";
 import { resultReply, embedWithFilesReply, guildResultOptions } from "../../core/responses.js";
 import { buildResultEmbed } from "../../core/embeds.js";
 import { configManager } from "../../config/manager.js";
+import { permissionsCommand } from "./commands/permissions.js";
 
 export const configPlugin = definePlugin({
   name: "config",
@@ -131,5 +132,6 @@ export const configPlugin = definePlugin({
         return;
       },
     },
+    permissionsCommand,
   ],
 });

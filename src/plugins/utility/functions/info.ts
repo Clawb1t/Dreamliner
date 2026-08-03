@@ -10,7 +10,17 @@ import type {
   VoiceChannel,
   StageChannel,
 } from "discord.js";
-import { ChannelType, EmbedBuilder, PermissionFlagsBits, type Client } from "discord.js";
+import {
+  ChannelType,
+  EmbedBuilder,
+  GuildExplicitContentFilter,
+  GuildMFALevel,
+  GuildNSFWLevel,
+  GuildPremiumTier,
+  GuildVerificationLevel,
+  PermissionFlagsBits,
+  type Client,
+} from "discord.js";
 import { decodeSnowflake } from "../../../core/datetime.js";
 import { getMemberLevel } from "../../../core/permissions.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
@@ -23,7 +33,6 @@ import {
   discordTs,
   embedField,
   memberAccentColor,
-  PRE_EMBED_PADDING,
   setEmbedAuthor,
   trimEmptyLines,
   trimLines,
@@ -154,52 +163,208 @@ export async function buildUserInfoEmbed(
   return embed;
 }
 
-export function buildServerInfoEmbed(guild: Guild, guildConfig: GuildConfig, client: Client): EmbedBuilder {
-  const embed = setEmbedAuthor(baseEmbed(), `Server: ${guild.name}`, client, commandHeader(guildConfig));
+const VERIFICATION_LABELS: Record<GuildVerificationLevel, string> = {
+  [GuildVerificationLevel.None]: "None",
+  [GuildVerificationLevel.Low]: "Low",
+  [GuildVerificationLevel.Medium]: "Medium",
+  [GuildVerificationLevel.High]: "High",
+  [GuildVerificationLevel.VeryHigh]: "Very High",
+};
 
-  const owner = guild.members.cache.get(guild.ownerId);
-  const basic = [
-    `Created: **${discordTs(guild.createdAt)}**`,
-    `Owner: **${owner?.user.tag ?? "Unknown"}** (\`${guild.ownerId}\`)`,
+const CONTENT_FILTER_LABELS: Record<GuildExplicitContentFilter, string> = {
+  [GuildExplicitContentFilter.Disabled]: "Disabled",
+  [GuildExplicitContentFilter.MembersWithoutRoles]: "Members without roles",
+  [GuildExplicitContentFilter.AllMembers]: "All members",
+};
+
+const NSFW_LABELS: Record<GuildNSFWLevel, string> = {
+  [GuildNSFWLevel.Default]: "Default",
+  [GuildNSFWLevel.Explicit]: "Explicit",
+  [GuildNSFWLevel.Safe]: "Safe",
+  [GuildNSFWLevel.AgeRestricted]: "Age restricted",
+};
+
+const BOOST_TIER_LABELS: Record<GuildPremiumTier, string> = {
+  [GuildPremiumTier.None]: "None",
+  [GuildPremiumTier.Tier1]: "Level 1",
+  [GuildPremiumTier.Tier2]: "Level 2",
+  [GuildPremiumTier.Tier3]: "Level 3",
+};
+
+const NOTABLE_FEATURES: Record<string, string> = {
+  COMMUNITY: "Community",
+  VERIFIED: "Verified",
+  PARTNERED: "Partnered",
+  DISCOVERABLE: "Discoverable",
+  INVITES_DISABLED: "Invites disabled",
+  WELCOME_SCREEN_ENABLED: "Welcome screen",
+  MEMBER_VERIFICATION_GATE_ENABLED: "Membership screening",
+  NEWS: "Announcement channels",
+  ANIMATED_ICON: "Animated icon",
+  ANIMATED_BANNER: "Animated banner",
+  BANNER: "Banner",
+  VANITY_URL: "Vanity URL",
+  INVITE_SPLASH: "Invite splash",
+  ROLE_ICONS: "Role icons",
+  ROLE_SUBSCRIPTIONS_ENABLED: "Role subscriptions",
+  TICKETED_EVENTS_ENABLED: "Ticketed events",
+  MONETIZATION_ENABLED: "Monetization",
+  RAID_ALERTS_DISABLED: "Raid alerts disabled",
+  PREVIEW_ENABLED: "Preview enabled",
+};
+
+function formatAfkTimeout(seconds: number): string {
+  if (seconds <= 0) return "Off";
+  if (seconds % 3600 === 0) return `${seconds / 3600}h`;
+  if (seconds % 60 === 0) return `${seconds / 60}m`;
+  return `${seconds}s`;
+}
+
+export async function buildServerInfoEmbed(guild: Guild, guildConfig: GuildConfig, client: Client): Promise<EmbedBuilder> {
+  const [owner, refreshed] = await Promise.all([
+    guild.members.fetch(guild.ownerId).catch(() => guild.members.cache.get(guild.ownerId) ?? null),
+    guild.fetch().catch(() => guild),
+  ]);
+  const g = refreshed;
+
+  const iconURL = g.iconURL({ size: 256 });
+  const bannerURL = g.bannerURL({ size: 1024 });
+  const splashURL = g.splashURL({ size: 512 });
+  const discoverySplashURL = g.discoverySplashURL({ size: 512 });
+
+  const embed = setEmbedAuthor(
+    baseEmbed(),
+    `Server: ${g.name}`,
+    client,
+    commandHeader(guildConfig, { thumbnailURL: iconURL }),
+  );
+
+  if (bannerURL) embed.setImage(bannerURL);
+
+  const ownerLabel = owner
+    ? `<@!${owner.id}> (\`${owner.user.tag}\`)`
+    : `Unknown (\`${g.ownerId}\`)`;
+
+  const basicLines = [
+    `Name: **${g.name}**`,
+    g.nameAcronym ? `Acronym: **${g.nameAcronym}**` : "",
+    `ID: \`${g.id}\``,
+    `Created: **${discordTs(g.createdAt)}**`,
+    `Owner: ${ownerLabel}`,
+    g.description ? `Description: ${g.description.slice(0, 200)}${g.description.length > 200 ? "…" : ""}` : "",
+    g.vanityURLCode ? `Vanity: **https://discord.gg/${g.vanityURLCode}**` : "",
+    g.preferredLocale ? `Locale: **${g.preferredLocale}**` : "",
   ];
-  if (guild.features.length > 0) {
-    basic.push(`Features: ${guild.features.map((f) => `\`${f}\``).join(", ")}`);
-  }
 
-  embed.setDescription(`${PRE_EMBED_PADDING}**Basic Information**\n${basic.join("\n")}`);
+  embed.addFields(embedField("Server information", trimEmptyLines(basicLines.join("\n"))));
 
-  const totalMembers = guild.memberCount ?? guild.members.cache.size;
-  const online = guild.members.cache.filter((m) => m.presence?.status && m.presence.status !== "offline").size;
+  embed.addFields(
+    embedField(
+      "Security",
+      trimLines(`
+        Verification: **${VERIFICATION_LABELS[g.verificationLevel] ?? g.verificationLevel}**
+        Content filter: **${CONTENT_FILTER_LABELS[g.explicitContentFilter] ?? g.explicitContentFilter}**
+        NSFW level: **${NSFW_LABELS[g.nsfwLevel] ?? g.nsfwLevel}**
+        2FA moderation: **${g.mfaLevel === GuildMFALevel.Elevated ? "Required" : "Not required"}**
+      `),
+      true,
+    ),
+    embedField(
+      "Channels & media",
+      trimEmptyLines(`
+        System: ${g.systemChannel ? `<#${g.systemChannelId}>` : "**None**"}
+        Rules: ${g.rulesChannel ? `<#${g.rulesChannelId}>` : "**None**"}
+        AFK: ${g.afkChannel ? `<#${g.afkChannelId}>` : "**None**"} (${formatAfkTimeout(g.afkTimeout)})
+        Updates: ${g.publicUpdatesChannel ? `<#${g.publicUpdatesChannelId}>` : "**None**"}
+      `),
+      true,
+    ),
+  );
+
+  const totalMembers = g.memberCount || g.approximateMemberCount || g.members.cache.size;
+  const bots = g.members.cache.filter((m) => m.user.bot).size;
+  const cachedHumans = g.members.cache.filter((m) => !m.user.bot).size;
+  const online = g.approximatePresenceCount;
+  const humans =
+    g.members.cache.size >= totalMembers
+      ? cachedHumans
+      : Math.max(0, totalMembers - bots);
+
+  const channels = g.channels.cache;
+  const textCount = channels.filter((c) => c.type === ChannelType.GuildText).size;
+  const announcementCount = channels.filter((c) => c.type === ChannelType.GuildAnnouncement).size;
+  const voiceCount = channels.filter((c) => c.type === ChannelType.GuildVoice).size;
+  const stageCount = channels.filter((c) => c.type === ChannelType.GuildStageVoice).size;
+  const forumCount = channels.filter((c) => c.type === ChannelType.GuildForum || c.type === ChannelType.GuildMedia).size;
+  const categoryCount = channels.filter((c) => c.type === ChannelType.GuildCategory).size;
+  const threadCount = channels.filter((c) => c.isThread()).size;
+  const channelTotal = channels.filter((c) => !c.isThread()).size;
+
+  const staticEmojis = g.emojis.cache.filter((e) => !e.animated).size;
+  const animatedEmojis = g.emojis.cache.filter((e) => e.animated).size;
+  const stickers = g.stickers.cache.size;
+  const boostCount = g.premiumSubscriptionCount ?? 0;
+  const boostTier = BOOST_TIER_LABELS[g.premiumTier] ?? `Level ${g.premiumTier}`;
 
   embed.addFields(
     embedField(
       "Members",
-      trimLines(`
-        Total: **${totalMembers}**
-        Online: **${online}**
-        Offline: **${Math.max(0, totalMembers - online)}**
+      trimEmptyLines(`
+        Total: **${totalMembers.toLocaleString()}**
+        Humans: **${humans.toLocaleString()}**
+        Bots: **${bots.toLocaleString()}**${g.members.cache.size < totalMembers ? "*" : ""}
+        ${online != null ? `Online: **~${online.toLocaleString()}**` : ""}
       `),
       true,
     ),
     embedField(
       "Channels",
       trimLines(`
-        Total: **${guild.channels.cache.filter((c) => !c.isThread()).size}**
-        Text: **${guild.channels.cache.filter((c) => c.type === ChannelType.GuildText).size}**
-        Voice: **${guild.channels.cache.filter((c) => c.isVoiceBased()).size}**
+        Total: **${channelTotal}**
+        Text: **${textCount}**
+        Announcement: **${announcementCount}**
+        Voice: **${voiceCount}**
+        Stage: **${stageCount}**
+        Forum/Media: **${forumCount}**
+        Categories: **${categoryCount}**
+        Threads: **${threadCount}**
       `),
       true,
     ),
     embedField(
-      "Other stats",
+      "Boosts & assets",
       trimLines(`
-        Roles: **${guild.roles.cache.size}**
-        Emojis: **${guild.emojis.cache.size}**
-        Boosts: **${guild.premiumSubscriptionCount ?? 0}**${guild.premiumTier ? ` (level ${guild.premiumTier})` : ""}
+        Boosts: **${boostCount}** (${boostTier})
+        Progress bar: **${yesNo(g.premiumProgressBarEnabled, guildConfig.emojis)}**
+        Roles: **${g.roles.cache.size}**
+        Emojis: **${g.emojis.cache.size}** (${staticEmojis} static / ${animatedEmojis} animated)
+        Stickers: **${stickers}**
       `),
       true,
     ),
   );
+
+  const notable = g.features
+    .map((feature) => NOTABLE_FEATURES[feature])
+    .filter((label): label is string => Boolean(label));
+  if (notable.length > 0) {
+    embed.addFields(embedField("Features", notable.map((label) => `\`${label}\``).join(", ")));
+  }
+
+  const assetLinks = [
+    iconURL ? `[Icon](${iconURL})` : null,
+    bannerURL ? `[Banner](${bannerURL})` : null,
+    splashURL ? `[Invite splash](${splashURL})` : null,
+    discoverySplashURL ? `[Discovery splash](${discoverySplashURL})` : null,
+  ].filter(Boolean);
+
+  if (assetLinks.length > 0) {
+    embed.addFields(embedField("Assets", assetLinks.join(" · ")));
+  }
+
+  if (g.members.cache.size < totalMembers) {
+    embed.setFooter({ text: "* Bot count is from cached members only" });
+  }
 
   return embed;
 }

@@ -32,11 +32,11 @@ import {
 } from "./plugins.js";
 
 export const zEmojisConfig = z.strictObject({
-  success: z.string().default("<:checked:1524379445379465276>"),
-  error: z.string().default("<:redcheck:1524379423757959208>"),
-  neutral: z.string().default("<:greycheck:1524379394372669553>"),
-  warning: z.string().default("<:lowwarning:1524379341000151170>"),
-  unchecked: z.string().default("<:unchecked:1524379366996312104>"),
+  success: z.string().default("<:blurplecheck:1533947878668763278>"),
+  error: z.string().default("<:redcheck:1533947951481749504>"),
+  neutral: z.string().default("<:greycheck:1533948078615298148>"),
+  warning: z.string().default("<:warning:1533948583995244734>"),
+  unchecked: z.string().default("<:greycheck:1533948078615298148>"),
 });
 
 export const zGuildConfig = z.strictObject({
@@ -90,5 +90,6 @@ export type PluginOverride = {
   channel?: string;
   category?: string;
   user?: string;
+  role?: string;
   config: Record<string, unknown>;
 };

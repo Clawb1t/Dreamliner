@@ -3,7 +3,7 @@ import { definePlugin } from "../../core/plugin.js";
 import { zStatsConfig } from "../../config/schemas/plugins.js";
 import { statsDefaultOverrides } from "./defaultOverrides.js";
 import { statsCommands } from "./commands/stats.js";
-import { incrementDailyStat } from "./functions/daily.js";
+import { incrementDailyStat, recordMessageActivity } from "./functions/daily.js";
 
 export const statsPlugin = definePlugin({
   name: "stats",
@@ -15,8 +15,8 @@ export const statsPlugin = definePlugin({
       name: Events.MessageCreate,
       execute: async (_client, message: unknown) => {
         const msg = message as import("discord.js").Message;
-        if (!msg.guild || msg.author.bot) return;
-        await incrementDailyStat(msg.guild.id, "messages").catch(() => null);
+        if (!msg.guild || msg.author.bot || !msg.channelId) return;
+        await recordMessageActivity(msg.guild.id, msg.author.id, msg.channelId).catch(() => null);
       },
     },
     {

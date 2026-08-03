@@ -50,6 +50,7 @@ function overrideMatches(
   memberLevel: number,
 ): boolean {
   if (override.user && override.user !== member.id) return false;
+  if (override.role && !member.roles.cache.has(override.role)) return false;
   if (override.channel && override.channel !== channelId) return false;
   if (override.category && override.category !== categoryId) return false;
   if (override.level) {
