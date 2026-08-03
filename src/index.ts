@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { createBot } from "./bot.js";
+import { createBot, registerSlashCommands } from "./bot.js";
 import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
 
@@ -11,6 +11,18 @@ async function main() {
   }
 
   runMigrations();
+
+  const clientId = process.env.DISCORD_CLIENT_ID;
+  if (clientId && process.env.REGISTER_COMMANDS_ON_START !== "false") {
+    try {
+      console.log("[dreamliner] Registering slash commands…");
+      await registerSlashCommands(token, clientId);
+    } catch (error) {
+      console.error("[dreamliner] Failed to register slash commands:", error);
+    }
+  } else if (!clientId) {
+    console.warn("[dreamliner] DISCORD_CLIENT_ID missing — slash commands were not registered on start.");
+  }
 
   const { client } = await createBot(configManager);
   await client.login(token);
