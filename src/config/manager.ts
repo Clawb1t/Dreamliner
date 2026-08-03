@@ -14,6 +14,7 @@ import {
 } from "./validator.js";
 import type { GuildConfig } from "./schemas/guild.js";
 import type { ConfigOverride } from "../core/types.js";
+import { migrateLegacyEmojis, migrateLegacyEmojisInObject } from "./emojiMigration.js";
 
 const cache = new Map<string, GuildConfig>();
 
@@ -47,8 +48,52 @@ export class ConfigManager {
       return null;
     }
 
-    cache.set(guildId, validated.data);
-    return validated.data;
+    const migratedEmojis = migrateLegacyEmojis(validated.data.emojis);
+    const data: GuildConfig = migratedEmojis.changed
+      ? { ...validated.data, emojis: migratedEmojis.emojis }
+      : validated.data;
+
+    cache.set(guildId, data);
+
+    if (migratedEmojis.changed) {
+      void this.persistLegacyEmojiMigration(guildId, data, row.userConfigYaml).catch((error) => {
+        console.error(`[dreamliner] Failed to persist emoji migration for ${guildId}:`, error);
+      });
+    }
+
+    return data;
+  }
+
+  private async persistLegacyEmojiMigration(
+    guildId: string,
+    config: GuildConfig,
+    userConfigYaml: string | null | undefined,
+  ): Promise<void> {
+    let nextUserConfigYaml = userConfigYaml ?? null;
+    if (userConfigYaml) {
+      try {
+        const parsed = parseYamlConfig(userConfigYaml);
+        const migrated = migrateLegacyEmojisInObject(parsed ?? {});
+        if (migrated.changed) {
+          nextUserConfigYaml = YAML.stringify(migrated.value);
+        }
+      } catch {
+        // Keep original user YAML if it cannot be parsed.
+      }
+    }
+
+    const db = getDb();
+    await db
+      .update(guildConfigs)
+      .set({
+        configYaml: YAML.stringify(config),
+        userConfigYaml: nextUserConfigYaml,
+        updatedAt: new Date(),
+        updatedBy: "system:emoji-migration",
+      })
+      .where(eq(guildConfigs.guildId, guildId));
+
+    console.log(`[dreamliner] Migrated legacy response emojis for guild ${guildId}`);
   }
 
   async getEffectiveConfig(guildId: string): Promise<GuildConfig> {
