@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { ChannelType, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { embedReply, resultReply, slashResultOptions } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
@@ -8,6 +8,7 @@ import {
   deleteCustomEvent,
   listCustomEvents,
   parseEventConfigJson,
+  type CustomEventConfig,
 } from "../functions/store.js";
 import { buildDefaultMessageConfig, formatEventConfig } from "../functions/triggers.js";
 
@@ -24,7 +25,24 @@ export const eventCommands: SlashCommandDefinition[] = [
           .addStringOption((o) => o.setName("name").setDescription("Event name").setRequired(true))
           .addStringOption((o) => o.setName("match").setDescription("Text to match in messages").setRequired(true))
           .addStringOption((o) => o.setName("response").setDescription("Bot reply when triggered").setRequired(true))
-          .addStringOption((o) => o.setName("config").setDescription("Optional JSON config (channels, regex, etc.)")),
+          .addStringOption((o) =>
+            o
+              .setName("match_type")
+              .setDescription("How to match the text (default: contains)")
+              .addChoices(
+                { name: "Contains", value: "contains" },
+                { name: "Exact", value: "exact" },
+                { name: "Regex", value: "regex" },
+              ),
+          )
+          .addChannelOption((o) =>
+            o
+              .setName("channel")
+              .setDescription("Only trigger in this channel (omit for all)")
+              .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement),
+          )
+          .addBooleanOption((o) => o.setName("case_sensitive").setDescription("Case-sensitive matching"))
+          .addStringOption((o) => o.setName("config").setDescription("Advanced JSON config (optional)")),
       )
       .addSubcommand((sub) =>
         sub
@@ -44,20 +62,47 @@ export const eventCommands: SlashCommandDefinition[] = [
         const name = ctx.interaction.options.getString("name", true).trim();
         const match = ctx.interaction.options.getString("match", true);
         const response = ctx.interaction.options.getString("response", true);
+        const matchType = ctx.interaction.options.getString("match_type") ?? "contains";
+        const channel = ctx.interaction.options.getChannel("channel");
+        const caseSensitive = ctx.interaction.options.getBoolean("case_sensitive") ?? false;
         const configRaw = ctx.interaction.options.getString("config");
 
-        let config = buildDefaultMessageConfig(match);
+        let config: CustomEventConfig = {
+          ...buildDefaultMessageConfig(match),
+          case_sensitive: caseSensitive,
+          regex: matchType === "regex",
+        };
+
+        if (matchType === "exact") {
+          // Store as regex for exact match without expanding the config schema.
+          config.regex = true;
+          config.match = `^${match.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`;
+        }
+
+        if (channel) {
+          config.channels = [channel.id];
+        }
+
+        if (matchType === "regex") {
+          try {
+            new RegExp(match, caseSensitive ? "" : "i");
+          } catch {
+            await ctx.interaction.reply(
+              resultReply("Invalid regex", "Provide a valid regular expression in `match`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+            );
+            return;
+          }
+        }
+
         if (configRaw) {
           try {
             config = { ...config, ...parseEventConfigJson(configRaw) };
           } catch {
             await ctx.interaction.reply(
-              resultReply("Event", "Invalid JSON in the config option.", ctx.ephemeral, slashResultOptions(ctx)),
+              resultReply("Event", "Invalid JSON in the config option.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
             );
             return;
           }
-        } else {
-          config.match = match;
         }
 
         const event = await createCustomEvent({

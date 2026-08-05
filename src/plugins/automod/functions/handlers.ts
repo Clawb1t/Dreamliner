@@ -4,8 +4,6 @@ import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { resolvePluginConfig } from "../../../core/permissions.js";
 import { checkRateLimit } from "../../../core/rules.js";
-import { safeAddRole } from "../../../core/roles.js";
-import { getInfractionPluginConfig } from "../../../core/guildHelpers.js";
 import { buildAutomodLog, buildRaidDetectedLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
 import { automodDefaultOverrides } from "../defaultOverrides.js";
@@ -57,16 +55,10 @@ async function applyAutomodAction(message: Message, config: AutomodConfig, reaso
 
   if (config.action === "mute" && message.member && message.guild) {
     await message.delete().catch(() => null);
-    const guildConfig = await configManager.getEffectiveConfig(message.guild.id);
-    const infractionConfig = getInfractionPluginConfig(guildConfig);
-    const muteRoleId = infractionConfig.mute_role as string | undefined;
-    if (muteRoleId) {
-      await safeAddRole(message.member, muteRoleId, `Automod: ${reason}`);
-      if (config.mute_duration_ms > 0) {
-        setTimeout(() => {
-          message.member?.roles.remove(muteRoleId, "Automod mute expired").catch(() => null);
-        }, config.mute_duration_ms);
-      }
+    const { applyTimeout, clampTimeoutMs, DISCORD_TIMEOUT_MAX_MS } = await import("../../infraction/functions/infractions.js");
+    const durationMs = clampTimeoutMs(config.mute_duration_ms > 0 ? config.mute_duration_ms : 10 * 60_000);
+    if (durationMs <= DISCORD_TIMEOUT_MAX_MS) {
+      await applyTimeout(message.member, durationMs, `Automod: ${reason}`).catch(() => null);
     }
     await logAutomod(message, config, reason);
   }

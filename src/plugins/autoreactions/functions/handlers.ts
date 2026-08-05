@@ -4,17 +4,10 @@ import { zAutoreactionsConfig } from "../../../config/schemas/plugins.js";
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { resolvePluginConfig } from "../../../core/permissions.js";
-import { normalizeAutoreactionRules } from "./rules.js";
+import { messagePassesFilters, normalizeAutoreactionRules } from "./rules.js";
+import { shouldTriggerByCadence } from "./state.js";
 
 const ALL_CHANNELS = "*";
-
-function messageMatchesRegex(content: string, pattern: string): boolean {
-  try {
-    return new RegExp(pattern).test(content);
-  } catch {
-    return false;
-  }
-}
 
 export async function handleAutoreactionMessage(message: Message): Promise<void> {
   if (!message.guild || message.author.bot) return;
@@ -31,7 +24,19 @@ export async function handleAutoreactionMessage(message: Message): Promise<void>
   );
 
   for (const rule of rules) {
-    if (rule.regex && !messageMatchesRegex(message.content ?? "", rule.regex)) continue;
+    if (!messagePassesFilters(message, rule)) continue;
+
+    if (rule.every_n || rule.cooldown_seconds) {
+      const allowed = await shouldTriggerByCadence({
+        guildId: message.guild.id,
+        ruleId: rule.id,
+        channelId: message.channel.id,
+        everyN: rule.every_n,
+        cooldownSeconds: rule.cooldown_seconds,
+      });
+      if (!allowed) continue;
+    }
+
     await message.react(rule.emoji).catch(() => null);
   }
 }

@@ -258,10 +258,31 @@ export function buildNotifyMessage(
     .replace(/\{expires\}/g, vars.expires ?? "");
 }
 
+/** Discord timeouts cannot exceed 28 days. */
+export const DISCORD_TIMEOUT_MAX_MS = 28 * 24 * 60 * 60 * 1000;
+
+export function clampTimeoutMs(durationMs: number): number {
+  return Math.min(Math.max(Math.floor(durationMs), 1_000), DISCORD_TIMEOUT_MAX_MS);
+}
+
+export async function applyTimeout(member: GuildMember, durationMs: number, reason = "Dreamliner mute") {
+  await member.timeout(clampTimeoutMs(durationMs), reason);
+}
+
+export async function clearTimeout(member: GuildMember, reason = "Dreamliner unmute") {
+  await member.timeout(null, reason);
+}
+
+export function isTimedOut(member: GuildMember): boolean {
+  return member.isCommunicationDisabled();
+}
+
+/** @deprecated Prefer applyTimeout — kept for any legacy mute-role callers. */
 export async function applyMuteRole(member: GuildMember, muteRoleId: string) {
   await member.roles.add(muteRoleId, "Dreamliner mute");
 }
 
+/** @deprecated Prefer clearTimeout — kept for any legacy mute-role callers. */
 export async function removeMuteRole(member: GuildMember, muteRoleId: string) {
   await member.roles.remove(muteRoleId, "Dreamliner unmute");
 }
@@ -282,14 +303,16 @@ export async function expireInfraction(client: Client, record: InfractionRecord)
   const { sendModerationLog } = await import("../../../core/logging/send.js");
 
   if (record.type === "tempmute" || record.type === "mute") {
+    const member = await guild.members.fetch(record.userId).catch(() => null);
+    if (member && isTimedOut(member)) {
+      await clearTimeout(member, "Dreamliner mute expired").catch(() => null);
+    }
+    // Legacy mute-role cleanup if still configured.
     const { getInfractionPluginConfig } = await import("../../../core/guildHelpers.js");
     const pluginConfig = getInfractionPluginConfig(guildConfig) as InfractionConfig;
     const muteRoleId = pluginConfig.mute_role;
-    if (muteRoleId) {
-      const member = await guild.members.fetch(record.userId).catch(() => null);
-      if (member?.roles.cache.has(muteRoleId)) {
-        await removeMuteRole(member, muteRoleId).catch(() => null);
-      }
+    if (muteRoleId && member?.roles.cache.has(muteRoleId)) {
+      await removeMuteRole(member, muteRoleId).catch(() => null);
     }
     const user = await client.users.fetch(record.userId).catch(() => null);
     const userRef = user
@@ -321,7 +344,11 @@ export function requireMuteRole(pluginConfig: InfractionConfig): string | null {
   return pluginConfig.mute_role ?? null;
 }
 
-export async function isUserMuted(guild: Guild, userId: string, muteRoleId: string): Promise<boolean> {
+export async function isUserMuted(guild: Guild, userId: string, _muteRoleId?: string): Promise<boolean> {
   const member = await guild.members.fetch(userId).catch(() => null);
-  return member?.roles.cache.has(muteRoleId) ?? false;
+  if (!member) return false;
+  if (isTimedOut(member)) return true;
+  // Legacy: still treat mute role as muted if present.
+  if (_muteRoleId && member.roles.cache.has(_muteRoleId)) return true;
+  return false;
 }

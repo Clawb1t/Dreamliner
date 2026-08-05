@@ -2,7 +2,7 @@ import { ChannelType, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
-import { createCounter, deleteCounter, getCounter, updateCounterValue } from "./functions/store.js";
+import { createCounter, deleteCounter, getCounter, listCounters, updateCounterValue } from "./functions/store.js";
 import { formatCounterMessage, refreshCounterDisplay } from "./functions/handlers.js";
 
 const COUNTER_TYPES = ["members", "messages", "custom"] as const;
@@ -41,6 +41,14 @@ export const countersCommands: SlashCommandDefinition[] = [
           .addStringOption((o) => o.setName("name").setDescription("Counter name").setRequired(true))
           .addIntegerOption((o) => o.setName("value").setDescription("New value").setRequired(true).setMinValue(0)),
       )
+      .addSubcommand((sub) =>
+        sub
+          .setName("add")
+          .setDescription("Add to a custom counter")
+          .addStringOption((o) => o.setName("name").setDescription("Counter name").setRequired(true))
+          .addIntegerOption((o) => o.setName("amount").setDescription("Amount to add (default 1)").setMinValue(1)),
+      )
+      .addSubcommand((sub) => sub.setName("list").setDescription("List counters"))
       .addSubcommand((sub) =>
         sub
           .setName("delete")
@@ -96,12 +104,11 @@ export const countersCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      if (sub === "set") {
+      if (sub === "set" || sub === "add") {
         const auth = await requirePluginPermission(ctx, "counters", "can_set");
         if (!auth) return;
 
         const name = ctx.interaction.options.getString("name", true);
-        const value = ctx.interaction.options.getInteger("value", true);
         const counter = await getCounter(guildId, name);
         if (!counter) {
           await ctx.interaction.reply(resultReply("Not found", `No counter named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)));
@@ -113,9 +120,31 @@ export const countersCommands: SlashCommandDefinition[] = [
           return;
         }
 
+        const value =
+          sub === "set"
+            ? ctx.interaction.options.getInteger("value", true)
+            : counter.value + (ctx.interaction.options.getInteger("amount") ?? 1);
+
         await updateCounterValue(guildId, name, value);
         await refreshCounterDisplay(guild, { ...counter, value }, value);
-        await ctx.interaction.reply(resultReply("Counter updated", `Set **${name}** to **${value.toLocaleString()}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply("Counter updated", `Set **${name}** to **${value.toLocaleString()}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+        );
+        return;
+      }
+
+      if (sub === "list") {
+        const auth = await requirePluginPermission(ctx, "counters", "can_create");
+        if (!auth) return;
+        const rows = await listCounters(guildId);
+        if (!rows.length) {
+          await ctx.interaction.reply(resultReply("Counters", "No counters configured.", ctx.ephemeral, slashResultOptions(ctx)));
+          return;
+        }
+        const lines = rows.map(
+          (row) => `**${row.name}** · ${row.counterType} · **${row.value.toLocaleString()}** · <#${row.channelId}>`,
+        );
+        await ctx.interaction.reply(resultReply("Counters", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 

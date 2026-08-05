@@ -164,6 +164,18 @@ export const manageCommands: SlashCommandDefinition[] = [
 
         const expiresAt = await updateInfractionDuration(guildId, id, durationMs, newType);
         const pluginConfig = getInfractionPluginConfig(ctx.guildConfig) as InfractionConfig;
+
+        if (record.type === "mute" || record.type === "tempmute" || newType === "tempmute") {
+          const { applyTimeout, clampTimeoutMs, DISCORD_TIMEOUT_MAX_MS } = await import("../functions/infractions.js");
+          const remaining = expiresAt.getTime() - Date.now();
+          if (remaining > 0 && remaining <= DISCORD_TIMEOUT_MAX_MS) {
+            const member = await ctx.interaction.guild!.members.fetch(record.userId).catch(() => null);
+            if (member) {
+              await applyTimeout(member, clampTimeoutMs(remaining), `Infraction #${id} duration updated`).catch(() => null);
+            }
+          }
+        }
+
         await sendModerationLog(
           ctx.client,
           ctx.guildConfig,

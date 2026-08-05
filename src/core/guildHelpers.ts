@@ -23,6 +23,7 @@ import { tagsDefaultOverrides } from "../plugins/tags/defaultOverrides.js";
 import { postDefaultOverrides } from "../plugins/post/defaultOverrides.js";
 import { autodeleteDefaultOverrides } from "../plugins/autodelete/defaultOverrides.js";
 import { autoreactionsDefaultOverrides } from "../plugins/autoreactions/defaultOverrides.js";
+import { autorepliesDefaultOverrides } from "../plugins/autoreplies/defaultOverrides.js";
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
 import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.js";
 import { companionChannelsDefaultOverrides } from "../plugins/companion_channels/defaultOverrides.js";
@@ -54,6 +55,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   post: postDefaultOverrides,
   autodelete: autodeleteDefaultOverrides,
   autoreactions: autoreactionsDefaultOverrides,
+  autoreplies: autorepliesDefaultOverrides,
   reminders: remindersDefaultOverrides,
   counters: countersDefaultOverrides,
   companion_channels: companionChannelsDefaultOverrides,

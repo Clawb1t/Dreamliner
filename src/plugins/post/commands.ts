@@ -2,6 +2,7 @@ import { ChannelType, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
+import { parseDuration } from "../infraction/functions/duration.js";
 import { createScheduledPost, deleteScheduledPost, listScheduledPosts } from "./functions/store.js";
 
 export const postCommands: SlashCommandDefinition[] = [
@@ -18,9 +19,9 @@ export const postCommands: SlashCommandDefinition[] = [
             o.setName("channel").setDescription("Target channel").addChannelTypes(ChannelType.GuildText).setRequired(true),
           )
           .addStringOption((o) => o.setName("content").setDescription("Message content").setRequired(true))
-          .addIntegerOption((o) =>
-            o.setName("delay").setDescription("Delay in minutes").setRequired(true).setMinValue(1),
-          ),
+          .addIntegerOption((o) => o.setName("delay").setDescription("Delay in minutes").setMinValue(1).setMaxValue(525_600))
+          .addIntegerOption((o) => o.setName("hours").setDescription("Delay in hours").setMinValue(1).setMaxValue(8760))
+          .addStringOption((o) => o.setName("in").setDescription("Duration like 30m, 2h, or 1d")),
       )
       .addSubcommand((sub) => sub.setName("list").setDescription("List scheduled posts"))
       .addSubcommand((sub) =>
@@ -39,20 +40,43 @@ export const postCommands: SlashCommandDefinition[] = [
 
         const channel = ctx.interaction.options.getChannel("channel", true);
         const content = ctx.interaction.options.getString("content", true);
-        const delay = ctx.interaction.options.getInteger("delay", true);
+        const delay = ctx.interaction.options.getInteger("delay");
+        const hours = ctx.interaction.options.getInteger("hours");
+        const inRaw = ctx.interaction.options.getString("in")?.trim();
+
+        let delayMinutes: number | null = null;
+        if (inRaw) {
+          const ms = parseDuration(inRaw);
+          delayMinutes = ms ? Math.max(1, Math.round(ms / 60_000)) : null;
+        } else {
+          const total = (hours ?? 0) * 60 + (delay ?? 0);
+          delayMinutes = total > 0 ? total : null;
+        }
+
+        if (!delayMinutes) {
+          await ctx.interaction.reply(
+            resultReply(
+              "Missing delay",
+              "Provide `delay` (minutes), `hours`, and/or `in` (e.g. `2h`).",
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
 
         const post = await createScheduledPost({
           guildId,
           channelId: channel.id,
           content,
-          delayMinutes: delay,
+          delayMinutes,
           createdBy: ctx.interaction.user.id,
         });
 
         await ctx.interaction.reply(
           resultReply(
             "Post scheduled",
-            `Post **#${post.id}** will be sent to <#${channel.id}> in **${delay}** minute(s).`,
+            `Post **#${post.id}** will be sent to <#${channel.id}> <t:${Math.floor((post.nextRunAt ?? new Date()).getTime() / 1000)}:R>.`,
             ctx.ephemeral,
             slashResultOptions(ctx),
           ),
@@ -72,9 +96,9 @@ export const postCommands: SlashCommandDefinition[] = [
 
         const lines = posts.map((post) => {
           const when = post.nextRunAt ? `<t:${Math.floor(post.nextRunAt.getTime() / 1000)}:R>` : "unknown";
-          return `**#${post.id}** → <#${post.channelId}> ${when}`;
+          return `**#${post.id}** → <#${post.channelId}> ${when}\n${post.content.slice(0, 80)}`;
         });
-        await ctx.interaction.reply(resultReply("Scheduled posts", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply("Scheduled posts", lines.join("\n\n"), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 

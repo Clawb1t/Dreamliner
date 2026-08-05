@@ -7,15 +7,17 @@ import { requireDiscordPerm, BanMembers, KickMembers } from "../../utility/funct
 import { canModerateTarget, formatReason } from "../functions/moderation.js";
 import { parseDuration, formatDurationShort } from "../functions/duration.js";
 import {
-  applyMuteRole,
+  applyTimeout,
   buildNotifyMessage,
+  clearTimeout,
+  clampTimeoutMs,
   createInfraction,
   deactivateInfractions,
+  DISCORD_TIMEOUT_MAX_MS,
   dmUser,
+  isTimedOut,
   isUserMuted,
   postCaseLog,
-  requireMuteRole,
-  removeMuteRole,
 } from "../functions/infractions.js";
 import { buildActionConfirmDetails } from "../functions/embeds.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
@@ -127,20 +129,16 @@ export const actionCommands: SlashCommandDefinition[] = [
     discordPermissions: PermissionFlagsBits.ModerateMembers,
     data: new SlashCommandBuilder()
       .setName("mute")
-      .setDescription("Mute a member")
+      .setDescription("Timeout a member (Discord mute)")
       .addUserOption((o) => o.setName("user").setDescription("Member to mute").setRequired(true))
-      .addStringOption((o) => o.setName("duration").setDescription("Duration (e.g. 30m, 2h, 1d); omit for permanent mute"))
+      .addStringOption((o) =>
+        o.setName("duration").setDescription("Timeout length (e.g. 30m, 2h, 1d; max 28d)").setRequired(true),
+      )
       .addStringOption((o) => o.setName("reason").setDescription("Reason")),
     execute: async (ctx) => {
       const auth = await requireInfractionPermission(ctx, "can_mute");
       if (!auth) return;
       if (!(await requireDiscordPerm(ctx.interaction, PermissionFlagsBits.ModerateMembers, "Moderate Members", ctx.ephemeral, ctx.guildConfig))) return;
-
-      const muteRoleId = requireMuteRole(auth.pluginConfig);
-      if (!muteRoleId) {
-        await ctx.interaction.reply(resultReply("Mute", "No `mute_role` configured.", ctx.ephemeral, slashResultOptions(ctx)));
-        return;
-      }
 
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
@@ -150,34 +148,57 @@ export const actionCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      if (await isUserMuted(ctx.interaction.guild!, user.id, muteRoleId)) {
-        await ctx.interaction.reply(resultReply("Mute", "That member is already muted.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
+      if (isTimedOut(target) || (await isUserMuted(ctx.interaction.guild!, user.id))) {
+        await ctx.interaction.reply(resultReply("Mute", "That member is already timed out.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
         return;
       }
 
-      const durationStr = ctx.interaction.options.getString("duration");
-      const durationMs = durationStr ? parseDuration(durationStr) : null;
-      if (durationStr && !durationMs) {
+      const durationStr = ctx.interaction.options.getString("duration", true);
+      const parsedMs = parseDuration(durationStr);
+      if (!parsedMs) {
         await ctx.interaction.reply(resultReply("Mute", "Invalid duration. Use formats like `30m`, `2h`, `1d`.", ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
-      const reason = formatReason(ctx.interaction.options.getString("reason"));
-      await applyMuteRole(target, muteRoleId);
+      const durationMs = clampTimeoutMs(parsedMs);
+      if (parsedMs > DISCORD_TIMEOUT_MAX_MS) {
+        await ctx.interaction.reply(
+          resultReply(
+            "Mute",
+            "Discord timeouts cannot exceed **28 days**. Use a shorter duration.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "error" }),
+          ),
+        );
+        return;
+      }
 
-      const type = durationMs ? "tempmute" : "mute";
+      const reason = formatReason(ctx.interaction.options.getString("reason"));
+      try {
+        await applyTimeout(target, durationMs, reason ?? "Dreamliner mute");
+      } catch {
+        await ctx.interaction.reply(
+          resultReply(
+            "Mute failed",
+            "Could not apply timeout. Check that my role is above theirs and I have **Moderate Members**.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "error" }),
+          ),
+        );
+        return;
+      }
+
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
         userId: user.id,
         modId: ctx.interaction.user.id,
-        type,
+        type: "tempmute",
         reason,
-        expiresAt: durationMs ? new Date(Date.now() + durationMs) : null,
-        metadata: { role: muteRoleId },
+        expiresAt: new Date(Date.now() + durationMs),
+        metadata: { method: "timeout" },
       });
 
-      const extras = durationMs ? `Duration: **${durationStr}**` : undefined;
-      await finishAction(ctx, auth.pluginConfig, type, user, reason, record, extras);
+      await finishAction(ctx, auth.pluginConfig, "tempmute", user, reason, record, `Duration: **${durationStr}**`);
     },
   },
   {
@@ -186,19 +207,13 @@ export const actionCommands: SlashCommandDefinition[] = [
     discordPermissions: PermissionFlagsBits.ModerateMembers,
     data: new SlashCommandBuilder()
       .setName("unmute")
-      .setDescription("Unmute a member")
+      .setDescription("Remove a member's timeout")
       .addUserOption((o) => o.setName("user").setDescription("Member to unmute").setRequired(true))
       .addStringOption((o) => o.setName("reason").setDescription("Reason")),
     execute: async (ctx) => {
       const auth = await requireInfractionPermission(ctx, "can_mute");
       if (!auth) return;
       if (!(await requireDiscordPerm(ctx.interaction, PermissionFlagsBits.ModerateMembers, "Moderate Members", ctx.ephemeral, ctx.guildConfig))) return;
-
-      const muteRoleId = requireMuteRole(auth.pluginConfig);
-      if (!muteRoleId) {
-        await ctx.interaction.reply(resultReply("Unmute", "No `mute_role` configured.", ctx.ephemeral, slashResultOptions(ctx)));
-        return;
-      }
 
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
@@ -207,13 +222,25 @@ export const actionCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      if (!(await isUserMuted(ctx.interaction.guild!, user.id, muteRoleId))) {
-        await ctx.interaction.reply(resultReply("Unmute", "That member is not muted.", ctx.ephemeral, slashResultOptions(ctx)));
+      if (!isTimedOut(target) && !(await isUserMuted(ctx.interaction.guild!, user.id))) {
+        await ctx.interaction.reply(resultReply("Unmute", "That member is not timed out.", ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
       const reason = formatReason(ctx.interaction.options.getString("reason"));
-      await removeMuteRole(target, muteRoleId);
+      try {
+        await clearTimeout(target, reason ?? "Dreamliner unmute");
+      } catch {
+        await ctx.interaction.reply(
+          resultReply(
+            "Unmute failed",
+            "Could not clear timeout. Check that my role is above theirs and I have **Moderate Members**.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "error" }),
+          ),
+        );
+        return;
+      }
       await deactivateInfractions(ctx.interaction.guildId!, user.id, ["mute", "tempmute"]);
 
       const record = await createInfraction({

@@ -6,6 +6,8 @@ export const slowmodeDefaultOverrides: ConfigOverride[] = [
     config: {
       can_set: true,
       can_clear: true,
+      can_manage_rules: true,
+      can_configure: true,
     },
   },
 ];

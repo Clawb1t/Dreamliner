@@ -34,6 +34,12 @@ export const reactionRoleCommands: SlashCommandDefinition[] = [
           .setDescription("Remove a reaction role mapping")
           .addStringOption((o) => o.setName("message_link").setDescription("Message link").setRequired(true))
           .addStringOption((o) => o.setName("emoji").setDescription("Emoji (omit to remove all mappings on message)")),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("list")
+          .setDescription("List reaction roles on a message")
+          .addStringOption((o) => o.setName("message_link").setDescription("Message link").setRequired(true)),
       ),
     execute: async (ctx) => {
       const sub = ctx.interaction.options.getSubcommand();
@@ -130,6 +136,35 @@ export const reactionRoleCommands: SlashCommandDefinition[] = [
 
         await ctx.interaction.reply(
           resultReply("Reaction role deleted", `Removed ${emoji} mapping from that message.`, ctx.ephemeral, slashResultOptions(ctx)),
+        );
+        return;
+      }
+
+      if (sub === "list") {
+        const auth = await requirePluginPermission(ctx, "reaction_roles", "can_create");
+        if (!auth) return;
+
+        const link = parseMessageLink(ctx.interaction.options.getString("message_link", true));
+        if (!link || link.guildId !== guildId) {
+          await ctx.interaction.reply(
+            resultReply("Invalid link", "Provide a message link from this server.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
+          return;
+        }
+
+        const mappings = await listReactionRoleMappings(guildId, link.messageId);
+        if (!mappings.length) {
+          await ctx.interaction.reply(
+            resultReply("Reaction roles", "No mappings on that message.", ctx.ephemeral, slashResultOptions(ctx)),
+          );
+          return;
+        }
+
+        const lines = mappings.map(
+          (m) => `${m.emoji} → <@&${m.roleId}>${m.removeOnUnreact ? "" : " (keep on unreact)"}`,
+        );
+        await ctx.interaction.reply(
+          resultReply("Reaction roles", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)),
         );
       }
     },

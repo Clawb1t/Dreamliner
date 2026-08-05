@@ -1,10 +1,13 @@
-import { ChannelType, SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { embedReply, resultReply, slashResultOptions } from "../../core/responses.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../core/embeds.js";
+import { normalizeEmojiInput } from "../../core/emoji.js";
 import { zAutoreactionsConfig } from "../../config/schemas/plugins.js";
-import { nextAutoreactionRuleId, normalizeAutoreactionRules } from "./functions/rules.js";
+import { formatAutoreactionRule, normalizeAutoreactionRules } from "./functions/rules.js";
+import { buildAutoreactionAddModal } from "./functions/modal.js";
+import { setPendingAutoreactionEmoji } from "./functions/pending.js";
 
 const ALL_CHANNELS = "*";
 
@@ -21,21 +24,18 @@ export const autoreactionsCommands: SlashCommandDefinition[] = [
       .addSubcommand((sub) =>
         sub
           .setName("add")
-          .setDescription("Add an auto-reaction rule")
-          .addStringOption((o) => o.setName("emoji").setDescription("Emoji to react with").setRequired(true))
-          .addChannelOption((o) =>
-            o
-              .setName("channel")
-              .setDescription("Target channel (omit for all channels)")
-              .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement),
-          )
-          .addStringOption((o) => o.setName("regex").setDescription("Only react when message content matches this regex")),
+          .setDescription("Open a form to create an auto-reaction rule")
+          .addStringOption((o) =>
+            o.setName("emoji").setDescription("Emoji to react with").setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub
           .setName("remove")
           .setDescription("Remove an auto-reaction rule by ID")
-          .addIntegerOption((o) => o.setName("id").setDescription("Rule ID from /autoreaction list").setRequired(true).setMinValue(1)),
+          .addIntegerOption((o) =>
+            o.setName("id").setDescription("Rule ID from /autoreaction list").setRequired(true).setMinValue(1),
+          ),
       )
       .addSubcommand((sub) => sub.setName("list").setDescription("List auto-reaction rules")),
     execute: async (ctx) => {
@@ -46,60 +46,16 @@ export const autoreactionsCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "autoreactions", "can_add");
         if (!auth) return;
 
-        const emoji = ctx.interaction.options.getString("emoji", true);
-        const channel = ctx.interaction.options.getChannel("channel");
-        const regexRaw = ctx.interaction.options.getString("regex")?.trim();
-        const config = zAutoreactionsConfig.parse(auth.pluginConfig);
-        const rules = normalizeAutoreactionRules(config.rules);
-
-        if (regexRaw) {
-          try {
-            new RegExp(regexRaw);
-          } catch {
-            await ctx.interaction.reply(
-              resultReply("Invalid regex", "Provide a valid regular expression.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
-            );
-            return;
-          }
-        }
-
-        const channelId = channel?.id ?? ALL_CHANNELS;
-        const duplicate = rules.some(
-          (rule) => rule.channel_id === channelId && rule.emoji === emoji && (rule.regex ?? "") === (regexRaw ?? ""),
-        );
-        if (duplicate) {
-          await ctx.interaction.reply(resultReply("Already exists", "That auto-reaction rule already exists.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
+        const emoji = normalizeEmojiInput(ctx.interaction.options.getString("emoji", true));
+        if (!emoji) {
+          await ctx.interaction.reply(
+            resultReply("Emoji required", "Provide an emoji to react with.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
           return;
         }
 
-        const newRule = {
-          id: nextAutoreactionRuleId(rules),
-          channel_id: channelId,
-          emoji,
-          ...(regexRaw ? { regex: regexRaw } : {}),
-        };
-
-        const result = await ctx.configManager.patchPluginConfig(
-          guildId,
-          "autoreactions",
-          { rules: [...rules, newRule] },
-          ctx.interaction.user.id,
-        );
-        if (!result.success) {
-          await ctx.interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-
-        const scope = formatChannelLabel(channelId);
-        const regexNote = regexRaw ? ` when content matches \`${regexRaw}\`` : "";
-        await ctx.interaction.reply(
-          resultReply(
-            "Auto-reaction added",
-            `Rule **#${newRule.id}**: react with ${emoji} in ${scope}${regexNote}.`,
-            ctx.ephemeral,
-            slashResultOptions(ctx),
-          ),
-        );
+        setPendingAutoreactionEmoji(guildId, ctx.interaction.user.id, emoji);
+        await ctx.interaction.showModal(buildAutoreactionAddModal());
         return;
       }
 
@@ -113,13 +69,22 @@ export const autoreactionsCommands: SlashCommandDefinition[] = [
         const filtered = rules.filter((rule) => rule.id !== id);
 
         if (filtered.length === rules.length) {
-          await ctx.interaction.reply(resultReply("Not found", `No auto-reaction rule with ID **${id}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply("Not found", `No auto-reaction rule with ID **${id}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
 
-        const result = await ctx.configManager.patchPluginConfig(guildId, "autoreactions", { rules: filtered }, ctx.interaction.user.id);
+        const result = await ctx.configManager.patchPluginConfig(
+          guildId,
+          "autoreactions",
+          { rules: filtered },
+          ctx.interaction.user.id,
+        );
         if (!result.success) {
-          await ctx.interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(
+            resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
           return;
         }
 
@@ -136,14 +101,15 @@ export const autoreactionsCommands: SlashCommandDefinition[] = [
         const config = zAutoreactionsConfig.parse(auth.pluginConfig);
         const rules = normalizeAutoreactionRules(config.rules);
         if (!rules.length) {
-          await ctx.interaction.reply(resultReply("Auto-reactions", "No auto-reaction rules configured.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply("Auto-reactions", "No auto-reaction rules configured.", ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
 
         const lines = rules.map((rule) => {
           const scope = formatChannelLabel(rule.channel_id);
-          const regex = rule.regex ? ` · regex \`${rule.regex}\`` : "";
-          return `**#${rule.id}** · ${scope} · ${rule.emoji}${regex}`;
+          return `**#${rule.id}** · ${scope} · ${rule.emoji} · ${formatAutoreactionRule(rule)}`;
         });
 
         await ctx.interaction.reply(

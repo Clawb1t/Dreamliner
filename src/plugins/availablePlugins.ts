@@ -27,6 +27,7 @@ import { tagsPlugin } from "../plugins/tags/index.js";
 import { postPlugin } from "../plugins/post/index.js";
 import { autodeletePlugin } from "../plugins/autodelete/index.js";
 import { autoreactionsPlugin } from "../plugins/autoreactions/index.js";
+import { autorepliesPlugin } from "../plugins/autoreplies/index.js";
 import { remindersPlugin } from "../plugins/reminders/index.js";
 import { countersPlugin } from "../plugins/counters/index.js";
 import { companionChannelsPlugin } from "../plugins/companion_channels/index.js";
@@ -60,6 +61,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   postPlugin,
   autodeletePlugin,
   autoreactionsPlugin,
+  autorepliesPlugin,
   remindersPlugin,
   countersPlugin,
   companionChannelsPlugin,

@@ -6,6 +6,7 @@ import {
   StringSelectMenuBuilder,
   type APIEmbed,
   type ButtonInteraction,
+  type Client,
   type InteractionReplyOptions,
   type InteractionUpdateOptions,
   type MessageActionRowComponentBuilder,
@@ -13,91 +14,144 @@ import {
 } from "discord.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { baseEmbed, codeBlock, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
+import { baseEmbed, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
-import type { Client } from "discord.js";
 
 export const HELP_BUTTON_PREFIX = "dl:help";
 
-const COMMANDS_PER_PAGE = 14;
 const MAX_SELECT_OPTIONS = 25;
+const MAX_FIELD_VALUE = 1024;
+const MAX_DESCRIPTION = 4096;
+const COMMANDS_PER_CATEGORY_PAGE = 12;
 
-const PLUGIN_CATEGORIES: { id: string; label: string; plugins: string[] }[] = [
-  { id: "core", label: "Core", plugins: ["utility", "infractions"] },
-  { id: "moderation", label: "Moderation", plugins: ["automod", "censor", "admin", "persist", "slowmode"] },
+type OptionLine = {
+  name: string;
+  description: string;
+  required: boolean;
+};
+
+type CommandEntry = {
+  key: string;
+  usage: string;
+  description: string;
+  plugin: string;
+  rootName: string;
+  options: OptionLine[];
+};
+
+type HelpInclude = {
+  plugin: string;
+  /** If set, only these root slash names from the plugin are included. */
+  roots?: string[];
+};
+
+type HelpCategory = {
+  id: string;
+  label: string;
+  blurb: string;
+  include: HelpInclude[];
+};
+
+type HelpView =
+  | { kind: "home" }
+  | { kind: "category"; categoryId: string; page: number }
+  | { kind: "detail"; categoryId: string; page: number; commandKey: string }
+  | { kind: "search"; page: number };
+
+type ParsedHelpAction =
+  | { type: "button"; view: HelpView; query: string }
+  | { type: "select"; value: string; view: HelpView; query: string };
+
+const CATEGORIES: HelpCategory[] = [
+  {
+    id: "mod",
+    label: "Moderation",
+    blurb: "Punishments, cleanup, and automated moderation.",
+    include: [
+      { plugin: "infractions" },
+      { plugin: "admin" },
+      { plugin: "automod" },
+      { plugin: "censor" },
+      { plugin: "slowmode" },
+      { plugin: "persist" },
+      { plugin: "utility", roots: ["clean", "bansearch"] },
+    ],
+  },
   {
     id: "roles",
     label: "Roles",
-    plugins: ["roles", "reaction_roles", "role_buttons", "self_grantable_roles", "pingable_roles", "role_manager"],
+    blurb: "Assign, toggle, and manage roles.",
+    include: [
+      { plugin: "roles" },
+      { plugin: "reaction_roles" },
+      { plugin: "role_buttons" },
+      { plugin: "self_grantable_roles" },
+      { plugin: "pingable_roles" },
+      { plugin: "role_manager" },
+    ],
   },
   {
-    id: "automation",
+    id: "info",
+    label: "Lookups",
+    blurb: "Inspect users, channels, roles, messages, and more.",
+    include: [
+      {
+        plugin: "utility",
+        roots: [
+          "info",
+          "user",
+          "server",
+          "channel",
+          "message",
+          "invite",
+          "role",
+          "emoji",
+          "snowflake",
+          "rolelist",
+          "level",
+          "context",
+          "source",
+          "avatar",
+          "time",
+        ],
+      },
+      { plugin: "locate_user" },
+      { plugin: "name_history" },
+    ],
+  },
+  {
+    id: "auto",
     label: "Automation",
-    plugins: ["welcome_message", "tags", "post", "autodelete", "autoreactions", "reminders", "counters", "companion_channels"],
+    blurb: "Welcome messages, tags, schedules, reactions, and bots that run themselves.",
+    include: [
+      { plugin: "welcome_message" },
+      { plugin: "tags" },
+      { plugin: "post" },
+      { plugin: "autodelete" },
+      { plugin: "autoreactions" },
+      { plugin: "autoreplies" },
+      { plugin: "reminders" },
+      { plugin: "counters" },
+      { plugin: "companion_channels" },
+      { plugin: "custom_events" },
+      { plugin: "command_aliases" },
+    ],
   },
   {
-    id: "tracking",
-    label: "Tracking & Misc",
-    plugins: ["name_history", "locate_user", "stats", "custom_events", "command_aliases"],
+    id: "tools",
+    label: "Server tools",
+    blurb: "Search, voice helpers, stats, and everyday utilities.",
+    include: [
+      { plugin: "utility", roots: ["search", "voice", "nickname", "jumbo", "ping", "about", "help", "reload"] },
+      { plugin: "stats" },
+    ],
   },
-];
-
-const PLUGIN_LABELS: Record<string, string> = {
-  utility: "Utility",
-  infractions: "Infractions",
-  automod: "Automod",
-  censor: "Censor",
-  admin: "Admin",
-  persist: "Persist",
-  slowmode: "Slowmode",
-  roles: "Roles",
-  reaction_roles: "Reaction Roles",
-  role_buttons: "Role Buttons",
-  self_grantable_roles: "Self Roles",
-  pingable_roles: "Pingable Roles",
-  role_manager: "Role Manager",
-  welcome_message: "Welcome",
-  tags: "Tags",
-  post: "Scheduled Posts",
-  autodelete: "Autodelete",
-  autoreactions: "Autoreactions",
-  reminders: "Reminders",
-  counters: "Counters",
-  companion_channels: "Companion Channels",
-  name_history: "Name History",
-  locate_user: "Locate User",
-  stats: "Stats",
-  custom_events: "Custom Events",
-  command_aliases: "Command Aliases",
-};
-
-const PLUGIN_ORDER = [
-  "utility",
-  "infractions",
-  "automod",
-  "censor",
-  "admin",
-  "persist",
-  "slowmode",
-  "roles",
-  "reaction_roles",
-  "role_buttons",
-  "self_grantable_roles",
-  "pingable_roles",
-  "role_manager",
-  "welcome_message",
-  "tags",
-  "post",
-  "autodelete",
-  "autoreactions",
-  "reminders",
-  "counters",
-  "companion_channels",
-  "name_history",
-  "locate_user",
-  "stats",
-  "custom_events",
-  "command_aliases",
+  {
+    id: "config",
+    label: "Configuration",
+    blurb: "Permissions and server configuration commands.",
+    include: [{ plugin: "config" }],
+  },
 ];
 
 const PLUGIN_DOCS: Record<string, string> = {
@@ -119,6 +173,7 @@ const PLUGIN_DOCS: Record<string, string> = {
   post: "plugins/post.md",
   autodelete: "plugins/autodelete.md",
   autoreactions: "plugins/autoreactions.md",
+  autoreplies: "plugins/autoreplies.md",
   reminders: "plugins/reminders.md",
   counters: "plugins/counters.md",
   companion_channels: "plugins/companion_channels.md",
@@ -127,38 +182,11 @@ const PLUGIN_DOCS: Record<string, string> = {
   stats: "plugins/stats.md",
   custom_events: "plugins/custom_events.md",
   command_aliases: "plugins/command_aliases.md",
+  config: "configuration.md",
 };
-
-export type HelpPage = {
-  plugin: string;
-  title: string;
-  pageInPlugin: number;
-  totalInPlugin: number;
-  embed: APIEmbed;
-};
-
-export type HelpState = {
-  pages: HelpPage[];
-  plugins: string[];
-  pluginFirstPage: Map<string, number>;
-  overviewPageIndex: number | null;
-};
-
-type CommandLine = {
-  name: string;
-  description: string;
-  plugin: string;
-};
-
-type HelpAction = { action: "prev" | "next" | "select"; pageIndex: number; plugin?: string; query: string };
-
-function encodeQuery(query: string): string {
-  if (!query) return "";
-  return Buffer.from(query, "utf-8").toString("base64url");
-}
 
 function decodeQuery(encoded: string | undefined): string {
-  if (!encoded) return "";
+  if (!encoded || encoded === "_") return "";
   try {
     return Buffer.from(encoded, "base64url").toString("utf-8");
   } catch {
@@ -166,12 +194,23 @@ function decodeQuery(encoded: string | undefined): string {
   }
 }
 
-function querySuffix(query: string): string {
-  const q = encodeQuery(query);
-  return q ? `:${q}` : "";
+function encodeQuerySafe(query: string): string {
+  if (!query) return "_";
+  return Buffer.from(query, "utf-8").toString("base64url");
 }
 
-function flattenCommand(cmd: SlashCommandDefinition): CommandLine[] {
+function chunk<T>(items: T[], size: number): T[][] {
+  if (items.length === 0) return [[]];
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+function formatOptionToken(name: string, required: boolean): string {
+  return required ? `<${name}>` : `[${name}]`;
+}
+
+function flattenCommand(cmd: SlashCommandDefinition): CommandEntry[] {
   const json = cmd.data.toJSON() as {
     name: string;
     description: string;
@@ -179,240 +218,627 @@ function flattenCommand(cmd: SlashCommandDefinition): CommandLine[] {
       type: number;
       name: string;
       description?: string;
-      options?: Array<{ type: number; name: string; description?: string }>;
+      required?: boolean;
+      options?: Array<{
+        type: number;
+        name: string;
+        description?: string;
+        required?: boolean;
+        options?: Array<{ type: number; name: string; description?: string; required?: boolean }>;
+      }>;
     }>;
   };
 
-  const lines: CommandLine[] = [];
+  const leafOptions = (
+    options: Array<{ type: number; name: string; description?: string; required?: boolean }> | undefined,
+  ): OptionLine[] =>
+    (options ?? [])
+      .filter((o) => o.type !== 1 && o.type !== 2)
+      .map((o) => ({
+        name: o.name,
+        description: o.description ?? "",
+        required: Boolean(o.required),
+      }));
+
+  const entries: CommandEntry[] = [];
 
   for (const opt of json.options ?? []) {
     if (opt.type === 1) {
-      lines.push({
-        name: `/${json.name} ${opt.name}`,
+      const options = leafOptions(opt.options);
+      const usage = [`/${json.name}`, opt.name, ...options.map((o) => formatOptionToken(o.name, o.required))].join(" ");
+      entries.push({
+        key: `${cmd.plugin}:${json.name}:${opt.name}`,
+        usage,
         description: opt.description ?? "",
         plugin: cmd.plugin,
+        rootName: json.name,
+        options,
       });
     } else if (opt.type === 2) {
       for (const sub of opt.options ?? []) {
-        if (sub.type === 1) {
-          lines.push({
-            name: `/${json.name} ${opt.name} ${sub.name}`,
-            description: sub.description ?? "",
-            plugin: cmd.plugin,
-          });
-        }
+        if (sub.type !== 1) continue;
+        const options = leafOptions(sub.options);
+        const usage = [
+          `/${json.name}`,
+          opt.name,
+          sub.name,
+          ...options.map((o) => formatOptionToken(o.name, o.required)),
+        ].join(" ");
+        entries.push({
+          key: `${cmd.plugin}:${json.name}:${opt.name}:${sub.name}`,
+          usage,
+          description: sub.description ?? "",
+          plugin: cmd.plugin,
+          rootName: json.name,
+          options,
+        });
       }
     }
   }
 
-  if (lines.length === 0) {
-    lines.push({ name: `/${json.name}`, description: json.description, plugin: cmd.plugin });
+  if (entries.length === 0) {
+    const options = leafOptions(json.options);
+    const usage = [`/${json.name}`, ...options.map((o) => formatOptionToken(o.name, o.required))].join(" ");
+    entries.push({
+      key: `${cmd.plugin}:${json.name}`,
+      usage,
+      description: json.description,
+      plugin: cmd.plugin,
+      rootName: json.name,
+      options,
+    });
   }
 
-  return lines;
+  return entries;
 }
 
-function filterLines(lines: CommandLine[], query: string): CommandLine[] {
-  if (!query) return lines;
+function allEntries(commands = getAllSlashCommands()): CommandEntry[] {
+  return commands.flatMap(flattenCommand).sort((a, b) => a.usage.localeCompare(b.usage));
+}
+
+function categoryEntries(category: HelpCategory, entries: CommandEntry[]): CommandEntry[] {
+  return entries.filter((entry) =>
+    category.include.some((rule) => {
+      if (rule.plugin !== entry.plugin) return false;
+      if (!rule.roots) return true;
+      return rule.roots.includes(entry.rootName);
+    }),
+  );
+}
+
+function filterEntries(entries: CommandEntry[], query: string): CommandEntry[] {
+  if (!query) return entries;
   const q = query.toLowerCase();
-  return lines.filter((l) => l.name.toLowerCase().includes(q) || l.description.toLowerCase().includes(q));
+  return entries.filter(
+    (e) =>
+      e.usage.toLowerCase().includes(q) ||
+      e.description.toLowerCase().includes(q) ||
+      e.rootName.toLowerCase().includes(q) ||
+      e.plugin.toLowerCase().includes(q),
+  );
 }
 
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
+function findCategory(id: string): HelpCategory | undefined {
+  return CATEGORIES.find((c) => c.id === id);
+}
+
+function serializeView(view: HelpView): string {
+  switch (view.kind) {
+    case "home":
+      return "h";
+    case "category":
+      return `c:${view.categoryId}:${view.page}`;
+    case "detail":
+      return `d:${view.categoryId}:${view.page}:${Buffer.from(view.commandKey, "utf-8").toString("base64url")}`;
+    case "search":
+      return `s:${view.page}`;
   }
-  return chunks.length > 0 ? chunks : [[]];
 }
 
-export function buildHelpState(
-  commands: SlashCommandDefinition[],
-  query: string,
+function parseView(raw: string | undefined): HelpView {
+  if (!raw || raw === "h") return { kind: "home" };
+
+  const parts = raw.split(":");
+  const kind = parts[0];
+
+  if (kind === "c" && parts[1]) {
+    return { kind: "category", categoryId: parts[1], page: Math.max(0, Number(parts[2] ?? 0) || 0) };
+  }
+
+  if (kind === "d" && parts[1] && parts[3]) {
+    let commandKey = parts.slice(3).join(":");
+    try {
+      commandKey = Buffer.from(commandKey, "base64url").toString("utf-8");
+    } catch {
+      /* keep raw */
+    }
+    return {
+      kind: "detail",
+      categoryId: parts[1],
+      page: Math.max(0, Number(parts[2] ?? 0) || 0),
+      commandKey,
+    };
+  }
+
+  if (kind === "s") {
+    return { kind: "search", page: Math.max(0, Number(parts[1] ?? 0) || 0) };
+  }
+
+  return { kind: "home" };
+}
+
+function buildCustomId(action: string, view: HelpView, query: string): string {
+  const id = `${HELP_BUTTON_PREFIX}:${action}:${serializeView(view)}:${encodeQuerySafe(query)}`;
+  if (id.length <= 100) return id;
+  // Drop query if oversized; search state still rebuilds from empty home path rarely.
+  return `${HELP_BUTTON_PREFIX}:${action}:${serializeView(view)}:_`.slice(0, 100);
+}
+
+function parseCustomId(customId: string): { action: string; view: HelpView; query: string } | null {
+  if (!customId.startsWith(`${HELP_BUTTON_PREFIX}:`)) return null;
+  const rest = customId.slice(HELP_BUTTON_PREFIX.length + 1);
+  const firstColon = rest.indexOf(":");
+  if (firstColon < 0) return null;
+  const action = rest.slice(0, firstColon);
+  const afterAction = rest.slice(firstColon + 1);
+
+  // View serializers use colons; query is always the final segment.
+  const lastColon = afterAction.lastIndexOf(":");
+  if (lastColon < 0) return { action, view: parseView(afterAction), query: "" };
+
+  const viewRaw = afterAction.slice(0, lastColon);
+  const queryRaw = afterAction.slice(lastColon + 1);
+  return { action, view: parseView(viewRaw), query: decodeQuery(queryRaw) };
+}
+
+function commandLine(entry: CommandEntry): string {
+  return `\`${entry.usage.split(" <")[0]!.split(" [")[0]}\` - ${entry.description}`;
+}
+
+function shortCommandName(entry: CommandEntry): string {
+  return entry.usage.split(" <")[0]!.split(" [")[0]!;
+}
+
+function splitFieldValue(lines: string[]): string[] {
+  const chunks: string[] = [];
+  let current = "";
+  for (const line of lines) {
+    const next = current ? `${current}\n${line}` : line;
+    if (next.length > MAX_FIELD_VALUE) {
+      if (current) chunks.push(current);
+      current = line.length > MAX_FIELD_VALUE ? `${line.slice(0, MAX_FIELD_VALUE - 1)}…` : line;
+    } else {
+      current = next;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : ["No commands."];
+}
+
+function docsPathFor(entries: CommandEntry[], fallback = "index.md"): string {
+  const plugin = entries[0]?.plugin;
+  return (plugin && PLUGIN_DOCS[plugin]) || fallback;
+}
+
+function buildHomeEmbed(entries: CommandEntry[], client: Client, emojis?: EmojisConfig): APIEmbed {
+  const fields = CATEGORIES.map((category) => {
+    const count = categoryEntries(category, entries).length;
+    return {
+      name: category.label,
+      value: `${category.blurb}\n**${count}** command${count === 1 ? "" : "s"}`,
+      inline: false,
+    };
+  });
+
+  return setEmbedAuthor(baseEmbed(), "Help", client, { tone: "neutral", emojis })
+    .setDescription(
+      trimLines(`
+        Pick a **category** below to browse commands.
+
+        Tip: \`/help query:ban\` jumps straight to matching commands.
+        Select a command inside a category for usage details and options.
+      `),
+    )
+    .addFields(fields)
+    .setFooter({ text: `${entries.length} commands · Choose a category to begin` })
+    .toJSON();
+}
+
+const GROUP_LABELS: Record<string, string> = {
+  infractions: "Infractions",
+  admin: "Server lockdown",
+  automod: "Automod",
+  censor: "Censor",
+  slowmode: "Slowmode",
+  persist: "Sticky messages",
+  utility: "Utility",
+  roles: "Role assign",
+  reaction_roles: "Reaction roles",
+  role_buttons: "Role buttons",
+  self_grantable_roles: "Self roles",
+  pingable_roles: "Pingable roles",
+  role_manager: "Role manager",
+  locate_user: "Locate",
+  name_history: "Name history",
+  welcome_message: "Welcome",
+  tags: "Tags",
+  post: "Scheduled posts",
+  autodelete: "Autodelete",
+  autoreactions: "Autoreactions",
+  autoreplies: "Autoreplies",
+  reminders: "Reminders",
+  counters: "Counters",
+  companion_channels: "Companion channels",
+  custom_events: "Custom events",
+  command_aliases: "Aliases",
+  stats: "Stats",
+  config: "Config",
+};
+
+function buildCategoryEmbed(
+  category: HelpCategory,
+  pageEntries: CommandEntry[],
+  page: number,
+  totalPages: number,
+  totalCommands: number,
   client: Client,
   emojis?: EmojisConfig,
-): HelpState {
-  const allLines = filterLines(
-    commands.filter((c) => c.plugin !== "config").flatMap(flattenCommand),
-    query.trim().toLowerCase(),
-  );
-
-  const plugins = PLUGIN_ORDER.filter((p) => allLines.some((l) => l.plugin === p));
-  const pages: HelpPage[] = [];
-  const pluginFirstPage = new Map<string, number>();
-  let overviewPageIndex: number | null = null;
-
-  if (!query && allLines.length > 0) {
-    const counts = plugins.map((p) => {
-      const count = allLines.filter((l) => l.plugin === p).length;
-      return `**${PLUGIN_LABELS[p] ?? p}** - ${count} command${count === 1 ? "" : "s"}`;
-    });
-
-    overviewPageIndex = pages.length;
-    pages.push({
-      plugin: "overview",
-      title: "Dreamliner Help",
-      pageInPlugin: 1,
-      totalInPlugin: 1,
-      embed: setEmbedAuthor(baseEmbed(), "Dreamliner Help", client, { tone: "neutral", emojis })
-        .setDescription(
-          trimLines(`
-            Browse commands by category using the menu below.
-
-            ${counts.join("\n")}
-          `),
-        )
-        .setFooter({ text: "Overview" })
-        .toJSON(),
-    });
+): APIEmbed {
+  const groups = new Map<string, CommandEntry[]>();
+  for (const entry of pageEntries) {
+    const label = GROUP_LABELS[entry.plugin] ?? entry.plugin;
+    const list = groups.get(label) ?? [];
+    list.push(entry);
+    groups.set(label, list);
   }
 
-  for (const plugin of plugins) {
-    const pluginLines = allLines.filter((l) => l.plugin === plugin);
-    const chunks = chunk(pluginLines, COMMANDS_PER_PAGE);
-    const label = PLUGIN_LABELS[plugin] ?? plugin;
+  const sections = [...groups.entries()].map(([label, groupEntries]) => {
+    const body = groupEntries.map(commandLine).join("\n");
+    return `**${label}**\n${body}`;
+  });
 
-    if (pluginLines.length === 0) {
-      continue;
-    }
+  const description = trimLines(`
+    ${category.blurb}
 
-    pluginFirstPage.set(plugin, pages.length);
+    ${sections.join("\n\n")}
+  `);
 
-    chunks.forEach((group, index) => {
-      const entries =
-        group.length > 0
-          ? group.map((l) => `${l.name} - ${l.description}`).join("\n")
-          : "No commands found.";
+  const embed = setEmbedAuthor(baseEmbed(), category.label, client, { tone: "neutral", emojis }).setFooter({
+    text: `Page ${page + 1}/${totalPages} · ${totalCommands} commands · Select a command for details`,
+  });
 
-      const title = query ? `Help: ${query}` : `${label} commands`;
-
-      pages.push({
-        plugin,
-        title,
-        pageInPlugin: index + 1,
-        totalInPlugin: chunks.length,
-        embed: setEmbedAuthor(baseEmbed(), title, client, { tone: "neutral", emojis })
-          .setDescription(codeBlock(entries))
-          .setFooter({
-            text: query
-              ? `Search results · ${label} · Page ${index + 1}/${chunks.length}`
-              : `${label} · Page ${index + 1}/${chunks.length}`,
-          })
-          .toJSON(),
+  if (description.length <= MAX_DESCRIPTION) {
+    embed.setDescription(description);
+  } else {
+    embed.setDescription(category.blurb);
+    for (const [label, groupEntries] of groups) {
+      const parts = splitFieldValue(groupEntries.map(commandLine));
+      parts.slice(0, 25 - (embed.data.fields?.length ?? 0)).forEach((value, index) => {
+        embed.addFields({ name: index === 0 ? label : `${label} (${index + 1})`, value });
       });
-    });
+    }
   }
 
-  if (pages.length === 0) {
-    overviewPageIndex = 0;
-    pages.push({
-      plugin: "overview",
-      title: "Dreamliner Help",
-      pageInPlugin: 1,
-      totalInPlugin: 1,
-      embed: setEmbedAuthor(baseEmbed(), "Dreamliner Help", client, { tone: "neutral", emojis })
-        .setDescription(query ? `No commands matched **${query}**.` : "No commands available.")
-        .toJSON(),
-    });
-  }
-
-  return { pages, plugins, pluginFirstPage, overviewPageIndex };
+  return embed.toJSON();
 }
 
-function buildPaginationRow(
-  pageIndex: number,
-  state: HelpState,
+function buildDetailEmbed(entry: CommandEntry, categoryLabel: string, client: Client, emojis?: EmojisConfig): APIEmbed {
+  const optionLines =
+    entry.options.length > 0
+      ? entry.options
+          .map((o) => `• **${formatOptionToken(o.name, o.required)}** - ${o.description || "No description"}`)
+          .join("\n")
+      : "_This command has no options._";
+
+  return setEmbedAuthor(baseEmbed(), shortCommandName(entry), client, { tone: "neutral", emojis })
+    .setDescription(
+      trimLines(`
+        ${entry.description}
+
+        **Usage**
+        \`${entry.usage}\`
+
+        **Options**
+        ${optionLines}
+      `),
+    )
+    .setFooter({ text: `${categoryLabel} · Use the menus below to keep browsing` })
+    .toJSON();
+}
+
+function buildSearchEmbed(
+  pageEntries: CommandEntry[],
   query: string,
-  docsBaseUrl: string,
-): ActionRowBuilder<ButtonBuilder> {
-  const { pages } = state;
-  const suffix = querySuffix(query);
-  const page = pages[pageIndex] ?? pages[0];
-  const docsPath = page && page.plugin !== "overview" ? PLUGIN_DOCS[page.plugin] : "index.md";
+  page: number,
+  totalPages: number,
+  total: number,
+  client: Client,
+  emojis?: EmojisConfig,
+): APIEmbed {
+  if (total === 0) {
+    return setEmbedAuthor(baseEmbed(), "Help search", client, { tone: "warning", emojis })
+      .setDescription(`No commands matched **${query}**.\n\nTry a shorter term, or open Help without a query to browse categories.`)
+      .toJSON();
+  }
+
+  const lines = pageEntries.map(commandLine);
+  return setEmbedAuthor(baseEmbed(), `Search: ${query}`, client, { tone: "neutral", emojis })
+    .setDescription(trimLines(`${lines.join("\n")}`))
+    .setFooter({ text: `${total} match${total === 1 ? "" : "es"} · Page ${page + 1}/${totalPages}` })
+    .toJSON();
+}
+
+function buildNavButtons(view: HelpView, query: string, docsUrl: string, docsPath: string, pageCount: number): ActionRowBuilder<ButtonBuilder> {
+  const homeView: HelpView = { kind: "home" };
+  let page = 0;
+
+  if (view.kind === "detail" || view.kind === "category" || view.kind === "search") {
+    page = view.page;
+  }
+
+  const backView: HelpView | null =
+    view.kind === "detail"
+      ? query
+        ? { kind: "search", page: view.page }
+        : { kind: "category", categoryId: view.categoryId, page: view.page }
+      : null;
+
+  const prevView: HelpView | null =
+    view.kind === "category" && page > 0
+      ? { kind: "category", categoryId: view.categoryId, page: page - 1 }
+      : view.kind === "search" && page > 0
+        ? { kind: "search", page: page - 1 }
+        : null;
+
+  const nextView: HelpView | null =
+    view.kind === "category" && page < pageCount - 1
+      ? { kind: "category", categoryId: view.categoryId, page: page + 1 }
+      : view.kind === "search" && page < pageCount - 1
+        ? { kind: "search", page: page + 1 }
+        : null;
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`${HELP_BUTTON_PREFIX}:prev:${pageIndex}${suffix}`)
-      .setLabel("Previous")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(pageIndex <= 0),
-    new ButtonBuilder()
-      .setCustomId(`${HELP_BUTTON_PREFIX}:next:${pageIndex}${suffix}`)
-      .setLabel("Next")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(pageIndex >= pages.length - 1),
+      .setCustomId(buildCustomId("go", homeView, ""))
+      .setLabel("Home")
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(view.kind === "home" && !query),
   );
 
-  if (docsPath) {
+  if (backView) {
     row.addComponents(
-      new ButtonBuilder()
-        .setLabel("Documentation")
-        .setStyle(ButtonStyle.Link)
-        .setURL(`${docsBaseUrl}/${docsPath}`),
+      new ButtonBuilder().setCustomId(buildCustomId("go", backView, query)).setLabel("Back").setStyle(ButtonStyle.Secondary),
     );
   }
+
+  if (view.kind === "category" || view.kind === "search") {
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId(buildCustomId("go", prevView ?? view, query))
+        .setLabel("Previous")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(!prevView),
+      new ButtonBuilder()
+        .setCustomId(buildCustomId("go", nextView ?? view, query))
+        .setLabel("Next")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(!nextView),
+    );
+  }
+
+  row.addComponents(
+    new ButtonBuilder().setLabel("Docs").setStyle(ButtonStyle.Link).setURL(`${docsUrl}/${docsPath}`),
+  );
 
   return row;
 }
 
-function buildPluginSelectRows(
-  pageIndex: number,
-  state: HelpState,
-  query: string,
-): ActionRowBuilder<MessageActionRowComponentBuilder>[] {
-  const { plugins, overviewPageIndex } = state;
-  const current = state.pages[pageIndex] ?? state.pages[0];
-  const suffix = querySuffix(query);
+function buildCategorySelect(view: HelpView, query: string, entries: CommandEntry[]): ActionRowBuilder<MessageActionRowComponentBuilder> {
+  const current =
+    view.kind === "category" || view.kind === "detail" ? view.categoryId : view.kind === "home" ? "home" : "";
 
-  const options: { label: string; value: string; default?: boolean }[] = [];
-
-  if (overviewPageIndex !== null && !query) {
-    options.push({
-      label: "Overview",
-      value: "overview",
-      default: current.plugin === "overview",
-    });
-
-    for (const category of PLUGIN_CATEGORIES) {
-      const active = category.plugins.some((p) => plugins.includes(p));
-      if (!active) continue;
-      options.push({
+  const options = [
+    {
+      label: "Home",
+      description: "Category overview",
+      value: "home",
+      default: view.kind === "home",
+    },
+    ...CATEGORIES.map((category) => {
+      const count = categoryEntries(category, entries).length;
+      return {
         label: category.label,
+        description: `${count} command${count === 1 ? "" : "s"}`,
         value: `cat:${category.id}`,
-        default: category.plugins.includes(current.plugin),
-      });
-    }
-  } else {
-    for (const plugin of plugins) {
-      options.push({
-        label: PLUGIN_LABELS[plugin] ?? plugin,
-        value: plugin,
-        default: current.plugin === plugin,
-      });
-    }
-  }
+        default: current === category.id,
+      };
+    }),
+  ];
 
-  if (options.length === 0) return [];
-
-  const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [];
-  const batches = chunk(options, MAX_SELECT_OPTIONS);
-
-  batches.forEach((batch, batchIndex) => {
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`${HELP_BUTTON_PREFIX}:select:${pageIndex}:${batchIndex}${suffix}`)
-      .setPlaceholder(
-        batches.length > 1 ? `Jump to plugin (${batchIndex + 1}/${batches.length})…` : "Jump to plugin…",
-      )
-      .addOptions(batch);
-
-    rows.push(new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu));
-  });
-
-  return rows;
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(buildCustomId("pick", view, query))
+      .setPlaceholder("Browse categories…")
+      .addOptions(options.slice(0, MAX_SELECT_OPTIONS)),
+  );
 }
 
-function buildHelpComponents(pageIndex: number, state: HelpState, query: string, docsBaseUrl: string) {
-  return [buildPaginationRow(pageIndex, state, query, docsBaseUrl), ...buildPluginSelectRows(pageIndex, state, query)];
+function buildCommandSelect(
+  view: HelpView,
+  query: string,
+  pageEntries: CommandEntry[],
+): ActionRowBuilder<MessageActionRowComponentBuilder> | null {
+  if (pageEntries.length === 0) return null;
+  if (view.kind !== "category" && view.kind !== "search" && view.kind !== "detail") return null;
+
+  const selectedKey = view.kind === "detail" ? view.commandKey : null;
+
+  const options = pageEntries.slice(0, MAX_SELECT_OPTIONS).map((entry, index) => ({
+    label: shortCommandName(entry).slice(0, 100),
+    description: entry.description.slice(0, 100) || "No description",
+    value: `cmd:${index}`,
+    default: entry.key === selectedKey,
+  }));
+
+  return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(buildCustomId("cmd", view.kind === "detail" ? { kind: "category", categoryId: view.categoryId, page: view.page } : view, query))
+      .setPlaceholder("View command details…")
+      .addOptions(options),
+  );
+}
+
+function findCategoryForEntry(entry: CommandEntry): HelpCategory | undefined {
+  return CATEGORIES.find((category) => categoryEntries(category, [entry]).length > 0);
+}
+
+function resolvePageEntries(view: HelpView, entries: CommandEntry[], query: string): {
+  embedEntries: CommandEntry[];
+  pageEntries: CommandEntry[];
+  page: number;
+  pageCount: number;
+  category?: HelpCategory;
+  detail?: CommandEntry;
+  docsPath: string;
+} {
+  if (view.kind === "detail") {
+    const detail = entries.find((e) => e.key === view.commandKey);
+    const category = findCategory(view.categoryId) ?? (detail ? findCategoryForEntry(detail) : undefined);
+    const pool = query ? filterEntries(entries, query) : category ? categoryEntries(category, entries) : entries;
+    const pages = chunk(pool, COMMANDS_PER_CATEGORY_PAGE);
+    const page = Math.min(view.page, Math.max(0, pages.length - 1));
+    return {
+      embedEntries: pool,
+      pageEntries: pages[page] ?? [],
+      page,
+      pageCount: pages.length,
+      category,
+      detail,
+      docsPath: docsPathFor(detail ? [detail] : pages[page] ?? []),
+    };
+  }
+
+  if (query || view.kind === "search") {
+    const matched = query ? filterEntries(entries, query) : entries;
+    const pages = chunk(matched, COMMANDS_PER_CATEGORY_PAGE);
+    const page = view.kind === "search" ? Math.min(view.page, Math.max(0, pages.length - 1)) : 0;
+    return {
+      embedEntries: matched,
+      pageEntries: pages[page] ?? [],
+      page,
+      pageCount: pages.length,
+      docsPath: "index.md",
+    };
+  }
+
+  if (view.kind === "home") {
+    return { embedEntries: entries, pageEntries: [], page: 0, pageCount: 1, docsPath: "index.md" };
+  }
+
+  const category = findCategory(view.categoryId) ?? CATEGORIES[0]!;
+  const inCategory = categoryEntries(category, entries);
+  const pages = chunk(inCategory, COMMANDS_PER_CATEGORY_PAGE);
+  const page = Math.min(view.page, Math.max(0, pages.length - 1));
+  const pageEntries = pages[page] ?? [];
+
+  return {
+    embedEntries: inCategory,
+    pageEntries,
+    page,
+    pageCount: pages.length,
+    category,
+    docsPath: docsPathFor(pageEntries, PLUGIN_DOCS[category.include[0]?.plugin ?? ""] ?? "index.md"),
+  };
+}
+
+function resolveViewFromSelect(value: string, current: HelpView, pageEntries: CommandEntry[]): HelpView {
+  if (value === "home") return { kind: "home" };
+
+  if (value.startsWith("cat:")) {
+    const categoryId = value.slice(4);
+    return { kind: "category", categoryId, page: 0 };
+  }
+
+  if (value.startsWith("cmd:")) {
+    const index = Number(value.slice(4));
+    const entry = pageEntries[index];
+    if (!entry) return current;
+
+    const owning = findCategoryForEntry(entry);
+    const categoryId =
+      current.kind === "category" || current.kind === "detail"
+        ? current.categoryId
+        : (owning?.id ?? "tools");
+    const page = current.kind === "category" || current.kind === "detail" || current.kind === "search" ? current.page : 0;
+    return { kind: "detail", categoryId, page, commandKey: entry.key };
+  }
+
+  return current;
+}
+
+function buildHelpPayload(
+  view: HelpView,
+  query: string,
+  docsBaseUrl: string,
+  client: Client,
+  emojis?: EmojisConfig,
+  commands = getAllSlashCommands(),
+): { embeds: APIEmbed[]; components: ActionRowBuilder<MessageActionRowComponentBuilder>[] } {
+  const entries = allEntries(commands);
+  const activeView: HelpView =
+    view.kind === "home"
+      ? view
+      : query && view.kind !== "detail" && view.kind !== "search"
+        ? { kind: "search", page: 0 }
+        : query && view.kind === "category"
+          ? { kind: "search", page: view.page }
+          : view;
+
+  const resolved = resolvePageEntries(activeView, entries, query);
+  let embed: APIEmbed;
+
+  if (activeView.kind === "home") {
+    embed = buildHomeEmbed(entries, client, emojis);
+  } else if (activeView.kind === "detail" && resolved.detail) {
+    const label = query ? `Search: ${query}` : (resolved.category?.label ?? "Commands");
+    embed = buildDetailEmbed(resolved.detail, label, client, emojis);
+  } else if (query || activeView.kind === "search") {
+    embed = buildSearchEmbed(
+      resolved.pageEntries,
+      query || "all",
+      resolved.page,
+      resolved.pageCount,
+      resolved.embedEntries.length,
+      client,
+      emojis,
+    );
+  } else if (resolved.category) {
+    embed = buildCategoryEmbed(
+      resolved.category,
+      resolved.pageEntries,
+      resolved.page,
+      resolved.pageCount,
+      resolved.embedEntries.length,
+      client,
+      emojis,
+    );
+  } else {
+    embed = buildHomeEmbed(entries, client, emojis);
+  }
+
+  const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
+    buildNavButtons(activeView, query, docsBaseUrl, resolved.docsPath, resolved.pageCount),
+  ];
+
+  if (!query) {
+    components.push(buildCategorySelect(activeView, query, entries));
+  }
+
+  const commandSelect = buildCommandSelect(activeView, query, resolved.pageEntries);
+  if (commandSelect) components.push(commandSelect);
+
+  // Discord allows max 5 rows.
+  return { embeds: [embed], components: components.slice(0, 5) };
 }
 
 export function buildHelpMessage(
@@ -424,87 +850,61 @@ export function buildHelpMessage(
   emojis?: EmojisConfig,
   commands = getAllSlashCommands(),
 ): InteractionReplyOptions {
-  const state = buildHelpState(commands, query, client, emojis);
-  const safeIndex = Math.max(0, Math.min(pageIndex, state.pages.length - 1));
-  const page = state.pages[safeIndex]!;
-
+  const view: HelpView = query ? { kind: "search", page: Math.max(0, pageIndex) } : { kind: "home" };
+  const { embeds, components } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
   return {
-    embeds: [page.embed],
-    components: buildHelpComponents(safeIndex, state, query, docsBaseUrl),
+    embeds,
+    components,
     ...(ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
   };
 }
 
 export function buildHelpUpdate(
-  pageIndex: number,
+  view: HelpView,
   query: string,
   docsBaseUrl: string,
   client: Client,
   emojis?: EmojisConfig,
   commands = getAllSlashCommands(),
 ): InteractionUpdateOptions {
-  const { embeds, components } = buildHelpMessage(pageIndex, query, docsBaseUrl, false, client, emojis, commands);
+  const { embeds, components } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
   return { embeds, components };
 }
 
-export function parseHelpButton(customId: string): HelpAction | null {
-  if (!customId.startsWith(`${HELP_BUTTON_PREFIX}:`)) return null;
+function parseHelpInteraction(
+  customId: string,
+  selectValue?: string,
+): ParsedHelpAction | null {
+  const parsed = parseCustomId(customId);
+  if (!parsed) return null;
 
-  const parts = customId.slice(HELP_BUTTON_PREFIX.length + 1).split(":");
-  const action = parts[0];
-  if (action !== "prev" && action !== "next") return null;
-
-  const pageIndex = Number(parts[1]);
-  const query = decodeQuery(parts[2]);
-  if (Number.isNaN(pageIndex)) return null;
-  return { action, pageIndex, query };
-}
-
-export function parseHelpSelect(customId: string, value: string): HelpAction | null {
-  if (!customId.startsWith(`${HELP_BUTTON_PREFIX}:select:`)) return null;
-
-  const rest = customId.slice(`${HELP_BUTTON_PREFIX}:select:`.length);
-  const parts = rest.split(":");
-  const pageIndex = Number(parts[0]);
-  if (Number.isNaN(pageIndex) || !value) return null;
-
-  const query = decodeQuery(parts.slice(2).join(":") || undefined);
-
-  return { action: "select", pageIndex, plugin: value, query };
-}
-
-export function resolveHelpPageIndex(state: HelpState, parsed: HelpAction): number {
-  const { pages } = state;
-  if (parsed.action === "prev") return Math.max(0, parsed.pageIndex - 1);
-  if (parsed.action === "next") return Math.min(pages.length - 1, parsed.pageIndex + 1);
-  if (parsed.action === "select" && parsed.plugin) {
-    if (parsed.plugin === "overview" && state.overviewPageIndex !== null) {
-      return state.overviewPageIndex;
-    }
-    if (parsed.plugin.startsWith("cat:")) {
-      const category = PLUGIN_CATEGORIES.find((c) => c.id === parsed.plugin!.slice(4));
-      if (category) {
-        for (const plugin of category.plugins) {
-          const idx = state.pluginFirstPage.get(plugin);
-          if (idx !== undefined) return idx;
-        }
-      }
-    }
-    const idx = state.pluginFirstPage.get(parsed.plugin);
-    if (idx !== undefined) return idx;
+  if (selectValue !== undefined) {
+    return { type: "select", value: selectValue, view: parsed.view, query: parsed.query };
   }
-  return Math.max(0, Math.min(parsed.pageIndex, pages.length - 1));
+
+  if (parsed.action === "go") {
+    return { type: "button", view: parsed.view, query: parsed.query };
+  }
+
+  return null;
 }
 
-async function applyHelpUpdate(
+async function applyHelpInteraction(
   interaction: ButtonInteraction | StringSelectMenuInteraction,
-  parsed: HelpAction,
+  action: ParsedHelpAction,
   docsBaseUrl: string,
   emojis?: EmojisConfig,
-) {
-  const state = buildHelpState(getAllSlashCommands(), parsed.query, interaction.client, emojis);
-  const pageIndex = resolveHelpPageIndex(state, parsed);
-  await interaction.update(buildHelpUpdate(pageIndex, parsed.query, docsBaseUrl, interaction.client, emojis));
+): Promise<void> {
+  const entries = allEntries();
+  let view = action.view;
+  const query = action.query;
+
+  if (action.type === "select") {
+    const resolved = resolvePageEntries(view.kind === "detail" ? { kind: "category", categoryId: view.categoryId, page: view.page } : view, entries, query);
+    view = resolveViewFromSelect(action.value, view, resolved.pageEntries);
+  }
+
+  await interaction.update(buildHelpUpdate(view, query, docsBaseUrl, interaction.client, emojis));
 }
 
 export async function handleHelpButton(
@@ -512,9 +912,9 @@ export async function handleHelpButton(
   docsBaseUrl: string,
   emojis?: EmojisConfig,
 ): Promise<void> {
-  const parsed = parseHelpButton(interaction.customId);
-  if (!parsed) return;
-  await applyHelpUpdate(interaction, parsed, docsBaseUrl, emojis);
+  const parsed = parseHelpInteraction(interaction.customId);
+  if (!parsed || parsed.type !== "button") return;
+  await applyHelpInteraction(interaction, parsed, docsBaseUrl, emojis);
 }
 
 export async function handleHelpSelect(
@@ -524,7 +924,7 @@ export async function handleHelpSelect(
 ): Promise<void> {
   const value = interaction.values[0];
   if (!value) return;
-  const parsed = parseHelpSelect(interaction.customId, value);
-  if (!parsed) return;
-  await applyHelpUpdate(interaction, parsed, docsBaseUrl, emojis);
+  const parsed = parseHelpInteraction(interaction.customId, value);
+  if (!parsed || parsed.type !== "select") return;
+  await applyHelpInteraction(interaction, parsed, docsBaseUrl, emojis);
 }

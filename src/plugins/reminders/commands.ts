@@ -2,7 +2,23 @@ import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
+import { parseDuration } from "../infraction/functions/duration.js";
 import { cancelReminder, createReminder, listReminders } from "./functions/store.js";
+
+function resolveDelayMinutes(ctx: { interaction: { options: { getInteger: (n: string) => number | null; getString: (n: string) => string | null } } }): number | null {
+  const minutes = ctx.interaction.options.getInteger("minutes");
+  const hours = ctx.interaction.options.getInteger("hours");
+  const inRaw = ctx.interaction.options.getString("in")?.trim();
+
+  if (inRaw) {
+    const ms = parseDuration(inRaw);
+    if (!ms) return null;
+    return Math.max(1, Math.round(ms / 60_000));
+  }
+
+  const total = (hours ?? 0) * 60 + (minutes ?? 0);
+  return total > 0 ? total : null;
+}
 
 export const remindCommand: SlashCommandDefinition = {
   plugin: "reminders",
@@ -10,24 +26,33 @@ export const remindCommand: SlashCommandDefinition = {
     .setName("remind")
     .setDescription("Set a reminder")
     .addStringOption((o) => o.setName("message").setDescription("Reminder message").setRequired(true))
-    .addIntegerOption((o) =>
-      o.setName("minutes").setDescription("Minutes from now").setRequired(true).setMinValue(1),
-    ),
+    .addIntegerOption((o) => o.setName("minutes").setDescription("Minutes from now").setMinValue(1).setMaxValue(525_600))
+    .addIntegerOption((o) => o.setName("hours").setDescription("Hours from now").setMinValue(1).setMaxValue(8760))
+    .addStringOption((o) => o.setName("in").setDescription("Duration like 30m, 2h, or 1d")),
   execute: async (ctx) => {
     const auth = await requirePluginPermission(ctx, "reminders", "can_create");
     if (!auth) return;
 
     const message = ctx.interaction.options.getString("message", true);
-    const minutes = ctx.interaction.options.getInteger("minutes", true);
-    const guildId = ctx.interaction.guildId!;
-    const channelId = ctx.interaction.channelId;
+    const delayMinutes = resolveDelayMinutes(ctx);
+    if (!delayMinutes) {
+      await ctx.interaction.reply(
+        resultReply(
+          "Missing time",
+          "Provide `minutes`, `hours`, and/or `in` (e.g. `2h`).",
+          ctx.ephemeral,
+          slashResultOptions(ctx, { tone: "error" }),
+        ),
+      );
+      return;
+    }
 
     const reminder = await createReminder({
-      guildId,
+      guildId: ctx.interaction.guildId!,
       userId: ctx.interaction.user.id,
-      channelId,
+      channelId: ctx.interaction.channelId,
       message,
-      delayMinutes: minutes,
+      delayMinutes,
     });
 
     await ctx.interaction.reply(

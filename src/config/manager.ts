@@ -315,6 +315,24 @@ export class ConfigManager {
     return this.saveUserOverrides(guildId, userOverrides, updatedBy);
   }
 
+  async setPluginEnabled(
+    guildId: string,
+    pluginName: string,
+    enabled: boolean,
+    updatedBy: string,
+  ): Promise<SaveResult> {
+    const loaded = await this.loadUserOverrides(guildId);
+    if (!loaded.success) return loaded;
+
+    const userOverrides = loaded.data;
+    const plugins = { ...((userOverrides.plugins ?? {}) as Record<string, unknown>) };
+    const section = { ...((plugins[pluginName] ?? {}) as Record<string, unknown>) };
+    plugins[pluginName] = { ...section, enabled };
+    userOverrides.plugins = plugins;
+
+    return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+  }
+
   async patchLevels(
     guildId: string,
     levelPatch: Record<string, number | null>,

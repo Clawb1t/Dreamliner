@@ -20,16 +20,31 @@ import {
   pluginsRequiringConfig,
 } from "./core/guildHelpers.js";
 import { hasPluginPermission } from "./core/permissions.js";
+import { resolveDocsUrl } from "./core/docsUrl.js";
 import { resolveEphemeral } from "./core/ephemeral.js";
 import { canUseUtility } from "./core/guildHelpers.js";
 import { handleHelpButton, handleHelpSelect, HELP_BUTTON_PREFIX } from "./plugins/utility/functions/help.js";
+import { handlePluginListButtonInteraction, PLUGIN_LIST_PREFIX } from "./plugins/config/pluginList.js";
 import { handleRoleButtonInteraction, ROLE_BUTTON_PREFIX } from "./plugins/role_buttons/index.js";
 import {
   handleSelfRoleButtonInteraction,
   handleSelfRoleSelectInteraction,
   SELF_ROLE_PREFIX,
 } from "./plugins/self_grantable_roles/index.js";
+import {
+  AUTOREACTION_ADD_MODAL_ID,
+  handleAutoreactionModalSubmit,
+} from "./plugins/autoreactions/functions/modal.js";
+import {
+  AUTOREPLY_ADD_MODAL_ID,
+  handleAutoreplyModalSubmit,
+} from "./plugins/autoreplies/functions/modal.js";
+import {
+  SLOWMODE_RULE_ADD_MODAL_ID,
+  handleSlowmodeRuleModalSubmit,
+} from "./plugins/slowmode/functions/modal.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
+import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
 
@@ -79,6 +94,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         await handlePermissionsAutocomplete(interaction).catch((error) => {
           console.error("Permissions autocomplete error:", error);
         });
+        return;
+      }
+      if (interaction.commandName === "plugin") {
+        await handlePluginAutocomplete(interaction).catch((error) => {
+          console.error("Plugin autocomplete error:", error);
+        });
       }
       return;
     }
@@ -95,6 +116,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await handleSelfRoleButtonInteraction(interaction);
         if (handled) return;
       }
+      if (interaction.customId.startsWith(`${PLUGIN_LIST_PREFIX}:`)) {
+        const handled = await handlePluginListButtonInteraction(interaction, (guildId) =>
+          configManager.getEffectiveConfig(guildId),
+        );
+        if (handled) return;
+      }
       await handleHelpButtonInteraction(configManager, interaction);
       return;
     }
@@ -104,6 +131,41 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         if (handled) return;
       }
       await handleHelpSelectInteraction(configManager, interaction);
+      return;
+    }
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId === AUTOREACTION_ADD_MODAL_ID) {
+        try {
+          await handleAutoreactionModalSubmit(interaction, configManager);
+        } catch (error) {
+          console.error("Autoreaction modal error:", error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply(resultReply("Error", "Could not save that auto-reaction.", true)).catch(() => null);
+          }
+        }
+        return;
+      }
+      if (interaction.customId === AUTOREPLY_ADD_MODAL_ID) {
+        try {
+          await handleAutoreplyModalSubmit(interaction, configManager);
+        } catch (error) {
+          console.error("Autoreply modal error:", error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply(resultReply("Error", "Could not save that auto-reply.", true)).catch(() => null);
+          }
+        }
+        return;
+      }
+      if (interaction.customId === SLOWMODE_RULE_ADD_MODAL_ID) {
+        try {
+          await handleSlowmodeRuleModalSubmit(interaction, configManager);
+        } catch (error) {
+          console.error("Slowmode modal error:", error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply(resultReply("Error", "Could not save that slowmode rule.", true)).catch(() => null);
+          }
+        }
+      }
     }
   });
 
@@ -231,7 +293,7 @@ async function handleHelpInteraction(
     return;
   }
 
-  const docsUrl = process.env.DOCS_BASE_URL ?? "https://github.com/Clawb1t/Dreamliner/blob/main/docs";
+  const docsUrl = resolveDocsUrl();
 
   try {
     await run(interaction, docsUrl, guildConfig.emojis);

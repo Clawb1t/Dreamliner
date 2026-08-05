@@ -1,40 +1,11 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
+import { resolveDocsUrl } from "../../../core/docsUrl.js";
 import { resultReply, embedReply, embedEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
-import { baseEmbed, buildPingEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
+import { baseEmbed, buildPingEmbed, commandHeader, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import { requireUtilityPermission } from "../functions/commandHelpers.js";
+import { aboutLinkRows, buildAboutEmbed } from "../functions/about.js";
 import { buildHelpMessage } from "../functions/help.js";
-import { formatDuration } from "../../../core/datetime.js";
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const startTime = Date.now();
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_DOCS_URL = "https://github.com/Clawb1t/Dreamliner/blob/main/docs";
-const REPO_URL = "https://github.com/Clawb1t/Dreamliner";
-
-function getVersion(): string {
-  try {
-    const pkg = JSON.parse(readFileSync(join(__dirname, "../../../package.json"), "utf-8")) as { version: string };
-    return pkg.version;
-  } catch {
-    return "0.1.0";
-  }
-}
-
-function aboutLinkRows(docsUrl: string): ActionRowBuilder<ButtonBuilder>[] {
-  return [
-    new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setLabel("Documentation").setStyle(ButtonStyle.Link).setURL(docsUrl),
-      new ButtonBuilder().setLabel("Repository").setStyle(ButtonStyle.Link).setURL(REPO_URL),
-    ),
-    new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setLabel("Terms of Service").setStyle(ButtonStyle.Link).setURL(`${docsUrl}/terms-of-service.md`),
-      new ButtonBuilder().setLabel("Privacy Policy").setStyle(ButtonStyle.Link).setURL(`${docsUrl}/privacy-policy.md`),
-    ),
-  ];
-}
 
 export const metaCommands: SlashCommandDefinition[] = [
   {
@@ -58,27 +29,9 @@ export const metaCommands: SlashCommandDefinition[] = [
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_about");
       if (!auth) return;
-      const uptime = formatDuration(Date.now() - startTime);
-      const docsUrl = process.env.DOCS_BASE_URL ?? DEFAULT_DOCS_URL;
-      const plugins = [
-        "config", "utility", "infractions", "logs", "automod", "censor", "roles",
-        "welcome_message", "tags", "reminders", "stats", "autorole", "starboard",
-      ];
+      const docsUrl = resolveDocsUrl();
       await ctx.interaction.reply({
-        ...embedReply(
-          setEmbedAuthor(baseEmbed(), "About", ctx.client, { emojis: ctx.guildConfig.emojis, tone: "neutral" })
-            .addFields(
-              embedField(
-                "Bot information",
-                trimLines(`
-                  Version: **${getVersion()}**
-                  Uptime: **${uptime}**
-                  Plugins: **${plugins.join(", ")}**
-                `),
-              ),
-            ),
-          ctx.ephemeral,
-        ),
+        ...embedReply(buildAboutEmbed(ctx.client), ctx.ephemeral),
         components: aboutLinkRows(docsUrl),
       });
     },
@@ -88,13 +41,15 @@ export const metaCommands: SlashCommandDefinition[] = [
     permission: "can_help",
     data: new SlashCommandBuilder()
       .setName("help")
-      .setDescription("Search available commands")
-      .addStringOption((o) => o.setName("query").setDescription("Search term")),
+      .setDescription("Browse or search bot commands")
+      .addStringOption((o) =>
+        o.setName("query").setDescription("Optional search (e.g. ban, welcome, role)"),
+      ),
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_help");
       if (!auth) return;
       const query = (ctx.interaction.options.getString("query") ?? "").trim();
-      const docsUrl = process.env.DOCS_BASE_URL ?? DEFAULT_DOCS_URL;
+      const docsUrl = resolveDocsUrl();
       await ctx.interaction.reply(buildHelpMessage(0, query, docsUrl, ctx.ephemeral, ctx.client, ctx.guildConfig.emojis));
     },
   },

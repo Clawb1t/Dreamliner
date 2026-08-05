@@ -63,6 +63,10 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "persist list", label: "/persist list", plugin: "persist", permission: "can_list" },
   { key: "slowmode set", label: "/slowmode set", plugin: "slowmode", permission: "can_set" },
   { key: "slowmode clear", label: "/slowmode clear", plugin: "slowmode", permission: "can_clear" },
+  { key: "slowmode rule", label: "/slowmode rule", plugin: "slowmode", permission: "can_manage_rules" },
+  { key: "slowmode check", label: "/slowmode check", plugin: "slowmode", permission: "can_manage_rules" },
+  { key: "slowmode bypass", label: "/slowmode bypass", plugin: "slowmode", permission: "can_configure" },
+  { key: "slowmode individual", label: "/slowmode individual", plugin: "slowmode", permission: "can_configure" },
 
   // Roles
   { key: "roles give", label: "/roles give", plugin: "roles", permission: "can_give" },
@@ -96,6 +100,9 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "autoreaction add", label: "/autoreaction add", plugin: "autoreactions", permission: "can_add" },
   { key: "autoreaction remove", label: "/autoreaction remove", plugin: "autoreactions", permission: "can_remove" },
   { key: "autoreaction list", label: "/autoreaction list", plugin: "autoreactions", permission: "can_list" },
+  { key: "autoreply add", label: "/autoreply add", plugin: "autoreplies", permission: "can_add" },
+  { key: "autoreply remove", label: "/autoreply remove", plugin: "autoreplies", permission: "can_remove" },
+  { key: "autoreply list", label: "/autoreply list", plugin: "autoreplies", permission: "can_list" },
   { key: "remind", label: "/remind", plugin: "reminders", permission: "can_create" },
   { key: "reminders list", label: "/reminders list", plugin: "reminders", permission: "can_list" },
   { key: "reminders cancel", label: "/reminders cancel", plugin: "reminders", permission: "can_cancel" },

@@ -6,6 +6,7 @@ export const automodDefaultOverrides: ConfigOverride[] = [
     config: {
       can_status: true,
       can_test: true,
+      can_configure: true,
     },
   },
 ];

@@ -10,8 +10,8 @@ Infraction tracking and moderation commands for Dreamliner.
 |---------|------------|-------------|
 | `/warn` | `can_warn` | Issue a warning |
 | `/note` | `can_note` | Add a staff note |
-| `/mute` | `can_mute` | Mute a member (optional `duration` for timed mute) |
-| `/unmute` | `can_mute` | Remove a mute |
+| `/mute` | `can_mute` | Timeout a member via Discord (requires `duration`, max 28d) |
+| `/unmute` | `can_mute` | Clear a member's Discord timeout |
 | `/kick` | `can_kick` | Kick a member |
 | `/ban` | `can_ban` | Permanently ban a member |
 | `/tempban` | `can_ban` | Temporarily ban a member |
@@ -34,7 +34,7 @@ Infraction tracking and moderation commands for Dreamliner.
 plugins:
   infractions:
     config:
-      mute_role: "1234567890123456789"      # Required for mute/unmute
+      mute_role: "1234567890123456789"      # Optional legacy; /mute uses Discord timeout instead
       case_log_channel: "1234567890123456789"  # Optional; falls back to moderation_log_channel_id
       confirm_actions: true
       ban_delete_message_days: 0

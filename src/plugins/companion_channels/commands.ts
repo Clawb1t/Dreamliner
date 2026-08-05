@@ -2,7 +2,7 @@ import { ChannelType, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
-import { isHubChannel, registerHub, unregisterHub } from "./functions/store.js";
+import { isHubChannel, listHubs, registerHub, unregisterHub } from "./functions/store.js";
 
 export const companionChannelsCommands: SlashCommandDefinition[] = [
   {
@@ -25,7 +25,8 @@ export const companionChannelsCommands: SlashCommandDefinition[] = [
           .addChannelOption((o) =>
             o.setName("channel").setDescription("Hub voice channel").addChannelTypes(ChannelType.GuildVoice).setRequired(true),
           ),
-      ),
+      )
+      .addSubcommand((sub) => sub.setName("list").setDescription("List registered hub channels")),
     execute: async (ctx) => {
       const sub = ctx.interaction.options.getSubcommand();
       const guildId = ctx.interaction.guildId!;
@@ -59,6 +60,19 @@ export const companionChannelsCommands: SlashCommandDefinition[] = [
         }
 
         await ctx.interaction.reply(resultReply("Hub removed", `<#${channel.id}> is no longer a hub.`, ctx.ephemeral, slashResultOptions(ctx)));
+        return;
+      }
+
+      if (sub === "list") {
+        const auth = await requirePluginPermission(ctx, "companion_channels", "can_create");
+        if (!auth) return;
+        const hubs = await listHubs(guildId);
+        if (!hubs.length) {
+          await ctx.interaction.reply(resultReply("Companion hubs", "No hub channels registered.", ctx.ephemeral, slashResultOptions(ctx)));
+          return;
+        }
+        const lines = hubs.map((hub) => `• <#${hub.channelId}>`);
+        await ctx.interaction.reply(resultReply("Companion hubs", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)));
       }
     },
   },

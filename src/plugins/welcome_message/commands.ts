@@ -18,8 +18,13 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
           .addChannelOption((o) =>
             o.setName("channel").setDescription("Welcome channel").addChannelTypes(ChannelType.GuildText).setRequired(true),
           )
-          .addStringOption((o) => o.setName("message").setDescription("Welcome message template")),
+          .addStringOption((o) =>
+            o
+              .setName("message")
+              .setDescription("Welcome message template (supports {user}, {username}, {guild}, {memberCount})"),
+          ),
       )
+      .addSubcommand((sub) => sub.setName("show").setDescription("Show the current welcome configuration"))
       .addSubcommand((sub) => sub.setName("test").setDescription("Send a test welcome message"))
       .addSubcommand((sub) => sub.setName("disable").setDescription("Disable welcome messages")),
     execute: async (ctx) => {
@@ -43,6 +48,27 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
 
         await ctx.interaction.reply(
           resultReply("Welcome configured", `Messages will be sent to <#${channel.id}>.`, ctx.ephemeral, slashResultOptions(ctx)),
+        );
+        return;
+      }
+
+      if (sub === "show") {
+        const auth = await requirePluginPermission(ctx, "welcome_message", "can_set");
+        if (!auth) return;
+        const config = zWelcomeMessageConfig.parse(auth.pluginConfig);
+        if (!config.channel_id) {
+          await ctx.interaction.reply(
+            resultReply("Welcome", "Welcome messages are not configured.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+          );
+          return;
+        }
+        await ctx.interaction.reply(
+          resultReply(
+            "Welcome configuration",
+            `Channel: <#${config.channel_id}>\nMessage: ${config.message}`,
+            ctx.ephemeral,
+            slashResultOptions(ctx),
+          ),
         );
         return;
       }

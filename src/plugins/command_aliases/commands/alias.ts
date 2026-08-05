@@ -23,8 +23,12 @@ export const aliasCommands: SlashCommandDefinition[] = [
           .setName("create")
           .setDescription("Create or update an alias")
           .addStringOption((o) => o.setName("name").setDescription("Alias name").setRequired(true))
-          .addStringOption((o) => o.setName("command").setDescription("Target slash command name").setRequired(true))
-          .addStringOption((o) => o.setName("options").setDescription("JSON object of preset options")),
+          .addStringOption((o) =>
+            o.setName("command").setDescription("Target slash command name (without /)").setRequired(true),
+          )
+          .addStringOption((o) =>
+            o.setName("options").setDescription('JSON preset options, e.g. {"user":"123","reason":"spam"}'),
+          ),
       )
       .addSubcommand((sub) =>
         sub
@@ -33,6 +37,12 @@ export const aliasCommands: SlashCommandDefinition[] = [
           .addStringOption((o) => o.setName("name").setDescription("Alias name").setRequired(true)),
       )
       .addSubcommand((sub) => sub.setName("list").setDescription("List command aliases"))
+      .addSubcommand((sub) =>
+        sub
+          .setName("show")
+          .setDescription("Show details for one alias")
+          .addStringOption((o) => o.setName("name").setDescription("Alias name").setRequired(true)),
+      )
       .addSubcommand((sub) =>
         sub
           .setName("run")
@@ -107,6 +117,30 @@ export const aliasCommands: SlashCommandDefinition[] = [
               embedField("Aliases", trimLines(lines.join("\n"))),
             ),
             ctx.ephemeral,
+          ),
+        );
+        return;
+      }
+
+      if (sub === "show") {
+        const auth = await requirePluginPermission(ctx, "command_aliases", "can_list");
+        if (!auth) return;
+
+        const name = ctx.interaction.options.getString("name", true);
+        const alias = await getCommandAlias(guildId, name);
+        if (!alias) {
+          await ctx.interaction.reply(
+            resultReply("Alias", `No alias named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+          );
+          return;
+        }
+
+        await ctx.interaction.reply(
+          resultReply(
+            "Alias details",
+            `**${alias.name}** → \`/${alias.command}\`\nOptions: \`${JSON.stringify(alias.options)}\``,
+            ctx.ephemeral,
+            slashResultOptions(ctx),
           ),
         );
         return;

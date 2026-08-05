@@ -16,14 +16,24 @@ export const tagsCommands: SlashCommandDefinition[] = [
           .setName("create")
           .setDescription("Create a tag")
           .addStringOption((o) => o.setName("name").setDescription("Tag name").setRequired(true))
-          .addStringOption((o) => o.setName("content").setDescription("Tag content").setRequired(true)),
+          .addStringOption((o) =>
+            o
+              .setName("content")
+              .setDescription("Tag content (supports {user}, {username}, {guild}, {memberCount})")
+              .setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub
           .setName("edit")
           .setDescription("Edit a tag")
           .addStringOption((o) => o.setName("name").setDescription("Tag name").setRequired(true))
-          .addStringOption((o) => o.setName("content").setDescription("New content").setRequired(true)),
+          .addStringOption((o) =>
+            o
+              .setName("content")
+              .setDescription("New content (supports {user}, {username}, {guild}, {memberCount})")
+              .setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub

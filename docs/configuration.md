@@ -141,6 +141,8 @@ See also: [Autorole](plugins/autorole.md), [Logs](plugins/logs.md), [Starboard](
 | `/config validate` | Dry-run validation                                              |
 | `/config update`   | Apply new Dreamliner defaults while keeping your customizations |
 | `/permissions ...` | Grant commands / set levels without re-uploading YAML           |
+| `/plugin toggle`   | Enable or disable a plugin (`plugin` + `state`: Enable / Disable) |
+| `/plugin list`     | Show which plugins are enabled or disabled                      |
 
 ### Workflow
 

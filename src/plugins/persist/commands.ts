@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
+import { parseMessageLink } from "../../core/messageLink.js";
 import { listPersistedMessages, removePersistedMessage, upsertPersistedMessage } from "./functions/store.js";
 
 export const persistCommands: SlashCommandDefinition[] = [
@@ -14,7 +15,9 @@ export const persistCommands: SlashCommandDefinition[] = [
         sub
           .setName("add")
           .setDescription("Persist a message in this channel")
-          .addStringOption((o) => o.setName("message_id").setDescription("Message ID to persist").setRequired(true)),
+          .addStringOption((o) =>
+            o.setName("message").setDescription("Message ID or message link from this channel").setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub
@@ -39,7 +42,21 @@ export const persistCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        const messageId = ctx.interaction.options.getString("message_id", true);
+        const raw = ctx.interaction.options.getString("message", true).trim();
+        const link = parseMessageLink(raw);
+        const messageId = link?.messageId ?? raw;
+        if (link && (link.guildId !== guildId || link.channelId !== channel.id)) {
+          await ctx.interaction.reply(
+            resultReply(
+              "Persist",
+              "Message link must point to a message in this channel.",
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
+
         const fetched = await channel.messages.fetch(messageId).catch(() => null);
         if (!fetched) {
           await ctx.interaction.reply(

@@ -165,7 +165,7 @@ plugins:
           star_emoji:
             - "⭐"
   automod:
-    enabled: true
+    enabled: false
     replaceDefaultOverrides: false
     config:
       enabled_rules:
@@ -183,11 +183,13 @@ plugins:
       mute_duration_ms: 600000
       can_status: false
       can_test: false
+      can_configure: false
     overrides:
       - level: ">=50"
         config:
           can_status: true
           can_test: true
+          can_configure: true
   censor:
     enabled: true
     replaceDefaultOverrides: false
@@ -232,13 +234,21 @@ plugins:
     replaceDefaultOverrides: false
     config:
       default_seconds: 5
+      individual_enabled: true
+      allow_manage_messages_bypass: true
+      individual_default_seconds: 0
+      rules: []
       can_set: false
       can_clear: false
+      can_manage_rules: false
+      can_configure: false
     overrides:
       - level: ">=50"
         config:
           can_set: true
           can_clear: true
+          can_manage_rules: true
+          can_configure: true
   roles:
     enabled: true
     replaceDefaultOverrides: false
@@ -365,6 +375,20 @@ plugins:
           can_set: true
           can_clear: true
   autoreactions:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      rules: []
+      can_add: false
+      can_remove: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_add: true
+          can_remove: true
+          can_list: true
+  autoreplies:
     enabled: true
     replaceDefaultOverrides: false
     config:

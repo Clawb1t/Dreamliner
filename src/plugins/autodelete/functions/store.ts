@@ -35,3 +35,7 @@ export async function clearAutodeleteRule(guildId: string, channelId: string): P
     .get();
   return Boolean(result);
 }
+
+export async function listAutodeleteRules(guildId: string): Promise<AutodeleteRow[]> {
+  return getDb().select().from(channelAutodelete).where(eq(channelAutodelete.guildId, guildId)).all();
+}

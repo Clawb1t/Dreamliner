@@ -197,11 +197,16 @@ Latency test (roundtrip and WebSocket).
 
 ### `/about`
 
-Bot version, uptime, loaded plugins, with link buttons for documentation, repository, terms, and privacy.
+Bot version, uptime, runtime stats, and loaded plugins, with link buttons for [documentation](https://dreamliner.gitbook.io/dreamliner-docs/docs), terms, and privacy.
 
 ### `/help`
 
-Browse commands by plugin with **Previous** / **Next** and a **Documentation** link button on the first row, plus a **plugin dropdown** on the second row. Optionally pass `query` to search across all commands.
+Browse every command through a category home screen (**Moderation**, **Roles**, **Lookups**, **Automation**, **Server tools**, **Configuration**).
+
+- Category menu jumps between topics
+- Command menu opens usage details and options
+- **Home** / **Back** / **Previous** / **Next** for navigation, plus a **Docs** link
+- Optional `query` searches across all commands (e.g. `/help query:ban`)
 
 ### `/reload`
 
