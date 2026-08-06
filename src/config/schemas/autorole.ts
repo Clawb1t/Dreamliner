@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { zPluginOverride } from "./pluginSection.js";
 
+const boolPerm = () => z.boolean().default(false);
+
 export const zAutoroleRoleEntry = z.strictObject({
   role: z.string(),
   delay_ms: z.number().int().min(0).default(0),
@@ -10,6 +12,9 @@ export const zAutoroleRoleEntry = z.strictObject({
 export const zAutoroleConfig = z.strictObject({
   /** Role IDs or entries with per-role delay. */
   roles: z.array(z.union([z.string(), zAutoroleRoleEntry])).default([]),
+  can_add: boolPerm(),
+  can_remove: boolPerm(),
+  can_list: boolPerm(),
 });
 
 export const zAutorolePluginSection = z.strictObject({

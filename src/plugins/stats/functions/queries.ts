@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, sql, type SQL } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import {
   guildMessageCounts,
@@ -6,7 +6,11 @@ import {
   guildStatsUserDaily,
   logMessages,
 } from "../../../db/schema.js";
-import { dateRange } from "./daily.js";
+import { dateRange, dateRangeInclusive, isAllTimeWindow, statDate, windowSince } from "./daily.js";
+
+function dailySinceFilter(since: string | null, column: Parameters<typeof gte>[0]): SQL | undefined {
+  return since ? gte(column, since) : undefined;
+}
 
 export async function getTotalGuildMessages(guildId: string): Promise<number> {
   const db = getDb();
@@ -66,14 +70,18 @@ export async function getTopChannelsByDaily(
   limit = 5,
 ): Promise<{ channelId: string; count: number }[]> {
   const db = getDb();
-  const since = dateRange(days)[0]!;
+  const since = windowSince(days);
+  const filters = [eq(guildStatsChannelDaily.guildId, guildId)];
+  const sinceFilter = dailySinceFilter(since, guildStatsChannelDaily.statDate);
+  if (sinceFilter) filters.push(sinceFilter);
+
   const rows = await db
     .select({
       channelId: guildStatsChannelDaily.channelId,
       count: sql<number>`coalesce(sum(${guildStatsChannelDaily.messages}), 0)`,
     })
     .from(guildStatsChannelDaily)
-    .where(and(eq(guildStatsChannelDaily.guildId, guildId), gte(guildStatsChannelDaily.statDate, since)))
+    .where(and(...filters))
     .groupBy(guildStatsChannelDaily.channelId)
     .orderBy(desc(sql`coalesce(sum(${guildStatsChannelDaily.messages}), 0)`))
     .limit(limit);
@@ -87,14 +95,18 @@ export async function getTopUsersByDaily(
   limit = 5,
 ): Promise<{ userId: string; count: number }[]> {
   const db = getDb();
-  const since = dateRange(days)[0]!;
+  const since = windowSince(days);
+  const filters = [eq(guildStatsUserDaily.guildId, guildId)];
+  const sinceFilter = dailySinceFilter(since, guildStatsUserDaily.statDate);
+  if (sinceFilter) filters.push(sinceFilter);
+
   const rows = await db
     .select({
       userId: guildStatsUserDaily.userId,
       count: sql<number>`coalesce(sum(${guildStatsUserDaily.messages}), 0)`,
     })
     .from(guildStatsUserDaily)
-    .where(and(eq(guildStatsUserDaily.guildId, guildId), gte(guildStatsUserDaily.statDate, since)))
+    .where(and(...filters))
     .groupBy(guildStatsUserDaily.userId)
     .orderBy(desc(sql`coalesce(sum(${guildStatsUserDaily.messages}), 0)`))
     .limit(limit);
@@ -114,17 +126,58 @@ export async function getChannelDailyTotal(guildId: string, channelId: string): 
 
 export async function getUserDailyWindowTotal(guildId: string, userId: string, days: number): Promise<number> {
   const db = getDb();
-  const since = dateRange(days)[0]!;
+  const since = windowSince(days);
+  const filters = [eq(guildStatsUserDaily.guildId, guildId), eq(guildStatsUserDaily.userId, userId)];
+  const sinceFilter = dailySinceFilter(since, guildStatsUserDaily.statDate);
+  if (sinceFilter) filters.push(sinceFilter);
+
   const row = await db
     .select({ total: sql<number>`coalesce(sum(${guildStatsUserDaily.messages}), 0)` })
+    .from(guildStatsUserDaily)
+    .where(and(...filters))
+    .get();
+  return Number(row?.total ?? 0);
+}
+
+export async function getFilledDailyActiveUsers(
+  guildId: string,
+  days = 14,
+): Promise<{ statDate: string; count: number }[]> {
+  const db = getDb();
+
+  if (isAllTimeWindow(days)) {
+    const rows = await db
+      .select({
+        statDate: guildStatsUserDaily.statDate,
+        count: sql<number>`count(distinct ${guildStatsUserDaily.userId})`,
+      })
+      .from(guildStatsUserDaily)
+      .where(and(eq(guildStatsUserDaily.guildId, guildId), sql`${guildStatsUserDaily.messages} > 0`))
+      .groupBy(guildStatsUserDaily.statDate)
+      .orderBy(asc(guildStatsUserDaily.statDate));
+    if (rows.length === 0) return [];
+    const dates = dateRangeInclusive(rows[0]!.statDate, statDate());
+    const byDate = new Map(rows.map((row) => [row.statDate, Number(row.count ?? 0)]));
+    return dates.map((date) => ({ statDate: date, count: byDate.get(date) ?? 0 }));
+  }
+
+  const dates = dateRange(days);
+  const since = dates[0]!;
+  const rows = await db
+    .select({
+      statDate: guildStatsUserDaily.statDate,
+      count: sql<number>`count(distinct ${guildStatsUserDaily.userId})`,
+    })
     .from(guildStatsUserDaily)
     .where(
       and(
         eq(guildStatsUserDaily.guildId, guildId),
-        eq(guildStatsUserDaily.userId, userId),
         gte(guildStatsUserDaily.statDate, since),
+        sql`${guildStatsUserDaily.messages} > 0`,
       ),
     )
-    .get();
-  return Number(row?.total ?? 0);
+    .groupBy(guildStatsUserDaily.statDate);
+
+  const byDate = new Map(rows.map((row) => [row.statDate, Number(row.count ?? 0)]));
+  return dates.map((date) => ({ statDate: date, count: byDate.get(date) ?? 0 }));
 }

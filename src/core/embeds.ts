@@ -136,8 +136,12 @@ export function embedField(name: string, value: string, inline = false) {
   return { name: PRE_EMBED_PADDING + name, value: trimLines(value), inline };
 }
 
+/** Dreamliner brand accent used for embeds, charts, and leaderboard UI. */
+export const DREAMLINER_ACCENT = 0x5865f2;
+export const DREAMLINER_ACCENT_HEX = "#5865F2";
+
 export function baseEmbed(): EmbedBuilder {
-  return new EmbedBuilder().setColor(0x5865f2);
+  return new EmbedBuilder().setColor(DREAMLINER_ACCENT);
 }
 
 /** Dreamliner-style action, error, and status embeds */

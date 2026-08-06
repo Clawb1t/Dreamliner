@@ -24,6 +24,7 @@ import { postDefaultOverrides } from "../plugins/post/defaultOverrides.js";
 import { autodeleteDefaultOverrides } from "../plugins/autodelete/defaultOverrides.js";
 import { autoreactionsDefaultOverrides } from "../plugins/autoreactions/defaultOverrides.js";
 import { autorepliesDefaultOverrides } from "../plugins/autoreplies/defaultOverrides.js";
+import { autoroleDefaultOverrides } from "../plugins/autorole/defaultOverrides.js";
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
 import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.js";
 import { companionChannelsDefaultOverrides } from "../plugins/companion_channels/defaultOverrides.js";
@@ -56,6 +57,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   autodelete: autodeleteDefaultOverrides,
   autoreactions: autoreactionsDefaultOverrides,
   autoreplies: autorepliesDefaultOverrides,
+  autorole: autoroleDefaultOverrides,
   reminders: remindersDefaultOverrides,
   counters: countersDefaultOverrides,
   companion_channels: companionChannelsDefaultOverrides,
@@ -86,7 +88,7 @@ export function getInfractionPluginConfig(
 }
 
 export function getAutorolePluginConfig(guildConfig: GuildConfig) {
-  return resolvePluginConfig(guildConfig, "autorole", []);
+  return resolvePluginConfig(guildConfig, "autorole", autoroleDefaultOverrides);
 }
 
 export function getStarboardPluginConfig(guildConfig: GuildConfig): StarboardConfig {

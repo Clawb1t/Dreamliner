@@ -204,6 +204,10 @@ export const guildStatsDaily = sqliteTable(
     messages: integer("messages").notNull().default(0),
     joins: integer("joins").notNull().default(0),
     leaves: integer("leaves").notNull().default(0),
+    edits: integer("edits").notNull().default(0),
+    deletes: integer("deletes").notNull().default(0),
+    reactions: integer("reactions").notNull().default(0),
+    attachments: integer("attachments").notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.statDate] })],
 );

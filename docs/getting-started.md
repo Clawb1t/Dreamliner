@@ -39,7 +39,8 @@ Open the YAML file in any text editor. Common first steps:
    * **Automation** - welcome messages, tags, scheduled posts, counters, and more
    * **Tracking** - name history, stats, locate user
    * **Customization** - custom events and command aliases
-   * **Background** - autorole, starboard, and logs (no slash commands)
+   * **Background** - starboard and logs (no slash commands)
+   * **Autorole** - assigns join roles automatically; configure with `/autorole` or YAML
 4. Tweak `plugins.utility` permissions and overrides.
 
 See [Permissions setup](permissions.md) for a full walkthrough and examples. See [Configuration](configuration.md) for the full YAML format.

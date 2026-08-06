@@ -1,6 +1,6 @@
 # Stats plugin
 
-View detailed activity statistics for the server, a user, or a channel — including activity graphs and trend analysis.
+Browse detailed activity statistics through an interactive dashboard — similar to `/help` — with category menus, multiple chart types per area, and trend analysis.
 
 ## Configuration
 
@@ -20,34 +20,54 @@ plugins:
 
 | Command | Permission | Description |
 |---------|------------|-------------|
-| `/stats server [days]` | `can_server` | Server activity graph + analysis |
-| `/stats user [user] [days]` | `can_user` | User message graph + rank/share |
-| `/stats channel [channel] [days]` | `can_channel` | Channel activity graph + share |
+| `/stats server [days]` | `can_server` | Server analytics dashboard |
+| `/stats user [user] [days]` | `can_user` | User analytics dashboard |
+| `/stats channel [channel] [days]` | `can_channel` | Channel analytics dashboard |
 
-`days` can be `7`, `14` (default), or `30`.
+`days` can be `7`, `14` (default), `30`, or `0` (all time — every recorded day since tracking began).
 
-### What you get
+## Interactive dashboard
 
-- **Activity graph** (PNG) for the selected window
-- Averages, peak day, active days, busiest weekday
-- Trend vs the earlier half of the window (up / down / stable)
-- Server: joins/leaves + net change, top messagers, top channels
-- User: lifetime totals, server share, rank among active messagers
-- Channel: stats-tracked totals plus currently retained log rows
+Each stats view opens a **home overview** with menus to explore:
+
+- **Category select** — switch between data areas (Overview, Activity, Membership, Engagement, Leaderboards for servers; Activity and Patterns for users/channels)
+- **Time window select** — change the analysis window (7 / 14 / 30 UTC days, or all time)
+- **Home** — return to the overview
+- **Chart navigation** — Previous / Next chart buttons when a category has multiple graphs
+
+### Server categories
+
+| Category | Charts |
+|----------|--------|
+| Overview | Summary metrics, engagement totals, top lists |
+| Activity | Messages line · messages bar · weekday distribution |
+| Membership | Joins/leaves line · net change bar · active users line |
+| Engagement | Edits/deletes/reactions line · attachments bar · engagement pie |
+| Leaderboards | Top users leaderboard · top channels leaderboard · all-time users leaderboard |
+
+### User / channel categories
+
+| Category | Charts |
+|----------|--------|
+| Overview | Lifetime totals, rank/share, analysis |
+| Activity | Daily bar · daily line · weekday distribution |
+| Patterns | Weekday bar · traffic share pie |
 
 ## Data collection
 
 Dreamliner records:
 
-- Guild daily totals: messages, joins, leaves
+- Guild daily totals: messages, joins, leaves, edits, deletes, reactions, attachments
 - Per-user daily message counts
 - Per-channel daily message counts
 - Lifetime message counters (utility plugin)
+- Derived metrics at query time: averages, peaks, weekday patterns, trends, rankings, active users per day
 
 Days use **UTC** date boundaries.
 
 ## Notes
 
 - Historical graphs only cover days since Dreamliner started tracking that dimension.
-- Per-user / per-channel daily series began with the stats graphing update; older lifetime totals still appear in overview fields.
+- Engagement metrics (edits, deletes, reactions, attachments) begin after the stats engagement update.
 - Channel “retained in logs” depends on the logs plugin and its retention window.
+- Run `npm run db:migrate` after updating to apply the engagement columns migration.

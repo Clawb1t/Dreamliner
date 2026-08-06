@@ -25,6 +25,7 @@ import { resolveEphemeral } from "./core/ephemeral.js";
 import { canUseUtility } from "./core/guildHelpers.js";
 import { handleHelpButton, handleHelpSelect, HELP_BUTTON_PREFIX } from "./plugins/utility/functions/help.js";
 import { handlePluginListButtonInteraction, PLUGIN_LIST_PREFIX } from "./plugins/config/pluginList.js";
+import { handleStatsInteraction, STATS_PREFIX } from "./plugins/stats/functions/ui/index.js";
 import { handleRoleButtonInteraction, ROLE_BUTTON_PREFIX } from "./plugins/role_buttons/index.js";
 import {
   handleSelfRoleButtonInteraction,
@@ -43,6 +44,10 @@ import {
   SLOWMODE_RULE_ADD_MODAL_ID,
   handleSlowmodeRuleModalSubmit,
 } from "./plugins/slowmode/functions/modal.js";
+import {
+  AUTOROLE_ADD_MODAL_ID,
+  handleAutoroleModalSubmit,
+} from "./plugins/autorole/functions/modal.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { applyBotPresence } from "./core/presence.js";
@@ -122,12 +127,20 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         );
         if (handled) return;
       }
+      if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
+        const handled = await handleStatsButtonInteraction(configManager, interaction);
+        if (handled) return;
+      }
       await handleHelpButtonInteraction(configManager, interaction);
       return;
     }
     if (interaction.isStringSelectMenu()) {
       if (interaction.customId.startsWith(SELF_ROLE_PREFIX)) {
         const handled = await handleSelfRoleSelectInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
+        const handled = await handleStatsSelectInteraction(configManager, interaction);
         if (handled) return;
       }
       await handleHelpSelectInteraction(configManager, interaction);
@@ -163,6 +176,17 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
           console.error("Slowmode modal error:", error);
           if (!interaction.replied && !interaction.deferred) {
             await interaction.reply(resultReply("Error", "Could not save that slowmode rule.", true)).catch(() => null);
+          }
+        }
+        return;
+      }
+      if (interaction.customId === AUTOROLE_ADD_MODAL_ID) {
+        try {
+          await handleAutoroleModalSubmit(interaction, configManager);
+        } catch (error) {
+          console.error("Autorole modal error:", error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply(resultReply("Error", "Could not save that autorole.", true)).catch(() => null);
           }
         }
       }
@@ -320,6 +344,48 @@ async function handleHelpSelectInteraction(
 ) {
   await handleHelpInteraction(configManager, interaction, (i, docsUrl, emojis) =>
     handleHelpSelect(i as import("discord.js").StringSelectMenuInteraction, docsUrl, emojis),
+  );
+}
+
+async function handleStatsButtonInteraction(
+  configManager: ConfigManager,
+  interaction: import("discord.js").ButtonInteraction,
+): Promise<boolean> {
+  return handleStatsPermissionInteraction(configManager, interaction);
+}
+
+async function handleStatsSelectInteraction(
+  configManager: ConfigManager,
+  interaction: import("discord.js").StringSelectMenuInteraction,
+): Promise<boolean> {
+  return handleStatsPermissionInteraction(configManager, interaction);
+}
+
+async function handleStatsPermissionInteraction(
+  configManager: ConfigManager,
+  interaction: import("discord.js").ButtonInteraction | import("discord.js").StringSelectMenuInteraction,
+): Promise<boolean> {
+  if (!interaction.customId.startsWith(`${STATS_PREFIX}:`)) return false;
+  if (!interaction.inGuild() || !interaction.guildId) return true;
+
+  const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+  const member = interaction.member;
+  if (!member || typeof member === "string") return true;
+  const guildMember = member as import("discord.js").GuildMember;
+  const categoryId =
+    interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
+  const defaultOverrides = getPluginDefaultOverrides("stats");
+
+  return handleStatsInteraction(interaction, guildConfig, (permission) =>
+    hasPluginPermission(
+      guildConfig,
+      "stats",
+      permission,
+      guildMember,
+      interaction.channelId,
+      categoryId,
+      defaultOverrides,
+    ),
   );
 }
 
