@@ -56,6 +56,7 @@ import { handlePermissionsAutocomplete } from "./plugins/config/commands/permiss
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
+import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
 
 const pluginConfigGetters: Record<string, typeof getUtilityPluginConfig> = {
   utility: getUtilityPluginConfig,
@@ -232,7 +233,17 @@ async function handleSlashCommand(
   interaction: import("discord.js").ChatInputCommandInteraction,
 ) {
   const command = ctx.commands.get(interaction.commandName);
-  if (!command) return;
+  if (!command) {
+    // Guild-scoped Dreamcode slash commands are not in the global command map.
+    const handled = await handleDreamCommandSlash(interaction, configManager).catch((error) => {
+      console.error("Dreamcode slash command error:", error);
+      return true;
+    });
+    if (!handled && !interaction.replied && !interaction.deferred) {
+      // Unknown command — ignore quietly (Discord may still show it briefly after deletes).
+    }
+    return;
+  }
 
   if (!interaction.inGuild() || !interaction.guildId) {
     await interaction.reply({ content: "This command can only be used in a server.", flags: MessageFlags.Ephemeral });

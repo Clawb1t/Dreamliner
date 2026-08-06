@@ -23,13 +23,17 @@ export type {
   ActionParamDef,
   BoundActionArgs,
   DreamObject,
+  DreamTriggerKind,
   DreamValue,
   InterpretLimits,
   Program,
+  SlashArgDef,
+  SlashArgType,
+  SlashProps,
   SourcePos,
   Stmt,
 } from "./types.js";
-export { DEFAULT_LIMITS } from "./types.js";
+export { DEFAULT_LIMITS, EMPTY_SLASH_PROPS, SLASH_ARG_TYPES } from "./types.js";
 
 /** Parse and validate source. Throws DreamcodeError on failure. */
 export function compileDreamcode(source: string): Program {

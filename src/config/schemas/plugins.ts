@@ -385,6 +385,7 @@ export const zDreamCommandsConfig = z.strictObject({
     .default("d!")
     .describe('Message prefix for custom Dreamcode commands (e.g. "d!" → d!boom).'),
   can_create: boolPerm("create Dreamcode custom commands"),
+  can_edit: boolPerm("download/upload Dreamcode command source"),
   can_remove: boolPerm("remove Dreamcode custom commands"),
   can_list: boolPerm("list Dreamcode custom commands"),
 });

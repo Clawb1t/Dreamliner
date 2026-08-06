@@ -1,4 +1,4 @@
-import type { Guild, GuildChannel, GuildMember, Message, Role, User } from "discord.js";
+import type { Guild, GuildChannel, GuildMember, Role, User } from "discord.js";
 import type { DreamObject } from "../../../dreamcode/index.js";
 import { getMemberLevel } from "../../../core/permissions.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
@@ -93,16 +93,30 @@ export function channelObject(channel: GuildChannel | { id: string; name?: strin
   };
 }
 
-export function messageObject(message: Message): DreamObject {
+export function messageObject(message: {
+  id: string;
+  content: string;
+  channel: { id: string };
+  author: { id: string };
+  createdAt?: Date | number | null;
+  pinned?: boolean;
+  url?: string;
+}): DreamObject {
+  const createdAt =
+    message.createdAt instanceof Date
+      ? message.createdAt.getTime()
+      : typeof message.createdAt === "number"
+        ? message.createdAt
+        : Date.now();
   return {
     __type: "message",
     id: message.id,
     content: message.content,
     channelId: message.channel.id,
     authorId: message.author.id,
-    createdAt: message.createdAt.getTime(),
-    pinned: message.pinned,
-    url: message.url,
+    createdAt,
+    pinned: Boolean(message.pinned),
+    url: message.url ?? "",
   };
 }
 

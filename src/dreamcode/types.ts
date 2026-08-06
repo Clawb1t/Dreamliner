@@ -22,7 +22,60 @@ export type Stmt =
   | { kind: "if"; condition: Expr; thenBody: Stmt[]; elseBody: Stmt[]; pos: SourcePos }
   | { kind: "action"; name: string; args: ActionArg[]; pos: SourcePos };
 
-export type Program = { body: Stmt[] };
+/** How the command is invoked — declared with `@prefix` or `@slash` at the top of the file. */
+export type DreamTriggerKind = "prefix" | "slash";
+
+/** Discord slash option types supported by `@slash arg …`. */
+export type SlashArgType =
+  | "string"
+  | "integer"
+  | "number"
+  | "boolean"
+  | "user"
+  | "channel"
+  | "role"
+  | "mentionable"
+  | "attachment";
+
+export type SlashArgDef = {
+  type: SlashArgType;
+  name: string;
+  description: string;
+  required?: boolean;
+};
+
+/** Slash-command metadata declared with `@slash …` at the top of a script. */
+export type SlashProps = {
+  /** Omit Discord options entirely (no legacy `args` string either). */
+  noargs?: boolean;
+  /** Defer/reply ephemerally (only the invoker sees responses from `reply`). */
+  ephemeral?: boolean;
+  /** Discord slash command description (max 100 chars). */
+  description?: string;
+  /** Typed Discord slash options (`@slash arg <type> <name> …`). */
+  args: SlashArgDef[];
+};
+
+export type Program = {
+  body: Stmt[];
+  /** Set by `@prefix` / `@slash` directives. Required for `/command create`. */
+  trigger: DreamTriggerKind | null;
+  slash: SlashProps;
+};
+
+export const EMPTY_SLASH_PROPS: SlashProps = { args: [] };
+
+export const SLASH_ARG_TYPES: readonly SlashArgType[] = [
+  "string",
+  "integer",
+  "number",
+  "boolean",
+  "user",
+  "channel",
+  "role",
+  "mentionable",
+  "attachment",
+] as const;
 
 /** Runtime values available inside Dreamcode. */
 export type DreamValue =

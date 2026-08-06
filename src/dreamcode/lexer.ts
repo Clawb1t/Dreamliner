@@ -10,6 +10,7 @@ export type TokenType =
   | "op"
   | "colon"
   | "dot"
+  | "at"
   | "newline"
   | "eof";
 
@@ -117,6 +118,12 @@ export function tokenize(source: string): Token[] {
 
     if (ch === ".") {
       tokens.push({ type: "dot", value: ".", pos: pos() });
+      advance();
+      continue;
+    }
+
+    if (ch === "@") {
+      tokens.push({ type: "at", value: "@", pos: pos() });
       advance();
       continue;
     }

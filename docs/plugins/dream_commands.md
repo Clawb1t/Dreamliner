@@ -1,8 +1,8 @@
 # Dreamcode commands plugin
 
-Custom message commands written in **Dreamcode**. Default trigger prefix: `d!`.
+Custom commands written in **Dreamcode**, triggered as **prefix** messages or **guild slash** commands.
 
-Full language + website integration docs: [../dreamcode/README.md](../dreamcode/README.md)
+Language docs: [../dreamcode/README.md](../dreamcode/README.md)
 
 ## Configuration
 
@@ -16,46 +16,92 @@ plugins:
       - level: ">=50"
         config:
           can_create: true
+          can_edit: true
           can_remove: true
           can_list: true
 ```
 
 | Field | Description |
 |-------|-------------|
-| `prefix` | Case-sensitive message prefix (default `d!`) |
+| `prefix` | Case-sensitive prefix for **prefix**-type commands (default `d!`) |
 
 ### Who can run a command?
 
-Each stored command has `min_level`. Invoker’s Dreamliner level must be **≥** that value. No separate `can_run` flag.
+Each command has `min_level`. The invoker’s Dreamliner level must be **≥** that value.
 
-## Slash commands
+## Trigger types
+
+Declared **in the `.dream` file**, not in the Discord create command:
+
+```dream
+@prefix
+reply "hi"
+```
+
+```dream
+@slash
+@slash description "Staff ping"
+reply "📢"
+```
+
+| Type | How it runs | Limits |
+|------|-------------|--------|
+| **prefix** (`@prefix`) | `d!name args…` (configurable prefix) | Unlimited per server |
+| **slash** (`@slash`) | `/name` registered as a **guild** slash command | **Max 10** slash Dreamcode commands per server |
+
+Rules:
+
+- Names are unique across **both** types — you cannot have prefix `boom` and slash `boom`.
+- Slash names cannot collide with built-in Dreamliner global commands (`ban`, `help`, `command`, …).
+- Slash commands are synced per guild via Discord’s guild command API (not global). They may take up to a minute to appear after create/remove/edit.
+- Typed options: `@slash arg user target "Who" required` → Discord user option → `arg.target` in the script.
+- See [language.md](../dreamcode/language.md) for `noargs`, `ephemeral`, `description`, and all arg types.
+
+## Slash commands (management)
 
 | Command | Permission | Description |
 |---------|------------|-------------|
-| `/command create` | `can_create` | Upload `.dream`/`.txt`, set name + min level |
-| `/command list` | `can_list` | List name, level, preview |
-| `/command remove` | `can_remove` | Delete by name |
+| `/command create` | `can_create` | Create with `name`, `code` file, optional `level` (trigger from `@prefix` / `@slash`) |
+| `/command list` | `can_list` | List commands with stat buttons (total / slash / prefix) |
+| `/command remove` | `can_remove` | Delete by name (re-syncs guild slash commands if needed) |
+| `/command edit download` | `can_edit` | Download the `.dream` source file |
+| `/command edit upload` | `can_edit` | Upload a new source file (may change prefix ↔ slash) |
 
-Create validates with `compileDreamcode` (max ~32KB). Names: `a-z0-9_`, 1–32 chars.
+### Create example
+
+```
+/command create name:boom code:<file> level:0
+/command create name:staffping code:<file> level:50
+```
+
+### Edit
+
+```
+/command edit download name:boom
+/command edit upload name:boom code:<file>
+```
+
+Changing `@prefix` ↔ `@slash` on upload updates the stored trigger type and re-syncs guild slash commands.
 
 ## Invocation
+
+**Prefix**
 
 ```
 d!boom
 d!ban @User reason here
 ```
 
-Flow: prefix match → load command → level check → build context → interpret → Discord host actions.
+**Slash**
 
-Failures: ❌ low level, ⏳ rate limit, or a short `Dreamcode error:` reply.
-
-## Capability surface
-
-Dreamcode can drive moderation, messaging, roles, voice, cases, tags, counters, reminders, posts, logging, and lookups — see [../dreamcode/actions.md](../dreamcode/actions.md) (~77 actions). Not exposed: guild config ACL, plugin toggles, or scripting the `/command` manager itself.
+```
+/meow
+/warn target:@User reason:spam
+```
 
 ## Requirements
 
-- SQLite table `dream_commands` (migration `0011_dream_commands`)
+- Migration `0012_dream_commands_trigger` (`trigger_type` column)
+- Bot must be able to manage guild application commands
 - Bot Discord permissions for any actions scripts use
 - Hierarchy checks still apply for mod/role actions
-- v1: no `/command edit` (remove + recreate)

@@ -1,7 +1,24 @@
 import { isKnownAction } from "./actions.js";
 import { DreamcodeError } from "./errors.js";
 import { tokenize, type Token } from "./lexer.js";
-import type { ActionArg, BinaryOp, Expr, Program, SourcePos, Stmt } from "./types.js";
+import type {
+  ActionArg,
+  BinaryOp,
+  DreamTriggerKind,
+  Expr,
+  Program,
+  SlashArgDef,
+  SlashArgType,
+  SlashProps,
+  SourcePos,
+  Stmt,
+} from "./types.js";
+import { SLASH_ARG_TYPES } from "./types.js";
+
+const SLASH_FLAGS = new Set(["noargs", "ephemeral"]);
+const SLASH_ARG_TYPE_SET = new Set<string>(SLASH_ARG_TYPES);
+const OPTION_NAME_RE = /^[a-z0-9_]{1,32}$/;
+const MAX_SLASH_ARGS = 25;
 
 export function parseDreamcode(source: string): Program {
   const tokens = tokenize(source);
@@ -16,15 +33,215 @@ class Parser {
 
   parseProgram(): Program {
     this.skipNewlines();
+    const { trigger, slash } = this.parseDirectiveBlock();
     const body: Stmt[] = [];
     while (!this.check("eof")) {
       body.push(this.parseStmt());
       this.skipNewlines();
     }
-    return { body };
+    return { body, trigger, slash };
+  }
+
+  /**
+   * Top-of-file directives:
+   *   @prefix
+   *   @slash
+   *   @slash noargs | ephemeral | description "…" | arg <type> <name> …
+   */
+  private parseDirectiveBlock(): { trigger: DreamTriggerKind | null; slash: SlashProps } {
+    let trigger: DreamTriggerKind | null = null;
+    const slash: SlashProps = { args: [] };
+    const seenArgNames = new Set<string>();
+
+    while (this.check("at")) {
+      const at = this.advance();
+      const tag = this.expect("ident", "Expected `prefix` or `slash` after `@`");
+      const tagName = tag.value.toLowerCase();
+
+      if (tagName === "prefix") {
+        if (trigger === "slash") {
+          throw new DreamcodeError("parse", "Cannot use both @prefix and @slash", tag.pos);
+        }
+        trigger = "prefix";
+        if (!this.atLineEnd()) {
+          throw new DreamcodeError(
+            "parse",
+            "@prefix takes no properties (use @slash for slash options)",
+            this.peek().pos
+          );
+        }
+        this.expectLineEnd();
+        this.skipNewlines();
+        continue;
+      }
+
+      if (tagName !== "slash") {
+        throw new DreamcodeError(
+          "parse",
+          `Unknown directive @${tag.value} (use @prefix or @slash)`,
+          tag.pos
+        );
+      }
+
+      if (trigger === "prefix") {
+        throw new DreamcodeError("parse", "Cannot use both @prefix and @slash", tag.pos);
+      }
+      trigger = "slash";
+
+      // Bare `@slash` — just declares slash trigger type.
+      if (this.atLineEnd()) {
+        this.expectLineEnd();
+        this.skipNewlines();
+        continue;
+      }
+
+      if (!this.check("ident") && !this.check("keyword")) {
+        throw new DreamcodeError("parse", "Expected a slash property after @slash", at.pos);
+      }
+      const propTok = this.advance();
+      const prop = propTok.value.toLowerCase();
+
+      if (prop === "description") {
+        const s = this.expect("string", "Expected a string after @slash description");
+        const text = s.value.trim();
+        if (!text) {
+          throw new DreamcodeError("parse", "Slash description cannot be empty", s.pos);
+        }
+        if (text.length > 100) {
+          throw new DreamcodeError(
+            "parse",
+            "Slash description must be 100 characters or fewer",
+            s.pos
+          );
+        }
+        slash.description = text;
+      } else if (prop === "arg") {
+        const arg = this.parseSlashArg(propTok.pos);
+        if (seenArgNames.has(arg.name)) {
+          throw new DreamcodeError(
+            "parse",
+            `Duplicate slash arg name '${arg.name}'`,
+            propTok.pos
+          );
+        }
+        if (slash.args.length >= MAX_SLASH_ARGS) {
+          throw new DreamcodeError(
+            "parse",
+            `At most ${MAX_SLASH_ARGS} slash args are allowed`,
+            propTok.pos
+          );
+        }
+        if (slash.noargs) {
+          throw new DreamcodeError(
+            "parse",
+            "Cannot combine @slash noargs with @slash arg",
+            propTok.pos
+          );
+        }
+        seenArgNames.add(arg.name);
+        slash.args.push(arg);
+      } else if (SLASH_FLAGS.has(prop)) {
+        if (prop === "noargs") {
+          if (slash.args.length > 0) {
+            throw new DreamcodeError(
+              "parse",
+              "Cannot combine @slash noargs with @slash arg",
+              propTok.pos
+            );
+          }
+          slash.noargs = true;
+        }
+        if (prop === "ephemeral") slash.ephemeral = true;
+      } else {
+        throw new DreamcodeError(
+          "parse",
+          `Unknown slash property '${propTok.value}' (use noargs, ephemeral, description, or arg)`,
+          propTok.pos
+        );
+      }
+      this.expectLineEnd();
+      this.skipNewlines();
+    }
+
+    return { trigger, slash };
+  }
+
+  /** `@slash arg <type> <name> ["description"] [required]` */
+  private parseSlashArg(_pos: SourcePos): SlashArgDef {
+    const typeTok = this.expect("ident", "Expected arg type after @slash arg");
+    const typeName = typeTok.value.toLowerCase();
+    if (!SLASH_ARG_TYPE_SET.has(typeName)) {
+      throw new DreamcodeError(
+        "parse",
+        `Unknown slash arg type '${typeTok.value}' (use ${SLASH_ARG_TYPES.join(", ")})`,
+        typeTok.pos
+      );
+    }
+    const nameTok = this.expect("ident", "Expected arg name after type");
+    const name = nameTok.value.toLowerCase();
+    if (!OPTION_NAME_RE.test(name)) {
+      throw new DreamcodeError(
+        "parse",
+        "Slash arg name must be 1–32 characters: lowercase letters, numbers, underscores",
+        nameTok.pos
+      );
+    }
+    if (name === "args") {
+      throw new DreamcodeError(
+        "parse",
+        "Slash arg name 'args' is reserved; choose another name",
+        nameTok.pos
+      );
+    }
+
+    let description = name;
+    let required = false;
+    if (this.check("string")) {
+      const s = this.advance();
+      const text = s.value.trim();
+      if (!text) {
+        throw new DreamcodeError("parse", "Slash arg description cannot be empty", s.pos);
+      }
+      if (text.length > 100) {
+        throw new DreamcodeError(
+          "parse",
+          "Slash arg description must be 100 characters or fewer",
+          s.pos
+        );
+      }
+      description = text;
+    }
+    if (this.check("ident") || this.check("keyword")) {
+      const t = this.peek();
+      if (t.value.toLowerCase() === "required") {
+        this.advance();
+        required = true;
+      } else {
+        throw new DreamcodeError(
+          "parse",
+          `Unexpected '${t.value}' after slash arg (optional: description string, then required)`,
+          t.pos
+        );
+      }
+    }
+
+    return {
+      type: typeName as SlashArgType,
+      name,
+      description,
+      required,
+    };
   }
 
   private parseStmt(): Stmt {
+    if (this.check("at")) {
+      const t = this.peek();
+      throw new DreamcodeError(
+        "parse",
+        "@prefix / @slash directives must appear at the top of the script",
+        t.pos
+      );
+    }
     if (this.check("keyword", "set")) return this.parseSet();
     if (this.check("keyword", "if")) return this.parseIf();
     if (this.check("keyword", "require")) return this.parseRequire();

@@ -3,11 +3,11 @@ import {
   type Client,
   type Guild,
   type GuildMember,
-  type Message,
   type TextChannel,
   type User,
   type VoiceChannel,
 } from "discord.js";
+import type { DreamTrigger } from "./trigger.js";
 import type { ActionHost, BoundActionArgs, DreamValue, SourcePos } from "../../../dreamcode/index.js";
 import { DreamcodeError, parseDurationValue } from "../../../dreamcode/index.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
@@ -68,7 +68,7 @@ export type HostContext = {
   guild: Guild;
   guildConfig: GuildConfig;
   actor: GuildMember;
-  trigger: Message;
+  trigger: DreamTrigger;
 };
 
 export function createDiscordActionHost(ctx: HostContext): ActionHost {

@@ -4401,6 +4401,16 @@
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
                 },
+                "can_edit": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to download/upload Dreamcode command source. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Edit",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
                 "can_remove": {
                   "type": "boolean",
                   "default": false,

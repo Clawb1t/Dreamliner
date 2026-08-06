@@ -2,7 +2,7 @@
 
 Dreamcode is Dreamliner’s **guild-scoped scripting language** for custom message commands (default prefix `d!`).
 
-Staff upload scripts with `/command create`. Members run them as `d!name args…`. Scripts can moderate, message, manage roles, move voice users, read cases, update counters, schedule reminders/posts, and more — anything exposed in the action catalog, contained to the current server.
+Staff upload scripts with `/command create`, choosing **prefix** (`d!name`) or **guild slash** (`/name`, max 10 per server). Names are unique across both types. Edit source anytime with `/command edit download|upload`. Scripts can moderate, message, manage roles, move voice users, read cases, update counters, schedule reminders/posts, and more — anything exposed in the action catalog, contained to the current server.
 
 ## Documentation map
 
@@ -22,6 +22,7 @@ Staff upload scripts with `/command create`. Members run them as `d!name args…
 `boom.dream`:
 
 ```dream
+@prefix
 reply "💥"
 ```
 
@@ -32,6 +33,20 @@ reply "💥"
 ```
 d!boom
 ```
+
+Slash with typed / no args:
+
+```dream
+@slash
+@slash noargs
+@slash description "Says meow"
+reply "🐱"
+```
+
+```
+/command create name:meow code:<file> level:0
+```
+
 
 ## Architecture (bot)
 

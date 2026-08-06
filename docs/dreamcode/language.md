@@ -16,6 +16,60 @@ Dreamcode is a **line-oriented** language. One statement per line (after strippi
 | Action names | Case-insensitive (`Ban` = `ban`) |
 | Variable names | Case-sensitive |
 
+## Trigger directives — `@prefix` / `@slash`
+
+Every command file must declare its trigger type at the **top** (before any statements):
+
+```dream
+@prefix
+reply "💥"
+```
+
+```dream
+@slash
+@slash description "Says meow"
+@slash noargs
+reply "🐱"
+```
+
+| Directive | Meaning |
+|-----------|---------|
+| `@prefix` | Message command (`d!name`, configurable prefix) |
+| `@slash` | Guild slash command (`/name`, max 10 per server) |
+
+You cannot use both. `/command create` reads this from the file (there is no Discord `type` option).
+
+### Slash properties
+
+After `@slash`, additional lines configure Discord:
+
+```dream
+@slash
+@slash description "Warn a member"
+@slash ephemeral
+@slash arg user target "Who to warn" required
+@slash arg string reason "Why"
+set case = warn arg.target reason: arg.reason
+reply "Warned {arg.target.mention}"
+```
+
+| Property | Effect |
+|----------|--------|
+| *(bare)* `@slash` | Declares slash trigger |
+| `noargs` | No Discord options at all |
+| `ephemeral` | Replies only visible to the invoker |
+| `description "…"` | Slash command description (1–100 chars) |
+| `arg <type> <name> ["desc"] [required]` | Typed Discord option → `arg.<name>` |
+
+#### Slash arg types
+
+`string`, `integer`, `number`, `boolean`, `user`, `channel`, `role`, `mentionable`, `attachment`
+
+- Access values as `arg.<name>` (e.g. `arg.target`, `arg.reason`).
+- First `user` / `role` / `channel` option also fills `arg.user` / `arg.role` / `arg.channel`.
+- If you declare **no** `@slash arg` and **no** `noargs`, Discord gets a legacy optional string option named `args` (parsed like prefix args).
+- Max 25 typed args. Cannot combine `noargs` with `arg`.
+
 ## Statements
 
 ### Assignment — `set`
@@ -155,7 +209,12 @@ See `DEFAULT_LIMITS` in code / `limits` in [`actions.catalog.json`](./actions.ca
 ## Grammar sketch (informal)
 
 ```
-program     := stmt*
+program     := directive* stmt*
+directive   := "@prefix" NL
+             | "@slash" NL
+             | "@slash" slash_prop NL
+slash_prop  := "noargs" | "ephemeral" | "description" string
+             | "arg" type name [string] ["required"]
 stmt        := set | require | error | if | action_stmt
 set         := "set" ident "=" rhs
 rhs         := action_call | expr

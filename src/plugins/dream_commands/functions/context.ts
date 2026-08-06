@@ -13,8 +13,10 @@ export function buildDreamGlobals(input: {
   member: GuildMember;
   guildConfig: GuildConfig;
   argText: string;
+  /** Named values from typed `@slash arg` options (slash invocations). */
+  namedArgs?: Record<string, DreamValue>;
 }): Record<string, DreamValue> {
-  const { message, member, guildConfig, argText } = input;
+  const { message, member, guildConfig, argText, namedArgs } = input;
   const guild = message.guild!;
 
   const tokens = tokenizeArgs(argText);
@@ -93,6 +95,36 @@ export function buildDreamGlobals(input: {
     arg.channel = null;
   }
 
+  if (namedArgs) {
+    for (const [key, value] of Object.entries(namedArgs)) {
+      arg[key] = value;
+    }
+    if (arg.user == null) {
+      for (const value of Object.values(namedArgs)) {
+        if (isDreamEntity(value, "member") || isDreamEntity(value, "user")) {
+          arg.user = value;
+          break;
+        }
+      }
+    }
+    if (arg.role == null) {
+      for (const value of Object.values(namedArgs)) {
+        if (isDreamEntity(value, "role")) {
+          arg.role = value;
+          break;
+        }
+      }
+    }
+    if (arg.channel == null) {
+      for (const value of Object.values(namedArgs)) {
+        if (isDreamEntity(value, "channel")) {
+          arg.channel = value;
+          break;
+        }
+      }
+    }
+  }
+
   const channel =
     message.channel.isTextBased() && "name" in message.channel
       ? channelObject(message.channel as TextChannel)
@@ -130,4 +162,8 @@ function tokenizeArgs(text: string): string[] {
     tokens.push(m[1] ?? m[2] ?? "");
   }
   return tokens;
+}
+
+function isDreamEntity(value: DreamValue, type: string): value is DreamObject {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value) && value.__type === type);
 }

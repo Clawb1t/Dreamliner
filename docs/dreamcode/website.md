@@ -1,6 +1,5 @@
 # Dreamcode website editor contract
 
-This document is the integration guide for building a Dreamcode creation tool on the Dreamliner site. The Discord bot and the website **must share the same language surface**.
 
 ## Source of truth
 
@@ -56,28 +55,34 @@ npm run dreamcode:export
 | `duration` | Duration input (`10m`, `1d`) with helper |
 | `any` | Generic expression / text |
 
-## Recommended editor UX
+## Trigger + slash properties
 
-1. **Block / line editor** that emits Dreamcode text (not a separate IR). The bot stores **source text**.
-2. **Action palette** grouped by `category`, filtered by search on `key` + `description`.
-3. **Insert action** → generate a line:
-   - Positional: `ban {user}`
-   - Named: `mute {user} duration: 10m reason: "spam"`
-4. **Variable / context picker** inserting paths from [context.md](./context.md) (`invoker.level`, `arg.user`, …).
-5. **Live validate** by running the same parser rules (or calling a future `/api/dreamcode/validate` that wraps `compileDreamcode`).
-6. **Examples gallery** from [examples.md](./examples.md).
-7. **Danger cues**: highlight `mutates: true` actions; warn for `lockdown`, `ban`, `clean`, etc.
+The site parser must accept top-of-file directives:
+
+```dream
+@prefix
+
+@slash
+@slash noargs
+@slash ephemeral
+@slash description "Says meow"
+@slash arg user target "Who" required
+```
+
+Expose `program.trigger` and `program.slash` in the IDE. Trigger type is **not** chosen in Discord `/command create` — it comes from `@prefix` / `@slash`.
 
 ## Validation rules the site should mirror
 
 Before allowing save/publish:
 
-1. Source parses (balanced `if`/`else`/`end`, strings closed).
-2. Every action key exists in the catalog.
-3. Required params present (positional or named).
-4. No unknown named args.
-5. File size under 32 KB (bot limit).
-6. Command name: `^[a-z0-9_]{1,32}$`.
+1. Source parses (balanced `if`/`else`/`end`, strings closed; directives only at top).
+2. File declares `@prefix` or `@slash` (required for create/upload).
+3. Every action key exists in the catalog.
+4. Required params present (positional or named).
+5. No unknown named args.
+6. File size under 32 KB (bot limit).
+7. Command name: `^[a-z0-9_]{1,32}$`.
+8. `@slash description` / arg descriptions length 1–100; unknown properties rejected.
 
 Optional (runtime-only, cannot fully validate on site): Discord hierarchy, bot permissions, entity existence.
 
@@ -103,27 +108,3 @@ end
 set case = ban target reason: arg.rest
 reply "Case #{case.id}"
 ```
-
-## What the website must NOT invent
-
-Do not invent action keys that are not in `ACTION_DEFS`. Add them in the bot first, regenerate the catalog, then ship UI.
-
-Do not expose:
-
-- Guild config upload / permissions grants
-- Creating/removing Dreamcode commands from inside Dreamcode
-- Cross-guild data
-- Arbitrary JavaScript
-
-## Versioning
-
-Bump `actions.catalog.json` → `version` when you make breaking param renames. Prefer additive changes (new actions, new optional named params).
-
-## Shipping checklist
-
-- [ ] Action added to `ACTION_DEFS`
-- [ ] Host implements key in `createDiscordActionHost`
-- [ ] `npm run dreamcode:export`
-- [ ] Docs updated (`actions.md` summary + examples if user-facing)
-- [ ] Site loads new catalog
-- [ ] Validate sample scripts with `compileDreamcode`

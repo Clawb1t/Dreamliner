@@ -517,11 +517,13 @@ plugins:
     config:
       prefix: "d!"
       can_create: false
+      can_edit: false
       can_remove: false
       can_list: false
     overrides:
       - level: ">=50"
         config:
           can_create: true
+          can_edit: true
           can_remove: true
           can_list: true

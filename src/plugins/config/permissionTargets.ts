@@ -127,6 +127,8 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "alias list", label: "/alias list", plugin: "command_aliases", permission: "can_list" },
   { key: "alias run", label: "/alias run", plugin: "command_aliases", permission: "can_run" },
   { key: "command create", label: "/command create", plugin: "dream_commands", permission: "can_create" },
+  { key: "command edit download", label: "/command edit download", plugin: "dream_commands", permission: "can_edit" },
+  { key: "command edit upload", label: "/command edit upload", plugin: "dream_commands", permission: "can_edit" },
   { key: "command remove", label: "/command remove", plugin: "dream_commands", permission: "can_remove" },
   { key: "command list", label: "/command list", plugin: "dream_commands", permission: "can_list" },
 ];
