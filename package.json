@@ -6,13 +6,14 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "prebuild": "tsx scripts/bump-version.ts && tsx scripts/export-guild-config-schema.ts",
+    "prebuild": "tsx scripts/bump-version.ts && tsx scripts/export-guild-config-schema.ts && tsx scripts/export-dreamcode-catalog.ts",
     "build": "tsc",
     "start": "node main.js",
     "start:prod": "node dist/index.js",
     "panel:start": "node main.js",
     "register-commands": "tsx src/scripts/register-commands.ts",
     "schema:export": "tsx scripts/export-guild-config-schema.ts",
+    "dreamcode:export": "tsx scripts/export-dreamcode-catalog.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/migrate.ts",
     "typecheck": "tsc --noEmit"

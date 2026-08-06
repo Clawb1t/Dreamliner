@@ -232,6 +232,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Command aliases",
     description: "Shortcuts and message triggers.",
   },
+  dream_commands: {
+    key: "dream_commands",
+    name: "Dreamcode commands",
+    description: "Custom commands written in Dreamcode.",
+  },
   starboard: {
     key: "starboard",
     name: "Starboard",
@@ -272,6 +277,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   companion_channels: "auto",
   custom_events: "auto",
   command_aliases: "auto",
+  dream_commands: "auto",
   utility: "tools",
   stats: "tools",
   starboard: "tools",

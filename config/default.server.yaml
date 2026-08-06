@@ -511,3 +511,17 @@ plugins:
         config:
           can_create: true
           can_delete: true
+  dream_commands:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      prefix: "d!"
+      can_create: false
+      can_remove: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_create: true
+          can_remove: true
+          can_list: true

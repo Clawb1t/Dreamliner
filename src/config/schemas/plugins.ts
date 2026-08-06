@@ -377,6 +377,18 @@ export const zCommandAliasesConfig = z.strictObject({
   can_run: boolPerm("run command aliases"),
 });
 
+export const zDreamCommandsConfig = z.strictObject({
+  prefix: z
+    .string()
+    .min(1)
+    .max(10)
+    .default("d!")
+    .describe('Message prefix for custom Dreamcode commands (e.g. "d!" → d!boom).'),
+  can_create: boolPerm("create Dreamcode custom commands"),
+  can_remove: boolPerm("remove Dreamcode custom commands"),
+  can_list: boolPerm("list Dreamcode custom commands"),
+});
+
 export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape);
 export const zCensorPluginSection = zPluginSection(zCensorConfig.shape);
 export const zAdminPluginSection = zPluginSection(zAdminConfig.shape);
@@ -403,6 +415,7 @@ export const zLocateUserPluginSection = zPluginSection(zLocateUserConfig.shape);
 export const zStatsPluginSection = zPluginSection(zStatsConfig.shape);
 export const zCustomEventsPluginSection = zPluginSection(zCustomEventsConfig.shape);
 export const zCommandAliasesPluginSection = zPluginSection(zCommandAliasesConfig.shape);
+export const zDreamCommandsPluginSection = zPluginSection(zDreamCommandsConfig.shape);
 
 export type AutomodConfig = z.infer<typeof zAutomodConfig>;
 export type CensorConfig = z.infer<typeof zCensorConfig>;
@@ -419,3 +432,5 @@ export type RoleButtonsConfig = z.infer<typeof zRoleButtonsConfig>;
 export type SelfGrantableRolesConfig = z.infer<typeof zSelfGrantableRolesConfig>;
 export type PingableRolesConfig = z.infer<typeof zPingableRolesConfig>;
 export type RoleManagerConfig = z.infer<typeof zRoleManagerConfig>;
+export type DreamCommandsConfig = z.infer<typeof zDreamCommandsConfig>;
+export type CommandAliasesConfig = z.infer<typeof zCommandAliasesConfig>;

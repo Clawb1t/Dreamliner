@@ -167,6 +167,7 @@ Plus **per-server emoji prefixes** (success, error, neutral, warning, unchecked)
 * [Stats](docs/plugins/stats.md)
 * [Custom events](docs/plugins/custom_events.md)
 * [Command aliases](docs/plugins/command_aliases.md)
+* [Dreamcode commands](docs/plugins/dream_commands.md) — custom `d!` commands ([language docs](docs/dreamcode/README.md))
 * [Starboard](docs/plugins/starboard.md)
 * [Logs](docs/plugins/logs.md)
 
@@ -178,7 +179,7 @@ Plus **per-server emoji prefixes** (success, error, neutral, warning, unchecked)
 
 * 📁 **File-based config:** download, edit, upload; your YAML is the source of truth
 * 🔒 **Fine-grained access:** levels + per-command `can_*` flags
-* ✂️ **Slash-only:** clean Discord UX, no prefix spam
+* ✂️ **Slash-first UX:** management via slash commands; optional Dreamcode message prefixes when you want them
 * 🧩 **Plugin architecture:** enable only what your server needs
 
 ***

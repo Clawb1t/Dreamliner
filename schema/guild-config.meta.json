@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-06T13:17:25.104Z",
+  "generatedAt": "2026-08-06T19:42:18.446Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -164,6 +164,11 @@
           "key": "command_aliases",
           "name": "Command aliases",
           "description": "Shortcuts and message triggers."
+        },
+        {
+          "key": "dream_commands",
+          "name": "Dreamcode commands",
+          "description": "Custom commands written in Dreamcode."
         }
       ]
     },
@@ -377,6 +382,13 @@
       "key": "command_aliases",
       "name": "Command aliases",
       "description": "Shortcuts and message triggers.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "dream_commands",
+      "name": "Dreamcode commands",
+      "description": "Custom commands written in Dreamcode.",
       "category": "Automation",
       "categoryId": "auto"
     },

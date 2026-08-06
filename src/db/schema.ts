@@ -309,3 +309,18 @@ export const managedRoles = sqliteTable("managed_roles", {
   template: text("template").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
+
+export const dreamCommands = sqliteTable(
+  "dream_commands",
+  {
+    guildId: text("guild_id").notNull(),
+    name: text("name").notNull(),
+    source: text("source").notNull(),
+    minLevel: integer("min_level", { mode: "number" }).notNull().default(0),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.name] })],
+);

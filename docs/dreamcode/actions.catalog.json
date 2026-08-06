@@ -1,0 +1,1572 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-06T19:39:30.628Z",
+  "limits": {
+    "maxSteps": 500,
+    "maxDurationMs": 15000,
+    "maxWaitMs": 10000
+  },
+  "categories": [
+    "cases",
+    "channel",
+    "control",
+    "counters",
+    "logging",
+    "lookup",
+    "messaging",
+    "moderation",
+    "posts",
+    "reminders",
+    "roles",
+    "tags",
+    "utility",
+    "voice"
+  ],
+  "actions": [
+    {
+      "key": "reply",
+      "category": "messaging",
+      "description": "Reply to the trigger message (falls back to channel send).",
+      "positional": [
+        {
+          "name": "content",
+          "required": true,
+          "description": "Message text.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "message object (id, content, channelId) or null",
+      "mutates": true
+    },
+    {
+      "key": "send",
+      "category": "messaging",
+      "description": "Send a message to a text channel in this server.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Target channel.",
+          "type": "channel"
+        },
+        {
+          "name": "content",
+          "required": true,
+          "description": "Message text.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "message object or null",
+      "mutates": true
+    },
+    {
+      "key": "dm",
+      "category": "messaging",
+      "description": "DM a guild member (silent fail if DMs closed).",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member to DM.",
+          "type": "user"
+        },
+        {
+          "name": "content",
+          "required": true,
+          "description": "Message text.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "true if sent, false otherwise",
+      "mutates": true
+    },
+    {
+      "key": "react",
+      "category": "messaging",
+      "description": "React to the trigger message.",
+      "positional": [
+        {
+          "name": "emoji",
+          "required": true,
+          "description": "Unicode or custom emoji.",
+          "type": "emoji"
+        }
+      ],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "react_message",
+      "category": "messaging",
+      "description": "React to a specific message in this server.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Channel containing the message.",
+          "type": "channel"
+        },
+        {
+          "name": "message_id",
+          "required": true,
+          "description": "Message snowflake.",
+          "type": "message"
+        },
+        {
+          "name": "emoji",
+          "required": true,
+          "description": "Emoji to add.",
+          "type": "emoji"
+        }
+      ],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "delete_trigger",
+      "category": "messaging",
+      "description": "Delete the invoking message.",
+      "positional": [],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "edit_trigger",
+      "category": "messaging",
+      "description": "Edit the invoking message (bot must be author).",
+      "positional": [
+        {
+          "name": "content",
+          "required": true,
+          "description": "New content.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "delete_message",
+      "category": "messaging",
+      "description": "Delete a message in this server.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Channel id/object.",
+          "type": "channel"
+        },
+        {
+          "name": "message_id",
+          "required": true,
+          "description": "Message snowflake.",
+          "type": "message"
+        }
+      ],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "pin",
+      "category": "messaging",
+      "description": "Pin a message.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Channel.",
+          "type": "channel"
+        },
+        {
+          "name": "message_id",
+          "required": true,
+          "description": "Message snowflake.",
+          "type": "message"
+        }
+      ],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "unpin",
+      "category": "messaging",
+      "description": "Unpin a message.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Channel.",
+          "type": "channel"
+        },
+        {
+          "name": "message_id",
+          "required": true,
+          "description": "Message snowflake.",
+          "type": "message"
+        }
+      ],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "send_tag",
+      "category": "messaging",
+      "description": "Render and send a stored tag (templates supported).",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Tag name.",
+          "type": "string"
+        }
+      ],
+      "named": [
+        {
+          "name": "channel",
+          "description": "Override channel (default: trigger channel).",
+          "type": "channel"
+        }
+      ],
+      "returns": "message object or null",
+      "mutates": true
+    },
+    {
+      "key": "warn",
+      "category": "moderation",
+      "description": "Warn a member and create an infraction case.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Target user.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Case reason.",
+          "type": "string"
+        }
+      ],
+      "returns": "case object { id, type, userId, reason }",
+      "mutates": true
+    },
+    {
+      "key": "note",
+      "category": "moderation",
+      "description": "Add a staff note (inactive case).",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Target user.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Note text.",
+          "type": "string"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "kick",
+      "category": "moderation",
+      "description": "Kick a member.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member to kick.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Reason.",
+          "type": "string"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "ban",
+      "category": "moderation",
+      "description": "Ban a user.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User to ban.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Reason.",
+          "type": "string"
+        },
+        {
+          "name": "delete_days",
+          "description": "Delete message history 0–7 days.",
+          "type": "number"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "tempban",
+      "category": "moderation",
+      "description": "Temporarily ban a user.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User to ban.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "duration",
+          "required": true,
+          "description": "Ban length (e.g. 1d).",
+          "type": "duration"
+        },
+        {
+          "name": "reason",
+          "description": "Reason.",
+          "type": "string"
+        },
+        {
+          "name": "delete_days",
+          "description": "Delete history 0–7.",
+          "type": "number"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "unban",
+      "category": "moderation",
+      "description": "Unban a user.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User id/object.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Reason.",
+          "type": "string"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "softban",
+      "category": "moderation",
+      "description": "Ban then immediately unban to purge messages.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member to softban.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Reason.",
+          "type": "string"
+        },
+        {
+          "name": "delete_days",
+          "description": "Override delete days (default from infractions config).",
+          "type": "number"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "mute",
+      "category": "moderation",
+      "description": "Timeout (mute) a member (max 28d).",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "duration",
+          "required": true,
+          "description": "Timeout length.",
+          "type": "duration"
+        },
+        {
+          "name": "reason",
+          "description": "Reason.",
+          "type": "string"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "unmute",
+      "category": "moderation",
+      "description": "Clear a member timeout.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Reason.",
+          "type": "string"
+        }
+      ],
+      "returns": "case object",
+      "mutates": true
+    },
+    {
+      "key": "clean",
+      "category": "moderation",
+      "description": "Bulk-delete recent messages (max 100), archive them, and log.",
+      "positional": [
+        {
+          "name": "amount",
+          "required": true,
+          "description": "How many to scan/delete (1–100).",
+          "type": "number"
+        }
+      ],
+      "named": [
+        {
+          "name": "channel",
+          "description": "Channel (default: trigger).",
+          "type": "channel"
+        },
+        {
+          "name": "user",
+          "description": "Only delete from this user.",
+          "type": "user"
+        },
+        {
+          "name": "bots_only",
+          "description": "Only bot messages.",
+          "type": "boolean"
+        },
+        {
+          "name": "contains",
+          "description": "Substring filter.",
+          "type": "string"
+        },
+        {
+          "name": "regex",
+          "description": "Regex filter.",
+          "type": "string"
+        }
+      ],
+      "returns": "object { deleted, archiveId }",
+      "mutates": true
+    },
+    {
+      "key": "case_get",
+      "category": "cases",
+      "description": "Fetch an infraction case by id.",
+      "positional": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "Case id.",
+          "type": "number"
+        }
+      ],
+      "named": [],
+      "returns": "case object or null"
+    },
+    {
+      "key": "case_search",
+      "category": "cases",
+      "description": "Search infractions for a user id or query (max 15).",
+      "positional": [
+        {
+          "name": "query",
+          "required": true,
+          "description": "User id or search text.",
+          "type": "string"
+        }
+      ],
+      "named": [
+        {
+          "name": "type",
+          "description": "Filter by case type (warn, ban, …).",
+          "type": "string"
+        }
+      ],
+      "returns": "array of case objects"
+    },
+    {
+      "key": "case_count",
+      "category": "cases",
+      "description": "Count infractions for a user in this guild.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "number"
+    },
+    {
+      "key": "case_reason",
+      "category": "cases",
+      "description": "Update a case reason.",
+      "positional": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "Case id.",
+          "type": "number"
+        },
+        {
+          "name": "reason",
+          "required": true,
+          "description": "New reason.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "case object or null",
+      "mutates": true
+    },
+    {
+      "key": "case_delete",
+      "category": "cases",
+      "description": "Delete an infraction case.",
+      "positional": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "Case id.",
+          "type": "number"
+        }
+      ],
+      "named": [],
+      "returns": "true if deleted",
+      "mutates": true
+    },
+    {
+      "key": "add_role",
+      "category": "roles",
+      "description": "Add a role to a member.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        },
+        {
+          "name": "role",
+          "required": true,
+          "description": "Role.",
+          "type": "role"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Audit reason.",
+          "type": "string"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "remove_role",
+      "category": "roles",
+      "description": "Remove a role from a member.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        },
+        {
+          "name": "role",
+          "required": true,
+          "description": "Role.",
+          "type": "role"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Audit reason.",
+          "type": "string"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "toggle_role",
+      "category": "roles",
+      "description": "Toggle a role on a member.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        },
+        {
+          "name": "role",
+          "required": true,
+          "description": "Role.",
+          "type": "role"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Audit reason.",
+          "type": "string"
+        }
+      ],
+      "returns": "true if added, false if removed",
+      "mutates": true
+    },
+    {
+      "key": "has_role",
+      "category": "roles",
+      "description": "Check whether a member has a role.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        },
+        {
+          "name": "role",
+          "required": true,
+          "description": "Role.",
+          "type": "role"
+        }
+      ],
+      "named": [],
+      "returns": "boolean"
+    },
+    {
+      "key": "nickname",
+      "category": "roles",
+      "description": "Set a member nickname (empty string clears).",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        },
+        {
+          "name": "nick",
+          "required": true,
+          "description": "New nickname.",
+          "type": "string"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Audit reason.",
+          "type": "string"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "set_mentionable",
+      "category": "roles",
+      "description": "Set whether a role is mentionable.",
+      "positional": [
+        {
+          "name": "role",
+          "required": true,
+          "description": "Role.",
+          "type": "role"
+        },
+        {
+          "name": "enabled",
+          "required": true,
+          "description": "true/false.",
+          "type": "boolean"
+        }
+      ],
+      "named": [],
+      "mutates": true
+    },
+    {
+      "key": "voice_move",
+      "category": "voice",
+      "description": "Move a member to a voice channel.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member in voice.",
+          "type": "user"
+        },
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Destination voice channel.",
+          "type": "channel"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Audit reason.",
+          "type": "string"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "voice_disconnect",
+      "category": "voice",
+      "description": "Disconnect a member from voice.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        }
+      ],
+      "named": [
+        {
+          "name": "reason",
+          "description": "Audit reason.",
+          "type": "string"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "voice_move_all",
+      "category": "voice",
+      "description": "Move all members from one voice channel to another.",
+      "positional": [
+        {
+          "name": "from",
+          "required": true,
+          "description": "Source voice channel.",
+          "type": "channel"
+        },
+        {
+          "name": "to",
+          "required": true,
+          "description": "Destination voice channel.",
+          "type": "channel"
+        }
+      ],
+      "named": [],
+      "returns": "number of members moved",
+      "mutates": true
+    },
+    {
+      "key": "slowmode",
+      "category": "channel",
+      "description": "Set channel slowmode in seconds (0 clears).",
+      "positional": [
+        {
+          "name": "seconds",
+          "required": true,
+          "description": "Slowmode seconds (0–21600).",
+          "type": "number"
+        }
+      ],
+      "named": [
+        {
+          "name": "channel",
+          "description": "Channel (default: trigger).",
+          "type": "channel"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "lock_channel",
+      "category": "channel",
+      "description": "Deny Send Messages for @everyone (or configured lockdown role) in a channel.",
+      "positional": [],
+      "named": [
+        {
+          "name": "channel",
+          "description": "Channel (default: trigger).",
+          "type": "channel"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "unlock_channel",
+      "category": "channel",
+      "description": "Clear the Send Messages deny from lock_channel.",
+      "positional": [],
+      "named": [
+        {
+          "name": "channel",
+          "description": "Channel (default: trigger).",
+          "type": "channel"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "lockdown",
+      "category": "channel",
+      "description": "Server lockdown (all text channels) via admin plugin settings.",
+      "positional": [],
+      "named": [],
+      "returns": "object { updated, target }",
+      "mutates": true
+    },
+    {
+      "key": "unlock",
+      "category": "channel",
+      "description": "Lift server lockdown.",
+      "positional": [],
+      "named": [],
+      "returns": "object { updated, target }",
+      "mutates": true
+    },
+    {
+      "key": "create_invite",
+      "category": "channel",
+      "description": "Create an invite for a channel.",
+      "positional": [],
+      "named": [
+        {
+          "name": "channel",
+          "description": "Channel (default: trigger).",
+          "type": "channel"
+        },
+        {
+          "name": "max_age",
+          "description": "Seconds until expiry (0 = never).",
+          "type": "number"
+        },
+        {
+          "name": "max_uses",
+          "description": "Max uses (0 = unlimited).",
+          "type": "number"
+        }
+      ],
+      "returns": "invite url string",
+      "mutates": true
+    },
+    {
+      "key": "tag_get",
+      "category": "tags",
+      "description": "Get tag content by name.",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Tag name.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "object { name, content } or null"
+    },
+    {
+      "key": "tag_create",
+      "category": "tags",
+      "description": "Create a tag.",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Tag name.",
+          "type": "string"
+        },
+        {
+          "name": "content",
+          "required": true,
+          "description": "Tag body.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "tag object",
+      "mutates": true
+    },
+    {
+      "key": "tag_edit",
+      "category": "tags",
+      "description": "Edit tag content.",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Tag name.",
+          "type": "string"
+        },
+        {
+          "name": "content",
+          "required": true,
+          "description": "New body.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "true if updated",
+      "mutates": true
+    },
+    {
+      "key": "tag_delete",
+      "category": "tags",
+      "description": "Delete a tag.",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Tag name.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "true if deleted",
+      "mutates": true
+    },
+    {
+      "key": "counter_get",
+      "category": "counters",
+      "description": "Get a counter value.",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Counter name.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "object { name, value, channelId } or null"
+    },
+    {
+      "key": "counter_set",
+      "category": "counters",
+      "description": "Set a counter to an absolute value and refresh its display.",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Counter name.",
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "required": true,
+          "description": "New value.",
+          "type": "number"
+        }
+      ],
+      "named": [],
+      "returns": "new value",
+      "mutates": true
+    },
+    {
+      "key": "counter_add",
+      "category": "counters",
+      "description": "Add to a counter (negative subtracts).",
+      "positional": [
+        {
+          "name": "name",
+          "required": true,
+          "description": "Counter name.",
+          "type": "string"
+        },
+        {
+          "name": "amount",
+          "required": true,
+          "description": "Delta.",
+          "type": "number"
+        }
+      ],
+      "named": [],
+      "returns": "new value",
+      "mutates": true
+    },
+    {
+      "key": "remind",
+      "category": "reminders",
+      "description": "Schedule a reminder for a user.",
+      "positional": [
+        {
+          "name": "duration",
+          "required": true,
+          "description": "Delay (e.g. 30m).",
+          "type": "duration"
+        },
+        {
+          "name": "message",
+          "required": true,
+          "description": "Reminder text.",
+          "type": "string"
+        }
+      ],
+      "named": [
+        {
+          "name": "user",
+          "description": "Who to remind (default: invoker).",
+          "type": "user"
+        },
+        {
+          "name": "channel",
+          "description": "Delivery channel (default: trigger).",
+          "type": "channel"
+        }
+      ],
+      "returns": "reminder object { id, remindAt }",
+      "mutates": true
+    },
+    {
+      "key": "remind_cancel",
+      "category": "reminders",
+      "description": "Cancel a reminder by id (must belong to the target user).",
+      "positional": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "Reminder id.",
+          "type": "number"
+        }
+      ],
+      "named": [
+        {
+          "name": "user",
+          "description": "Owner (default: invoker).",
+          "type": "user"
+        }
+      ],
+      "returns": "true if cancelled",
+      "mutates": true
+    },
+    {
+      "key": "schedule_post",
+      "category": "posts",
+      "description": "Schedule a one-shot post after a delay.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Target channel.",
+          "type": "channel"
+        },
+        {
+          "name": "content",
+          "required": true,
+          "description": "Post content.",
+          "type": "string"
+        },
+        {
+          "name": "duration",
+          "required": true,
+          "description": "Delay until post.",
+          "type": "duration"
+        }
+      ],
+      "named": [],
+      "returns": "post object { id, nextRunAt }",
+      "mutates": true
+    },
+    {
+      "key": "schedule_post_cancel",
+      "category": "posts",
+      "description": "Cancel a scheduled post by id.",
+      "positional": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "Post id.",
+          "type": "number"
+        }
+      ],
+      "named": [],
+      "returns": "true if cancelled",
+      "mutates": true
+    },
+    {
+      "key": "log_mod",
+      "category": "logging",
+      "description": "Post a card to the moderation log channel.",
+      "positional": [
+        {
+          "name": "title",
+          "required": true,
+          "description": "Log title.",
+          "type": "string"
+        },
+        {
+          "name": "content",
+          "required": true,
+          "description": "Body / information line.",
+          "type": "string"
+        }
+      ],
+      "named": [
+        {
+          "name": "extra",
+          "description": "Optional extra line.",
+          "type": "string"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "log_server",
+      "category": "logging",
+      "description": "Post a card to the server log channel.",
+      "positional": [
+        {
+          "name": "title",
+          "required": true,
+          "description": "Log title.",
+          "type": "string"
+        },
+        {
+          "name": "content",
+          "required": true,
+          "description": "Body / information line.",
+          "type": "string"
+        }
+      ],
+      "named": [
+        {
+          "name": "extra",
+          "description": "Optional extra line.",
+          "type": "string"
+        }
+      ],
+      "mutates": true
+    },
+    {
+      "key": "get_member",
+      "category": "lookup",
+      "description": "Resolve a guild member object with rich fields.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User/member/id.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "member object or null"
+    },
+    {
+      "key": "get_user",
+      "category": "lookup",
+      "description": "Resolve a Discord user (may not be in guild).",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User/id.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "user object or null"
+    },
+    {
+      "key": "get_role",
+      "category": "lookup",
+      "description": "Resolve a role in this guild.",
+      "positional": [
+        {
+          "name": "role",
+          "required": true,
+          "description": "Role/id.",
+          "type": "role"
+        }
+      ],
+      "named": [],
+      "returns": "role object or null"
+    },
+    {
+      "key": "get_channel",
+      "category": "lookup",
+      "description": "Resolve a channel in this guild.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Channel/id.",
+          "type": "channel"
+        }
+      ],
+      "named": [],
+      "returns": "channel object or null"
+    },
+    {
+      "key": "get_message",
+      "category": "lookup",
+      "description": "Fetch a message in this guild.",
+      "positional": [
+        {
+          "name": "channel",
+          "required": true,
+          "description": "Channel.",
+          "type": "channel"
+        },
+        {
+          "name": "message_id",
+          "required": true,
+          "description": "Message id.",
+          "type": "message"
+        }
+      ],
+      "named": [],
+      "returns": "message object or null"
+    },
+    {
+      "key": "member_level",
+      "category": "lookup",
+      "description": "Dreamliner permission level for a member.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "number"
+    },
+    {
+      "key": "is_timed_out",
+      "category": "lookup",
+      "description": "Whether a member is currently timed out.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "boolean"
+    },
+    {
+      "key": "is_banned",
+      "category": "lookup",
+      "description": "Whether a user is banned from this guild.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "boolean"
+    },
+    {
+      "key": "locate",
+      "category": "lookup",
+      "description": "Find which voice channel a member is in.",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "channel object or null"
+    },
+    {
+      "key": "name_history",
+      "category": "lookup",
+      "description": "Recent nickname/username changes for a member (max 20).",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "Member.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "array of { oldName, newName, changeType, changedAt }"
+    },
+    {
+      "key": "snowflake_info",
+      "category": "lookup",
+      "description": "Decode a Discord snowflake to timestamp metadata.",
+      "positional": [
+        {
+          "name": "id",
+          "required": true,
+          "description": "Snowflake.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "object { id, timestamp, iso }"
+    },
+    {
+      "key": "message_count",
+      "category": "lookup",
+      "description": "Guild-scoped stored message count for a user (if tracked).",
+      "positional": [
+        {
+          "name": "user",
+          "required": true,
+          "description": "User.",
+          "type": "user"
+        }
+      ],
+      "named": [],
+      "returns": "number"
+    },
+    {
+      "key": "wait",
+      "category": "control",
+      "description": "Pause script execution (counts against wait budget).",
+      "positional": [
+        {
+          "name": "duration",
+          "required": true,
+          "description": "Delay (ms number or 2s/10m).",
+          "type": "duration"
+        }
+      ],
+      "named": []
+    },
+    {
+      "key": "random",
+      "category": "utility",
+      "description": "Random integer from min (inclusive) to max (inclusive).",
+      "positional": [
+        {
+          "name": "min",
+          "required": true,
+          "description": "Minimum.",
+          "type": "number"
+        },
+        {
+          "name": "max",
+          "required": true,
+          "description": "Maximum.",
+          "type": "number"
+        }
+      ],
+      "named": [],
+      "returns": "number"
+    },
+    {
+      "key": "choose",
+      "category": "utility",
+      "description": "Pick a random option from comma-separated choices (or arg tokens).",
+      "positional": [
+        {
+          "name": "options",
+          "required": true,
+          "description": "Comma-separated list, e.g. \"a,b,c\".",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "string"
+    },
+    {
+      "key": "length",
+      "category": "utility",
+      "description": "String length or array length.",
+      "positional": [
+        {
+          "name": "value",
+          "required": true,
+          "description": "String or array.",
+          "type": "any"
+        }
+      ],
+      "named": [],
+      "returns": "number"
+    },
+    {
+      "key": "contains",
+      "category": "utility",
+      "description": "Whether a string contains a substring (case-insensitive by default).",
+      "positional": [
+        {
+          "name": "haystack",
+          "required": true,
+          "description": "Text to search.",
+          "type": "string"
+        },
+        {
+          "name": "needle",
+          "required": true,
+          "description": "Substring.",
+          "type": "string"
+        }
+      ],
+      "named": [
+        {
+          "name": "case_sensitive",
+          "description": "Default false.",
+          "type": "boolean"
+        }
+      ],
+      "returns": "boolean"
+    },
+    {
+      "key": "replace",
+      "category": "utility",
+      "description": "Replace all occurrences of a substring.",
+      "positional": [
+        {
+          "name": "value",
+          "required": true,
+          "description": "Input string.",
+          "type": "string"
+        },
+        {
+          "name": "search",
+          "required": true,
+          "description": "Find.",
+          "type": "string"
+        },
+        {
+          "name": "replacement",
+          "required": true,
+          "description": "Replace with.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "string"
+    },
+    {
+      "key": "upper",
+      "category": "utility",
+      "description": "Uppercase a string.",
+      "positional": [
+        {
+          "name": "value",
+          "required": true,
+          "description": "Input.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "string"
+    },
+    {
+      "key": "lower",
+      "category": "utility",
+      "description": "Lowercase a string.",
+      "positional": [
+        {
+          "name": "value",
+          "required": true,
+          "description": "Input.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "string"
+    },
+    {
+      "key": "trim",
+      "category": "utility",
+      "description": "Trim whitespace.",
+      "positional": [
+        {
+          "name": "value",
+          "required": true,
+          "description": "Input.",
+          "type": "string"
+        }
+      ],
+      "named": [],
+      "returns": "string"
+    },
+    {
+      "key": "now",
+      "category": "utility",
+      "description": "Current unix timestamp in milliseconds.",
+      "positional": [],
+      "named": [],
+      "returns": "number"
+    },
+    {
+      "key": "format_time",
+      "category": "utility",
+      "description": "Format a unix ms timestamp as a Discord timestamp mention.",
+      "positional": [
+        {
+          "name": "ms",
+          "required": true,
+          "description": "Unix ms.",
+          "type": "number"
+        }
+      ],
+      "named": [
+        {
+          "name": "style",
+          "description": "R|F|D|f|t|T (default R).",
+          "type": "string"
+        }
+      ],
+      "returns": "string like <t:…:R>"
+    }
+  ]
+}

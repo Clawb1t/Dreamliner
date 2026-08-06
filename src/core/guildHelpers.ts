@@ -28,6 +28,7 @@ import { autoroleDefaultOverrides } from "../plugins/autorole/defaultOverrides.j
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
 import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.js";
 import { companionChannelsDefaultOverrides } from "../plugins/companion_channels/defaultOverrides.js";
+import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { zStarboardBoard, zStarboardConfig, type StarboardBoard, type StarboardConfig } from "../config/schemas/starboard.js";
 import type { GuildMember } from "discord.js";
@@ -61,6 +62,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   reminders: remindersDefaultOverrides,
   counters: countersDefaultOverrides,
   companion_channels: companionChannelsDefaultOverrides,
+  dream_commands: dreamCommandsDefaultOverrides,
 };
 
 export const pluginsRequiringConfig = new Set(["utility", "infractions"]);

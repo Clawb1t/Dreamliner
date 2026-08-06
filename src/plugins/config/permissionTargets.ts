@@ -126,6 +126,9 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "alias delete", label: "/alias delete", plugin: "command_aliases", permission: "can_delete" },
   { key: "alias list", label: "/alias list", plugin: "command_aliases", permission: "can_list" },
   { key: "alias run", label: "/alias run", plugin: "command_aliases", permission: "can_run" },
+  { key: "command create", label: "/command create", plugin: "dream_commands", permission: "can_create" },
+  { key: "command remove", label: "/command remove", plugin: "dream_commands", permission: "can_remove" },
+  { key: "command list", label: "/command list", plugin: "dream_commands", permission: "can_list" },
 ];
 
 const byKey = new Map(PERMISSION_TARGETS.map((target) => [target.key, target]));

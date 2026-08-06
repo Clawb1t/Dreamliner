@@ -81,6 +81,7 @@ const PLUGIN_DOCS: Record<string, string> = {
   stats: "plugins/stats",
   custom_events: "plugins/custom_events",
   command_aliases: "plugins/command_aliases",
+  dream_commands: "plugins/dream_commands",
   config: "configuration",
   starboard: "plugins/starboard",
   autorole: "plugins/autorole",
@@ -373,6 +374,7 @@ const GROUP_LABELS: Record<string, string> = {
   companion_channels: "Companion channels",
   custom_events: "Custom events",
   command_aliases: "Aliases",
+  dream_commands: "Dreamcode",
   stats: "Stats",
   config: "Config",
 };

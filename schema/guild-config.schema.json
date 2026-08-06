@@ -4371,6 +4371,121 @@
           },
           "additionalProperties": false,
           "title": "Command Aliases"
+        },
+        "dream_commands": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "prefix": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 10,
+                  "default": "d!",
+                  "description": "Message prefix for custom Dreamcode commands (e.g. \"d!\" → d!boom).",
+                  "title": "Prefix"
+                },
+                "can_create": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to create Dreamcode custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Create",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_remove": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to remove Dreamcode custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Remove",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_list": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to list Dreamcode custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "List",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category"
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Conditional config merges. Use these to grant can_* permissions to mods/admins.",
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Dream Commands"
         }
       },
       "additionalProperties": false,
