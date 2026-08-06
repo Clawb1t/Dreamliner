@@ -1,0 +1,405 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-06T13:17:25.104Z",
+  "templatePath": "config/default.server.yaml",
+  "schemaPath": "schema/guild-config.schema.json",
+  "categories": [
+    {
+      "id": "mod",
+      "label": "Moderation",
+      "description": "Punishments, cleanup, and automated moderation.",
+      "plugins": [
+        {
+          "key": "infractions",
+          "name": "Infractions",
+          "description": "Warn, mute, kick, ban, and case management."
+        },
+        {
+          "key": "admin",
+          "name": "Admin",
+          "description": "Channel lockdown and unlock."
+        },
+        {
+          "key": "automod",
+          "name": "Automod",
+          "description": "Duplicate messages, rate limits, raid detection."
+        },
+        {
+          "key": "censor",
+          "name": "Censor",
+          "description": "Word and phrase filters."
+        },
+        {
+          "key": "slowmode",
+          "name": "Slowmode",
+          "description": "Per-channel and individual slowmode."
+        },
+        {
+          "key": "persist",
+          "name": "Persist",
+          "description": "Sticky channel messages."
+        }
+      ]
+    },
+    {
+      "id": "roles",
+      "label": "Roles",
+      "description": "Assign, toggle, and manage roles.",
+      "plugins": [
+        {
+          "key": "roles",
+          "name": "Roles",
+          "description": "Give, remove, and list roles."
+        },
+        {
+          "key": "reaction_roles",
+          "name": "Reaction roles",
+          "description": "React to claim a role."
+        },
+        {
+          "key": "role_buttons",
+          "name": "Role buttons",
+          "description": "Button-based role assignment."
+        },
+        {
+          "key": "self_grantable_roles",
+          "name": "Self grantable roles",
+          "description": "Self-serve role panels."
+        },
+        {
+          "key": "pingable_roles",
+          "name": "Pingable roles",
+          "description": "Temporarily mentionable roles."
+        },
+        {
+          "key": "role_manager",
+          "name": "Role manager",
+          "description": "Role templates."
+        },
+        {
+          "key": "autorole",
+          "name": "Autorole",
+          "description": "Auto-assign roles on join."
+        }
+      ]
+    },
+    {
+      "id": "info",
+      "label": "Lookups",
+      "description": "Inspect users, channels, roles, messages, and more.",
+      "plugins": [
+        {
+          "key": "locate_user",
+          "name": "Locate user",
+          "description": "Find where a member is."
+        },
+        {
+          "key": "name_history",
+          "name": "Name history",
+          "description": "Track nickname and username changes."
+        },
+        {
+          "key": "username_saver",
+          "name": "Username saver",
+          "description": "Persist username history."
+        }
+      ]
+    },
+    {
+      "id": "auto",
+      "label": "Automation",
+      "description": "Welcome messages, tags, schedules, reactions, and bots that run themselves.",
+      "plugins": [
+        {
+          "key": "welcome_message",
+          "name": "Welcome message",
+          "description": "Custom join messages."
+        },
+        {
+          "key": "tags",
+          "name": "Tags",
+          "description": "Reusable text snippets."
+        },
+        {
+          "key": "post",
+          "name": "Scheduled posts",
+          "description": "Timed and recurring posts."
+        },
+        {
+          "key": "autodelete",
+          "name": "Autodelete",
+          "description": "Auto-clear messages after a delay."
+        },
+        {
+          "key": "autoreactions",
+          "name": "Autoreactions",
+          "description": "Auto-react to matching messages."
+        },
+        {
+          "key": "autoreplies",
+          "name": "Autoreplies",
+          "description": "Auto-reply to matching messages."
+        },
+        {
+          "key": "reminders",
+          "name": "Reminders",
+          "description": "Personal reminders."
+        },
+        {
+          "key": "counters",
+          "name": "Counters",
+          "description": "Live counters."
+        },
+        {
+          "key": "companion_channels",
+          "name": "Companion channels",
+          "description": "Personal voice channels from a hub."
+        },
+        {
+          "key": "custom_events",
+          "name": "Custom events",
+          "description": "Hook actions to Discord events."
+        },
+        {
+          "key": "command_aliases",
+          "name": "Command aliases",
+          "description": "Shortcuts and message triggers."
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "label": "Server tools",
+      "description": "Search, voice helpers, stats, and everyday utilities.",
+      "plugins": [
+        {
+          "key": "utility",
+          "name": "Utility",
+          "description": "Search, info, clean, voice tools, and more."
+        },
+        {
+          "key": "stats",
+          "name": "Stats",
+          "description": "Server, user, and channel stats."
+        },
+        {
+          "key": "starboard",
+          "name": "Starboard",
+          "description": "Highlight highly reacted messages."
+        }
+      ]
+    }
+  ],
+  "plugins": [
+    {
+      "key": "infractions",
+      "name": "Infractions",
+      "description": "Warn, mute, kick, ban, and case management.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
+      "key": "admin",
+      "name": "Admin",
+      "description": "Channel lockdown and unlock.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
+      "key": "automod",
+      "name": "Automod",
+      "description": "Duplicate messages, rate limits, raid detection.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
+      "key": "censor",
+      "name": "Censor",
+      "description": "Word and phrase filters.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
+      "key": "slowmode",
+      "name": "Slowmode",
+      "description": "Per-channel and individual slowmode.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
+      "key": "persist",
+      "name": "Persist",
+      "description": "Sticky channel messages.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
+      "key": "roles",
+      "name": "Roles",
+      "description": "Give, remove, and list roles.",
+      "category": "Roles",
+      "categoryId": "roles"
+    },
+    {
+      "key": "reaction_roles",
+      "name": "Reaction roles",
+      "description": "React to claim a role.",
+      "category": "Roles",
+      "categoryId": "roles"
+    },
+    {
+      "key": "role_buttons",
+      "name": "Role buttons",
+      "description": "Button-based role assignment.",
+      "category": "Roles",
+      "categoryId": "roles"
+    },
+    {
+      "key": "self_grantable_roles",
+      "name": "Self grantable roles",
+      "description": "Self-serve role panels.",
+      "category": "Roles",
+      "categoryId": "roles"
+    },
+    {
+      "key": "pingable_roles",
+      "name": "Pingable roles",
+      "description": "Temporarily mentionable roles.",
+      "category": "Roles",
+      "categoryId": "roles"
+    },
+    {
+      "key": "role_manager",
+      "name": "Role manager",
+      "description": "Role templates.",
+      "category": "Roles",
+      "categoryId": "roles"
+    },
+    {
+      "key": "autorole",
+      "name": "Autorole",
+      "description": "Auto-assign roles on join.",
+      "category": "Roles",
+      "categoryId": "roles"
+    },
+    {
+      "key": "locate_user",
+      "name": "Locate user",
+      "description": "Find where a member is.",
+      "category": "Lookups",
+      "categoryId": "info"
+    },
+    {
+      "key": "name_history",
+      "name": "Name history",
+      "description": "Track nickname and username changes.",
+      "category": "Lookups",
+      "categoryId": "info"
+    },
+    {
+      "key": "username_saver",
+      "name": "Username saver",
+      "description": "Persist username history.",
+      "category": "Lookups",
+      "categoryId": "info"
+    },
+    {
+      "key": "welcome_message",
+      "name": "Welcome message",
+      "description": "Custom join messages.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "tags",
+      "name": "Tags",
+      "description": "Reusable text snippets.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "post",
+      "name": "Scheduled posts",
+      "description": "Timed and recurring posts.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "autodelete",
+      "name": "Autodelete",
+      "description": "Auto-clear messages after a delay.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "autoreactions",
+      "name": "Autoreactions",
+      "description": "Auto-react to matching messages.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "autoreplies",
+      "name": "Autoreplies",
+      "description": "Auto-reply to matching messages.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "reminders",
+      "name": "Reminders",
+      "description": "Personal reminders.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "counters",
+      "name": "Counters",
+      "description": "Live counters.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "companion_channels",
+      "name": "Companion channels",
+      "description": "Personal voice channels from a hub.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "custom_events",
+      "name": "Custom events",
+      "description": "Hook actions to Discord events.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "command_aliases",
+      "name": "Command aliases",
+      "description": "Shortcuts and message triggers.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "utility",
+      "name": "Utility",
+      "description": "Search, info, clean, voice tools, and more.",
+      "category": "Server tools",
+      "categoryId": "tools"
+    },
+    {
+      "key": "stats",
+      "name": "Stats",
+      "description": "Server, user, and channel stats.",
+      "category": "Server tools",
+      "categoryId": "tools"
+    },
+    {
+      "key": "starboard",
+      "name": "Starboard",
+      "description": "Highlight highly reacted messages.",
+      "category": "Server tools",
+      "categoryId": "tools"
+    }
+  ]
+}

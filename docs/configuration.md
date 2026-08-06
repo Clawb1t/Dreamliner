@@ -147,9 +147,11 @@ See also: [Autorole](plugins/autorole.md), [Logs](plugins/logs.md), [Starboard](
 ### Workflow
 
 1. Run `/config template` (new server) or `/config download` (existing server).
-2. Edit the YAML file locally.
+2. Edit the YAML file locally, or use the website **config editor** (loads the schema from this repo).
 3. Run `/config validate` to check for errors (optional).
 4. Run `/config upload` to apply.
+
+Machine-readable schema for the editor is generated with `npm run schema:export` into `schema/guild-config.schema.json` (also run during `prebuild`).
 
 ### `/config update`
 

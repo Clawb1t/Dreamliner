@@ -13,6 +13,7 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
+import { HELP_CATEGORIES, type HelpCategory } from "../../../core/helpCategories.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { baseEmbed, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
@@ -39,19 +40,6 @@ type CommandEntry = {
   options: OptionLine[];
 };
 
-type HelpInclude = {
-  plugin: string;
-  /** If set, only these root slash names from the plugin are included. */
-  roots?: string[];
-};
-
-type HelpCategory = {
-  id: string;
-  label: string;
-  blurb: string;
-  include: HelpInclude[];
-};
-
 type HelpView =
   | { kind: "home" }
   | { kind: "category"; categoryId: string; page: number }
@@ -62,97 +50,7 @@ type ParsedHelpAction =
   | { type: "button"; view: HelpView; query: string }
   | { type: "select"; value: string; view: HelpView; query: string };
 
-const CATEGORIES: HelpCategory[] = [
-  {
-    id: "mod",
-    label: "Moderation",
-    blurb: "Punishments, cleanup, and automated moderation.",
-    include: [
-      { plugin: "infractions" },
-      { plugin: "admin" },
-      { plugin: "automod" },
-      { plugin: "censor" },
-      { plugin: "slowmode" },
-      { plugin: "persist" },
-      { plugin: "utility", roots: ["clean", "bansearch"] },
-    ],
-  },
-  {
-    id: "roles",
-    label: "Roles",
-    blurb: "Assign, toggle, and manage roles.",
-    include: [
-      { plugin: "roles" },
-      { plugin: "reaction_roles" },
-      { plugin: "role_buttons" },
-      { plugin: "self_grantable_roles" },
-      { plugin: "pingable_roles" },
-      { plugin: "role_manager" },
-    ],
-  },
-  {
-    id: "info",
-    label: "Lookups",
-    blurb: "Inspect users, channels, roles, messages, and more.",
-    include: [
-      {
-        plugin: "utility",
-        roots: [
-          "info",
-          "user",
-          "server",
-          "channel",
-          "message",
-          "invite",
-          "role",
-          "emoji",
-          "snowflake",
-          "rolelist",
-          "level",
-          "context",
-          "source",
-          "avatar",
-          "time",
-        ],
-      },
-      { plugin: "locate_user" },
-      { plugin: "name_history" },
-    ],
-  },
-  {
-    id: "auto",
-    label: "Automation",
-    blurb: "Welcome messages, tags, schedules, reactions, and bots that run themselves.",
-    include: [
-      { plugin: "welcome_message" },
-      { plugin: "tags" },
-      { plugin: "post" },
-      { plugin: "autodelete" },
-      { plugin: "autoreactions" },
-      { plugin: "autoreplies" },
-      { plugin: "reminders" },
-      { plugin: "counters" },
-      { plugin: "companion_channels" },
-      { plugin: "custom_events" },
-      { plugin: "command_aliases" },
-    ],
-  },
-  {
-    id: "tools",
-    label: "Server tools",
-    blurb: "Search, voice helpers, stats, and everyday utilities.",
-    include: [
-      { plugin: "utility", roots: ["search", "voice", "nickname", "jumbo", "ping", "about", "help", "reload"] },
-      { plugin: "stats" },
-    ],
-  },
-  {
-    id: "config",
-    label: "Configuration",
-    blurb: "Permissions and server configuration commands.",
-    include: [{ plugin: "config" }],
-  },
-];
+const CATEGORIES: HelpCategory[] = HELP_CATEGORIES;
 
 const PLUGIN_DOCS: Record<string, string> = {
   utility: "plugins/utility.md",

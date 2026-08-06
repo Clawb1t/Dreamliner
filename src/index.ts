@@ -3,11 +3,32 @@ import { createBot, registerSlashCommands } from "./bot.js";
 import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
 
+function shouldExportSchemaOnStart(): boolean {
+  if (process.env.EXPORT_SCHEMA_ON_START === "true") return true;
+  if (process.env.EXPORT_SCHEMA_ON_START === "false") return false;
+  // Local source runs (`npm run dev` / tsx src/index.ts) — refresh schema for git push
+  const entry = process.argv[1] ?? "";
+  return (
+    process.env.npm_lifecycle_event === "dev" ||
+    /src[/\\]index\.[cm]?[tj]s$/.test(entry)
+  );
+}
+
 async function main() {
   const token = process.env.DISCORD_TOKEN;
   if (!token) {
     console.error("DISCORD_TOKEN is required.");
     process.exit(1);
+  }
+
+  if (shouldExportSchemaOnStart()) {
+    try {
+      const { exportGuildConfigSchema } = await import("./config/exportGuildConfigSchema.js");
+      exportGuildConfigSchema();
+      console.log("[dreamliner] Exported guild config schema for the website editor.");
+    } catch (error) {
+      console.warn("[dreamliner] Schema export failed:", error);
+    }
   }
 
   runMigrations();

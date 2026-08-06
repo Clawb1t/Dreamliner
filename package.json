@@ -6,12 +6,13 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "prebuild": "tsx scripts/bump-version.ts",
+    "prebuild": "tsx scripts/bump-version.ts && tsx scripts/export-guild-config-schema.ts",
     "build": "tsc",
     "start": "node main.js",
     "start:prod": "node dist/index.js",
     "panel:start": "node main.js",
     "register-commands": "tsx src/scripts/register-commands.ts",
+    "schema:export": "tsx scripts/export-guild-config-schema.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/migrate.ts",
     "typecheck": "tsc --noEmit"
@@ -34,6 +35,7 @@
     "@types/node": "^22.15.3",
     "drizzle-kit": "^0.31.1",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "zod-to-json-schema": "^3.25.2"
   }
 }

@@ -33,21 +33,51 @@ import {
 } from "./plugins.js";
 
 export const zEmojisConfig = z.strictObject({
-  success: z.string().default("<:blurplecheck:1533947878668763278>"),
-  error: z.string().default("<:redcheck:1533947951481749504>"),
-  neutral: z.string().default("<:greycheck:1533948078615298148>"),
-  warning: z.string().default("<:warning:1533948583995244734>"),
-  unchecked: z.string().default("<:greycheck:1533948078615298148>"),
+  success: z
+    .string()
+    .default("<:blurplecheck:1533947878668763278>")
+    .describe("Emoji prefix for successful command responses."),
+  error: z
+    .string()
+    .default("<:redcheck:1533947951481749504>")
+    .describe("Emoji prefix for errors and permission denied."),
+  neutral: z
+    .string()
+    .default("<:greycheck:1533948078615298148>")
+    .describe("Emoji prefix for general information responses."),
+  warning: z
+    .string()
+    .default("<:warning:1533948583995244734>")
+    .describe("Emoji prefix for soft failures and advisories."),
+  unchecked: z
+    .string()
+    .default("<:greycheck:1533948078615298148>")
+    .describe("Emoji prefix for disabled or off states."),
 });
 
 export const zGuildConfig = z.strictObject({
-  emojis: zEmojisConfig.default({}),
-  levels: z.record(z.coerce.number()).default({}),
+  emojis: zEmojisConfig.default({}).describe("Response embed title emoji prefixes."),
+  levels: z
+    .record(z.coerce.number())
+    .default({})
+    .describe("Map role or user snowflake IDs to permission levels (higher = more access)."),
   /** @deprecated Use moderation_log_channel_id */
-  log_channel_id: z.string().optional(),
-  server_log_channel_id: z.string().optional(),
-  moderation_log_channel_id: z.string().optional(),
-  ephemeral_responses: z.boolean().default(false),
+  log_channel_id: z
+    .string()
+    .optional()
+    .describe("Deprecated. Use moderation_log_channel_id instead."),
+  server_log_channel_id: z
+    .string()
+    .optional()
+    .describe("Channel for joins, leaves, edits, deletes, voice, and role/nickname changes."),
+  moderation_log_channel_id: z
+    .string()
+    .optional()
+    .describe("Channel for infractions, automod, censor, clean, voice mod, and case updates."),
+  ephemeral_responses: z
+    .boolean()
+    .default(false)
+    .describe("When true, command replies are only visible to the user who ran the command."),
   plugins: z
     .strictObject({
       utility: zUtilityPluginSection.optional(),
