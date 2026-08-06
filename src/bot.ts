@@ -37,6 +37,10 @@ import {
   SELF_ROLE_PREFIX,
 } from "./plugins/self_grantable_roles/index.js";
 import {
+  BOT_AVATAR_PREFIX,
+  handleBotAvatarButtonInteraction,
+} from "./plugins/bot_customisation/index.js";
+import {
   AUTOREACTION_ADD_MODAL_ID,
   handleAutoreactionModalSubmit,
 } from "./plugins/autoreactions/functions/modal.js";
@@ -120,6 +124,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isButton()) {
+      if (interaction.customId.startsWith(BOT_AVATAR_PREFIX)) {
+        const handled = await handleBotAvatarButtonInteraction(interaction);
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {
         const handled = await handleRoleButtonInteraction(interaction);
         if (handled) return;

@@ -2,78 +2,30 @@ import {
   DiscordAPIError,
   PermissionFlagsBits,
   SlashCommandBuilder,
-  type Attachment,
 } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import {
   deferReplyOptions,
+  embedWithFilesEdit,
   resultEdit,
   resultReply,
   slashResultOptions,
 } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
+import { normalizeAvatarAttachment } from "../functions/normalizeAvatar.js";
+import {
+  avatarAttachment,
+  markReviewMessageCancelled,
+  pendingUserEmbed,
+  submitAvatarForReview,
+} from "../functions/review.js";
+import {
+  cancelPendingBotAvatarRequest,
+  getPendingBotAvatarRequest,
+  updateBotAvatarRequestMessageIds,
+} from "../functions/store.js";
 
-const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
-const ALLOWED_AVATAR_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/gif",
-  "image/webp",
-]);
 const MAX_NICKNAME_LENGTH = 32;
-
-async function downloadAvatar(attachment: Attachment): Promise<
-  | { ok: true; buffer: Buffer; contentType: string }
-  | { ok: false; title: string; details: string }
-> {
-  if (attachment.size > MAX_AVATAR_BYTES) {
-    return {
-      ok: false,
-      title: "File too large",
-      details: `Avatar images must be ${MAX_AVATAR_BYTES / (1024 * 1024)}MB or smaller.`,
-    };
-  }
-
-  const contentType = (attachment.contentType ?? "").split(";")[0]!.trim().toLowerCase();
-  const looksLikeImage =
-    ALLOWED_AVATAR_TYPES.has(contentType) ||
-    /\.(png|jpe?g|gif|webp)$/i.test(attachment.name ?? "");
-
-  if (!looksLikeImage) {
-    return {
-      ok: false,
-      title: "Invalid image",
-      details: "Upload a PNG, JPEG, GIF, or WebP image.",
-    };
-  }
-
-  try {
-    const res = await fetch(attachment.url);
-    if (!res.ok) {
-      return {
-        ok: false,
-        title: "Download failed",
-        details: "Could not download that attachment. Try again.",
-      };
-    }
-    const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.byteLength > MAX_AVATAR_BYTES) {
-      return {
-        ok: false,
-        title: "File too large",
-        details: `Avatar images must be ${MAX_AVATAR_BYTES / (1024 * 1024)}MB or smaller.`,
-      };
-    }
-    return { ok: true, buffer, contentType: contentType || "image/png" };
-  } catch {
-    return {
-      ok: false,
-      title: "Download failed",
-      details: "Could not download that attachment. Try again.",
-    };
-  }
-}
 
 function apiErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof DiscordAPIError) {
@@ -114,6 +66,11 @@ export const botCommands: SlashCommandDefinition[] = [
           )
           .addSubcommand((sub) =>
             sub.setName("clear").setDescription("Remove Dreamliner's custom avatar in this server"),
+          )
+          .addSubcommand((sub) =>
+            sub
+              .setName("cancel")
+              .setDescription("Cancel this server's pending avatar review request"),
           ),
       )
       .addSubcommandGroup((group) =>
@@ -160,42 +117,119 @@ export const botCommands: SlashCommandDefinition[] = [
         if (!auth) return;
 
         if (sub === "set") {
-          const attachment = ctx.interaction.options.getAttachment("image", true);
-          await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+          const existing = await getPendingBotAvatarRequest(guild.id);
+          if (existing) {
+            await ctx.interaction.reply(
+              resultReply(
+                "Request already queued",
+                `This server already has an avatar request waiting for review (id \`${existing.id}\`).\nUse \`/bot avatar cancel\` to remove it before requesting a new one.`,
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "warning" }),
+              ),
+            );
+            return;
+          }
 
-          const downloaded = await downloadAvatar(attachment);
-          if (!downloaded.ok) {
+          const attachment = ctx.interaction.options.getAttachment("image", true);
+          // Public reply so staff decisions can reply to this message after reboot.
+          await ctx.interaction.deferReply(deferReplyOptions(false));
+
+          const normalized = await normalizeAvatarAttachment(attachment);
+          if (!normalized.ok) {
             await ctx.interaction.editReply(
-              resultEdit(downloaded.title, downloaded.details, slashResultOptions(ctx, { tone: "error" })),
+              resultEdit(normalized.title, normalized.details, slashResultOptions(ctx, { tone: "error" })),
+            );
+            return;
+          }
+
+          // Re-check after download in case another request slipped in.
+          const raced = await getPendingBotAvatarRequest(guild.id);
+          if (raced) {
+            await ctx.interaction.editReply(
+              resultEdit(
+                "Request already queued",
+                `This server already has an avatar request waiting for review (id \`${raced.id}\`).\nUse \`/bot avatar cancel\` to remove it before requesting a new one.`,
+                slashResultOptions(ctx, { tone: "warning" }),
+              ),
             );
             return;
           }
 
           try {
-            const me = await guild.members.editMe({
-              avatar: downloaded.buffer,
-              reason: `Guild avatar set by ${ctx.interaction.user.tag}`,
+            const { request, reviewPosted } = await submitAvatarForReview({
+              client: ctx.client,
+              guildId: guild.id,
+              guildName: guild.name,
+              requesterId: ctx.interaction.user.id,
+              requesterTag: ctx.interaction.user.tag,
+              requestChannelId: ctx.interaction.channelId,
+              avatarPng: normalized.buffer,
             });
-            const avatarUrl = me.displayAvatarURL({ size: 1024 });
-            await ctx.interaction.editReply(
-              resultEdit(
-                "Avatar updated",
-                `Dreamliner's avatar for **${guild.name}** is now set.`,
-                slashResultOptions(ctx, { tone: "success", imageURL: avatarUrl }),
+
+            const pendingMessage = await ctx.interaction.editReply(
+              embedWithFilesEdit(
+                pendingUserEmbed(ctx.client, guild.name, reviewPosted),
+                [avatarAttachment(normalized.buffer)],
               ),
             );
+
+            await updateBotAvatarRequestMessageIds(request.id, {
+              requestMessageId: pendingMessage.id,
+            });
           } catch (error) {
             await ctx.interaction.editReply(
               resultEdit(
-                "Could not set avatar",
-                apiErrorMessage(
-                  error,
-                  "Discord rejected the avatar change. Per-server bot avatars must be supported for this application.",
-                ),
+                "Could not submit avatar",
+                apiErrorMessage(error, "Something went wrong while queuing the avatar for review."),
                 slashResultOptions(ctx, { tone: "error" }),
               ),
             );
           }
+          return;
+        }
+
+        if (sub === "cancel") {
+          const cancelled = await cancelPendingBotAvatarRequest(guild.id, ctx.interaction.user.id);
+          if (!cancelled) {
+            await ctx.interaction.reply(
+              resultReply(
+                "Nothing to cancel",
+                "There is no pending avatar request for this server.",
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "warning" }),
+              ),
+            );
+            return;
+          }
+
+          await markReviewMessageCancelled(ctx.client, cancelled, ctx.interaction.user.id);
+
+          if (cancelled.requestMessageId && cancelled.requestChannelId) {
+            const channel = await ctx.client.channels.fetch(cancelled.requestChannelId).catch(() => null);
+            if (channel?.isTextBased() && !channel.isDMBased()) {
+              const original = await channel.messages.fetch(cancelled.requestMessageId).catch(() => null);
+              if (original) {
+                await original
+                  .edit(
+                    resultEdit(
+                      "Avatar request cancelled",
+                      `This pending avatar request was cancelled by <@${ctx.interaction.user.id}>. You can submit a new one with \`/bot avatar set\`.`,
+                      slashResultOptions(ctx, { tone: "unchecked" }),
+                    ),
+                  )
+                  .catch(() => null);
+              }
+            }
+          }
+
+          await ctx.interaction.reply(
+            resultReply(
+              "Request cancelled",
+              `Pending avatar request \`${cancelled.id}\` was removed. You can run \`/bot avatar set\` again.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "success" }),
+            ),
+          );
           return;
         }
 

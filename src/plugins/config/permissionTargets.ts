@@ -134,6 +134,9 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
 
   // Bot customisation
   { key: "bot avatar", label: "/bot avatar", plugin: "bot_customisation", permission: "can_avatar" },
+  { key: "bot avatar set", label: "/bot avatar set", plugin: "bot_customisation", permission: "can_avatar" },
+  { key: "bot avatar cancel", label: "/bot avatar cancel", plugin: "bot_customisation", permission: "can_avatar" },
+  { key: "bot avatar clear", label: "/bot avatar clear", plugin: "bot_customisation", permission: "can_avatar" },
   { key: "bot nickname", label: "/bot nickname", plugin: "bot_customisation", permission: "can_nickname" },
 ];
 

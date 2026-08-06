@@ -326,3 +326,20 @@ export const dreamCommands = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.guildId, table.name] })],
 );
+
+/** Pending/resolved guild bot avatar changes awaiting staff approval. */
+export const botAvatarRequests = sqliteTable("bot_avatar_requests", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  requesterId: text("requester_id").notNull(),
+  requestChannelId: text("request_channel_id").notNull(),
+  requestMessageId: text("request_message_id"),
+  reviewMessageId: text("review_message_id"),
+  /** Base64-encoded normalized PNG (512×512). */
+  avatarPng: text("avatar_png").notNull(),
+  /** pending | approved | denied | failed | cancelled | superseded */
+  status: text("status").notNull().default("pending"),
+  reviewerId: text("reviewer_id"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+});
