@@ -35,8 +35,12 @@ export function resultReply(
   details?: string,
   ephemeral = false,
   options?: ResultEmbedOptions,
+  components?: ActionRowBuilder<ButtonBuilder>[],
 ): InteractionReplyOptions {
-  return embedReply(buildResultEmbed(title, details, options), ephemeral);
+  return {
+    ...embedReply(buildResultEmbed(title, details, options), ephemeral),
+    ...(components?.length ? { components } : {}),
+  };
 }
 
 export function resultEdit(
@@ -59,8 +63,14 @@ export function embedWithFilesReply(
   embed: APIEmbed | EmbedBuilder,
   files: AttachmentBuilder[],
   ephemeral = false,
+  components?: ActionRowBuilder<ButtonBuilder>[],
 ): InteractionReplyOptions {
-  return { embeds: [embed], files, ...withEphemeral(ephemeral) };
+  return {
+    embeds: [embed],
+    files,
+    ...(components?.length ? { components } : {}),
+    ...withEphemeral(ephemeral),
+  };
 }
 
 export function embedWithFilesEdit(

@@ -29,10 +29,9 @@ export const metaCommands: SlashCommandDefinition[] = [
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_about");
       if (!auth) return;
-      const docsUrl = resolveDocsUrl();
       await ctx.interaction.reply({
         ...embedReply(buildAboutEmbed(ctx.client), ctx.ephemeral),
-        components: aboutLinkRows(docsUrl),
+        components: aboutLinkRows(),
       });
     },
   },

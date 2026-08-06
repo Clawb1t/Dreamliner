@@ -20,7 +20,11 @@ import {
   pluginsRequiringConfig,
 } from "./core/guildHelpers.js";
 import { hasPluginPermission } from "./core/permissions.js";
-import { resolveDocsUrl } from "./core/docsUrl.js";
+import {
+  configEditorWithSupportRow,
+  resolveDocsUrl,
+  supportLinkRow,
+} from "./core/docsUrl.js";
 import { resolveEphemeral } from "./core/ephemeral.js";
 import { canUseUtility } from "./core/guildHelpers.js";
 import { handleHelpButton, handleHelpSelect, HELP_BUTTON_PREFIX } from "./plugins/utility/functions/help.js";
@@ -86,9 +90,11 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     const channel = guild.systemChannel ?? guild.channels.cache.find((ch) => ch.isTextBased());
     if (channel?.isTextBased() && "send" in channel) {
       await channel
-        .send(
-          "Thanks for adding **Dreamliner**! Run `/config template` to download the configuration template, edit it, then `/config upload` to set up this server.",
-        )
+        .send({
+          content:
+            "Thanks for adding **Dreamliner**! Run `/config template` (or `/config editor` for the full walkthrough), edit in the [config editor](https://www.dreamliner.site/editor), then `/config upload`. Need help? Join the [support server](https://discord.gg/cGzfZbtrpR).",
+          components: [configEditorWithSupportRow()],
+        })
         .catch(() => null);
     }
   });
@@ -153,7 +159,13 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         } catch (error) {
           console.error("Autoreaction modal error:", error);
           if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply(resultReply("Error", "Could not save that auto-reaction.", true)).catch(() => null);
+            await interaction
+              .reply(
+                resultReply("Error", "Could not save that auto-reaction. Ask in the support server if this continues.", true, undefined, [
+                  supportLinkRow(),
+                ]),
+              )
+              .catch(() => null);
           }
         }
         return;
@@ -164,7 +176,13 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         } catch (error) {
           console.error("Autoreply modal error:", error);
           if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply(resultReply("Error", "Could not save that auto-reply.", true)).catch(() => null);
+            await interaction
+              .reply(
+                resultReply("Error", "Could not save that auto-reply. Ask in the support server if this continues.", true, undefined, [
+                  supportLinkRow(),
+                ]),
+              )
+              .catch(() => null);
           }
         }
         return;
@@ -175,7 +193,13 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         } catch (error) {
           console.error("Slowmode modal error:", error);
           if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply(resultReply("Error", "Could not save that slowmode rule.", true)).catch(() => null);
+            await interaction
+              .reply(
+                resultReply("Error", "Could not save that slowmode rule. Ask in the support server if this continues.", true, undefined, [
+                  supportLinkRow(),
+                ]),
+              )
+              .catch(() => null);
           }
         }
         return;
@@ -186,7 +210,13 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         } catch (error) {
           console.error("Autorole modal error:", error);
           if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply(resultReply("Error", "Could not save that autorole.", true)).catch(() => null);
+            await interaction
+              .reply(
+                resultReply("Error", "Could not save that autorole. Ask in the support server if this continues.", true, undefined, [
+                  supportLinkRow(),
+                ]),
+              )
+              .catch(() => null);
           }
         }
       }
@@ -227,9 +257,10 @@ async function handleSlashCommand(
       await interaction.reply(
         resultReply(
           "Configuration required",
-          "This server has no configuration yet. Use `/config template`, edit the file, then `/config upload`.",
+          "This server has no configuration yet. Run `/config template` or `/config editor`, upload the YAML into the website editor, then `/config upload`.",
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+          [configEditorWithSupportRow()],
         ),
       );
       return;
@@ -286,7 +317,17 @@ async function handleSlashCommand(
   } catch (error) {
     console.error(`Error in /${interaction.commandName}:`, error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply(resultReply("Error", "An unexpected error occurred.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" }))).catch(() => null);
+      await interaction
+        .reply(
+          resultReply(
+            "Error",
+            "An unexpected error occurred. If this keeps happening, ask in the support server.",
+            ephemeral,
+            guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+            [supportLinkRow()],
+          ),
+        )
+        .catch(() => null);
     }
   }
 }
@@ -324,7 +365,17 @@ async function handleHelpInteraction(
   } catch (error) {
     console.error("Help interaction error:", error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply(resultReply("Error", "Could not update help.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" }))).catch(() => null);
+      await interaction
+        .reply(
+          resultReply(
+            "Error",
+            "Could not update help. If this keeps happening, ask in the support server.",
+            true,
+            guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+            [supportLinkRow()],
+          ),
+        )
+        .catch(() => null);
     }
   }
 }

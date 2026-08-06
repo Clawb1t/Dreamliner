@@ -13,6 +13,7 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
+import { SUPPORT_URL } from "../../../core/docsUrl.js";
 import { HELP_CATEGORIES, type HelpCategory } from "../../../core/helpCategories.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { baseEmbed, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
@@ -53,34 +54,37 @@ type ParsedHelpAction =
 const CATEGORIES: HelpCategory[] = HELP_CATEGORIES;
 
 const PLUGIN_DOCS: Record<string, string> = {
-  utility: "plugins/utility.md",
-  infractions: "plugins/infraction.md",
-  automod: "plugins/automod.md",
-  censor: "plugins/censor.md",
-  admin: "plugins/admin.md",
-  persist: "plugins/persist.md",
-  slowmode: "plugins/slowmode.md",
-  roles: "plugins/roles.md",
-  reaction_roles: "plugins/reaction_roles.md",
-  role_buttons: "plugins/role_buttons.md",
-  self_grantable_roles: "plugins/self_grantable_roles.md",
-  pingable_roles: "plugins/pingable_roles.md",
-  role_manager: "plugins/role_manager.md",
-  welcome_message: "plugins/welcome_message.md",
-  tags: "plugins/tags.md",
-  post: "plugins/post.md",
-  autodelete: "plugins/autodelete.md",
-  autoreactions: "plugins/autoreactions.md",
-  autoreplies: "plugins/autoreplies.md",
-  reminders: "plugins/reminders.md",
-  counters: "plugins/counters.md",
-  companion_channels: "plugins/companion_channels.md",
-  name_history: "plugins/name_history.md",
-  locate_user: "plugins/locate_user.md",
-  stats: "plugins/stats.md",
-  custom_events: "plugins/custom_events.md",
-  command_aliases: "plugins/command_aliases.md",
-  config: "configuration.md",
+  utility: "plugins/utility",
+  infractions: "plugins/infraction",
+  automod: "plugins/automod",
+  censor: "plugins/censor",
+  admin: "plugins/admin",
+  persist: "plugins/persist",
+  slowmode: "plugins/slowmode",
+  roles: "plugins/roles",
+  reaction_roles: "plugins/reaction_roles",
+  role_buttons: "plugins/role_buttons",
+  self_grantable_roles: "plugins/self_grantable_roles",
+  pingable_roles: "plugins/pingable_roles",
+  role_manager: "plugins/role_manager",
+  welcome_message: "plugins/welcome_message",
+  tags: "plugins/tags",
+  post: "plugins/post",
+  autodelete: "plugins/autodelete",
+  autoreactions: "plugins/autoreactions",
+  autoreplies: "plugins/autoreplies",
+  reminders: "plugins/reminders",
+  counters: "plugins/counters",
+  companion_channels: "plugins/companion_channels",
+  name_history: "plugins/name_history",
+  locate_user: "plugins/locate_user",
+  stats: "plugins/stats",
+  custom_events: "plugins/custom_events",
+  command_aliases: "plugins/command_aliases",
+  config: "configuration",
+  starboard: "plugins/starboard",
+  autorole: "plugins/autorole",
+  username_saver: "plugins/username_saver",
 };
 
 function decodeQuery(encoded: string | undefined): string {
@@ -313,7 +317,7 @@ function splitFieldValue(lines: string[]): string[] {
   return chunks.length ? chunks : ["No commands."];
 }
 
-function docsPathFor(entries: CommandEntry[], fallback = "index.md"): string {
+function docsPathFor(entries: CommandEntry[], fallback = ""): string {
   const plugin = entries[0]?.plugin;
   return (plugin && PLUGIN_DOCS[plugin]) || fallback;
 }
@@ -524,8 +528,12 @@ function buildNavButtons(view: HelpView, query: string, docsUrl: string, docsPat
     );
   }
 
+  const docsTarget =
+    !docsPath || docsPath === "index" ? docsUrl.replace(/\/$/, "") : `${docsUrl.replace(/\/$/, "")}/${docsPath.replace(/^\//, "")}`;
+
   row.addComponents(
-    new ButtonBuilder().setLabel("Docs").setStyle(ButtonStyle.Link).setURL(`${docsUrl}/${docsPath}`),
+    new ButtonBuilder().setLabel("Docs").setStyle(ButtonStyle.Link).setURL(docsTarget),
+    new ButtonBuilder().setLabel("Support").setStyle(ButtonStyle.Link).setURL(SUPPORT_URL),
   );
 
   return row;
@@ -625,12 +633,12 @@ function resolvePageEntries(view: HelpView, entries: CommandEntry[], query: stri
       pageEntries: pages[page] ?? [],
       page,
       pageCount: pages.length,
-      docsPath: "index.md",
+      docsPath: "",
     };
   }
 
   if (view.kind === "home") {
-    return { embedEntries: entries, pageEntries: [], page: 0, pageCount: 1, docsPath: "index.md" };
+    return { embedEntries: entries, pageEntries: [], page: 0, pageCount: 1, docsPath: "" };
   }
 
   const category = findCategory(view.categoryId) ?? CATEGORIES[0]!;
@@ -645,7 +653,7 @@ function resolvePageEntries(view: HelpView, entries: CommandEntry[], query: stri
     page,
     pageCount: pages.length,
     category,
-    docsPath: docsPathFor(pageEntries, PLUGIN_DOCS[category.include[0]?.plugin ?? ""] ?? "index.md"),
+    docsPath: docsPathFor(pageEntries, PLUGIN_DOCS[category.include[0]?.plugin ?? ""] ?? ""),
   };
 }
 
