@@ -6,10 +6,29 @@ import {
   guildStatsUserDaily,
   logMessages,
 } from "../../../db/schema.js";
-import { dateRange, dateRangeInclusive, isAllTimeWindow, statDate, windowSince } from "./daily.js";
+import { dateRange, dateRangeInclusive, getDailyTotals, getFilledDailyStats, isAllTimeWindow, statDate, windowSince } from "./daily.js";
 
 function dailySinceFilter(since: string | null, column: Parameters<typeof gte>[0]): SQL | undefined {
   return since ? gte(column, since) : undefined;
+}
+
+/** Lifetime or window total from utility message counters (user lifetime / all-time user leaderboards). */
+export async function getTrackedMessagesTotal(guildId: string, days: number): Promise<number> {
+  if (isAllTimeWindow(days)) {
+    return getTotalGuildMessages(guildId);
+  }
+  const daily = await getFilledDailyStats(guildId, days);
+  return daily.reduce((sum, row) => sum + row.messages, 0);
+}
+
+/** Lifetime or window total from stats daily tables (channel leaderboards / daily-scoped shares). */
+export async function getTrackedDailyMessagesTotal(guildId: string, days: number): Promise<number> {
+  if (isAllTimeWindow(days)) {
+    const totals = await getDailyTotals(guildId);
+    return totals.messages;
+  }
+  const daily = await getFilledDailyStats(guildId, days);
+  return daily.reduce((sum, row) => sum + row.messages, 0);
 }
 
 export async function getTotalGuildMessages(guildId: string): Promise<number> {

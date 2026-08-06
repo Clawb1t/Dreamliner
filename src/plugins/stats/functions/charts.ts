@@ -390,6 +390,7 @@ export type LeaderboardRow = {
   label: string;
   count: number;
   shareLabel: string;
+  sharePct: number;
   avatarURL?: string | null;
   fallbackInitial?: string;
 };
@@ -497,7 +498,7 @@ export async function renderLeaderboardImage(options: LeaderboardImageOptions): 
   const rowWidth = width - padX * 2;
   const contentRight = rowLeft + rowWidth - rowInnerPad;
   const shareColX = contentRight - shareColWidth;
-  const maxShare = Math.max(...rows.map((row) => Number.parseFloat(row.shareLabel) || 0), 1);
+  const maxShare = Math.max(...rows.map((row) => row.sharePct), 1);
   let y = headerHeight + 28;
 
   for (const row of rows) {
@@ -562,7 +563,7 @@ export async function renderLeaderboardImage(options: LeaderboardImageOptions): 
     const barY = rowTop + rowHeight - 18;
     const barW = contentRight - barX;
     const barH = 7;
-    const shareValue = Number.parseFloat(row.shareLabel) || 0;
+    const shareValue = row.sharePct;
     ctx.fillStyle = "rgba(255,255,255,0.08)";
     roundRect(ctx, barX, barY, barW, barH, 4);
     ctx.fill();

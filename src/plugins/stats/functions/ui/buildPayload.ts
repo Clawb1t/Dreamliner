@@ -28,9 +28,11 @@ import {
   getTopMessagers,
   getTopUsersByDaily,
   getTotalGuildMessages,
+  getTrackedDailyMessagesTotal,
+  getTrackedMessagesTotal,
   getUserMessageRank,
 } from "../queries.js";
-import { analyzeSeries, formatTrend, formatSharePct, pct, weekdayName } from "../analysis.js";
+import { analyzeSeries, formatTrend, pct, weekdayName } from "../analysis.js";
 import { renderStatsChart } from "./renderCharts.js";
 import { buildCustomId, categoriesFor, categoryDef, type StatsState } from "./state.js";
 
@@ -131,18 +133,18 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
 
   if (state.scope.type === "user") {
     const userId = state.scope.userId;
-    const [guildCount, globalCount, daily, serverTotal, activeUsers, serverDaily] = await Promise.all([
+    const [guildCount, globalCount, daily, serverTotal, activeUsers] = await Promise.all([
       getGuildMessageCount(guildId, userId),
       getGlobalMessageCount(userId),
       getFilledUserDailyStats(guildId, userId, days),
       getTotalGuildMessages(guildId),
       getActiveMessagerCount(guildId),
-      getFilledDailyStats(guildId, days),
     ]);
     const rank = await getUserMessageRank(guildId, userId, guildCount);
     const dates = daily.map((r) => r.statDate);
     const analysis = analyzeSeries(daily.map((r) => r.messages), dates);
-    const serverWindow = serverDaily.reduce((sum, row) => sum + row.messages, 0);
+    const serverTrafficTotal = await getTrackedMessagesTotal(guildId, days);
+    const userMessagesInWindow = isAllTimeWindow(days) ? guildCount : analysis.total;
     const user = await guild.client.users.fetch(userId).catch(() => null);
 
     return [
@@ -161,7 +163,7 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
           Messages: \`${analysis.total.toLocaleString()}\` (avg \`${analysis.average.toFixed(1)}\`/day)
           Active days: \`${analysis.activeDays}/${windowSpan(days, daily.length)}\`
           Peak day: ${formatStatDate(dates[analysis.peakIndex])} · \`${analysis.peakValue.toLocaleString()}\` msgs
-          Share of server traffic: \`${pct(analysis.total, serverWindow)}\`
+          Share of server traffic: \`${pct(userMessagesInWindow, serverTrafficTotal)}\`
           Busiest weekday: **${weekdayName(analysis.busiestWeekday)}**
           Trend: ${formatTrend(analysis.trend, analysis.trendPct)}
         `),
@@ -171,15 +173,15 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
 
   const channelId = state.scope.channelId;
   const channel = guild.channels.cache.get(channelId) ?? (await guild.channels.fetch(channelId).catch(() => null));
-  const [daily, trackedLogs, lifetimeDaily, serverDaily] = await Promise.all([
+  const [daily, trackedLogs, lifetimeDaily, serverTrafficTotal] = await Promise.all([
     getFilledChannelDailyStats(guildId, channelId, days),
     getChannelTrackedMessages(guildId, channelId),
     getChannelDailyTotal(guildId, channelId),
-    getFilledDailyStats(guildId, days),
+    getTrackedDailyMessagesTotal(guildId, days),
   ]);
   const dates = daily.map((r) => r.statDate);
   const analysis = analyzeSeries(daily.map((r) => r.messages), dates);
-  const serverWindow = serverDaily.reduce((sum, row) => sum + row.messages, 0);
+  const channelMessagesInWindow = isAllTimeWindow(days) ? lifetimeDaily : analysis.total;
   const created =
     channel && "createdTimestamp" in channel && channel.createdTimestamp
       ? `<t:${Math.floor(channel.createdTimestamp / 1000)}:R>`
@@ -201,7 +203,7 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
         Messages: \`${analysis.total.toLocaleString()}\` (avg \`${analysis.average.toFixed(1)}\`/day)
         Active days: \`${analysis.activeDays}/${windowSpan(days, daily.length)}\`
         Peak day: ${formatStatDate(dates[analysis.peakIndex])} · \`${analysis.peakValue.toLocaleString()}\` msgs
-        Share of server traffic: \`${pct(analysis.total, serverWindow)}\`
+        Share of server traffic: \`${pct(channelMessagesInWindow, serverTrafficTotal)}\`
         Busiest weekday: **${weekdayName(analysis.busiestWeekday)}**
         Trend: ${formatTrend(analysis.trend, analysis.trendPct)}
       `),
@@ -213,47 +215,7 @@ async function buildCategoryFields(state: StatsState, guild: Guild, caption: str
   if (state.category === "home") return buildHomeFields(state, guild);
 
   if (state.scope.type === "server" && state.category === "leaders") {
-    const [topUsers, topChannels, topAllTime, windowDaily] = await Promise.all([
-      getTopUsersByDaily(guild.id, state.days, 10),
-      getTopChannelsByDaily(guild.id, state.days, 10),
-      getTopMessagers(guild.id, 10),
-      getFilledDailyStats(guild.id, state.days),
-    ]);
-    const windowTotal = windowDaily.reduce((sum, row) => sum + row.messages, 0);
-    const lifetimeTotal = await getTotalGuildMessages(guild.id);
-
-    return [
-      embedField("Leaderboard", caption),
-      embedField(
-        `Top users (${windowLabel(state.days)})`,
-        topUsers
-          .map(
-            (e, i) =>
-              `${i + 1}. <@${e.userId}> · \`${e.count.toLocaleString()}\` msgs · \`${formatSharePct(e.count, windowTotal)}\` of traffic`,
-          )
-          .join("\n") || "No data yet.",
-        true,
-      ),
-      embedField(
-        `Top channels (${windowLabel(state.days)})`,
-        topChannels
-          .map(
-            (e, i) =>
-              `${i + 1}. <#${e.channelId}> · \`${e.count.toLocaleString()}\` msgs · \`${formatSharePct(e.count, windowTotal)}\` of traffic`,
-          )
-          .join("\n") || "No data yet.",
-        true,
-      ),
-      embedField(
-        "All-time top users",
-        topAllTime
-          .map(
-            (e, i) =>
-              `${i + 1}. <@${e.userId}> · \`${e.count.toLocaleString()}\` msgs · \`${formatSharePct(e.count, lifetimeTotal)}\` of traffic`,
-          )
-          .join("\n") || "No data yet.",
-      ),
-    ];
+    return [];
   }
 
   let values: number[] = [];

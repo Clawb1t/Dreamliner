@@ -72,16 +72,21 @@ export function formatTrend(trend: TrendDirection, trendPct: number): string {
   return `Down **${abs}%** vs earlier period`;
 }
 
+/** Percentage of tracked traffic (0–100). */
+export function sharePctValue(part: number, whole: number): number {
+  if (whole <= 0 || part <= 0) return 0;
+  return (part / whole) * 100;
+}
+
 export function pct(part: number, whole: number): string {
   if (whole <= 0) return "0%";
-  return `${((part / whole) * 100).toFixed(1)}%`;
+  return `${sharePctValue(part, whole).toFixed(1)}%`;
 }
 
 /** Rounded share label for leaderboard display (e.g. 33% for a third). */
 export function formatSharePct(part: number, whole: number): string {
-  if (whole <= 0 || part <= 0) return "0%";
-  const value = (part / whole) * 100;
+  const value = sharePctValue(part, whole);
+  if (value <= 0) return "0%";
   if (value >= 10) return `${Math.round(value)}%`;
-  if (value >= 1) return `${value.toFixed(1)}%`;
   return `${value.toFixed(1)}%`;
 }
