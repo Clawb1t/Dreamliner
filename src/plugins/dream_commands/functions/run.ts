@@ -6,7 +6,7 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { runDreamcode, type DreamValue } from "../../../dreamcode/index.js";
 import { dreamCommandsDefaultOverrides } from "../defaultOverrides.js";
 import { buildDreamGlobals } from "./context.js";
-import { slashPropsFromSource } from "./guildSlash.js";
+import { isReservedCommandName, slashPropsFromSource } from "./guildSlash.js";
 import { createDiscordActionHost } from "./host.js";
 import { resolveSlashArgValues } from "./slashArgs.js";
 import { getDreamCommand, type DreamCommandRow } from "./store.js";
@@ -157,6 +157,8 @@ export async function handleDreamCommandMessage(message: Message, configManager:
 
   const command = await getDreamCommand(message.guild.id, rawName);
   if (!command || !command.enabled || command.triggerType !== "prefix") return;
+  // Failsafe: never run Dreamcode under a built-in bot command name.
+  if (isReservedCommandName(command.name)) return;
 
   const outcome = await executeDreamCommand({
     command,
@@ -193,6 +195,8 @@ export async function handleDreamCommandSlash(
 
   const command = await getDreamCommand(interaction.guildId, interaction.commandName);
   if (!command || !command.enabled || command.triggerType !== "slash") return false;
+  // Failsafe: never claim a built-in bot command name as Dreamcode.
+  if (isReservedCommandName(command.name)) return false;
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "dream_commands")) {

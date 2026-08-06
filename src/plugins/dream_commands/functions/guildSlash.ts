@@ -9,18 +9,32 @@ export const DREAM_SLASH_CAP = 10;
 
 const reservedNamesCache = new Set<string>();
 
-export function getReservedSlashNames(): Set<string> {
+/** Built-in Dreamliner slash command names (and a few fixed reserves). */
+export function getReservedCommandNames(): Set<string> {
   if (reservedNamesCache.size === 0) {
     for (const cmd of getAllSlashCommands()) {
       reservedNamesCache.add(cmd.data.name);
     }
+    // Always reserved even if plugin load order changes.
     reservedNamesCache.add("command");
+    reservedNamesCache.add("help");
   }
   return reservedNamesCache;
 }
 
+/** @deprecated Prefer {@link getReservedCommandNames} / {@link isReservedCommandName}. */
+export function getReservedSlashNames(): Set<string> {
+  return getReservedCommandNames();
+}
+
+/** True when a Dreamcode name would collide with a built-in bot command (prefix or slash). */
+export function isReservedCommandName(name: string): boolean {
+  return getReservedCommandNames().has(name.trim().toLowerCase());
+}
+
+/** @deprecated Prefer {@link isReservedCommandName}. */
 export function isReservedSlashName(name: string): boolean {
-  return getReservedSlashNames().has(name.trim().toLowerCase());
+  return isReservedCommandName(name);
 }
 
 /** Compile source for trigger + slash meta; invalid source falls back to empty slash props. */
@@ -76,7 +90,10 @@ function addTypedOption(builder: SlashCommandBuilder, arg: SlashArgDef): void {
 }
 
 function buildGuildCommandBody(rows: DreamCommandRow[]) {
-  return rows.slice(0, DREAM_SLASH_CAP).map((row) => {
+  return rows
+    .filter((row) => !isReservedCommandName(row.name))
+    .slice(0, DREAM_SLASH_CAP)
+    .map((row) => {
     const slash = slashPropsFromSource(row.source);
     const description = slash.description?.trim() || `Dreamcode: /${row.name}`;
     const builder = new SlashCommandBuilder()

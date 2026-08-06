@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-06T21:13:13.515Z",
+  "generatedAt": "2026-08-06T21:32:31.100Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -186,6 +186,11 @@
           "key": "stats",
           "name": "Stats",
           "description": "Server, user, and channel stats."
+        },
+        {
+          "key": "bot_customisation",
+          "name": "Bot customisation",
+          "description": "Per-server bot avatar and nickname."
         },
         {
           "key": "starboard",
@@ -403,6 +408,13 @@
       "key": "stats",
       "name": "Stats",
       "description": "Server, user, and channel stats.",
+      "category": "Server tools",
+      "categoryId": "tools"
+    },
+    {
+      "key": "bot_customisation",
+      "name": "Bot customisation",
+      "description": "Per-server bot avatar and nickname.",
       "category": "Server tools",
       "categoryId": "tools"
     },

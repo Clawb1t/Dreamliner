@@ -40,6 +40,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Utility](./utility.md)
 - [Stats](./stats.md)
+- [Bot customisation](./bot_customisation.md) — per-server avatar and nickname
 - [Starboard](./starboard.md)
 - [Logs](./logs.md)
 - [Locate user](./locate_user.md)

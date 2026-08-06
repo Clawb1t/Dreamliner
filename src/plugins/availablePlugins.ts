@@ -32,6 +32,7 @@ import { remindersPlugin } from "../plugins/reminders/index.js";
 import { countersPlugin } from "../plugins/counters/index.js";
 import { companionChannelsPlugin } from "../plugins/companion_channels/index.js";
 import { dreamCommandsPlugin } from "../plugins/dream_commands/index.js";
+import { botCustomisationPlugin } from "../plugins/bot_customisation/index.js";
 
 export const availablePlugins: DreamlinerPlugin[] = [
   configPlugin,
@@ -67,6 +68,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   countersPlugin,
   companionChannelsPlugin,
   dreamCommandsPlugin,
+  botCustomisationPlugin,
 ];
 
 export function getAllSlashCommands() {

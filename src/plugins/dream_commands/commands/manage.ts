@@ -22,7 +22,7 @@ import {
   updateDreamCommandSource,
   type DreamTriggerType,
 } from "../functions/store.js";
-import { DREAM_SLASH_CAP, isReservedSlashName, syncGuildDreamSlashCommands } from "../functions/guildSlash.js";
+import { DREAM_SLASH_CAP, isReservedCommandName, syncGuildDreamSlashCommands } from "../functions/guildSlash.js";
 import { formatTriggerLabel, getDreamPrefix } from "../functions/run.js";
 
 const MAX_SOURCE_BYTES = 32_000;
@@ -213,18 +213,19 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           const wasSlash = existing.triggerType === "slash";
           const willBeSlash = triggerType === "slash";
 
+          if (isReservedCommandName(name)) {
+            await ctx.interaction.reply(
+              resultReply(
+                "Reserved name",
+                `**${name}** is reserved by a built-in Dreamliner command (e.g. \`/${name}\` / \`${prefix}${name}\`). Rename the command instead.`,
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "error" }),
+              ),
+            );
+            return;
+          }
+
           if (willBeSlash && !wasSlash) {
-            if (isReservedSlashName(name)) {
-              await ctx.interaction.reply(
-                resultReply(
-                  "Reserved name",
-                  `\`/${name}\` is reserved by a built-in Dreamliner command. Keep \`@prefix\` or rename.`,
-                  ctx.ephemeral,
-                  slashResultOptions(ctx, { tone: "error" }),
-                ),
-              );
-              return;
-            }
             const slashCount = await countSlashDreamCommands(guildId);
             if (slashCount >= MAX_SLASH_DREAM_COMMANDS) {
               await ctx.interaction.reply(
@@ -297,6 +298,18 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           return;
         }
 
+        if (isReservedCommandName(name)) {
+          await ctx.interaction.reply(
+            resultReply(
+              "Reserved name",
+              `**${name}** is reserved by a built-in Dreamliner command. You cannot create \`${prefix}${name}\` or \`/${name}\` as a Dreamcode command.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
+
         const existing = await getDreamCommand(guildId, name);
         if (existing) {
           await ctx.interaction.reply(
@@ -321,17 +334,6 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         const triggerType = downloaded.program.trigger as DreamTriggerType;
 
         if (triggerType === "slash") {
-          if (isReservedSlashName(name)) {
-            await ctx.interaction.reply(
-              resultReply(
-                "Reserved name",
-                `\`/${name}\` is reserved by a built-in Dreamliner command. Choose another name, or use \`@prefix\`.`,
-                ctx.ephemeral,
-                slashResultOptions(ctx, { tone: "error" }),
-              ),
-            );
-            return;
-          }
           const slashCount = await countSlashDreamCommands(guildId);
           if (slashCount >= MAX_SLASH_DREAM_COMMANDS) {
             await ctx.interaction.reply(

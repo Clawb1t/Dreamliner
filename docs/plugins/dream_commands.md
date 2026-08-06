@@ -52,7 +52,7 @@ reply "📢"
 Rules:
 
 - Names are unique across **both** types — you cannot have prefix `boom` and slash `boom`.
-- Slash names cannot collide with built-in Dreamliner global commands (`ban`, `help`, `command`, …).
+- Names cannot collide with built-in Dreamliner commands for **either** trigger (`help`, `ban`, `command`, …) — so neither `d!help` nor `/help` can be created as Dreamcode.
 - Slash commands are synced per guild via Discord’s guild command API (not global). They may take up to a minute to appear after create/remove/edit.
 - Typed options: `@slash arg user target "Who" required` → Discord user option → `arg.target` in the script.
 - See [language.md](../dreamcode/language.md) for `noargs`, `ephemeral`, `description`, and all arg types.

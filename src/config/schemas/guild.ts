@@ -14,6 +14,7 @@ import {
   zCompanionChannelsPluginSection,
   zCountersPluginSection,
   zCustomEventsPluginSection,
+  zBotCustomisationPluginSection,
   zDreamCommandsPluginSection,
   zLocateUserPluginSection,
   zNameHistoryPluginSection,
@@ -112,6 +113,7 @@ export const zGuildConfig = z.strictObject({
       custom_events: zCustomEventsPluginSection.optional(),
       command_aliases: zCommandAliasesPluginSection.optional(),
       dream_commands: zDreamCommandsPluginSection.optional(),
+      bot_customisation: zBotCustomisationPluginSection.optional(),
     })
     .default({}),
 });

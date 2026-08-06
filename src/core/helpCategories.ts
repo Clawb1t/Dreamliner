@@ -99,6 +99,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       { plugin: "utility", roots: ["search", "voice", "nickname", "jumbo", "ping", "about", "help", "reload"] },
       { plugin: "stats" },
+      { plugin: "bot_customisation" },
     ],
   },
   {
@@ -237,6 +238,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Dreamcode commands",
     description: "Custom commands written in Dreamcode.",
   },
+  bot_customisation: {
+    key: "bot_customisation",
+    name: "Bot customisation",
+    description: "Per-server bot avatar and nickname.",
+  },
   starboard: {
     key: "starboard",
     name: "Starboard",
@@ -280,6 +286,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   dream_commands: "auto",
   utility: "tools",
   stats: "tools",
+  bot_customisation: "tools",
   starboard: "tools",
 };
 

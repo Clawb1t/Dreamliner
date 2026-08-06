@@ -131,6 +131,10 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "command edit upload", label: "/command edit upload", plugin: "dream_commands", permission: "can_edit" },
   { key: "command remove", label: "/command remove", plugin: "dream_commands", permission: "can_remove" },
   { key: "command list", label: "/command list", plugin: "dream_commands", permission: "can_list" },
+
+  // Bot customisation
+  { key: "bot avatar", label: "/bot avatar", plugin: "bot_customisation", permission: "can_avatar" },
+  { key: "bot nickname", label: "/bot nickname", plugin: "bot_customisation", permission: "can_nickname" },
 ];
 
 const byKey = new Map(PERMISSION_TARGETS.map((target) => [target.key, target]));
