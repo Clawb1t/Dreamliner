@@ -4387,8 +4387,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 10,
-                  "default": "d!",
-                  "description": "Message prefix for custom Dreamcode commands (e.g. \"d!\" → d!boom).",
+                  "description": "Deprecated and ignored. Dreamcode custom commands are slash-only.",
                   "title": "Prefix"
                 },
                 "can_create": {

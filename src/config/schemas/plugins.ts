@@ -378,12 +378,13 @@ export const zCommandAliasesConfig = z.strictObject({
 });
 
 export const zDreamCommandsConfig = z.strictObject({
+  /** @deprecated Ignored. Dreamcode commands are slash-only. Kept so older YAML still parses. */
   prefix: z
     .string()
     .min(1)
     .max(10)
-    .default("d!")
-    .describe('Message prefix for custom Dreamcode commands (e.g. "d!" → d!boom).'),
+    .optional()
+    .describe("Deprecated and ignored. Dreamcode custom commands are slash-only."),
   can_create: boolPerm("create Dreamcode custom commands"),
   can_edit: boolPerm("download/upload Dreamcode command source"),
   can_remove: boolPerm("remove Dreamcode custom commands"),

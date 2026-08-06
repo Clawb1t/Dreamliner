@@ -1,6 +1,6 @@
 # Dreamcode examples
 
-Upload with `/command create`. Default prefix `d!`.
+Upload with `/command create`. Every script must start with `@slash`.
 
 ---
 
@@ -9,7 +9,7 @@ Upload with `/command create`. Default prefix `d!`.
 **level:** `0`
 
 ```dream
-@prefix
+@slash
 reply "💥"
 ```
 
@@ -52,7 +52,7 @@ Usage: `/warn` with Discord user + string options
 **level:** `0`
 
 ```dream
-@prefix
+@slash
 set n = random 1 6
 reply "{invoker.mention} rolled **{n}**"
 ```
@@ -64,7 +64,7 @@ reply "{invoker.mention} rolled **{n}**"
 **level:** `0`
 
 ```dream
-@prefix
+@slash
 require arg.rest
 set answer = choose "Yes,No,Maybe,Ask again,Absolutely,No way"
 reply "**{arg.rest}** → {answer}"
@@ -77,7 +77,7 @@ reply "**{arg.rest}** → {answer}"
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 set target = get_member arg.user
 require target
 if target.level >= invoker.level then
@@ -87,7 +87,7 @@ set case = ban target reason: arg.rest
 reply "Banned {target.mention} · case `#{case.id}`"
 ```
 
-Usage: `d!ban @User spam`
+Usage: `/ban @User spam`
 
 ---
 
@@ -96,7 +96,7 @@ Usage: `d!ban @User spam`
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 set target = arg.user
 require target
 mute target duration: 10m reason: "chill"
@@ -111,7 +111,7 @@ reply "Timed out {target} for 10 minutes"
 **level:** `100`
 
 ```dream
-@prefix
+@slash
 require arg.user
 softban arg.user reason: arg.rest delete_days: 1
 reply "Softbanned {arg.user}"
@@ -124,7 +124,7 @@ reply "Softbanned {arg.user}"
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 require arg.user
 set out = clean 50 user: arg.user
 reply "Deleted {out.deleted} messages (archive `{out.archiveId}`)"
@@ -137,7 +137,7 @@ reply "Deleted {out.deleted} messages (archive `{out.archiveId}`)"
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 require arg.user
 require arg.role
 if has_role arg.user arg.role then
@@ -154,7 +154,7 @@ reply "Gave {arg.role.mention} to {arg.user.mention}"
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 require arg.user
 require arg.role
 set added = toggle_role arg.user arg.role
@@ -172,7 +172,7 @@ end
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 require arg.user
 require arg.channel
 voice_move arg.user arg.channel
@@ -186,7 +186,7 @@ reply "Moved {arg.user} → {arg.channel}"
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 require arg.1
 set c = case_get arg.1
 require c
@@ -200,7 +200,7 @@ reply "Case `#{c.id}` · {c.type} · <@{c.userId}> · {c.reason}"
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 set target = arg.user
 require target
 set n = case_count target
@@ -220,7 +220,7 @@ end
 **level:** `50` (counter must exist)
 
 ```dream
-@prefix
+@slash
 set v = counter_add events 1
 send arg.channel "Event count is now **{v}**"
 ```
@@ -232,14 +232,14 @@ send arg.channel "Event count is now **{v}**"
 **level:** `0`
 
 ```dream
-@prefix
+@slash
 require arg.1
 require arg.rest
 remind arg.1 arg.rest
 reply "I'll remind you in {arg.1}"
 ```
 
-Usage: `d!remind 30m check the oven`
+Usage: `/remind 30m check the oven`
 
 ---
 
@@ -248,7 +248,7 @@ Usage: `d!remind 30m check the oven`
 **level:** `100`
 
 ```dream
-@prefix
+@slash
 require arg.channel
 schedule_post arg.channel arg.rest duration: 5m
 reply "Scheduled in 5 minutes → {arg.channel}"
@@ -262,7 +262,7 @@ delete_trigger
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 require arg.1
 send_tag arg.1 channel: channel
 ```
@@ -274,7 +274,7 @@ send_tag arg.1 channel: channel
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 set target = get_member arg.user
 require target
 set vc = locate target
@@ -292,7 +292,7 @@ end
 **level:** `50`
 
 ```dream
-@prefix
+@slash
 set secs = arg.1
 require secs
 slowmode secs
@@ -306,7 +306,7 @@ reply "Slowmode set to {secs}s"
 **level:** `100`
 
 ```dream
-@prefix
+@slash
 lock_channel
 reply "Channel locked for 10s…"
 wait 10s

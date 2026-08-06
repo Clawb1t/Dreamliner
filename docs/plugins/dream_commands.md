@@ -1,6 +1,6 @@
 # Dreamcode commands plugin
 
-Custom commands written in **Dreamcode**, triggered as **prefix** messages or **guild slash** commands.
+Custom commands written in **Dreamcode**, registered as **guild slash** commands (`/name`).
 
 Language docs: [../dreamcode/README.md](../dreamcode/README.md)
 
@@ -10,8 +10,6 @@ Language docs: [../dreamcode/README.md](../dreamcode/README.md)
 plugins:
   dream_commands:
     enabled: true
-    config:
-      prefix: "d!"
     overrides:
       - level: ">=50"
         config:
@@ -23,36 +21,31 @@ plugins:
 
 | Field | Description |
 |-------|-------------|
-| `prefix` | Case-sensitive prefix for **prefix**-type commands (default `d!`) |
+| `prefix` | **Deprecated / ignored.** Older configs may still include it. |
 
 ### Who can run a command?
 
 Each command has `min_level`. The invoker’s Dreamliner level must be **≥** that value.
 
-## Trigger types
+## Trigger type
 
-Declared **in the `.dream` file**, not in the Discord create command:
-
-```dream
-@prefix
-reply "hi"
-```
+Declared **in the `.dream` file** with `@slash` (required):
 
 ```dream
 @slash
 @slash description "Staff ping"
+@slash noargs
 reply "📢"
 ```
 
 | Type | How it runs | Limits |
 |------|-------------|--------|
-| **prefix** (`@prefix`) | `d!name args…` (configurable prefix) | Unlimited per server |
-| **slash** (`@slash`) | `/name` registered as a **guild** slash command | **Max 10** slash Dreamcode commands per server |
+| **slash** (`@slash`) | `/name` registered as a **guild** slash command | **Max 10** per server |
 
 Rules:
 
-- Names are unique across **both** types — you cannot have prefix `boom` and slash `boom`.
-- Names cannot collide with built-in Dreamliner commands for **either** trigger (`help`, `ban`, `command`, …) — so neither `d!help` nor `/help` can be created as Dreamcode.
+- Prefix (`@prefix` / `d!…`) is **not supported**.
+- Names cannot collide with built-in Dreamliner commands (`help`, `ban`, `command`, …).
 - Slash commands are synced per guild via Discord’s guild command API (not global). They may take up to a minute to appear after create/remove/edit.
 - Typed options: `@slash arg user target "Who" required` → Discord user option → `arg.target` in the script.
 - See [language.md](../dreamcode/language.md) for `noargs`, `ephemeral`, `description`, and all arg types.
@@ -61,47 +54,13 @@ Rules:
 
 | Command | Permission | Description |
 |---------|------------|-------------|
-| `/command create` | `can_create` | Create with `name`, `code` file, optional `level` (trigger from `@prefix` / `@slash`) |
-| `/command list` | `can_list` | List commands with stat buttons (total / slash / prefix) |
-| `/command remove` | `can_remove` | Delete by name (re-syncs guild slash commands if needed) |
-| `/command edit download` | `can_edit` | Download the `.dream` source file |
-| `/command edit upload` | `can_edit` | Upload a new source file (may change prefix ↔ slash) |
-
-### Create example
-
-```
-/command create name:boom code:<file> level:0
-/command create name:staffping code:<file> level:50
-```
-
-### Edit
-
-```
-/command edit download name:boom
-/command edit upload name:boom code:<file>
-```
-
-Changing `@prefix` ↔ `@slash` on upload updates the stored trigger type and re-syncs guild slash commands.
-
-## Invocation
-
-**Prefix**
-
-```
-d!boom
-d!ban @User reason here
-```
-
-**Slash**
-
-```
-/meow
-/warn target:@User reason:spam
-```
+| `/command create` | `can_create` | Upload a `.dream` file (`@slash` required) |
+| `/command edit download` | `can_edit` | Download source |
+| `/command edit upload` | `can_edit` | Replace source |
+| `/command remove` | `can_remove` | Delete a command |
+| `/command list` | `can_list` | List custom commands |
 
 ## Requirements
 
-- Migration `0012_dream_commands_trigger` (`trigger_type` column)
-- Bot must be able to manage guild application commands
-- Bot Discord permissions for any actions scripts use
-- Hierarchy checks still apply for mod/role actions
+- Bot must be able to register guild application commands.
+- Migration `0014_disable_prefix_dream_commands` disables any leftover prefix rows.

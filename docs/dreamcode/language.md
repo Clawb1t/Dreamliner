@@ -16,14 +16,9 @@ Dreamcode is a **line-oriented** language. One statement per line (after strippi
 | Action names | Case-insensitive (`Ban` = `ban`) |
 | Variable names | Case-sensitive |
 
-## Trigger directives — `@prefix` / `@slash`
+## Trigger directive — `@slash`
 
-Every command file must declare its trigger type at the **top** (before any statements):
-
-```dream
-@prefix
-reply "💥"
-```
+Every command file must declare `@slash` at the **top** (before any statements). Prefix triggers (`@prefix` / `d!…`) are **not supported**.
 
 ```dream
 @slash
@@ -34,10 +29,9 @@ reply "🐱"
 
 | Directive | Meaning |
 |-----------|---------|
-| `@prefix` | Message command (`d!name`, configurable prefix) |
 | `@slash` | Guild slash command (`/name`, max 10 per server) |
 
-You cannot use both. `/command create` reads this from the file (there is no Discord `type` option).
+`/command create` reads this from the file (there is no Discord `type` option).
 
 ### Slash properties
 
@@ -67,7 +61,7 @@ reply "Warned {arg.target.mention}"
 
 - Access values as `arg.<name>` (e.g. `arg.target`, `arg.reason`).
 - First `user` / `role` / `channel` option also fills `arg.user` / `arg.role` / `arg.channel`.
-- If you declare **no** `@slash arg` and **no** `noargs`, Discord gets a legacy optional string option named `args` (parsed like prefix args).
+- If you declare **no** `@slash arg` and **no** `noargs`, Discord gets a legacy optional string option named `args` (parsed into `arg.1` / `arg.rest`).
 - Max 25 typed args. Cannot combine `noargs` with `arg`.
 
 ## Statements
@@ -210,8 +204,7 @@ See `DEFAULT_LIMITS` in code / `limits` in [`actions.catalog.json`](./actions.ca
 
 ```
 program     := directive* stmt*
-directive   := "@prefix" NL
-             | "@slash" NL
+directive   := "@slash" NL
              | "@slash" slash_prop NL
 slash_prop  := "noargs" | "ephemeral" | "description" string
              | "arg" type name [string] ["required"]

@@ -29,6 +29,7 @@ export function isValidCommandName(name: string): boolean {
 }
 
 export function normalizeTriggerType(value: string | null | undefined): DreamTriggerType {
+  // Legacy "prefix" rows may still exist in the DB (disabled); only "slash" is active.
   return value === "slash" ? "slash" : "prefix";
 }
 

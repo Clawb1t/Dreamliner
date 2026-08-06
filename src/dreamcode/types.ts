@@ -22,8 +22,8 @@ export type Stmt =
   | { kind: "if"; condition: Expr; thenBody: Stmt[]; elseBody: Stmt[]; pos: SourcePos }
   | { kind: "action"; name: string; args: ActionArg[]; pos: SourcePos };
 
-/** How the command is invoked — declared with `@prefix` or `@slash` at the top of the file. */
-export type DreamTriggerKind = "prefix" | "slash";
+/** How the command is invoked — declared with `@slash` at the top of the file. */
+export type DreamTriggerKind = "slash";
 
 /** Discord slash option types supported by `@slash arg …`. */
 export type SlashArgType =
@@ -58,7 +58,7 @@ export type SlashProps = {
 
 export type Program = {
   body: Stmt[];
-  /** Set by `@prefix` / `@slash` directives. Required for `/command create`. */
+  /** Set by `@slash` directives. Required for `/command create`. */
   trigger: DreamTriggerKind | null;
   slash: SlashProps;
 };

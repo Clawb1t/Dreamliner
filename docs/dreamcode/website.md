@@ -57,11 +57,9 @@ npm run dreamcode:export
 
 ## Trigger + slash properties
 
-The site parser must accept top-of-file directives:
+The site parser must accept top-of-file `@slash` directives only (`@prefix` is an error):
 
 ```dream
-@prefix
-
 @slash
 @slash noargs
 @slash ephemeral
@@ -69,14 +67,14 @@ The site parser must accept top-of-file directives:
 @slash arg user target "Who" required
 ```
 
-Expose `program.trigger` and `program.slash` in the IDE. Trigger type is **not** chosen in Discord `/command create` — it comes from `@prefix` / `@slash`.
+Expose `program.trigger` and `program.slash` in the IDE. Trigger type is **not** chosen in Discord `/command create` — it comes from `@slash`.
 
 ## Validation rules the site should mirror
 
 Before allowing save/publish:
 
 1. Source parses (balanced `if`/`else`/`end`, strings closed; directives only at top).
-2. File declares `@prefix` or `@slash` (required for create/upload).
+2. File declares `@slash` (required for create/upload). `@prefix` is rejected.
 3. Every action key exists in the catalog.
 4. Required params present (positional or named).
 5. No unknown named args.
@@ -89,12 +87,12 @@ Optional (runtime-only, cannot fully validate on site): Discord hierarchy, bot p
 ## Runtime model (for preview docs)
 
 ```
-prefix + name + args  →  MessageCreate
-                      →  min_level check
-                      →  build globals (context)
-                      →  interpretDreamcode(source, { globals, host })
-                      →  host.run(action, boundArgs) → DreamValue
-                      →  vars.result = return value
+/name + slash options  →  ChatInputCommandInteraction
+                       →  min_level check
+                       →  build globals (context)
+                       →  interpretDreamcode(source, { globals, host })
+                       →  host.run(action, boundArgs) → DreamValue
+                       →  vars.result = return value
 ```
 
 Authors can write:

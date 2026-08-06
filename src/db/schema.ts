@@ -316,8 +316,8 @@ export const dreamCommands = sqliteTable(
     guildId: text("guild_id").notNull(),
     name: text("name").notNull(),
     source: text("source").notNull(),
-    /** `prefix` (message) or `slash` (guild application command). */
-    triggerType: text("trigger_type").notNull().default("prefix"),
+    /** `slash` (guild application command). Legacy `prefix` rows are disabled. */
+    triggerType: text("trigger_type").notNull().default("slash"),
     minLevel: integer("min_level", { mode: "number" }).notNull().default(0),
     createdBy: text("created_by").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),

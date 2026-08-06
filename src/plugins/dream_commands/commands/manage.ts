@@ -20,10 +20,9 @@ import {
   MAX_SLASH_DREAM_COMMANDS,
   normalizeCommandName,
   updateDreamCommandSource,
-  type DreamTriggerType,
 } from "../functions/store.js";
 import { DREAM_SLASH_CAP, isReservedCommandName, syncGuildDreamSlashCommands } from "../functions/guildSlash.js";
-import { formatTriggerLabel, getDreamPrefix } from "../functions/run.js";
+import { formatTriggerLabel } from "../functions/run.js";
 
 const MAX_SOURCE_BYTES = 32_000;
 
@@ -51,12 +50,12 @@ async function downloadAttachmentSource(attachment: {
     }
     try {
       const program = compileDreamcode(source);
-      if (!program.trigger) {
+      if (program.trigger !== "slash") {
         return {
           ok: false,
-          title: "Missing trigger",
+          title: "Missing @slash",
           description:
-            "Add `@prefix` or `@slash` at the top of the file to declare how the command is triggered.",
+            "Add `@slash` at the top of the file. Dreamcode commands are slash-only (`@prefix` is not supported).",
         };
       }
       return { ok: true, source, program };
@@ -73,7 +72,7 @@ async function downloadAttachmentSource(attachment: {
   }
 }
 
-function listStatRow(total: number, slashCount: number, prefix: string): ActionRowBuilder<ButtonBuilder> {
+function listStatRow(total: number, slashCount: number): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("dl:dreamcmd:stat:total")
@@ -83,11 +82,6 @@ function listStatRow(total: number, slashCount: number, prefix: string): ActionR
     new ButtonBuilder()
       .setCustomId("dl:dreamcmd:stat:slash")
       .setLabel(`${slashCount}/${MAX_SLASH_DREAM_COMMANDS} slash`)
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(true),
-    new ButtonBuilder()
-      .setCustomId("dl:dreamcmd:stat:prefix")
-      .setLabel(`prefix ${prefix}`)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
   );
@@ -151,7 +145,6 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
       const group = ctx.interaction.options.getSubcommandGroup(false);
       const sub = ctx.interaction.options.getSubcommand();
       const guildId = ctx.interaction.guildId!;
-      const prefix = getDreamPrefix(ctx.pluginConfig);
 
       if (group === "edit") {
         if (sub === "download") {
@@ -175,8 +168,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
               "Command source",
               trimLines(`
                 **${command.name}**
-                Type: **${command.triggerType}**
-                Trigger: \`${formatTriggerLabel(command, prefix)}\`
+                Trigger: \`${formatTriggerLabel(command)}\`
                 Min level: **${command.minLevel}**
               `),
               ctx.ephemeral,
@@ -209,15 +201,11 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
             return;
           }
 
-          const triggerType = downloaded.program.trigger as DreamTriggerType;
-          const wasSlash = existing.triggerType === "slash";
-          const willBeSlash = triggerType === "slash";
-
           if (isReservedCommandName(name)) {
             await ctx.interaction.reply(
               resultReply(
                 "Reserved name",
-                `**${name}** is reserved by a built-in Dreamliner command (e.g. \`/${name}\` / \`${prefix}${name}\`). Rename the command instead.`,
+                `**${name}** is reserved by a built-in Dreamliner command (e.g. \`/${name}\`). Rename the command instead.`,
                 ctx.ephemeral,
                 slashResultOptions(ctx, { tone: "error" }),
               ),
@@ -225,13 +213,14 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
             return;
           }
 
-          if (willBeSlash && !wasSlash) {
+          const wasSlash = existing.triggerType === "slash";
+          if (!wasSlash) {
             const slashCount = await countSlashDreamCommands(guildId);
             if (slashCount >= MAX_SLASH_DREAM_COMMANDS) {
               await ctx.interaction.reply(
                 resultReply(
                   "Slash limit reached",
-                  `This server already has **${MAX_SLASH_DREAM_COMMANDS}** slash Dreamcode commands (max ${DREAM_SLASH_CAP}).`,
+                  `This server already has **${MAX_SLASH_DREAM_COMMANDS}** slash Dreamcode commands (max ${DREAM_SLASH_CAP}). Remove one first.`,
                   ctx.ephemeral,
                   slashResultOptions(ctx, { tone: "warning" }),
                 ),
@@ -240,7 +229,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
             }
           }
 
-          const updated = await updateDreamCommandSource(guildId, name, downloaded.source, triggerType);
+          const updated = await updateDreamCommandSource(guildId, name, downloaded.source, "slash");
           if (!updated) {
             await ctx.interaction.reply(
               resultReply("Not found", `No command named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)),
@@ -248,27 +237,25 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
             return;
           }
 
-          if (wasSlash || willBeSlash) {
-            try {
-              await syncGuildDreamSlashCommands(ctx.client, guildId);
-            } catch (error) {
-              console.error("[dream_commands] guild slash sync failed after edit:", error);
-              await ctx.interaction.reply(
-                resultReply(
-                  "Command updated",
-                  `Updated source for **${name}**, but Discord guild slash sync failed. Restart the bot or re-upload to retry.`,
-                  ctx.ephemeral,
-                  slashResultOptions(ctx, { tone: "warning" }),
-                ),
-              );
-              return;
-            }
+          try {
+            await syncGuildDreamSlashCommands(ctx.client, guildId);
+          } catch (error) {
+            console.error("[dream_commands] guild slash sync failed after edit:", error);
+            await ctx.interaction.reply(
+              resultReply(
+                "Command updated",
+                `Updated source for **${name}**, but Discord guild slash sync failed. Restart the bot or re-upload to retry.`,
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "warning" }),
+              ),
+            );
+            return;
           }
 
           await ctx.interaction.reply(
             resultReply(
               "Command updated",
-              `Updated **${name}** (\`${formatTriggerLabel(updated, prefix)}\`).`,
+              `Updated **${name}** (\`${formatTriggerLabel(updated)}\`).`,
               ctx.ephemeral,
               slashResultOptions(ctx),
             ),
@@ -302,7 +289,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           await ctx.interaction.reply(
             resultReply(
               "Reserved name",
-              `**${name}** is reserved by a built-in Dreamliner command. You cannot create \`${prefix}${name}\` or \`/${name}\` as a Dreamcode command.`,
+              `**${name}** is reserved by a built-in Dreamliner command. You cannot create \`/${name}\` as a Dreamcode command.`,
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "error" }),
             ),
@@ -315,7 +302,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           await ctx.interaction.reply(
             resultReply(
               "Already exists",
-              `A command named **${name}** already exists (\`${formatTriggerLabel(existing, prefix)}\`).`,
+              `A command named **${name}** already exists (\`${formatTriggerLabel(existing)}\`).`,
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "warning" }),
             ),
@@ -331,57 +318,49 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        const triggerType = downloaded.program.trigger as DreamTriggerType;
-
-        if (triggerType === "slash") {
-          const slashCount = await countSlashDreamCommands(guildId);
-          if (slashCount >= MAX_SLASH_DREAM_COMMANDS) {
-            await ctx.interaction.reply(
-              resultReply(
-                "Slash limit reached",
-                `This server already has **${MAX_SLASH_DREAM_COMMANDS}** slash Dreamcode commands (max ${DREAM_SLASH_CAP}). Remove one or use \`@prefix\`.`,
-                ctx.ephemeral,
-                slashResultOptions(ctx, { tone: "warning" }),
-              ),
-            );
-            return;
-          }
+        const slashCount = await countSlashDreamCommands(guildId);
+        if (slashCount >= MAX_SLASH_DREAM_COMMANDS) {
+          await ctx.interaction.reply(
+            resultReply(
+              "Slash limit reached",
+              `This server already has **${MAX_SLASH_DREAM_COMMANDS}** slash Dreamcode commands (max ${DREAM_SLASH_CAP}). Remove one first.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "warning" }),
+            ),
+          );
+          return;
         }
 
         const created = await createDreamCommand({
           guildId,
           name,
           source: downloaded.source,
-          triggerType,
+          triggerType: "slash",
           minLevel,
           createdBy: ctx.interaction.user.id,
         });
 
-        if (triggerType === "slash") {
-          try {
-            await syncGuildDreamSlashCommands(ctx.client, guildId);
-          } catch (error) {
-            console.error("[dream_commands] guild slash sync failed after create:", error);
-            await ctx.interaction.reply(
-              resultReply(
-                "Created, sync failed",
-                `Saved **${name}**, but Discord guild slash sync failed. Try removing and recreating, or restart the bot.`,
-                ctx.ephemeral,
-                slashResultOptions(ctx, { tone: "warning" }),
-              ),
-            );
-            return;
-          }
+        try {
+          await syncGuildDreamSlashCommands(ctx.client, guildId);
+        } catch (error) {
+          console.error("[dream_commands] guild slash sync failed after create:", error);
+          await ctx.interaction.reply(
+            resultReply(
+              "Created, sync failed",
+              `Saved **${name}**, but Discord guild slash sync failed. Try removing and recreating, or restart the bot.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "warning" }),
+            ),
+          );
+          return;
         }
 
-        const trigger = formatTriggerLabel(created, prefix);
         await ctx.interaction.reply(
           resultReply(
             "Command created",
             trimLines(`
               Saved **${name}**
-              Type: **${triggerType}**
-              Trigger: \`${trigger}\`
+              Trigger: \`${formatTriggerLabel(created)}\`
               Min level: **${minLevel}**
             `),
             ctx.ephemeral,
@@ -404,18 +383,16 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        if (deleted.triggerType === "slash") {
-          try {
-            await syncGuildDreamSlashCommands(ctx.client, guildId);
-          } catch (error) {
-            console.error("[dream_commands] guild slash sync failed after remove:", error);
-          }
+        try {
+          await syncGuildDreamSlashCommands(ctx.client, guildId);
+        } catch (error) {
+          console.error("[dream_commands] guild slash sync failed after remove:", error);
         }
 
         await ctx.interaction.reply(
           resultReply(
             "Command removed",
-            `Removed **${deleted.name}** (\`${formatTriggerLabel(deleted, prefix)}\`).`,
+            `Removed **${deleted.name}** (\`${formatTriggerLabel(deleted)}\`).`,
             ctx.ephemeral,
             slashResultOptions(ctx),
           ),
@@ -445,18 +422,16 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           console.warn("[dream_commands] failed to fetch guild slash ids for list:", error);
         }
 
-        const slashCount = rows.filter((r) => r.triggerType === "slash").length;
+        const slashCount = rows.filter((r) => r.triggerType === "slash" && r.enabled).length;
         const lines = rows
           .slice()
           .sort((a, b) => a.name.localeCompare(b.name))
           .map((row) => {
-            let trigger: string;
-            if (row.triggerType === "slash") {
-              const id = guildSlashIds.get(row.name);
-              trigger = id ? `</${row.name}:${id}>` : `\`/${row.name}\``;
-            } else {
-              trigger = `\`${prefix}${row.name}\``;
+            if (row.triggerType !== "slash" || !row.enabled) {
+              return `**${row.name}** · ~~legacy prefix~~ (disabled)\n> Level **${row.minLevel}** · remove or re-upload with \`@slash\``;
             }
+            const id = guildSlashIds.get(row.name);
+            const trigger = id ? `</${row.name}:${id}>` : `\`/${row.name}\``;
             return `**${row.name}** · ${trigger}\n> Level **${row.minLevel}**`;
           });
 
@@ -469,7 +444,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
 
         await ctx.interaction.reply({
           ...embedReply(embed, ctx.ephemeral),
-          components: [listStatRow(rows.length, slashCount, prefix)],
+          components: [listStatRow(rows.length, slashCount)],
         });
       }
     },

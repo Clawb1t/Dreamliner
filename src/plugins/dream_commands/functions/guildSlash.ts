@@ -27,7 +27,7 @@ export function getReservedSlashNames(): Set<string> {
   return getReservedCommandNames();
 }
 
-/** True when a Dreamcode name would collide with a built-in bot command (prefix or slash). */
+/** True when a Dreamcode name would collide with a built-in bot command. */
 export function isReservedCommandName(name: string): boolean {
   return getReservedCommandNames().has(name.trim().toLowerCase());
 }

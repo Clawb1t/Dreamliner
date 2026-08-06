@@ -103,9 +103,9 @@ Produced for `invoker` and by `get_member`.
 
 ## `arg`
 
-Built from text after `d!name`.
+Built from slash options (typed `@slash arg …`) or the legacy freeform `args` string option.
 
-Example: `d!ban @Target being rude`
+Example: `/ban` with option `target=@Target` and `reason=being rude` → `arg.target`, `arg.reason`
 
 | Path | Type | Description |
 |------|------|-------------|

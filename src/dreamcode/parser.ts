@@ -44,7 +44,6 @@ class Parser {
 
   /**
    * Top-of-file directives:
-   *   @prefix
    *   @slash
    *   @slash noargs | ephemeral | description "…" | arg <type> <name> …
    */
@@ -55,37 +54,25 @@ class Parser {
 
     while (this.check("at")) {
       const at = this.advance();
-      const tag = this.expect("ident", "Expected `prefix` or `slash` after `@`");
+      const tag = this.expect("ident", "Expected `slash` after `@`");
       const tagName = tag.value.toLowerCase();
 
       if (tagName === "prefix") {
-        if (trigger === "slash") {
-          throw new DreamcodeError("parse", "Cannot use both @prefix and @slash", tag.pos);
-        }
-        trigger = "prefix";
-        if (!this.atLineEnd()) {
-          throw new DreamcodeError(
-            "parse",
-            "@prefix takes no properties (use @slash for slash options)",
-            this.peek().pos
-          );
-        }
-        this.expectLineEnd();
-        this.skipNewlines();
-        continue;
+        throw new DreamcodeError(
+          "parse",
+          "@prefix is no longer supported — use @slash (Dreamcode commands are slash-only)",
+          tag.pos
+        );
       }
 
       if (tagName !== "slash") {
         throw new DreamcodeError(
           "parse",
-          `Unknown directive @${tag.value} (use @prefix or @slash)`,
+          `Unknown directive @${tag.value} (use @slash)`,
           tag.pos
         );
       }
 
-      if (trigger === "prefix") {
-        throw new DreamcodeError("parse", "Cannot use both @prefix and @slash", tag.pos);
-      }
       trigger = "slash";
 
       // Bare `@slash` — just declares slash trigger type.
@@ -238,7 +225,7 @@ class Parser {
       const t = this.peek();
       throw new DreamcodeError(
         "parse",
-        "@prefix / @slash directives must appear at the top of the script",
+        "@slash directives must appear at the top of the script",
         t.pos
       );
     }
