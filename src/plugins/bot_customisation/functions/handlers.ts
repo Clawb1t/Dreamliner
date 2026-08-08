@@ -6,7 +6,9 @@ import {
   type ButtonInteraction,
   type GuildTextBasedChannel,
 } from "discord.js";
+import { configManager } from "../../../config/manager.js";
 import { buildResultEmbed, setEmbedAuthor, baseEmbed, embedField } from "../../../core/embeds.js";
+import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parseBotAvatarCustomId } from "../constants.js";
 import {
   getBotAvatarRequest,
@@ -160,6 +162,15 @@ export async function handleBotAvatarButtonInteraction(
   const request = await getBotAvatarRequest(parsed.requestId);
   if (!request) {
     await interaction.reply({ content: "That avatar request no longer exists.", ephemeral: true });
+    return true;
+  }
+
+  const guildConfig = await configManager.getEffectiveConfig(request.guildId);
+  if (!pluginEnabled(guildConfig, "bot_customisation")) {
+    await interaction.reply({
+      content: "The **bot_customisation** plugin is disabled for that server.",
+      ephemeral: true,
+    });
     return true;
   }
 

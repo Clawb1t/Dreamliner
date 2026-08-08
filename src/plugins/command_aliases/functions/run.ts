@@ -2,6 +2,8 @@ import type { GuildMember } from "discord.js";
 import type { SlashCommandContext } from "../../../core/types.js";
 import { resolvePluginConfig } from "../../../core/permissions.js";
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
+import { pluginEnabled } from "../../../core/pluginCommand.js";
+import { resultReply, slashResultOptions } from "../../../core/responses.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
 import { createAliasInteractionProxy } from "./optionsProxy.js";
 
@@ -10,6 +12,18 @@ type StoredOptions = Record<string, unknown>;
 export async function runStoredAlias(ctx: SlashCommandContext, commandName: string, storedOptions: StoredOptions): Promise<boolean> {
   const command = getAllSlashCommands().find((cmd) => cmd.data.name === commandName);
   if (!command) return false;
+
+  if (command.plugin !== "config" && !pluginEnabled(ctx.guildConfig, command.plugin)) {
+    await ctx.interaction.reply(
+      resultReply(
+        "Plugin disabled",
+        `The **${command.plugin}** plugin is disabled for this server.`,
+        ctx.ephemeral,
+        slashResultOptions(ctx, { tone: "error" }),
+      ),
+    );
+    return true;
+  }
 
   const proxiedInteraction = createAliasInteractionProxy(ctx.interaction, storedOptions);
 

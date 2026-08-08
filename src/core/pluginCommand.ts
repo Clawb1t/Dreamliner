@@ -22,6 +22,18 @@ export async function requirePluginPermission(
     return null;
   }
 
+  if (!pluginEnabled(guildConfig, pluginName)) {
+    await interaction.reply(
+      resultReply(
+        "Plugin disabled",
+        `The **${pluginName}** plugin is disabled for this server.`,
+        ephemeral,
+        slashResultOptions(ctx, { tone: "error" }),
+      ),
+    );
+    return null;
+  }
+
   const guildMember = member as GuildMember;
   const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
   const defaultOverrides = getPluginDefaultOverrides(pluginName);

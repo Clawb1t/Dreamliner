@@ -1,4 +1,6 @@
 import type { Client } from "discord.js";
+import { configManager } from "../../../config/manager.js";
+import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getDueReminders, removeReminder } from "./store.js";
 
 export async function processDueReminders(client: Client): Promise<void> {
@@ -8,6 +10,12 @@ export async function processDueReminders(client: Client): Promise<void> {
       const guild = await client.guilds.fetch(reminder.guildId).catch(() => null);
       if (!guild) {
         await removeReminder(reminder.id);
+        continue;
+      }
+
+      const guildConfig = await configManager.getEffectiveConfig(reminder.guildId);
+      if (!pluginEnabled(guildConfig, "reminders")) {
+        // Keep the row so it can deliver after the plugin is re-enabled.
         continue;
       }
 
@@ -27,7 +35,10 @@ export async function processDueReminders(client: Client): Promise<void> {
     } catch (err) {
       console.error(`Failed to deliver reminder #${reminder.id}:`, err);
     } finally {
-      await removeReminder(reminder.id);
+      const guildConfig = await configManager.getEffectiveConfig(reminder.guildId).catch(() => null);
+      if (!guildConfig || pluginEnabled(guildConfig, "reminders")) {
+        await removeReminder(reminder.id);
+      }
     }
   }
 }

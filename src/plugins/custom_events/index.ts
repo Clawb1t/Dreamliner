@@ -1,6 +1,8 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zCustomEventsConfig } from "../../config/schemas/plugins.js";
+import { configManager } from "../../config/manager.js";
+import { pluginEnabled } from "../../core/pluginCommand.js";
 import { customEventsDefaultOverrides } from "./defaultOverrides.js";
 import { eventCommands } from "./commands/event.js";
 import { getEnabledMessageEvents } from "./functions/store.js";
@@ -17,6 +19,9 @@ export const customEventsPlugin = definePlugin({
       execute: async (_client, message: unknown) => {
         const msg = message as import("discord.js").Message;
         if (!msg.guild || msg.author.bot || msg.author.id === msg.client.user?.id) return;
+
+        const guildConfig = await configManager.getEffectiveConfig(msg.guild.id);
+        if (!pluginEnabled(guildConfig, "custom_events")) return;
 
         const events = await getEnabledMessageEvents(msg.guild.id);
         for (const event of events) {

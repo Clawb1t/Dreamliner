@@ -13,6 +13,10 @@ export async function handleAutodeleteMessage(message: Message): Promise<void> {
   if (!rule) return;
 
   setTimeout(() => {
-    message.delete().catch(() => null);
+    void (async () => {
+      const latest = await configManager.getEffectiveConfig(message.guild!.id);
+      if (!pluginEnabled(latest, "autodelete")) return;
+      await message.delete().catch(() => null);
+    })();
   }, rule.delaySeconds * 1000);
 }

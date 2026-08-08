@@ -20,9 +20,12 @@ import {
   pluginsRequiringConfig,
 } from "./core/guildHelpers.js";
 import { hasPluginPermission } from "./core/permissions.js";
+import { pluginEnabled } from "./core/pluginCommand.js";
 import {
   configEditorWithSupportRow,
+  getEditorUrl,
   resolveDocsUrl,
+  SUPPORT_URL,
   supportLinkRow,
 } from "./core/docsUrl.js";
 import { resolveEphemeral } from "./core/ephemeral.js";
@@ -61,6 +64,7 @@ import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
+import { startDashboardBridge } from "./bridge/dashboardBridge.js";
 
 const pluginConfigGetters: Record<string, typeof getUtilityPluginConfig> = {
   utility: getUtilityPluginConfig,
@@ -87,6 +91,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   client.once(Events.ClientReady, (c) => {
     applyBotPresence(c);
     console.log(`Dreamliner ready as ${c.user.tag}`);
+    startDashboardBridge(c, configManager);
   });
 
   client.on(Events.GuildCreate, async (guild) => {
@@ -97,7 +102,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       await channel
         .send({
           content:
-            "Thanks for adding **Dreamliner**! Run `/config template` (or `/config editor` for the full walkthrough), edit in the [config editor](https://www.dreamliner.site/editor), then `/config upload`. Need help? Join the [support server](https://discord.gg/cGzfZbtrpR).",
+            `Thanks for adding **Dreamliner**! Open the [dashboard](${getEditorUrl()}) to edit this server's config in your browser, or use \`/config template\` + \`/config upload\`. Need help? Join the [support server](${SUPPORT_URL}).`,
           components: [configEditorWithSupportRow()],
         })
         .catch(() => null);
@@ -163,6 +168,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     }
     if (interaction.isModalSubmit()) {
       if (interaction.customId === AUTOREACTION_ADD_MODAL_ID) {
+        if (!(await ensurePluginEnabledForModal(configManager, interaction, "autoreactions"))) return;
         try {
           await handleAutoreactionModalSubmit(interaction, configManager);
         } catch (error) {
@@ -180,6 +186,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         return;
       }
       if (interaction.customId === AUTOREPLY_ADD_MODAL_ID) {
+        if (!(await ensurePluginEnabledForModal(configManager, interaction, "autoreplies"))) return;
         try {
           await handleAutoreplyModalSubmit(interaction, configManager);
         } catch (error) {
@@ -197,6 +204,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         return;
       }
       if (interaction.customId === SLOWMODE_RULE_ADD_MODAL_ID) {
+        if (!(await ensurePluginEnabledForModal(configManager, interaction, "slowmode"))) return;
         try {
           await handleSlowmodeRuleModalSubmit(interaction, configManager);
         } catch (error) {
@@ -214,6 +222,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         return;
       }
       if (interaction.customId === AUTOROLE_ADD_MODAL_ID) {
+        if (!(await ensurePluginEnabledForModal(configManager, interaction, "autorole"))) return;
         try {
           await handleAutoroleModalSubmit(interaction, configManager);
         } catch (error) {
@@ -233,6 +242,30 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   });
 
   return { client, ctx };
+}
+
+async function ensurePluginEnabledForModal(
+  configManager: ConfigManager,
+  interaction: import("discord.js").ModalSubmitInteraction,
+  pluginName: string,
+): Promise<boolean> {
+  if (!interaction.inGuild() || !interaction.guildId) {
+    await interaction.reply({ content: "This can only be used in a server.", flags: MessageFlags.Ephemeral });
+    return false;
+  }
+  const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+  if (!pluginEnabled(guildConfig, pluginName)) {
+    await interaction.reply(
+      resultReply(
+        "Plugin disabled",
+        `The **${pluginName}** plugin is disabled for this server.`,
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
+    );
+    return false;
+  }
+  return true;
 }
 
 async function handleSlashCommand(
@@ -260,6 +293,19 @@ async function handleSlashCommand(
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   const ephemeral = resolveEphemeral(guildConfig);
+
+  // Config stays available so staff can re-enable plugins; everything else respects `enabled`.
+  if (command.plugin !== "config" && !pluginEnabled(guildConfig, command.plugin)) {
+    await interaction.reply(
+      resultReply(
+        "Plugin disabled",
+        `The **${command.plugin}** plugin is disabled for this server.`,
+        ephemeral,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
+    );
+    return;
+  }
 
   if (command.manageServer) {
     const member = interaction.member;
@@ -364,6 +410,18 @@ async function handleHelpInteraction(
   if (!interaction.inGuild() || !interaction.guildId) return;
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+  if (!pluginEnabled(guildConfig, "utility")) {
+    await interaction.reply(
+      resultReply(
+        "Plugin disabled",
+        "The **utility** plugin is disabled for this server.",
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
+    );
+    return;
+  }
+
   const member = interaction.member;
   if (!member || typeof member === "string") return;
 
@@ -439,6 +497,23 @@ async function handleStatsPermissionInteraction(
   if (!interaction.inGuild() || !interaction.guildId) return true;
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+  if (!pluginEnabled(guildConfig, "stats")) {
+    const ephemeral = resolveEphemeral(guildConfig);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction
+        .reply(
+          resultReply(
+            "Plugin disabled",
+            "The **stats** plugin is disabled for this server.",
+            ephemeral,
+            guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+          ),
+        )
+        .catch(() => null);
+    }
+    return true;
+  }
+
   const member = interaction.member;
   if (!member || typeof member === "string") return true;
   const guildMember = member as import("discord.js").GuildMember;

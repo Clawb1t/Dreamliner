@@ -109,11 +109,24 @@ export async function updateDreamCommandSource(
   source: string,
   triggerType?: DreamTriggerType,
 ): Promise<DreamCommandRow | null> {
+  return updateDreamCommand(guildId, name, { source, triggerType });
+}
+
+export async function updateDreamCommand(
+  guildId: string,
+  name: string,
+  patch: {
+    source?: string;
+    minLevel?: number;
+    triggerType?: DreamTriggerType;
+  },
+): Promise<DreamCommandRow | null> {
   const row = await getDb()
     .update(dreamCommands)
     .set({
-      source,
-      ...(triggerType ? { triggerType } : {}),
+      ...(patch.source !== undefined ? { source: patch.source } : {}),
+      ...(patch.minLevel !== undefined ? { minLevel: patch.minLevel } : {}),
+      ...(patch.triggerType !== undefined ? { triggerType: patch.triggerType } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(dreamCommands.guildId, guildId), eq(dreamCommands.name, normalizeCommandName(name))))

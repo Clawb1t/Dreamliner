@@ -4,8 +4,8 @@ import {
   configEditorLinkRow,
   configEditorWithSupportRow,
   docsPageUrl,
-  EDITOR_URL,
-  SITE_URL,
+  getEditorUrl,
+  getSiteUrl,
   SUPPORT_URL,
 } from "../../core/docsUrl.js";
 import { resultReply, embedWithFilesReply, guildResultOptions } from "../../core/responses.js";
@@ -14,8 +14,9 @@ import { configManager } from "../../config/manager.js";
 import { permissionsCommand } from "./commands/permissions.js";
 import { pluginCommand } from "./commands/plugin.js";
 
-const EDITOR_HINT =
-  "Edit in the [config editor](https://www.dreamliner.site/editor): upload or paste **this server's current YAML** first (from `/config download`), then download your changes and run `/config upload`.";
+function editorHint(): string {
+  return `Edit this server in the [dashboard](${getEditorUrl()}) — load, change settings, and save without uploading YAML.`;
+}
 
 export const configPlugin = definePlugin({
   name: "config",
@@ -56,7 +57,7 @@ export const configPlugin = definePlugin({
         .addSubcommand((sub) =>
           sub
             .setName("editor")
-            .setDescription("How to edit your config in the Dreamliner website editor"),
+            .setDescription("Open the Dreamliner dashboard to edit this server's config"),
         ),
       execute: async ({ interaction, guildConfig, client, ephemeral }) => {
         const sub = interaction.options.getSubcommand();
@@ -67,18 +68,20 @@ export const configPlugin = definePlugin({
         if (sub === "editor") {
           await interaction.reply(
             resultReply(
-              "Config editor",
+              "Dashboard",
               [
-                "Use the website editor to change your server YAML, then upload it back here.",
+                "Edit this server's config in the website dashboard — no YAML upload needed.",
                 "",
-                "**1.** Run `/config download` to get this server's current config (or `/config template` if you're setting up for the first time).",
-                "**2.** Open the config editor and click **Upload** or **Paste** — load **your** YAML, not a blank file, so you keep existing settings.",
-                "**3.** Edit plugins and fields in the editor, then **Download** or **Copy** the YAML.",
-                "**4.** Run `/config upload` with that file to apply it. Optionally `/config validate` first.",
+                "**1.** Open the dashboard and sign in with Discord.",
+                "**2.** Choose this server.",
+                "**3.** Edit plugins and fields (channels/roles/members have search autocomplete).",
+                "**4.** Click **Save** — Dreamliner applies the config immediately.",
                 "",
-                `Editor: ${EDITOR_URL}`,
+                "You can still use `/config download` / `/config upload` if you prefer files.",
+                "",
+                `Dashboard: ${getEditorUrl()}`,
                 `Docs: ${docsPageUrl("configuration")}`,
-                `Site: ${SITE_URL}`,
+                `Site: ${getSiteUrl()}`,
                 `Support: ${SUPPORT_URL}`,
               ].join("\n"),
               ephemeral,
@@ -98,7 +101,7 @@ export const configPlugin = definePlugin({
             embedWithFilesReply(
               buildResultEmbed(
                 "Configuration download",
-                `Your current server configuration is attached.\n\n${EDITOR_HINT}`,
+                `Your current server configuration is attached.\n\n${editorHint()}`,
                 resultOptions,
               ),
               [file],
@@ -121,7 +124,7 @@ export const configPlugin = definePlugin({
                 [
                   "The default configuration template is attached.",
                   "",
-                  "Open the [config editor](https://www.dreamliner.site/editor), upload or paste this template, customize it, download the YAML, then run `/config upload`.",
+                  `Open the [dashboard](${getEditorUrl()}) to edit this server live, or customize this template and run \`/config upload\`.`,
                   "If this server already has a config, prefer `/config download` so you edit the live file instead of starting over.",
                 ].join("\n"),
                 resultOptions,
@@ -153,7 +156,7 @@ export const configPlugin = definePlugin({
           await interaction.reply(
             resultReply(
               "Configuration updated",
-              `${note}\n\nNeed more edits? ${EDITOR_HINT}`,
+              `${note}\n\nNeed more edits? ${editorHint()}`,
               ephemeral,
               { ...resultOptions, tone: "success" },
               [configEditorLinkRow()],
@@ -182,7 +185,7 @@ export const configPlugin = definePlugin({
             await interaction.reply(
               resultReply(
                 "Configuration invalid",
-                `${result.errors.join("\n")}\n\nFix it in the [config editor](https://www.dreamliner.site/editor) (upload this file there), then validate again.`,
+                `${result.errors.join("\n")}\n\nFix it in the [dashboard](${getEditorUrl()}), then try again.`,
                 ephemeral,
                 { ...resultOptions, tone: "error" },
                 editorComponents,
@@ -208,7 +211,7 @@ export const configPlugin = definePlugin({
             await interaction.reply(
               resultReply(
                 "Configuration save failed",
-                `${result.errors.join("\n")}\n\nUpload the file into the [config editor](https://www.dreamliner.site/editor) to fix errors, then download and try \`/config upload\` again.`,
+                `${result.errors.join("\n")}\n\nFix errors in the [dashboard](${getEditorUrl()}), or correct the YAML and try \`/config upload\` again.`,
                 ephemeral,
                 { ...resultOptions, tone: "error" },
                 editorComponents,

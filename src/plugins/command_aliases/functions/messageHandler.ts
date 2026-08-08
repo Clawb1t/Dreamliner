@@ -48,6 +48,7 @@ export async function handleAliasMessage(message: Message, configManager: Config
 
   const command = getAllSlashCommands().find((cmd) => cmd.data.name === alias.command);
   if (!command) return;
+  if (command.plugin !== "config" && !pluginEnabled(guildConfig, command.plugin)) return;
 
   if (command.permission) {
     const allowed = hasPluginPermission(

@@ -1,5 +1,7 @@
 import type { GuildMember, Role } from "discord.js";
 import type { AutoroleConfig, AutoroleRoleEntry, NormalizedAutoroleEntry } from "../../../config/schemas/autorole.js";
+import { configManager } from "../../../config/manager.js";
+import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parseDuration } from "../../infraction/functions/duration.js";
 
 export function resolveRoleDelayMs(entry: Pick<AutoroleRoleEntry, "delay_ms" | "delay">): number {
@@ -43,6 +45,8 @@ export async function applyAutoroles(member: GuildMember, roleIds: string[]): Pr
 
 function scheduleSingleAutorole(member: GuildMember, roleId: string, delayMs: number): void {
   const run = async () => {
+    const guildConfig = await configManager.getEffectiveConfig(member.guild.id);
+    if (!pluginEnabled(guildConfig, "autorole")) return;
     const refreshed = await member.guild.members.fetch(member.id).catch(() => null);
     if (!refreshed || refreshed.user.bot) return;
     await applyAutoroles(refreshed, [roleId]);

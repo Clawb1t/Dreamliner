@@ -1,6 +1,8 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zNameHistoryConfig } from "../../config/schemas/plugins.js";
+import { configManager } from "../../config/manager.js";
+import { pluginEnabled } from "../../core/pluginCommand.js";
 import { nameHistoryDefaultOverrides } from "./defaultOverrides.js";
 import { namesCommands } from "./commands/names.js";
 import { recordNameChange } from "./functions/store.js";
@@ -22,6 +24,9 @@ export const nameHistoryPlugin = definePlugin({
         const newNick = newM.nickname ?? newM.user.username;
         if (oldNick === newNick) return;
 
+        const guildConfig = await configManager.getEffectiveConfig(newM.guild.id);
+        if (!pluginEnabled(guildConfig, "name_history")) return;
+
         await recordNameChange({
           guildId: newM.guild.id,
           userId: newM.id,
@@ -42,6 +47,8 @@ export const nameHistoryPlugin = definePlugin({
         for (const [, guild] of client.guilds.cache) {
           const member = guild.members.cache.get(newU.id);
           if (!member) continue;
+          const guildConfig = await configManager.getEffectiveConfig(guild.id);
+          if (!pluginEnabled(guildConfig, "name_history")) continue;
           await recordNameChange({
             guildId: guild.id,
             userId: newU.id,

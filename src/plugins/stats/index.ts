@@ -1,9 +1,16 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zStatsConfig } from "../../config/schemas/plugins.js";
+import { configManager } from "../../config/manager.js";
+import { pluginEnabled } from "../../core/pluginCommand.js";
 import { statsDefaultOverrides } from "./defaultOverrides.js";
 import { statsCommands } from "./commands/stats.js";
 import { incrementDailyStat, recordMessageActivity } from "./functions/daily.js";
+
+async function statsActive(guildId: string): Promise<boolean> {
+  const guildConfig = await configManager.getEffectiveConfig(guildId);
+  return pluginEnabled(guildConfig, "stats");
+}
 
 export const statsPlugin = definePlugin({
   name: "stats",
@@ -16,6 +23,7 @@ export const statsPlugin = definePlugin({
       execute: async (_client, message: unknown) => {
         const msg = message as import("discord.js").Message;
         if (!msg.guild || msg.author.bot || !msg.channelId) return;
+        if (!(await statsActive(msg.guild.id))) return;
         await recordMessageActivity(msg.guild.id, msg.author.id, msg.channelId, msg.attachments.size).catch(
           () => null,
         );
@@ -30,6 +38,7 @@ export const statsPlugin = definePlugin({
         const oldContent = "content" in prev ? prev.content : null;
         const newContent = "content" in next ? next.content : null;
         if (oldContent === newContent) return;
+        if (!(await statsActive(next.guild.id))) return;
         await incrementDailyStat(next.guild.id, "edits").catch(() => null);
       },
     },
@@ -38,6 +47,7 @@ export const statsPlugin = definePlugin({
       execute: async (_client, message: unknown) => {
         const msg = message as import("discord.js").Message | import("discord.js").PartialMessage;
         if (!msg.guild || !msg.author || msg.author.bot) return;
+        if (!(await statsActive(msg.guild.id))) return;
         await incrementDailyStat(msg.guild.id, "deletes").catch(() => null);
       },
     },
@@ -49,6 +59,7 @@ export const statsPlugin = definePlugin({
         if (reactUser.bot) return;
         const message = react.message;
         if (!message.guild) return;
+        if (!(await statsActive(message.guild.id))) return;
         await incrementDailyStat(message.guild.id, "reactions").catch(() => null);
       },
     },
@@ -57,6 +68,7 @@ export const statsPlugin = definePlugin({
       execute: async (_client, member: unknown) => {
         const m = member as import("discord.js").GuildMember;
         if (!m.guild || m.user.bot) return;
+        if (!(await statsActive(m.guild.id))) return;
         await incrementDailyStat(m.guild.id, "joins").catch(() => null);
       },
     },
@@ -65,6 +77,7 @@ export const statsPlugin = definePlugin({
       execute: async (_client, member: unknown) => {
         const m = member as import("discord.js").GuildMember;
         if (!m.guild || m.user.bot) return;
+        if (!(await statsActive(m.guild.id))) return;
         await incrementDailyStat(m.guild.id, "leaves").catch(() => null);
       },
     },

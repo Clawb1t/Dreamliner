@@ -9,6 +9,7 @@ import { voiceCommands, nicknameCommands } from "./commands/voice.js";
 import { metaCommands } from "./commands/meta.js";
 import { configManager } from "../../config/manager.js";
 import { getUtilityPluginConfig } from "../../core/guildHelpers.js";
+import { pluginEnabled } from "../../core/pluginCommand.js";
 import { recordUserMessage } from "./functions/messageCounts.js";
 
 export const utilityPlugin = definePlugin({
@@ -29,6 +30,8 @@ export const utilityPlugin = definePlugin({
       execute: async (_client, message: unknown) => {
         const msg = message as import("discord.js").Message;
         if (!msg.guild || msg.author.bot) return;
+        const guildConfig = await configManager.getEffectiveConfig(msg.guild.id);
+        if (!pluginEnabled(guildConfig, "utility")) return;
         await recordUserMessage(msg.guild.id, msg.author.id).catch(() => null);
       },
     },
@@ -38,6 +41,7 @@ export const utilityPlugin = definePlugin({
         const t = thread as import("discord.js").AnyThreadChannel;
         if (!t.guild) return;
         const guildConfig = await configManager.getEffectiveConfig(t.guild.id);
+        if (!pluginEnabled(guildConfig, "utility")) return;
         const pluginConfig = getUtilityPluginConfig(guildConfig);
         if (pluginConfig.autojoin_threads === false) return;
         if (t.joinable && !t.joined) {
@@ -52,6 +56,7 @@ export const utilityPlugin = definePlugin({
         for (const [, thread] of collection) {
           if (!thread.guild) continue;
           const guildConfig = await configManager.getEffectiveConfig(thread.guild.id);
+          if (!pluginEnabled(guildConfig, "utility")) continue;
           const pluginConfig = getUtilityPluginConfig(guildConfig);
           if (pluginConfig.autojoin_threads === false) continue;
           if (thread.joinable && !thread.joined) {

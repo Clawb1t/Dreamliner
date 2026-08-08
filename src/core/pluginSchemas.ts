@@ -25,6 +25,7 @@ import {
   zAutodeleteConfig,
   zAutoreactionsConfig,
   zAutorepliesConfig,
+  zBotCustomisationConfig,
   zCompanionChannelsConfig,
   zCountersConfig,
   zPostConfig,
@@ -65,6 +66,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   reminders: zRemindersConfig,
   counters: zCountersConfig,
   companion_channels: zCompanionChannelsConfig,
+  bot_customisation: zBotCustomisationConfig,
 };
 
 export function getPluginBaseConfig(pluginName: string): Record<string, unknown> {
