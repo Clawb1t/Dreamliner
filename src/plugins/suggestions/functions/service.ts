@@ -1,12 +1,10 @@
 import type { Client, Guild, GuildMember } from "discord.js";
 import type { SuggestionsConfig, SuggestionDisplayStatus } from "../../../config/schemas/suggestions.js";
 import {
-  addComment,
   createSuggestion,
   followSuggestion,
   getSuggestionById,
   getVoteTotals,
-  listComments,
   listFollowers,
   type Suggestion,
   updateSuggestion,
@@ -114,8 +112,7 @@ export async function postToFeed(options: {
     (await updateSuggestion(input.id, { status: "approved", staffActorId: input.staffActorId })) ?? input;
 
   const votes = await getVoteTotals(suggestion.id);
-  const comments = await listComments(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, comments });
+  const embed = buildSuggestionEmbed({ client, suggestion, config, votes });
   const components = config.voting_enabled ? [voteActionRow(suggestion.id, config, votes)] : [];
   const contentPing = config.feed_ping_role ? `<@&${config.feed_ping_role}>` : undefined;
   const msg = await channel.send({
@@ -155,8 +152,7 @@ export async function refreshFeedMessage(
   const msg = await channel.messages.fetch(suggestion.feedMessageId).catch(() => null);
   if (!msg) return;
   const votes = await getVoteTotals(suggestion.id);
-  const comments = await listComments(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, comments });
+  const embed = buildSuggestionEmbed({ client, suggestion, config, votes });
   const components =
     config.voting_enabled && suggestion.status === "approved"
       ? [voteActionRow(suggestion.id, config, votes)]
@@ -170,7 +166,6 @@ export async function approveSuggestion(options: {
   config: SuggestionsConfig;
   suggestionId: number;
   staffId: string;
-  comment?: string | null;
 }): Promise<{ suggestion: Suggestion | null; error?: string }> {
   const suggestion = await getSuggestionById(options.suggestionId);
   if (!suggestion || suggestion.guildId !== options.guild.id) {
@@ -183,15 +178,6 @@ export async function approveSuggestion(options: {
   let updated =
     (await updateSuggestion(suggestion.id, { staffActorId: options.staffId, status: "approved" })) ??
     suggestion;
-
-  if (options.comment?.trim()) {
-    await addComment({
-      suggestionId: suggestion.id,
-      authorId: options.staffId,
-      content: options.comment.trim(),
-      anonymous: false,
-    });
-  }
 
   if (suggestion.reviewChannelId && suggestion.reviewMessageId) {
     const channel = await resolveTextChannel(options.client, suggestion.reviewChannelId);
@@ -300,7 +286,6 @@ export async function markSuggestion(options: {
   suggestionId: number;
   staffId: string;
   displayStatus: SuggestionDisplayStatus;
-  comment?: string | null;
 }): Promise<{ suggestion: Suggestion | null; error?: string }> {
   const suggestion = await getSuggestionById(options.suggestionId);
   if (!suggestion || suggestion.guildId !== options.guild.id) {
@@ -308,15 +293,6 @@ export async function markSuggestion(options: {
   }
   if (suggestion.status !== "approved") {
     return { suggestion, error: "Only approved suggestions can be marked." };
-  }
-
-  if (options.comment?.trim()) {
-    await addComment({
-      suggestionId: suggestion.id,
-      authorId: options.staffId,
-      content: options.comment.trim(),
-      anonymous: false,
-    });
   }
 
   let updated =
@@ -331,13 +307,11 @@ export async function markSuggestion(options: {
     const archive = await resolveTextChannel(options.client, options.config.archive_channel_id);
     if (archive) {
       const votes = await getVoteTotals(updated.id);
-      const comments = await listComments(updated.id);
       const embed = buildSuggestionEmbed({
         client: options.client,
         suggestion: updated,
         config: options.config,
         votes,
-        comments,
         titlePrefix: "Implemented",
       });
       const msg = await archive.send({ embeds: [embed] });
@@ -359,39 +333,6 @@ export async function markSuggestion(options: {
   );
 
   return { suggestion: updated };
-}
-
-export async function commentOnSuggestion(options: {
-  client: Client;
-  guild: Guild;
-  config: SuggestionsConfig;
-  suggestionId: number;
-  staffId: string;
-  content: string;
-  anonymous?: boolean;
-}): Promise<{ suggestion: Suggestion | null; error?: string }> {
-  const suggestion = await getSuggestionById(options.suggestionId);
-  if (!suggestion || suggestion.guildId !== options.guild.id) {
-    return { suggestion: null, error: "Suggestion not found." };
-  }
-
-  await addComment({
-    suggestionId: suggestion.id,
-    authorId: options.staffId,
-    content: options.content.trim(),
-    anonymous: options.anonymous ?? false,
-  });
-
-  await refreshFeedMessage(options.client, options.config, suggestion);
-  await notifyWatchers(
-    options.client,
-    suggestion,
-    options.config,
-    `New comment on suggestion #${suggestion.suggestionNumber} in **${options.guild.name}**: ${options.content.trim().slice(0, 200)}`,
-    options.staffId,
-  );
-
-  return { suggestion };
 }
 
 export async function deleteSuggestion(options: {

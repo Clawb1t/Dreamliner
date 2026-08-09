@@ -7,14 +7,12 @@ import {
   getSuggestionById,
   getSuggestionByNumber,
   getVoteTotals,
-  listComments,
   listSuggestions,
   suggestionStats,
   type Suggestion,
 } from "../plugins/suggestions/functions/store.js";
 import {
   approveSuggestion,
-  commentOnSuggestion,
   deleteSuggestion,
   denySuggestion,
   markSuggestion,
@@ -42,13 +40,6 @@ export type WebSuggestion = {
   author: WebPerson;
   staffActor: WebPerson | null;
   votes: { up: number; mid: number; down: number; net: number };
-  comments?: Array<{
-    id: number;
-    content: string;
-    anonymous: boolean;
-    createdAt: string;
-    author: WebPerson;
-  }>;
   feedChannelId: string | null;
   feedMessageId: string | null;
   reviewChannelId: string | null;
@@ -95,21 +86,12 @@ function toIso(value: Date | null | undefined): string | null {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
-async function toWebSuggestion(
-  guild: Guild,
-  suggestion: Suggestion,
-  withComments: boolean,
-): Promise<WebSuggestion> {
-  const [author, staffActor, votes, comments] = await Promise.all([
+async function toWebSuggestion(guild: Guild, suggestion: Suggestion): Promise<WebSuggestion> {
+  const [author, staffActor, votes] = await Promise.all([
     resolvePerson(guild, suggestion.authorId),
     resolvePerson(guild, suggestion.staffActorId),
     getVoteTotals(suggestion.id),
-    withComments ? listComments(suggestion.id) : Promise.resolve([]),
   ]);
-
-  const commentPeople = withComments
-    ? await Promise.all(comments.map((c) => resolvePerson(guild, c.authorId)))
-    : [];
 
   return {
     id: suggestion.id,
@@ -126,20 +108,6 @@ async function toWebSuggestion(
     author: author ?? { id: suggestion.authorId, name: suggestion.authorId, username: null, avatar: null },
     staffActor,
     votes,
-    comments: withComments
-      ? comments.map((c, i) => ({
-          id: c.id,
-          content: c.content,
-          anonymous: c.anonymous,
-          createdAt: toIso(c.createdAt) ?? new Date(0).toISOString(),
-          author: commentPeople[i] ?? {
-            id: c.authorId,
-            name: c.authorId,
-            username: null,
-            avatar: null,
-          },
-        }))
-      : undefined,
     feedChannelId: suggestion.feedChannelId,
     feedMessageId: suggestion.feedMessageId,
     reviewChannelId: suggestion.reviewChannelId,
@@ -163,7 +131,7 @@ export async function listWebSuggestions(guild: Guild, query: WebSuggestionsQuer
     limit: query.limit,
     offset: query.offset,
   });
-  const items = await Promise.all(result.suggestions.map((s) => toWebSuggestion(guild, s, false)));
+  const items = await Promise.all(result.suggestions.map((s) => toWebSuggestion(guild, s)));
   return {
     suggestions: items,
     total: result.total,
@@ -177,14 +145,14 @@ export async function getWebSuggestion(guild: Guild, idOrNumber: number, byNumbe
     ? await getSuggestionByNumber(guild.id, idOrNumber)
     : await getSuggestionById(idOrNumber);
   if (!suggestion || suggestion.guildId !== guild.id) return null;
-  return toWebSuggestion(guild, suggestion, true);
+  return toWebSuggestion(guild, suggestion);
 }
 
 export async function getWebSuggestionStats(guild: Guild) {
   return suggestionStats(guild.id);
 }
 
-export async function webApproveSuggestion(guild: Guild, suggestionId: number, staffId: string, comment?: string) {
+export async function webApproveSuggestion(guild: Guild, suggestionId: number, staffId: string) {
   const config = await getSuggestionsConfig(guild.id);
   return approveSuggestion({
     client: guild.client,
@@ -192,7 +160,6 @@ export async function webApproveSuggestion(guild: Guild, suggestionId: number, s
     config,
     suggestionId,
     staffId,
-    comment,
   });
 }
 
@@ -220,7 +187,6 @@ export async function webMarkSuggestion(
   suggestionId: number,
   staffId: string,
   displayStatus: SuggestionDisplayStatus,
-  comment?: string,
 ) {
   const config = await getSuggestionsConfig(guild.id);
   return markSuggestion({
@@ -230,26 +196,6 @@ export async function webMarkSuggestion(
     suggestionId,
     staffId,
     displayStatus,
-    comment,
-  });
-}
-
-export async function webCommentSuggestion(
-  guild: Guild,
-  suggestionId: number,
-  staffId: string,
-  content: string,
-  anonymous?: boolean,
-) {
-  const config = await getSuggestionsConfig(guild.id);
-  return commentOnSuggestion({
-    client: guild.client,
-    guild,
-    config,
-    suggestionId,
-    staffId,
-    content,
-    anonymous,
   });
 }
 

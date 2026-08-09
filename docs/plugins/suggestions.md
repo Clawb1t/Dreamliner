@@ -1,6 +1,6 @@
 # Suggestions plugin
 
-Community suggestion queue with staff review, persistent vote buttons, display statuses, comments, blocks, and dashboard triage. Inspired by common Discord suggestion bots, stored in Dreamliner’s database so votes and queue state survive restarts.
+Community suggestion queue with staff review, persistent vote buttons, display statuses, blocks, and dashboard triage. Inspired by common Discord suggestion bots, stored in Dreamliner’s database so votes and queue state survive restarts.
 
 ## Modes
 
@@ -99,7 +99,7 @@ plugins:
 | `show_vote_count` | Show live vote totals on the vote buttons |
 | `color_change_threshold` | Net upvotes needed to recolor the embed. `0` disables |
 | `color_change_color` | Embed color (decimal 0-16777215) once the threshold is met |
-| `notify_author` | DM the author on approve, deny, mark, and comment when possible |
+| `notify_author` | DM the author on approve, deny, and mark when possible |
 | `follow_on_upvote` | Auto-follow a suggestion when a member upvotes it |
 
 Set `enabled: false` on the plugin section to turn suggestions off without removing your settings.
@@ -119,12 +119,11 @@ Set `enabled: false` on the plugin section to turn suggestions off without remov
 
 | Command | Permission | Description |
 |---------|------------|-------------|
-| `/suggestion approve` | `can_approve` | Approve a queued suggestion (optional comment) |
+| `/suggestion approve` | `can_approve` | Approve a queued suggestion |
 | `/suggestion deny` | `can_deny` | Deny with an optional public reason |
 | `/suggestion silentdeny` | `can_deny` | Deny without notifying the author |
 | `/suggestion dupe` | `can_deny` | Deny as a duplicate of another suggestion |
 | `/suggestion mark` | `can_mark` | Set display status (see below) |
-| `/suggestion comment` | `can_comment` | Add a staff comment (optional anonymous as Staff) |
 | `/suggestion delete` / `silentdelete` | `can_delete` | Remove a suggestion |
 | `/suggestion queue` | `can_manage` | List suggestions awaiting review |
 | `/suggestion massapprove` / `massdeny` | `can_manage` | Act on multiple IDs at once |
@@ -147,7 +146,6 @@ overrides:
       can_approve: true
       can_deny: true
       can_mark: true
-      can_comment: true
       can_delete: true
       can_block: true
       can_manage: true
@@ -173,7 +171,7 @@ Marking **implemented** can move the post to `archive_channel_id` and optionally
 
 ## Dashboard
 
-**Feedback → Suggestions** shows Queue / Approved / Denied with approve, deny, mark, comment, and delete actions. Plugin YAML lives under **Feedback → Suggestions** in the config editor.
+**Feedback → Suggestions** shows Queue / Approved / Denied with approve, deny, mark, and delete actions. Plugin YAML lives under **Feedback → Suggestions** in the config editor.
 
 ## Requirements
 

@@ -251,7 +251,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
         const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
         const suggestionActionMatch =
-          /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/(approve|deny|mark|comment)$/.exec(
+          /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/(approve|deny|mark)$/.exec(
             url.pathname,
           );
         const suggestionOneMatch = /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)$/.exec(
@@ -582,12 +582,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             let body: {
               userId?: string;
-              comment?: string;
               reason?: string;
               silent?: boolean;
               status?: string;
-              content?: string;
-              anonymous?: boolean;
             } = {};
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
@@ -611,16 +608,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               webApproveSuggestion,
               webDenySuggestion,
               webMarkSuggestion,
-              webCommentSuggestion,
               getWebSuggestion,
             } = await import("./webSuggestions.js");
 
             let result: { suggestion: unknown; error?: string };
             if (action === "approve") {
-              result = await webApproveSuggestion(guild, suggestionId, userId, body.comment);
+              result = await webApproveSuggestion(guild, suggestionId, userId);
             } else if (action === "deny") {
               result = await webDenySuggestion(guild, suggestionId, userId, body.reason, body.silent);
-            } else if (action === "mark") {
+            } else {
               const status = body.status?.trim();
               if (!status) {
                 sendJson(res, 400, { error: "status is required" });
@@ -631,19 +627,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
                 suggestionId,
                 userId,
                 status as import("../config/schemas/suggestions.js").SuggestionDisplayStatus,
-                body.comment,
-              );
-            } else {
-              if (!body.content?.trim()) {
-                sendJson(res, 400, { error: "content is required" });
-                return;
-              }
-              result = await webCommentSuggestion(
-                guild,
-                suggestionId,
-                userId,
-                body.content,
-                body.anonymous,
               );
             }
 

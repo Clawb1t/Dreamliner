@@ -5598,7 +5598,7 @@
                 "notify_author": {
                   "type": "boolean",
                   "default": true,
-                  "description": "DM the author on approve, deny, mark, and comment when possible.",
+                  "description": "DM the author on approve, deny, and mark when possible.",
                   "title": "Notify Author"
                 },
                 "follow_on_upvote": {
@@ -5682,16 +5682,6 @@
                   "default": false,
                   "description": "Allow members to mark suggestion status. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Mark",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "can_comment": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to comment on suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Comment",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."

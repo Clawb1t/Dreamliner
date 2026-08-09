@@ -108,7 +108,7 @@ export const zSuggestionsConfig = z.strictObject({
   notify_author: z
     .boolean()
     .default(true)
-    .describe("DM the author on approve, deny, mark, and comment when possible."),
+    .describe("DM the author on approve, deny, and mark when possible."),
   follow_on_upvote: z
     .boolean()
     .default(true)
@@ -121,7 +121,6 @@ export const zSuggestionsConfig = z.strictObject({
   can_approve: boolPerm("approve suggestions"),
   can_deny: boolPerm("deny suggestions"),
   can_mark: boolPerm("mark suggestion status"),
-  can_comment: boolPerm("comment on suggestions"),
   can_delete: boolPerm("delete suggestions"),
   can_block: boolPerm("block users from suggesting"),
   can_manage: boolPerm("manage the suggestion queue and mass actions"),

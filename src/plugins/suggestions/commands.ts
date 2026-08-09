@@ -14,7 +14,6 @@ import { DISPLAY_STATUS_LABELS } from "./constants.js";
 import { buildSuggestModal } from "./functions/modal.js";
 import {
   approveSuggestion,
-  commentOnSuggestion,
   deleteSuggestion,
   denySuggestion,
   markSuggestion,
@@ -27,7 +26,6 @@ import {
   getVoteTotals,
   isBlocked,
   listBlocks,
-  listComments,
   listFollowedByUser,
   listSuggestions,
   topSuggestions,
@@ -155,8 +153,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           .setDescription("Approve a suggestion in the queue")
           .addIntegerOption((o) =>
             o.setName("id").setDescription("Suggestion number").setRequired(true).setMinValue(1),
-          )
-          .addStringOption((o) => o.setName("comment").setDescription("Optional comment")),
+          ),
       )
       .addSubcommand((sub) =>
         sub
@@ -205,20 +202,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
                   value,
                 })),
               ),
-          )
-          .addStringOption((o) => o.setName("comment").setDescription("Optional comment")),
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName("comment")
-          .setDescription("Add a staff comment")
-          .addIntegerOption((o) =>
-            o.setName("id").setDescription("Suggestion number").setRequired(true).setMinValue(1),
-          )
-          .addStringOption((o) =>
-            o.setName("text").setDescription("Comment text").setRequired(true),
-          )
-          .addBooleanOption((o) => o.setName("anonymous").setDescription("Hide your name as Staff")),
+          ),
       )
       .addSubcommand((sub) =>
         sub
@@ -343,13 +327,11 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           return;
         }
         const votes = await getVoteTotals(suggestion.id);
-        const comments = await listComments(suggestion.id);
         const embed = buildSuggestionEmbed({
           client: ctx.interaction.client,
           suggestion,
           config,
           votes,
-          comments,
         });
         if (suggestion.anonymous) {
           embed.addFields(embedField("Author (staff)", `<@${suggestion.authorId}>`, true));
@@ -433,7 +415,6 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
             config,
             suggestionId: suggestion.id,
             staffId: auth.member.id,
-            comment: ctx.interaction.options.getString("comment"),
           });
           await ctx.interaction.editReply(
             resultEdit(
@@ -491,45 +472,11 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           suggestionId: suggestion.id,
           staffId: auth.member.id,
           displayStatus: status,
-          comment: ctx.interaction.options.getString("comment"),
         });
         await ctx.interaction.editReply(
           resultEdit(
             result.error ? "Error" : "Marked",
             result.error ?? `Marked #${num} as **${DISPLAY_STATUS_LABELS[status]}**.`,
-            slashResultOptions(ctx, { tone: result.error ? "error" : "success" }),
-          ),
-        );
-        return;
-      }
-
-      if (sub === "comment") {
-        const auth = await requirePluginPermission(ctx, "suggestions", "can_comment");
-        if (!auth) return;
-        const config = zSuggestionsConfig.parse(auth.pluginConfig);
-        const num = ctx.interaction.options.getInteger("id", true);
-        const suggestion = await getSuggestionByNumber(guildId, num);
-        if (!suggestion) {
-          await ctx.interaction.reply(
-            resultReply("Not found", `Suggestion #${num} was not found.`, ctx.ephemeral, slashResultOptions(ctx)),
-          );
-          return;
-        }
-        const text = ctx.interaction.options.getString("text", true);
-        await ctx.interaction.deferReply({ ephemeral: ctx.ephemeral });
-        const result = await commentOnSuggestion({
-          client: ctx.interaction.client,
-          guild,
-          config,
-          suggestionId: suggestion.id,
-          staffId: auth.member.id,
-          content: text,
-          anonymous: ctx.interaction.options.getBoolean("anonymous") ?? false,
-        });
-        await ctx.interaction.editReply(
-          resultEdit(
-            result.error ? "Error" : "Commented",
-            result.error ?? `Added a comment on #${num}.`,
             slashResultOptions(ctx, { tone: result.error ? "error" : "success" }),
           ),
         );

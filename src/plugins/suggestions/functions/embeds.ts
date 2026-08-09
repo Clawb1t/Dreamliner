@@ -14,7 +14,7 @@ import {
   suggestQueueDenyId,
   suggestVoteId,
 } from "../constants.js";
-import type { Suggestion, SuggestionComment, VoteTotals } from "./store.js";
+import type { Suggestion, VoteTotals } from "./store.js";
 
 export async function resolveTextChannel(
   client: Client,
@@ -44,10 +44,9 @@ export function buildSuggestionEmbed(options: {
   suggestion: Suggestion;
   config: SuggestionsConfig;
   votes?: VoteTotals;
-  comments?: SuggestionComment[];
   titlePrefix?: string;
 }) {
-  const { client, suggestion, config, votes, comments, titlePrefix } = options;
+  const { client, suggestion, config, votes, titlePrefix } = options;
   const authorLabel = suggestion.anonymous ? "Anonymous" : `<@${suggestion.authorId}>`;
   const statusLabel =
     suggestion.status === "awaiting_review"
@@ -94,14 +93,6 @@ export function buildSuggestionEmbed(options: {
 
   if (suggestion.denialReason) {
     embed.addFields(embedField("Reason", suggestion.denialReason));
-  }
-
-  if (comments?.length) {
-    const lines = comments.slice(-5).map((c) => {
-      const who = c.anonymous ? "Staff" : `<@${c.authorId}>`;
-      return `**${who}:** ${c.content.slice(0, 200)}`;
-    });
-    embed.addFields(embedField("Comments", lines.join("\n").slice(0, 1024)));
   }
 
   if (suggestion.anonymous) {

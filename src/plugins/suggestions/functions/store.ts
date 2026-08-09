@@ -2,7 +2,6 @@ import { and, asc, count, desc, eq, like, or, sql, type SQL } from "drizzle-orm"
 import { getDb } from "../../../db/client.js";
 import {
   suggestionBlocks,
-  suggestionComments,
   suggestionFollows,
   suggestions,
   suggestionVotes,
@@ -35,15 +34,6 @@ export type Suggestion = {
   implementedAt: Date | null;
 };
 
-export type SuggestionComment = {
-  id: number;
-  suggestionId: number;
-  authorId: string;
-  content: string;
-  anonymous: boolean;
-  createdAt: Date;
-};
-
 export type VoteTotals = { up: number; mid: number; down: number; net: number };
 
 function mapSuggestion(row: typeof suggestions.$inferSelect): Suggestion {
@@ -70,17 +60,6 @@ function mapSuggestion(row: typeof suggestions.$inferSelect): Suggestion {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     implementedAt: row.implementedAt,
-  };
-}
-
-function mapComment(row: typeof suggestionComments.$inferSelect): SuggestionComment {
-  return {
-    id: row.id,
-    suggestionId: row.suggestionId,
-    authorId: row.authorId,
-    content: row.content,
-    anonymous: row.anonymous,
-    createdAt: row.createdAt,
   };
 }
 
@@ -281,42 +260,6 @@ export async function setVote(
     createdAt: new Date(),
   });
   return { action: "added", totals: await getVoteTotals(suggestionId) };
-}
-
-export async function addComment(input: {
-  suggestionId: number;
-  authorId: string;
-  content: string;
-  anonymous: boolean;
-}): Promise<SuggestionComment> {
-  const inserted = await getDb()
-    .insert(suggestionComments)
-    .values({
-      suggestionId: input.suggestionId,
-      authorId: input.authorId,
-      content: input.content,
-      anonymous: input.anonymous,
-      createdAt: new Date(),
-    })
-    .returning();
-  return mapComment(inserted[0]!);
-}
-
-export async function listComments(suggestionId: number): Promise<SuggestionComment[]> {
-  const rows = await getDb()
-    .select()
-    .from(suggestionComments)
-    .where(eq(suggestionComments.suggestionId, suggestionId))
-    .orderBy(asc(suggestionComments.createdAt));
-  return rows.map(mapComment);
-}
-
-export async function deleteComment(commentId: number, suggestionId: number): Promise<boolean> {
-  const deleted = await getDb()
-    .delete(suggestionComments)
-    .where(and(eq(suggestionComments.id, commentId), eq(suggestionComments.suggestionId, suggestionId)))
-    .returning();
-  return deleted.length > 0;
 }
 
 export async function isBlocked(guildId: string, userId: string): Promise<boolean> {
