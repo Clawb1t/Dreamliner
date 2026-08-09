@@ -42,10 +42,60 @@ export class ConfigManager {
       return null;
     }
 
-    const parsed = YAML.parse(row.configYaml) as GuildConfig;
-    const validated = validateGuildConfig(parsed);
+    let parsed: unknown;
+    try {
+      parsed = YAML.parse(row.configYaml);
+    } catch (error) {
+      console.error(
+        `[dreamliner] Invalid guild config YAML for ${guildId}:`,
+        error instanceof Error ? error.message : error,
+      );
+      parsed = null;
+    }
+
+    // Repair only broken fragments (obsolete keys / invalid values). Never wipe the whole guild config.
+    let validated =
+      parsed == null
+        ? ({ success: false as const, errors: ["Config YAML could not be parsed."] })
+        : validateGuildConfig(parsed, { repair: true });
+
+    if (!validated.success && row.userConfigYaml) {
+      try {
+        const userOverrides = (parseYamlConfig(row.userConfigYaml) ?? {}) as Record<string, unknown>;
+        const rebuilt = mergeConfigWithDefaults(userOverrides);
+        if (rebuilt.success) {
+          console.warn(
+            `[dreamliner] Repaired guild config for ${guildId} from user overrides after snapshot repair failed:`,
+            validated.errors,
+          );
+          validated = {
+            success: true,
+            data: rebuilt.data,
+            strippedKeys: ["(repaired-from-user-overrides)"],
+            repairs: ["(repaired-from-user-overrides)"],
+          };
+        }
+      } catch (error) {
+        console.error(
+          `[dreamliner] Failed to repair guild config for ${guildId} from user overrides:`,
+          error,
+        );
+      }
+    }
+
     if (!validated.success) {
+      console.error(
+        `[dreamliner] Invalid guild config for ${guildId}; falling back to defaults until fixed. Errors:`,
+        validated.errors,
+      );
       return null;
+    }
+
+    const repairs = validated.repairs ?? validated.strippedKeys ?? [];
+    if (repairs.length) {
+      console.warn(
+        `[dreamliner] Repaired guild config for ${guildId} (kept valid settings): ${repairs.join(", ")}`,
+      );
     }
 
     const migratedEmojis = migrateLegacyEmojis(validated.data.emojis);
@@ -55,32 +105,50 @@ export class ConfigManager {
 
     cache.set(guildId, data);
 
-    if (migratedEmojis.changed) {
-      void this.persistLegacyEmojiMigration(guildId, data, row.userConfigYaml).catch((error) => {
-        console.error(`[dreamliner] Failed to persist emoji migration for ${guildId}:`, error);
+    const shouldPersistCleanup = repairs.length > 0 || migratedEmojis.changed;
+    if (shouldPersistCleanup) {
+      void this.persistConfigCleanup(guildId, data, row.userConfigYaml, {
+        emojiMigration: migratedEmojis.changed,
+        strippedKeys: repairs,
+      }).catch((error) => {
+        console.error(`[dreamliner] Failed to persist config cleanup for ${guildId}:`, error);
       });
     }
 
     return data;
   }
 
-  private async persistLegacyEmojiMigration(
+  private async persistConfigCleanup(
     guildId: string,
     config: GuildConfig,
     userConfigYaml: string | null | undefined,
+    reason: { emojiMigration: boolean; strippedKeys: string[] },
   ): Promise<void> {
     let nextUserConfigYaml = userConfigYaml ?? null;
     if (userConfigYaml) {
       try {
-        const parsed = parseYamlConfig(userConfigYaml);
-        const migrated = migrateLegacyEmojisInObject(parsed ?? {});
-        if (migrated.changed) {
-          nextUserConfigYaml = YAML.stringify(migrated.value);
+        const parsed = (parseYamlConfig(userConfigYaml) ?? {}) as Record<string, unknown>;
+        let nextUser: unknown = parsed;
+        if (reason.strippedKeys.length > 0) {
+          const defaults = loadDefaultConfig() as unknown as Record<string, unknown>;
+          const cleaned = validateGuildConfig(deepMerge(defaults, parsed), { repair: true });
+          if (cleaned.success) {
+            nextUser = computeUserOverrides(
+              cleaned.data as unknown as Record<string, unknown>,
+              defaults,
+            );
+          }
         }
+        const migrated = migrateLegacyEmojisInObject(nextUser);
+        nextUserConfigYaml = YAML.stringify(migrated.value);
       } catch {
         // Keep original user YAML if it cannot be parsed.
       }
     }
+
+    const updatedBy = reason.emojiMigration
+      ? "system:emoji-migration"
+      : "system:config-cleanup";
 
     const db = getDb();
     await db
@@ -89,16 +157,24 @@ export class ConfigManager {
         configYaml: YAML.stringify(config),
         userConfigYaml: nextUserConfigYaml,
         updatedAt: new Date(),
-        updatedBy: "system:emoji-migration",
+        updatedBy,
       })
       .where(eq(guildConfigs.guildId, guildId));
 
-    console.log(`[dreamliner] Migrated legacy response emojis for guild ${guildId}`);
+    if (reason.emojiMigration) {
+      console.log(`[dreamliner] Migrated legacy response emojis for guild ${guildId}`);
+    }
+    if (reason.strippedKeys.length > 0) {
+      console.log(`[dreamliner] Persisted repaired guild config for ${guildId}`);
+    }
   }
 
   async getEffectiveConfig(guildId: string): Promise<GuildConfig> {
     const stored = await this.getGuildConfig(guildId);
     if (stored) return stored;
+    console.warn(
+      `[dreamliner] No valid stored config for guild ${guildId}; using default.server.yaml (custom settings are not applied until config loads successfully).`,
+    );
     return loadDefaultConfig();
   }
 
@@ -232,6 +308,11 @@ export class ConfigManager {
   }
 
   async getDownloadYaml(guildId: string): Promise<string> {
+    // Prefer the validated/cleaned snapshot so downloads match what the bot actually uses.
+    const stored = await this.getGuildConfig(guildId);
+    if (stored) {
+      return YAML.stringify(stored);
+    }
     const db = getDb();
     const row = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).get();
     if (row) {

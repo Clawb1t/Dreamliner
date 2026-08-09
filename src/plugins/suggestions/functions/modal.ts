@@ -30,7 +30,7 @@ export function buildSuggestModal(anonymous: boolean): ModalBuilder {
         .setRequired(true)
         .setMinLength(1)
         .setMaxLength(1000)
-        .setPlaceholder("Describe your ideaâ€¦"),
+        .setPlaceholder("Describe your idea..."),
     ),
     new ActionRowBuilder<TextInputBuilder>().addComponents(
       new TextInputBuilder()
@@ -39,7 +39,7 @@ export function buildSuggestModal(anonymous: boolean): ModalBuilder {
         .setStyle(TextInputStyle.Short)
         .setRequired(false)
         .setMaxLength(500)
-        .setPlaceholder("https://â€¦"),
+        .setPlaceholder("https://..."),
     ),
   );
 

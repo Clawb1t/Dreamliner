@@ -1,10 +1,152 @@
 import YAML from "yaml";
+import { ZodIssueCode, type ZodIssue } from "zod";
 import { zGuildConfig, type GuildConfig } from "./schemas/guild.js";
 import { zUtilityConfig } from "./schemas/utility.js";
 import { loadDefaultConfig } from "./default.js";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function cloneJson<T>(value: T): T {
+  return structuredClone(value);
+}
+
+function getAtPath(root: unknown, path: (string | number)[]): unknown {
+  let cursor: unknown = root;
+  for (const segment of path) {
+    if (!isPlainObject(cursor) && !Array.isArray(cursor)) return undefined;
+    cursor = (cursor as Record<string | number, unknown>)[segment];
+  }
+  return cursor;
+}
+
+/** Delete a leaf value (object key or array index) at path. */
+function deletePath(root: unknown, path: (string | number)[]): boolean {
+  if (path.length === 0) return false;
+  const key = path[path.length - 1]!;
+  const parent = path.length === 1 ? root : getAtPath(root, path.slice(0, -1));
+  if (Array.isArray(parent) && typeof key === "number") {
+    if (key < 0 || key >= parent.length) return false;
+    parent.splice(key, 1);
+    return true;
+  }
+  if (isPlainObject(parent) && Object.prototype.hasOwnProperty.call(parent, String(key))) {
+    delete parent[String(key)];
+    return true;
+  }
+  return false;
+}
+
+function pathLabel(path: (string | number)[]): string {
+  return path.map(String).join(".");
+}
+
+function issueRepairs(issue: ZodIssue): { path: (string | number)[]; label: string }[] {
+  if (issue.code === ZodIssueCode.unrecognized_keys) {
+    return issue.keys.map((key) => ({
+      path: [...issue.path, key],
+      label: pathLabel([...issue.path, key]),
+    }));
+  }
+
+  if (issue.path.length === 0) return [];
+
+  // Prefer removing the invalid leaf. For array items that are wholly invalid,
+  // Zod usually points at the item index which we can splice out.
+  return [{ path: [...issue.path], label: pathLabel(issue.path) }];
+}
+
+/**
+ * Repair a guild config in place against the current schema:
+ * - fills missing structure from defaults
+ * - strips obsolete/unknown keys
+ * - removes or resets only invalid values/sections
+ *
+ * Never replaces the whole config with defaults when only part of it is broken.
+ */
+export function repairGuildConfig(raw: unknown): {
+  success: true;
+  data: GuildConfig;
+  repairs: string[];
+} | { success: false; errors: string[] } {
+  const defaults = loadDefaultConfig() as unknown as Record<string, unknown>;
+  let value = deepMerge(defaults, isPlainObject(raw) || Array.isArray(raw) ? cloneJson(raw) : {});
+  const repairs: string[] = [];
+  const seen = new Set<string>();
+
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const parsed = zGuildConfig.safeParse(value);
+    if (parsed.success) {
+      return {
+        success: true,
+        data: parsed.data,
+        repairs,
+      };
+    }
+
+    let changed = false;
+    for (const issue of parsed.error.issues) {
+      for (const target of issueRepairs(issue)) {
+        if (!target.path.length) continue;
+        if (seen.has(`${target.label}#${issue.code}`)) continue;
+        if (!deletePath(value, target.path)) continue;
+        seen.add(`${target.label}#${issue.code}`);
+        repairs.push(target.label);
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      // Last resort for stubborn plugin sections: reset only the broken plugin.
+      for (const issue of parsed.error.issues) {
+        const pluginIdx = issue.path[0] === "plugins" ? 1 : -1;
+        if (pluginIdx < 0 || issue.path.length < 2) continue;
+        const pluginKey = String(issue.path[1]);
+        const label = `plugins.${pluginKey}`;
+        if (seen.has(`${label}#section-reset`)) continue;
+        const defaultSection = getAtPath(defaults, ["plugins", pluginKey]);
+        const plugins = getAtPath(value, ["plugins"]);
+        if (!isPlainObject(plugins)) continue;
+        if (defaultSection === undefined) {
+          delete plugins[pluginKey];
+        } else {
+          plugins[pluginKey] = cloneJson(defaultSection);
+        }
+        seen.add(`${label}#section-reset`);
+        repairs.push(`${label} (reset to defaults)`);
+        changed = true;
+        break;
+      }
+    }
+
+    if (!changed) {
+      return {
+        success: false,
+        errors: parsed.error.issues.map((i) => `${pathLabel(i.path)}: ${i.message}`),
+      };
+    }
+
+    // Re-fill any required structure removed while repairing.
+    value = deepMerge(defaults, value as Record<string, unknown>);
+  }
+
+  return {
+    success: false,
+    errors: ["Config repair exceeded the maximum number of passes."],
+  };
+}
+
+/** @deprecated Prefer repairGuildConfig. Kept for callers that only want unknown-key stripping. */
+export function stripUnrecognizedKeys(raw: unknown): {
+  value: unknown;
+  stripped: string[];
+} {
+  const repaired = repairGuildConfig(raw);
+  if (repaired.success) {
+    return { value: repaired.data, stripped: repaired.repairs };
+  }
+  return { value: cloneJson(raw), stripped: [] };
 }
 
 export function deepEqual(a: unknown, b: unknown): boolean {
@@ -66,7 +208,25 @@ export function parseYamlConfig(yamlText: string): unknown {
   return YAML.parse(yamlText);
 }
 
-export function validateGuildConfig(raw: unknown): { success: true; data: GuildConfig } | { success: false; errors: string[] } {
+export function validateGuildConfig(
+  raw: unknown,
+  options?: { stripUnknown?: boolean; repair?: boolean },
+):
+  | { success: true; data: GuildConfig; strippedKeys?: string[]; repairs?: string[] }
+  | { success: false; errors: string[] } {
+  const shouldRepair = options?.repair ?? options?.stripUnknown ?? false;
+  if (shouldRepair) {
+    const repaired = repairGuildConfig(raw);
+    if (!repaired.success) return repaired;
+    return {
+      success: true,
+      data: repaired.data,
+      ...(repaired.repairs.length > 0
+        ? { strippedKeys: repaired.repairs, repairs: repaired.repairs }
+        : {}),
+    };
+  }
+
   const result = zGuildConfig.safeParse(raw);
   if (!result.success) {
     return {
@@ -85,8 +245,13 @@ export function validateMergedConfig(userYaml: string): { success: true; data: G
     return { success: false, errors: [`Invalid YAML: ${e instanceof Error ? e.message : String(e)}`] };
   }
 
-  const merged = deepMerge(loadDefaultConfig() as unknown as Record<string, unknown>, (parsed ?? {}) as Record<string, unknown>);
-  const validated = validateGuildConfig(merged);
+  const merged = deepMerge(
+    loadDefaultConfig() as unknown as Record<string, unknown>,
+    (parsed ?? {}) as Record<string, unknown>,
+  );
+  // On save: repair obsolete/invalid fragments so schema evolution cannot block saves,
+  // while preserving every valid customization.
+  const validated = validateGuildConfig(merged, { repair: true });
   if (!validated.success) {
     return validated;
   }
@@ -109,7 +274,7 @@ export function mergeConfigWithDefaults(
   userOverrides: Record<string, unknown>,
 ): { success: true; data: GuildConfig; mergedYaml: string } | { success: false; errors: string[] } {
   const merged = deepMerge(loadDefaultConfig() as unknown as Record<string, unknown>, userOverrides);
-  const validated = validateGuildConfig(merged);
+  const validated = validateGuildConfig(merged, { repair: true });
   if (!validated.success) {
     return validated;
   }

@@ -65,7 +65,7 @@ export function buildReviewModal(options?: { minRating?: number; maxRating?: num
   for (let i = max; i >= min; i--) {
     const option = new RadioGroupOptionBuilder()
       .setValue(String(i))
-      .setLabel(`${"â˜…".repeat(i)}${"â˜†".repeat(5 - i)} (${i}/5)`)
+      .setLabel(`${"\u2605".repeat(i)}${"\u2606".repeat(5 - i)} (${i}/5)`)
       .setDefault(i === Math.min(5, max));
     if (i === 5) option.setDescription("Excellent");
     if (i === 1) option.setDescription("Poor");
@@ -88,7 +88,7 @@ export function buildReviewModal(options?: { minRating?: number; maxRating?: num
           .setStyle(TextInputStyle.Paragraph)
           .setRequired(options?.requireText ?? true)
           .setMaxLength(1000)
-          .setPlaceholder("Your feedbackâ€¦"),
+          .setPlaceholder("Your feedback..."),
       ),
   );
 
