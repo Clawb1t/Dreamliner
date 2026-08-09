@@ -217,6 +217,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Live editor schema from this bot process (keeps prod dashboard in sync).
+        if (req.method === "GET" && url.pathname === "/bridge/config-editor") {
+          const { buildGuildConfigEditorArtifacts } = await import(
+            "../config/exportGuildConfigSchema.js"
+          );
+          sendJson(res, 200, buildGuildConfigEditorArtifacts());
+          return;
+        }
+
         const publicLeaderboardMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
         const entityStatsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/(users|channels)\/(\d+)$/.exec(

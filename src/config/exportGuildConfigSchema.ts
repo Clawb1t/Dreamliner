@@ -3,14 +3,39 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { getEditorPluginCategories } from "../core/helpCategories.js";
+import { loadDefaultConfigRaw } from "./default.js";
 import { enrichJsonSchemaForEditor } from "./schemaHelp.js";
 import { zGuildConfig } from "./schemas/guild.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const outDir = join(root, "schema");
 
-/** Write website editor schema artifacts under `schema/`. Safe to call on local bot start. */
-export function exportGuildConfigSchema(): void {
+export type GuildConfigEditorArtifacts = {
+  schema: Record<string, unknown>;
+  meta: {
+    version: number;
+    generatedAt: string;
+    templatePath: string;
+    schemaPath: string;
+    categories: Array<{
+      id: string;
+      label: string;
+      description: string;
+      plugins: Array<{ key: string; name: string; description: string }>;
+    }>;
+    plugins: Array<{
+      key: string;
+      name: string;
+      description: string;
+      category: string;
+      categoryId: string;
+    }>;
+  };
+  templateYaml: string;
+};
+
+/** Build the JSON Schema + meta + default YAML the dashboard editor uses. */
+export function buildGuildConfigEditorArtifacts(): GuildConfigEditorArtifacts {
   const jsonSchema = zodToJsonSchema(zGuildConfig, {
     name: "GuildConfig",
     $refStrategy: "none",
@@ -21,7 +46,7 @@ export function exportGuildConfigSchema(): void {
     ? jsonSchema.definitions.GuildConfig
     : jsonSchema) as Record<string, unknown>;
 
-  const schemaDocument = enrichJsonSchemaForEditor({
+  const schema = enrichJsonSchemaForEditor({
     $schema: "http://json-schema.org/draft-07/schema#",
     $id: "https://github.com/Clawb1t/Dreamliner/schema/guild-config.schema.json",
     title: "Dreamliner GuildConfig",
@@ -32,7 +57,7 @@ export function exportGuildConfigSchema(): void {
 
   const categories = getEditorPluginCategories();
 
-  const metaDocument = {
+  const meta = {
     version: 1,
     generatedAt: new Date().toISOString(),
     templatePath: "config/default.server.yaml",
@@ -53,7 +78,17 @@ export function exportGuildConfigSchema(): void {
     ),
   };
 
+  return {
+    schema,
+    meta,
+    templateYaml: loadDefaultConfigRaw(),
+  };
+}
+
+/** Write website editor schema artifacts under `schema/`. Safe to call on local bot start. */
+export function exportGuildConfigSchema(): void {
+  const { schema, meta } = buildGuildConfigEditorArtifacts();
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, "guild-config.schema.json"), `${JSON.stringify(schemaDocument, null, 2)}\n`);
-  writeFileSync(join(outDir, "guild-config.meta.json"), `${JSON.stringify(metaDocument, null, 2)}\n`);
+  writeFileSync(join(outDir, "guild-config.schema.json"), `${JSON.stringify(schema, null, 2)}\n`);
+  writeFileSync(join(outDir, "guild-config.meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 }
