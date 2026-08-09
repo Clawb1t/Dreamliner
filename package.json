@@ -1,13 +1,13 @@
 {
   "name": "dreamliner",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Dreamliner — a Discord moderation bot with file-based configuration",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "prebuild": "tsx scripts/bump-version.ts && tsx scripts/export-guild-config-schema.ts && tsx scripts/export-dreamcode-catalog.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node main.js",
     "start:prod": "node dist/index.js",
     "panel:start": "node main.js",

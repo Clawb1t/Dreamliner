@@ -4,13 +4,49 @@
  *
  * Always prefers fresh builds: if you upload new `src/` files, the next
  * restart rebuilds `dist/` instead of running stale compiled output.
+ *
+ * Caps the V8 heap so Node stays within small panel RAM plans (default 768MB
+ * of ~1GB). Override with DREAMLINER_MAX_OLD_SPACE_MB.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+/** Leave headroom under a 1GB plan for OS / native addons / npm. */
+const MAX_OLD_SPACE_MB = Math.max(
+  256,
+  Math.min(896, Number(process.env.DREAMLINER_MAX_OLD_SPACE_MB || 768) || 768),
+);
+
+function withHeapLimit(env) {
+  const flag = `--max-old-space-size=${MAX_OLD_SPACE_MB}`;
+  const current = env.NODE_OPTIONS ?? "";
+  const next = /--max-old-space-size=\d+/.test(current)
+    ? current.replace(/--max-old-space-size=\d+/, flag)
+    : `${current} ${flag}`.trim();
+  return { ...env, NODE_OPTIONS: next };
+}
+
+// Re-exec once so this process (and children) share the same heap cap.
+if (!process.env.DREAMLINER_HEAP_PINNED) {
+  const result = spawnSync(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
+    stdio: "inherit",
+    env: {
+      ...withHeapLimit(process.env),
+      DREAMLINER_HEAP_PINNED: "1",
+    },
+  });
+  process.exit(result.status ?? 1);
+}
+
+console.log(`[dreamliner] Node heap capped at ${MAX_OLD_SPACE_MB}MB`);
+
 function run(command, args) {
-  const result = spawnSync(command, args, { stdio: "inherit", shell: true, env: process.env });
+  const result = spawnSync(command, args, {
+    stdio: "inherit",
+    shell: true,
+    env: withHeapLimit(process.env),
+  });
   if ((result.status ?? 1) !== 0) {
     process.exit(result.status ?? 1);
   }
@@ -50,7 +86,15 @@ function needsRebuild() {
     const srcTime = newestMtime("src");
     const configTime = existsSync("config") ? newestMtime("config") : 0;
     const pkgTime = existsSync("package.json") ? statSync("package.json").mtimeMs : 0;
-    return srcTime > distTime || configTime > distTime || pkgTime > distTime;
+    const tsconfigTime = existsSync("tsconfig.build.json")
+      ? statSync("tsconfig.build.json").mtimeMs
+      : 0;
+    return (
+      srcTime > distTime ||
+      configTime > distTime ||
+      pkgTime > distTime ||
+      tsconfigTime > distTime
+    );
   } catch {
     return true;
   }
