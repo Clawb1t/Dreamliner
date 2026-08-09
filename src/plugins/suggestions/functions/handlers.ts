@@ -1,4 +1,4 @@
-﻿import type { ButtonInteraction, GuildMember } from "discord.js";
+import type { ButtonInteraction, GuildMember } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zSuggestionsConfig } from "../../../config/schemas/suggestions.js";
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
