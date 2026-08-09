@@ -213,6 +213,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        const publicLeaderboardMatch =
+          /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
         const entityStatsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/(users|channels)\/(\d+)$/.exec(
           url.pathname,
         );
@@ -220,23 +222,170 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const commandsMatch = /^\/bridge\/guilds\/(\d+)\/commands$/.exec(url.pathname);
+        const dbRowMatch =
+          /^\/bridge\/guilds\/(\d+)\/db\/tables\/([a-z0-9_]+)\/rows\/(.+)$/.exec(url.pathname);
+        const dbTableMatch = /^\/bridge\/guilds\/(\d+)\/db\/tables\/([a-z0-9_]+)$/.exec(
+          url.pathname,
+        );
+        const dbTablesMatch = /^\/bridge\/guilds\/(\d+)\/db\/tables$/.exec(url.pathname);
+        const modCaseMatch = /^\/bridge\/guilds\/(\d+)\/moderation\/cases\/(\d+)$/.exec(
+          url.pathname,
+        );
+        const modCasesMatch = /^\/bridge\/guilds\/(\d+)\/moderation\/cases$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
-        if (!entityStatsMatch && !commandOneMatch && !commandsMatch && !guildMatch) {
+        if (
+          !publicLeaderboardMatch &&
+          !entityStatsMatch &&
+          !commandOneMatch &&
+          !commandsMatch &&
+          !dbRowMatch &&
+          !dbTableMatch &&
+          !dbTablesMatch &&
+          !modCaseMatch &&
+          !modCasesMatch &&
+          !guildMatch
+        ) {
           sendJson(res, 404, { error: "Not found" });
           return;
         }
 
         const guildId = (
+          publicLeaderboardMatch?.[1] ??
           entityStatsMatch?.[1] ??
           commandOneMatch?.[1] ??
           commandsMatch?.[1] ??
+          dbRowMatch?.[1] ??
+          dbTableMatch?.[1] ??
+          dbTablesMatch?.[1] ??
+          modCaseMatch?.[1] ??
+          modCasesMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           sendJson(res, 404, { error: "Guild not found (bot is not in that server)." });
+          return;
+        }
+
+        if (publicLeaderboardMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { buildWebPublicMessagerLeaderboard } = await import("./webStats.js");
+          const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
+          const payload = await buildWebPublicMessagerLeaderboard(guild, limit);
+          sendJson(res, 200, payload);
+          return;
+        }
+
+        if (modCasesMatch || modCaseMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { parseWebModCasesQuery, listWebModCases, getWebModCase } =
+            await import("./webModeration.js");
+
+          if (modCasesMatch) {
+            const query = parseWebModCasesQuery(url);
+            const result = await listWebModCases(guild, query);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...result,
+            });
+            return;
+          }
+
+          const caseId = Number(modCaseMatch![2]);
+          if (!Number.isFinite(caseId) || caseId <= 0) {
+            sendJson(res, 400, { error: "Invalid case id" });
+            return;
+          }
+          const detail = await getWebModCase(guild, caseId);
+          if (!detail) {
+            sendJson(res, 404, { error: "Case not found" });
+            return;
+          }
+          sendJson(res, 200, {
+            guild: { id: guild.id, name: guild.name, icon: guild.icon },
+            case: detail,
+          });
+          return;
+        }
+
+        if (dbTablesMatch || dbTableMatch || dbRowMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const {
+            listGuildDbTables,
+            queryGuildDbTable,
+            getGuildDbRow,
+          } = await import("./webDatabase.js");
+
+          if (dbTablesMatch) {
+            const result = await listGuildDbTables(guildId);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              tables: result.tables,
+            });
+            return;
+          }
+
+          if (dbTableMatch) {
+            const result = await queryGuildDbTable(guildId, dbTableMatch[2]!, {
+              q: url.searchParams.get("q") ?? undefined,
+              limit: Number(url.searchParams.get("limit") ?? 50),
+              offset: Number(url.searchParams.get("offset") ?? 0),
+              orderBy: url.searchParams.get("orderBy") ?? undefined,
+              order: url.searchParams.get("order") ?? undefined,
+            });
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            const { ok: _ok, ...payload } = result;
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...payload,
+            });
+            return;
+          }
+
+          const result = await getGuildDbRow(guildId, dbRowMatch![2]!, dbRowMatch![3]!);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          const { ok: _ok, ...payload } = result;
+          sendJson(res, 200, {
+            guild: { id: guild.id, name: guild.name, icon: guild.icon },
+            ...payload,
+          });
           return;
         }
 

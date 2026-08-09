@@ -111,6 +111,32 @@ function resolveChannels(
   });
 }
 
+/** Public all-time messagers leaderboard for shareable website pages. */
+export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25) {
+  const capped = Math.min(50, Math.max(5, limit));
+  const [top, allTimeTrafficTotal, activeMessagers] = await Promise.all([
+    getTopMessagers(guild.id, capped),
+    getTrackedMessagesTotal(guild.id, 0),
+    getActiveMessagerCount(guild.id),
+  ]);
+  const leaders = await resolvePeople(guild, top, allTimeTrafficTotal);
+
+  return {
+    guild: {
+      id: guild.id,
+      name: guild.name,
+      icon: guild.icon,
+      memberCount: guild.memberCount,
+    },
+    title: "Top messagers",
+    subtitle: "All-time message leaderboard",
+    windowLabel: "All time",
+    totalMessages: allTimeTrafficTotal,
+    activeMessagers,
+    leaders,
+  };
+}
+
 /** JSON stats payload for website analytics (server scope). */
 export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
   const guildId = guild.id;
