@@ -71,7 +71,8 @@ export function repairGuildConfig(raw: unknown): {
   repairs: string[];
 } | { success: false; errors: string[] } {
   const defaults = loadDefaultConfig() as unknown as Record<string, unknown>;
-  let value = deepMerge(defaults, isPlainObject(raw) || Array.isArray(raw) ? cloneJson(raw) : {});
+  const override = isPlainObject(raw) ? cloneJson(raw) : {};
+  let value = deepMerge(defaults, override);
   const repairs: string[] = [];
   const seen = new Set<string>();
 
