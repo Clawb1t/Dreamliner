@@ -1,4 +1,5 @@
 import type { GuildMember } from "discord.js";
+import { discordTimestamp } from "../../core/datetime.js";
 import { getGuildMessageCount } from "../utility/functions/messageCounts.js";
 import { parseDuration } from "../infraction/functions/duration.js";
 
@@ -76,12 +77,11 @@ export async function checkFeedbackEligibility(options: {
   if (config.cooldown?.trim() && lastActionAt) {
     const cooldownMs = parseDuration(config.cooldown.trim());
     if (cooldownMs != null) {
-      const elapsed = Date.now() - lastActionAt.getTime();
-      if (elapsed < cooldownMs) {
-        const remainingSec = Math.ceil((cooldownMs - elapsed) / 1000);
+      const readyAt = new Date(lastActionAt.getTime() + cooldownMs);
+      if (Date.now() < readyAt.getTime()) {
         return {
           ok: false,
-          message: `Please wait another **${remainingSec}s** before trying again.`,
+          message: `Please wait until ${discordTimestamp(readyAt, "R")} before trying again.`,
         };
       }
     }

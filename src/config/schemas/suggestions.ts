@@ -91,7 +91,7 @@ export const zSuggestionsConfig = z.strictObject({
   downvote_emoji: z.string().default("👎").describe("Emoji shown on the downvote button."),
   mid_vote_enabled: z.boolean().default(true).describe("Include a neutral / mid vote button."),
   allow_self_vote: z.boolean().default(false).describe("Allow authors to vote on their own suggestion."),
-  show_vote_count: z.boolean().default(true).describe("Show live vote totals on the feed embed."),
+  show_vote_count: z.boolean().default(true).describe("Show live vote totals on the vote buttons."),
   color_change_threshold: z
     .number()
     .int()

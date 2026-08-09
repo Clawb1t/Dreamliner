@@ -92,11 +92,6 @@ export function buildSuggestionEmbed(options: {
     embed.setImage(suggestion.attachmentUrl);
   }
 
-  if (config.show_vote_count && votes && suggestion.status === "approved") {
-    const mid = config.mid_vote_enabled ? ` · ○ ${votes.mid}` : "";
-    embed.addFields(embedField("Votes", `▲ ${votes.up}${mid} · ▼ ${votes.down} · net ${votes.net}`, true));
-  }
-
   if (suggestion.denialReason) {
     embed.addFields(embedField("Reason", suggestion.denialReason));
   }
@@ -123,11 +118,11 @@ export function queueActionRow(suggestionId: number): ActionRowBuilder<ButtonBui
     new ButtonBuilder()
       .setCustomId(suggestQueueApproveId(suggestionId))
       .setLabel("Approve")
-      .setStyle(ButtonStyle.Success),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(suggestQueueDenyId(suggestionId))
       .setLabel("Deny")
-      .setStyle(ButtonStyle.Danger),
+      .setStyle(ButtonStyle.Secondary),
   );
 }
 
@@ -147,7 +142,7 @@ export function voteActionRow(
       new ButtonBuilder()
         .setCustomId(suggestVoteId(suggestionId, "up"))
         .setLabel(upLabel.slice(0, 80))
-        .setStyle(ButtonStyle.Success),
+        .setStyle(ButtonStyle.Secondary),
       config.upvote_emoji,
     ),
   ];
@@ -169,7 +164,7 @@ export function voteActionRow(
       new ButtonBuilder()
         .setCustomId(suggestVoteId(suggestionId, "down"))
         .setLabel(downLabel.slice(0, 80))
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Secondary),
       config.downvote_emoji,
     ),
   );
@@ -179,7 +174,15 @@ export function voteActionRow(
 
 export function disabledQueueRow(): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId("dl:suggest:done:a").setLabel("Approved").setStyle(ButtonStyle.Success).setDisabled(true),
-    new ButtonBuilder().setCustomId("dl:suggest:done:d").setLabel("Denied").setStyle(ButtonStyle.Danger).setDisabled(true),
+    new ButtonBuilder()
+      .setCustomId("dl:suggest:done:a")
+      .setLabel("Approved")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true),
+    new ButtonBuilder()
+      .setCustomId("dl:suggest:done:d")
+      .setLabel("Denied")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true),
   );
 }

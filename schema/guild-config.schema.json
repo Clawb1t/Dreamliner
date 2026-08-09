@@ -5573,7 +5573,7 @@
                 "show_vote_count": {
                   "type": "boolean",
                   "default": true,
-                  "description": "Show live vote totals on the feed embed.",
+                  "description": "Show live vote totals on the vote buttons.",
                   "title": "Show Vote Count"
                 },
                 "color_change_threshold": {

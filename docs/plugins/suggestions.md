@@ -96,7 +96,7 @@ plugins:
 | `upvote_emoji` / `midvote_emoji` / `downvote_emoji` | Button emojis |
 | `mid_vote_enabled` | Include a neutral mid vote button |
 | `allow_self_vote` | Allow authors to vote on their own suggestion |
-| `show_vote_count` | Show live vote totals on the feed embed |
+| `show_vote_count` | Show live vote totals on the vote buttons |
 | `color_change_threshold` | Net upvotes needed to recolor the embed. `0` disables |
 | `color_change_color` | Embed color (decimal 0-16777215) once the threshold is met |
 | `notify_author` | DM the author on approve, deny, mark, and comment when possible |
