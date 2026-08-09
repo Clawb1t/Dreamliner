@@ -361,3 +361,90 @@ export const botAvatarRequests = sqliteTable("bot_avatar_requests", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   resolvedAt: integer("resolved_at", { mode: "timestamp" }),
 });
+
+/** Server reviews submitted via /review. */
+export const reviews = sqliteTable("reviews", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  rating: integer("rating", { mode: "number" }).notNull(),
+  content: text("content").notNull().default(""),
+  anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
+  channelId: text("channel_id"),
+  messageId: text("message_id"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+/** Community suggestions with staff review and voting. */
+export const suggestions = sqliteTable("suggestions", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  suggestionNumber: integer("suggestion_number", { mode: "number" }).notNull(),
+  authorId: text("author_id").notNull(),
+  content: text("content").notNull(),
+  attachmentUrl: text("attachment_url"),
+  anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
+  /** awaiting_review | approved | denied */
+  status: text("status").notNull().default("awaiting_review"),
+  /** none | considered | progress | implemented | no */
+  displayStatus: text("display_status").notNull().default("none"),
+  reviewChannelId: text("review_channel_id"),
+  reviewMessageId: text("review_message_id"),
+  feedChannelId: text("feed_channel_id"),
+  feedMessageId: text("feed_message_id"),
+  deniedChannelId: text("denied_channel_id"),
+  deniedMessageId: text("denied_message_id"),
+  archiveChannelId: text("archive_channel_id"),
+  archiveMessageId: text("archive_message_id"),
+  staffActorId: text("staff_actor_id"),
+  denialReason: text("denial_reason"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  implementedAt: integer("implemented_at", { mode: "timestamp" }),
+});
+
+export const suggestionVotes = sqliteTable(
+  "suggestion_votes",
+  {
+    suggestionId: integer("suggestion_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    /** up | mid | down */
+    value: text("value").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.suggestionId, table.userId] })],
+);
+
+export const suggestionComments = sqliteTable("suggestion_comments", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  suggestionId: integer("suggestion_id", { mode: "number" }).notNull(),
+  authorId: text("author_id").notNull(),
+  content: text("content").notNull(),
+  anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const suggestionBlocks = sqliteTable(
+  "suggestion_blocks",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    reason: text("reason"),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+export const suggestionFollows = sqliteTable(
+  "suggestion_follows",
+  {
+    suggestionId: integer("suggestion_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.suggestionId, table.userId] })],
+);

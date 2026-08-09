@@ -82,6 +82,13 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | **Custom events / command aliases** | Hook Discord events and short triggers |
 | **Dreamcode** | Custom slash commands with a dedicated language and dashboard editor |
 
+### Feedback
+
+| Area | Capabilities |
+| --- | --- |
+| **Reviews** | Star ratings and written feedback with eligibility gates and dashboard browsing |
+| **Suggestions** | Review queue, persistent vote buttons, statuses, comments, blocks, and web triage |
+
 ### Visibility and utility
 
 | Area | Capabilities |
@@ -154,6 +161,14 @@ Per-server emoji prefixes and bot customisation (nickname / avatar) are supporte
 - [Custom events](docs/plugins/custom_events.md)
 - [Command aliases](docs/plugins/command_aliases.md)
 - [Dreamcode commands](docs/plugins/dream_commands.md)
+
+</details>
+
+<details>
+<summary><strong>Feedback</strong></summary>
+
+- [Reviews](docs/plugins/reviews.md)
+- [Suggestions](docs/plugins/suggestions.md)
 
 </details>
 

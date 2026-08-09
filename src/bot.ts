@@ -59,6 +59,17 @@ import {
   AUTOROLE_ADD_MODAL_ID,
   handleAutoroleModalSubmit,
 } from "./plugins/autorole/functions/modal.js";
+import {
+  REVIEW_MODAL_ID,
+  handleReviewModalSubmit,
+} from "./plugins/reviews/functions/modal.js";
+import {
+  SUGGEST_ANON_MODAL_ID,
+  SUGGEST_MODAL_ID,
+  SUGGEST_PREFIX,
+} from "./plugins/suggestions/constants.js";
+import { handleSuggestModalSubmit } from "./plugins/suggestions/functions/modal.js";
+import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functions/handlers.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
@@ -140,6 +151,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     if (interaction.isButton()) {
       if (interaction.customId.startsWith(BOT_AVATAR_PREFIX)) {
         const handled = await handleBotAvatarButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(SUGGEST_PREFIX)) {
+        const handled = await handleSuggestionButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {
@@ -240,6 +255,42 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
             await interaction
               .reply(
                 resultReply("Error", "Could not save that autorole. Ask in the support server if this continues.", true, undefined, [
+                  supportLinkRow(),
+                ]),
+              )
+              .catch(() => null);
+          }
+        }
+        return;
+      }
+      if (interaction.customId === REVIEW_MODAL_ID) {
+        if (!(await ensurePluginEnabledForModal(configManager, interaction, "reviews"))) return;
+        try {
+          await handleReviewModalSubmit(interaction, configManager);
+        } catch (error) {
+          console.error("Review modal error:", error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction
+              .reply(
+                resultReply("Error", "Could not save that review. Ask in the support server if this continues.", true, undefined, [
+                  supportLinkRow(),
+                ]),
+              )
+              .catch(() => null);
+          }
+        }
+        return;
+      }
+      if (interaction.customId === SUGGEST_MODAL_ID || interaction.customId === SUGGEST_ANON_MODAL_ID) {
+        if (!(await ensurePluginEnabledForModal(configManager, interaction, "suggestions"))) return;
+        try {
+          await handleSuggestModalSubmit(interaction, configManager);
+        } catch (error) {
+          console.error("Suggest modal error:", error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction
+              .reply(
+                resultReply("Error", "Could not save that suggestion. Ask in the support server if this continues.", true, undefined, [
                   supportLinkRow(),
                 ]),
               )

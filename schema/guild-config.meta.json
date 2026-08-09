@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-09T14:23:24.618Z",
+  "generatedAt": "2026-08-09T15:41:34.448Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -201,6 +201,23 @@
           "key": "starboard",
           "name": "Starboard",
           "description": "Highlight highly reacted messages."
+        }
+      ]
+    },
+    {
+      "id": "feedback",
+      "label": "Feedback",
+      "description": "Server reviews and community suggestions.",
+      "plugins": [
+        {
+          "key": "reviews",
+          "name": "Reviews",
+          "description": "Collect star ratings and written feedback about your server."
+        },
+        {
+          "key": "suggestions",
+          "name": "Suggestions",
+          "description": "Community suggestions with staff review, voting, and statuses."
         }
       ]
     }
@@ -436,6 +453,20 @@
       "description": "Highlight highly reacted messages.",
       "category": "Server tools",
       "categoryId": "tools"
+    },
+    {
+      "key": "reviews",
+      "name": "Reviews",
+      "description": "Collect star ratings and written feedback about your server.",
+      "category": "Feedback",
+      "categoryId": "feedback"
+    },
+    {
+      "key": "suggestions",
+      "name": "Suggestions",
+      "description": "Community suggestions with staff review, voting, and statuses.",
+      "category": "Feedback",
+      "categoryId": "feedback"
     }
   ]
 }

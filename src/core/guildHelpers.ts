@@ -32,6 +32,8 @@ import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.j
 import { companionChannelsDefaultOverrides } from "../plugins/companion_channels/defaultOverrides.js";
 import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/defaultOverrides.js";
 import { botCustomisationDefaultOverrides } from "../plugins/bot_customisation/defaultOverrides.js";
+import { reviewsDefaultOverrides } from "../plugins/reviews/defaultOverrides.js";
+import { suggestionsDefaultOverrides } from "../plugins/suggestions/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { zStarboardBoard, zStarboardConfig, type StarboardBoard, type StarboardConfig } from "../config/schemas/starboard.js";
 import type { GuildMember } from "discord.js";
@@ -68,6 +70,8 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   companion_channels: companionChannelsDefaultOverrides,
   dream_commands: dreamCommandsDefaultOverrides,
   bot_customisation: botCustomisationDefaultOverrides,
+  reviews: reviewsDefaultOverrides,
+  suggestions: suggestionsDefaultOverrides,
 };
 
 export const pluginsRequiringConfig = new Set(["utility", "infractions"]);

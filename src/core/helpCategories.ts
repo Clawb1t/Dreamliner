@@ -104,6 +104,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     ],
   },
   {
+    id: "feedback",
+    label: "Feedback",
+    blurb: "Server reviews and community suggestions.",
+    include: [{ plugin: "reviews" }, { plugin: "suggestions" }],
+  },
+  {
     id: "config",
     label: "Configuration",
     blurb: "Permissions and server configuration commands.",
@@ -254,6 +260,16 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Starboard",
     description: "Highlight highly reacted messages.",
   },
+  reviews: {
+    key: "reviews",
+    name: "Reviews",
+    description: "Collect star ratings and written feedback about your server.",
+  },
+  suggestions: {
+    key: "suggestions",
+    name: "Suggestions",
+    description: "Community suggestions with staff review, voting, and statuses.",
+  },
 };
 
 /**
@@ -295,6 +311,8 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   stats: "tools",
   bot_customisation: "tools",
   starboard: "tools",
+  reviews: "feedback",
+  suggestions: "feedback",
 };
 
 /** Plugin categories for the website config editor (and schema meta), matching `/help` labels. */

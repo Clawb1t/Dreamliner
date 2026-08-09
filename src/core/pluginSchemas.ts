@@ -3,6 +3,8 @@ import { zInfractionConfig } from "../config/schemas/infraction.js";
 import { zAutoroleConfig } from "../config/schemas/autorole.js";
 import { zTranslationConfig } from "../config/schemas/translation.js";
 import { zStarboardConfig } from "../config/schemas/starboard.js";
+import { zReviewsConfig } from "../config/schemas/reviews.js";
+import { zSuggestionsConfig } from "../config/schemas/suggestions.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import {
   zAdminConfig,
@@ -69,6 +71,8 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   counters: zCountersConfig,
   companion_channels: zCompanionChannelsConfig,
   bot_customisation: zBotCustomisationConfig,
+  reviews: zReviewsConfig,
+  suggestions: zSuggestionsConfig,
 };
 
 export function getPluginBaseConfig(pluginName: string): Record<string, unknown> {

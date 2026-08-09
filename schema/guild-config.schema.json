@@ -1218,6 +1218,55 @@
             "config": {
               "type": "object",
               "properties": {
+                "ignored_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Channel IDs where star reactions are ignored (messages there are never posted).",
+                  "title": "Ignored Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "ignored_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Role IDs whose members cannot be starred (messages from these authors are ignored).",
+                  "title": "Ignored Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "allow_bot_messages": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "When true, messages from bots can be posted to the starboard.",
+                  "title": "Allow Bot Messages"
+                },
+                "allow_nsfw": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "When true, messages from NSFW channels can be posted to the starboard.",
+                  "title": "Allow Nsfw"
+                },
+                "color": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777215,
+                  "description": "Embed color as a decimal integer (0–16777215).",
+                  "title": "Color",
+                  "x-dreamliner": {
+                    "kind": "color",
+                    "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                  }
+                },
                 "boards": {
                   "type": "object",
                   "additionalProperties": {
@@ -1278,10 +1327,52 @@
                         "description": "Count a user's star on their own message.",
                         "title": "Count Self Stars"
                       },
+                      "ignored_channels": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": [],
+                        "description": "Extra channel IDs ignored for this board (merged with global ignored_channels).",
+                        "title": "Ignored Channels",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "ignored_roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": [],
+                        "description": "Extra role IDs ignored for this board (merged with global ignored_roles).",
+                        "title": "Ignored Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "allow_bot_messages": {
+                        "type": "boolean",
+                        "description": "Override global allow_bot_messages for this board. Omit to inherit.",
+                        "title": "Allow Bot Messages"
+                      },
+                      "allow_nsfw": {
+                        "type": "boolean",
+                        "description": "Override global allow_nsfw for this board. Omit to inherit.",
+                        "title": "Allow Nsfw"
+                      },
                       "color": {
                         "type": "integer",
-                        "description": "Optional embed color as an integer.",
-                        "title": "Color"
+                        "minimum": 0,
+                        "maximum": 16777215,
+                        "description": "Override global embed color for this board. Omit to inherit.",
+                        "title": "Color",
+                        "x-dreamliner": {
+                          "kind": "color",
+                          "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                        }
                       }
                     },
                     "required": [
@@ -1292,19 +1383,6 @@
                   "default": {},
                   "description": "Named starboard boards. Key is a short board name; value is the board settings.",
                   "title": "Boards"
-                },
-                "ignored_channels": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "default": [],
-                  "description": "Channel IDs where star reactions are ignored and never posted.",
-                  "title": "Ignored Channels",
-                  "x-dreamliner": {
-                    "kind": "channel",
-                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
-                  }
                 }
               },
               "additionalProperties": false,
@@ -4815,6 +4893,754 @@
           },
           "additionalProperties": false,
           "title": "Bot Customisation"
+        },
+        "reviews": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn reviews on or off for this server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "review_channel_id": {
+                  "type": "string",
+                  "description": "Channel where public review embeds are posted. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Review Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "min_messages": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 50,
+                  "description": "Minimum guild messages (tracked by Dreamliner) required before reviewing.",
+                  "title": "Min Messages"
+                },
+                "min_account_age": {
+                  "type": "string",
+                  "default": "7d",
+                  "description": "Minimum Discord account age, e.g. `7d` or `30d`. Empty string disables.",
+                  "title": "Min Account Age"
+                },
+                "min_member_age": {
+                  "type": "string",
+                  "default": "3d",
+                  "description": "Minimum time in this server before reviewing, e.g. `1d` or `1w`. Empty string disables.",
+                  "title": "Min Member Age"
+                },
+                "cooldown": {
+                  "type": "string",
+                  "default": "7d",
+                  "description": "Cooldown between reviews (or edits) per user, e.g. `1d`. Empty string disables.",
+                  "title": "Cooldown"
+                },
+                "allow_edit": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "When true, members can update their existing review instead of submitting once.",
+                  "title": "Allow Edit"
+                },
+                "allowed_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "If non-empty, only members with one of these roles may submit reviews.",
+                  "title": "Allowed Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "blocked_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Members with any of these roles cannot submit reviews.",
+                  "title": "Blocked Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "ignored_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Channel IDs where /review is refused.",
+                  "title": "Ignored Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "anonymous": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "When true, public embeds hide the author. Staff and the dashboard still see them.",
+                  "title": "Anonymous"
+                },
+                "require_text": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Require a written comment with the rating.",
+                  "title": "Require Text"
+                },
+                "min_text_length": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 20,
+                  "description": "Minimum comment length.",
+                  "title": "Min Text Length"
+                },
+                "max_text_length": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2000,
+                  "default": 1000,
+                  "description": "Maximum comment length.",
+                  "title": "Max Text Length"
+                },
+                "min_rating": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5,
+                  "default": 1,
+                  "description": "Lowest allowed star rating.",
+                  "title": "Min Rating"
+                },
+                "max_rating": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5,
+                  "default": 5,
+                  "description": "Highest allowed star rating.",
+                  "title": "Max Rating"
+                },
+                "can_review": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to submit a server review. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Review",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_list": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to list reviews. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "List",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_delete": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to delete reviews. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Delete",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manage reviews (staff). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category"
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Reviews"
+        },
+        "suggestions": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn suggestions on or off for this server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "review",
+                    "autoapprove"
+                  ],
+                  "default": "review",
+                  "description": "`review` sends submissions to a staff queue first; `autoapprove` posts straight to the feed.",
+                  "title": "Mode"
+                },
+                "suggestions_channel_id": {
+                  "type": "string",
+                  "description": "Public suggestions feed channel (required for posting). Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Suggestions Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "review_channel_id": {
+                  "type": "string",
+                  "description": "Staff review queue channel (required in review mode). Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Review Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "denied_channel_id": {
+                  "type": "string",
+                  "description": "Optional channel for denied suggestion posts. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Denied Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "archive_channel_id": {
+                  "type": "string",
+                  "description": "Optional archive channel when a suggestion is marked implemented. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Archive Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "log_channel_id": {
+                  "type": "string",
+                  "description": "Optional channel for suggestion action logs. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "allowed_suggest_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "If non-empty, only these roles may submit suggestions.",
+                  "title": "Allowed Suggest Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "blocked_suggest_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Roles that cannot submit suggestions.",
+                  "title": "Blocked Suggest Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "allowed_vote_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "If non-empty, only these roles may vote on suggestions.",
+                  "title": "Allowed Vote Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "review_ping_role": {
+                  "type": "string",
+                  "description": "Role to ping when a suggestion enters the review queue.",
+                  "title": "Review Ping Role",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "feed_ping_role": {
+                  "type": "string",
+                  "description": "Role to ping when a suggestion is posted to the feed.",
+                  "title": "Feed Ping Role",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "approved_role": {
+                  "type": "string",
+                  "description": "Optional role granted to the author when their suggestion is approved.",
+                  "title": "Approved Role",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "implemented_role": {
+                  "type": "string",
+                  "description": "Optional role granted when a suggestion is marked implemented.",
+                  "title": "Implemented Role",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "anonymous": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow anonymous suggestions (staff still see the author).",
+                  "title": "Anonymous"
+                },
+                "cooldown": {
+                  "type": "string",
+                  "default": "1h",
+                  "description": "Cooldown between submissions per user, e.g. `1h`. Empty string disables.",
+                  "title": "Cooldown"
+                },
+                "max_open": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 5,
+                  "description": "Max open approved (non-implemented) suggestions per user. 0 = unlimited.",
+                  "title": "Max Open"
+                },
+                "min_messages": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 25,
+                  "description": "Minimum guild messages required before suggesting.",
+                  "title": "Min Messages"
+                },
+                "min_account_age": {
+                  "type": "string",
+                  "default": "7d",
+                  "description": "Minimum Discord account age, e.g. `7d`. Empty string disables.",
+                  "title": "Min Account Age"
+                },
+                "min_member_age": {
+                  "type": "string",
+                  "default": "1d",
+                  "description": "Minimum time in this server, e.g. `1d`. Empty string disables.",
+                  "title": "Min Member Age"
+                },
+                "command_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "If non-empty, /suggest may only be used in these channels.",
+                  "title": "Command Channels"
+                },
+                "ignored_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Channels where suggestion commands are refused.",
+                  "title": "Ignored Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "allow_attachments": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Allow image attachments on suggestions.",
+                  "title": "Allow Attachments"
+                },
+                "max_length": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2000,
+                  "default": 1000,
+                  "description": "Max suggestion text length.",
+                  "title": "Max Length"
+                },
+                "min_length": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 15,
+                  "description": "Min suggestion text length.",
+                  "title": "Min Length"
+                },
+                "voting_enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show vote buttons on approved suggestions.",
+                  "title": "Voting Enabled"
+                },
+                "upvote_label": {
+                  "type": "string",
+                  "default": "Upvote",
+                  "description": "Upvote button label.",
+                  "title": "Upvote Label"
+                },
+                "midvote_label": {
+                  "type": "string",
+                  "default": "Neutral",
+                  "description": "Mid vote button label.",
+                  "title": "Midvote Label"
+                },
+                "downvote_label": {
+                  "type": "string",
+                  "default": "Downvote",
+                  "description": "Downvote button label.",
+                  "title": "Downvote Label"
+                },
+                "upvote_emoji": {
+                  "type": "string",
+                  "default": "👍",
+                  "description": "Emoji shown on the upvote button.",
+                  "title": "Upvote Emoji",
+                  "x-dreamliner": {
+                    "kind": "emoji",
+                    "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                  }
+                },
+                "midvote_emoji": {
+                  "type": "string",
+                  "default": "😐",
+                  "description": "Emoji shown on the mid / neutral vote button.",
+                  "title": "Midvote Emoji",
+                  "x-dreamliner": {
+                    "kind": "emoji",
+                    "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                  }
+                },
+                "downvote_emoji": {
+                  "type": "string",
+                  "default": "👎",
+                  "description": "Emoji shown on the downvote button.",
+                  "title": "Downvote Emoji",
+                  "x-dreamliner": {
+                    "kind": "emoji",
+                    "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                  }
+                },
+                "mid_vote_enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Include a neutral / mid vote button.",
+                  "title": "Mid Vote Enabled"
+                },
+                "allow_self_vote": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow authors to vote on their own suggestion.",
+                  "title": "Allow Self Vote"
+                },
+                "show_vote_count": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show live vote totals on the feed embed.",
+                  "title": "Show Vote Count"
+                },
+                "color_change_threshold": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 10,
+                  "description": "Net upvotes required to change embed color. 0 = disabled.",
+                  "title": "Color Change Threshold"
+                },
+                "color_change_color": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777215,
+                  "default": 5763719,
+                  "description": "Embed color when net upvotes reach the threshold.",
+                  "title": "Color Change Color",
+                  "x-dreamliner": {
+                    "kind": "color",
+                    "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                  }
+                },
+                "notify_author": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "DM the author on approve, deny, mark, and comment when possible.",
+                  "title": "Notify Author"
+                },
+                "follow_on_upvote": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Auto-follow a suggestion when a member upvotes it.",
+                  "title": "Follow On Upvote"
+                },
+                "can_suggest": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to submit suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Suggest",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_vote": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to vote on suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Vote",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_follow": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to follow suggestions for updates. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Follow",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_info": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view suggestion info. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Info",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_top": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view top suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Top",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_approve": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to approve suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Approve",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_deny": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to deny suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Deny",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_mark": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to mark suggestion status. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Mark",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_comment": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to comment on suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Comment",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_delete": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to delete suggestions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Delete",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_block": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to block users from suggesting. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Block",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manage the suggestion queue and mass actions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category"
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Suggestions"
         }
       },
       "additionalProperties": false,

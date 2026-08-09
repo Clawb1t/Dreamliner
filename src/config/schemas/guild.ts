@@ -3,6 +3,8 @@ import { zUtilityPluginSection } from "./utility.js";
 import { zInfractionPluginSection } from "./infraction.js";
 import { zAutorolePluginSection } from "./autorole.js";
 import { zStarboardPluginSection } from "./starboard.js";
+import { zReviewsPluginSection } from "./reviews.js";
+import { zSuggestionsPluginSection } from "./suggestions.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import {
   zAdminPluginSection,
@@ -129,6 +131,8 @@ export const zGuildConfig = z.strictObject({
       command_aliases: zCommandAliasesPluginSection.optional(),
       dream_commands: zDreamCommandsPluginSection.optional(),
       bot_customisation: zBotCustomisationPluginSection.optional(),
+      reviews: zReviewsPluginSection.optional(),
+      suggestions: zSuggestionsPluginSection.optional(),
     })
     .default({}),
 });

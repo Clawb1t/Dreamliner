@@ -248,6 +248,19 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const logStatsMatch = /^\/bridge\/guilds\/(\d+)\/logs\/stats$/.exec(url.pathname);
         const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const logsMatch = /^\/bridge\/guilds\/(\d+)\/logs$/.exec(url.pathname);
+        const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
+        const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
+        const suggestionActionMatch =
+          /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/(approve|deny|mark|comment)$/.exec(
+            url.pathname,
+          );
+        const suggestionOneMatch = /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)$/.exec(
+          url.pathname,
+        );
+        const suggestionStatsMatch = /^\/bridge\/guilds\/(\d+)\/suggestions\/stats$/.exec(
+          url.pathname,
+        );
+        const suggestionsMatch = /^\/bridge\/guilds\/(\d+)\/suggestions$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
@@ -264,6 +277,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !logStatsMatch &&
           !logOneMatch &&
           !logsMatch &&
+          !reviewOneMatch &&
+          !reviewsMatch &&
+          !suggestionActionMatch &&
+          !suggestionOneMatch &&
+          !suggestionStatsMatch &&
+          !suggestionsMatch &&
           !guildMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
@@ -283,6 +302,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           logStatsMatch?.[1] ??
           logOneMatch?.[1] ??
           logsMatch?.[1] ??
+          reviewOneMatch?.[1] ??
+          reviewsMatch?.[1] ??
+          suggestionActionMatch?.[1] ??
+          suggestionOneMatch?.[1] ??
+          suggestionStatsMatch?.[1] ??
+          suggestionsMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
@@ -395,6 +420,237 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             log: detail,
+          });
+          return;
+        }
+
+        if (reviewsMatch || reviewOneMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { parseWebReviewsQuery, listWebReviews, getWebReview, deleteWebReview } =
+            await import("./webReviews.js");
+
+          if (reviewsMatch) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const query = parseWebReviewsQuery(url);
+            const result = await listWebReviews(guild, query);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...result,
+            });
+            return;
+          }
+
+          const reviewId = Number(reviewOneMatch![2]);
+          if (!Number.isFinite(reviewId) || reviewId <= 0) {
+            sendJson(res, 400, { error: "Invalid review id" });
+            return;
+          }
+
+          if (req.method === "DELETE") {
+            const deleted = await deleteWebReview(guild, reviewId);
+            if (!deleted) {
+              sendJson(res, 404, { error: "Review not found" });
+              return;
+            }
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              deleted: true,
+              id: reviewId,
+            });
+            return;
+          }
+
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const detail = await getWebReview(guild, reviewId);
+          if (!detail) {
+            sendJson(res, 404, { error: "Review not found" });
+            return;
+          }
+          sendJson(res, 200, {
+            guild: { id: guild.id, name: guild.name, icon: guild.icon },
+            review: detail,
+          });
+          return;
+        }
+
+        if (suggestionsMatch || suggestionOneMatch || suggestionStatsMatch || suggestionActionMatch) {
+          if (suggestionActionMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            let body: {
+              userId?: string;
+              comment?: string;
+              reason?: string;
+              silent?: boolean;
+              status?: string;
+              content?: string;
+              anonymous?: boolean;
+            } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+
+            const suggestionId = Number(suggestionActionMatch[2]);
+            const action = suggestionActionMatch[3]!;
+            const {
+              webApproveSuggestion,
+              webDenySuggestion,
+              webMarkSuggestion,
+              webCommentSuggestion,
+              getWebSuggestion,
+            } = await import("./webSuggestions.js");
+
+            let result: { suggestion: unknown; error?: string };
+            if (action === "approve") {
+              result = await webApproveSuggestion(guild, suggestionId, userId, body.comment);
+            } else if (action === "deny") {
+              result = await webDenySuggestion(guild, suggestionId, userId, body.reason, body.silent);
+            } else if (action === "mark") {
+              const status = body.status?.trim();
+              if (!status) {
+                sendJson(res, 400, { error: "status is required" });
+                return;
+              }
+              result = await webMarkSuggestion(
+                guild,
+                suggestionId,
+                userId,
+                status as import("../config/schemas/suggestions.js").SuggestionDisplayStatus,
+                body.comment,
+              );
+            } else {
+              if (!body.content?.trim()) {
+                sendJson(res, 400, { error: "content is required" });
+                return;
+              }
+              result = await webCommentSuggestion(
+                guild,
+                suggestionId,
+                userId,
+                body.content,
+                body.anonymous,
+              );
+            }
+
+            if (result.error || !result.suggestion) {
+              sendJson(res, 400, { error: result.error ?? "Action failed" });
+              return;
+            }
+            const detail = await getWebSuggestion(guild, suggestionId);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              suggestion: detail,
+            });
+            return;
+          }
+
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const {
+            parseWebSuggestionsQuery,
+            listWebSuggestions,
+            getWebSuggestion,
+            getWebSuggestionStats,
+            webDeleteSuggestion,
+          } = await import("./webSuggestions.js");
+
+          if (suggestionStatsMatch) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const stats = await getWebSuggestionStats(guild);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...stats,
+            });
+            return;
+          }
+
+          if (suggestionsMatch) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const query = parseWebSuggestionsQuery(url);
+            const result = await listWebSuggestions(guild, query);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...result,
+            });
+            return;
+          }
+
+          const suggestionId = Number(suggestionOneMatch![2]);
+          if (!Number.isFinite(suggestionId) || suggestionId <= 0) {
+            sendJson(res, 400, { error: "Invalid suggestion id" });
+            return;
+          }
+
+          if (req.method === "DELETE") {
+            const result = await webDeleteSuggestion(guild, suggestionId, userId);
+            if (result.error || !result.suggestion) {
+              sendJson(res, 400, { error: result.error ?? "Delete failed" });
+              return;
+            }
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              deleted: true,
+              id: suggestionId,
+            });
+            return;
+          }
+
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const byNumber = url.searchParams.get("byNumber") === "true";
+          const detail = await getWebSuggestion(guild, suggestionId, byNumber);
+          if (!detail) {
+            sendJson(res, 404, { error: "Suggestion not found" });
+            return;
+          }
+          sendJson(res, 200, {
+            guild: { id: guild.id, name: guild.name, icon: guild.icon },
+            suggestion: detail,
           });
           return;
         }

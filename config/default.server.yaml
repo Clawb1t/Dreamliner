@@ -164,6 +164,9 @@ plugins:
     replaceDefaultOverrides: false
     config:
       ignored_channels: []
+      ignored_roles: []
+      allow_bot_messages: false
+      allow_nsfw: true
       boards:
         main:
           channel_id: "1111111111111111111"
@@ -172,6 +175,8 @@ plugins:
           show_star_count: true
           copy_full_embed: true
           count_self_stars: false
+          ignored_channels: []
+          ignored_roles: []
           star_emoji:
             - "⭐"
   automod:
@@ -537,3 +542,106 @@ plugins:
           can_edit: true
           can_remove: true
           can_list: true
+  reviews:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      review_channel_id: "1111111111111111111"
+      min_messages: 50
+      min_account_age: "7d"
+      min_member_age: "3d"
+      cooldown: "7d"
+      allow_edit: true
+      allowed_roles: []
+      blocked_roles: []
+      ignored_channels: []
+      anonymous: false
+      require_text: true
+      min_text_length: 20
+      max_text_length: 1000
+      min_rating: 1
+      max_rating: 5
+      can_review: false
+      can_list: false
+      can_delete: false
+      can_manage: false
+    overrides:
+      - level: ">=0"
+        config:
+          can_review: true
+      - level: ">=50"
+        config:
+          can_list: true
+          can_delete: true
+          can_manage: true
+  suggestions:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      mode: review
+      suggestions_channel_id: "1111111111111111111"
+      review_channel_id: "1111111111111111111"
+      denied_channel_id: ""
+      archive_channel_id: ""
+      log_channel_id: ""
+      allowed_suggest_roles: []
+      blocked_suggest_roles: []
+      allowed_vote_roles: []
+      review_ping_role: ""
+      feed_ping_role: ""
+      approved_role: ""
+      implemented_role: ""
+      anonymous: false
+      cooldown: "1h"
+      max_open: 5
+      min_messages: 25
+      min_account_age: "7d"
+      min_member_age: "1d"
+      command_channels: []
+      ignored_channels: []
+      allow_attachments: true
+      max_length: 1000
+      min_length: 15
+      voting_enabled: true
+      upvote_label: Upvote
+      midvote_label: Neutral
+      downvote_label: Downvote
+      upvote_emoji: "👍"
+      midvote_emoji: "😐"
+      downvote_emoji: "👎"
+      mid_vote_enabled: true
+      allow_self_vote: false
+      show_vote_count: true
+      color_change_threshold: 10
+      color_change_color: 5763719
+      notify_author: true
+      follow_on_upvote: true
+      can_suggest: false
+      can_vote: false
+      can_follow: false
+      can_info: false
+      can_top: false
+      can_approve: false
+      can_deny: false
+      can_mark: false
+      can_comment: false
+      can_delete: false
+      can_block: false
+      can_manage: false
+    overrides:
+      - level: ">=0"
+        config:
+          can_suggest: true
+          can_vote: true
+          can_follow: true
+          can_info: true
+          can_top: true
+      - level: ">=50"
+        config:
+          can_approve: true
+          can_deny: true
+          can_mark: true
+          can_comment: true
+          can_delete: true
+          can_block: true
+          can_manage: true

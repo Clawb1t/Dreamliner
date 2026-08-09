@@ -25,7 +25,17 @@ export function roleId(help: string) {
 }
 
 export type DreamlinerFieldMeta = {
-  kind?: "channel" | "role" | "user" | "snowflake" | "ms" | "seconds" | "level" | "emoji" | "permission";
+  kind?:
+    | "channel"
+    | "role"
+    | "user"
+    | "snowflake"
+    | "ms"
+    | "seconds"
+    | "level"
+    | "emoji"
+    | "permission"
+    | "color";
   setup?: string;
 };
 
@@ -43,6 +53,7 @@ export const SETUP_HINTS: Record<NonNullable<DreamlinerFieldMeta["kind"]>, strin
   emoji: 'Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis.',
   permission:
     "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels.",
+  color: "Pick a color for embeds. Stored as a decimal integer (0–16777215).",
 };
 
 type JsonSchemaNode = {
@@ -94,6 +105,7 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
   if (key.includes("emoji") || key === "success" || key === "error" || key === "neutral" || key === "warning" || key === "unchecked") {
     return "emoji";
   }
+  if (key === "color" || key.endsWith("_color")) return "color";
   if (key.endsWith("_id") || key === "target_id") return "snowflake";
   return undefined;
 }

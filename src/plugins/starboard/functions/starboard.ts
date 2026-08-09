@@ -10,7 +10,12 @@ import {
   type User,
 } from "discord.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
-import type { StarboardBoard, StarboardConfig } from "../../../config/schemas/starboard.js";
+import {
+  resolveEffectiveStarboardBoard,
+  type EffectiveStarboardBoard,
+  type StarboardBoard,
+  type StarboardConfig,
+} from "../../../config/schemas/starboard.js";
 import { configManager } from "../../../config/manager.js";
 import { getStarboardPluginConfig } from "../../../core/guildHelpers.js";
 import {
@@ -61,6 +66,23 @@ function shouldCountStarFromUser(message: Message, user: User, board: StarboardB
   if (user.bot) return false;
   if (!board.count_self_stars && message.author && user.id === message.author.id) return false;
   return true;
+}
+
+function isNsfwSourceChannel(message: Message): boolean {
+  const channel = message.channel;
+  return Boolean(channel && "nsfw" in channel && channel.nsfw);
+}
+
+async function authorHasIgnoredRole(
+  message: Message,
+  ignoredRoles: string[],
+): Promise<boolean> {
+  if (ignoredRoles.length === 0 || !message.guild || !message.author) return false;
+  const member =
+    message.member ??
+    (await message.guild.members.fetch(message.author.id).catch(() => null));
+  if (!member) return false;
+  return ignoredRoles.some((roleId) => member.roles.cache.has(roleId));
 }
 
 export async function countStarReactions(
@@ -130,7 +152,7 @@ function channelFooterName(message: Message): string {
   return "unknown channel";
 }
 
-function buildStarboardEmbed(message: Message, board: StarboardBoard): EmbedBuilder {
+function buildStarboardEmbed(message: Message, board: EffectiveStarboardBoard): EmbedBuilder {
   const embed = new EmbedBuilder();
   if (board.color !== undefined) embed.setColor(board.color);
 
@@ -178,7 +200,11 @@ function buildStarboardEmbed(message: Message, board: StarboardBoard): EmbedBuil
   return embed;
 }
 
-function buildStarboardComponents(starCount: number, board: StarboardBoard, messageUrl: string): ActionRowBuilder<ButtonBuilder> {
+function buildStarboardComponents(
+  starCount: number,
+  board: StarboardBoard,
+  messageUrl: string,
+): ActionRowBuilder<ButtonBuilder> {
   const row = new ActionRowBuilder<ButtonBuilder>();
 
   if (board.show_star_count) {
@@ -205,7 +231,7 @@ function buildStarboardComponents(starCount: number, board: StarboardBoard, mess
   return row;
 }
 
-function buildStarboardPayload(message: Message, starCount: number, board: StarboardBoard) {
+function buildStarboardPayload(message: Message, starCount: number, board: EffectiveStarboardBoard) {
   return {
     embeds: [buildStarboardEmbed(message, board)],
     components: [buildStarboardComponents(starCount, board, message.url)],
@@ -222,13 +248,16 @@ async function processBoard(
   client: Client,
   message: Message,
   boardName: string,
-  board: StarboardBoard,
+  board: EffectiveStarboardBoard,
   starboardChannelIds: Set<string>,
   reactionEvent?: { user: User; emoji: MessageReaction["emoji"]; type: "add" | "remove" },
 ): Promise<void> {
   if (!message.guild || !board.enabled || !board.channel_id) return;
   if (starboardChannelIds.has(message.channel.id)) return;
-  if (message.author?.bot) return;
+  if (board.ignored_channels.includes(message.channel.id)) return;
+  if (!board.allow_nsfw && isNsfwSourceChannel(message)) return;
+  if (message.author?.bot && !board.allow_bot_messages) return;
+  if (await authorHasIgnoredRole(message, board.ignored_roles)) return;
 
   const key = lockKey(message.guild.id, boardName, message.id);
   await withLock(key, async () => {
@@ -293,15 +322,13 @@ export async function processMessageForStarboard(
 
   if (!message.guild) return;
 
-  const ignoredChannelIds = new Set(config.ignored_channels ?? []);
-  if (ignoredChannelIds.has(message.channel.id)) return;
-
   const starboardChannelIds = new Set(
     boards.map(([, board]) => board.channel_id).filter((channelId): channelId is string => Boolean(channelId)),
   );
 
   for (const [boardName, board] of boards) {
-    await processBoard(client, message, boardName, board, starboardChannelIds, reactionEvent);
+    const effective = resolveEffectiveStarboardBoard(config, board);
+    await processBoard(client, message, boardName, effective, starboardChannelIds, reactionEvent);
   }
 }
 

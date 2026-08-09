@@ -37,6 +37,11 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 - [Role manager](./role_manager.md)
 - [Autorole](./autorole.md)
 
+## Feedback
+
+- [Reviews](./reviews.md) - star ratings and written server feedback
+- [Suggestions](./suggestions.md) - community suggestions with review queue, voting, and statuses
+
 ## Info & tools
 
 - [Utility](./utility.md)
