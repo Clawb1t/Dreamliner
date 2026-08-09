@@ -108,11 +108,77 @@
         "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
       }
     },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "default": {},
+          "description": "Per-event log toggles. Missing keys default to enabled. Keys match dashboard Logging toggles.",
+          "title": "Events"
+        }
+      },
+      "additionalProperties": false,
+      "default": {},
+      "description": "Log event toggles for Discord channels and the dashboard Logs page.",
+      "title": "Logging"
+    },
     "ephemeral_responses": {
       "type": "boolean",
       "default": false,
       "description": "When true, command replies are only visible to the user who ran the command.",
       "title": "Ephemeral Responses"
+    },
+    "default_language": {
+      "type": "string",
+      "enum": [
+        "en",
+        "es",
+        "fr",
+        "de",
+        "it",
+        "pt",
+        "nl",
+        "pl",
+        "ru",
+        "uk",
+        "tr",
+        "ar",
+        "he",
+        "hi",
+        "bn",
+        "ja",
+        "ko",
+        "zh-CN",
+        "zh-TW",
+        "th",
+        "vi",
+        "id",
+        "ms",
+        "sv",
+        "no",
+        "da",
+        "fi",
+        "cs",
+        "ro",
+        "hu",
+        "el",
+        "bg",
+        "hr",
+        "sk",
+        "sl",
+        "lt",
+        "lv",
+        "et",
+        "fil",
+        "sw"
+      ],
+      "default": "en",
+      "description": "Server default language used by /translate and auto-translate.",
+      "title": "Default Language"
     },
     "plugins": {
       "type": "object",
@@ -894,8 +960,48 @@
                     ]
                   },
                   "default": [],
-                  "description": "Roles to assign when a member joins. Use a role ID string, or an object with role + delay_ms.",
+                  "description": "Roles for humans only. Assigned when a person joins. Use a role ID string, or an object with role + delay_ms (or delay).",
                   "title": "Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "bot_roles": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "type": "string",
+                            "description": "Role ID to assign on join."
+                          },
+                          "delay_ms": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0,
+                            "description": "Wait this many milliseconds after join before assigning the role."
+                          },
+                          "delay": {
+                            "type": "string",
+                            "description": "Optional human delay string (alternative to delay_ms)."
+                          }
+                        },
+                        "required": [
+                          "role"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "default": [],
+                  "description": "Roles for bots only. Assigned when a bot joins. Use a role ID string, or an object with role + delay_ms (or delay).",
+                  "title": "Bot Roles",
                   "x-dreamliner": {
                     "kind": "role",
                     "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
@@ -995,6 +1101,111 @@
           },
           "additionalProperties": false,
           "title": "Autorole"
+        },
+        "translation": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn the translation plugin on or off for this server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "auto_translate": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "When true, react with the server default-language flag on messages that are not in that language. Members can press the reaction for a translation reply.",
+                  "title": "Auto Translate"
+                },
+                "ignored_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Channel IDs where auto-translate reactions are skipped.",
+                  "title": "Ignored Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "can_translate": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use /translate. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Translate",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category"
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Translation"
         },
         "starboard": {
           "type": "object",
@@ -2197,7 +2408,11 @@
             }
           },
           "additionalProperties": false,
-          "title": "Reaction Roles"
+          "title": "Reaction Roles",
+          "x-dreamliner": {
+            "kind": "role",
+            "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+          }
         },
         "role_buttons": {
           "type": "object",
@@ -2389,7 +2604,11 @@
             }
           },
           "additionalProperties": false,
-          "title": "Self Grantable Roles"
+          "title": "Self Grantable Roles",
+          "x-dreamliner": {
+            "kind": "role",
+            "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+          }
         },
         "pingable_roles": {
           "type": "object",
@@ -2486,7 +2705,11 @@
             }
           },
           "additionalProperties": false,
-          "title": "Pingable Roles"
+          "title": "Pingable Roles",
+          "x-dreamliner": {
+            "kind": "role",
+            "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+          }
         },
         "role_manager": {
           "type": "object",

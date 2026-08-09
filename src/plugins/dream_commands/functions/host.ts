@@ -591,6 +591,13 @@ async function actClean(ctx: HostContext, args: BoundActionArgs, pos: SourcePos)
       count: list.length,
       archiveId,
     }),
+    {
+      guildId: ctx.guild.id,
+      eventType: "clean",
+      actorId: ctx.actor.id,
+      targetId: userId ?? null,
+      channelId: channel.id,
+    },
   );
   return { deleted: list.length, archiveId };
 }
@@ -706,6 +713,13 @@ async function actVoiceMove(ctx: HostContext, args: BoundActionArgs, pos: Source
       fromChannel: fromChannelId ? { id: fromChannelId, name: fromChannelName } : null,
       toChannel: { id: dest.id, name: dest.name },
     }),
+    {
+      guildId: ctx.guild.id,
+      eventType: "voice_mod",
+      actorId: ctx.actor.id,
+      targetId: member.id,
+      channelId: dest.id,
+    },
   );
   return true;
 }
@@ -724,6 +738,13 @@ async function actVoiceDisconnect(ctx: HostContext, args: BoundActionArgs, pos: 
       mod: { id: ctx.actor.id, name: ctx.actor.user.username, avatarUrl: ctx.actor.displayAvatarURL({ size: 128 }) },
       channel: from,
     }),
+    {
+      guildId: ctx.guild.id,
+      eventType: "voice_mod",
+      actorId: ctx.actor.id,
+      targetId: member.id,
+      channelId: from.id,
+    },
   );
   return true;
 }
@@ -752,6 +773,12 @@ async function actVoiceMoveAll(ctx: HostContext, args: BoundActionArgs, pos: Sou
       toChannel: { id: to.id, name: to.name },
       count: moved,
     }),
+    {
+      guildId: ctx.guild.id,
+      eventType: "voice_mod",
+      actorId: ctx.actor.id,
+      channelId: to.id,
+    },
   );
   return moved;
 }
@@ -910,8 +937,19 @@ async function actLog(
     information: [content],
     extra: valueToString(args.extra) || undefined,
   };
-  if (kind === "mod") await sendModerationLog(ctx.client, ctx.guildConfig, card);
-  else await sendServerLog(ctx.client, ctx.guildConfig, card);
+  if (kind === "mod") {
+    await sendModerationLog(ctx.client, ctx.guildConfig, card, {
+      guildId: ctx.guild.id,
+      eventType: "dreamcode_mod",
+      actorId: ctx.actor.id,
+    });
+  } else {
+    await sendServerLog(ctx.client, ctx.guildConfig, card, {
+      guildId: ctx.guild.id,
+      eventType: "dreamcode_server",
+      actorId: ctx.actor.id,
+    });
+  }
   return true;
 }
 

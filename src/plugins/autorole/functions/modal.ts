@@ -7,6 +7,7 @@ import {
   type Guild,
   type ModalSubmitInteraction,
 } from "discord.js";
+import type { AutoroleAudience } from "../../../config/schemas/autorole.js";
 import type { ConfigManager } from "../../../config/manager.js";
 import { zAutoroleConfig } from "../../../config/schemas/autorole.js";
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
@@ -14,10 +15,12 @@ import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissi
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import {
+  formatAutoroleAudience,
   formatAutoroleEntry,
   getStoredAutoroleEntries,
+  parseAutoroleAudience,
   parseDelayInput,
-  serializeAutoroleRoles,
+  patchForAudience,
   validateAutoroleTarget,
 } from "./rules.js";
 
@@ -26,13 +29,36 @@ type AnyLabelBuilder = {
   setDescription(description: string): AnyLabelBuilder;
   setRoleSelectMenuComponent(input: unknown): AnyLabelBuilder;
   setTextInputComponent(input: unknown): AnyLabelBuilder;
+  setRadioGroupComponent(input: unknown): AnyLabelBuilder;
 };
 
-const LabelBuilder = (Discord as unknown as { LabelBuilder: new () => AnyLabelBuilder }).LabelBuilder;
+type AnyRadioGroupOptionBuilder = {
+  setValue(value: string): AnyRadioGroupOptionBuilder;
+  setLabel(label: string): AnyRadioGroupOptionBuilder;
+  setDescription(description: string): AnyRadioGroupOptionBuilder;
+  setDefault(isDefault?: boolean): AnyRadioGroupOptionBuilder;
+};
+
+type AnyRadioGroupBuilder = {
+  setCustomId(customId: string): AnyRadioGroupBuilder;
+  setRequired(required?: boolean): AnyRadioGroupBuilder;
+  addOptions(...options: AnyRadioGroupOptionBuilder[]): AnyRadioGroupBuilder;
+};
+
+const DiscordBuilders = Discord as unknown as {
+  LabelBuilder: new () => AnyLabelBuilder;
+  RadioGroupBuilder: new () => AnyRadioGroupBuilder;
+  RadioGroupOptionBuilder: new () => AnyRadioGroupOptionBuilder;
+};
+
+const LabelBuilder = DiscordBuilders.LabelBuilder;
+const RadioGroupBuilder = DiscordBuilders.RadioGroupBuilder;
+const RadioGroupOptionBuilder = DiscordBuilders.RadioGroupOptionBuilder;
 
 export const AUTOROLE_ADD_MODAL_ID = "dl:auto:add";
 
 const FIELD = {
+  audience: "dl:auto:audience",
   role: "dl:auto:role",
   delay: "dl:auto:delay",
 } as const;
@@ -42,8 +68,27 @@ export function buildAutoroleAddModal(): ModalBuilder {
 
   (modal as ModalBuilder & { addLabelComponents: (...args: unknown[]) => ModalBuilder }).addLabelComponents(
     new LabelBuilder()
+      .setLabel("Assign to")
+      .setDescription("Humans and bots use separate autorole lists.")
+      .setRadioGroupComponent(
+        new RadioGroupBuilder()
+          .setCustomId(FIELD.audience)
+          .setRequired(true)
+          .addOptions(
+            new RadioGroupOptionBuilder()
+              .setValue("humans")
+              .setLabel("Humans only")
+              .setDescription("Assign when a person joins")
+              .setDefault(true),
+            new RadioGroupOptionBuilder()
+              .setValue("bots")
+              .setLabel("Bots only")
+              .setDescription("Assign when a bot joins"),
+          ),
+      ),
+    new LabelBuilder()
       .setLabel("Role")
-      .setDescription("Role to assign when a member joins.")
+      .setDescription("Role to assign on join.")
       .setRoleSelectMenuComponent(
         new RoleSelectMenuBuilder()
           .setCustomId(FIELD.role)
@@ -74,8 +119,11 @@ export async function createAutoroleEntry(
   guildId: string,
   userId: string,
   pluginConfig: Record<string, unknown>,
-  input: { roleId: string; delayInput: string },
-): Promise<{ ok: true; roleId: string; delayMs: number; delay?: string } | { ok: false; title: string; message: string; tone?: "error" | "warning" }> {
+  input: { roleId: string; delayInput: string; audience: AutoroleAudience },
+): Promise<
+  | { ok: true; roleId: string; delayMs: number; delay?: string; audience: AutoroleAudience }
+  | { ok: false; title: string; message: string; tone?: "error" | "warning" }
+> {
   const roleError = validateAutoroleTarget(guild, input.roleId);
   if (roleError) {
     return { ok: false, title: "Invalid role", message: roleError, tone: "error" };
@@ -87,9 +135,14 @@ export async function createAutoroleEntry(
   }
 
   const config = zAutoroleConfig.parse(pluginConfig);
-  const entries = getStoredAutoroleEntries(config);
+  const entries = getStoredAutoroleEntries(config, input.audience);
   if (entries.some((entry) => entry.roleId === input.roleId)) {
-    return { ok: false, title: "Already configured", message: "That role is already in the autorole list.", tone: "warning" };
+    return {
+      ok: false,
+      title: "Already configured",
+      message: `That role is already in the ${formatAutoroleAudience(input.audience)} autorole list.`,
+      tone: "warning",
+    };
   }
 
   const newEntry = {
@@ -101,18 +154,29 @@ export async function createAutoroleEntry(
   const result = await configManager.patchPluginConfig(
     guildId,
     "autorole",
-    { roles: serializeAutoroleRoles([...entries, newEntry]) },
+    patchForAudience(input.audience, [...entries, newEntry]),
     userId,
   );
   if (!result.success) {
     return { ok: false, title: "Error", message: result.errors.join("\n"), tone: "error" };
   }
 
-  return { ok: true, roleId: input.roleId, delayMs: parsedDelay.delayMs, ...(parsedDelay.delay ? { delay: parsedDelay.delay } : {}) };
+  return {
+    ok: true,
+    roleId: input.roleId,
+    delayMs: parsedDelay.delayMs,
+    audience: input.audience,
+    ...(parsedDelay.delay ? { delay: parsedDelay.delay } : {}),
+  };
 }
 
-export function formatCreatedAutoroleEntry(roleId: string, delayMs: number, delay?: string): string {
-  return `Added ${formatAutoroleEntry(roleId, { delayMs, delay })}.`;
+export function formatCreatedAutoroleEntry(
+  roleId: string,
+  delayMs: number,
+  audience: AutoroleAudience,
+  delay?: string,
+): string {
+  return `Added ${formatAutoroleEntry(roleId, { delayMs, delay })} for **${formatAutoroleAudience(audience)}**.`;
 }
 
 export async function handleAutoroleModalSubmit(
@@ -150,6 +214,8 @@ export async function handleAutoroleModalSubmit(
     return true;
   }
 
+  const audience = parseAutoroleAudience(interaction.fields.getRadioGroup(FIELD.audience, true));
+
   const roles = interaction.fields.getSelectedRoles(FIELD.role);
   const role = roles?.first();
   if (!role) {
@@ -173,7 +239,7 @@ export async function handleAutoroleModalSubmit(
     interaction.guildId,
     interaction.user.id,
     pluginConfig,
-    { roleId: role.id, delayInput },
+    { roleId: role.id, delayInput, audience },
   );
 
   if (!created.ok) {
@@ -186,7 +252,7 @@ export async function handleAutoroleModalSubmit(
   await interaction.reply(
     resultReply(
       "Autorole added",
-      formatCreatedAutoroleEntry(created.roleId, created.delayMs, created.delay),
+      formatCreatedAutoroleEntry(created.roleId, created.delayMs, created.audience, created.delay),
       ephemeral,
       guildResultOptions(interaction.client, guildConfig),
     ),

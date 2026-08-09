@@ -78,6 +78,13 @@ export const voiceCommands: SlashCommandDefinition[] = [
             fromChannel: fromChannelId ? { id: fromChannelId, name: fromChannelName } : null,
             toChannel: { id: dest.id, name: dest.name },
           }),
+          {
+            guildId: ctx.interaction.guildId!,
+            eventType: "voice_mod",
+            actorId: auth.member.id,
+            targetId: member.id,
+            channelId: dest.id,
+          },
         );
         await ctx.interaction.reply(
           resultReply(
@@ -117,6 +124,12 @@ export const voiceCommands: SlashCommandDefinition[] = [
             fromChannel: { id: fromCh.id, name: fromCh.name },
             toChannel: { id: toCh.id, name: toCh.name },
           }),
+          {
+            guildId: ctx.interaction.guildId!,
+            eventType: "voice_mod",
+            actorId: auth.member.id,
+            channelId: toCh.id,
+          },
         );
         await ctx.interaction.reply(
           resultReply(
@@ -156,6 +169,13 @@ export const voiceCommands: SlashCommandDefinition[] = [
             mod: { id: auth.member.id, name: auth.member.user.username, avatarUrl: auth.member.displayAvatarURL({ size: 128 }) },
             channel: { id: channelId, name: channelName },
           }),
+          {
+            guildId: ctx.interaction.guildId!,
+            eventType: "voice_mod",
+            actorId: auth.member.id,
+            targetId: member.id,
+            channelId,
+          },
         );
         await ctx.interaction.reply(
           resultReply(

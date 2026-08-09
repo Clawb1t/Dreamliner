@@ -54,7 +54,14 @@ async function finishAction(
           { id: user.id, name: user.username, avatarUrl: user.displayAvatarURL({ size: 128 }) },
           `/${type}`,
         ),
-        { caseLogOverride: pluginConfig.case_log_channel },
+        {
+          guildId: ctx.interaction.guildId!,
+          eventType: "dm_failed",
+          actorId: ctx.interaction.user.id,
+          targetId: user.id,
+          caseId: record.id,
+          caseLogOverride: pluginConfig.case_log_channel,
+        },
       );
     }
   }

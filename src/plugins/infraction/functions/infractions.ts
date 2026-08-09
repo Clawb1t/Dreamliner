@@ -220,6 +220,11 @@ export async function postCaseLog(
     mod: mod ? { id: mod.id, name: mod.username, avatarUrl: mod.displayAvatarURL({ size: 128 }) } : { id: record.modId },
   });
   await sendModerationLog(client, guildConfig, content, {
+    guildId: record.guildId,
+    eventType: "case_create",
+    caseId: record.id,
+    actorId: record.modId,
+    targetId: record.userId,
     caseLogOverride: pluginConfig.case_log_channel,
   });
 }
@@ -318,7 +323,12 @@ export async function expireInfraction(client: Client, record: InfractionRecord)
     const userRef = user
       ? { id: user.id, name: user.username, avatarUrl: user.displayAvatarURL({ size: 128 }) }
       : { id: record.userId };
-    await sendModerationLog(client, guildConfig, buildMuteExpiredLog(userRef));
+    await sendModerationLog(client, guildConfig, buildMuteExpiredLog(userRef), {
+      guildId: record.guildId,
+      eventType: "case_expire",
+      caseId: record.id,
+      targetId: record.userId,
+    });
   }
 
   if (record.type === "tempban") {
@@ -327,7 +337,12 @@ export async function expireInfraction(client: Client, record: InfractionRecord)
     const userRef = user
       ? { id: user.id, name: user.username, avatarUrl: user.displayAvatarURL({ size: 128 }) }
       : { id: record.userId };
-    await sendModerationLog(client, guildConfig, buildTempbanExpiredLog(userRef));
+    await sendModerationLog(client, guildConfig, buildTempbanExpiredLog(userRef), {
+      guildId: record.guildId,
+      eventType: "case_expire",
+      caseId: record.id,
+      targetId: record.userId,
+    });
   }
 }
 

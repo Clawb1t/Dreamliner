@@ -131,7 +131,14 @@ export const manageCommands: SlashCommandDefinition[] = [
             { id: ctx.interaction.user.id, name: ctx.interaction.user.username, avatarUrl: ctx.interaction.user.displayAvatarURL({ size: 128 }) },
             `reason -> ${reason.slice(0, 200)}`,
           ),
-          { caseLogOverride: pluginConfig.case_log_channel },
+          {
+            guildId,
+            eventType: "case_update",
+            caseId: id,
+            actorId: ctx.interaction.user.id,
+            targetId: record.userId,
+            caseLogOverride: pluginConfig.case_log_channel,
+          },
         );
         await ctx.interaction.reply(resultReply("Infraction updated", `Reason for #${id} updated.`, ctx.ephemeral, slashResultOptions(ctx)));
         return;
@@ -185,7 +192,14 @@ export const manageCommands: SlashCommandDefinition[] = [
             { id: ctx.interaction.user.id, name: ctx.interaction.user.username, avatarUrl: ctx.interaction.user.displayAvatarURL({ size: 128 }) },
             `duration -> ${durationStr}`,
           ),
-          { caseLogOverride: pluginConfig.case_log_channel },
+          {
+            guildId,
+            eventType: "case_update",
+            caseId: id,
+            actorId: ctx.interaction.user.id,
+            targetId: record.userId,
+            caseLogOverride: pluginConfig.case_log_channel,
+          },
         );
         await ctx.interaction.reply(
           resultReply(
@@ -217,7 +231,14 @@ export const manageCommands: SlashCommandDefinition[] = [
             name: ctx.interaction.user.username,
             avatarUrl: ctx.interaction.user.displayAvatarURL({ size: 128 }),
           }),
-          { caseLogOverride: pluginConfig.case_log_channel },
+          {
+            guildId,
+            eventType: "case_delete",
+            caseId: id,
+            actorId: ctx.interaction.user.id,
+            targetId: record.userId,
+            caseLogOverride: pluginConfig.case_log_channel,
+          },
         );
         await ctx.interaction.reply(resultReply("Infraction deleted", `Infraction #${id} has been deleted.`, ctx.ephemeral, slashResultOptions(ctx)));
       }

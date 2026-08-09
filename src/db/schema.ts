@@ -327,6 +327,24 @@ export const dreamCommands = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.name] })],
 );
 
+/** Persisted audit log events for Discord channel + dashboard Logs. */
+export const guildLogEvents = sqliteTable("guild_log_events", {
+  id: text("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  category: text("category").notNull(),
+  eventType: text("event_type").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull().default(""),
+  actorId: text("actor_id"),
+  targetId: text("target_id"),
+  channelId: text("channel_id"),
+  messageId: text("message_id"),
+  caseId: integer("case_id", { mode: "number" }),
+  payload: text("payload").notNull().default("{}"),
+  discordMessageId: text("discord_message_id"),
+});
+
 /** Pending/resolved guild bot avatar changes awaiting staff approval. */
 export const botAvatarRequests = sqliteTable("bot_avatar_requests", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-09T02:44:30.975Z",
+  "generatedAt": "2026-08-09T13:59:43.108Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -79,7 +79,7 @@
         {
           "key": "autorole",
           "name": "Autorole",
-          "description": "Auto-assign roles on join."
+          "description": "Auto-assign roles on join for humans and bots."
         }
       ]
     },
@@ -139,6 +139,11 @@
           "key": "autoreplies",
           "name": "Autoreplies",
           "description": "Auto-reply to matching messages."
+        },
+        {
+          "key": "translation",
+          "name": "Translation",
+          "description": "Translate messages and auto-flag non-default languages."
         },
         {
           "key": "reminders",
@@ -288,7 +293,7 @@
     {
       "key": "autorole",
       "name": "Autorole",
-      "description": "Auto-assign roles on join.",
+      "description": "Auto-assign roles on join for humans and bots.",
       "category": "Roles",
       "categoryId": "roles"
     },
@@ -352,6 +357,13 @@
       "key": "autoreplies",
       "name": "Autoreplies",
       "description": "Auto-reply to matching messages.",
+      "category": "Automation",
+      "categoryId": "auto"
+    },
+    {
+      "key": "translation",
+      "name": "Translation",
+      "description": "Translate messages and auto-flag non-default languages.",
       "category": "Automation",
       "categoryId": "auto"
     },

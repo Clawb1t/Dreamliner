@@ -17,7 +17,7 @@ export const autorolePlugin = definePlugin({
       name: Events.GuildMemberAdd,
       execute: async (_client, member: unknown) => {
         const m = member as import("discord.js").GuildMember;
-        if (!m.guild || m.user.bot) return;
+        if (!m.guild) return;
 
         const guildConfig = await configManager.getEffectiveConfig(m.guild.id);
         const section = guildConfig.plugins.autorole;

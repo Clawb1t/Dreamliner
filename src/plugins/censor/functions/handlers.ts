@@ -47,6 +47,13 @@ async function logCensor(message: Message, guildConfig: GuildConfig, pattern: st
       pattern,
       action,
     }),
+    {
+      guildId: message.guild!.id,
+      eventType: "censor",
+      targetId: message.author.id,
+      channelId: message.channel.id,
+      messageId: message.id,
+    },
   );
 }
 

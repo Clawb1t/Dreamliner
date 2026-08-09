@@ -1,7 +1,11 @@
 import type { Guild } from "discord.js";
-import type { AutoroleConfig, NormalizedAutoroleEntry } from "../../../config/schemas/autorole.js";
+import type {
+  AutoroleAudience,
+  AutoroleConfig,
+  NormalizedAutoroleEntry,
+} from "../../../config/schemas/autorole.js";
 import { formatDurationShort, parseDuration } from "../../infraction/functions/duration.js";
-import { normalizeAutoroleEntries } from "./applyRoles.js";
+import { normalizeAutoroleEntries, roleListForAudience } from "./applyRoles.js";
 
 export type StoredAutoroleEntry = {
   roleId: string;
@@ -9,9 +13,21 @@ export type StoredAutoroleEntry = {
   delay?: string;
 };
 
-export function getStoredAutoroleEntries(config: AutoroleConfig): StoredAutoroleEntry[] {
-  return normalizeAutoroleEntries(config).map((entry) => {
-    const raw = config.roles.find((item) => (typeof item === "string" ? item : item.role) === entry.roleId);
+export function parseAutoroleAudience(value: string | null | undefined): AutoroleAudience {
+  return value === "bots" ? "bots" : "humans";
+}
+
+export function formatAutoroleAudience(audience: AutoroleAudience): string {
+  return audience === "bots" ? "bots" : "humans";
+}
+
+export function getStoredAutoroleEntries(
+  config: AutoroleConfig,
+  audience: AutoroleAudience = "humans",
+): StoredAutoroleEntry[] {
+  const list = roleListForAudience(config, audience);
+  return normalizeAutoroleEntries(config, audience).map((entry) => {
+    const raw = list.find((item) => (typeof item === "string" ? item : item.role) === entry.roleId);
     const delay = typeof raw === "object" ? raw.delay : undefined;
     return { roleId: entry.roleId, delayMs: entry.delayMs, ...(delay ? { delay } : {}) };
   });
@@ -24,6 +40,14 @@ export function serializeAutoroleRoles(entries: StoredAutoroleEntry[]): Autorole
     }
     return { role: entry.roleId, delay_ms: entry.delayMs };
   });
+}
+
+export function patchForAudience(
+  audience: AutoroleAudience,
+  entries: StoredAutoroleEntry[],
+): Partial<AutoroleConfig> {
+  const serialized = serializeAutoroleRoles(entries);
+  return audience === "bots" ? { bot_roles: serialized } : { roles: serialized };
 }
 
 export function parseDelayInput(

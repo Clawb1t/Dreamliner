@@ -85,6 +85,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       { plugin: "autodelete" },
       { plugin: "autoreactions" },
       { plugin: "autoreplies" },
+      { plugin: "translation" },
       { plugin: "reminders" },
       { plugin: "counters" },
       { plugin: "companion_channels" },
@@ -176,7 +177,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   autorole: {
     key: "autorole",
     name: "Autorole",
-    description: "Auto-assign roles on join.",
+    description: "Auto-assign roles on join for humans and bots.",
   },
   welcome_message: {
     key: "welcome_message",
@@ -199,6 +200,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     key: "autoreplies",
     name: "Autoreplies",
     description: "Auto-reply to matching messages.",
+  },
+  translation: {
+    key: "translation",
+    name: "Translation",
+    description: "Translate messages and auto-flag non-default languages.",
   },
   reminders: { key: "reminders", name: "Reminders", description: "Personal reminders." },
   counters: { key: "counters", name: "Counters", description: "Live counters." },
@@ -278,6 +284,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   autodelete: "auto",
   autoreactions: "auto",
   autoreplies: "auto",
+  translation: "auto",
   reminders: "auto",
   counters: "auto",
   companion_channels: "auto",

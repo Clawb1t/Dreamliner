@@ -1,65 +1,56 @@
 # Logs plugin
 
-Clean logging for server activity and moderation actions. The logs plugin has no commands - it listens to Discord events and posts messages to configured channels.
+Logging for server activity and moderation actions. The logs plugin has no commands - it listens to Discord events, stores audit rows, and posts to configured channels when toggles allow it.
 
 ## Configuration
 
 ```yaml
-# Server events: joins, leaves, message edits/deletes, voice activity, nickname/role changes
+# Server events: joins, leaves, edits, deletes, channels, roles, voice, etc.
 server_log_channel_id: "1234567890123456789"
 
 # Moderation: infractions, automod, censor, cleans, voice mod, case updates
 moderation_log_channel_id: "1234567890123456789"
+
+# Per-event toggles (missing keys default to enabled)
+logging:
+  events:
+    member_join: true
+    message_delete: true
+    voice_self_mute: false
 ```
+
+Configure channels and toggles in the dashboard **Logging** section. Browse stored events in **Logs**.
 
 The legacy `log_channel_id` field still works as a fallback for moderation logs if `moderation_log_channel_id` is not set.
 
-Infraction case logs can optionally use a dedicated channel via `plugins.infractions.config.case_log_channel`, which overrides `moderation_log_channel_id` for case-related lines only.
+Infraction case logs can optionally use a dedicated channel via `plugins.infractions.config.case_log_channel`, which overrides `moderation_log_channel_id` for case-related Discord posts only. Those events still appear in the dashboard Logs viewer.
 
-## Message tracking
+## Storage
 
-While the bot is running, messages in servers with `server_log_channel_id` set are saved to the database. If a message is deleted after a bot restart, Dreamliner can still log the delete using the stored author, channel, and content.
+Every enabled event is stored in `guild_log_events` for **90 days** (used by the dashboard Logs page), even if no Discord log channel is set.
 
-Messages are retained for **42 days**. Bot messages are not tracked.
+Message content snapshots for edit/delete reconstruction are still kept in `log_messages` for **42 days**.
 
-## Log layout
+## Log layout (Discord)
 
-Each log is a **Components v2** message styled like command responses:
+Each Discord log is a **Components v2** message:
 
 - Colorless **container**
 - **Section** with the member's avatar thumbnail (when available)
-- Bold **title** (e.g. **📥 Join**)
-- **Information** block with labeled fields: Member, Target, Moderator, Channel, etc.
-- **Member**, **Target**, and **Moderator** use clickable mentions with ID in backticks: `<@user> (`id`)`
-- **Channel** fields use clickable channel mentions: `<#channel> (`id`)`
-- **Role** changes use role mentions with IDs in backticks
+- Bold **title**
+- **Information** block with labeled fields and snowflakes
 - **Separator** + extra block for message content or before/after edits
 
-No @mentions are used and `allowedMentions` is disabled on every log message.
+`allowedMentions` is disabled on every log message.
 
-## Server log events
+## Server log coverage
 
-| Event | Title |
-|-------|-------|
-| Member join | 📥 Join |
-| Member leave | 📤 Leave |
-| Message edit | 📝 Edit Message |
-| Message delete | 🗑️ Delete Message |
-| Voice join/leave/move | 🔊 / 🔇 / 🔀 |
-| Nickname change | 📝 Nickname Change |
-| Role change | 🎭 Role Change |
+Includes (toggleable): member join/leave/kick/ban/unban/timeout/nick/roles; message edit/delete/bulk delete/pin; channel and thread create/update/delete; role create/update/delete; guild update; emoji/sticker/invite/webhook changes; voice join/leave/move and mute/deafen/stream/video flags.
 
-Bot accounts are excluded from member and message logs.
+Where Discord provides audit logs, Dreamliner attaches the executor when available.
 
-## Moderation log events
+Bot accounts are excluded from member and message content logs.
 
-| Source | Title |
-|--------|-------|
-| `/warn`, `/mute`, `/ban`, etc. | ⚠️ Warn #42, 🔇 Mute #43, … |
-| `/infraction reason\|duration\|delete` | 📝 Case Update, 🔴 Case Delete |
-| `/clean` | 🧼 Clean |
-| Automod (spam, rate limit, raid) | 🤖 Automod, 🚨 Raid Detected |
-| Censor (word filter) | 🚫 Censor |
-| `/voice move`, `move-all`, `disconnect` | 🔀 Voice Move, 🔇 Voice Disconnect |
-| Mute/tempban expiry | 🔊 Mute Expired, ✅ Temp Ban Expired |
-| Failed DMs | 🚧 DM Failed |
+## Moderation log coverage
+
+Includes case create/update/delete/expire, automod, raid, censor, clean, voice mod actions, failed DMs, and Dreamcode mod logs. Dashboard Logs can open the linked case when `case_id` is present.

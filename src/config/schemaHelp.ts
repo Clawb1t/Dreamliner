@@ -58,6 +58,7 @@ type JsonSchemaNode = {
 };
 
 function humanizeKey(key: string): string {
+  if (key === "bot_roles") return "Bot Roles";
   return key
     .replace(/^can_/, "")
     .replace(/_/g, " ")
@@ -80,6 +81,7 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
     key === "mute_role" ||
     key.endsWith("_role_id") ||
     key.endsWith("_role") ||
+    key.endsWith("_roles") ||
     key === "ignored_roles" ||
     key === "roles"
   ) {

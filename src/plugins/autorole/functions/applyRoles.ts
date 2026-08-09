@@ -1,5 +1,10 @@
 import type { GuildMember, Role } from "discord.js";
-import type { AutoroleConfig, AutoroleRoleEntry, NormalizedAutoroleEntry } from "../../../config/schemas/autorole.js";
+import type {
+  AutoroleAudience,
+  AutoroleConfig,
+  AutoroleRoleEntry,
+  NormalizedAutoroleEntry,
+} from "../../../config/schemas/autorole.js";
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parseDuration } from "../../infraction/functions/duration.js";
@@ -12,13 +17,27 @@ export function resolveRoleDelayMs(entry: Pick<AutoroleRoleEntry, "delay_ms" | "
   return entry.delay_ms;
 }
 
-export function normalizeAutoroleEntries(config: AutoroleConfig): NormalizedAutoroleEntry[] {
-  return config.roles.map((entry) => {
+export function roleListForAudience(
+  config: AutoroleConfig,
+  audience: AutoroleAudience,
+): AutoroleConfig["roles"] {
+  return audience === "bots" ? config.bot_roles : config.roles;
+}
+
+export function normalizeAutoroleEntries(
+  config: AutoroleConfig,
+  audience: AutoroleAudience = "humans",
+): NormalizedAutoroleEntry[] {
+  return roleListForAudience(config, audience).map((entry) => {
     if (typeof entry === "string") {
       return { roleId: entry, delayMs: 0 };
     }
     return { roleId: entry.role, delayMs: resolveRoleDelayMs(entry) };
   });
+}
+
+export function audienceForMember(member: GuildMember): AutoroleAudience {
+  return member.user.bot ? "bots" : "humans";
 }
 
 export function filterAssignableRoles(member: GuildMember, roleIds: string[]): Role[] {
@@ -43,12 +62,18 @@ export async function applyAutoroles(member: GuildMember, roleIds: string[]): Pr
   await member.roles.add(roles, "Dreamliner autorole").catch(() => null);
 }
 
-function scheduleSingleAutorole(member: GuildMember, roleId: string, delayMs: number): void {
+function scheduleSingleAutorole(
+  member: GuildMember,
+  roleId: string,
+  delayMs: number,
+  audience: AutoroleAudience,
+): void {
   const run = async () => {
     const guildConfig = await configManager.getEffectiveConfig(member.guild.id);
     if (!pluginEnabled(guildConfig, "autorole")) return;
     const refreshed = await member.guild.members.fetch(member.id).catch(() => null);
-    if (!refreshed || refreshed.user.bot) return;
+    if (!refreshed) return;
+    if (audienceForMember(refreshed) !== audience) return;
     await applyAutoroles(refreshed, [roleId]);
   };
 
@@ -60,8 +85,9 @@ function scheduleSingleAutorole(member: GuildMember, roleId: string, delayMs: nu
 }
 
 export function scheduleAutoroles(member: GuildMember, config: AutoroleConfig): void {
-  const entries = normalizeAutoroleEntries(config);
+  const audience = audienceForMember(member);
+  const entries = normalizeAutoroleEntries(config, audience);
   for (const entry of entries) {
-    scheduleSingleAutorole(member, entry.roleId, entry.delayMs);
+    scheduleSingleAutorole(member, entry.roleId, entry.delayMs, audience);
   }
 }

@@ -8,6 +8,7 @@ import {
   getDreamlinerEnv,
   isDashboardBridgeEnabled,
 } from "./env.js";
+import { isDashboardSuperuser } from "./superuser.js";
 
 export type BridgeGuildSnapshot = {
   id: string;
@@ -105,6 +106,9 @@ async function readBody(req: http.IncomingMessage): Promise<string> {
 }
 
 async function memberCanManage(guild: Guild, userId: string): Promise<boolean> {
+  // Platform superusers (OAuth discordId, after Bearer secret) may manage any bot guild.
+  if (isDashboardSuperuser(userId)) return true;
+
   if (guild.ownerId === userId) return true;
   try {
     const member = await guild.members.fetch(userId);
@@ -232,6 +236,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const modCasesMatch = /^\/bridge\/guilds\/(\d+)\/moderation\/cases$/.exec(url.pathname);
+        const logStatsMatch = /^\/bridge\/guilds\/(\d+)\/logs\/stats$/.exec(url.pathname);
+        const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
+        const logsMatch = /^\/bridge\/guilds\/(\d+)\/logs$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
@@ -245,6 +252,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !dbTablesMatch &&
           !modCaseMatch &&
           !modCasesMatch &&
+          !logStatsMatch &&
+          !logOneMatch &&
+          !logsMatch &&
           !guildMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
@@ -261,6 +271,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           dbTablesMatch?.[1] ??
           modCaseMatch?.[1] ??
           modCasesMatch?.[1] ??
+          logStatsMatch?.[1] ??
+          logOneMatch?.[1] ??
+          logsMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
@@ -322,6 +335,57 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             case: detail,
+          });
+          return;
+        }
+
+        if (logsMatch || logOneMatch || logStatsMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { parseWebLogsQuery, listWebLogs, getWebLog, getWebLogStats } =
+            await import("./webLogs.js");
+
+          if (logStatsMatch) {
+            const days = Number(url.searchParams.get("days") ?? 14) || 14;
+            const stats = await getWebLogStats(guild, days);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...stats,
+            });
+            return;
+          }
+
+          if (logsMatch) {
+            const query = parseWebLogsQuery(url);
+            const result = await listWebLogs(guild, query);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...result,
+            });
+            return;
+          }
+
+          const logId = logOneMatch![2]!;
+          const detail = await getWebLog(guild, logId);
+          if (!detail) {
+            sendJson(res, 404, { error: "Log not found" });
+            return;
+          }
+          sendJson(res, 200, {
+            guild: { id: guild.id, name: guild.name, icon: guild.icon },
+            log: detail,
           });
           return;
         }

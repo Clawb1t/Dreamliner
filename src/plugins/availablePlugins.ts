@@ -3,6 +3,7 @@ import { configPlugin } from "../plugins/config/index.js";
 import { utilityPlugin } from "../plugins/utility/index.js";
 import { infractionPlugin } from "../plugins/infraction/index.js";
 import { autorolePlugin } from "../plugins/autorole/index.js";
+import { translationPlugin } from "../plugins/translation/index.js";
 import { starboardPlugin } from "../plugins/starboard/index.js";
 import { logsPlugin } from "../plugins/logs/index.js";
 import { automodPlugin } from "../plugins/automod/index.js";
@@ -39,6 +40,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   utilityPlugin,
   infractionPlugin,
   autorolePlugin,
+  translationPlugin,
   starboardPlugin,
   logsPlugin,
   automodPlugin,

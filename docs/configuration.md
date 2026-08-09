@@ -93,14 +93,19 @@ For a complete setup guide with examples, see [Permissions setup](permissions.md
 ```yaml
 server_log_channel_id: "1234567890123456789"
 moderation_log_channel_id: "1234567890123456789"
+logging:
+  events:
+    member_join: true
+    voice_self_mute: false
 ```
 
-| Channel                     | Events                                                                                |
+| Channel / key               | Purpose                                                                               |
 | --------------------------- | ------------------------------------------------------------------------------------- |
-| `server_log_channel_id`     | Joins, leaves, message edits/deletes, voice activity, nickname/role changes           |
-| `moderation_log_channel_id` | Infractions, automod, censor, `/clean`, voice mod commands, case updates, expirations |
+| `server_log_channel_id`     | Discord channel for server/guild audit events                                         |
+| `moderation_log_channel_id` | Discord channel for infractions, automod, censor, clean, voice mod, case updates      |
+| `logging.events`            | Per-event toggles (missing keys default to enabled). Configured in dashboard Logging. |
 
-The legacy `log_channel_id` still works as a fallback for moderation logs. See [Logs plugin](plugins/logs.md) for the full event list and log format.
+Events are also stored for the dashboard **Logs** page (90 days). The legacy `log_channel_id` still works as a fallback for moderation Discord posts. See [Logs plugin](plugins/logs.md).
 
 ## Plugin sections
 
@@ -129,7 +134,7 @@ For everyday grants (user / role / everyone) and level assignment, prefer `/perm
 
 On upload, your YAML is **deep-merged** with `config/default.server.yaml`. You only need to include keys you want to change.
 
-See also: [Autorole](plugins/autorole.md), [Logs](plugins/logs.md), [Starboard](plugins/starboard.md).
+See also: [Autorole](plugins/autorole.md), [Translation](plugins/translation.md), [Logs](plugins/logs.md), [Starboard](plugins/starboard.md).
 
 ## Config commands
 

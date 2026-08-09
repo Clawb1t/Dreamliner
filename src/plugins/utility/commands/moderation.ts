@@ -76,6 +76,13 @@ export const moderationCommands: SlashCommandDefinition[] = [
           count,
           archiveId,
         }),
+        {
+          guildId: ctx.interaction.guildId!,
+          eventType: "clean",
+          actorId: ctx.interaction.user.id,
+          targetId: user?.id ?? null,
+          channelId: textChannel.id,
+        },
       );
 
       if (ctx.interaction.options.getBoolean("update_case")) {

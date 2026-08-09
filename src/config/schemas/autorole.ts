@@ -2,6 +2,9 @@ import { z } from "zod";
 import { boolPerm } from "../schemaHelp.js";
 import { zPluginOverride } from "./pluginSection.js";
 
+const roleListDescription =
+  "Use a role ID string, or an object with role + delay_ms (or delay).";
+
 export const zAutoroleRoleEntry = z.strictObject({
   role: z.string().describe("Role ID to assign on join."),
   delay_ms: z
@@ -13,13 +16,15 @@ export const zAutoroleRoleEntry = z.strictObject({
   delay: z.string().optional().describe("Optional human delay string (alternative to delay_ms)."),
 });
 
+const zAutoroleRoleList = z.array(z.union([z.string(), zAutoroleRoleEntry])).default([]);
+
 export const zAutoroleConfig = z.strictObject({
-  roles: z
-    .array(z.union([z.string(), zAutoroleRoleEntry]))
-    .default([])
-    .describe(
-      "Roles to assign when a member joins. Use a role ID string, or an object with role + delay_ms.",
-    ),
+  roles: zAutoroleRoleList.describe(
+    `Roles for humans only. Assigned when a person joins. ${roleListDescription}`,
+  ),
+  bot_roles: zAutoroleRoleList.describe(
+    `Roles for bots only. Assigned when a bot joins. ${roleListDescription}`,
+  ),
   can_add: boolPerm("add autorole entries"),
   can_remove: boolPerm("remove autorole entries"),
   can_list: boolPerm("list autorole entries"),
@@ -37,6 +42,7 @@ export const zAutorolePluginSection = z.strictObject({
 
 export type AutoroleConfig = z.infer<typeof zAutoroleConfig>;
 export type AutoroleRoleEntry = z.infer<typeof zAutoroleRoleEntry>;
+export type AutoroleAudience = "humans" | "bots";
 
 export type NormalizedAutoroleEntry = {
   roleId: string;

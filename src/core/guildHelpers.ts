@@ -25,7 +25,9 @@ import { autodeleteDefaultOverrides } from "../plugins/autodelete/defaultOverrid
 import { autoreactionsDefaultOverrides } from "../plugins/autoreactions/defaultOverrides.js";
 import { autorepliesDefaultOverrides } from "../plugins/autoreplies/defaultOverrides.js";
 import { autoroleDefaultOverrides } from "../plugins/autorole/defaultOverrides.js";
+import { translationDefaultOverrides } from "../plugins/translation/defaultOverrides.js";
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
+import { zTranslationConfig, type TranslationConfig } from "../config/schemas/translation.js";
 import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.js";
 import { companionChannelsDefaultOverrides } from "../plugins/companion_channels/defaultOverrides.js";
 import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/defaultOverrides.js";
@@ -60,6 +62,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   autoreactions: autoreactionsDefaultOverrides,
   autoreplies: autorepliesDefaultOverrides,
   autorole: autoroleDefaultOverrides,
+  translation: translationDefaultOverrides,
   reminders: remindersDefaultOverrides,
   counters: countersDefaultOverrides,
   companion_channels: companionChannelsDefaultOverrides,
@@ -93,6 +96,11 @@ export function getInfractionPluginConfig(
 
 export function getAutorolePluginConfig(guildConfig: GuildConfig) {
   return resolvePluginConfig(guildConfig, "autorole", autoroleDefaultOverrides);
+}
+
+export function getTranslationPluginConfig(guildConfig: GuildConfig): TranslationConfig {
+  const resolved = resolvePluginConfig(guildConfig, "translation", translationDefaultOverrides);
+  return zTranslationConfig.parse(resolved);
 }
 
 export function getStarboardPluginConfig(guildConfig: GuildConfig): StarboardConfig {

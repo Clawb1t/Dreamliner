@@ -3,6 +3,7 @@ import { zUtilityPluginSection } from "./utility.js";
 import { zInfractionPluginSection } from "./infraction.js";
 import { zAutorolePluginSection } from "./autorole.js";
 import { zStarboardPluginSection } from "./starboard.js";
+import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import {
   zAdminPluginSection,
   zAutomodPluginSection,
@@ -57,6 +58,17 @@ export const zEmojisConfig = z.strictObject({
     .describe("Emoji prefix for disabled or off states."),
 });
 
+export const zLoggingConfig = z
+  .strictObject({
+    events: z
+      .record(z.boolean())
+      .default({})
+      .describe(
+        "Per-event log toggles. Missing keys default to enabled. Keys match dashboard Logging toggles.",
+      ),
+  })
+  .default({});
+
 export const zGuildConfig = z.strictObject({
   emojis: zEmojisConfig.default({}).describe("Response embed title emoji prefixes."),
   levels: z
@@ -76,15 +88,18 @@ export const zGuildConfig = z.strictObject({
     .string()
     .optional()
     .describe("Channel for infractions, automod, censor, clean, voice mod, and case updates."),
+  logging: zLoggingConfig.describe("Log event toggles for Discord channels and the dashboard Logs page."),
   ephemeral_responses: z
     .boolean()
     .default(false)
     .describe("When true, command replies are only visible to the user who ran the command."),
+  default_language: zDefaultLanguage,
   plugins: z
     .strictObject({
       utility: zUtilityPluginSection.optional(),
       infractions: zInfractionPluginSection.optional(),
       autorole: zAutorolePluginSection.optional(),
+      translation: zTranslationPluginSection.optional(),
       starboard: zStarboardPluginSection.optional(),
       automod: zAutomodPluginSection.optional(),
       censor: zCensorPluginSection.optional(),
@@ -120,6 +135,7 @@ export const zGuildConfig = z.strictObject({
 
 export type GuildConfig = z.infer<typeof zGuildConfig>;
 export type EmojisConfig = z.infer<typeof zEmojisConfig>;
+export type LoggingConfig = z.infer<typeof zLoggingConfig>;
 
 export type PluginOverride = {
   level?: string;

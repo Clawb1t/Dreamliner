@@ -1,196 +1,182 @@
-# ✈️ Dreamliner
+# Dreamliner
 
-**A Discord moderation & server-management bot.** YAML config, slash commands, no dashboard required.
+Moderation and ops for large Discord communities: YAML config, staff permissions, logging, automod, and a web dashboard.
 
-Inspired by [Zeppelin](https://github.com/ZeppelinBot/Zeppelin). Configure your server by downloading a template, editing it, and uploading it back.
+Dreamliner is a Discord moderation and server-operations bot built for communities that outgrow one-size-fits-all tools. It is designed for staff teams that need clear permission boundaries, auditable configuration, and features that stay reliable as membership and moderation load grow.
 
-***
+Configure your server with versionable YAML: download a template, edit channels, plugins, and access levels, then upload. Day-to-day work can also run through the web dashboard for live config, logs, stats, and custom commands, without giving up file-based control. Dreamliner does not require Administrator; invite with least privilege and grant only what your staff need.
 
-## 🚀 Invite
+Core capabilities include infractions and case management, automod and raid tooling, content filters, structured logging, role and onboarding systems, multilingual translation, activity stats, and Dreamcode for custom slash commands. Enable only the plugins your community uses so the bot stays focused and predictable for operators.
 
-[**➕ Add Dreamliner to your server**](https://discord.com/oauth2/authorize?client_id=1524053555114151946\&permissions=1099932494934\&scope=bot%20applications.commands)
+Built for serious Discord operations. Inspired by [Zeppelin](https://github.com/ZeppelinBot/Zeppelin).
 
-> Recommended permissions are pre-selected. See [Permissions setup](docs/permissions.md) for what each one is for. Dreamliner does **not** need Administrator.
+**Website:** [dreamliner.site](https://www.dreamliner.site) · **Dashboard:** [dreamliner.site/dashboard](https://www.dreamliner.site/dashboard)
 
-***
+---
 
-## ⚡ Quick start
+## Invite
 
-1. **Invite** Dreamliner with the link above
-2. Run **`/config template`** (needs **Manage Server**)
-3. Edit the YAML: set channels and plugins (levels can also be set later with `/permissions`)
-4. Run **`/config upload`** with your file
-5. You’re live. Use **`/permissions`** to grant commands / set levels without re-uploading, and **`/help`** anytime
+[Add Dreamliner to your server](https://discord.com/oauth2/authorize?client_id=1524053555114151946&permissions=1099932494934&scope=bot%20applications.commands)
 
-Full walkthrough: [Getting started](docs/getting-started.md)
+Recommended permissions are pre-selected. Dreamliner does **not** require Administrator. See [Permissions](docs/permissions.md) for the full breakdown.
 
-***
+---
 
-## ✨ Features
+## Why operators choose it
 
-### 🧰 Core
+- **Config as source of truth:** Guild YAML is portable, reviewable, and easy to back up or hand off between staff.
+- **Least privilege by design:** Level-based access plus per-command `can_*` overrides so senior mods, trial staff, and helpers stay in their lane.
+- **Ops without noise:** Enable only the plugins your community needs; leave the rest off.
+- **Slash-first management:** Staff workflows and custom Dreamcode commands stay in Discord’s command surface.
+- **Dashboard when you want it:** Live config, logs, stats, and Dreamcode editing without abandoning file-based control.
 
-| Plugin          | What it does                                                                        |
-| --------------- | ----------------------------------------------------------------------------------- |
-| **Utility**     | Search, user/server/channel info, clean, voice tools, avatar, jumbo, help, and more |
-| **Infractions** | Warn, note, mute, kick, ban, softban, case management, DMs, expirations             |
+---
 
-### 🛡️ Moderation
+## Quick start
 
-| Plugin       | What it does                                         |
-| ------------ | ---------------------------------------------------- |
-| **Automod**  | Duplicate messages, rate limits, raid detection      |
-| **Censor**   | Word/phrase filters with configurable actions        |
-| **Admin**    | Channel lockdown & unlock                            |
-| **Persist**  | Sticky messages that stay at the bottom of a channel |
-| **Slowmode** | Per-channel slowmode control                         |
+1. Invite Dreamliner with the link above.
+2. Run `/config template` (requires **Manage Server**).
+3. Edit the YAML: channels, plugins, and permission levels (levels can also be adjusted later with `/permissions`).
+4. Run `/config upload` with your file.
+5. Use `/permissions` for incremental access changes and `/help` for command discovery.
 
-### 🎭 Roles
+Walkthrough: [Getting started](docs/getting-started.md)
 
-| Plugin                   | What it does                       |
-| ------------------------ | ---------------------------------- |
-| **Roles**                | Give / remove / list roles         |
-| **Reaction roles**       | React to a message to claim a role |
-| **Role buttons**         | Button-based role assignment       |
-| **Self grantable roles** | Self-serve role panels             |
-| **Pingable roles**       | Temporarily make roles mentionable |
-| **Role manager**         | Role templates for quick creation  |
-| **Autorole**             | Auto-assign roles on join          |
+---
 
-### 🤖 Automation
+## Capabilities
 
-| Plugin                 | What it does                             |
-| ---------------------- | ---------------------------------------- |
-| **Welcome message**    | Custom join messages                     |
-| **Tags**               | Reusable text snippets                   |
-| **Scheduled posts**    | Timed / recurring channel posts          |
-| **Autodelete**         | Auto-clear messages after a delay        |
-| **Autoreactions**      | React automatically to matching messages |
-| **Reminders**          | Personal reminders                       |
-| **Counters**           | Live member / message / custom counters  |
-| **Companion channels** | Personal voice channels from a hub       |
+### Moderation and safety
 
-### 📊 Tracking
+| Area | Capabilities |
+| --- | --- |
+| **Infractions** | Warn, note, mute, kick, ban, softban, case history, DMs, expirations |
+| **Automod** | Duplicate messages, rate limits, raid detection |
+| **Censor** | Word and phrase filters with configurable actions |
+| **Admin** | Channel lockdown and unlock |
+| **Slowmode** | Per-channel slowmode control |
+| **Logs** | Structured server and moderation event logging (Discord channels + dashboard retention) |
 
-| Plugin             | What it does                         |
-| ------------------ | ------------------------------------ |
-| **Name history**   | Track nickname / username changes    |
-| **Username saver** | Persist username history             |
-| **Locate user**    | Find where a member is (voice, etc.) |
-| **Stats**          | Server, user, and channel stats      |
+### Roles and onboarding
 
-### 🎨 Customization & extras
+| Area | Capabilities |
+| --- | --- |
+| **Roles** | Give, remove, and list roles |
+| **Reaction / button / self-serve roles** | Claim flows that fit large join volume |
+| **Autorole** | Separate human and bot join assignment |
+| **Pingable roles** | Temporary mentionability for announcements |
+| **Role manager** | Templates for consistent role creation |
+| **Welcome message** | Controlled join messaging |
 
-| Plugin              | What it does                      |
-| ------------------- | --------------------------------- |
-| **Custom events**   | Hook actions to Discord events    |
-| **Command aliases** | Shortcuts and message triggers    |
-| **Starboard**       | Highlight highly reacted messages |
-| **Logs**            | Server & moderation event logging |
+### Automation and content
 
-Plus **per-server emoji prefixes** (success, error, neutral, warning, unchecked) and **level-based permissions** with `can_*` overrides.
+| Area | Capabilities |
+| --- | --- |
+| **Tags** | Reusable staff and helper responses |
+| **Scheduled posts** | Timed and recurring channel posts |
+| **Autodelete / autoreactions / autoreplies** | Channel hygiene and lightweight automation |
+| **Translation** | On-demand and optional auto-translate for multilingual communities |
+| **Counters** | Live member, message, and custom counters |
+| **Companion channels** | Personal voice channels from a hub |
+| **Reminders** | Personal staff reminders |
+| **Custom events / command aliases** | Hook Discord events and short triggers |
+| **Dreamcode** | Custom slash commands with a dedicated language and dashboard editor |
 
-***
+### Visibility and utility
 
-## 📚 Documentation
+| Area | Capabilities |
+| --- | --- |
+| **Stats** | Server, user, and channel analytics |
+| **Name history / username saver** | Audit trail for identity changes |
+| **Locate user** | Find members (including voice) |
+| **Utility** | Search, info, clean, voice tools, avatar, jumbo, help |
+| **Starboard** | Surface highly reacted messages |
+| **Persist** | Sticky messages that stay at the bottom of a channel |
 
-| Guide                                                         | Description                          |
-| ------------------------------------------------------------- | ------------------------------------ |
-| [📖 Docs home](/broken/pages/ScBf0pRjbQl3XDFHSAMa)            | Full documentation index             |
-| [🚦 Getting started](docs/getting-started.md)                 | Invite → template → upload           |
-| [⚙️ Configuration](docs/configuration.md)                     | YAML format, emojis, logs, plugins   |
-| [🔐 Permissions](docs/permissions.md)                         | Bot perms, levels, and `can_*` flags |
-| [📜 Terms of Service](docs/terms-of-service.md)               | Rules for using Dreamliner           |
-| [🔒 Privacy Policy](docs/privacy-policy.md)                   | What data we process and why         |
-| [🚀 Deploy on PebbleHost](/broken/pages/35OV3jidArtV9N2lZzKa) | Easiest hosting on PebbleHost panel  |
-| [🖥️ Deploy to Hetzner](/broken/pages/Fe4xJ4XK98WTUFL8umoV)   | VPS with auto-deploy on push         |
+Per-server emoji prefixes and bot customisation (nickname / avatar) are supported for brand consistency across guilds.
 
-### Plugin docs
+---
 
-<details>
+## Documentation
 
-<summary><strong>Core</strong></summary>
+| Guide | Description |
+| --- | --- |
+| [Documentation index](docs/README.md) | Full docs entry point |
+| [Getting started](docs/getting-started.md) | Invite → template → upload |
+| [Configuration](docs/configuration.md) | YAML structure, logging, plugins |
+| [Permissions](docs/permissions.md) | Bot permissions, levels, and `can_*` flags |
+| [Plugins](docs/plugins/README.md) | Per-plugin reference |
+| [Dreamcode](docs/dreamcode/README.md) | Custom command language |
+| [Terms of Service](docs/terms-of-service.md) | Usage terms |
+| [Privacy Policy](docs/privacy-policy.md) | Data handling |
 
-* [Utility](docs/plugins/utility.md)
-* [Infractions](docs/plugins/infraction.md)
-
-</details>
+### Plugin reference
 
 <details>
-
 <summary><strong>Moderation</strong></summary>
 
-* [Automod](docs/plugins/automod.md)
-* [Censor](docs/plugins/censor.md)
-* [Admin](docs/plugins/admin.md)
-* [Persist](docs/plugins/persist.md)
-* [Slowmode](docs/plugins/slowmode.md)
+- [Infractions](docs/plugins/infraction.md)
+- [Automod](docs/plugins/automod.md)
+- [Censor](docs/plugins/censor.md)
+- [Admin](docs/plugins/admin.md)
+- [Persist](docs/plugins/persist.md)
+- [Slowmode](docs/plugins/slowmode.md)
+- [Logs](docs/plugins/logs.md)
 
 </details>
 
 <details>
-
 <summary><strong>Roles</strong></summary>
 
-* [Roles](docs/plugins/roles.md)
-* [Reaction roles](docs/plugins/reaction_roles.md)
-* [Role buttons](docs/plugins/role_buttons.md)
-* [Self grantable roles](docs/plugins/self_grantable_roles.md)
-* [Pingable roles](docs/plugins/pingable_roles.md)
-* [Role manager](docs/plugins/role_manager.md)
-* [Autorole](docs/plugins/autorole.md)
+- [Roles](docs/plugins/roles.md)
+- [Reaction roles](docs/plugins/reaction_roles.md)
+- [Role buttons](docs/plugins/role_buttons.md)
+- [Self-grantable roles](docs/plugins/self_grantable_roles.md)
+- [Pingable roles](docs/plugins/pingable_roles.md)
+- [Role manager](docs/plugins/role_manager.md)
+- [Autorole](docs/plugins/autorole.md)
 
 </details>
 
 <details>
-
 <summary><strong>Automation</strong></summary>
 
-* [Welcome message](docs/plugins/welcome_message.md)
-* [Tags](docs/plugins/tags.md)
-* [Scheduled posts](docs/plugins/post.md)
-* [Autodelete](docs/plugins/autodelete.md)
-* [Autoreactions](docs/plugins/autoreactions.md)
-* [Reminders](docs/plugins/reminders.md)
-* [Counters](docs/plugins/counters.md)
-* [Companion channels](docs/plugins/companion_channels.md)
+- [Welcome message](docs/plugins/welcome_message.md)
+- [Tags](docs/plugins/tags.md)
+- [Scheduled posts](docs/plugins/post.md)
+- [Autodelete](docs/plugins/autodelete.md)
+- [Autoreactions](docs/plugins/autoreactions.md)
+- [Autoreplies](docs/plugins/autoreplies.md)
+- [Reminders](docs/plugins/reminders.md)
+- [Counters](docs/plugins/counters.md)
+- [Companion channels](docs/plugins/companion_channels.md)
+- [Translation](docs/plugins/translation.md)
+- [Custom events](docs/plugins/custom_events.md)
+- [Command aliases](docs/plugins/command_aliases.md)
+- [Dreamcode commands](docs/plugins/dream_commands.md)
 
 </details>
 
 <details>
+<summary><strong>Tracking and tools</strong></summary>
 
-<summary><strong>Tracking &#x26; customization</strong></summary>
-
-* [Name history](docs/plugins/name_history.md)
-* [Username saver](docs/plugins/username_saver.md)
-* [Locate user](docs/plugins/locate_user.md)
-* [Stats](docs/plugins/stats.md)
-* [Custom events](docs/plugins/custom_events.md)
-* [Command aliases](docs/plugins/command_aliases.md)
-* [Dreamcode commands](docs/plugins/dream_commands.md) — custom slash commands ([language docs](docs/dreamcode/README.md))
-* [Starboard](docs/plugins/starboard.md)
-* [Logs](docs/plugins/logs.md)
+- [Utility](docs/plugins/utility.md)
+- [Stats](docs/plugins/stats.md)
+- [Name history](docs/plugins/name_history.md)
+- [Username saver](docs/plugins/username_saver.md)
+- [Locate user](docs/plugins/locate_user.md)
+- [Starboard](docs/plugins/starboard.md)
+- [Bot customisation](docs/plugins/bot_customisation.md)
 
 </details>
 
-***
+---
 
-## 💡 Why Dreamliner?
+## Legal
 
-* 📁 **File-based config:** download, edit, upload; your YAML is the source of truth
-* 🔒 **Fine-grained access:** levels + per-command `can_*` flags
-* ✂️ **Slash-first UX:** management and Dreamcode custom commands are slash-only
-* 🧩 **Plugin architecture:** enable only what your server needs
+- [Terms of Service](docs/terms-of-service.md)
+- [Privacy Policy](docs/privacy-policy.md)
 
-***
-
-## ⚖️ Legal
-
-* [Terms of Service](docs/terms-of-service.md)
-* [Privacy Policy](docs/privacy-policy.md)
-
-***
-
-## 📜 License
+## License
 
 MIT

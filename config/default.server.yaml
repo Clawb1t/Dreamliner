@@ -25,6 +25,9 @@ moderation_log_channel_id: "1111111111111111111"
 # When true, command replies are only visible to the user who ran the command.
 ephemeral_responses: false
 
+# Server default language for /translate and auto-translate (ISO code).
+default_language: en
+
 plugins:
   utility:
     enabled: true
@@ -149,6 +152,13 @@ plugins:
       roles:
         - role: "1111111111111111111"
           delay_ms: 0
+      bot_roles: []
+  translation:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      auto_translate: false
+      ignored_channels: []
   starboard:
     enabled: true
     replaceDefaultOverrides: false

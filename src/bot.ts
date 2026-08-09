@@ -59,6 +59,7 @@ import {
   AUTOROLE_ADD_MODAL_ID,
   handleAutoroleModalSubmit,
 } from "./plugins/autorole/functions/modal.js";
+import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { applyBotPresence } from "./core/presence.js";
@@ -80,6 +81,8 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.GuildBans,
       GatewayIntentBits.GuildEmojisAndStickers,
+      GatewayIntentBits.GuildInvites,
+      GatewayIntentBits.GuildWebhooks,
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.MessageContent,
     ],
@@ -120,6 +123,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       if (interaction.commandName === "plugin") {
         await handlePluginAutocomplete(interaction).catch((error) => {
           console.error("Plugin autocomplete error:", error);
+        });
+        return;
+      }
+      if (interaction.commandName === "translate") {
+        await handleTranslateAutocomplete(interaction).catch((error) => {
+          console.error("Translate autocomplete error:", error);
         });
       }
       return;

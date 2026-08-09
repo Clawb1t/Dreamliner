@@ -6,6 +6,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Autoreplies](./autoreplies.md)
 - [Autoreactions](./autoreactions.md)
+- [Translation](./translation.md)
 - [Autodelete](./autodelete.md)
 - [Custom events](./custom_events.md)
 - [Command aliases](./command_aliases.md)

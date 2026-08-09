@@ -1,6 +1,7 @@
 import type { ZodType } from "zod";
 import { zInfractionConfig } from "../config/schemas/infraction.js";
 import { zAutoroleConfig } from "../config/schemas/autorole.js";
+import { zTranslationConfig } from "../config/schemas/translation.js";
 import { zStarboardConfig } from "../config/schemas/starboard.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import {
@@ -38,6 +39,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   utility: zUtilityConfig,
   infractions: zInfractionConfig,
   autorole: zAutoroleConfig,
+  translation: zTranslationConfig,
   starboard: zStarboardConfig,
   automod: zAutomodConfig,
   censor: zCensorConfig,

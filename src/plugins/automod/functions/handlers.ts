@@ -35,7 +35,15 @@ async function logAutomod(message: Message, config: AutomodConfig, reason: strin
       reason,
       action: config.action,
     }),
-    { caseLogOverride: config.log_channel_id },
+    {
+      guildId: message.guild.id,
+      eventType: "automod",
+      actorId: message.author.id,
+      targetId: message.author.id,
+      channelId: message.channel.id,
+      messageId: message.id,
+      caseLogOverride: config.log_channel_id,
+    },
   );
 }
 
@@ -121,7 +129,12 @@ export async function handleAutomodMemberAdd(member: GuildMember): Promise<void>
       joinCount: config.raid_join_count,
       windowMs: config.raid_join_window_ms,
     }),
-    { caseLogOverride: config.log_channel_id },
+    {
+      guildId: member.guild.id,
+      eventType: "raid",
+      targetId: member.id,
+      caseLogOverride: config.log_channel_id,
+    },
   );
 }
 

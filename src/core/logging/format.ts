@@ -390,3 +390,322 @@ export function buildRaidDetectedLog(input: {
     { avatarUrl: input.user.avatarUrl },
   );
 }
+
+export function buildMemberKickLog(input: {
+  user: LogRef;
+  mod?: LogRef | null;
+  reason?: string | null;
+}): LogCard {
+  return card(
+    "👢 Member Kicked",
+    [
+      `Time: ${logTimestamp()}`,
+      userLine(input.user),
+      input.mod ? userLine(input.mod, "Moderator") : null,
+      input.reason?.trim() ? `Reason: ${truncate(input.reason, 300)}` : null,
+    ].filter((line): line is string => Boolean(line)),
+    { avatarUrl: input.user.avatarUrl },
+  );
+}
+
+export function buildMemberBanLog(input: {
+  user: LogRef;
+  mod?: LogRef | null;
+  reason?: string | null;
+}): LogCard {
+  return card(
+    "🔨 Member Banned",
+    [
+      `Time: ${logTimestamp()}`,
+      userLine(input.user),
+      input.mod ? userLine(input.mod, "Moderator") : null,
+      input.reason?.trim() ? `Reason: ${truncate(input.reason, 300)}` : null,
+    ].filter((line): line is string => Boolean(line)),
+    { avatarUrl: input.user.avatarUrl },
+  );
+}
+
+export function buildMemberUnbanLog(input: {
+  user: LogRef;
+  mod?: LogRef | null;
+  reason?: string | null;
+}): LogCard {
+  return card(
+    "✅ Member Unbanned",
+    [
+      `Time: ${logTimestamp()}`,
+      userLine(input.user),
+      input.mod ? userLine(input.mod, "Moderator") : null,
+      input.reason?.trim() ? `Reason: ${truncate(input.reason, 300)}` : null,
+    ].filter((line): line is string => Boolean(line)),
+    { avatarUrl: input.user.avatarUrl },
+  );
+}
+
+export function buildTimeoutChangeLog(input: {
+  user: LogRef;
+  mod?: LogRef | null;
+  before: string | null;
+  after: string | null;
+}): LogCard {
+  return card(
+    "⏳ Timeout Change",
+    [
+      `Time: ${logTimestamp()}`,
+      userLine(input.user),
+      input.mod ? userLine(input.mod, "Moderator") : null,
+      `Before: ${bold(input.before ?? "none")}`,
+      `After: ${bold(input.after ?? "none")}`,
+    ].filter((line): line is string => Boolean(line)),
+    { avatarUrl: input.user.avatarUrl },
+  );
+}
+
+export function buildChannelCreateLog(input: {
+  channel: LogRef;
+  type: string;
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "📁 Channel Created",
+    [
+      `Time: ${logTimestamp()}`,
+      channelLine(input.channel),
+      `Type: ${bold(input.type)}`,
+      input.mod ? userLine(input.mod, "Created by") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildChannelDeleteLog(input: {
+  channel: LogRef;
+  type: string;
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "🗑️ Channel Deleted",
+    [
+      `Time: ${logTimestamp()}`,
+      `Channel: ${bold(input.channel.name ?? input.channel.id)} (\`${input.channel.id}\`)`,
+      `Type: ${bold(input.type)}`,
+      input.mod ? userLine(input.mod, "Deleted by") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildChannelUpdateLog(input: {
+  channel: LogRef;
+  changes: string[];
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "✏️ Channel Updated",
+    [
+      `Time: ${logTimestamp()}`,
+      channelLine(input.channel),
+      input.mod ? userLine(input.mod, "Updated by") : null,
+      input.changes.length ? `Changes:\n${input.changes.map((c) => `• ${c}`).join("\n")}` : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildRoleCreateLog(input: { role: LogRef; mod?: LogRef | null }): LogCard {
+  return card(
+    "🎭 Role Created",
+    [
+      `Time: ${logTimestamp()}`,
+      `Role: ${bold(input.role.name ?? input.role.id)} (\`${input.role.id}\`)`,
+      input.mod ? userLine(input.mod, "Created by") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildRoleDeleteLog(input: { role: LogRef; mod?: LogRef | null }): LogCard {
+  return card(
+    "🎭 Role Deleted",
+    [
+      `Time: ${logTimestamp()}`,
+      `Role: ${bold(input.role.name ?? input.role.id)} (\`${input.role.id}\`)`,
+      input.mod ? userLine(input.mod, "Deleted by") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildRoleUpdateLog(input: {
+  role: LogRef;
+  changes: string[];
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "🎭 Role Updated",
+    [
+      `Time: ${logTimestamp()}`,
+      `Role: ${bold(input.role.name ?? input.role.id)} (\`${input.role.id}\`)`,
+      input.mod ? userLine(input.mod, "Updated by") : null,
+      input.changes.length ? `Changes:\n${input.changes.map((c) => `• ${c}`).join("\n")}` : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildGuildUpdateLog(input: {
+  changes: string[];
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "🏠 Server Updated",
+    [
+      `Time: ${logTimestamp()}`,
+      input.mod ? userLine(input.mod, "Updated by") : null,
+      input.changes.length ? `Changes:\n${input.changes.map((c) => `• ${c}`).join("\n")}` : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildEmojiLog(input: {
+  action: "create" | "delete" | "update";
+  name: string;
+  id: string;
+  mod?: LogRef | null;
+}): LogCard {
+  const title =
+    input.action === "create"
+      ? "😀 Emoji Created"
+      : input.action === "delete"
+        ? "😀 Emoji Deleted"
+        : "😀 Emoji Updated";
+  return card(
+    title,
+    [
+      `Time: ${logTimestamp()}`,
+      `Emoji: ${bold(input.name)} (\`${input.id}\`)`,
+      input.mod ? userLine(input.mod, "By") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildStickerLog(input: {
+  action: "create" | "delete" | "update";
+  name: string;
+  id: string;
+  mod?: LogRef | null;
+}): LogCard {
+  const title =
+    input.action === "create"
+      ? "🏷️ Sticker Created"
+      : input.action === "delete"
+        ? "🏷️ Sticker Deleted"
+        : "🏷️ Sticker Updated";
+  return card(
+    title,
+    [
+      `Time: ${logTimestamp()}`,
+      `Sticker: ${bold(input.name)} (\`${input.id}\`)`,
+      input.mod ? userLine(input.mod, "By") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildInviteCreateLog(input: {
+  code: string;
+  channel?: LogRef | null;
+  inviter?: LogRef | null;
+  maxUses?: number | null;
+  maxAge?: number | null;
+}): LogCard {
+  return card(
+    "🔗 Invite Created",
+    [
+      `Time: ${logTimestamp()}`,
+      `Code: \`${input.code}\``,
+      input.channel ? channelLine(input.channel) : null,
+      input.inviter ? userLine(input.inviter, "Inviter") : null,
+      input.maxUses != null ? `Max uses: ${bold(String(input.maxUses || "unlimited"))}` : null,
+      input.maxAge != null ? `Max age: ${bold(input.maxAge ? `${input.maxAge}s` : "forever")}` : null,
+    ].filter((line): line is string => Boolean(line)),
+    { avatarUrl: input.inviter?.avatarUrl },
+  );
+}
+
+export function buildInviteDeleteLog(input: {
+  code: string;
+  channel?: LogRef | null;
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "🔗 Invite Deleted",
+    [
+      `Time: ${logTimestamp()}`,
+      `Code: \`${input.code}\``,
+      input.channel ? channelLine(input.channel) : null,
+      input.mod ? userLine(input.mod, "Deleted by") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildWebhookUpdateLog(input: {
+  channel: LogRef;
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "🪝 Webhooks Updated",
+    [
+      `Time: ${logTimestamp()}`,
+      channelLine(input.channel),
+      input.mod ? userLine(input.mod, "By") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildVoiceFlagLog(input: {
+  title: string;
+  user: LogRef;
+  channel?: LogRef | null;
+  detail: string;
+}): LogCard {
+  return card(
+    input.title,
+    [
+      `Time: ${logTimestamp()}`,
+      userLine(input.user),
+      input.channel ? channelLine(input.channel) : null,
+      input.detail,
+    ].filter((line): line is string => Boolean(line)),
+    { avatarUrl: input.user.avatarUrl },
+  );
+}
+
+export function buildThreadDeleteLog(input: {
+  thread: LogRef;
+  parentChannel?: LogRef | null;
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "🧵 Thread Deleted",
+    [
+      `Time: ${logTimestamp()}`,
+      `Thread: ${bold(input.thread.name ?? input.thread.id)} (\`${input.thread.id}\`)`,
+      input.parentChannel ? channelLine(input.parentChannel, "Parent") : null,
+      input.mod ? userLine(input.mod, "Deleted by") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildMessageBulkDeleteLog(input: {
+  channel: LogRef;
+  count: number;
+  mod?: LogRef | null;
+}): LogCard {
+  return card(
+    "🗑️ Bulk Delete",
+    [
+      `Time: ${logTimestamp()}`,
+      channelLine(input.channel),
+      `Count: ${bold(String(input.count))}`,
+      input.mod ? userLine(input.mod, "Moderator") : null,
+    ].filter((line): line is string => Boolean(line)),
+  );
+}
+
+export function buildGenericServerLog(title: string, lines: string[], avatarUrl?: string | null): LogCard {
+  return card(title, [`Time: ${logTimestamp()}`, ...lines], { avatarUrl });
+}

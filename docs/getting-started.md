@@ -40,7 +40,8 @@ Open the YAML file in any text editor. Common first steps:
    * **Tracking** - name history, stats, locate user
    * **Customization** - custom events and command aliases
    * **Background** - starboard and logs (no slash commands)
-   * **Autorole** - assigns join roles automatically; configure with `/autorole` or YAML
+   * **Autorole** - assigns join roles for humans and bots separately; configure with `/autorole` or YAML
+   * **Translation** - `/translate` plus optional auto-translate flag reactions; set default language on the dashboard Server page
 4. Tweak `plugins.utility` permissions and overrides.
 
 See [Permissions setup](permissions.md) for a full walkthrough and examples. See [Configuration](configuration.md) for the full YAML format.
