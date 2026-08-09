@@ -14,6 +14,12 @@ export const zUtilityConfig = z.strictObject({
     .boolean()
     .default(true)
     .describe("Automatically join threads when Dreamliner is mentioned or used in them."),
+  expand_message_links: z
+    .boolean()
+    .default(true)
+    .describe(
+      "When a Discord message link is pasted in chat, repost that message (content and attachments) via webhook with the original author's name and avatar.",
+    ),
   info_on_single_result: z
     .boolean()
     .default(true)
@@ -41,6 +47,7 @@ export const zUtilityConfig = z.strictObject({
   can_reload_guild: boolPerm("reload the guild config from the database"),
   can_avatar: boolPerm("use avatar commands"),
   can_jumbo: boolPerm("use /jumbo"),
+  can_stealemoji: boolPerm("use /stealemoji to copy custom emojis into this server"),
   can_info: boolPerm("use generic /info"),
   can_time: boolPerm("use time utilities"),
 });

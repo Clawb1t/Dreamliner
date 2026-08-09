@@ -11,6 +11,7 @@ import { configManager } from "../../config/manager.js";
 import { getUtilityPluginConfig } from "../../core/guildHelpers.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
 import { recordUserMessage } from "./functions/messageCounts.js";
+import { handleExpandMessageLinks } from "./functions/expandMessageLinks.js";
 
 export const utilityPlugin = definePlugin({
   name: "utility",
@@ -33,6 +34,11 @@ export const utilityPlugin = definePlugin({
         const guildConfig = await configManager.getEffectiveConfig(msg.guild.id);
         if (!pluginEnabled(guildConfig, "utility")) return;
         await recordUserMessage(msg.guild.id, msg.author.id).catch(() => null);
+
+        const pluginConfig = getUtilityPluginConfig(guildConfig);
+        if (pluginConfig.expand_message_links !== false) {
+          await handleExpandMessageLinks(msg).catch(() => null);
+        }
       },
     },
     {

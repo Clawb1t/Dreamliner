@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-09T15:47:08.854Z",
+  "generatedAt": "2026-08-09T17:32:35.281Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -28,6 +28,11 @@
           "key": "censor",
           "name": "Censor",
           "description": "Word and phrase filters."
+        },
+        {
+          "key": "scam_protect",
+          "name": "Scam Protect",
+          "description": "Honeypot channel that softbans anyone who posts in it."
         },
         {
           "key": "slowmode",
@@ -248,6 +253,13 @@
       "key": "censor",
       "name": "Censor",
       "description": "Word and phrase filters.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
+      "key": "scam_protect",
+      "name": "Scam Protect",
+      "description": "Honeypot channel that softbans anyone who posts in it.",
       "category": "Moderation",
       "categoryId": "mod"
     },

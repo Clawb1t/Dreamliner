@@ -36,6 +36,7 @@ import { dreamCommandsPlugin } from "../plugins/dream_commands/index.js";
 import { botCustomisationPlugin } from "../plugins/bot_customisation/index.js";
 import { reviewsPlugin } from "../plugins/reviews/index.js";
 import { suggestionsPlugin } from "../plugins/suggestions/index.js";
+import { scamProtectPlugin } from "../plugins/scam_protect/index.js";
 
 export const availablePlugins: DreamlinerPlugin[] = [
   configPlugin,
@@ -47,6 +48,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   logsPlugin,
   automodPlugin,
   censorPlugin,
+  scamProtectPlugin,
   adminPlugin,
   persistPlugin,
   slowmodePlugin,

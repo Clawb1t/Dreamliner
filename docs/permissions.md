@@ -26,6 +26,9 @@ When inviting Dreamliner, grant at least these **bot permissions**:
 | Moderate Members     | `/mute`, `/unmute`                                        |
 | Move Members         | `/voice move`, `/voice move-all`, `/voice disconnect`     |
 | Manage Nicknames     | `/nickname` on other members                              |
+| Manage Expressions   | `/stealemoji` (bot needs this too)                        |
+| Manage Webhooks      | Message link expand and auto-translate author avatars     |
+| Manage Channels      | Scam Protect honeypot channel create / position           |
 | Manage Server        | `/config` and `/permissions` (checked on the **user**, not the bot) |
 
 **Recommended:** use the `applications.commands` scope so slash commands appear.
@@ -204,6 +207,7 @@ Even with `can_*` enabled, some commands check the **member's** Discord permissi
 | `/bansearch`                                          | Ban Members                               |
 | `/voice move`, `/voice move-all`, `/voice disconnect` | Move Members                              |
 | `/nickname set`, `/nickname reset` (on others)        | Manage Nicknames                          |
+| `/stealemoji`                                         | Manage Expressions                        |
 | `/config`                                             | Manage Server                             |
 
 Voice and nickname commands also use Dreamliner's **act-on** rules: you cannot target members at or above your level, and you cannot moderate the server owner unless you are the owner.

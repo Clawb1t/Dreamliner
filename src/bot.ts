@@ -44,6 +44,10 @@ import {
   handleBotAvatarButtonInteraction,
 } from "./plugins/bot_customisation/index.js";
 import {
+  handleScamProtectButtonInteraction,
+  SCAM_PROTECT_STATS_PREFIX,
+} from "./plugins/scam_protect/functions/buttons.js";
+import {
   AUTOREACTION_ADD_MODAL_ID,
   handleAutoreactionModalSubmit,
 } from "./plugins/autoreactions/functions/modal.js";
@@ -151,6 +155,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     if (interaction.isButton()) {
       if (interaction.customId.startsWith(BOT_AVATAR_PREFIX)) {
         const handled = await handleBotAvatarButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId === SCAM_PROTECT_STATS_PREFIX) {
+        const handled = await handleScamProtectButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(SUGGEST_PREFIX)) {

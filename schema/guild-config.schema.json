@@ -208,6 +208,12 @@
                   "description": "Automatically join threads when Dreamliner is mentioned or used in them.",
                   "title": "Autojoin Threads"
                 },
+                "expand_message_links": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "When a Discord message link is pasted in chat, repost that message (content and attachments) via webhook with the original author's name and avatar.",
+                  "title": "Expand Message Links"
+                },
                 "info_on_single_result": {
                   "type": "boolean",
                   "default": true,
@@ -439,6 +445,16 @@
                   "default": false,
                   "description": "Allow members to use /jumbo. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Jumbo",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_stealemoji": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use /stealemoji to copy custom emojis into this server. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Stealemoji",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
@@ -1834,6 +1850,140 @@
           },
           "additionalProperties": false,
           "title": "Censor"
+        },
+        "scam_protect": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Opt-in honeypot. Leave off until you enable it in the dashboard or run /scamprotect setup (creates the channel).",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "channel_id": {
+                  "type": "string",
+                  "description": "Managed by Dreamliner after setup. Not editable in the dashboard. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "warning_message_id": {
+                  "type": "string",
+                  "description": "Managed by Dreamliner after setup. Not editable in the dashboard.",
+                  "title": "Warning Message Id",
+                  "x-dreamliner": {
+                    "kind": "snowflake",
+                    "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                  }
+                },
+                "channel_prefix": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "default": "",
+                  "description": "Optional text or emoji prepended to the honeypot channel name (for example `🚨` or `trap-`).",
+                  "title": "Channel Prefix"
+                },
+                "staff_level": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 50,
+                  "description": "Members at this level or higher are ignored when ignore_staff is true.",
+                  "title": "Staff Level"
+                },
+                "ignore_staff": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Ignore members at staff_level+ and members with Ban Members / Administrator.",
+                  "title": "Ignore Staff"
+                },
+                "can_setup": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to create or repair the Scam Protect honeypot channel. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Setup",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_status": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view Scam Protect status. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Status",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category"
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Scam Protect"
         },
         "admin": {
           "type": "object",

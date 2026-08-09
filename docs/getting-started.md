@@ -13,6 +13,9 @@ At minimum you will need:
 * Ban Members (for `/bansearch`)
 * Move Members (for `/voice` commands)
 * Manage Nicknames (for `/nickname`)
+* Manage Expressions (for `/stealemoji`)
+* Manage Webhooks (for message link expand and auto-translate author avatars)
+* Manage Channels (for Scam Protect honeypot creation)
 
 The bot also needs standard read/send message permissions in channels where commands are used.
 

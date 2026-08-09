@@ -29,6 +29,7 @@ The Utility plugin provides server management, search, info, message tools, voic
 | `can_reload_guild` | `/reload` |
 | `can_avatar` | `/avatar` |
 | `can_jumbo` | `/jumbo` |
+| `can_stealemoji` | `/stealemoji` |
 | `can_info` | `/info` |
 
 ### Settings
@@ -37,6 +38,7 @@ The Utility plugin provides server management, search, info, message tools, voic
 |-----|---------|-------------|
 | `jumbo_size` | `128` | Pixel size for `/jumbo` (max 2048) |
 | `autojoin_threads` | `true` | Bot auto-joins new threads |
+| `expand_message_links` | `true` | Paste a Discord message link to expand it in chat |
 | `info_on_single_result` | `true` | `/search` shows user info when exactly one match |
 
 ---
@@ -220,8 +222,29 @@ Display a user's avatar (2048px).
 
 Enlarge a custom server emoji. Size from `jumbo_size` config.
 
+### `/stealemoji`
+
+Copy a custom emoji into this server from its markup. Works even if Dreamliner is not in the source server (uses Discord’s CDN). Requires **Manage Expressions** for both you and the bot.
+
+| Option | Description |
+|--------|-------------|
+| `emoji` | Custom emoji to steal (required), e.g. `<:name:id>` or `<a:name:id>` |
+| `name` | Optional new name (2-32 letters, numbers, underscores) |
+
+Unicode emoji cannot be stolen. Animated and static emojis both work, subject to the server’s remaining emoji slots.
+
 ---
 
 ## Events
 
 When `autojoin_threads` is enabled, Dreamliner automatically joins new public threads so it can read and respond in thread channels.
+
+### Message link expand
+
+When `expand_message_links` is enabled (default on), pasting a Discord message link in chat makes Dreamliner fetch that message and repost it:
+
+- Original author name and avatar (via webhook, same style as auto-translate)
+- Message content, embeds, and attachments
+- Small “Message found by Dreamliner” footer with a jump link
+
+Requires **Manage Webhooks** for the bot in that channel. If webhooks are unavailable, Dreamliner falls back to a normal bot message. Toggle this in the dashboard under Utility plugin settings.

@@ -1,11 +1,29 @@
-import { SlashCommandBuilder } from "discord.js";
+import { DiscordAPIError, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resolveDocsUrl } from "../../../core/docsUrl.js";
-import { resultReply, embedReply, embedEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
+import {
+  resultReply,
+  resultEdit,
+  embedReply,
+  embedEdit,
+  slashResultOptions,
+  deferReplyOptions,
+} from "../../../core/responses.js";
 import { baseEmbed, buildPingEmbed, commandHeader, embedField, setEmbedAuthor } from "../../../core/embeds.js";
-import { requireUtilityPermission } from "../functions/commandHelpers.js";
+import {
+  ManageGuildExpressions,
+  requireDiscordPerm,
+  requireUtilityPermission,
+} from "../functions/commandHelpers.js";
 import { aboutLinkRows, buildAboutEmbed } from "../functions/about.js";
 import { buildHelpMessage } from "../functions/help.js";
+
+const CUSTOM_EMOJI_RE = /^<(a?):(\w{2,32}):(\d+)>$/;
+
+function sanitizeEmojiName(raw: string): string | null {
+  const cleaned = raw.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32);
+  return cleaned.length >= 2 ? cleaned : null;
+}
 
 export const metaCommands: SlashCommandDefinition[] = [
   {
@@ -160,6 +178,132 @@ export const metaCommands: SlashCommandDefinition[] = [
         return;
       }
       await ctx.interaction.reply(resultReply("Jumbo", "Only custom server emojis can be jumbo'd.", ctx.ephemeral, slashResultOptions(ctx)));
+    },
+  },
+  {
+    plugin: "utility",
+    permission: "can_stealemoji",
+    data: new SlashCommandBuilder()
+      .setName("stealemoji")
+      .setDescription("Copy a custom emoji from another server into this one")
+      .addStringOption((o) =>
+        o
+          .setName("emoji")
+          .setDescription("Custom emoji to steal (paste it, even from another server)")
+          .setRequired(true),
+      )
+      .addStringOption((o) =>
+        o.setName("name").setDescription("Optional new name (2-32 letters, numbers, underscores)"),
+      ),
+    execute: async (ctx) => {
+      const auth = await requireUtilityPermission(ctx, "can_stealemoji");
+      if (!auth) return;
+
+      if (
+        !(await requireDiscordPerm(
+          ctx.interaction,
+          ManageGuildExpressions,
+          "Manage Expressions",
+          ctx.ephemeral,
+          ctx.guildConfig,
+        ))
+      ) {
+        return;
+      }
+
+      const guild = ctx.interaction.guild!;
+      const me = guild.members.me;
+      if (!me?.permissions.has(ManageGuildExpressions)) {
+        await ctx.interaction.reply(
+          resultReply(
+            "Bot missing permission",
+            "I need the **Manage Expressions** permission to add emojis.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "error" }),
+          ),
+        );
+        return;
+      }
+
+      const input = ctx.interaction.options.getString("emoji", true).trim();
+      const match = CUSTOM_EMOJI_RE.exec(input);
+      if (!match) {
+        await ctx.interaction.reply(
+          resultReply(
+            "Invalid emoji",
+            "Paste a custom emoji like `<:name:1234567890>` or `<a:name:1234567890>`. Unicode emoji cannot be stolen.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "warning" }),
+          ),
+        );
+        return;
+      }
+
+      const animated = match[1] === "a";
+      const sourceName = match[2];
+      const id = match[3];
+      const rename = ctx.interaction.options.getString("name");
+      const name = sanitizeEmojiName(rename?.trim() || sourceName);
+      if (!name) {
+        await ctx.interaction.reply(
+          resultReply(
+            "Invalid name",
+            "Emoji names must be 2-32 characters and only letters, numbers, or underscores.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "warning" }),
+          ),
+        );
+        return;
+      }
+
+      if (guild.emojis.cache.some((emoji) => emoji.name === name)) {
+        await ctx.interaction.reply(
+          resultReply(
+            "Name taken",
+            `This server already has an emoji named \`${name}\`. Pick a different name.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "warning" }),
+          ),
+        );
+        return;
+      }
+
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+
+      const ext = animated ? "gif" : "png";
+      const url = `https://cdn.discordapp.com/emojis/${id}.${ext}?size=128&quality=lossless`;
+
+      try {
+        const created = await guild.emojis.create({ attachment: url, name });
+        await ctx.interaction.editReply(
+          embedEdit(
+            setEmbedAuthor(
+              baseEmbed(),
+              "Emoji stolen",
+              ctx.client,
+              commandHeader(ctx.guildConfig, { tone: "success" }),
+            )
+              .setDescription(`Added ${created} as \`:${created.name}:\``)
+              .setThumbnail(created.imageURL({ size: 128 }))
+              .addFields(
+                embedField("Name", created.name ?? name, true),
+                embedField("ID", created.id, true),
+                embedField("Animated", created.animated ? "Yes" : "No", true),
+              ),
+          ),
+        );
+      } catch (err) {
+        let message = "Could not add that emoji. Check emoji slots and that the source emoji still exists.";
+        if (err instanceof DiscordAPIError) {
+          if (err.code === 30008) message = "This server has no free emoji slots for that type.";
+          else if (err.code === 50035) message = "Discord rejected the emoji name or image.";
+          else if (err.code === 50045) message = "That emoji file is too large for Discord.";
+          else if (err.message) message = err.message;
+        }
+        await ctx.interaction.editReply(
+          resultEdit("Steal failed", message, slashResultOptions(ctx, { tone: "error" })),
+        );
+      }
     },
   },
 ];

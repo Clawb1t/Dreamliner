@@ -56,3 +56,4 @@ export const BanMembers = PermissionFlagsBits.BanMembers;
 export const KickMembers = PermissionFlagsBits.KickMembers;
 export const MoveMembers = PermissionFlagsBits.MoveMembers;
 export const ManageNicknames = PermissionFlagsBits.ManageNicknames;
+export const ManageGuildExpressions = PermissionFlagsBits.ManageGuildExpressions;

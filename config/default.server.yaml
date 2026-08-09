@@ -35,6 +35,7 @@ plugins:
     config:
       jumbo_size: 128
       autojoin_threads: true
+      expand_message_links: true
       info_on_single_result: true
       can_search: false
       can_clean: false
@@ -59,6 +60,7 @@ plugins:
       can_reload_guild: false
       can_avatar: false
       can_jumbo: false
+      can_stealemoji: false
       can_info: false
       can_time: false
     overrides:
@@ -84,6 +86,7 @@ plugins:
           can_help: true
           can_avatar: true
           can_jumbo: true
+          can_stealemoji: true
           can_info: true
           can_time: true
       - level: ">=100"
@@ -220,6 +223,22 @@ plugins:
           can_list: true
           can_add: true
           can_remove: true
+  scam_protect:
+    enabled: false
+    replaceDefaultOverrides: false
+    config:
+      channel_id: ""
+      warning_message_id: ""
+      channel_prefix: ""
+      staff_level: 50
+      ignore_staff: true
+      can_setup: false
+      can_status: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_setup: true
+          can_status: true
   admin:
     enabled: true
     replaceDefaultOverrides: false

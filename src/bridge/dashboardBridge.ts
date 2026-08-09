@@ -261,6 +261,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const suggestionsMatch = /^\/bridge\/guilds\/(\d+)\/suggestions$/.exec(url.pathname);
+        const scamProtectMatch = /^\/bridge\/guilds\/(\d+)\/scam-protect(?:\/(setup|disable))?$/.exec(
+          url.pathname,
+        );
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
@@ -283,6 +286,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !suggestionOneMatch &&
           !suggestionStatsMatch &&
           !suggestionsMatch &&
+          !scamProtectMatch &&
           !guildMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
@@ -308,11 +312,93 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           suggestionOneMatch?.[1] ??
           suggestionStatsMatch?.[1] ??
           suggestionsMatch?.[1] ??
+          scamProtectMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           sendJson(res, 404, { error: "Guild not found (bot is not in that server)." });
+          return;
+        }
+
+        if (scamProtectMatch) {
+          const {
+            buildWebScamProtectStatus,
+            disableWebScamProtect,
+            setupWebScamProtect,
+          } = await import("./webScamProtect.js");
+          const sub = scamProtectMatch[2] ?? null;
+
+          if (!sub && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const status = await buildWebScamProtectStatus(guild, configManager);
+            sendJson(res, 200, { ok: true, status });
+            return;
+          }
+
+          if (sub === "setup" && req.method === "POST") {
+            let body: { userId?: string; channelPrefix?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string; channelPrefix?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await setupWebScamProtect(guild, configManager, userId, body.channelPrefix);
+            if (!result.ok) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            const config = await configManager.getEffectiveConfig(guildId);
+            sendJson(res, 200, { ok: true, status: result.status, config });
+            return;
+          }
+
+          if (sub === "disable" && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await disableWebScamProtect(guild, configManager, userId);
+            if (!result.ok) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            const config = await configManager.getEffectiveConfig(guildId);
+            sendJson(res, 200, { ok: true, status: result.status, config });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 
@@ -974,6 +1060,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           if (!result.success) {
             sendJson(res, 400, { error: "Validation failed", errors: result.errors });
             return;
+          }
+          if (result.data.plugins.scam_protect?.enabled === true) {
+            const { ensureScamProtectChannel } = await import("../plugins/scam_protect/functions/ensure.js");
+            void ensureScamProtectChannel(guild).catch(() => null);
           }
           sendJson(res, 200, {
             ok: true,

@@ -5,6 +5,7 @@ import { zAutorolePluginSection } from "./autorole.js";
 import { zStarboardPluginSection } from "./starboard.js";
 import { zReviewsPluginSection } from "./reviews.js";
 import { zSuggestionsPluginSection } from "./suggestions.js";
+import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import {
   zAdminPluginSection,
@@ -105,6 +106,7 @@ export const zGuildConfig = z.strictObject({
       starboard: zStarboardPluginSection.optional(),
       automod: zAutomodPluginSection.optional(),
       censor: zCensorPluginSection.optional(),
+      scam_protect: zScamProtectPluginSection.optional(),
       admin: zAdminPluginSection.optional(),
       persist: zPersistPluginSection.optional(),
       slowmode: zSlowmodePluginSection.optional(),

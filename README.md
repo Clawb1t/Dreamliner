@@ -16,7 +16,7 @@ Built for serious Discord operations. Inspired by [Zeppelin](https://github.com/
 
 ## Invite
 
-[Add Dreamliner to your server](https://discord.com/oauth2/authorize?client_id=1524053555114151946&permissions=1099932494934&scope=bot%20applications.commands)
+[Add Dreamliner to your server](https://discord.com/oauth2/authorize?client_id=1524053555114151946&permissions=1101543107670&scope=bot%20applications.commands)
 
 Recommended permissions are pre-selected. Dreamliner does **not** require Administrator. See [Permissions](docs/permissions.md) for the full breakdown.
 
@@ -53,6 +53,7 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | **Infractions** | Warn, note, mute, kick, ban, softban, case history, DMs, expirations |
 | **Automod** | Duplicate messages, rate limits, raid detection |
 | **Censor** | Word and phrase filters with configurable actions |
+| **Scam Protect** | Top-of-list honeypot channel that softbans posters and deletes their spam |
 | **Admin** | Channel lockdown and unlock |
 | **Slowmode** | Per-channel slowmode control |
 | **Logs** | Structured server and moderation event logging (Discord channels + dashboard retention) |
@@ -125,6 +126,7 @@ Per-server emoji prefixes and bot customisation (nickname / avatar) are supporte
 - [Infractions](docs/plugins/infraction.md)
 - [Automod](docs/plugins/automod.md)
 - [Censor](docs/plugins/censor.md)
+- [Scam Protect](docs/plugins/scam_protect.md)
 - [Admin](docs/plugins/admin.md)
 - [Persist](docs/plugins/persist.md)
 - [Slowmode](docs/plugins/slowmode.md)

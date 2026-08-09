@@ -34,6 +34,7 @@ import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/default
 import { botCustomisationDefaultOverrides } from "../plugins/bot_customisation/defaultOverrides.js";
 import { reviewsDefaultOverrides } from "../plugins/reviews/defaultOverrides.js";
 import { suggestionsDefaultOverrides } from "../plugins/suggestions/defaultOverrides.js";
+import { scamProtectDefaultOverrides } from "../plugins/scam_protect/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { zStarboardBoard, zStarboardConfig, type StarboardBoard, type StarboardConfig } from "../config/schemas/starboard.js";
 import type { GuildMember } from "discord.js";
@@ -43,6 +44,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   infractions: infractionDefaultOverrides,
   automod: automodDefaultOverrides,
   censor: censorDefaultOverrides,
+  scam_protect: scamProtectDefaultOverrides,
   admin: adminDefaultOverrides,
   persist: persistDefaultOverrides,
   slowmode: slowmodeDefaultOverrides,

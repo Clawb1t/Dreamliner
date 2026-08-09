@@ -27,6 +27,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       { plugin: "admin" },
       { plugin: "automod" },
       { plugin: "censor" },
+      { plugin: "scam_protect" },
       { plugin: "slowmode" },
       { plugin: "persist" },
       { plugin: "utility", roots: ["clean", "bansearch"] },
@@ -98,7 +99,10 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     label: "Server tools",
     blurb: "Search, voice helpers, stats, and everyday utilities.",
     include: [
-      { plugin: "utility", roots: ["search", "voice", "nickname", "jumbo", "ping", "about", "help", "reload"] },
+      {
+        plugin: "utility",
+        roots: ["search", "voice", "nickname", "jumbo", "stealemoji", "ping", "about", "help", "reload"],
+      },
       { plugin: "stats" },
       { plugin: "bot_customisation" },
     ],
@@ -147,6 +151,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description: "Duplicate messages, rate limits, raid detection.",
   },
   censor: { key: "censor", name: "Censor", description: "Word and phrase filters." },
+  scam_protect: {
+    key: "scam_protect",
+    name: "Scam Protect",
+    description: "Honeypot channel that softbans anyone who posts in it.",
+  },
   admin: { key: "admin", name: "Admin", description: "Channel lockdown and unlock." },
   persist: { key: "persist", name: "Persist", description: "Sticky channel messages." },
   slowmode: {
@@ -282,6 +291,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   admin: "mod",
   automod: "mod",
   censor: "mod",
+  scam_protect: "mod",
   slowmode: "mod",
   persist: "mod",
   roles: "roles",

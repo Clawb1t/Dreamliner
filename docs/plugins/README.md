@@ -23,6 +23,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 - [Infractions](./infraction.md)
 - [Automod](./automod.md)
 - [Censor](./censor.md)
+- [Scam Protect](./scam_protect.md)
 - [Admin](./admin.md)
 - [Slowmode](./slowmode.md)
 - [Persist](./persist.md)

@@ -5,6 +5,7 @@ import { zTranslationConfig } from "../config/schemas/translation.js";
 import { zStarboardConfig } from "../config/schemas/starboard.js";
 import { zReviewsConfig } from "../config/schemas/reviews.js";
 import { zSuggestionsConfig } from "../config/schemas/suggestions.js";
+import { zScamProtectConfig } from "../config/schemas/scamProtect.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import {
   zAdminConfig,
@@ -45,6 +46,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   starboard: zStarboardConfig,
   automod: zAutomodConfig,
   censor: zCensorConfig,
+  scam_protect: zScamProtectConfig,
   admin: zAdminConfig,
   persist: zPersistConfig,
   slowmode: zSlowmodeConfig,

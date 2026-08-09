@@ -35,6 +35,7 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "reload", label: "/reload", plugin: "utility", permission: "can_reload_guild" },
   { key: "avatar", label: "/avatar", plugin: "utility", permission: "can_avatar" },
   { key: "jumbo", label: "/jumbo", plugin: "utility", permission: "can_jumbo" },
+  { key: "stealemoji", label: "/stealemoji", plugin: "utility", permission: "can_stealemoji" },
   { key: "time", label: "/time", plugin: "utility", permission: "can_time" },
 
   // Infractions
@@ -56,6 +57,8 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "censor list", label: "/censor list", plugin: "censor", permission: "can_list" },
   { key: "censor add", label: "/censor add", plugin: "censor", permission: "can_add" },
   { key: "censor remove", label: "/censor remove", plugin: "censor", permission: "can_remove" },
+  { key: "scamprotect setup", label: "/scamprotect setup", plugin: "scam_protect", permission: "can_setup" },
+  { key: "scamprotect status", label: "/scamprotect status", plugin: "scam_protect", permission: "can_status" },
   { key: "lockdown", label: "/lockdown", plugin: "admin", permission: "can_lockdown" },
   { key: "unlock", label: "/unlock", plugin: "admin", permission: "can_unlock" },
   { key: "persist add", label: "/persist add", plugin: "persist", permission: "can_add" },
