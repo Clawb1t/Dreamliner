@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-09T18:51:15.311Z",
+  "generatedAt": "2026-08-10T18:37:15.985Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -22,12 +22,7 @@
         {
           "key": "automod",
           "name": "Automod",
-          "description": "Duplicate messages, rate limits, raid detection."
-        },
-        {
-          "key": "censor",
-          "name": "Censor",
-          "description": "Word and phrase filters."
+          "description": "Content filters, spam detection, and escalation ladders."
         },
         {
           "key": "scam_protect",
@@ -113,12 +108,12 @@
     {
       "id": "auto",
       "label": "Automation",
-      "description": "Welcome messages, tags, schedules, reactions, and bots that run themselves.",
+      "description": "Welcomer, tags, schedules, reactions, and bots that run themselves.",
       "plugins": [
         {
           "key": "welcome_message",
-          "name": "Welcome message",
-          "description": "Custom join messages."
+          "name": "Welcomer",
+          "description": "Join, leave, and DM welcomes with embeds and image cards."
         },
         {
           "key": "tags",
@@ -245,14 +240,7 @@
     {
       "key": "automod",
       "name": "Automod",
-      "description": "Duplicate messages, rate limits, raid detection.",
-      "category": "Moderation",
-      "categoryId": "mod"
-    },
-    {
-      "key": "censor",
-      "name": "Censor",
-      "description": "Word and phrase filters.",
+      "description": "Content filters, spam detection, and escalation ladders.",
       "category": "Moderation",
       "categoryId": "mod"
     },
@@ -349,8 +337,8 @@
     },
     {
       "key": "welcome_message",
-      "name": "Welcome message",
-      "description": "Custom join messages.",
+      "name": "Welcomer",
+      "description": "Join, leave, and DM welcomes with embeds and image cards.",
       "category": "Automation",
       "categoryId": "auto"
     },

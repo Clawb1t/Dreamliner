@@ -1,6 +1,6 @@
 # Tags plugin
 
-Store reusable text snippets that staff can post with slash commands.
+Store reusable text snippets that staff can post with slash commands or manage from the Dreamliner dashboard.
 
 ## Configuration
 
@@ -18,6 +18,10 @@ plugins:
           can_show: true
 ```
 
+## Dashboard
+
+Open the **Tags** plugin in the dashboard to list, create, edit, and delete tags. Tag content supports placeholders like `{user}`, `{guild}`, and `{memberCount}`.
+
 ## Commands
 
 | Command | Permission | Description |
@@ -28,7 +32,8 @@ plugins:
 | `/tag list` | `can_list` | List all tags |
 | `/tag show` | `can_show` | Display a tag's content |
 
-## Requirements
+## Notes
 
-- Tags are stored per server in the Dreamliner database.
-- Tag names are case-sensitive.
+- Tags are stored per server in the Dreamliner database (not in YAML config).
+- Tag names are stored lowercase (`Rules` becomes `rules`).
+- Names must start with a letter or number and may include `_` or `-`.

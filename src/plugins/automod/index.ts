@@ -1,9 +1,13 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
-import { zAutomodConfig } from "../../config/schemas/plugins.js";
+import { zAutomodConfig } from "../../config/schemas/automod.js";
 import { automodDefaultOverrides } from "./defaultOverrides.js";
 import { automodCommands } from "./commands.js";
-import { handleAutomodMemberAdd, handleAutomodMessage } from "./functions/handlers.js";
+import {
+  handleAutomodMemberAdd,
+  handleAutomodMessage,
+  handleAutomodMessageUpdate,
+} from "./functions/handlers.js";
 
 export const automodPlugin = definePlugin({
   name: "automod",
@@ -15,6 +19,15 @@ export const automodPlugin = definePlugin({
       name: Events.MessageCreate,
       execute: async (_client, message: unknown) => {
         await handleAutomodMessage(message as import("discord.js").Message);
+      },
+    },
+    {
+      name: Events.MessageUpdate,
+      execute: async (_client, oldMessage: unknown, newMessage: unknown) => {
+        await handleAutomodMessageUpdate(
+          oldMessage as import("discord.js").Message,
+          newMessage as import("discord.js").Message,
+        );
       },
     },
     {

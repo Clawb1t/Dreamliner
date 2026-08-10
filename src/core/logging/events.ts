@@ -114,7 +114,7 @@ export const LOG_EVENT_META: Record<
   case_expire: { label: "Case expire", category: "moderation", group: "Moderation" },
   automod: { label: "Automod", category: "moderation", group: "Moderation" },
   raid: { label: "Raid", category: "moderation", group: "Moderation" },
-  censor: { label: "Censor", category: "moderation", group: "Moderation" },
+  censor: { label: "Automod (legacy censor)", category: "moderation", group: "Moderation" },
   clean: { label: "Clean", category: "moderation", group: "Moderation" },
   voice_mod: { label: "Voice mod action", category: "moderation", group: "Moderation" },
   dm_failed: { label: "DM failed", category: "moderation", group: "Moderation" },

@@ -26,7 +26,6 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       { plugin: "infractions" },
       { plugin: "admin" },
       { plugin: "automod" },
-      { plugin: "censor" },
       { plugin: "scam_protect" },
       { plugin: "slowmode" },
       { plugin: "persist" },
@@ -78,7 +77,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "auto",
     label: "Automation",
-    blurb: "Welcome messages, tags, schedules, reactions, and bots that run themselves.",
+    blurb: "Welcomer, tags, schedules, reactions, and bots that run themselves.",
     include: [
       { plugin: "welcome_message" },
       { plugin: "tags" },
@@ -148,9 +147,8 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   automod: {
     key: "automod",
     name: "Automod",
-    description: "Duplicate messages, rate limits, raid detection.",
+    description: "Content filters, spam detection, and escalation ladders.",
   },
-  censor: { key: "censor", name: "Censor", description: "Word and phrase filters." },
   scam_protect: {
     key: "scam_protect",
     name: "Scam Protect",
@@ -196,8 +194,8 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   },
   welcome_message: {
     key: "welcome_message",
-    name: "Welcome message",
-    description: "Custom join messages.",
+    name: "Welcomer",
+    description: "Join, leave, and DM welcomes with embeds and image cards.",
   },
   tags: { key: "tags", name: "Tags", description: "Reusable text snippets." },
   post: { key: "post", name: "Scheduled posts", description: "Timed and recurring posts." },
@@ -290,7 +288,6 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   infractions: "mod",
   admin: "mod",
   automod: "mod",
-  censor: "mod",
   scam_protect: "mod",
   slowmode: "mod",
   persist: "mod",

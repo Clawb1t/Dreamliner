@@ -13,7 +13,6 @@ import {
   zAutodeletePluginSection,
   zAutoreactionsPluginSection,
   zAutorepliesPluginSection,
-  zCensorPluginSection,
   zCommandAliasesPluginSection,
   zCompanionChannelsPluginSection,
   zCountersPluginSection,
@@ -90,7 +89,7 @@ export const zGuildConfig = z.strictObject({
   moderation_log_channel_id: z
     .string()
     .optional()
-    .describe("Channel for infractions, automod, censor, clean, voice mod, and case updates."),
+    .describe("Channel for infractions, automod, clean, voice mod, and case updates."),
   logging: zLoggingConfig.describe("Log event toggles for Discord channels and the dashboard Logs page."),
   ephemeral_responses: z
     .boolean()
@@ -105,7 +104,6 @@ export const zGuildConfig = z.strictObject({
       translation: zTranslationPluginSection.optional(),
       starboard: zStarboardPluginSection.optional(),
       automod: zAutomodPluginSection.optional(),
-      censor: zCensorPluginSection.optional(),
       scam_protect: zScamProtectPluginSection.optional(),
       admin: zAdminPluginSection.optional(),
       persist: zPersistPluginSection.optional(),

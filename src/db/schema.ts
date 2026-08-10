@@ -448,3 +448,39 @@ export const suggestionFollows = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.suggestionId, table.userId] })],
 );
+
+/** Dashboard custom charts saved per guild (stats page). */
+export const guildCustomCharts = sqliteTable("guild_custom_charts", {
+  id: text("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  title: text("title").notNull(),
+  chartType: text("chart_type").notNull(),
+  definitionJson: text("definition_json").notNull(),
+  sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Rolling automod rule hits used for escalation ladders. */
+export const automodHits = sqliteTable("automod_hits", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  ruleId: text("rule_id").notNull(),
+  channelId: text("channel_id"),
+  messageId: text("message_id"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Join welcome messages tracked for early-leave delete + wave tallies. */
+export const welcomeJoinMessages = sqliteTable("welcome_join_messages", {
+  messageId: text("message_id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  memberId: text("member_id").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  waveEnabled: integer("wave_enabled", { mode: "boolean" }).notNull().default(false),
+  waveCount: integer("wave_count", { mode: "number" }).notNull().default(0),
+  waverIds: text("waver_ids").notNull().default("[]"),
+});

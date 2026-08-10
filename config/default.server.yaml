@@ -19,7 +19,7 @@ levels: {}
 # Server events: joins, leaves, edits, deletes, voice activity, role/nickname changes
 server_log_channel_id: "1111111111111111111"
 
-# Moderation: infractions, automod, censor, /clean, voice mod, cases, expirations
+# Moderation: infractions, automod, /clean, voice mod, cases, expirations
 moderation_log_channel_id: "1111111111111111111"
 
 # When true, command replies are only visible to the user who ran the command.
@@ -186,19 +186,12 @@ plugins:
     enabled: false
     replaceDefaultOverrides: false
     config:
-      enabled_rules:
-        - duplicate
-        - rate_limit
-      duplicate_window_ms: 30000
-      duplicate_max: 3
-      rate_limit_count: 5
-      rate_limit_window_ms: 10000
-      raid_join_count: 10
-      raid_join_window_ms: 30000
+      presets_applied: null
       ignored_channels: []
       ignored_roles: []
-      action: delete
-      mute_duration_ms: 600000
+      dm_users: true
+      rules: {}
+      migrations: {}
       can_status: false
       can_test: false
       can_configure: false
@@ -208,21 +201,6 @@ plugins:
           can_status: true
           can_test: true
           can_configure: true
-  censor:
-    enabled: true
-    replaceDefaultOverrides: false
-    config:
-      rules: []
-      ignored_channels: []
-      can_list: false
-      can_add: false
-      can_remove: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_list: true
-          can_add: true
-          can_remove: true
   scam_protect:
     enabled: false
     replaceDefaultOverrides: false
@@ -356,7 +334,27 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      message: "Welcome {user} to **{guild}**!"
+      join:
+        enabled: true
+        content: "Welcome {user} to **{guild}**!"
+        embed:
+          enabled: false
+        card:
+          enabled: false
+      leave:
+        enabled: false
+        content: ""
+        embed:
+          enabled: false
+        card:
+          enabled: false
+      dm:
+        enabled: false
+        content: ""
+        embed:
+          enabled: false
+        card:
+          enabled: false
       can_set: false
       can_test: false
       can_disable: false

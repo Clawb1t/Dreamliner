@@ -97,6 +97,20 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
   res.end(payload);
 }
 
+function sendBinary(
+  res: http.ServerResponse,
+  status: number,
+  body: Buffer,
+  contentType: string,
+): void {
+  res.writeHead(status, {
+    "Content-Type": contentType,
+    "Content-Length": body.length,
+    "Cache-Control": "private, max-age=3600",
+  });
+  res.end(body);
+}
+
 async function readBody(req: http.IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
@@ -146,6 +160,7 @@ async function buildEntities(guild: Guild) {
   if (guild.members.cache.size < 100) {
     await guild.members.fetch().catch(() => null);
   }
+  await guild.emojis.fetch().catch(() => null);
 
   const channels = [...guild.channels.cache.values()]
     .filter((ch) => !ch.isThread())
@@ -178,7 +193,16 @@ async function buildEntities(guild: Guild) {
     }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-  return { channels, roles, members };
+  const emojis = [...guild.emojis.cache.values()]
+    .map((emoji) => ({
+      id: emoji.id,
+      name: emoji.name ?? "emoji",
+      animated: Boolean(emoji.animated),
+      url: emoji.imageURL({ size: 64 }) ?? null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return { channels, roles, members, emojis };
 }
 
 /**
@@ -228,6 +252,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         const publicLeaderboardMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
+        const customChartOneMatch =
+          /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
+        const customChartsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts$/.exec(
+          url.pathname,
+        );
         const entityStatsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/(users|channels)\/(\d+)$/.exec(
           url.pathname,
         );
@@ -235,6 +264,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const commandsMatch = /^\/bridge\/guilds\/(\d+)\/commands$/.exec(url.pathname);
+        const tagOneMatch = /^\/bridge\/guilds\/(\d+)\/tags\/([a-z0-9][a-z0-9_-]{0,63})$/i.exec(
+          url.pathname,
+        );
+        const tagsMatch = /^\/bridge\/guilds\/(\d+)\/tags$/.exec(url.pathname);
         const dbRowMatch =
           /^\/bridge\/guilds\/(\d+)\/db\/tables\/([a-z0-9_]+)\/rows\/(.+)$/.exec(url.pathname);
         const dbTableMatch = /^\/bridge\/guilds\/(\d+)\/db\/tables\/([a-z0-9_]+)$/.exec(
@@ -264,14 +297,28 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const scamProtectMatch = /^\/bridge\/guilds\/(\d+)\/scam-protect(?:\/(setup|disable))?$/.exec(
           url.pathname,
         );
+        const welcomeAssetMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/assets(?:\/([a-zA-Z0-9_-]+))?$/.exec(
+          url.pathname,
+        );
+        const welcomePreviewMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/preview$/.exec(url.pathname);
+        const welcomeTestMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/test$/.exec(url.pathname);
+        const automodPresetMatch = /^\/bridge\/guilds\/(\d+)\/automod\/presets\/(light|standard|strict)$/.exec(
+          url.pathname,
+        );
+        const automodTestMatch = /^\/bridge\/guilds\/(\d+)\/automod\/test$/.exec(url.pathname);
+        const automodMatch = /^\/bridge\/guilds\/(\d+)\/automod$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
         if (
           !publicLeaderboardMatch &&
+          !customChartOneMatch &&
+          !customChartsMatch &&
           !entityStatsMatch &&
           !commandOneMatch &&
           !commandsMatch &&
+          !tagOneMatch &&
+          !tagsMatch &&
           !dbRowMatch &&
           !dbTableMatch &&
           !dbTablesMatch &&
@@ -287,6 +334,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !suggestionStatsMatch &&
           !suggestionsMatch &&
           !scamProtectMatch &&
+          !welcomeAssetMatch &&
+          !welcomePreviewMatch &&
+          !welcomeTestMatch &&
+          !automodPresetMatch &&
+          !automodTestMatch &&
+          !automodMatch &&
           !guildMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
@@ -295,9 +348,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         const guildId = (
           publicLeaderboardMatch?.[1] ??
+          customChartOneMatch?.[1] ??
+          customChartsMatch?.[1] ??
           entityStatsMatch?.[1] ??
           commandOneMatch?.[1] ??
           commandsMatch?.[1] ??
+          tagOneMatch?.[1] ??
+          tagsMatch?.[1] ??
           dbRowMatch?.[1] ??
           dbTableMatch?.[1] ??
           dbTablesMatch?.[1] ??
@@ -313,11 +370,285 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           suggestionStatsMatch?.[1] ??
           suggestionsMatch?.[1] ??
           scamProtectMatch?.[1] ??
+          welcomeAssetMatch?.[1] ??
+          welcomePreviewMatch?.[1] ??
+          welcomeTestMatch?.[1] ??
+          automodPresetMatch?.[1] ??
+          automodTestMatch?.[1] ??
+          automodMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           sendJson(res, 404, { error: "Guild not found (bot is not in that server)." });
+          return;
+        }
+
+        if (automodMatch || automodTestMatch || automodPresetMatch) {
+          const {
+            applyWebAutomodPreset,
+            getWebAutomodState,
+            saveWebAutomod,
+            testWebAutomod,
+          } = await import("./webAutomod.js");
+
+          if (automodMatch && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await getWebAutomodState(guildId));
+            return;
+          }
+
+          if (automodMatch && req.method === "PUT") {
+            let body: { userId?: string; enabled?: boolean; config?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as {
+                userId?: string;
+                enabled?: boolean;
+                config?: unknown;
+              };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              sendJson(res, 200, await saveWebAutomod(guildId, userId, body));
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to save automod",
+              });
+            }
+            return;
+          }
+
+          if (automodTestMatch && req.method === "POST") {
+            let body: { userId?: string; sample?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string; sample?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || typeof body.sample !== "string") {
+              sendJson(res, 400, { error: "userId and sample are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await testWebAutomod(guildId, body.sample));
+            return;
+          }
+
+          if (automodPresetMatch && req.method === "POST") {
+            let body: { userId?: string; enable?: boolean; preview?: boolean };
+            try {
+              body = JSON.parse(await readBody(req)) as {
+                userId?: string;
+                enable?: boolean;
+                preview?: boolean;
+              };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            const preset = automodPresetMatch[2] as "light" | "standard" | "strict";
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              sendJson(
+                res,
+                200,
+                await applyWebAutomodPreset(guildId, userId, preset, {
+                  enablePlugin: body.enable !== false,
+                  preview: body.preview === true,
+                }),
+              );
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to apply preset",
+              });
+            }
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (welcomeAssetMatch || welcomePreviewMatch || welcomeTestMatch) {
+          const {
+            buildWelcomePreview,
+            getWelcomeBackground,
+            removeWelcomeBackground,
+            sendWelcomeTest,
+            uploadWelcomeBackground,
+          } = await import("./webWelcome.js");
+
+          if (welcomeTestMatch && req.method === "POST") {
+            let body: { userId?: string; target?: string; config?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const targetRaw = (body.target ?? "join").trim();
+            if (targetRaw !== "join" && targetRaw !== "leave" && targetRaw !== "dm") {
+              sendJson(res, 400, { error: "target must be join, leave, or dm" });
+              return;
+            }
+            const member = await guild.members.fetch(userId).catch(() => null);
+            if (!member) {
+              sendJson(res, 404, { error: "Could not find your member in this server." });
+              return;
+            }
+            const result = await sendWelcomeTest(guild, member, targetRaw, body.config);
+            sendJson(res, result.ok ? 200 : 400, { ok: result.ok, detail: result.detail });
+            return;
+          }
+
+          if (welcomePreviewMatch && req.method === "POST") {
+            let body: {
+              userId?: string;
+              card?: unknown;
+              embed?: unknown;
+              content?: string;
+              sampleUserId?: string;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const preview = await buildWelcomePreview(client, guild, body);
+              sendJson(res, 200, { ok: true, ...preview });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to build preview",
+              });
+            }
+            return;
+          }
+
+          if (welcomeAssetMatch && req.method === "POST" && !welcomeAssetMatch[2]) {
+            let body: { userId?: string; imageBase64?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || typeof body.imageBase64 !== "string") {
+              sendJson(res, 400, { error: "userId and imageBase64 are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const saved = await uploadWelcomeBackground(guildId, body.imageBase64);
+              sendJson(res, 200, { ok: true, ...saved });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to upload image",
+              });
+            }
+            return;
+          }
+
+          if (welcomeAssetMatch?.[2] && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const buf = getWelcomeBackground(guildId, welcomeAssetMatch[2]);
+            if (!buf) {
+              sendJson(res, 404, { error: "Asset not found" });
+              return;
+            }
+            sendBinary(res, 200, buf, "image/png");
+            return;
+          }
+
+          if (welcomeAssetMatch?.[2] && req.method === "DELETE") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const removed = removeWelcomeBackground(guildId, welcomeAssetMatch[2]);
+            sendJson(res, removed ? 200 : 404, {
+              ok: removed,
+              error: removed ? undefined : "Asset not found",
+            });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 
@@ -411,6 +742,120 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
           const payload = await buildWebPublicMessagerLeaderboard(guild, limit);
           sendJson(res, 200, payload);
+          return;
+        }
+
+        if (customChartsMatch || customChartOneMatch) {
+          const {
+            listCustomCharts,
+            createCustomChart,
+            updateCustomChart,
+            deleteCustomChart,
+            validateCustomChartInput,
+            customChartCatalog,
+          } = await import("./webCustomCharts.js");
+
+          if (customChartsMatch && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const charts = await listCustomCharts(guild.id);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              charts,
+              catalog: customChartCatalog(),
+            });
+            return;
+          }
+
+          if (customChartsMatch && req.method === "POST") {
+            let body: { userId?: string; chart?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string; chart?: unknown };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const validated = validateCustomChartInput(body.chart);
+            if (!validated.ok) {
+              sendJson(res, 400, { error: validated.error });
+              return;
+            }
+            const result = await createCustomChart(guild.id, userId, validated.value);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 201, { chart: result.chart });
+            return;
+          }
+
+          if (customChartOneMatch && req.method === "PUT") {
+            let body: { userId?: string; chart?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string; chart?: unknown };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const validated = validateCustomChartInput(body.chart);
+            if (!validated.ok) {
+              sendJson(res, 400, { error: validated.error });
+              return;
+            }
+            const result = await updateCustomChart(guild.id, customChartOneMatch[2]!, validated.value);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { chart: result.chart });
+            return;
+          }
+
+          if (customChartOneMatch && req.method === "DELETE") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await deleteCustomChart(guild.id, customChartOneMatch[2]!);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 
@@ -784,6 +1229,136 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             ...payload,
           });
+          return;
+        }
+
+        if (tagsMatch || tagOneMatch) {
+          const userId =
+            req.method === "GET" || req.method === "DELETE"
+              ? url.searchParams.get("userId")?.trim()
+              : undefined;
+
+          if (tagsMatch && req.method === "GET") {
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { listBridgeTags } = await import("./webTags.js");
+            const result = await listBridgeTags(configManager, guildId);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              tags: result.tags,
+            });
+            return;
+          }
+
+          if (tagsMatch && req.method === "POST") {
+            let body: { userId?: string; name?: string; content?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const requesterId = body.userId?.trim();
+            if (!requesterId || typeof body.name !== "string" || typeof body.content !== "string") {
+              sendJson(res, 400, { error: "userId, name, and content are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, requesterId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { createBridgeTag } = await import("./webTags.js");
+            const result = await createBridgeTag(configManager, guildId, {
+              userId: requesterId,
+              name: body.name,
+              content: body.content,
+            });
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true, tag: result.tag });
+            return;
+          }
+
+          if (tagOneMatch && req.method === "GET") {
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { getBridgeTag } = await import("./webTags.js");
+            const result = await getBridgeTag(configManager, guildId, tagOneMatch[2]!);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { tag: result.tag });
+            return;
+          }
+
+          if (tagOneMatch && req.method === "PUT") {
+            let body: { userId?: string; content?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const requesterId = body.userId?.trim();
+            if (!requesterId || typeof body.content !== "string") {
+              sendJson(res, 400, { error: "userId and content are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, requesterId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { updateBridgeTag } = await import("./webTags.js");
+            const result = await updateBridgeTag(configManager, guildId, tagOneMatch[2]!, {
+              content: body.content,
+            });
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true, tag: result.tag });
+            return;
+          }
+
+          if (tagOneMatch && req.method === "DELETE") {
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { deleteBridgeTag } = await import("./webTags.js");
+            const result = await deleteBridgeTag(configManager, guildId, tagOneMatch[2]!);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

@@ -101,7 +101,7 @@
     },
     "moderation_log_channel_id": {
       "type": "string",
-      "description": "Channel for infractions, automod, censor, clean, voice mod, and case updates.",
+      "description": "Channel for infractions, automod, clean, voice mod, and case updates.",
       "title": "Moderation Log Channel Id",
       "x-dreamliner": {
         "kind": "channel",
@@ -1476,71 +1476,22 @@
             "config": {
               "type": "object",
               "properties": {
-                "enabled_rules": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "default": [
-                    "duplicate",
-                    "rate_limit"
+                "presets_applied": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "light",
+                        "standard",
+                        "strict"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
                   ],
-                  "description": "Which automod rules are active. Common values: \"duplicate\", \"rate_limit\", \"raid\".",
-                  "title": "Enabled Rules"
-                },
-                "duplicate_window_ms": {
-                  "type": "integer",
-                  "minimum": 1000,
-                  "default": 30000,
-                  "description": "How long (ms) to watch for repeated identical messages from the same user.",
-                  "title": "Duplicate Window Ms",
-                  "x-dreamliner": {
-                    "kind": "ms",
-                    "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
-                  }
-                },
-                "duplicate_max": {
-                  "type": "integer",
-                  "minimum": 2,
-                  "default": 3,
-                  "description": "How many duplicate messages in the window trigger an action.",
-                  "title": "Duplicate Max"
-                },
-                "rate_limit_count": {
-                  "type": "integer",
-                  "minimum": 2,
-                  "default": 5,
-                  "description": "How many messages in the rate-limit window trigger an action.",
-                  "title": "Rate Limit Count"
-                },
-                "rate_limit_window_ms": {
-                  "type": "integer",
-                  "minimum": 1000,
-                  "default": 10000,
-                  "description": "Time window (ms) used for rate-limit counting.",
-                  "title": "Rate Limit Window Ms",
-                  "x-dreamliner": {
-                    "kind": "ms",
-                    "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
-                  }
-                },
-                "raid_join_count": {
-                  "type": "integer",
-                  "minimum": 2,
-                  "default": 10,
-                  "description": "How many joins in the raid window look like a raid.",
-                  "title": "Raid Join Count"
-                },
-                "raid_join_window_ms": {
-                  "type": "integer",
-                  "minimum": 1000,
-                  "default": 30000,
-                  "description": "Time window (ms) used for raid join detection.",
-                  "title": "Raid Join Window Ms",
-                  "x-dreamliner": {
-                    "kind": "ms",
-                    "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
-                  }
+                  "description": "Last one-click preset applied from the dashboard, if any.",
+                  "title": "Presets Applied"
                 },
                 "ignored_channels": {
                   "type": "array",
@@ -1548,7 +1499,7 @@
                     "type": "string"
                   },
                   "default": [],
-                  "description": "Channel IDs automod should skip.",
+                  "description": "Channels automod should skip.",
                   "title": "Ignored Channels",
                   "x-dreamliner": {
                     "kind": "channel",
@@ -1561,33 +1512,29 @@
                     "type": "string"
                   },
                   "default": [],
-                  "description": "Role IDs that bypass automod (mods/admins usually).",
+                  "description": "Roles that bypass automod (mods/admins usually).",
                   "title": "Ignored Roles",
                   "x-dreamliner": {
                     "kind": "role",
                     "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                   }
                 },
-                "action": {
-                  "type": "string",
-                  "enum": [
-                    "delete",
-                    "warn",
-                    "mute"
+                "ignore_above_level": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
                   ],
-                  "default": "delete",
-                  "description": "What to do when a rule trips.",
-                  "title": "Action"
-                },
-                "mute_duration_ms": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "default": 600000,
-                  "description": "Mute length (ms) when action is mute. 600000 = 10 minutes.",
-                  "title": "Mute Duration Ms",
+                  "default": null,
+                  "description": "Members at this permission level or higher are ignored by automod. Leave empty to disable.",
+                  "title": "Ignore Above Level",
                   "x-dreamliner": {
-                    "kind": "ms",
-                    "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                    "kind": "level",
+                    "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
                   }
                 },
                 "log_channel_id": {
@@ -1598,6 +1545,230 @@
                     "kind": "channel",
                     "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
                   }
+                },
+                "dm_users": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "DM users when automod issues a warn (when Discord allows).",
+                  "title": "Dm Users"
+                },
+                "rules": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether this rule is active.",
+                        "title": "Enabled"
+                      },
+                      "sensitivity": {
+                        "type": "string",
+                        "enum": [
+                          "lenient",
+                          "balanced",
+                          "strict",
+                          "custom"
+                        ],
+                        "default": "balanced",
+                        "description": "Quick sensitivity preset for detector thresholds.",
+                        "title": "Sensitivity"
+                      },
+                      "strike_window_ms": {
+                        "type": "integer",
+                        "minimum": 1000,
+                        "default": 3600000,
+                        "description": "How long hits/points count toward the escalation ladder.",
+                        "title": "Strike Window Ms",
+                        "x-dreamliner": {
+                          "kind": "ms",
+                          "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                        }
+                      },
+                      "delete_message": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Delete the offending message when this rule hits (message rules).",
+                        "title": "Delete Message"
+                      },
+                      "points": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "default": 1,
+                        "description": "Points awarded each time this rule triggers (used for escalation thresholds).",
+                        "title": "Points"
+                      },
+                      "notify": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "DM the member when this rule issues a case action (warn/mute/kick/ban).",
+                        "title": "Notify"
+                      },
+                      "case_reason": {
+                        "type": "string",
+                        "maxLength": 400,
+                        "description": "Optional case reason override for infractions created by this rule.",
+                        "title": "Case Reason"
+                      },
+                      "ignored_channels": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": [],
+                        "description": "Channels where this specific rule is skipped.",
+                        "title": "Ignored Channels",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "ignored_roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": [],
+                        "description": "Roles that bypass this specific rule.",
+                        "title": "Ignored Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "ladder": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "after": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "description": "Run these actions once the user reaches this many points in the strike window.",
+                              "title": "After"
+                            },
+                            "actions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "delete",
+                                      "warn",
+                                      "mute",
+                                      "kick",
+                                      "softban",
+                                      "ban",
+                                      "tempban",
+                                      "note",
+                                      "none"
+                                    ],
+                                    "description": "Punishment or log action for this ladder step.",
+                                    "title": "Type"
+                                  },
+                                  "duration_ms": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Duration for mute/tempban in milliseconds.",
+                                    "title": "Duration Ms",
+                                    "x-dreamliner": {
+                                      "kind": "ms",
+                                      "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                                    }
+                                  },
+                                  "reason": {
+                                    "type": "string",
+                                    "maxLength": 400,
+                                    "description": "Optional reason override for the case.",
+                                    "title": "Reason"
+                                  },
+                                  "notify": {
+                                    "type": "boolean",
+                                    "description": "DM the member about this action when Discord allows.",
+                                    "title": "Notify"
+                                  },
+                                  "delete_message_days": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 7,
+                                    "description": "How many days of messages to delete on softban/ban (0–7).",
+                                    "title": "Delete Message Days"
+                                  },
+                                  "points": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100,
+                                    "description": "Infraction points recorded on the case metadata for this action.",
+                                    "title": "Points"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "minItems": 1,
+                              "description": "One or more actions to apply at this point threshold.",
+                              "title": "Actions"
+                            }
+                          },
+                          "required": [
+                            "after",
+                            "actions"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "default": [
+                          {
+                            "after": 1,
+                            "actions": [
+                              {
+                                "type": "delete"
+                              }
+                            ]
+                          }
+                        ],
+                        "description": "Escalation steps based on recent points for this rule.",
+                        "title": "Ladder"
+                      },
+                      "settings": {
+                        "type": "object",
+                        "additionalProperties": {},
+                        "default": {},
+                        "description": "Rule-specific detector settings (thresholds, word packs, filter entries).",
+                        "title": "Settings"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "default": {},
+                  "description": "Per-rule configuration keyed by rule id.",
+                  "title": "Rules"
+                },
+                "migrations": {
+                  "type": "object",
+                  "properties": {
+                    "legacy_v1": {
+                      "type": "boolean",
+                      "title": "Legacy V1"
+                    },
+                    "censor_v1": {
+                      "type": "boolean",
+                      "title": "Censor V1"
+                    },
+                    "censor_db_v1": {
+                      "type": "boolean",
+                      "title": "Censor Db V1"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Internal one-time migration flags.",
+                  "title": "Migrations"
                 },
                 "can_status": {
                   "type": "boolean",
@@ -1695,162 +1866,6 @@
           "additionalProperties": false,
           "title": "Automod"
         },
-        "censor": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Turn this plugin on or off for the server.",
-              "title": "Enabled"
-            },
-            "config": {
-              "type": "object",
-              "properties": {
-                "rules": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "pattern": {
-                        "type": "string",
-                        "description": "Word/phrase to match, or a regex if Regex is enabled.",
-                        "title": "Pattern"
-                      },
-                      "regex": {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "Treat Pattern as a regular expression.",
-                        "title": "Regex"
-                      },
-                      "action": {
-                        "type": "string",
-                        "enum": [
-                          "delete",
-                          "warn"
-                        ],
-                        "default": "delete",
-                        "description": "What happens when the pattern matches.",
-                        "title": "Action"
-                      }
-                    },
-                    "required": [
-                      "pattern"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "default": [],
-                  "description": "Filter rules. Add entries for words or phrases you want blocked.",
-                  "title": "Rules"
-                },
-                "ignored_channels": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "default": [],
-                  "description": "Channel IDs where censor rules do not apply.",
-                  "title": "Ignored Channels",
-                  "x-dreamliner": {
-                    "kind": "channel",
-                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
-                  }
-                },
-                "can_list": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to list censor rules. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "List",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "can_add": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to add censor rules. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Add",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "can_remove": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to remove censor rules. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Remove",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "title": "Config"
-            },
-            "overrides": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "level": {
-                    "type": "string",
-                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
-                    "title": "Level",
-                    "x-dreamliner": {
-                      "kind": "level",
-                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
-                    }
-                  },
-                  "channel": {
-                    "type": "string",
-                    "description": "Only apply in this channel ID.",
-                    "title": "Channel"
-                  },
-                  "category": {
-                    "type": "string",
-                    "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
-                  },
-                  "user": {
-                    "type": "string",
-                    "description": "Only apply to this user ID.",
-                    "title": "User",
-                    "x-dreamliner": {
-                      "kind": "user",
-                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
-                    }
-                  },
-                  "role": {
-                    "type": "string",
-                    "description": "Only apply to members who have this role ID.",
-                    "title": "Role"
-                  },
-                  "config": {
-                    "type": "object",
-                    "additionalProperties": {},
-                    "description": "Config values to merge when this override matches (usually can_* permissions).",
-                    "title": "Config"
-                  }
-                },
-                "required": [
-                  "config"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Conditional config merges. Use these to grant can_* permissions to mods/admins.",
-              "title": "Overrides"
-            },
-            "replaceDefaultOverrides": {
-              "type": "boolean",
-              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
-              "title": "ReplaceDefaultOverrides"
-            }
-          },
-          "additionalProperties": false,
-          "title": "Censor"
-        },
         "scam_protect": {
           "type": "object",
           "properties": {
@@ -1892,7 +1907,11 @@
                   "minimum": 0,
                   "default": 50,
                   "description": "Members at this level or higher are ignored when ignore_staff is true.",
-                  "title": "Staff Level"
+                  "title": "Staff Level",
+                  "x-dreamliner": {
+                    "kind": "level",
+                    "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                  }
                 },
                 "ignore_staff": {
                   "type": "boolean",
@@ -3057,25 +3076,1348 @@
             "config": {
               "type": "object",
               "properties": {
-                "channel_id": {
-                  "type": "string",
-                  "description": "Channel where welcome messages are posted. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
-                  "title": "Channel Id",
-                  "x-dreamliner": {
-                    "kind": "channel",
-                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
-                  }
+                "join": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Send this event message.",
+                      "title": "Enabled"
+                    },
+                    "channel_id": {
+                      "type": "string",
+                      "description": "Channel where this event message is posted. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "",
+                      "description": "Optional message content above the embed/card. Supports placeholders.",
+                      "title": "Content"
+                    },
+                    "embed": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Include a Discord embed in the message.",
+                          "title": "Enabled"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Embed title. Supports placeholders.",
+                          "title": "Title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 4096,
+                          "default": "",
+                          "description": "Embed description. Supports placeholders.",
+                          "title": "Description"
+                        },
+                        "color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Embed accent color as a decimal integer (0–16777215).",
+                          "default": 5661429,
+                          "title": "Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Optional embed author name.",
+                          "title": "Author Name"
+                        },
+                        "author_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Author icon source.",
+                          "title": "Author Icon"
+                        },
+                        "author_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Author icon URL when mode is url.",
+                          "title": "Author Icon Url"
+                        },
+                        "thumbnail": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "avatar",
+                          "description": "Thumbnail image source.",
+                          "title": "Thumbnail"
+                        },
+                        "thumbnail_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Thumbnail URL when mode is url.",
+                          "title": "Thumbnail Url"
+                        },
+                        "image": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Large embed image. Image cards attach as files, not embed images.",
+                          "title": "Image"
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Image URL when mode is url.",
+                          "title": "Image Url"
+                        },
+                        "footer_text": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "default": "",
+                          "description": "Footer text. Supports placeholders.",
+                          "title": "Footer Text"
+                        },
+                        "footer_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Footer icon source.",
+                          "title": "Footer Icon"
+                        },
+                        "footer_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Footer icon URL when mode is url.",
+                          "title": "Footer Icon Url"
+                        },
+                        "timestamp": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Show the current time in the embed footer.",
+                          "title": "Timestamp"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "default": "",
+                                "description": "Embed field name.",
+                                "title": "Name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 1024,
+                                "default": "",
+                                "description": "Embed field value. Supports placeholders.",
+                                "title": "Value"
+                              },
+                              "inline": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "Display the field inline.",
+                                "title": "Inline"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 25,
+                          "default": [],
+                          "description": "Optional embed fields.",
+                          "title": "Fields"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Embed"
+                    },
+                    "card": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Generate and attach a welcome/leave image card.",
+                          "title": "Enabled"
+                        },
+                        "background_type": {
+                          "type": "string",
+                          "enum": [
+                            "color",
+                            "url",
+                            "asset"
+                          ],
+                          "default": "color",
+                          "description": "Card background source.",
+                          "title": "Background Type"
+                        },
+                        "background_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Solid background color when type is color.",
+                          "default": 1974050,
+                          "title": "Background Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "background_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Background image URL when type is url.",
+                          "title": "Background Url"
+                        },
+                        "background_asset_id": {
+                          "type": "string",
+                          "maxLength": 128,
+                          "default": "",
+                          "description": "Uploaded background asset id when type is asset.",
+                          "title": "Background Asset Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "avatar_layout": {
+                          "type": "string",
+                          "enum": [
+                            "left",
+                            "center",
+                            "right"
+                          ],
+                          "default": "left",
+                          "description": "Preset position for the member avatar.",
+                          "title": "Avatar Layout"
+                        },
+                        "text_layout": {
+                          "type": "string",
+                          "enum": [
+                            "beside",
+                            "below",
+                            "overlay_center",
+                            "overlay_bottom"
+                          ],
+                          "default": "beside",
+                          "description": "Preset position for greeting and subtitle text.",
+                          "title": "Text Layout"
+                        },
+                        "avatar_style": {
+                          "type": "string",
+                          "enum": [
+                            "circle",
+                            "rounded_square"
+                          ],
+                          "default": "circle",
+                          "description": "Avatar shape.",
+                          "title": "Avatar Style"
+                        },
+                        "show_avatar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the member avatar on the card.",
+                          "title": "Show Avatar"
+                        },
+                        "show_accent_bar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the left accent bar.",
+                          "title": "Show Accent Bar"
+                        },
+                        "greeting_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Welcome {user_display}!",
+                          "description": "Primary card text. Supports placeholders.",
+                          "title": "Greeting Text"
+                        },
+                        "subtitle_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Member #{guild_member_count}",
+                          "description": "Secondary card text. Supports placeholders.",
+                          "title": "Subtitle Text"
+                        },
+                        "text_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card text color.",
+                          "default": 16777215,
+                          "title": "Text Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "accent_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Accent bar / avatar ring color.",
+                          "default": 5661429,
+                          "title": "Accent Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card border color.",
+                          "default": 5661429,
+                          "title": "Border Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 32,
+                          "default": 0,
+                          "description": "Card border thickness in pixels.",
+                          "title": "Border Width"
+                        },
+                        "border_radius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 80,
+                          "default": 24,
+                          "description": "Card corner radius in pixels.",
+                          "title": "Border Radius"
+                        },
+                        "avatar_size": {
+                          "type": "integer",
+                          "minimum": 64,
+                          "maximum": 240,
+                          "default": 180,
+                          "description": "Avatar size in pixels.",
+                          "title": "Avatar Size"
+                        },
+                        "avatar_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal avatar nudge in pixels.",
+                          "title": "Avatar Offset X"
+                        },
+                        "avatar_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical avatar nudge in pixels.",
+                          "title": "Avatar Offset Y"
+                        },
+                        "text_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal text nudge in pixels.",
+                          "title": "Text Offset X"
+                        },
+                        "text_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical text nudge in pixels.",
+                          "title": "Text Offset Y"
+                        },
+                        "greeting_size": {
+                          "type": "integer",
+                          "minimum": 18,
+                          "maximum": 72,
+                          "default": 44,
+                          "description": "Greeting font size in pixels.",
+                          "title": "Greeting Size"
+                        },
+                        "subtitle_size": {
+                          "type": "integer",
+                          "minimum": 12,
+                          "maximum": 48,
+                          "default": 24,
+                          "description": "Subtitle font size in pixels.",
+                          "title": "Subtitle Size"
+                        },
+                        "avatar_ring_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16,
+                          "default": 6,
+                          "description": "Avatar ring thickness in pixels.",
+                          "title": "Avatar Ring Width"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Card"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {
+                    "enabled": true,
+                    "content": "Welcome {user} to **{guild}**!"
+                  },
+                  "title": "Join"
                 },
-                "message": {
-                  "type": "string",
-                  "default": "Welcome {user} to **{guild}**!",
-                  "description": "Welcome text. Placeholders: {user}, {user_name}, {guild}, {member_count}.",
-                  "title": "Message"
+                "leave": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Send this event message.",
+                      "title": "Enabled"
+                    },
+                    "channel_id": {
+                      "type": "string",
+                      "description": "Channel where this event message is posted. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "",
+                      "description": "Optional message content above the embed/card. Supports placeholders.",
+                      "title": "Content"
+                    },
+                    "embed": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Include a Discord embed in the message.",
+                          "title": "Enabled"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Embed title. Supports placeholders.",
+                          "title": "Title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 4096,
+                          "default": "",
+                          "description": "Embed description. Supports placeholders.",
+                          "title": "Description"
+                        },
+                        "color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Embed accent color as a decimal integer (0–16777215).",
+                          "default": 5661429,
+                          "title": "Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Optional embed author name.",
+                          "title": "Author Name"
+                        },
+                        "author_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Author icon source.",
+                          "title": "Author Icon"
+                        },
+                        "author_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Author icon URL when mode is url.",
+                          "title": "Author Icon Url"
+                        },
+                        "thumbnail": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "avatar",
+                          "description": "Thumbnail image source.",
+                          "title": "Thumbnail"
+                        },
+                        "thumbnail_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Thumbnail URL when mode is url.",
+                          "title": "Thumbnail Url"
+                        },
+                        "image": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Large embed image. Image cards attach as files, not embed images.",
+                          "title": "Image"
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Image URL when mode is url.",
+                          "title": "Image Url"
+                        },
+                        "footer_text": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "default": "",
+                          "description": "Footer text. Supports placeholders.",
+                          "title": "Footer Text"
+                        },
+                        "footer_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Footer icon source.",
+                          "title": "Footer Icon"
+                        },
+                        "footer_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Footer icon URL when mode is url.",
+                          "title": "Footer Icon Url"
+                        },
+                        "timestamp": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Show the current time in the embed footer.",
+                          "title": "Timestamp"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "default": "",
+                                "description": "Embed field name.",
+                                "title": "Name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 1024,
+                                "default": "",
+                                "description": "Embed field value. Supports placeholders.",
+                                "title": "Value"
+                              },
+                              "inline": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "Display the field inline.",
+                                "title": "Inline"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 25,
+                          "default": [],
+                          "description": "Optional embed fields.",
+                          "title": "Fields"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Embed"
+                    },
+                    "card": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Generate and attach a welcome/leave image card.",
+                          "title": "Enabled"
+                        },
+                        "background_type": {
+                          "type": "string",
+                          "enum": [
+                            "color",
+                            "url",
+                            "asset"
+                          ],
+                          "default": "color",
+                          "description": "Card background source.",
+                          "title": "Background Type"
+                        },
+                        "background_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Solid background color when type is color.",
+                          "default": 1974050,
+                          "title": "Background Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "background_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Background image URL when type is url.",
+                          "title": "Background Url"
+                        },
+                        "background_asset_id": {
+                          "type": "string",
+                          "maxLength": 128,
+                          "default": "",
+                          "description": "Uploaded background asset id when type is asset.",
+                          "title": "Background Asset Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "avatar_layout": {
+                          "type": "string",
+                          "enum": [
+                            "left",
+                            "center",
+                            "right"
+                          ],
+                          "default": "left",
+                          "description": "Preset position for the member avatar.",
+                          "title": "Avatar Layout"
+                        },
+                        "text_layout": {
+                          "type": "string",
+                          "enum": [
+                            "beside",
+                            "below",
+                            "overlay_center",
+                            "overlay_bottom"
+                          ],
+                          "default": "beside",
+                          "description": "Preset position for greeting and subtitle text.",
+                          "title": "Text Layout"
+                        },
+                        "avatar_style": {
+                          "type": "string",
+                          "enum": [
+                            "circle",
+                            "rounded_square"
+                          ],
+                          "default": "circle",
+                          "description": "Avatar shape.",
+                          "title": "Avatar Style"
+                        },
+                        "show_avatar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the member avatar on the card.",
+                          "title": "Show Avatar"
+                        },
+                        "show_accent_bar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the left accent bar.",
+                          "title": "Show Accent Bar"
+                        },
+                        "greeting_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Welcome {user_display}!",
+                          "description": "Primary card text. Supports placeholders.",
+                          "title": "Greeting Text"
+                        },
+                        "subtitle_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Member #{guild_member_count}",
+                          "description": "Secondary card text. Supports placeholders.",
+                          "title": "Subtitle Text"
+                        },
+                        "text_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card text color.",
+                          "default": 16777215,
+                          "title": "Text Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "accent_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Accent bar / avatar ring color.",
+                          "default": 5661429,
+                          "title": "Accent Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card border color.",
+                          "default": 5661429,
+                          "title": "Border Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 32,
+                          "default": 0,
+                          "description": "Card border thickness in pixels.",
+                          "title": "Border Width"
+                        },
+                        "border_radius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 80,
+                          "default": 24,
+                          "description": "Card corner radius in pixels.",
+                          "title": "Border Radius"
+                        },
+                        "avatar_size": {
+                          "type": "integer",
+                          "minimum": 64,
+                          "maximum": 240,
+                          "default": 180,
+                          "description": "Avatar size in pixels.",
+                          "title": "Avatar Size"
+                        },
+                        "avatar_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal avatar nudge in pixels.",
+                          "title": "Avatar Offset X"
+                        },
+                        "avatar_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical avatar nudge in pixels.",
+                          "title": "Avatar Offset Y"
+                        },
+                        "text_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal text nudge in pixels.",
+                          "title": "Text Offset X"
+                        },
+                        "text_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical text nudge in pixels.",
+                          "title": "Text Offset Y"
+                        },
+                        "greeting_size": {
+                          "type": "integer",
+                          "minimum": 18,
+                          "maximum": 72,
+                          "default": 44,
+                          "description": "Greeting font size in pixels.",
+                          "title": "Greeting Size"
+                        },
+                        "subtitle_size": {
+                          "type": "integer",
+                          "minimum": 12,
+                          "maximum": 48,
+                          "default": 24,
+                          "description": "Subtitle font size in pixels.",
+                          "title": "Subtitle Size"
+                        },
+                        "avatar_ring_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16,
+                          "default": 6,
+                          "description": "Avatar ring thickness in pixels.",
+                          "title": "Avatar Ring Width"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Card"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Leave"
+                },
+                "dm": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Send a private welcome message to new members.",
+                      "title": "Enabled"
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "",
+                      "description": "Optional DM content. Supports placeholders.",
+                      "title": "Content"
+                    },
+                    "embed": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Include a Discord embed in the message.",
+                          "title": "Enabled"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Embed title. Supports placeholders.",
+                          "title": "Title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 4096,
+                          "default": "",
+                          "description": "Embed description. Supports placeholders.",
+                          "title": "Description"
+                        },
+                        "color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Embed accent color as a decimal integer (0–16777215).",
+                          "default": 5661429,
+                          "title": "Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Optional embed author name.",
+                          "title": "Author Name"
+                        },
+                        "author_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Author icon source.",
+                          "title": "Author Icon"
+                        },
+                        "author_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Author icon URL when mode is url.",
+                          "title": "Author Icon Url"
+                        },
+                        "thumbnail": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "avatar",
+                          "description": "Thumbnail image source.",
+                          "title": "Thumbnail"
+                        },
+                        "thumbnail_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Thumbnail URL when mode is url.",
+                          "title": "Thumbnail Url"
+                        },
+                        "image": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Large embed image. Image cards attach as files, not embed images.",
+                          "title": "Image"
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Image URL when mode is url.",
+                          "title": "Image Url"
+                        },
+                        "footer_text": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "default": "",
+                          "description": "Footer text. Supports placeholders.",
+                          "title": "Footer Text"
+                        },
+                        "footer_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Footer icon source.",
+                          "title": "Footer Icon"
+                        },
+                        "footer_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Footer icon URL when mode is url.",
+                          "title": "Footer Icon Url"
+                        },
+                        "timestamp": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Show the current time in the embed footer.",
+                          "title": "Timestamp"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "default": "",
+                                "description": "Embed field name.",
+                                "title": "Name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 1024,
+                                "default": "",
+                                "description": "Embed field value. Supports placeholders.",
+                                "title": "Value"
+                              },
+                              "inline": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "Display the field inline.",
+                                "title": "Inline"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 25,
+                          "default": [],
+                          "description": "Optional embed fields.",
+                          "title": "Fields"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Embed"
+                    },
+                    "card": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Generate and attach a welcome/leave image card.",
+                          "title": "Enabled"
+                        },
+                        "background_type": {
+                          "type": "string",
+                          "enum": [
+                            "color",
+                            "url",
+                            "asset"
+                          ],
+                          "default": "color",
+                          "description": "Card background source.",
+                          "title": "Background Type"
+                        },
+                        "background_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Solid background color when type is color.",
+                          "default": 1974050,
+                          "title": "Background Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "background_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Background image URL when type is url.",
+                          "title": "Background Url"
+                        },
+                        "background_asset_id": {
+                          "type": "string",
+                          "maxLength": 128,
+                          "default": "",
+                          "description": "Uploaded background asset id when type is asset.",
+                          "title": "Background Asset Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "avatar_layout": {
+                          "type": "string",
+                          "enum": [
+                            "left",
+                            "center",
+                            "right"
+                          ],
+                          "default": "left",
+                          "description": "Preset position for the member avatar.",
+                          "title": "Avatar Layout"
+                        },
+                        "text_layout": {
+                          "type": "string",
+                          "enum": [
+                            "beside",
+                            "below",
+                            "overlay_center",
+                            "overlay_bottom"
+                          ],
+                          "default": "beside",
+                          "description": "Preset position for greeting and subtitle text.",
+                          "title": "Text Layout"
+                        },
+                        "avatar_style": {
+                          "type": "string",
+                          "enum": [
+                            "circle",
+                            "rounded_square"
+                          ],
+                          "default": "circle",
+                          "description": "Avatar shape.",
+                          "title": "Avatar Style"
+                        },
+                        "show_avatar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the member avatar on the card.",
+                          "title": "Show Avatar"
+                        },
+                        "show_accent_bar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the left accent bar.",
+                          "title": "Show Accent Bar"
+                        },
+                        "greeting_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Welcome {user_display}!",
+                          "description": "Primary card text. Supports placeholders.",
+                          "title": "Greeting Text"
+                        },
+                        "subtitle_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Member #{guild_member_count}",
+                          "description": "Secondary card text. Supports placeholders.",
+                          "title": "Subtitle Text"
+                        },
+                        "text_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card text color.",
+                          "default": 16777215,
+                          "title": "Text Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "accent_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Accent bar / avatar ring color.",
+                          "default": 5661429,
+                          "title": "Accent Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card border color.",
+                          "default": 5661429,
+                          "title": "Border Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 32,
+                          "default": 0,
+                          "description": "Card border thickness in pixels.",
+                          "title": "Border Width"
+                        },
+                        "border_radius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 80,
+                          "default": 24,
+                          "description": "Card corner radius in pixels.",
+                          "title": "Border Radius"
+                        },
+                        "avatar_size": {
+                          "type": "integer",
+                          "minimum": 64,
+                          "maximum": 240,
+                          "default": 180,
+                          "description": "Avatar size in pixels.",
+                          "title": "Avatar Size"
+                        },
+                        "avatar_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal avatar nudge in pixels.",
+                          "title": "Avatar Offset X"
+                        },
+                        "avatar_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical avatar nudge in pixels.",
+                          "title": "Avatar Offset Y"
+                        },
+                        "text_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal text nudge in pixels.",
+                          "title": "Text Offset X"
+                        },
+                        "text_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical text nudge in pixels.",
+                          "title": "Text Offset Y"
+                        },
+                        "greeting_size": {
+                          "type": "integer",
+                          "minimum": 18,
+                          "maximum": 72,
+                          "default": 44,
+                          "description": "Greeting font size in pixels.",
+                          "title": "Greeting Size"
+                        },
+                        "subtitle_size": {
+                          "type": "integer",
+                          "minimum": 12,
+                          "maximum": 48,
+                          "default": 24,
+                          "description": "Subtitle font size in pixels.",
+                          "title": "Subtitle Size"
+                        },
+                        "avatar_ring_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16,
+                          "default": 6,
+                          "description": "Avatar ring thickness in pixels.",
+                          "title": "Avatar Ring Width"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Card"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Dm"
+                },
+                "first_message_react": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "React to a member's first message after joining.",
+                      "title": "Enabled"
+                    },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "default": "",
+                      "description": "Server emoji id, unicode emoji, or <:name:id> / <a:name:id>.",
+                      "title": "Emoji",
+                      "x-dreamliner": {
+                        "kind": "emoji",
+                        "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "First Message React"
+                },
+                "delete_join_on_early_leave": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Delete the join welcome message if the member leaves within 24 hours.",
+                  "title": "Delete Join On Early Leave"
+                },
+                "wave_button": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Add a Wave button on join channel welcomes.",
+                      "title": "Enabled"
+                    },
+                    "label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Wave",
+                      "description": "Button label before the tally.",
+                      "title": "Label"
+                    },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "default": "👋",
+                      "description": "Button emoji (unicode, emoji id, or <:name:id>).",
+                      "title": "Emoji",
+                      "x-dreamliner": {
+                        "kind": "emoji",
+                        "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Wave Button"
                 },
                 "can_set": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to set the welcome message. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to configure the welcomer. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Set",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -3085,7 +4427,7 @@
                 "can_test": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to test the welcome message. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to test welcomer messages. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Test",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -3095,7 +4437,7 @@
                 "can_disable": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to disable welcome messages. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to disable welcomer messages. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Disable",
                   "x-dreamliner": {
                     "kind": "permission",

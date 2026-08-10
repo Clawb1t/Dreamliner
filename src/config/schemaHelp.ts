@@ -99,7 +99,9 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
     return "role";
   }
   if (key === "user" || key.endsWith("_user_id")) return "user";
-  if (key === "levels" || key === "level") return "level";
+  if (key === "levels" || key === "level" || key === "ignore_above_level" || key === "staff_level") {
+    return "level";
+  }
   if (key.endsWith("_ms") || key === "delay_ms") return "ms";
   if (key.endsWith("_seconds") || key === "seconds") return "seconds";
   if (key.includes("emoji") || key === "success" || key === "error" || key === "neutral" || key === "warning" || key === "unchecked") {

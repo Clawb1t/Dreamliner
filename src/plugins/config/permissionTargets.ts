@@ -54,9 +54,7 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   // Moderation plugins
   { key: "automod status", label: "/automod status", plugin: "automod", permission: "can_status" },
   { key: "automod test", label: "/automod test", plugin: "automod", permission: "can_test" },
-  { key: "censor list", label: "/censor list", plugin: "censor", permission: "can_list" },
-  { key: "censor add", label: "/censor add", plugin: "censor", permission: "can_add" },
-  { key: "censor remove", label: "/censor remove", plugin: "censor", permission: "can_remove" },
+  { key: "automod configure", label: "/automod preset", plugin: "automod", permission: "can_configure" },
   { key: "scamprotect setup", label: "/scamprotect setup", plugin: "scam_protect", permission: "can_setup" },
   { key: "scamprotect status", label: "/scamprotect status", plugin: "scam_protect", permission: "can_status" },
   { key: "lockdown", label: "/lockdown", plugin: "admin", permission: "can_lockdown" },

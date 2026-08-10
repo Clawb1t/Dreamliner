@@ -74,6 +74,10 @@ import {
 } from "./plugins/suggestions/constants.js";
 import { handleSuggestModalSubmit } from "./plugins/suggestions/functions/modal.js";
 import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functions/handlers.js";
+import {
+  handleWelcomeWaveButtonInteraction,
+  WELCOME_WAVE_CUSTOM_ID,
+} from "./plugins/welcome_message/functions/waveButton.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
@@ -101,7 +105,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.MessageContent,
     ],
-    partials: [Partials.Message, Partials.Channel, Partials.Reaction],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
   });
 
   const ctx = await loadPlugins(client, configManager, availablePlugins);
@@ -163,6 +167,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(SUGGEST_PREFIX)) {
         const handled = await handleSuggestionButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {
+        const handled = await handleWelcomeWaveButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {

@@ -3,6 +3,8 @@ import { ZodIssueCode, type ZodIssue } from "zod";
 import { zGuildConfig, type GuildConfig } from "./schemas/guild.js";
 import { zUtilityConfig } from "./schemas/utility.js";
 import { loadDefaultConfig } from "./default.js";
+import { migrateAutomodAndCensorInConfig } from "../plugins/automod/functions/migrate.js";
+import { migrateWelcomeMessageInConfig } from "./schemas/welcome.js";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -75,6 +77,14 @@ export function repairGuildConfig(raw: unknown): {
   let value = deepMerge(defaults, override);
   const repairs: string[] = [];
   const seen = new Set<string>();
+
+  if (migrateAutomodAndCensorInConfig(value)) {
+    repairs.push("plugins.automod (migrated from legacy automod/censor)");
+  }
+
+  if (migrateWelcomeMessageInConfig(value)) {
+    repairs.push("plugins.welcome_message (migrated to join/leave/dm welcomer)");
+  }
 
   for (let attempt = 0; attempt < 40; attempt++) {
     const parsed = zGuildConfig.safeParse(value);

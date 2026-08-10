@@ -2,6 +2,16 @@
 
 Manage Discord’s native **channel** slowmode, plus bot-enforced **individual** slowmode for specific users or roles (for example VIP at 2s while members are at 6s).
 
+## Dashboard setup
+
+On the guild dashboard → **Slowmode**:
+
+1. **Channel slowmode** — set the default seconds used by `/slowmode set` when no value is typed. Actual per-channel limits are still set in Discord with `/slowmode set` / `clear`.
+2. **Individual slowmode** — turn bot-enforced rules on, choose whether Manage Messages bypasses them, and set a fallback delay (0 = none).
+3. **Rules** — add a **User** or **Role** rule, pick the member/role, set seconds, and either apply to all channels or only selected ones.
+
+Save from the sidebar when finished.
+
 ## Configuration
 
 ```yaml

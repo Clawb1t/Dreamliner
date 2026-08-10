@@ -1,94 +1,45 @@
 import { z } from "zod";
-import { boolPerm, channelId, roleId } from "../schemaHelp.js";
+import { boolPerm, roleId } from "../schemaHelp.js";
 import { zPluginSection } from "./pluginSection.js";
+import { zAutomodConfig } from "./automod.js";
+import { zWelcomeMessageConfig } from "./welcome.js";
 
-export const zAutomodConfig = z.strictObject({
-  enabled_rules: z
-    .array(z.string())
-    .default(["duplicate", "rate_limit"])
-    .describe('Which automod rules are active. Common values: "duplicate", "rate_limit", "raid".'),
-  duplicate_window_ms: z
-    .number()
-    .int()
-    .min(1000)
-    .default(30_000)
-    .describe("How long (ms) to watch for repeated identical messages from the same user."),
-  duplicate_max: z
-    .number()
-    .int()
-    .min(2)
-    .default(3)
-    .describe("How many duplicate messages in the window trigger an action."),
-  rate_limit_count: z
-    .number()
-    .int()
-    .min(2)
-    .default(5)
-    .describe("How many messages in the rate-limit window trigger an action."),
-  rate_limit_window_ms: z
-    .number()
-    .int()
-    .min(1000)
-    .default(10_000)
-    .describe("Time window (ms) used for rate-limit counting."),
-  raid_join_count: z
-    .number()
-    .int()
-    .min(2)
-    .default(10)
-    .describe("How many joins in the raid window look like a raid."),
-  raid_join_window_ms: z
-    .number()
-    .int()
-    .min(1000)
-    .default(30_000)
-    .describe("Time window (ms) used for raid join detection."),
-  ignored_channels: z
-    .array(z.string())
-    .default([])
-    .describe("Channel IDs automod should skip."),
-  ignored_roles: z
-    .array(z.string())
-    .default([])
-    .describe("Role IDs that bypass automod (mods/admins usually)."),
-  action: z
-    .enum(["delete", "warn", "mute"])
-    .default("delete")
-    .describe("What to do when a rule trips."),
-  mute_duration_ms: z
-    .number()
-    .int()
-    .min(0)
-    .default(600_000)
-    .describe("Mute length (ms) when action is mute. 600000 = 10 minutes."),
-  log_channel_id: channelId("Optional channel for automod hits. Falls back to moderation logs if empty."),
-  can_status: boolPerm("check automod status"),
-  can_test: boolPerm("run automod tests"),
-  can_configure: boolPerm("configure automod settings in Discord"),
-});
+export {
+  AUTOMOD_ACTION_TYPES,
+  AUTOMOD_PRESETS,
+  AUTOMOD_RULE_IDS,
+  AUTOMOD_SENSITIVITIES,
+  zAutomodConfig,
+  zAutomodFilterEntry,
+  zAutomodLadderAction,
+  zAutomodLadderStep,
+  zAutomodRuleConfig,
+  type AutomodActionType,
+  type AutomodConfig,
+  type AutomodFilterEntry,
+  type AutomodLadderAction,
+  type AutomodLadderStep,
+  type AutomodPresetName,
+  type AutomodRuleConfig,
+  type AutomodRuleId,
+  type AutomodSensitivity,
+} from "./automod.js";
 
-export const zCensorConfig = z.strictObject({
-  rules: z
-    .array(
-      z.strictObject({
-        pattern: z.string().describe("Word/phrase to match, or a regex if Regex is enabled."),
-        regex: z.boolean().default(false).describe("Treat Pattern as a regular expression."),
-        action: z
-          .enum(["delete", "warn"])
-          .default("delete")
-          .describe("What happens when the pattern matches."),
-      }),
-    )
-    .default([])
-    .describe("Filter rules. Add entries for words or phrases you want blocked."),
-  ignored_channels: z
-    .array(z.string())
-    .default([])
-    .describe("Channel IDs where censor rules do not apply."),
-  can_list: boolPerm("list censor rules"),
-  can_add: boolPerm("add censor rules"),
-  can_remove: boolPerm("remove censor rules"),
-});
+export {
+  migrateWelcomeMessageInConfig,
+  zWelcomeCardConfig,
+  zWelcomeDmConfig,
+  zWelcomeEmbedConfig,
+  zWelcomeEmbedField,
+  zWelcomeEventConfig,
+  zWelcomeMessageConfig,
+  type WelcomeCardConfig,
+  type WelcomeDmConfig,
+  type WelcomeEmbedConfig,
+  type WelcomeEmbedField,
+  type WelcomeEventConfig,
+  type WelcomeMessageConfig,
+} from "./welcome.js";
 
 export const zAdminConfig = z.strictObject({
   lockdown_role_id: roleId("Role applied during channel lockdown (optional)."),
@@ -193,17 +144,6 @@ export const zRoleManagerConfig = z.strictObject({
   can_create: boolPerm("create roles from templates"),
   can_delete: boolPerm("delete role templates"),
   can_list: boolPerm("list role templates"),
-});
-
-export const zWelcomeMessageConfig = z.strictObject({
-  channel_id: channelId("Channel where welcome messages are posted."),
-  message: z
-    .string()
-    .default("Welcome {user} to **{guild}**!")
-    .describe("Welcome text. Placeholders: {user}, {user_name}, {guild}, {member_count}."),
-  can_set: boolPerm("set the welcome message"),
-  can_test: boolPerm("test the welcome message"),
-  can_disable: boolPerm("disable welcome messages"),
 });
 
 export const zTagsConfig = z.strictObject({
@@ -397,7 +337,6 @@ export const zBotCustomisationConfig = z.strictObject({
 });
 
 export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape);
-export const zCensorPluginSection = zPluginSection(zCensorConfig.shape);
 export const zAdminPluginSection = zPluginSection(zAdminConfig.shape);
 export const zPersistPluginSection = zPluginSection(zPersistConfig.shape);
 export const zSlowmodePluginSection = zPluginSection(zSlowmodeConfig.shape);
@@ -425,15 +364,12 @@ export const zCommandAliasesPluginSection = zPluginSection(zCommandAliasesConfig
 export const zDreamCommandsPluginSection = zPluginSection(zDreamCommandsConfig.shape);
 export const zBotCustomisationPluginSection = zPluginSection(zBotCustomisationConfig.shape);
 
-export type AutomodConfig = z.infer<typeof zAutomodConfig>;
-export type CensorConfig = z.infer<typeof zCensorConfig>;
 export type AdminConfig = z.infer<typeof zAdminConfig>;
 export type PersistConfig = z.infer<typeof zPersistConfig>;
 export type SlowmodeConfig = z.infer<typeof zSlowmodeConfig>;
 export type SlowmodeRule = z.infer<typeof zSlowmodeRule>;
 export type SlowmodeRuleTarget = z.infer<typeof zSlowmodeRuleTarget>;
 export type TagsConfig = z.infer<typeof zTagsConfig>;
-export type WelcomeMessageConfig = z.infer<typeof zWelcomeMessageConfig>;
 export type RolesConfig = z.infer<typeof zRolesConfig>;
 export type ReactionRolesConfig = z.infer<typeof zReactionRolesConfig>;
 export type RoleButtonsConfig = z.infer<typeof zRoleButtonsConfig>;

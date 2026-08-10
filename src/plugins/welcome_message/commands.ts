@@ -2,31 +2,47 @@ import { ChannelType, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
-import { zWelcomeMessageConfig } from "../../config/schemas/plugins.js";
-import { sendWelcomeMessage } from "./functions/handlers.js";
+import { zWelcomeMessageConfig } from "../../config/schemas/welcome.js";
+import { sendWelcomeEvent } from "./functions/handlers.js";
+import type { WelcomeTarget } from "./functions/messageBuilder.js";
 
 export const welcomeMessageCommands: SlashCommandDefinition[] = [
   {
     plugin: "welcome_message",
     data: new SlashCommandBuilder()
       .setName("welcome")
-      .setDescription("Configure welcome messages")
+      .setDescription("Configure and test the welcomer")
       .addSubcommand((sub) =>
         sub
           .setName("set")
-          .setDescription("Set the welcome channel and message")
+          .setDescription("Set the join welcome channel")
           .addChannelOption((o) =>
-            o.setName("channel").setDescription("Welcome channel").addChannelTypes(ChannelType.GuildText).setRequired(true),
-          )
-          .addStringOption((o) =>
             o
-              .setName("message")
-              .setDescription("Welcome message template (supports {user}, {username}, {guild}, {memberCount})"),
+              .setName("channel")
+              .setDescription("Channel for join welcomes")
+              .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+              .setRequired(true),
           ),
       )
-      .addSubcommand((sub) => sub.setName("show").setDescription("Show the current welcome configuration"))
-      .addSubcommand((sub) => sub.setName("test").setDescription("Send a test welcome message"))
-      .addSubcommand((sub) => sub.setName("disable").setDescription("Disable welcome messages")),
+      .addSubcommand((sub) => sub.setName("show").setDescription("Show the current welcomer summary"))
+      .addSubcommand((sub) =>
+        sub
+          .setName("test")
+          .setDescription("Send a test welcomer message")
+          .addStringOption((o) =>
+            o
+              .setName("target")
+              .setDescription("Which message to test")
+              .addChoices(
+                { name: "Join", value: "join" },
+                { name: "Leave", value: "leave" },
+                { name: "DM", value: "dm" },
+              ),
+          ),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("disable").setDescription("Disable join welcome messages"),
+      ),
     execute: async (ctx) => {
       const sub = ctx.interaction.options.getSubcommand();
       const guildId = ctx.interaction.guildId!;
@@ -36,18 +52,33 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
         if (!auth) return;
 
         const channel = ctx.interaction.options.getChannel("channel", true);
-        const message = ctx.interaction.options.getString("message");
-        const patch: Record<string, unknown> = { channel_id: channel.id };
-        if (message !== null) patch.message = message;
-
-        const result = await ctx.configManager.patchPluginConfig(guildId, "welcome_message", patch, ctx.interaction.user.id);
+        const current = zWelcomeMessageConfig.parse(auth.pluginConfig);
+        const result = await ctx.configManager.patchPluginConfig(
+          guildId,
+          "welcome_message",
+          {
+            join: {
+              ...current.join,
+              enabled: true,
+              channel_id: channel.id,
+            },
+          },
+          ctx.interaction.user.id,
+        );
         if (!result.success) {
-          await ctx.interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(
+            resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
           return;
         }
 
         await ctx.interaction.reply(
-          resultReply("Welcome configured", `Messages will be sent to <#${channel.id}>.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Welcomer updated",
+            `Join messages will be sent to <#${channel.id}>. Customize embeds and cards in the dashboard.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx),
+          ),
         );
         return;
       }
@@ -56,19 +87,15 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "welcome_message", "can_set");
         if (!auth) return;
         const config = zWelcomeMessageConfig.parse(auth.pluginConfig);
-        if (!config.channel_id) {
-          await ctx.interaction.reply(
-            resultReply("Welcome", "Welcome messages are not configured.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
-          );
-          return;
-        }
+        const lines = [
+          `**Join:** ${config.join.enabled ? (config.join.channel_id ? `<#${config.join.channel_id}>` : "enabled (no channel)") : "off"}`,
+          `**Leave:** ${config.leave.enabled ? (config.leave.channel_id ? `<#${config.leave.channel_id}>` : "enabled (no channel)") : "off"}`,
+          `**DM:** ${config.dm.enabled ? "on" : "off"}`,
+          "",
+          "Edit embeds, cards, and copy in the Dreamliner dashboard.",
+        ];
         await ctx.interaction.reply(
-          resultReply(
-            "Welcome configuration",
-            `Channel: <#${config.channel_id}>\nMessage: ${config.message}`,
-            ctx.ephemeral,
-            slashResultOptions(ctx),
-          ),
+          resultReply("Welcomer", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)),
         );
         return;
       }
@@ -78,13 +105,16 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
         if (!auth) return;
 
         const config = zWelcomeMessageConfig.parse(auth.pluginConfig);
-        if (!config.channel_id) {
-          await ctx.interaction.reply(resultReply("Not configured", "Set a welcome channel first with `/welcome set`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
-          return;
-        }
-
-        await sendWelcomeMessage(auth.member, config);
-        await ctx.interaction.reply(resultReply("Test sent", `A test welcome message was sent to <#${config.channel_id}>.`, ctx.ephemeral, slashResultOptions(ctx)));
+        const target = (ctx.interaction.options.getString("target") ?? "join") as WelcomeTarget;
+        const result = await sendWelcomeEvent(target, auth.member, config);
+        await ctx.interaction.reply(
+          resultReply(
+            result.ok ? "Test sent" : "Test failed",
+            result.detail,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: result.ok ? "success" : "warning" }),
+          ),
+        );
         return;
       }
 
@@ -92,18 +122,33 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "welcome_message", "can_disable");
         if (!auth) return;
 
+        const current = zWelcomeMessageConfig.parse(auth.pluginConfig);
         const result = await ctx.configManager.patchPluginConfig(
           guildId,
           "welcome_message",
-          { channel_id: null },
+          {
+            join: {
+              ...current.join,
+              enabled: false,
+            },
+          },
           ctx.interaction.user.id,
         );
         if (!result.success) {
-          await ctx.interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(
+            resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
           return;
         }
 
-        await ctx.interaction.reply(resultReply("Welcome disabled", "Welcome messages are now disabled.", ctx.ephemeral, slashResultOptions(ctx, { tone: "unchecked" })));
+        await ctx.interaction.reply(
+          resultReply(
+            "Join welcomes disabled",
+            "Join channel messages are off. Leave and DM settings are unchanged.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "unchecked" }),
+          ),
+        );
       }
     },
   },

@@ -14,7 +14,6 @@ import { statsDefaultOverrides } from "../plugins/stats/defaultOverrides.js";
 import { customEventsDefaultOverrides } from "../plugins/custom_events/defaultOverrides.js";
 import { commandAliasesDefaultOverrides } from "../plugins/command_aliases/defaultOverrides.js";
 import { automodDefaultOverrides } from "../plugins/automod/defaultOverrides.js";
-import { censorDefaultOverrides } from "../plugins/censor/defaultOverrides.js";
 import { adminDefaultOverrides } from "../plugins/admin/defaultOverrides.js";
 import { persistDefaultOverrides } from "../plugins/persist/defaultOverrides.js";
 import { slowmodeDefaultOverrides } from "../plugins/slowmode/defaultOverrides.js";
@@ -43,7 +42,6 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   utility: utilityDefaultOverrides,
   infractions: infractionDefaultOverrides,
   automod: automodDefaultOverrides,
-  censor: censorDefaultOverrides,
   scam_protect: scamProtectDefaultOverrides,
   admin: adminDefaultOverrides,
   persist: persistDefaultOverrides,

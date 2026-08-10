@@ -10,7 +10,6 @@ import { zUtilityConfig } from "../config/schemas/utility.js";
 import {
   zAdminConfig,
   zAutomodConfig,
-  zCensorConfig,
   zCommandAliasesConfig,
   zCustomEventsConfig,
   zDreamCommandsConfig,
@@ -45,7 +44,6 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   translation: zTranslationConfig,
   starboard: zStarboardConfig,
   automod: zAutomodConfig,
-  censor: zCensorConfig,
   scam_protect: zScamProtectConfig,
   admin: zAdminConfig,
   persist: zPersistConfig,
