@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import type { SuggestionsConfig } from "../../../config/schemas/suggestions.js";
+import { parseComponentEmoji } from "../../../core/emoji.js";
 import {
   DISPLAY_STATUS_LABELS,
   suggestQueueApproveId,
@@ -32,11 +33,9 @@ export async function resolveTextChannel(
 
 function applyButtonEmoji(button: ButtonBuilder, emoji?: string) {
   if (!emoji?.trim()) return button;
-  const custom = /^<a?:(\w+):(\d+)>$/.exec(emoji.trim());
-  if (custom) {
-    return button.setEmoji({ name: custom[1], id: custom[2] });
-  }
-  return button.setEmoji(emoji.trim());
+  const parsed = parseComponentEmoji(emoji);
+  if (!parsed) return button;
+  return button.setEmoji(parsed);
 }
 
 export function buildSuggestionEmbed(options: {

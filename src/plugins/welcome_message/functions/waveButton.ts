@@ -10,25 +10,13 @@ import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { configManager } from "../../../config/manager.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { addWelcomeWave, getWelcomeJoinMessage } from "./store.js";
+import { parseComponentEmoji } from "../../../core/emoji.js";
 import { loadWelcomeConfig } from "./loadConfig.js";
 
 /** Shared custom id; the waved welcome is identified by interaction.message.id. */
 export const WELCOME_WAVE_CUSTOM_ID = "welcome:wave";
 export const WELCOME_WAVE_PREFIX = "welcome:wave";
 export const EARLY_LEAVE_MS = 24 * 60 * 60 * 1000;
-
-function parseButtonEmoji(raw: string): string | { id: string; name?: string } | undefined {
-  const trimmed = raw.trim();
-  if (!trimmed) return undefined;
-  const mention = trimmed.match(/^<(a?):([A-Za-z0-9_]+):(\d{5,20})>$/);
-  if (mention) {
-    return { id: mention[3]!, name: mention[2] };
-  }
-  if (/^\d{5,20}$/.test(trimmed)) {
-    return { id: trimmed };
-  }
-  return trimmed;
-}
 
 export function waveButtonLabel(baseLabel: string, count: number): string {
   const label = baseLabel.trim() || "Wave";
@@ -44,7 +32,7 @@ export function buildWaveButtonRow(
     .setStyle(ButtonStyle.Secondary)
     .setLabel(waveButtonLabel(wave.label || "Wave", count));
 
-  const emoji = parseButtonEmoji(wave.emoji || "👋");
+  const emoji = parseComponentEmoji(wave.emoji || "👋");
   if (emoji) button.setEmoji(emoji);
 
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(button);

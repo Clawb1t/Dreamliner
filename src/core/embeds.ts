@@ -1,5 +1,6 @@
 import { EmbedBuilder, type Client, type GuildMember } from "discord.js";
 import type { EmojisConfig, GuildConfig } from "../config/schemas/guild.js";
+import { resolveEmojiForContent } from "./emoji.js";
 
 /** Zero-width space for embed field name padding */
 export const EMPTY_EMBED = "\u200b";
@@ -39,12 +40,14 @@ function resolveEmojis(emojis?: EmojisConfig): EmojisConfig {
   return emojis ?? DEFAULT_EMOJIS;
 }
 
-function resolveToneEmoji(tone: EmbedTone, emojis: EmojisConfig): string {
-  if (tone === "success") return emojis.success;
-  if (tone === "error") return emojis.error;
-  if (tone === "warning") return emojis.warning;
-  if (tone === "unchecked") return emojis.unchecked;
-  return emojis.neutral;
+function resolveToneEmoji(tone: EmbedTone, emojis: EmojisConfig, client?: Client): string {
+  let raw: string;
+  if (tone === "success") raw = emojis.success;
+  else if (tone === "error") raw = emojis.error;
+  else if (tone === "warning") raw = emojis.warning;
+  else if (tone === "unchecked") raw = emojis.unchecked;
+  else raw = emojis.neutral;
+  return resolveEmojiForContent(raw, client);
 }
 
 export function inferEmbedTone(title: string): EmbedTone {
@@ -93,7 +96,7 @@ export function setEmbedAuthor(
   }
 
   const resolvedTone = tone ?? inferEmbedTone(title);
-  const prefix = emoji ?? resolveToneEmoji(resolvedTone, emojis);
+  const prefix = resolveEmojiForContent(emoji ?? resolveToneEmoji(resolvedTone, emojis, client), client);
 
   embed.setAuthor({ name: "Dreamliner", iconURL: botAvatarURL(client) });
   embed.setTitle(`${prefix} ${title}`);
@@ -122,9 +125,11 @@ export function discordTs(date: Date): string {
   return `<t:${Math.floor(date.getTime() / 1000)}:R>`;
 }
 
-export function yesNo(value: boolean, emojis?: EmojisConfig): string {
+export function yesNo(value: boolean, emojis?: EmojisConfig, client?: Client): string {
   const resolved = resolveEmojis(emojis);
-  return value ? `${resolved.success} Yes` : `${resolved.unchecked} No`;
+  const yes = resolveEmojiForContent(resolved.success, client);
+  const no = resolveEmojiForContent(resolved.unchecked, client);
+  return value ? `${yes} Yes` : `${no} No`;
 }
 
 /** Build a markdown code fence without accidental template-literal indentation */
@@ -161,7 +166,10 @@ export function buildResultEmbed(
   } else {
     const emojis = resolveEmojis(options?.emojis);
     const tone = options?.tone ?? inferEmbedTone(title);
-    const prefix = options?.emoji ?? resolveToneEmoji(tone, emojis);
+    const prefix = resolveEmojiForContent(
+      options?.emoji ?? resolveToneEmoji(tone, emojis, options?.client),
+      options?.client,
+    );
     embed.setTitle(`${prefix} ${title}`);
   }
   if (details) {

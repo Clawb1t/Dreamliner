@@ -12,6 +12,7 @@ import {
 } from "discord.js";
 import type { EmojisConfig, GuildConfig } from "../../config/schemas/guild.js";
 import { baseEmbed, setEmbedAuthor, trimLines } from "../../core/embeds.js";
+import { resolveEmojiForContent } from "../../core/emoji.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
 import { resultReply, guildResultOptions } from "../../core/responses.js";
 import { TOGGLEABLE_PLUGINS, formatPluginLabel } from "./toggleablePlugins.js";
@@ -49,7 +50,7 @@ function buildPluginListEmbed(
   emojis: EmojisConfig,
 ): APIEmbed {
   const lines = pageEntries.map(({ value, enabled }) => {
-    const icon = enabled ? emojis.success : emojis.unchecked;
+    const icon = resolveEmojiForContent(enabled ? emojis.success : emojis.unchecked, client);
     return `${icon} **${formatPluginLabel(value)}** (\`${value}\`)`;
   });
 
