@@ -368,6 +368,19 @@ export class ConfigManager {
     return this.saveGuildConfig(guildId, YAML.stringify(userOverrides), updatedBy);
   }
 
+  /** Merge top-level keys into the guild's user overrides and save. */
+  async patchTopLevelConfig(
+    guildId: string,
+    patch: Record<string, unknown>,
+    updatedBy: string,
+  ): Promise<SaveResult> {
+    const loaded = await this.loadUserOverrides(guildId);
+    if (!loaded.success) return loaded;
+
+    const userOverrides = { ...loaded.data, ...patch };
+    return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+  }
+
   async patchPluginConfig(
     guildId: string,
     pluginName: string,

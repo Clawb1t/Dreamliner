@@ -25,6 +25,22 @@ moderation_log_channel_id: "1111111111111111111"
 # When true, command replies are only visible to the user who ran the command.
 ephemeral_responses: false
 
+# Public server page accent (decimal 0–16777215). Used on /server/:id, leaderboard, and public stats.
+server_accent_color: 5661429
+
+# When true, personal user accents are hidden on this server's public leaderboard.
+leaderboard_override_user_accents: false
+
+# Which Stats tabs are public on /server/:id/stats (messagers leaderboard is always public).
+public_stats:
+  overview: false
+  activity: false
+  membership: false
+  engagement: false
+  patterns: false
+  leaders: false
+  table: false
+
 # Server default language for /translate and auto-translate (ISO code).
 default_language: en
 

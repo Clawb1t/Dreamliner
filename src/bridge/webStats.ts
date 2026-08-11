@@ -107,11 +107,24 @@ function weekdaySeries(totals: number[]) {
   return WEEKDAY_LABELS.map((day, i) => ({ day, value: totals[i] ?? 0 }));
 }
 
+function colorIntToHex(value: number): string {
+  return `#${Math.max(0, Math.min(0xffffff, Math.floor(value)))
+    .toString(16)
+    .padStart(6, "0")}`;
+}
+
 async function resolvePeople(
   guild: Guild,
   entries: Array<{ userId: string; count: number }>,
   trafficTotal: number,
+  options?: { includeAccents?: boolean },
 ) {
+  const includeAccents = options?.includeAccents !== false;
+  const accents = includeAccents
+    ? await (
+        await import("./userProfiles.js")
+      ).getAccentColorsForUsers(entries.map((entry) => entry.userId))
+    : new Map<string, string>();
   return Promise.all(
     entries.map(async (entry, index) => {
       const member = await guild.members.fetch(entry.userId).catch(() => null);
@@ -126,6 +139,7 @@ async function resolvePeople(
         count: entry.count,
         sharePct: sharePctValue(entry.count, trafficTotal),
         shareLabel: formatSharePct(entry.count, trafficTotal),
+        accentColor: accents.get(entry.userId) ?? null,
       };
     }),
   );
@@ -152,12 +166,18 @@ function resolveChannels(
 /** Public all-time messagers leaderboard for shareable website pages. */
 export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25) {
   const capped = Math.min(50, Math.max(5, limit));
-  const [top, allTimeTrafficTotal, activeMessagers] = await Promise.all([
+  const { configManager } = await import("../config/manager.js");
+  const [top, allTimeTrafficTotal, activeMessagers, guildConfig] = await Promise.all([
     getTopMessagers(guild.id, capped),
     getTrackedMessagesTotal(guild.id, 0),
     getActiveMessagerCount(guild.id),
+    configManager.getEffectiveConfig(guild.id),
   ]);
-  const leaders = await resolvePeople(guild, top, allTimeTrafficTotal);
+  const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
+  const accentColor = colorIntToHex(guildConfig.server_accent_color);
+  const leaders = await resolvePeople(guild, top, allTimeTrafficTotal, {
+    includeAccents: !overrideUserAccents,
+  });
 
   return {
     scope: "server" as const,
@@ -172,6 +192,10 @@ export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25
     windowLabel: "All time",
     totalMessages: allTimeTrafficTotal,
     activeMessagers,
+    theme: {
+      accentColor,
+      overrideUserAccents,
+    },
     leaders,
   };
 }
@@ -181,6 +205,8 @@ async function resolveGlobalPeople(
   entries: Array<{ userId: string; count: number }>,
   trafficTotal: number,
 ) {
+  const { getAccentColorsForUsers } = await import("./userProfiles.js");
+  const accents = await getAccentColorsForUsers(entries.map((entry) => entry.userId));
   return Promise.all(
     entries.map(async (entry, index) => {
       const user = await client.users.fetch(entry.userId).catch(() => null);
@@ -193,6 +219,7 @@ async function resolveGlobalPeople(
         count: entry.count,
         sharePct: sharePctValue(entry.count, trafficTotal),
         shareLabel: formatSharePct(entry.count, trafficTotal),
+        accentColor: accents.get(entry.userId) ?? null,
       };
     }),
   );

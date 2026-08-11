@@ -496,6 +496,13 @@ export const commandUsageTotals = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.commandName] })],
 );
 
+/** Website/Discord user preferences (accent color, etc.). */
+export const userProfiles = sqliteTable("user_profiles", {
+  userId: text("user_id").primaryKey(),
+  accentColor: text("accent_color"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
 /** Periodic Discord gateway ping / uptime samples for the public status page. */
 export const botStatusSamples = sqliteTable("bot_status_samples", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),

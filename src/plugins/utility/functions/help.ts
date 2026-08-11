@@ -13,7 +13,7 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
-import { SUPPORT_URL } from "../../../core/docsUrl.js";
+import { SUPPORT_URL, getSiteUrl, linkButton } from "../../../core/docsUrl.js";
 import { HELP_CATEGORIES, type HelpCategory } from "../../../core/helpCategories.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { baseEmbed, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
@@ -472,7 +472,7 @@ function buildSearchEmbed(
     .toJSON();
 }
 
-function buildNavButtons(view: HelpView, query: string, docsUrl: string, docsPath: string, pageCount: number): ActionRowBuilder<ButtonBuilder> {
+function buildNavButtons(view: HelpView, query: string, pageCount: number): ActionRowBuilder<ButtonBuilder> {
   const homeView: HelpView = { kind: "home" };
   let page = 0;
 
@@ -530,15 +530,18 @@ function buildNavButtons(view: HelpView, query: string, docsUrl: string, docsPat
     );
   }
 
+  return row;
+}
+
+function buildHelpLinkRow(docsUrl: string, docsPath: string): ActionRowBuilder<ButtonBuilder> {
   const docsTarget =
     !docsPath || docsPath === "index" ? docsUrl.replace(/\/$/, "") : `${docsUrl.replace(/\/$/, "")}/${docsPath.replace(/^\//, "")}`;
 
-  row.addComponents(
-    new ButtonBuilder().setLabel("Docs").setStyle(ButtonStyle.Link).setURL(docsTarget),
-    new ButtonBuilder().setLabel("Support").setStyle(ButtonStyle.Link).setURL(SUPPORT_URL),
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    linkButton("Website", getSiteUrl()),
+    linkButton("Docs", docsTarget),
+    linkButton("Support", SUPPORT_URL),
   );
-
-  return row;
 }
 
 function buildCategorySelect(view: HelpView, query: string, entries: CommandEntry[]): ActionRowBuilder<MessageActionRowComponentBuilder> {
@@ -735,7 +738,8 @@ function buildHelpPayload(
   }
 
   const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
-    buildNavButtons(activeView, query, docsBaseUrl, resolved.docsPath, resolved.pageCount),
+    buildNavButtons(activeView, query, resolved.pageCount),
+    buildHelpLinkRow(docsBaseUrl, resolved.docsPath),
   ];
 
   if (!query) {

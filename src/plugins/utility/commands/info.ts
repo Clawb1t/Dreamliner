@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, ChannelType } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
+import { getGuildServerPageUrl, siteLinkRow } from "../../../core/docsUrl.js";
 import { embedReply, embedEdit, resultReply, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
 import { requireUtilityPermission } from "../functions/commandHelpers.js";
 import {
@@ -70,8 +71,12 @@ export const infoCommands: SlashCommandDefinition[] = [
       const auth = await requireUtilityPermission(ctx, "can_server");
       if (!auth) return;
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
-      const embed = await buildServerInfoEmbed(ctx.interaction.guild!, ctx.guildConfig, ctx.client);
-      await ctx.interaction.editReply(embedEdit(embed));
+      const guild = ctx.interaction.guild!;
+      const embed = await buildServerInfoEmbed(guild, ctx.guildConfig, ctx.client);
+      await ctx.interaction.editReply({
+        ...embedEdit(embed),
+        components: [siteLinkRow({ label: "Server page", url: getGuildServerPageUrl(guild.id) })],
+      });
     },
   },
   {

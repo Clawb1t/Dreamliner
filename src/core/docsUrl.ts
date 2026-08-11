@@ -22,6 +22,11 @@ export function getDashboardUrl(): string {
   return `${resolveSiteUrl()}/dashboard`;
 }
 
+/** Public server page on the website. */
+export function getGuildServerPageUrl(guildId: string): string {
+  return `${resolveSiteUrl()}/server/${guildId}`;
+}
+
 /** Guild-scoped dashboard (config editor for one server). */
 export function getGuildDashboardUrl(guildId: string): string {
   return `${resolveSiteUrl()}/dashboard/${guildId}`;

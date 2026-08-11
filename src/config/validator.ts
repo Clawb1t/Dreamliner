@@ -67,6 +67,20 @@ function issueRepairs(issue: ZodIssue): { path: (string | number)[]; label: stri
  *
  * Never replaces the whole config with defaults when only part of it is broken.
  */
+/** Rename legacy leaderboard_accent_color → server_accent_color. */
+function migrateServerAccentColor(config: Record<string, unknown>): boolean {
+  const legacy = config.leaderboard_accent_color;
+  const hasLegacy = typeof legacy === "number" && Number.isFinite(legacy);
+  if (hasLegacy && config.server_accent_color == null) {
+    config.server_accent_color = legacy;
+  }
+  if ("leaderboard_accent_color" in config) {
+    delete config.leaderboard_accent_color;
+    return true;
+  }
+  return hasLegacy;
+}
+
 export function repairGuildConfig(raw: unknown): {
   success: true;
   data: GuildConfig;
@@ -74,8 +88,11 @@ export function repairGuildConfig(raw: unknown): {
 } | { success: false; errors: string[] } {
   const defaults = loadDefaultConfig() as unknown as Record<string, unknown>;
   const override = isPlainObject(raw) ? cloneJson(raw) : {};
-  let value = deepMerge(defaults, override);
   const repairs: string[] = [];
+  if (isPlainObject(override) && migrateServerAccentColor(override)) {
+    repairs.push("server_accent_color (migrated from leaderboard_accent_color)");
+  }
+  let value = deepMerge(defaults, override);
   const seen = new Set<string>();
 
   if (migrateAutomodAndCensorInConfig(value)) {
@@ -84,6 +101,10 @@ export function repairGuildConfig(raw: unknown): {
 
   if (migrateWelcomeMessageInConfig(value)) {
     repairs.push("plugins.welcome_message (migrated to join/leave/dm welcomer)");
+  }
+
+  if (migrateServerAccentColor(value) && !repairs.some((r) => r.includes("server_accent_color"))) {
+    repairs.push("server_accent_color (migrated from leaderboard_accent_color)");
   }
 
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -238,7 +259,11 @@ export function validateGuildConfig(
     };
   }
 
-  const result = zGuildConfig.safeParse(raw);
+  const prepared = isPlainObject(raw) ? cloneJson(raw) : raw;
+  if (isPlainObject(prepared)) {
+    migrateServerAccentColor(prepared);
+  }
+  const result = zGuildConfig.safeParse(prepared);
   if (!result.success) {
     return {
       success: false,

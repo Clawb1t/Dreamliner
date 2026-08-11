@@ -71,6 +71,51 @@ export const zLoggingConfig = z
   })
   .default({});
 
+const serverAccentColor = z
+  .number()
+  .int()
+  .min(0)
+  .max(0xffffff)
+  .default(0x5662f5)
+  .describe(
+    "Accent color for this server's public pages (server home, leaderboard, and public stats). Decimal 0–16777215.",
+  );
+
+export const zPublicStatsConfig = z
+  .strictObject({
+    overview: z
+      .boolean()
+      .default(false)
+      .describe("Publish the Overview tab on the public server stats page."),
+    activity: z
+      .boolean()
+      .default(false)
+      .describe("Publish the Activity tab on the public server stats page."),
+    membership: z
+      .boolean()
+      .default(false)
+      .describe("Publish the Membership tab on the public server stats page."),
+    engagement: z
+      .boolean()
+      .default(false)
+      .describe("Publish the Engagement tab on the public server stats page."),
+    patterns: z
+      .boolean()
+      .default(false)
+      .describe("Publish the Patterns tab on the public server stats page."),
+    leaders: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Publish the Leaderboards tab (messagers, channels, commands) on the public server stats page. The dedicated public messagers leaderboard page is always available.",
+      ),
+    table: z
+      .boolean()
+      .default(false)
+      .describe("Publish the Daily table tab on the public server stats page."),
+  })
+  .default({});
+
 export const zGuildConfig = z.strictObject({
   emojis: zEmojisConfig.default({}).describe("Response embed title emoji prefixes."),
   levels: z
@@ -95,6 +140,16 @@ export const zGuildConfig = z.strictObject({
     .boolean()
     .default(false)
     .describe("When true, command replies are only visible to the user who ran the command."),
+  server_accent_color: serverAccentColor,
+  leaderboard_override_user_accents: z
+    .boolean()
+    .default(false)
+    .describe(
+      "When true, ignore personal user accent colors on this server's public leaderboard and use the server accent instead.",
+    ),
+  public_stats: zPublicStatsConfig.describe(
+    "Which Stats tabs are visible on the public /server/:id/stats page. The messagers leaderboard page is always public.",
+  ),
   default_language: zDefaultLanguage,
   plugins: z
     .strictObject({
@@ -140,6 +195,7 @@ export const zGuildConfig = z.strictObject({
 export type GuildConfig = z.infer<typeof zGuildConfig>;
 export type EmojisConfig = z.infer<typeof zEmojisConfig>;
 export type LoggingConfig = z.infer<typeof zLoggingConfig>;
+export type PublicStatsConfig = z.infer<typeof zPublicStatsConfig>;
 
 export type PluginOverride = {
   level?: string;

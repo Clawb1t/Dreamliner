@@ -251,6 +251,69 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        const profileMatch = /^\/bridge\/users\/(\d+)\/profile$/.exec(url.pathname);
+        const userStatsMatch = /^\/bridge\/users\/(\d+)\/stats$/.exec(url.pathname);
+        const deleteDataMatch = /^\/bridge\/users\/(\d+)\/data$/.exec(url.pathname);
+
+        if (profileMatch && req.method === "GET") {
+          const userId = profileMatch[1]!;
+          const { getUserProfile } = await import("./userProfiles.js");
+          sendJson(res, 200, { ok: true, profile: await getUserProfile(userId) });
+          return;
+        }
+
+        if (profileMatch && req.method === "PUT") {
+          let body: { accentColor?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as { accentColor?: unknown };
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const {
+            getUserProfile,
+            normalizeAccentColor,
+            upsertUserAccent,
+          } = await import("./userProfiles.js");
+          if (!("accentColor" in body)) {
+            sendJson(res, 200, { ok: true, profile: await getUserProfile(profileMatch[1]!) });
+            return;
+          }
+          const accent = normalizeAccentColor(body.accentColor);
+          if (accent === undefined) {
+            sendJson(res, 400, { error: "accentColor must be a #RRGGBB hex color or null." });
+            return;
+          }
+          const profile = await upsertUserAccent(profileMatch[1]!, accent);
+          sendJson(res, 200, { ok: true, profile });
+          return;
+        }
+
+        if (userStatsMatch && req.method === "GET") {
+          const { buildUserPersonalStats } = await import("./userStats.js");
+          sendJson(res, 200, {
+            ok: true,
+            stats: await buildUserPersonalStats(client, userStatsMatch[1]!),
+          });
+          return;
+        }
+
+        if (deleteDataMatch && req.method === "GET") {
+          const { previewUserPersonalData } = await import("./userProfiles.js");
+          sendJson(res, 200, {
+            ok: true,
+            inventory: await previewUserPersonalData(deleteDataMatch[1]!),
+          });
+          return;
+        }
+
+        if (deleteDataMatch && req.method === "DELETE") {
+          const { deleteUserPersonalData } = await import("./userProfiles.js");
+          const result = await deleteUserPersonalData(deleteDataMatch[1]!);
+          sendJson(res, 200, result);
+          return;
+        }
+
         // Live editor schema from this bot process (keeps prod dashboard in sync).
         if (req.method === "GET" && url.pathname === "/bridge/config-editor") {
           const { buildGuildConfigEditorArtifacts } = await import(
@@ -279,6 +342,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         const publicLeaderboardMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
+        const publicGuildMatch = /^\/bridge\/guilds\/(\d+)\/public$/.exec(url.pathname);
+        const publicStatsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/public$/.exec(url.pathname);
+        const publicStatsConfigMatch = /^\/bridge\/guilds\/(\d+)\/public-stats$/.exec(
+          url.pathname,
+        );
         const customChartOneMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const customChartsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts$/.exec(
@@ -339,6 +407,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         if (
           !publicLeaderboardMatch &&
+          !publicGuildMatch &&
+          !publicStatsMatch &&
+          !publicStatsConfigMatch &&
           !customChartOneMatch &&
           !customChartsMatch &&
           !entityStatsMatch &&
@@ -375,6 +446,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         const guildId = (
           publicLeaderboardMatch?.[1] ??
+          publicGuildMatch?.[1] ??
+          publicStatsMatch?.[1] ??
+          publicStatsConfigMatch?.[1] ??
           customChartOneMatch?.[1] ??
           customChartsMatch?.[1] ??
           entityStatsMatch?.[1] ??
@@ -813,6 +887,90 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
           const payload = await buildWebPublicMessagerLeaderboard(guild, limit);
           sendJson(res, 200, payload);
+          return;
+        }
+
+        if (publicGuildMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { buildPublicGuildHome } = await import("./publicGuild.js");
+          sendJson(res, 200, await buildPublicGuildHome(guild));
+          return;
+        }
+
+        if (publicStatsMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { buildWebPublicServerStats, parseWebStatsQuery } = await import(
+            "./publicGuild.js"
+          );
+          const payload = await buildWebPublicServerStats(guild, parseWebStatsQuery(url));
+          if (!payload.ok) {
+            sendJson(res, 404, payload);
+            return;
+          }
+          sendJson(res, 200, payload);
+          return;
+        }
+
+        if (publicStatsConfigMatch) {
+          if (req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { configManager } = await import("../config/manager.js");
+            const config = await configManager.getEffectiveConfig(guild.id);
+            sendJson(res, 200, { ok: true, publicStats: config.public_stats });
+            return;
+          }
+
+          if (req.method === "PUT") {
+            let body: { userId?: unknown; publicStats?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as {
+                userId?: unknown;
+                publicStats?: unknown;
+              };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { savePublicStatsSections } = await import("./publicGuild.js");
+            const result = await savePublicStatsSections(guild.id, body.publicStats, userId);
+            if (!result.ok) {
+              sendJson(res, 400, { error: "Validation failed", errors: result.errors });
+              return;
+            }
+            trackDashboardAction(client, guild.id, userId, {
+              eventType: "dashboard_config",
+              title: "Public stats updated",
+              summary: "Public stats section visibility was updated from the dashboard.",
+              payload: { publicStats: result.publicStats },
+            });
+            sendJson(res, 200, result);
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

@@ -132,6 +132,75 @@
       "description": "When true, command replies are only visible to the user who ran the command.",
       "title": "Ephemeral Responses"
     },
+    "server_accent_color": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16777215,
+      "default": 5661429,
+      "description": "Accent color for this server's public pages (server home, leaderboard, and public stats). Decimal 0–16777215.",
+      "title": "Server Accent Color",
+      "x-dreamliner": {
+        "kind": "color",
+        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+      }
+    },
+    "leaderboard_override_user_accents": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, ignore personal user accent colors on this server's public leaderboard and use the server accent instead.",
+      "title": "Leaderboard Override User Accents"
+    },
+    "public_stats": {
+      "type": "object",
+      "properties": {
+        "overview": {
+          "type": "boolean",
+          "default": false,
+          "description": "Publish the Overview tab on the public server stats page.",
+          "title": "Overview"
+        },
+        "activity": {
+          "type": "boolean",
+          "default": false,
+          "description": "Publish the Activity tab on the public server stats page.",
+          "title": "Activity"
+        },
+        "membership": {
+          "type": "boolean",
+          "default": false,
+          "description": "Publish the Membership tab on the public server stats page.",
+          "title": "Membership"
+        },
+        "engagement": {
+          "type": "boolean",
+          "default": false,
+          "description": "Publish the Engagement tab on the public server stats page.",
+          "title": "Engagement"
+        },
+        "patterns": {
+          "type": "boolean",
+          "default": false,
+          "description": "Publish the Patterns tab on the public server stats page.",
+          "title": "Patterns"
+        },
+        "leaders": {
+          "type": "boolean",
+          "default": false,
+          "description": "Publish the Leaderboards tab (messagers, channels, commands) on the public server stats page. The dedicated public messagers leaderboard page is always available.",
+          "title": "Leaders"
+        },
+        "table": {
+          "type": "boolean",
+          "default": false,
+          "description": "Publish the Daily table tab on the public server stats page.",
+          "title": "Table"
+        }
+      },
+      "additionalProperties": false,
+      "default": {},
+      "description": "Which Stats tabs are visible on the public /server/:id/stats page. The messagers leaderboard page is always public.",
+      "title": "Public Stats"
+    },
     "default_language": {
       "type": "string",
       "enum": [

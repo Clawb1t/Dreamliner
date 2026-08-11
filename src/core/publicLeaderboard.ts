@@ -38,7 +38,6 @@ export function parseLeaderboardShareToken(token: string): string | null {
 }
 
 export function publicLeaderboardUrl(guildId: string): string | null {
-  const token = createLeaderboardShareToken(guildId);
-  if (!token) return null;
-  return `${resolveSiteUrl()}/leaderboard/${encodeURIComponent(token)}`;
+  if (!/^\d{17,20}$/.test(guildId)) return null;
+  return `${resolveSiteUrl()}/server/${guildId}/leaderboard`;
 }
