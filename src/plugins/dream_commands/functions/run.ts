@@ -192,6 +192,9 @@ export async function handleDreamCommandSlash(
       return true;
     }
 
+    const { trackCommandUsage } = await import("../../stats/functions/commandUsage.js");
+    trackCommandUsage(interaction.guildId, command.name);
+
     // Script never used reply/edit — drop the deferred placeholder.
     if (!trigger.didReply() && interaction.deferred) {
       await interaction.deleteReply().catch(() => null);

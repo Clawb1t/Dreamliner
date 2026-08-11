@@ -11,13 +11,16 @@ import { configManager } from "../../../config/manager.js";
 import { DEFAULT_LANGUAGE_CODE, flagForLanguage, languagesMatch } from "../../../core/languages.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getTranslationPluginConfig } from "../../../core/guildHelpers.js";
+import {
+  isMeaningfulTranslation,
+  prepareForLanguageDetect,
+} from "./detectGuard.js";
 import { buildAutoTranslatePayload, buildAutoTranslateWebhookPayload } from "./embed.js";
-import { detectLanguage, translateText, waitGuildTranslateSlot } from "./translate.js";
+import { translateText, waitGuildTranslateSlot } from "./translate.js";
 import { getAutoTranslateWebhook } from "./webhook.js";
 
 const recentlyTranslated = new Map<string, number>();
 const TRANSLATE_DEDUP_MS = 60_000;
-const MIN_DETECT_LENGTH = 4;
 
 function pruneDedup(now: number) {
   for (const [key, at] of recentlyTranslated) {
@@ -25,19 +28,13 @@ function pruneDedup(now: number) {
   }
 }
 
-function markTranslated(messageId: string) {
+/** Atomically claim a message so concurrent reactions only produce one translation. */
+function claimTranslation(messageId: string): boolean {
   const now = Date.now();
   pruneDedup(now);
-  recentlyTranslated.set(messageId, now);
-}
-
-function wasRecentlyTranslated(messageId: string): boolean {
   const at = recentlyTranslated.get(messageId);
-  if (!at) return false;
-  if (Date.now() - at > TRANSLATE_DEDUP_MS) {
-    recentlyTranslated.delete(messageId);
-    return false;
-  }
+  if (at && now - at <= TRANSLATE_DEDUP_MS) return false;
+  recentlyTranslated.set(messageId, now);
   return true;
 }
 
@@ -50,7 +47,8 @@ export async function handleAutoTranslateMessage(message: Message): Promise<void
   if (message.system) return;
 
   const content = usableContent(message);
-  if (content.length < MIN_DETECT_LENGTH) return;
+  const prepared = prepareForLanguageDetect(content);
+  if (!prepared) return;
 
   const guildConfig = await configManager.getEffectiveConfig(message.guild.id);
   if (!pluginEnabled(guildConfig, "translation")) return;
@@ -63,8 +61,10 @@ export async function handleAutoTranslateMessage(message: Message): Promise<void
 
   try {
     await waitGuildTranslateSlot(message.guild.id);
-    const detected = await detectLanguage(content);
-    if (!detected || languagesMatch(detected, defaultLanguage)) return;
+    // One translate pass: must detect a different language AND change the text.
+    const probe = await translateText(prepared, defaultLanguage, "auto");
+    if (languagesMatch(probe.from, defaultLanguage)) return;
+    if (!isMeaningfulTranslation(prepared, probe.text)) return;
 
     const flag = flagForLanguage(defaultLanguage);
     await message.react(flag);
@@ -116,17 +116,15 @@ export async function handleAutoTranslateReaction(
   const emojiName = fullReaction.emoji.name ?? "";
   if (emojiName !== expectedFlag) return;
 
-  if (wasRecentlyTranslated(message.id)) return;
+  // Claim before any await so parallel reactions cannot all send a reply.
+  if (!claimTranslation(message.id)) return;
 
   try {
     await waitGuildTranslateSlot(message.guild.id);
     const translated = await translateText(content, defaultLanguage, "auto");
     if (languagesMatch(translated.from, translated.to) && translated.text === content) {
-      markTranslated(message.id);
       return;
     }
-
-    markTranslated(message.id);
 
     const channel = message.channel;
     if (!channel.isTextBased() || channel.isDMBased()) return;

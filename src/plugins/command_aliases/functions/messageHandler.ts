@@ -83,7 +83,11 @@ export async function handleAliasMessage(message: Message, configManager: Config
     ephemeral: resolveEphemeral(guildConfig),
   };
 
-  await command.execute(ctx).catch((err) => {
+  try {
+    await command.execute(ctx);
+    const { trackCommandUsage } = await import("../../stats/functions/commandUsage.js");
+    trackCommandUsage(message.guildId, alias.command);
+  } catch (err) {
     console.error(`Error running alias ${alias.name}:`, err);
-  });
+  }
 }

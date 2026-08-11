@@ -74,11 +74,24 @@ export async function detectLanguage(text: string): Promise<string | null> {
   const input = truncateForTranslate(text);
   if (!input || input.length < 2) return null;
 
+  // Prefer a Latin script probe target so short slang is less often
+  // forced into an unrelated iso when the sample is ambiguous.
   const result = await translate(input, {
     from: "auto",
     to: "en",
+    forceTo: true,
   });
 
   const iso = extractDetectedIso(result.from);
-  return iso ? normalizeLanguageCode(iso) : null;
+  if (!iso) return null;
+
+  const detected = normalizeLanguageCode(iso);
+  // If GT "detects" another language but the English output is unchanged,
+  // treat it as inconclusive (common for elongated chat slang).
+  const out = String(result.text ?? "").trim();
+  if (out && out.toLowerCase() === input.toLowerCase() && detected !== "en") {
+    return null;
+  }
+
+  return detected;
 }

@@ -72,7 +72,7 @@ export async function handleWelcomeWaveButtonInteraction(
         resultReply(
           "Already waved",
           "You've already waved on this welcome.",
-          ephemeral,
+          true,
           guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
         ),
       );

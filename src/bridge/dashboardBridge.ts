@@ -9,6 +9,7 @@ import {
   isDashboardBridgeEnabled,
 } from "./env.js";
 import { isDashboardSuperuser } from "./superuser.js";
+import { trackDashboardAction } from "./dashboardAudit.js";
 
 export type BridgeGuildSnapshot = {
   id: string;
@@ -231,6 +232,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Public status page (no Bearer). Used by the website /status surface.
+        if (req.method === "GET" && url.pathname === "/bridge/public/status") {
+          const { buildPublicBotStatus } = await import("../core/statusMonitor.js");
+          const rangeRaw = (url.searchParams.get("pingRange") ?? "24h").trim().toLowerCase();
+          const pingRange = rangeRaw === "7d" ? "7d" : "24h";
+          sendJson(res, 200, await buildPublicBotStatus(client, pingRange));
+          return;
+        }
+
         if (!authorized(req, secret)) {
           sendJson(res, 401, { error: "Unauthorized" });
           return;
@@ -247,6 +257,23 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             "../config/exportGuildConfigSchema.js"
           );
           sendJson(res, 200, buildGuildConfigEditorArtifacts());
+          return;
+        }
+
+        // Public global analytics (no guild / Manage Server required).
+        if (req.method === "GET" && url.pathname === "/bridge/stats/global") {
+          const { parseWebStatsQuery, buildWebGlobalStats } = await import("./webStats.js");
+          const query = parseWebStatsQuery(url);
+          const payload = await buildWebGlobalStats(client, query);
+          sendJson(res, 200, payload);
+          return;
+        }
+
+        if (req.method === "GET" && url.pathname === "/bridge/stats/global/public-leaderboard") {
+          const { buildWebGlobalPublicMessagerLeaderboard } = await import("./webStats.js");
+          const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
+          const payload = await buildWebGlobalPublicMessagerLeaderboard(client, limit);
+          sendJson(res, 200, payload);
           return;
         }
 
@@ -428,7 +455,16 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             try {
-              sendJson(res, 200, await saveWebAutomod(guildId, userId, body));
+              const saved = await saveWebAutomod(guildId, userId, body);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_automod",
+                title: "Automod updated",
+                summary: "Automod settings were saved from the dashboard.",
+                details: [
+                  typeof body.enabled === "boolean" ? `Enabled: ${body.enabled ? "yes" : "no"}` : "",
+                ],
+              });
+              sendJson(res, 200, saved);
             } catch (error) {
               sendJson(res, 400, {
                 error: error instanceof Error ? error.message : "Failed to save automod",
@@ -481,14 +517,19 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             try {
-              sendJson(
-                res,
-                200,
-                await applyWebAutomodPreset(guildId, userId, preset, {
-                  enablePlugin: body.enable !== false,
-                  preview: body.preview === true,
-                }),
-              );
+              const applied = await applyWebAutomodPreset(guildId, userId, preset, {
+                enablePlugin: body.enable !== false,
+                preview: body.preview === true,
+              });
+              if (body.preview !== true) {
+                trackDashboardAction(client, guildId, userId, {
+                  eventType: "dashboard_automod",
+                  title: "Automod preset applied",
+                  summary: `Applied automod preset \`${preset}\` from the dashboard.`,
+                  payload: { preset },
+                });
+              }
+              sendJson(res, 200, applied);
             } catch (error) {
               sendJson(res, 400, {
                 error: error instanceof Error ? error.message : "Failed to apply preset",
@@ -595,6 +636,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             try {
               const saved = await uploadWelcomeBackground(guildId, body.imageBase64);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_welcome",
+                title: "Welcomer background uploaded",
+                summary: "A welcomer card background was uploaded from the dashboard.",
+                details: saved.assetId ? [`Asset: \`${saved.assetId}\``] : [],
+                payload: { assetId: saved.assetId ?? null },
+              });
               sendJson(res, 200, { ok: true, ...saved });
             } catch (error) {
               sendJson(res, 400, {
@@ -640,7 +688,17 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
-            const removed = removeWelcomeBackground(guildId, welcomeAssetMatch[2]);
+            const assetId = welcomeAssetMatch[2]!;
+            const removed = removeWelcomeBackground(guildId, assetId);
+            if (removed) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_welcome",
+                title: "Welcomer background deleted",
+                summary: "A welcomer card background was deleted from the dashboard.",
+                details: [`Asset: \`${assetId}\``],
+                payload: { assetId },
+              });
+            }
             sendJson(res, removed ? 200 : 404, {
               ok: removed,
               error: removed ? undefined : "Asset not found",
@@ -697,6 +755,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_scam_protect",
+              title: "Scam protect enabled",
+              summary: "Scam protect was set up from the dashboard.",
+              details: body.channelPrefix?.trim()
+                ? [`Channel prefix: \`${body.channelPrefix.trim()}\``]
+                : [],
+            });
             const config = await configManager.getEffectiveConfig(guildId);
             sendJson(res, 200, { ok: true, status: result.status, config });
             return;
@@ -724,6 +790,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_scam_protect",
+              title: "Scam protect disabled",
+              summary: "Scam protect was disabled from the dashboard.",
+            });
             const config = await configManager.getEffectiveConfig(guildId);
             sendJson(res, 200, { ok: true, status: result.status, config });
             return;
@@ -801,6 +872,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_chart",
+              title: "Custom chart created",
+              summary: `Created custom chart **${result.chart.title}**.`,
+              details: [`Chart id: \`${result.chart.id}\``],
+              targetId: result.chart.id,
+              payload: { chartId: result.chart.id, title: result.chart.title },
+            });
             sendJson(res, 201, { chart: result.chart });
             return;
           }
@@ -832,6 +911,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_chart",
+              title: "Custom chart updated",
+              summary: `Updated custom chart **${result.chart.title}**.`,
+              details: [`Chart id: \`${result.chart.id}\``],
+              targetId: result.chart.id,
+              payload: { chartId: result.chart.id, title: result.chart.title },
+            });
             sendJson(res, 200, { chart: result.chart });
             return;
           }
@@ -846,11 +933,20 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
-            const result = await deleteCustomChart(guild.id, customChartOneMatch[2]!);
+            const chartId = customChartOneMatch[2]!;
+            const result = await deleteCustomChart(guild.id, chartId);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_chart",
+              title: "Custom chart deleted",
+              summary: "A custom chart was deleted from the dashboard.",
+              details: [`Chart id: \`${chartId}\``],
+              targetId: chartId,
+              payload: { chartId },
+            });
             sendJson(res, 200, { ok: true });
             return;
           }
@@ -995,6 +1091,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 404, { error: "Review not found" });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_review",
+              title: "Review deleted",
+              summary: "A review was deleted from the dashboard.",
+              details: [`Review id: \`${reviewId}\``],
+              targetId: String(reviewId),
+              payload: { reviewId },
+            });
             sendJson(res, 200, {
               guild: { id: guild.id, name: guild.name, icon: guild.icon },
               deleted: true,
@@ -1079,6 +1183,19 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, { error: result.error ?? "Action failed" });
               return;
             }
+            const actionLabel =
+              action === "approve" ? "approved" : action === "deny" ? "denied" : "marked";
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_suggestion",
+              title: `Suggestion ${actionLabel}`,
+              summary: `Suggestion \`#${suggestionId}\` was ${actionLabel} from the dashboard.`,
+              details: [
+                action === "mark" && body.status?.trim() ? `Status: \`${body.status.trim()}\`` : "",
+                action === "deny" && body.reason?.trim() ? `Reason: ${body.reason.trim()}` : "",
+              ],
+              targetId: String(suggestionId),
+              payload: { suggestionId, action, status: body.status ?? null },
+            });
             const detail = await getWebSuggestion(guild, suggestionId);
             sendJson(res, 200, {
               guild: { id: guild.id, name: guild.name, icon: guild.icon },
@@ -1144,6 +1261,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, { error: result.error ?? "Delete failed" });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_suggestion",
+              title: "Suggestion deleted",
+              summary: `Suggestion \`#${suggestionId}\` was deleted from the dashboard.`,
+              targetId: String(suggestionId),
+              payload: { suggestionId, action: "delete" },
+            });
             sendJson(res, 200, {
               guild: { id: guild.id, name: guild.name, icon: guild.icon },
               deleted: true,
@@ -1287,6 +1411,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_tag",
+              title: "Tag created",
+              summary: `Tag \`${result.tag.name}\` was created from the dashboard.`,
+              targetId: result.tag.name,
+              payload: { name: result.tag.name },
+            });
             sendJson(res, 200, { ok: true, tag: result.tag });
             return;
           }
@@ -1335,6 +1466,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_tag",
+              title: "Tag updated",
+              summary: `Tag \`${result.tag.name}\` was updated from the dashboard.`,
+              targetId: result.tag.name,
+              payload: { name: result.tag.name },
+            });
             sendJson(res, 200, { ok: true, tag: result.tag });
             return;
           }
@@ -1348,12 +1486,20 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
+            const tagName = tagOneMatch[2]!;
             const { deleteBridgeTag } = await import("./webTags.js");
-            const result = await deleteBridgeTag(configManager, guildId, tagOneMatch[2]!);
+            const result = await deleteBridgeTag(configManager, guildId, tagName);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_tag",
+              title: "Tag deleted",
+              summary: `Tag \`${tagName}\` was deleted from the dashboard.`,
+              targetId: tagName,
+              payload: { name: tagName },
+            });
             sendJson(res, 200, { ok: true });
             return;
           }
@@ -1422,6 +1568,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_command",
+              title: "Dream command created",
+              summary: `Dream command \`/${result.command.name}\` was created from the dashboard.`,
+              targetId: result.command.name,
+              payload: { name: result.command.name },
+            });
             sendJson(res, 200, { ok: true, command: result.command });
             return;
           }
@@ -1478,6 +1631,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_command",
+              title: "Dream command updated",
+              summary: `Dream command \`/${result.command.name}\` was updated from the dashboard.`,
+              targetId: result.command.name,
+              payload: { name: result.command.name },
+            });
             sendJson(res, 200, { ok: true, command: result.command });
             return;
           }
@@ -1502,6 +1662,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, result.status, { error: result.error });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_command",
+              title: "Dream command deleted",
+              summary: `Dream command \`/${result.command.name}\` was deleted from the dashboard.`,
+              targetId: result.command.name,
+              payload: { name: result.command.name },
+            });
             sendJson(res, 200, { ok: true, command: result.command });
             return;
           }
@@ -1614,6 +1781,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
+          const beforeConfig = await configManager.getEffectiveConfig(guildId);
           const result = await configManager.saveGuildConfig(guildId, yaml, userId);
           if (!result.success) {
             sendJson(res, 400, { error: "Validation failed", errors: result.errors });
@@ -1623,6 +1791,18 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const { ensureScamProtectChannel } = await import("../plugins/scam_protect/functions/ensure.js");
             void ensureScamProtectChannel(guild).catch(() => null);
           }
+          const { diffConfigValues, formatConfigChangeLines } = await import("../config/diff.js");
+          const changes = diffConfigValues(beforeConfig, result.data);
+          const changeLines = formatConfigChangeLines(changes);
+          trackDashboardAction(client, guildId, userId, {
+            eventType: "dashboard_config",
+            title: "Config updated",
+            summary:
+              changes.length > 0
+                ? `Updated ${changes.length} setting${changes.length === 1 ? "" : "s"} from the dashboard.`
+                : "Server configuration was saved from the dashboard (no field changes detected).",
+            changes: changeLines,
+          });
           sendJson(res, 200, {
             ok: true,
             guild: { id: guild.id, name: guild.name, icon: guild.icon },

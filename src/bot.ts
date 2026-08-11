@@ -23,9 +23,7 @@ import { hasPluginPermission } from "./core/permissions.js";
 import { pluginEnabled } from "./core/pluginCommand.js";
 import {
   configEditorWithSupportRow,
-  getEditorUrl,
   resolveDocsUrl,
-  SUPPORT_URL,
   supportLinkRow,
 } from "./core/docsUrl.js";
 import { resolveEphemeral } from "./core/ephemeral.js";
@@ -85,6 +83,7 @@ import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
 import { startDashboardBridge } from "./bridge/dashboardBridge.js";
+import { startStatusMonitor } from "./core/statusMonitor.js";
 
 const pluginConfigGetters: Record<string, typeof getUtilityPluginConfig> = {
   utility: getUtilityPluginConfig,
@@ -113,22 +112,15 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   client.once(Events.ClientReady, (c) => {
     applyBotPresence(c);
     console.log(`Dreamliner ready as ${c.user.tag}`);
+    startStatusMonitor(c);
     startDashboardBridge(c, configManager);
   });
 
   client.on(Events.GuildCreate, async (guild) => {
     const stored = await configManager.getGuildConfig(guild.id);
     if (stored) return;
-    const channel = guild.systemChannel ?? guild.channels.cache.find((ch) => ch.isTextBased());
-    if (channel?.isTextBased() && "send" in channel) {
-      await channel
-        .send({
-          content:
-            `Thanks for adding **Dreamliner**! Open the [dashboard](${getEditorUrl()}) to edit this server's config in your browser, or use \`/config template\` + \`/config upload\`. Need help? Join the [support server](${SUPPORT_URL}).`,
-          components: [configEditorWithSupportRow()],
-        })
-        .catch(() => null);
-    }
+    const { sendGuildOnboardingMessage } = await import("./core/guildOnboarding.js");
+    await sendGuildOnboardingMessage(client, guild);
   });
 
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
@@ -398,10 +390,10 @@ async function handleSlashCommand(
       await interaction.reply(
         resultReply(
           "Configuration required",
-          "This server has no configuration yet. Run `/config template` or `/config editor`, upload the YAML into the website editor, then `/config upload`.",
+          "This server has no configuration yet. Open the dashboard (or run `/config editor`) to set up Dreamliner, then save. You can also use `/config template` + `/config upload` if you prefer YAML files.",
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
-          [configEditorWithSupportRow()],
+          [configEditorWithSupportRow(interaction.guildId!)],
         ),
       );
       return;
@@ -455,6 +447,8 @@ async function handleSlashCommand(
       configManager,
       ephemeral,
     });
+    const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
+    trackCommandUsage(interaction.guildId, interaction.commandName);
   } catch (error) {
     console.error(`Error in /${interaction.commandName}:`, error);
     if (!interaction.replied && !interaction.deferred) {

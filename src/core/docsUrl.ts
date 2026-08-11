@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { resolveSiteUrl } from "../bridge/env.js";
+import { publicLeaderboardUrl } from "./publicLeaderboard.js";
 
 /** Official website origin — follows DREAMLINER_ENV (local vs prod). */
 export function getSiteUrl(): string {
@@ -19,6 +20,32 @@ export function getEditorUrl(): string {
 
 export function getDashboardUrl(): string {
   return `${resolveSiteUrl()}/dashboard`;
+}
+
+/** Guild-scoped dashboard (config editor for one server). */
+export function getGuildDashboardUrl(guildId: string): string {
+  return `${resolveSiteUrl()}/dashboard/${guildId}`;
+}
+
+/** Guild dashboard opened on the Stats section. */
+export function getGuildStatsDashboardUrl(guildId: string): string {
+  return `${getGuildDashboardUrl(guildId)}?section=stats`;
+}
+
+export function getGlobalStatsUrl(): string {
+  return `${resolveSiteUrl()}/stats`;
+}
+
+export function getGlobalLeaderboardUrl(): string {
+  return `${resolveSiteUrl()}/leaderboard/global`;
+}
+
+export function getStatusUrl(): string {
+  return `${resolveSiteUrl()}/status`;
+}
+
+export function getInviteUrl(): string {
+  return `${resolveSiteUrl()}/invite`;
 }
 
 /** @deprecated Prefer getDocsUrl(). */
@@ -62,17 +89,29 @@ export function supportLinkRow(): ActionRowBuilder<ButtonBuilder> {
   return siteLinkRow({ label: "Support server", url: SUPPORT_URL });
 }
 
-export function configEditorLinkRow(): ActionRowBuilder<ButtonBuilder> {
+export function configEditorLinkRow(guildId?: string): ActionRowBuilder<ButtonBuilder> {
   return siteLinkRow(
-    { label: "Dashboard", url: getDashboardUrl() },
+    { label: "Dashboard", url: guildId ? getGuildDashboardUrl(guildId) : getDashboardUrl() },
     { label: "Docs", url: docsPageUrl("configuration") },
   );
 }
 
-export function configEditorWithSupportRow(): ActionRowBuilder<ButtonBuilder> {
+export function configEditorWithSupportRow(guildId?: string): ActionRowBuilder<ButtonBuilder> {
   return siteLinkRow(
-    { label: "Dashboard", url: getDashboardUrl() },
+    { label: "Dashboard", url: guildId ? getGuildDashboardUrl(guildId) : getDashboardUrl() },
     { label: "Docs", url: docsPageUrl("configuration") },
     { label: "Support server", url: SUPPORT_URL },
   );
+}
+
+/** Link row for stats replies: dashboard + public leaderboards. */
+export function statsDashboardLinkRow(guildId: string): ActionRowBuilder<ButtonBuilder> {
+  const publicLb = publicLeaderboardUrl(guildId);
+  const buttons: Array<{ label: string; url: string }> = [
+    { label: "Server dashboard", url: getGuildStatsDashboardUrl(guildId) },
+    { label: "Global stats", url: getGlobalStatsUrl() },
+    { label: "Global leaderboard", url: getGlobalLeaderboardUrl() },
+  ];
+  if (publicLb) buttons.splice(1, 0, { label: "Public leaderboard", url: publicLb });
+  return siteLinkRow(...buttons.slice(0, 5));
 }

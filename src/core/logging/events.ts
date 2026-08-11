@@ -58,6 +58,16 @@ export const LOG_EVENT_TYPES = [
   "dm_failed",
   "dreamcode_mod",
   "dreamcode_server",
+  // Dashboard / website admin actions
+  "dashboard_config",
+  "dashboard_tag",
+  "dashboard_command",
+  "dashboard_suggestion",
+  "dashboard_automod",
+  "dashboard_chart",
+  "dashboard_scam_protect",
+  "dashboard_welcome",
+  "dashboard_review",
 ] as const;
 
 export type LogEventType = (typeof LOG_EVENT_TYPES)[number];
@@ -120,6 +130,15 @@ export const LOG_EVENT_META: Record<
   dm_failed: { label: "DM failed", category: "moderation", group: "Moderation" },
   dreamcode_mod: { label: "Dreamcode mod log", category: "moderation", group: "Moderation" },
   dreamcode_server: { label: "Dreamcode server log", category: "server", group: "Server" },
+  dashboard_config: { label: "Config update", category: "server", group: "Dashboard" },
+  dashboard_tag: { label: "Tag change", category: "server", group: "Dashboard" },
+  dashboard_command: { label: "Dream command change", category: "server", group: "Dashboard" },
+  dashboard_suggestion: { label: "Suggestion admin", category: "moderation", group: "Dashboard" },
+  dashboard_automod: { label: "Automod update", category: "moderation", group: "Dashboard" },
+  dashboard_chart: { label: "Custom chart", category: "server", group: "Dashboard" },
+  dashboard_scam_protect: { label: "Scam protect", category: "moderation", group: "Dashboard" },
+  dashboard_welcome: { label: "Welcomer asset", category: "server", group: "Dashboard" },
+  dashboard_review: { label: "Review admin", category: "server", group: "Dashboard" },
 };
 
 export function isLogEventType(value: string): value is LogEventType {

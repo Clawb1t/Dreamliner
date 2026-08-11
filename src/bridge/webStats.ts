@@ -1,4 +1,4 @@
-import type { Guild } from "discord.js";
+import type { Client, Guild } from "discord.js";
 import {
   analyzeSeries,
   formatSharePct,
@@ -18,6 +18,30 @@ import {
   type StatsWindow,
 } from "../plugins/stats/functions/daily.js";
 import {
+  getFilledGlobalCommandDailyUses,
+  getFilledGuildCommandDailyUses,
+  getGlobalCommandUsesInWindow,
+  getGlobalCommandUsesTotal,
+  getGuildCommandUsesInWindow,
+  getGuildCommandUsesTotal,
+  getTopGlobalCommands,
+  getTopGlobalCommandsByDaily,
+  getTopGuildCommands,
+  getTopGuildCommandsByDaily,
+} from "../plugins/stats/functions/commandUsage.js";
+import {
+  getFilledGlobalDailyActiveUsers,
+  getFilledGlobalDailyStats,
+  getGlobalActiveMessagerCount,
+  getGlobalDailyTotals,
+  getGlobalTrackedMessagesTotal,
+  getTopGlobalChannelsByDaily,
+  getTopGlobalMessagers,
+  getTopGlobalUsersByDaily,
+  getTrackedGlobalDailyMessagesTotal,
+  getTrackedGlobalMessagesTotal,
+} from "../plugins/stats/functions/globalQueries.js";
+import {
   getActiveMessagerCount,
   getChannelDailyTotal,
   getChannelTrackedMessages,
@@ -34,6 +58,20 @@ import {
   getGlobalMessageCount,
   getGuildMessageCount,
 } from "../plugins/utility/functions/messageCounts.js";
+
+function resolveCommandLeaders(
+  entries: Array<{ commandName: string; count: number }>,
+  trafficTotal: number,
+) {
+  return entries.map((entry, index) => ({
+    rank: index + 1,
+    id: entry.commandName,
+    name: `/${entry.commandName}`,
+    count: entry.count,
+    sharePct: sharePctValue(entry.count, trafficTotal),
+    shareLabel: formatSharePct(entry.count, trafficTotal),
+  }));
+}
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -122,6 +160,7 @@ export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25
   const leaders = await resolvePeople(guild, top, allTimeTrafficTotal);
 
   return {
+    scope: "server" as const,
     guild: {
       id: guild.id,
       name: guild.name,
@@ -134,6 +173,315 @@ export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25
     totalMessages: allTimeTrafficTotal,
     activeMessagers,
     leaders,
+  };
+}
+
+async function resolveGlobalPeople(
+  client: Client,
+  entries: Array<{ userId: string; count: number }>,
+  trafficTotal: number,
+) {
+  return Promise.all(
+    entries.map(async (entry, index) => {
+      const user = await client.users.fetch(entry.userId).catch(() => null);
+      return {
+        rank: index + 1,
+        id: entry.userId,
+        name: user?.globalName ?? user?.username ?? entry.userId,
+        username: user?.username ?? null,
+        avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
+        count: entry.count,
+        sharePct: sharePctValue(entry.count, trafficTotal),
+        shareLabel: formatSharePct(entry.count, trafficTotal),
+      };
+    }),
+  );
+}
+
+function resolveGlobalChannels(
+  client: Client,
+  entries: Array<{ channelId: string; guildId: string; count: number }>,
+  trafficTotal: number,
+) {
+  return entries.map((entry, index) => {
+    const channel = client.channels.cache.get(entry.channelId);
+    const guild = client.guilds.cache.get(entry.guildId);
+    const channelName =
+      channel && "name" in channel && typeof channel.name === "string"
+        ? `#${channel.name}`
+        : `#${entry.channelId}`;
+    const guildName = guild?.name ?? "Unknown server";
+    return {
+      rank: index + 1,
+      id: entry.channelId,
+      name: `${guildName} · ${channelName}`,
+      count: entry.count,
+      sharePct: sharePctValue(entry.count, trafficTotal),
+      shareLabel: formatSharePct(entry.count, trafficTotal),
+    };
+  });
+}
+
+/** Public all-time global messagers leaderboard across every tracked guild. */
+export async function buildWebGlobalPublicMessagerLeaderboard(client: Client, limit = 25) {
+  const capped = Math.min(50, Math.max(5, limit));
+  const [top, allTimeTrafficTotal, activeMessagers] = await Promise.all([
+    getTopGlobalMessagers(capped),
+    getGlobalTrackedMessagesTotal(),
+    getGlobalActiveMessagerCount(),
+  ]);
+  const leaders = await resolveGlobalPeople(client, top, allTimeTrafficTotal);
+
+  return {
+    scope: "global" as const,
+    guild: {
+      id: "global",
+      name: "Dreamliner",
+      icon: null as string | null,
+      memberCount: client.guilds.cache.size,
+    },
+    title: "Top messagers",
+    subtitle: "Global all-time message leaderboard",
+    windowLabel: "All time · all servers",
+    totalMessages: allTimeTrafficTotal,
+    activeMessagers,
+    leaders,
+  };
+}
+
+/** JSON stats payload for website analytics (global / cross-guild scope). */
+export async function buildWebGlobalStats(client: Client, query: WebStatsQuery) {
+  const windowLabel = formatStatsWindowLong(query.days);
+  const allTime = isAllTimeWindow(query.days);
+
+  const [
+    daily,
+    totals,
+    totalMessages,
+    topAllTime,
+    topRecent,
+    topChannels,
+    activeUsers,
+    activeDaily,
+    windowTrafficTotal,
+    allTimeTrafficTotal,
+    channelTrafficTotal,
+    commandDaily,
+    commandUsesLifetime,
+    commandUsesWindow,
+    topCommandsAllTime,
+    topCommandsWindow,
+  ] = await Promise.all([
+    getFilledGlobalDailyStats(query.days),
+    getGlobalDailyTotals(),
+    getGlobalTrackedMessagesTotal(),
+    getTopGlobalMessagers(15),
+    allTime ? getTopGlobalMessagers(15) : getTopGlobalUsersByDaily(query.days, 15),
+    getTopGlobalChannelsByDaily(query.days, 15),
+    getGlobalActiveMessagerCount(),
+    getFilledGlobalDailyActiveUsers(query.days),
+    getTrackedGlobalMessagesTotal(query.days),
+    getGlobalTrackedMessagesTotal(),
+    getTrackedGlobalDailyMessagesTotal(query.days),
+    getFilledGlobalCommandDailyUses(query.days),
+    getGlobalCommandUsesTotal(),
+    getGlobalCommandUsesInWindow(query.days),
+    getTopGlobalCommands(15),
+    allTime ? getTopGlobalCommands(15) : getTopGlobalCommandsByDaily(query.days, 15),
+  ]);
+
+  const dates = daily.map((r) => r.statDate);
+  const msgAnalysis = analyzeSeries(
+    daily.map((r) => r.messages),
+    dates,
+  );
+  const joinAnalysis = analyzeSeries(
+    daily.map((r) => r.joins),
+    dates,
+  );
+  const leaveAnalysis = analyzeSeries(
+    daily.map((r) => r.leaves),
+    dates,
+  );
+  const editAnalysis = analyzeSeries(
+    daily.map((r) => r.edits),
+    dates,
+  );
+  const deleteAnalysis = analyzeSeries(
+    daily.map((r) => r.deletes),
+    dates,
+  );
+  const reactionAnalysis = analyzeSeries(
+    daily.map((r) => r.reactions),
+    dates,
+  );
+  const attachmentAnalysis = analyzeSeries(
+    daily.map((r) => r.attachments),
+    dates,
+  );
+  const membershipVolume = analyzeSeries(
+    daily.map((r) => r.joins + r.leaves),
+    dates,
+  );
+  const engagementVolume = analyzeSeries(
+    daily.map((r) => r.edits + r.deletes + r.reactions + r.attachments),
+    dates,
+  );
+  const activeUserCounts = activeDaily.map((r) => r.count);
+  const activeUserDates = activeDaily.map((r) => r.statDate);
+  const activeUserAnalysis = analyzeSeries(activeUserCounts, activeUserDates);
+
+  const netMembers = joinAnalysis.total - leaveAnalysis.total;
+  let cumulativeNet = 0;
+  const seriesDaily = daily.map((row) => {
+    const net = row.joins - row.leaves;
+    cumulativeNet += net;
+    const membership = row.joins + row.leaves;
+    const engagement = row.edits + row.deletes + row.reactions + row.attachments;
+    return {
+      date: row.statDate,
+      label: shortDateLabel(row.statDate),
+      messages: row.messages,
+      joins: row.joins,
+      leaves: row.leaves,
+      net,
+      cumulativeNet,
+      edits: row.edits,
+      deletes: row.deletes,
+      reactions: row.reactions,
+      attachments: row.attachments,
+      membershipVolume: membership,
+      engagementVolume: engagement,
+    };
+  });
+
+  const msgsPerActive = seriesDaily.map((row, i) => {
+    const active = activeDaily[i]?.count ?? 0;
+    return {
+      date: row.date,
+      label: row.label,
+      value: active > 0 ? Number((row.messages / active).toFixed(2)) : 0,
+    };
+  });
+
+  const [topRecentResolved, topAllTimeResolved] = await Promise.all([
+    resolveGlobalPeople(client, topRecent, windowTrafficTotal),
+    resolveGlobalPeople(client, topAllTime, allTimeTrafficTotal),
+  ]);
+
+  const commandDates = commandDaily.map((r) => r.statDate);
+  const commandAnalysis = analyzeSeries(
+    commandDaily.map((r) => r.uses),
+    commandDates,
+  );
+
+  const windowEngagement = {
+    edits: editAnalysis.total,
+    deletes: deleteAnalysis.total,
+    reactions: reactionAnalysis.total,
+    attachments: attachmentAnalysis.total,
+  };
+
+  return {
+    scope: "global" as const,
+    guild: {
+      id: "global",
+      name: "Dreamliner",
+      icon: null as string | null,
+      memberCount: client.guilds.cache.size,
+    },
+    days: query.days,
+    windowLabel,
+    overview: {
+      lifetimeMessages: totalMessages,
+      activeMessagers: activeUsers,
+      lifetimeCommands: commandUsesLifetime,
+      windowCommands: commandUsesWindow,
+      allTime: {
+        messages: totals.messages,
+        joins: totals.joins,
+        leaves: totals.leaves,
+        edits: totals.edits,
+        deletes: totals.deletes,
+        reactions: totals.reactions,
+        attachments: totals.attachments,
+      },
+      windowEngagement,
+      analysis: {
+        messages: toAnalysis(msgAnalysis, dates),
+        joins: toAnalysis(joinAnalysis, dates),
+        leaves: toAnalysis(leaveAnalysis, dates),
+        edits: toAnalysis(editAnalysis, dates),
+        deletes: toAnalysis(deleteAnalysis, dates),
+        reactions: toAnalysis(reactionAnalysis, dates),
+        attachments: toAnalysis(attachmentAnalysis, dates),
+        membershipVolume: toAnalysis(membershipVolume, dates),
+        engagement: toAnalysis(engagementVolume, dates),
+        activeUsers: toAnalysis(activeUserAnalysis, activeUserDates),
+        commands: toAnalysis(commandAnalysis, commandDates),
+        netMembers,
+        peakDate: dates[msgAnalysis.peakIndex] ?? null,
+        peakMessages: msgAnalysis.peakValue,
+        busiestWeekday: weekdayName(msgAnalysis.busiestWeekday),
+        trend: msgAnalysis.trend,
+        trendPct: Math.round(Math.abs(msgAnalysis.trendPct)),
+        recordedDays: daily.length,
+        isAllTime: allTime,
+        averagePerDay: Number(msgAnalysis.average.toFixed(1)),
+        messagesTotal: msgAnalysis.total,
+        joinsTotal: joinAnalysis.total,
+        leavesTotal: leaveAnalysis.total,
+      },
+      trafficTotals: {
+        window: windowTrafficTotal,
+        allTime: allTimeTrafficTotal,
+        channelsWindow: channelTrafficTotal,
+        commandsWindow: commandUsesWindow,
+        commandsAllTime: commandUsesLifetime,
+      },
+      topMessagersWindow: topRecentResolved,
+      topMessagersAllTime: topAllTimeResolved,
+      topChannels: resolveGlobalChannels(client, topChannels, channelTrafficTotal),
+      topCommandsWindow: resolveCommandLeaders(topCommandsWindow, commandUsesWindow),
+      topCommandsAllTime: resolveCommandLeaders(topCommandsAllTime, commandUsesLifetime),
+    },
+    series: {
+      daily: seriesDaily,
+      commands: commandDaily.map((row) => ({
+        date: row.statDate,
+        label: shortDateLabel(row.statDate),
+        uses: row.uses,
+      })),
+      activeUsers: activeDaily.map((row) => ({
+        date: row.statDate,
+        label: shortDateLabel(row.statDate),
+        count: row.count,
+      })),
+      messagesPerActiveUser: msgsPerActive,
+      weekday: {
+        messages: weekdaySeries(msgAnalysis.weekdayTotals),
+        joins: weekdaySeries(joinAnalysis.weekdayTotals),
+        leaves: weekdaySeries(leaveAnalysis.weekdayTotals),
+        engagement: weekdaySeries(engagementVolume.weekdayTotals),
+        activeUsers: weekdaySeries(activeUserAnalysis.weekdayTotals),
+      },
+      weekdayMessages: weekdaySeries(msgAnalysis.weekdayTotals),
+      engagementMix: [
+        { name: "Edits", value: windowEngagement.edits, color: "#EAB308" },
+        { name: "Deletes", value: windowEngagement.deletes, color: "#EF4444" },
+        { name: "Reactions", value: windowEngagement.reactions, color: "#EC4899" },
+        { name: "Attachments", value: windowEngagement.attachments, color: "#22C55E" },
+      ],
+      allTimeMix: [
+        { name: "Messages", value: totals.messages, color: "#5662f5" },
+        { name: "Joins", value: totals.joins, color: "#22c55e" },
+        { name: "Leaves", value: totals.leaves, color: "#ef4444" },
+        { name: "Edits", value: totals.edits, color: "#EAB308" },
+        { name: "Deletes", value: totals.deletes, color: "#f97316" },
+        { name: "Reactions", value: totals.reactions, color: "#EC4899" },
+        { name: "Attachments", value: totals.attachments, color: "#14b8a6" },
+      ],
+    },
   };
 }
 
@@ -155,6 +503,11 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     windowTrafficTotal,
     allTimeTrafficTotal,
     channelTrafficTotal,
+    commandDaily,
+    commandUsesLifetime,
+    commandUsesWindow,
+    topCommandsAllTime,
+    topCommandsWindow,
   ] = await Promise.all([
     getFilledDailyStats(guildId, query.days),
     getDailyTotals(guildId),
@@ -167,6 +520,11 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     getTrackedMessagesTotal(guildId, query.days),
     getTrackedMessagesTotal(guildId, 0),
     getTrackedDailyMessagesTotal(guildId, query.days),
+    getFilledGuildCommandDailyUses(guildId, query.days),
+    getGuildCommandUsesTotal(guildId),
+    getGuildCommandUsesInWindow(guildId, query.days),
+    getTopGuildCommands(guildId, 15),
+    allTime ? getTopGuildCommands(guildId, 15) : getTopGuildCommandsByDaily(guildId, query.days, 15),
   ]);
 
   const dates = daily.map((r) => r.statDate);
@@ -248,6 +606,12 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     resolvePeople(guild, topAllTime, allTimeTrafficTotal),
   ]);
 
+  const commandDates = commandDaily.map((r) => r.statDate);
+  const commandAnalysis = analyzeSeries(
+    commandDaily.map((r) => r.uses),
+    commandDates,
+  );
+
   const windowEngagement = {
     edits: editAnalysis.total,
     deletes: deleteAnalysis.total,
@@ -268,6 +632,8 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     overview: {
       lifetimeMessages: totalMessages,
       activeMessagers: activeUsers,
+      lifetimeCommands: commandUsesLifetime,
+      windowCommands: commandUsesWindow,
       allTime: {
         messages: totals.messages,
         joins: totals.joins,
@@ -289,6 +655,7 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
         membershipVolume: toAnalysis(membershipVolume, dates),
         engagement: toAnalysis(engagementVolume, dates),
         activeUsers: toAnalysis(activeUserAnalysis, activeUserDates),
+        commands: toAnalysis(commandAnalysis, commandDates),
         netMembers,
         // Back-compat flat fields used by older UI bits
         peakDate: dates[msgAnalysis.peakIndex] ?? null,
@@ -307,13 +674,22 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
         window: windowTrafficTotal,
         allTime: allTimeTrafficTotal,
         channelsWindow: channelTrafficTotal,
+        commandsWindow: commandUsesWindow,
+        commandsAllTime: commandUsesLifetime,
       },
       topMessagersWindow: topRecentResolved,
       topMessagersAllTime: topAllTimeResolved,
       topChannels: resolveChannels(guild, topChannels, channelTrafficTotal),
+      topCommandsWindow: resolveCommandLeaders(topCommandsWindow, commandUsesWindow),
+      topCommandsAllTime: resolveCommandLeaders(topCommandsAllTime, commandUsesLifetime),
     },
     series: {
       daily: seriesDaily,
+      commands: commandDaily.map((row) => ({
+        date: row.statDate,
+        label: shortDateLabel(row.statDate),
+        uses: row.uses,
+      })),
       activeUsers: activeDaily.map((row) => ({
         date: row.statDate,
         label: shortDateLabel(row.statDate),

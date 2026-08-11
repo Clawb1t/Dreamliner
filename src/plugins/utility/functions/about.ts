@@ -9,7 +9,10 @@ import {
   docsPageUrl,
   getDocsUrl,
   getEditorUrl,
+  getGlobalLeaderboardUrl,
+  getGlobalStatsUrl,
   getSiteUrl,
+  getStatusUrl,
   linkButton,
 } from "../../../core/docsUrl.js";
 import { baseEmbed, botAvatarURL, embedField, trimLines } from "../../../core/embeds.js";
@@ -30,7 +33,7 @@ export function buildAboutEmbed(client: Client): EmbedBuilder {
     .setAuthor({ name: "Dreamliner", iconURL: botAvatarURL(client) })
     .setTitle("About Dreamliner")
     .setDescription(
-      "A Discord moderation bot with file-based YAML configuration and granular permissions.",
+      "A Discord moderation and utility bot. Configure everything from the web dashboard, with granular permissions and plugins like stats, welcomer, tags, and automod.",
     )
     .addFields(
       embedField("Servers", `\`${guilds.toLocaleString()}\``, true),
@@ -58,6 +61,11 @@ export function aboutLinkRows(): ActionRowBuilder<ButtonBuilder>[] {
       linkButton("Documentation", getDocsUrl()),
       linkButton("Dashboard", getEditorUrl()),
       linkButton("Support server", SUPPORT_URL),
+    ),
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      linkButton("Global stats", getGlobalStatsUrl()),
+      linkButton("Global leaderboard", getGlobalLeaderboardUrl()),
+      linkButton("Status", getStatusUrl()),
     ),
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       linkButton("Terms of Service", docsPageUrl("terms-of-service")),

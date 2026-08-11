@@ -50,5 +50,8 @@ export async function runStoredAlias(ctx: SlashCommandContext, commandName: stri
     interaction: proxiedInteraction,
     pluginConfig,
   });
+  // Count the resolved target command (the /alias wrapper is tracked separately).
+  const { trackCommandUsage } = await import("../../stats/functions/commandUsage.js");
+  trackCommandUsage(ctx.interaction.guildId, commandName);
   return true;
 }

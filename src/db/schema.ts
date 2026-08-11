@@ -473,6 +473,47 @@ export const automodHits = sqliteTable("automod_hits", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Per-guild daily slash/Dreamcode command uses. */
+export const commandUsageDaily = sqliteTable(
+  "command_usage_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    commandName: text("command_name").notNull(),
+    statDate: text("stat_date").notNull(),
+    uses: integer("uses").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.commandName, table.statDate] })],
+);
+
+/** Per-guild lifetime command uses. */
+export const commandUsageTotals = sqliteTable(
+  "command_usage_totals",
+  {
+    guildId: text("guild_id").notNull(),
+    commandName: text("command_name").notNull(),
+    uses: integer("uses").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.commandName] })],
+);
+
+/** Periodic Discord gateway ping / uptime samples for the public status page. */
+export const botStatusSamples = sqliteTable("bot_status_samples", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  sampledAt: integer("sampled_at", { mode: "number" }).notNull(),
+  ok: integer("ok", { mode: "boolean" }).notNull().default(true),
+  wsPingMs: integer("ws_ping_ms", { mode: "number" }),
+});
+
+/** Daily rollup of bot status samples (uptime % + avg ping). */
+export const botStatusDaily = sqliteTable("bot_status_daily", {
+  statDate: text("stat_date").primaryKey(),
+  upSamples: integer("up_samples", { mode: "number" }).notNull().default(0),
+  downSamples: integer("down_samples", { mode: "number" }).notNull().default(0),
+  pingSum: integer("ping_sum", { mode: "number" }).notNull().default(0),
+  pingCount: integer("ping_count", { mode: "number" }).notNull().default(0),
+  pingMax: integer("ping_max", { mode: "number" }).notNull().default(0),
+});
+
 /** Join welcome messages tracked for early-leave delete + wave tallies. */
 export const welcomeJoinMessages = sqliteTable("welcome_join_messages", {
   messageId: text("message_id").primaryKey(),
