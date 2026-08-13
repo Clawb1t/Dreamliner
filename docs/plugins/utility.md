@@ -203,7 +203,7 @@ Bot version, uptime, runtime stats, and loaded plugins, with link buttons for [d
 
 ### `/help`
 
-Browse every command through a category home screen (**Moderation**, **Roles**, **Lookups**, **Automation**, **Server tools**, **Configuration**).
+Browse every command through a slim category home screen. Categories include **Moderation**, **Protection**, **Role management**, **Self-serve roles**, **Lookups**, **Engagement**, **Auto responses**, **Scheduling**, **Customization**, **Utilities**, **Feedback**, and **Configuration**.
 
 - Category menu jumps between topics
 - Command menu opens usage details and options

@@ -21,6 +21,7 @@ export type BridgeGuildSnapshot = {
   ownerDisplayName: string | null;
   ownerAvatar: string | null;
   memberCount: number;
+  oneActive: boolean;
 };
 
 export type BridgeStatusPayload = {
@@ -38,6 +39,8 @@ let server: http.Server | null = null;
 
 async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
   const guilds = [...client.guilds.cache.values()];
+  const { listActiveOneGuildIds } = await import("./dreamlinerOne.js");
+  const oneGuildIds = await listActiveOneGuildIds();
   return Promise.all(
     guilds.map(async (guild) => {
       let ownerName: string | null = null;
@@ -65,6 +68,7 @@ async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
         ownerDisplayName,
         ownerAvatar,
         memberCount: guild.memberCount,
+        oneActive: oneGuildIds.has(guild.id),
       };
     }),
   );
@@ -251,6 +255,324 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (req.method === "GET" && url.pathname === "/bridge/platform/one") {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!isDashboardSuperuser(userId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { listPlatformDreamlinerOne } = await import("./dreamlinerOne.js");
+          sendJson(res, 200, await listPlatformDreamlinerOne(client));
+          return;
+        }
+
+        if (url.pathname === "/bridge/platform/one/discounts") {
+          if (req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!isDashboardSuperuser(userId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listOneDiscountCodes } = await import("./oneDiscounts.js");
+            sendJson(res, 200, { discounts: await listOneDiscountCodes() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: {
+              userId?: string;
+              code?: string;
+              days?: unknown;
+              maxRedemptions?: unknown;
+              expiresAt?: unknown;
+              label?: unknown;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!isDashboardSuperuser(userId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const days =
+              body.days === null || body.days === undefined
+                ? null
+                : typeof body.days === "number"
+                  ? body.days
+                  : Number(body.days);
+            if (days != null && !Number.isFinite(days)) {
+              sendJson(res, 400, { error: "days must be a number or null." });
+              return;
+            }
+            const maxRedemptions =
+              body.maxRedemptions === null || body.maxRedemptions === undefined
+                ? null
+                : typeof body.maxRedemptions === "number"
+                  ? body.maxRedemptions
+                  : Number(body.maxRedemptions);
+            if (maxRedemptions != null && !Number.isFinite(maxRedemptions)) {
+              sendJson(res, 400, { error: "maxRedemptions must be a number or null." });
+              return;
+            }
+            let expiresAt: Date | null = null;
+            if (typeof body.expiresAt === "string" && body.expiresAt.trim()) {
+              expiresAt = new Date(body.expiresAt);
+              if (!Number.isFinite(expiresAt.getTime())) {
+                sendJson(res, 400, { error: "expiresAt must be a valid datetime." });
+                return;
+              }
+            }
+            try {
+              const { createOneDiscountCode } = await import("./oneDiscounts.js");
+              const discount = await createOneDiscountCode({
+                code: typeof body.code === "string" ? body.code : "",
+                actorId: userId,
+                days,
+                maxRedemptions,
+                expiresAt,
+                label: typeof body.label === "string" || body.label === null ? body.label : undefined,
+              });
+              sendJson(res, 200, { ok: true, discount });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to create discount.",
+              });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const discountCodeMatch = /^\/bridge\/platform\/one\/discounts\/([^/]+)$/.exec(url.pathname);
+        if (discountCodeMatch && req.method === "DELETE") {
+          let body: { userId?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!isDashboardSuperuser(userId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { revokeOneDiscountCode } = await import("./oneDiscounts.js");
+          const discount = await revokeOneDiscountCode(decodeURIComponent(discountCodeMatch[1]!));
+          if (!discount) {
+            sendJson(res, 404, { error: "Discount code not found." });
+            return;
+          }
+          sendJson(res, 200, { ok: true, discount });
+          return;
+        }
+
+        const discountRedeemMatch = /^\/bridge\/platform\/one\/discounts\/([^/]+)\/redeem$/.exec(
+          url.pathname,
+        );
+        if (discountRedeemMatch && req.method === "POST") {
+          let body: { userId?: string; guildId?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          const guildId = body.guildId?.trim();
+          if (!userId || !guildId) {
+            sendJson(res, 400, { error: "userId and guildId are required" });
+            return;
+          }
+          const guild = client.guilds.cache.get(guildId);
+          if (!guild) {
+            sendJson(res, 404, { error: "Dreamliner is not in that server." });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "You need Manage Server on that guild." });
+            return;
+          }
+          try {
+            const { redeemOneDiscountCode } = await import("./oneDiscounts.js");
+            const result = await redeemOneDiscountCode({
+              code: decodeURIComponent(discountRedeemMatch[1]!),
+              guildId,
+              actorId: userId,
+            });
+            sendJson(res, 200, { ok: true, ...result });
+          } catch (error) {
+            sendJson(res, 400, {
+              error: error instanceof Error ? error.message : "Failed to redeem discount.",
+            });
+          }
+          return;
+        }
+
+        const testEntitlementMatch = /^\/bridge\/platform\/one\/(\d+)\/test-entitlement$/.exec(
+          url.pathname,
+        );
+        if (testEntitlementMatch) {
+          let body: { userId?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!isDashboardSuperuser(userId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const guildId = testEntitlementMatch[1]!;
+          if (!client.guilds.cache.has(guildId)) {
+            sendJson(res, 404, { error: "Dreamliner is not in that server." });
+            return;
+          }
+          try {
+            const {
+              createGuildOneTestEntitlement,
+              deleteGuildOneTestEntitlements,
+            } = await import("./oneEntitlements.js");
+            if (req.method === "POST") {
+              const entitlement = await createGuildOneTestEntitlement(client, guildId);
+              sendJson(res, 200, { ok: true, entitlement });
+              return;
+            }
+            if (req.method === "DELETE") {
+              const result = await deleteGuildOneTestEntitlements(client, guildId);
+              sendJson(res, 200, { ok: true, ...result });
+              return;
+            }
+          } catch (error) {
+            sendJson(res, 400, {
+              error: error instanceof Error ? error.message : "Discord entitlement request failed.",
+            });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformOneGuild = /^\/bridge\/platform\/one\/(\d+)$/.exec(url.pathname);
+        if (platformOneGuild) {
+          const guildId = platformOneGuild[1]!;
+          if (req.method === "PUT") {
+            let body: { userId?: string; expiresAt?: unknown; note?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!isDashboardSuperuser(userId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { parseExpiresAt, upsertDreamlinerOne } = await import("./dreamlinerOne.js");
+            if (!("expiresAt" in body)) {
+              sendJson(res, 400, { error: "expiresAt is required (ISO string or null for forever)." });
+              return;
+            }
+            const expiresAt = parseExpiresAt(body.expiresAt);
+            if (expiresAt === undefined) {
+              sendJson(res, 400, { error: "expiresAt must be an ISO datetime string or null." });
+              return;
+            }
+            const note = typeof body.note === "string" || body.note === null ? body.note : undefined;
+            const one = await upsertDreamlinerOne({
+              guildId,
+              actorId: userId,
+              expiresAt,
+              note,
+            });
+            sendJson(res, 200, { ok: true, one });
+            return;
+          }
+
+          if (req.method === "DELETE") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!isDashboardSuperuser(userId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { revokeDreamlinerOne } = await import("./dreamlinerOne.js");
+            const one = await revokeDreamlinerOne(guildId, userId);
+            if (!one) {
+              sendJson(res, 404, { error: "No Dreamliner One subscription for that server." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, one });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const guildOneMatch = /^\/bridge\/guilds\/(\d+)\/one$/.exec(url.pathname);
+        if (guildOneMatch && req.method === "GET") {
+          const guildId = guildOneMatch[1]!;
+          const guild = client.guilds.cache.get(guildId);
+          if (!guild) {
+            sendJson(res, 404, { error: "Guild not found (bot is not in that server)." });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { getDreamlinerOnePublicStatus } = await import("./dreamlinerOne.js");
+          sendJson(res, 200, await getDreamlinerOnePublicStatus(guildId));
+          return;
+        }
+
         const profileMatch = /^\/bridge\/users\/(\d+)\/profile$/.exec(url.pathname);
         const userStatsMatch = /^\/bridge\/users\/(\d+)\/stats$/.exec(url.pathname);
         const deleteDataMatch = /^\/bridge\/users\/(\d+)\/data$/.exec(url.pathname);
@@ -397,6 +719,17 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const welcomePreviewMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/preview$/.exec(url.pathname);
         const welcomeTestMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/test$/.exec(url.pathname);
+        const botProfileRequestImageMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/requests\/(\d+)\/image$/.exec(
+          url.pathname,
+        );
+        const botProfileRequestCancelMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/requests\/(\d+)\/cancel$/.exec(
+          url.pathname,
+        );
+        const botProfileMediaMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/media\/(avatar|banner)$/.exec(
+          url.pathname,
+        );
+        const botProfileActionMatch =
+          /^\/bridge\/guilds\/(\d+)\/bot-profile(?:\/(avatar|banner|nickname|bio))?$/.exec(url.pathname);
         const automodPresetMatch = /^\/bridge\/guilds\/(\d+)\/automod\/presets\/(light|standard|strict)$/.exec(
           url.pathname,
         );
@@ -435,6 +768,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !welcomeAssetMatch &&
           !welcomePreviewMatch &&
           !welcomeTestMatch &&
+          !botProfileRequestImageMatch &&
+          !botProfileRequestCancelMatch &&
+          !botProfileMediaMatch &&
+          !botProfileActionMatch &&
           !automodPresetMatch &&
           !automodTestMatch &&
           !automodMatch &&
@@ -474,6 +811,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           welcomeAssetMatch?.[1] ??
           welcomePreviewMatch?.[1] ??
           welcomeTestMatch?.[1] ??
+          botProfileRequestImageMatch?.[1] ??
+          botProfileRequestCancelMatch?.[1] ??
+          botProfileMediaMatch?.[1] ??
+          botProfileActionMatch?.[1] ??
           automodPresetMatch?.[1] ??
           automodTestMatch?.[1] ??
           automodMatch?.[1] ??
@@ -609,6 +950,244 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
                 error: error instanceof Error ? error.message : "Failed to apply preset",
               });
             }
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (botProfileRequestImageMatch || botProfileRequestCancelMatch || botProfileMediaMatch || botProfileActionMatch) {
+          const {
+            cancelBridgeBrandRequest,
+            clearBridgeBrandImage,
+            getBridgeBotBrandRequestImage,
+            getBridgeBotProfile,
+            getBridgeLiveBrandImage,
+            setBridgeBotBio,
+            setBridgeBotNickname,
+            submitBridgeBrandImage,
+          } = await import("./webBotProfile.js");
+
+          const requireManage = async (userId: string | null | undefined): Promise<string | null> => {
+            const id = userId?.trim();
+            if (!id) {
+              sendJson(res, 400, { error: "userId is required" });
+              return null;
+            }
+            if (!(await memberCanManage(guild, id))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return null;
+            }
+            return id;
+          };
+
+          if (botProfileActionMatch && !botProfileActionMatch[2] && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            const result = await getBridgeBotProfile(client, configManager, guild);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, result.profile);
+            return;
+          }
+
+          if (botProfileMediaMatch && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            const kind = botProfileMediaMatch[2] as "avatar" | "banner";
+            const result = await getBridgeLiveBrandImage(client, configManager, guild, kind);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendBinary(res, 200, result.body, result.contentType);
+            return;
+          }
+
+          if (botProfileRequestImageMatch && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            const requestId = Number(botProfileRequestImageMatch[2]);
+            const result = await getBridgeBotBrandRequestImage(configManager, guildId, requestId);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendBinary(res, 200, result.png, "image/png");
+            return;
+          }
+
+          if (botProfileRequestCancelMatch && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = await requireManage(body.userId);
+            if (!userId) return;
+            const requestId = Number(botProfileRequestCancelMatch[2]);
+            const result = await cancelBridgeBrandRequest(client, configManager, guildId, requestId, userId);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_bot_brand",
+              title: "Bot brand request cancelled",
+              summary: `Cancelled pending ${result.request.kind} request #${result.request.id} from the dashboard.`,
+              payload: { requestId: result.request.id, kind: result.request.kind },
+            });
+            sendJson(res, 200, { ok: true, request: result.request });
+            return;
+          }
+
+          const action = botProfileActionMatch?.[2];
+
+          if (action === "avatar" || action === "banner") {
+            if (req.method === "POST") {
+              let body: { userId?: string; imageBase64?: string };
+              try {
+                body = JSON.parse(await readBody(req)) as typeof body;
+              } catch {
+                sendJson(res, 400, { error: "Invalid JSON body" });
+                return;
+              }
+              const userId = await requireManage(body.userId);
+              if (!userId) return;
+              if (typeof body.imageBase64 !== "string") {
+                sendJson(res, 400, { error: "imageBase64 is required" });
+                return;
+              }
+              const result = await submitBridgeBrandImage(
+                client,
+                configManager,
+                guild,
+                userId,
+                action,
+                body.imageBase64,
+              );
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_bot_brand",
+                title: `Bot ${action} submitted`,
+                summary: `Queued a ${action} change for staff approval from the dashboard.`,
+                details: [
+                  `Request: \`#${result.request.id}\``,
+                  `Review posted: ${result.reviewPosted ? "yes" : "no"}`,
+                ],
+                payload: { requestId: result.request.id, kind: action },
+              });
+              sendJson(res, 200, {
+                ok: true,
+                request: result.request,
+                reviewPosted: result.reviewPosted,
+              });
+              return;
+            }
+
+            if (req.method === "DELETE") {
+              let body: { userId?: string };
+              try {
+                body = JSON.parse(await readBody(req)) as typeof body;
+              } catch {
+                sendJson(res, 400, { error: "Invalid JSON body" });
+                return;
+              }
+              const userId = await requireManage(body.userId);
+              if (!userId) return;
+              const result = await clearBridgeBrandImage(configManager, guild, userId, action);
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_bot_brand",
+                title: `Bot ${action} cleared`,
+                summary: `Cleared Dreamliner's server ${action} from the dashboard.`,
+                payload: { kind: action },
+              });
+              sendJson(res, 200, { ok: true });
+              return;
+            }
+          }
+
+          if (action === "nickname" && req.method === "PUT") {
+            let body: { userId?: string; nick?: string | null };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = await requireManage(body.userId);
+            if (!userId) return;
+            if (!("nick" in body)) {
+              sendJson(res, 400, { error: "nick is required (string or null to clear)" });
+              return;
+            }
+            const result = await setBridgeBotNickname(
+              configManager,
+              guild,
+              userId,
+              body.nick == null ? null : String(body.nick),
+            );
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_bot_brand",
+              title: "Bot nickname updated",
+              summary: result.nick
+                ? `Set Dreamliner's nickname to **${result.nick}** from the dashboard.`
+                : "Cleared Dreamliner's nickname from the dashboard.",
+              payload: { nick: result.nick },
+            });
+            sendJson(res, 200, { ok: true, nick: result.nick });
+            return;
+          }
+
+          if (action === "bio" && req.method === "PUT") {
+            let body: { userId?: string; bio?: string | null };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = await requireManage(body.userId);
+            if (!userId) return;
+            if (!("bio" in body)) {
+              sendJson(res, 400, { error: "bio is required (string or null to clear)" });
+              return;
+            }
+            const result = await setBridgeBotBio(
+              configManager,
+              guild,
+              userId,
+              body.bio == null ? null : String(body.bio),
+            );
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_bot_brand",
+              title: "Bot bio updated",
+              summary: result.bio
+                ? "Updated Dreamliner's server bio from the dashboard."
+                : "Cleared Dreamliner's server bio from the dashboard.",
+              payload: { bioLength: result.bio?.length ?? 0 },
+            });
+            sendJson(res, 200, { ok: true, bio: result.bio });
             return;
           }
 

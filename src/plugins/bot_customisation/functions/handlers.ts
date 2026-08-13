@@ -11,12 +11,15 @@ import { buildResultEmbed, setEmbedAuthor, baseEmbed, embedField } from "../../.
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parseBotAvatarCustomId } from "../constants.js";
 import {
+  DASHBOARD_REQUEST_CHANNEL,
   getBotAvatarRequest,
   markBotAvatarRequestFailed,
   resolveBotAvatarRequest,
+  setStoredBrandImage,
   type BotAvatarRequest,
+  type BotBrandImageKind,
 } from "./store.js";
-import { avatarAttachment, avatarAttachmentUrl } from "./review.js";
+import { brandImageAttachment, brandImageAttachmentUrl } from "./review.js";
 
 function asTextChannel(channel: unknown): GuildTextBasedChannel | null {
   if (
@@ -35,34 +38,46 @@ function asTextChannel(channel: unknown): GuildTextBasedChannel | null {
   return null;
 }
 
+function kindLabel(kind: BotBrandImageKind): string {
+  return kind === "banner" ? "Banner" : "Avatar";
+}
+
 async function notifyRequester(
   interaction: ButtonInteraction,
   request: BotAvatarRequest,
   outcome: "approved" | "denied" | "failed",
   details: string,
 ): Promise<void> {
+  // Dashboard submissions have no Discord request message — the site polls status live.
+  if (!request.requestChannelId || request.requestChannelId === DASHBOARD_REQUEST_CHANNEL) {
+    return;
+  }
+
   const channel = asTextChannel(
     interaction.client.channels.cache.get(request.requestChannelId) ??
       (await interaction.client.channels.fetch(request.requestChannelId).catch(() => null)),
   );
   if (!channel) return;
 
+  const label = kindLabel(request.kind);
   const embed = buildResultEmbed(
     outcome === "approved"
-      ? "Avatar approved"
+      ? `${label} approved`
       : outcome === "denied"
-        ? "Avatar denied"
-        : "Avatar could not be applied",
+        ? `${label} denied`
+        : `${label} could not be applied`,
     details,
     {
       client: interaction.client,
       tone: outcome === "approved" ? "success" : outcome === "denied" ? "unchecked" : "error",
-      ...(outcome === "approved" ? { imageURL: avatarAttachmentUrl() } : {}),
+      ...(outcome === "approved" ? { imageURL: brandImageAttachmentUrl(request.kind) } : {}),
     },
   );
 
   const files =
-    outcome === "approved" ? [avatarAttachment(Buffer.from(request.avatarPng, "base64"))] : [];
+    outcome === "approved"
+      ? [brandImageAttachment(Buffer.from(request.avatarPng, "base64"), request.kind)]
+      : [];
 
   if (request.requestMessageId) {
     const original = await channel.messages.fetch(request.requestMessageId).catch(() => null);
@@ -95,6 +110,7 @@ async function finalizeReviewMessage(
   outcome: "approved" | "denied" | "failed",
   reviewerId: string,
 ): Promise<void> {
+  const label = kindLabel(request.kind);
   const disabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`dl:botavatar:done:a:${request.id}`)
@@ -109,10 +125,10 @@ async function finalizeReviewMessage(
   const embed = setEmbedAuthor(
     baseEmbed(),
     outcome === "approved"
-      ? "Avatar approved"
+      ? `${label} approved`
       : outcome === "denied"
-        ? "Avatar denied"
-        : "Avatar failed",
+        ? `${label} denied`
+        : `${label} failed`,
     interaction.client,
     {
       tone: outcome === "approved" ? "success" : outcome === "denied" ? "unchecked" : "error",
@@ -122,6 +138,7 @@ async function finalizeReviewMessage(
       embedField(
         "Request",
         [
+          `**Type:** ${label}`,
           `**Server:** ${guildName} (\`${request.guildId}\`)`,
           `**Requested by:** <@${request.requesterId}>`,
           `**Reviewed by:** <@${reviewerId}>`,
@@ -130,12 +147,12 @@ async function finalizeReviewMessage(
         ].join("\n"),
       ),
     )
-    .setImage(avatarAttachmentUrl());
+    .setImage(brandImageAttachmentUrl(request.kind));
 
   const payload = {
     embeds: [embed],
     components: [disabled],
-    files: [avatarAttachment(Buffer.from(request.avatarPng, "base64"))],
+    files: [brandImageAttachment(Buffer.from(request.avatarPng, "base64"), request.kind)],
   };
 
   if (interaction.message) {
@@ -153,7 +170,7 @@ export async function handleBotAvatarButtonInteraction(
 
   if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
     await interaction.reply({
-      content: "You need **Manage Server** in this server to review avatar requests.",
+      content: "You need **Manage Server** in this server to review brand requests.",
       ephemeral: true,
     });
     return true;
@@ -161,7 +178,7 @@ export async function handleBotAvatarButtonInteraction(
 
   const request = await getBotAvatarRequest(parsed.requestId);
   if (!request) {
-    await interaction.reply({ content: "That avatar request no longer exists.", ephemeral: true });
+    await interaction.reply({ content: "That brand request no longer exists.", ephemeral: true });
     return true;
   }
 
@@ -184,6 +201,8 @@ export async function handleBotAvatarButtonInteraction(
 
   await interaction.deferUpdate();
 
+  const label = kindLabel(request.kind).toLowerCase();
+
   if (parsed.action === "deny") {
     const resolved = await resolveBotAvatarRequest(request.id, "denied", interaction.user.id);
     if (!resolved) {
@@ -196,7 +215,7 @@ export async function handleBotAvatarButtonInteraction(
       interaction,
       resolved,
       "denied",
-      `Staff denied the avatar change for **${interaction.client.guilds.cache.get(resolved.guildId)?.name ?? "your server"}**. Dreamliner's avatar was not changed.`,
+      `Staff denied the ${label} change for **${interaction.client.guilds.cache.get(resolved.guildId)?.name ?? "your server"}**. Dreamliner's ${label} was not changed.`,
     );
     return true;
   }
@@ -220,35 +239,39 @@ export async function handleBotAvatarButtonInteraction(
       interaction,
       claimed,
       "failed",
-      "Staff approved the avatar, but Dreamliner is no longer in that server so it could not be applied.",
+      `Staff approved the ${label}, but Dreamliner is no longer in that server so it could not be applied.`,
     );
     return true;
   }
 
   try {
     await targetGuild.members.editMe({
-      avatar: png,
-      reason: `Guild avatar approved by ${interaction.user.tag} (request #${claimed.id})`,
+      ...(claimed.kind === "banner" ? { banner: png } : { avatar: png }),
+      reason: `Guild ${claimed.kind} approved by ${interaction.user.tag} (request #${claimed.id})`,
     });
   } catch (error) {
     await markBotAvatarRequestFailed(claimed.id);
     await finalizeReviewMessage(interaction, { ...claimed, status: "failed" }, "failed", interaction.user.id);
-    const msg = error instanceof Error ? error.message : "Discord rejected the avatar.";
+    const msg = error instanceof Error ? error.message : `Discord rejected the ${label}.`;
     await notifyRequester(
       interaction,
       claimed,
       "failed",
-      `Staff approved the avatar, but Discord rejected applying it: ${msg}`,
+      `Staff approved the ${label}, but Discord rejected applying it: ${msg}`,
     );
     return true;
   }
+
+  await setStoredBrandImage(claimed.guildId, claimed.kind, claimed.avatarPng, interaction.user.id).catch(
+    () => undefined,
+  );
 
   await finalizeReviewMessage(interaction, claimed, "approved", interaction.user.id);
   await notifyRequester(
     interaction,
     claimed,
     "approved",
-    `Staff approved the avatar for **${targetGuild.name}**. Dreamliner's look in that server is now updated.`,
+    `Staff approved the ${label} for **${targetGuild.name}**. Dreamliner's look in that server is now updated.`,
   );
   return true;
 }

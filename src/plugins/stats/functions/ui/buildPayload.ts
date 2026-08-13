@@ -10,12 +10,7 @@ import {
   type MessageActionRowComponentBuilder,
 } from "discord.js";
 import type { GuildConfig } from "../../../../config/schemas/guild.js";
-import {
-  getGlobalLeaderboardUrl,
-  getGlobalStatsUrl,
-  getGuildStatsDashboardUrl,
-  statsDashboardLinkRow,
-} from "../../../../core/docsUrl.js";
+import { getGlobalLeaderboardUrl } from "../../../../core/docsUrl.js";
 import { publicLeaderboardUrl } from "../../../../core/publicLeaderboard.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../../../core/embeds.js";
 import { getGuildMessageCount, getGlobalMessageCount } from "../../../utility/functions/messageCounts.js";
@@ -94,14 +89,6 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
           Lifetime tracked messages: \`${totalMessages.toLocaleString()}\`
           Active messagers: \`${activeUsers.toLocaleString()}\`
           All-time daily totals: \`${totals.messages.toLocaleString()}\` msgs · \`${totals.joins}\` joins · \`${totals.leaves}\` leaves
-          Dashboard: ${getGuildStatsDashboardUrl(guildId)}
-          ${(() => {
-            const lb = publicLeaderboardUrl(guildId);
-            return lb
-              ? `Public leaderboard: ${lb}`
-              : `Global leaderboard: ${getGlobalLeaderboardUrl()}`;
-          })()}
-          Global stats: ${getGlobalStatsUrl()}
         `),
       ),
       embedField(
@@ -356,6 +343,17 @@ export async function buildStatsPayload(
   }
 
   const fields = await buildCategoryFields(normalized, guild, caption);
+  if (state.scope.type === "server") {
+    const serverLb = publicLeaderboardUrl(guild.id);
+    const links = [
+      serverLb ? `[Public leaderboard](${serverLb})` : null,
+      `[Global leaderboard](${getGlobalLeaderboardUrl()})`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    fields.push(embedField("\u200b", links));
+  }
+
   let thumbnailURL: string | null = null;
   if (state.scope.type === "server") thumbnailURL = guild.iconURL({ size: 128 });
   if (state.scope.type === "user") {
@@ -378,9 +376,6 @@ export async function buildStatsPayload(
     buildCategorySelect(normalized),
     buildDaysSelect(normalized),
   ];
-  if (state.scope.type === "server") {
-    components.push(statsDashboardLinkRow(guild.id));
-  }
 
   return {
     embeds: [embed.toJSON()],

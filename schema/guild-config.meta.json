@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-11T19:32:46.625Z",
+  "generatedAt": "2026-08-13T07:02:27.542Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
     {
       "id": "mod",
       "label": "Moderation",
-      "description": "Punishments, cleanup, and automated moderation.",
+      "description": "Warns, mutes, bans, lockdown, and cleanup.",
       "plugins": [
         {
           "key": "infractions",
@@ -20,6 +20,18 @@
           "description": "Channel lockdown and unlock."
         },
         {
+          "key": "slowmode",
+          "name": "Slowmode",
+          "description": "Per-channel and individual slowmode."
+        }
+      ]
+    },
+    {
+      "id": "protect",
+      "label": "Protection",
+      "description": "Filters, scam traps, sticky messages, and auto-clear.",
+      "plugins": [
+        {
           "key": "automod",
           "name": "Automod",
           "description": "Content filters, spam detection, and escalation ladders."
@@ -30,27 +42,49 @@
           "description": "Honeypot channel that softbans anyone who posts in it."
         },
         {
-          "key": "slowmode",
-          "name": "Slowmode",
-          "description": "Per-channel and individual slowmode."
-        },
-        {
           "key": "persist",
           "name": "Persist",
           "description": "Sticky channel messages."
+        },
+        {
+          "key": "autodelete",
+          "name": "Autodelete",
+          "description": "Auto-clear messages after a delay."
         }
       ]
     },
     {
       "id": "roles",
-      "label": "Roles",
-      "description": "Assign, toggle, and manage roles.",
+      "label": "Role management",
+      "description": "Staff role assign, templates, autorole, and pingables.",
       "plugins": [
         {
           "key": "roles",
           "name": "Roles",
           "description": "Give, remove, and list roles."
         },
+        {
+          "key": "role_manager",
+          "name": "Role manager",
+          "description": "Role templates."
+        },
+        {
+          "key": "autorole",
+          "name": "Autorole",
+          "description": "Auto-assign roles on join for humans and bots."
+        },
+        {
+          "key": "pingable_roles",
+          "name": "Pingable roles",
+          "description": "Temporarily mentionable roles."
+        }
+      ]
+    },
+    {
+      "id": "self_roles",
+      "label": "Self-serve roles",
+      "description": "Reaction, button, and panel roles members can claim.",
+      "plugins": [
         {
           "key": "reaction_roles",
           "name": "Reaction roles",
@@ -65,28 +99,13 @@
           "key": "self_grantable_roles",
           "name": "Self grantable roles",
           "description": "Self-serve role panels."
-        },
-        {
-          "key": "pingable_roles",
-          "name": "Pingable roles",
-          "description": "Temporarily mentionable roles."
-        },
-        {
-          "key": "role_manager",
-          "name": "Role manager",
-          "description": "Role templates."
-        },
-        {
-          "key": "autorole",
-          "name": "Autorole",
-          "description": "Auto-assign roles on join for humans and bots."
         }
       ]
     },
     {
       "id": "info",
       "label": "Lookups",
-      "description": "Inspect users, channels, roles, messages, and more.",
+      "description": "Inspect users, channels, roles, messages, and history.",
       "plugins": [
         {
           "key": "locate_user",
@@ -106,9 +125,9 @@
       ]
     },
     {
-      "id": "auto",
-      "label": "Automation",
-      "description": "Welcomer, tags, schedules, reactions, and bots that run themselves.",
+      "id": "engage",
+      "label": "Engagement",
+      "description": "Welcomes, companion voice channels, and starboard.",
       "plugins": [
         {
           "key": "welcome_message",
@@ -116,24 +135,26 @@
           "description": "Join, leave, and DM welcomes with embeds and image cards."
         },
         {
+          "key": "companion_channels",
+          "name": "Companion channels",
+          "description": "Personal voice channels from a hub."
+        },
+        {
+          "key": "starboard",
+          "name": "Starboard",
+          "description": "Highlight highly reacted messages."
+        }
+      ]
+    },
+    {
+      "id": "respond",
+      "label": "Auto responses",
+      "description": "Tags, replies, reactions, and translation.",
+      "plugins": [
+        {
           "key": "tags",
           "name": "Tags",
           "description": "Reusable text snippets."
-        },
-        {
-          "key": "post",
-          "name": "Scheduled posts",
-          "description": "Timed and recurring posts."
-        },
-        {
-          "key": "autodelete",
-          "name": "Autodelete",
-          "description": "Auto-clear messages after a delay."
-        },
-        {
-          "key": "autoreactions",
-          "name": "Autoreactions",
-          "description": "Auto-react to matching messages."
         },
         {
           "key": "autoreplies",
@@ -141,9 +162,26 @@
           "description": "Auto-reply to matching messages."
         },
         {
+          "key": "autoreactions",
+          "name": "Autoreactions",
+          "description": "Auto-react to matching messages."
+        },
+        {
           "key": "translation",
           "name": "Translation",
           "description": "Translate messages and auto-flag non-default languages."
+        }
+      ]
+    },
+    {
+      "id": "schedule",
+      "label": "Scheduling",
+      "description": "Timed posts, reminders, and live counters.",
+      "plugins": [
+        {
+          "key": "post",
+          "name": "Scheduled posts",
+          "description": "Timed and recurring posts."
         },
         {
           "key": "reminders",
@@ -154,12 +192,14 @@
           "key": "counters",
           "name": "Counters",
           "description": "Live counters."
-        },
-        {
-          "key": "companion_channels",
-          "name": "Companion channels",
-          "description": "Personal voice channels from a hub."
-        },
+        }
+      ]
+    },
+    {
+      "id": "custom",
+      "label": "Customization",
+      "description": "Custom events, aliases, and Dreamcode commands.",
+      "plugins": [
         {
           "key": "custom_events",
           "name": "Custom events",
@@ -179,8 +219,8 @@
     },
     {
       "id": "tools",
-      "label": "Server tools",
-      "description": "Search, voice helpers, stats, and everyday utilities.",
+      "label": "Utilities",
+      "description": "Search, voice helpers, and everyday utilities.",
       "plugins": [
         {
           "key": "utility",
@@ -191,16 +231,6 @@
           "key": "stats",
           "name": "Stats",
           "description": "Server, user, and channel stats."
-        },
-        {
-          "key": "bot_customisation",
-          "name": "Bot customisation",
-          "description": "Per-server bot avatar and nickname."
-        },
-        {
-          "key": "starboard",
-          "name": "Starboard",
-          "description": "Highlight highly reacted messages."
         }
       ]
     },
@@ -238,20 +268,6 @@
       "categoryId": "mod"
     },
     {
-      "key": "automod",
-      "name": "Automod",
-      "description": "Content filters, spam detection, and escalation ladders.",
-      "category": "Moderation",
-      "categoryId": "mod"
-    },
-    {
-      "key": "scam_protect",
-      "name": "Scam Protect",
-      "description": "Honeypot channel that softbans anyone who posts in it.",
-      "category": "Moderation",
-      "categoryId": "mod"
-    },
-    {
       "key": "slowmode",
       "name": "Slowmode",
       "description": "Per-channel and individual slowmode.",
@@ -259,60 +275,81 @@
       "categoryId": "mod"
     },
     {
+      "key": "automod",
+      "name": "Automod",
+      "description": "Content filters, spam detection, and escalation ladders.",
+      "category": "Protection",
+      "categoryId": "protect"
+    },
+    {
+      "key": "scam_protect",
+      "name": "Scam Protect",
+      "description": "Honeypot channel that softbans anyone who posts in it.",
+      "category": "Protection",
+      "categoryId": "protect"
+    },
+    {
       "key": "persist",
       "name": "Persist",
       "description": "Sticky channel messages.",
-      "category": "Moderation",
-      "categoryId": "mod"
+      "category": "Protection",
+      "categoryId": "protect"
+    },
+    {
+      "key": "autodelete",
+      "name": "Autodelete",
+      "description": "Auto-clear messages after a delay.",
+      "category": "Protection",
+      "categoryId": "protect"
     },
     {
       "key": "roles",
       "name": "Roles",
       "description": "Give, remove, and list roles.",
-      "category": "Roles",
-      "categoryId": "roles"
-    },
-    {
-      "key": "reaction_roles",
-      "name": "Reaction roles",
-      "description": "React to claim a role.",
-      "category": "Roles",
-      "categoryId": "roles"
-    },
-    {
-      "key": "role_buttons",
-      "name": "Role buttons",
-      "description": "Button-based role assignment.",
-      "category": "Roles",
-      "categoryId": "roles"
-    },
-    {
-      "key": "self_grantable_roles",
-      "name": "Self grantable roles",
-      "description": "Self-serve role panels.",
-      "category": "Roles",
-      "categoryId": "roles"
-    },
-    {
-      "key": "pingable_roles",
-      "name": "Pingable roles",
-      "description": "Temporarily mentionable roles.",
-      "category": "Roles",
+      "category": "Role management",
       "categoryId": "roles"
     },
     {
       "key": "role_manager",
       "name": "Role manager",
       "description": "Role templates.",
-      "category": "Roles",
+      "category": "Role management",
       "categoryId": "roles"
     },
     {
       "key": "autorole",
       "name": "Autorole",
       "description": "Auto-assign roles on join for humans and bots.",
-      "category": "Roles",
+      "category": "Role management",
       "categoryId": "roles"
+    },
+    {
+      "key": "pingable_roles",
+      "name": "Pingable roles",
+      "description": "Temporarily mentionable roles.",
+      "category": "Role management",
+      "categoryId": "roles"
+    },
+    {
+      "key": "reaction_roles",
+      "name": "Reaction roles",
+      "description": "React to claim a role.",
+      "category": "Self-serve roles",
+      "categoryId": "self_roles"
+    },
+    {
+      "key": "role_buttons",
+      "name": "Role buttons",
+      "description": "Button-based role assignment.",
+      "category": "Self-serve roles",
+      "categoryId": "self_roles"
+    },
+    {
+      "key": "self_grantable_roles",
+      "name": "Self grantable roles",
+      "description": "Self-serve role panels.",
+      "category": "Self-serve roles",
+      "categoryId": "self_roles"
     },
     {
       "key": "locate_user",
@@ -339,119 +376,105 @@
       "key": "welcome_message",
       "name": "Welcomer",
       "description": "Join, leave, and DM welcomes with embeds and image cards.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "tags",
-      "name": "Tags",
-      "description": "Reusable text snippets.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "post",
-      "name": "Scheduled posts",
-      "description": "Timed and recurring posts.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "autodelete",
-      "name": "Autodelete",
-      "description": "Auto-clear messages after a delay.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "autoreactions",
-      "name": "Autoreactions",
-      "description": "Auto-react to matching messages.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "autoreplies",
-      "name": "Autoreplies",
-      "description": "Auto-reply to matching messages.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "translation",
-      "name": "Translation",
-      "description": "Translate messages and auto-flag non-default languages.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "reminders",
-      "name": "Reminders",
-      "description": "Personal reminders.",
-      "category": "Automation",
-      "categoryId": "auto"
-    },
-    {
-      "key": "counters",
-      "name": "Counters",
-      "description": "Live counters.",
-      "category": "Automation",
-      "categoryId": "auto"
+      "category": "Engagement",
+      "categoryId": "engage"
     },
     {
       "key": "companion_channels",
       "name": "Companion channels",
       "description": "Personal voice channels from a hub.",
-      "category": "Automation",
-      "categoryId": "auto"
+      "category": "Engagement",
+      "categoryId": "engage"
+    },
+    {
+      "key": "starboard",
+      "name": "Starboard",
+      "description": "Highlight highly reacted messages.",
+      "category": "Engagement",
+      "categoryId": "engage"
+    },
+    {
+      "key": "tags",
+      "name": "Tags",
+      "description": "Reusable text snippets.",
+      "category": "Auto responses",
+      "categoryId": "respond"
+    },
+    {
+      "key": "autoreplies",
+      "name": "Autoreplies",
+      "description": "Auto-reply to matching messages.",
+      "category": "Auto responses",
+      "categoryId": "respond"
+    },
+    {
+      "key": "autoreactions",
+      "name": "Autoreactions",
+      "description": "Auto-react to matching messages.",
+      "category": "Auto responses",
+      "categoryId": "respond"
+    },
+    {
+      "key": "translation",
+      "name": "Translation",
+      "description": "Translate messages and auto-flag non-default languages.",
+      "category": "Auto responses",
+      "categoryId": "respond"
+    },
+    {
+      "key": "post",
+      "name": "Scheduled posts",
+      "description": "Timed and recurring posts.",
+      "category": "Scheduling",
+      "categoryId": "schedule"
+    },
+    {
+      "key": "reminders",
+      "name": "Reminders",
+      "description": "Personal reminders.",
+      "category": "Scheduling",
+      "categoryId": "schedule"
+    },
+    {
+      "key": "counters",
+      "name": "Counters",
+      "description": "Live counters.",
+      "category": "Scheduling",
+      "categoryId": "schedule"
     },
     {
       "key": "custom_events",
       "name": "Custom events",
       "description": "Hook actions to Discord events.",
-      "category": "Automation",
-      "categoryId": "auto"
+      "category": "Customization",
+      "categoryId": "custom"
     },
     {
       "key": "command_aliases",
       "name": "Command aliases",
       "description": "Shortcuts and message triggers.",
-      "category": "Automation",
-      "categoryId": "auto"
+      "category": "Customization",
+      "categoryId": "custom"
     },
     {
       "key": "dream_commands",
       "name": "Dreamcode commands",
       "description": "Custom commands written in Dreamcode.",
-      "category": "Automation",
-      "categoryId": "auto"
+      "category": "Customization",
+      "categoryId": "custom"
     },
     {
       "key": "utility",
       "name": "Utility",
       "description": "Search, info, clean, voice tools, and more.",
-      "category": "Server tools",
+      "category": "Utilities",
       "categoryId": "tools"
     },
     {
       "key": "stats",
       "name": "Stats",
       "description": "Server, user, and channel stats.",
-      "category": "Server tools",
-      "categoryId": "tools"
-    },
-    {
-      "key": "bot_customisation",
-      "name": "Bot customisation",
-      "description": "Per-server bot avatar and nickname.",
-      "category": "Server tools",
-      "categoryId": "tools"
-    },
-    {
-      "key": "starboard",
-      "name": "Starboard",
-      "description": "Highlight highly reacted messages.",
-      "category": "Server tools",
+      "category": "Utilities",
       "categoryId": "tools"
     },
     {

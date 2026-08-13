@@ -332,8 +332,10 @@ export const zDreamCommandsConfig = z.strictObject({
 });
 
 export const zBotCustomisationConfig = z.strictObject({
-  can_avatar: boolPerm("set or clear Dreamliner's per-server avatar"),
-  can_nickname: boolPerm("set or clear Dreamliner's server nickname"),
+  can_avatar: boolPerm("submit or clear Dreamliner's per-server avatar (dashboard)"),
+  can_banner: boolPerm("submit or clear Dreamliner's per-server banner (dashboard)"),
+  can_nickname: boolPerm("set or clear Dreamliner's server nickname (dashboard)"),
+  can_bio: boolPerm("set or clear Dreamliner's server bio (dashboard)"),
 });
 
 export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape);

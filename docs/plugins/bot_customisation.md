@@ -1,8 +1,8 @@
 # Bot customisation plugin
 
-Let trusted members customise Dreamliner's **per-server** avatar and nickname so it can match the server's branding.
+Let trusted members customise Dreamliner's **per-server** avatar, banner, nickname, and bio so it can match the server's branding.
 
-Uses Discord's modify-current-member API (`guild.members.editMe`) — avatar changes apply only in that guild.
+Managed from the **web dashboard** (Brand / bot customisation page). Uses Discord's modify-current-member API (`guild.members.editMe`) — changes apply only in that guild.
 
 ## Configuration
 
@@ -14,33 +14,40 @@ plugins:
       - level: ">=50"
         config:
           can_avatar: true
+          can_banner: true
           can_nickname: true
+          can_bio: true
 ```
 
-## Commands
+Dashboard access still requires **Manage Server** (or server owner / platform superuser). Plugin permission flags document which brand fields that level may manage.
 
-| Command | Permission | Description |
-|---------|------------|-------------|
-| `/bot avatar set` | `can_avatar` | Queue a custom guild avatar for staff approval |
-| `/bot avatar cancel` | `can_avatar` | Cancel this server's pending avatar request |
-| `/bot avatar clear` | `can_avatar` | Remove the custom guild avatar (immediate) |
-| `/bot nickname set` | `can_nickname` | Set Dreamliner's nickname in this server |
-| `/bot nickname clear` | `can_nickname` | Clear Dreamliner's nickname |
+## Dashboard features
 
-## Avatar approval
+| Action | Approval | Notes |
+|--------|----------|-------|
+| Set avatar | Staff review | Normalized to 512×512 PNG, then queued |
+| Clear avatar | Immediate | Restores Dreamliner's default avatar in that server |
+| Set banner | Staff review | Normalized to 680×240 PNG, then queued |
+| Clear banner | Immediate | |
+| Set / clear nickname | Immediate | Max 32 characters; bot needs **Change Nickname** |
+| Set / clear bio | Immediate | Max 190 characters |
 
-`/bot avatar set` does **not** apply immediately:
+Track pending avatar/banner requests live on the dashboard — status updates as staff approve, deny, or as the apply step succeeds/fails. Cancel a pending request from the same page.
 
-1. The image is normalized to a 512×512 PNG.
-2. The user gets a public “pending review” reply in the command channel.
+## Avatar & banner approval
+
+Image submissions do **not** apply immediately:
+
+1. The image is normalized (square avatar or wide banner PNG).
+2. A pending request is stored and shown on the dashboard with live status.
 3. Staff see the image in the review channel with **Approve** / **Deny**.
-4. On decide, Dreamliner edits the original pending message with the result.
-5. Approve applies the avatar only in the requesting server.
+4. Approve applies the image only in the requesting server; deny / fail updates the request status for the dashboard poller.
 
 Reviewers need **Manage Server** in the review channel's server.
 
 ## Requirements
 
-- **Avatar:** PNG, JPEG, GIF, or WebP (max ~10MB). Dreamliner center-crops to a square and re-encodes to a 512×512 PNG before review. Applies only in the current server once approved.
+- **Images:** PNG, JPEG, GIF, or WebP (max ~10MB). Dreamliner re-encodes before review.
 - **Nickname:** Max 32 characters. Dreamliner needs Discord's **Change Nickname** permission.
-- Changes are immediate for Discord clients that refresh the member profile; some caches may lag briefly.
+- **Bio:** Max 190 characters.
+- Some Discord clients cache member profiles briefly after changes.

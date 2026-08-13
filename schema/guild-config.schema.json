@@ -6372,8 +6372,18 @@
                 "can_avatar": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to set or clear Dreamliner's per-server avatar. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to submit or clear Dreamliner's per-server avatar (dashboard). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Avatar",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_banner": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to submit or clear Dreamliner's per-server banner (dashboard). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Banner",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
@@ -6382,8 +6392,18 @@
                 "can_nickname": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to set or clear Dreamliner's server nickname. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to set or clear Dreamliner's server nickname (dashboard). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Nickname",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_bio": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to set or clear Dreamliner's server bio (dashboard). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Bio",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."

@@ -114,6 +114,27 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     console.log(`Dreamliner ready as ${c.user.tag}`);
     startStatusMonitor(c);
     startDashboardBridge(c, configManager);
+    void import("./bridge/oneEntitlements.js").then(({ startDreamlinerOneEntitlements }) =>
+      startDreamlinerOneEntitlements(c).catch((error) => {
+        console.error("[dreamliner-one] Failed to start entitlement sync.", error);
+      }),
+    );
+  });
+
+  client.on(Events.EntitlementCreate, (entitlement) => {
+    void import("./bridge/oneEntitlements.js").then(({ handleDiscordEntitlement }) =>
+      handleDiscordEntitlement(entitlement),
+    );
+  });
+  client.on(Events.EntitlementUpdate, (_old, entitlement) => {
+    void import("./bridge/oneEntitlements.js").then(({ handleDiscordEntitlement }) =>
+      handleDiscordEntitlement(entitlement),
+    );
+  });
+  client.on(Events.EntitlementDelete, (entitlement) => {
+    void import("./bridge/oneEntitlements.js").then(({ handleDiscordEntitlementDelete }) =>
+      handleDiscordEntitlementDelete(entitlement),
+    );
   });
 
   client.on(Events.GuildCreate, async (guild) => {

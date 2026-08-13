@@ -345,21 +345,36 @@ export const guildLogEvents = sqliteTable("guild_log_events", {
   discordMessageId: text("discord_message_id"),
 });
 
-/** Pending/resolved guild bot avatar changes awaiting staff approval. */
+/** Pending/resolved guild bot avatar/banner changes awaiting staff approval. */
 export const botAvatarRequests = sqliteTable("bot_avatar_requests", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   guildId: text("guild_id").notNull(),
   requesterId: text("requester_id").notNull(),
+  /** Discord channel id, or `dashboard` when submitted from the website. */
   requestChannelId: text("request_channel_id").notNull(),
   requestMessageId: text("request_message_id"),
   reviewMessageId: text("review_message_id"),
-  /** Base64-encoded normalized PNG (512×512). */
+  /** Base64-encoded normalized PNG (avatar 512×512, banner 680×240). */
   avatarPng: text("avatar_png").notNull(),
+  /** avatar | banner */
+  kind: text("kind").notNull().default("avatar"),
   /** pending | approved | denied | failed | cancelled | superseded */
   status: text("status").notNull().default("pending"),
   reviewerId: text("reviewer_id"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+});
+
+/** Last-known guild bot bio and applied brand images. */
+export const botGuildProfiles = sqliteTable("bot_guild_profiles", {
+  guildId: text("guild_id").primaryKey(),
+  bio: text("bio"),
+  /** Base64 PNG, empty string if cleared, null if never stored. */
+  avatarPng: text("avatar_png"),
+  /** Base64 PNG, empty string if cleared, null if never stored. */
+  bannerPng: text("banner_png"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  updatedBy: text("updated_by"),
 });
 
 /** Server reviews submitted via /review. */
@@ -519,6 +534,51 @@ export const botStatusDaily = sqliteTable("bot_status_daily", {
   pingSum: integer("ping_sum", { mode: "number" }).notNull().default(0),
   pingCount: integer("ping_count", { mode: "number" }).notNull().default(0),
   pingMax: integer("ping_max", { mode: "number" }).notNull().default(0),
+});
+
+/** Per-guild Dreamliner One subscription (platform-managed). */
+export const guildOneSubscriptions = sqliteTable("guild_one_subscriptions", {
+  guildId: text("guild_id").primaryKey(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  note: text("note"),
+  grantedBy: text("granted_by").notNull(),
+  grantedAt: integer("granted_at", { mode: "timestamp" }).notNull(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+});
+
+/** Discord guild-SKU entitlements for Dreamliner One. */
+export const guildOneEntitlements = sqliteTable("guild_one_entitlements", {
+  entitlementId: text("entitlement_id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  skuId: text("sku_id").notNull(),
+  userId: text("user_id"),
+  startsAt: integer("starts_at", { mode: "timestamp" }),
+  endsAt: integer("ends_at", { mode: "timestamp" }),
+  deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Complimentary One codes created from the superuser dashboard. */
+export const oneDiscountCodes = sqliteTable("one_discount_codes", {
+  code: text("code").primaryKey(),
+  label: text("label"),
+  days: integer("days", { mode: "number" }),
+  maxRedemptions: integer("max_redemptions", { mode: "number" }),
+  redemptionCount: integer("redemption_count", { mode: "number" }).notNull().default(0),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+});
+
+export const oneDiscountRedemptions = sqliteTable("one_discount_redemptions", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  code: text("code").notNull(),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  redeemedAt: integer("redeemed_at", { mode: "timestamp" }).notNull(),
 });
 
 /** Join welcome messages tracked for early-leave delete + wave tallies. */

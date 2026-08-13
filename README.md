@@ -101,7 +101,7 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | **Starboard** | Surface highly reacted messages |
 | **Persist** | Sticky messages that stay at the bottom of a channel |
 
-Per-server emoji prefixes and bot customisation (nickname / avatar) are supported for brand consistency across guilds.
+Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio via the dashboard) are supported for brand consistency across guilds.
 
 ---
 

@@ -172,14 +172,18 @@ Admins with `can_reload_guild` can run `/reload` to re-read the config from the 
 
 Dreamliner is organized into plugins under the `plugins:` key. Each plugin has its own `config`, optional `overrides`, and `enabled` flag.
 
-| Category      | Plugins                                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------------------------- |
-| Core          | utility, infractions                                                                                    |
-| Moderation    | automod, censor, admin, persist, slowmode                                                               |
-| Roles         | roles, reaction\_roles, role\_buttons, self\_grantable\_roles, pingable\_roles, role\_manager, autorole |
-| Automation    | welcome\_message, tags, post, autodelete, autoreactions, reminders, counters, companion\_channels       |
-| Tracking      | name\_history, username\_saver, locate\_user, stats                                                     |
-| Customization | custom\_events, command\_aliases                                                                        |
-| Background    | starboard, logs                                                                                         |
+| Category          | Plugins                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| Moderation        | infractions, admin, slowmode                                                                     |
+| Protection        | automod, scam\_protect, persist, autodelete                                                      |
+| Role management   | roles, role\_manager, autorole, pingable\_roles                                                  |
+| Self-serve roles  | reaction\_roles, role\_buttons, self\_grantable\_roles                                           |
+| Lookups           | locate\_user, name\_history, username\_saver                                                     |
+| Engagement        | welcome\_message, companion\_channels, starboard                                                 |
+| Auto responses    | tags, autoreplies, autoreactions, translation                                                       |
+| Scheduling        | post, reminders, counters                                                                        |
+| Customization     | custom\_events, command\_aliases, dream\_commands                                                |
+| Utilities         | utility, stats, bot\_customisation, logs                                                         |
+| Feedback          | reviews, suggestions                                                                             |
 
 See [Documentation index](/broken/pages/ScBf0pRjbQl3XDFHSAMa) for setup guides per plugin. The default template (`/config template`) includes all configurable fields.

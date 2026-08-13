@@ -1,4 +1,4 @@
-/** Staff review channel for `/bot avatar set` requests. */
+/** Staff review channel for dashboard bot avatar/banner requests. */
 export const AVATAR_REVIEW_CHANNEL_ID = "1535040620266258493";
 
 export const BOT_AVATAR_PREFIX = "dl:botavatar:";

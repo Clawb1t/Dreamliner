@@ -68,6 +68,7 @@ export const LOG_EVENT_TYPES = [
   "dashboard_scam_protect",
   "dashboard_welcome",
   "dashboard_review",
+  "dashboard_bot_brand",
 ] as const;
 
 export type LogEventType = (typeof LOG_EVENT_TYPES)[number];
@@ -139,6 +140,7 @@ export const LOG_EVENT_META: Record<
   dashboard_scam_protect: { label: "Scam protect", category: "moderation", group: "Dashboard" },
   dashboard_welcome: { label: "Welcomer asset", category: "server", group: "Dashboard" },
   dashboard_review: { label: "Review admin", category: "server", group: "Dashboard" },
+  dashboard_bot_brand: { label: "Bot brand", category: "server", group: "Dashboard" },
 };
 
 export function isLogEventType(value: string): value is LogEventType {

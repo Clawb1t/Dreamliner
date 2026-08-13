@@ -3,11 +3,6 @@ import { definePlugin } from "../../core/plugin.js";
 import {
   configEditorLinkRow,
   configEditorWithSupportRow,
-  docsPageUrl,
-  getGuildDashboardUrl,
-  getGuildStatsDashboardUrl,
-  getSiteUrl,
-  SUPPORT_URL,
 } from "../../core/docsUrl.js";
 import { resultReply, embedWithFilesReply, guildResultOptions } from "../../core/responses.js";
 import { buildResultEmbed } from "../../core/embeds.js";
@@ -15,9 +10,8 @@ import { configManager } from "../../config/manager.js";
 import { permissionsCommand } from "./commands/permissions.js";
 import { pluginCommand } from "./commands/plugin.js";
 
-function editorHint(guildId: string): string {
-  return `Edit this server in the [dashboard](${getGuildDashboardUrl(guildId)}). Load, change settings, and save without uploading YAML.`;
-}
+const EDITOR_HINT =
+  "Use the **Dashboard** button below to edit settings without uploading YAML.";
 
 export const configPlugin = definePlugin({
   name: "config",
@@ -80,12 +74,6 @@ export const configPlugin = definePlugin({
                 "",
                 "Stats, leaderboards, tags, welcomer, and the rest of setup live in the same dashboard.",
                 "You can still use `/config download` / `/config upload` if you prefer files.",
-                "",
-                `Server dashboard: ${getGuildDashboardUrl(guildId)}`,
-                `Server stats: ${getGuildStatsDashboardUrl(guildId)}`,
-                `Docs: ${docsPageUrl("configuration")}`,
-                `Site: ${getSiteUrl()}`,
-                `Support: ${SUPPORT_URL}`,
               ].join("\n"),
               ephemeral,
               resultOptions,
@@ -104,7 +92,7 @@ export const configPlugin = definePlugin({
             embedWithFilesReply(
               buildResultEmbed(
                 "Configuration download",
-                `Your current server configuration is attached.\n\n${editorHint(guildId)}`,
+                `Your current server configuration is attached.\n\n${EDITOR_HINT}`,
                 resultOptions,
               ),
               [file],
@@ -127,7 +115,7 @@ export const configPlugin = definePlugin({
                 [
                   "The default configuration template is attached.",
                   "",
-                  `Open the [dashboard](${getGuildDashboardUrl(guildId)}) to edit this server live, or customize this template and run \`/config upload\`.`,
+                  "Open the dashboard to edit this server live, or customize this template and run `/config upload`.",
                   "If this server already has a config, prefer `/config download` so you edit the live file instead of starting over.",
                 ].join("\n"),
                 resultOptions,
@@ -159,7 +147,7 @@ export const configPlugin = definePlugin({
           await interaction.reply(
             resultReply(
               "Configuration updated",
-              `${note}\n\nNeed more edits? ${editorHint(guildId)}`,
+              `${note}\n\nNeed more edits? ${EDITOR_HINT}`,
               ephemeral,
               { ...resultOptions, tone: "success" },
               [configEditorLinkRow(guildId)],
@@ -188,7 +176,7 @@ export const configPlugin = definePlugin({
             await interaction.reply(
               resultReply(
                 "Configuration invalid",
-                `${result.errors.join("\n")}\n\nFix it in the [dashboard](${getGuildDashboardUrl(guildId)}), then try again.`,
+                `${result.errors.join("\n")}\n\nFix it in the dashboard, then try again.`,
                 ephemeral,
                 { ...resultOptions, tone: "error" },
                 editorComponents,
@@ -215,7 +203,7 @@ export const configPlugin = definePlugin({
             await interaction.reply(
               resultReply(
                 "Configuration save failed",
-                `${result.errors.join("\n")}\n\nFix errors in the [dashboard](${getGuildDashboardUrl(guildId)}), or correct the YAML and try \`/config upload\` again.`,
+                `${result.errors.join("\n")}\n\nFix errors in the dashboard, or correct the YAML and try \`/config upload\` again.`,
                 ephemeral,
                 { ...resultOptions, tone: "error" },
                 editorComponents,

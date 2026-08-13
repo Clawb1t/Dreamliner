@@ -36,15 +36,17 @@ Open the YAML file in any text editor. Common first steps:
 1. Set `levels` - map your mod/admin role or user IDs to numeric levels (e.g. `50` for mods, `100` for admins).
 2. Adjust `emojis` if you want custom success/error/neutral/warning/unchecked prefixes.
 3. Enable and configure plugins under `plugins` - see [plugin documentation](/broken/pages/ScBf0pRjbQl3XDFHSAMa#plugins) for categories:
-   * **Core** - utility commands and infractions
-   * **Moderation** - automod, censor, lockdown, persist, slowmode
-   * **Roles** - role assignment, reaction roles, self-role panels
-   * **Automation** - welcome messages, tags, scheduled posts, counters, and more
-   * **Tracking** - name history, stats, locate user
-   * **Customization** - custom events and command aliases
-   * **Background** - starboard and logs (no slash commands)
-   * **Autorole** - assigns join roles for humans and bots separately; configure with `/autorole` or YAML
-   * **Translation** - `/translate` plus optional auto-translate flag reactions; set default language on the dashboard Server page
+   * **Moderation** - infractions, lockdown, slowmode
+   * **Protection** - automod, scam protect, persist, autodelete
+   * **Role management** - staff role assign, templates, autorole, pingables
+   * **Self-serve roles** - reaction, button, and panel roles
+   * **Lookups** - name history, locate user, username saver
+   * **Engagement** - welcomes, companion channels, starboard
+   * **Auto responses** - tags, autoreplies, autoreactions, translation
+   * **Scheduling** - timed posts, reminders, counters
+   * **Customization** - custom events, aliases, Dreamcode commands
+   * **Utilities** - utility commands, stats, bot customisation, logs
+   * **Feedback** - reviews and suggestions
 4. Tweak `plugins.utility` permissions and overrides.
 
 See [Permissions setup](permissions.md) for a full walkthrough and examples. See [Configuration](configuration.md) for the full YAML format.

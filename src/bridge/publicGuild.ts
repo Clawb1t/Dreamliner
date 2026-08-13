@@ -1,6 +1,7 @@
 import type { Guild } from "discord.js";
 import type { PublicStatsConfig } from "../config/schemas/guild.js";
 import { configManager } from "../config/manager.js";
+import { isDreamlinerOneActive } from "./dreamlinerOne.js";
 import {
   buildWebServerStats,
   parseWebStatsQuery,
@@ -43,7 +44,10 @@ export function normalizePublicStatsSections(input: unknown): PublicStatsSection
 }
 
 export async function buildPublicGuildHome(guild: Guild) {
-  const config = await configManager.getEffectiveConfig(guild.id);
+  const [config, oneActive] = await Promise.all([
+    configManager.getEffectiveConfig(guild.id),
+    isDreamlinerOneActive(guild.id),
+  ]);
   let ownerName: string | null = null;
   let ownerDisplayName: string | null = null;
   let ownerAvatar: string | null = null;
@@ -80,6 +84,7 @@ export async function buildPublicGuildHome(guild: Guild) {
     },
     publicStats: config.public_stats,
     leaderboardAlwaysPublic: true as const,
+    oneActive,
   };
 }
 

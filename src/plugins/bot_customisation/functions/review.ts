@@ -19,19 +19,33 @@ import {
   botAvatarDenyCustomId,
 } from "../constants.js";
 import {
-  createBotAvatarRequest,
+  createBotBrandRequest,
+  DASHBOARD_REQUEST_CHANNEL,
   updateBotAvatarRequestMessageIds,
   type BotAvatarRequest,
+  type BotBrandImageKind,
 } from "./store.js";
 
-const AVATAR_FILENAME = "avatar.png";
-
-export function avatarAttachment(png: Buffer): AttachmentBuilder {
-  return new AttachmentBuilder(png, { name: AVATAR_FILENAME });
+function imageFilename(kind: BotBrandImageKind): string {
+  return kind === "banner" ? "banner.png" : "avatar.png";
 }
 
+export function brandImageAttachment(png: Buffer, kind: BotBrandImageKind = "avatar"): AttachmentBuilder {
+  return new AttachmentBuilder(png, { name: imageFilename(kind) });
+}
+
+export function brandImageAttachmentUrl(kind: BotBrandImageKind = "avatar"): string {
+  return `attachment://${imageFilename(kind)}`;
+}
+
+/** @deprecated Prefer brandImageAttachment */
+export function avatarAttachment(png: Buffer): AttachmentBuilder {
+  return brandImageAttachment(png, "avatar");
+}
+
+/** @deprecated Prefer brandImageAttachmentUrl */
 export function avatarAttachmentUrl(): string {
-  return `attachment://${AVATAR_FILENAME}`;
+  return brandImageAttachmentUrl("avatar");
 }
 
 async function reviewChannel(client: Client): Promise<GuildTextBasedChannel | null> {
@@ -45,20 +59,26 @@ async function reviewChannel(client: Client): Promise<GuildTextBasedChannel | nu
   return channel;
 }
 
-export async function submitAvatarForReview(options: {
+function kindLabel(kind: BotBrandImageKind): string {
+  return kind === "banner" ? "Banner" : "Avatar";
+}
+
+export async function submitBrandImageForReview(options: {
   client: Client;
   guildId: string;
   guildName: string;
   requesterId: string;
   requesterTag: string;
-  requestChannelId: string;
-  avatarPng: Buffer;
+  requestChannelId?: string;
+  imagePng: Buffer;
+  kind: BotBrandImageKind;
 }): Promise<{ request: BotAvatarRequest; reviewPosted: boolean }> {
-  const request = await createBotAvatarRequest({
+  const request = await createBotBrandRequest({
     guildId: options.guildId,
     requesterId: options.requesterId,
-    requestChannelId: options.requestChannelId,
-    avatarPngBase64: options.avatarPng.toString("base64"),
+    requestChannelId: options.requestChannelId ?? DASHBOARD_REQUEST_CHANNEL,
+    imagePngBase64: options.imagePng.toString("base64"),
+    kind: options.kind,
   });
 
   const channel = await reviewChannel(options.client);
@@ -69,22 +89,27 @@ export async function submitAvatarForReview(options: {
     return { request, reviewPosted: false };
   }
 
-  const file = avatarAttachment(options.avatarPng);
-  const embed = setEmbedAuthor(baseEmbed(), "Avatar review", options.client, {
+  const label = kindLabel(options.kind);
+  const file = brandImageAttachment(options.imagePng, options.kind);
+  const embed = setEmbedAuthor(baseEmbed(), `${label} review`, options.client, {
     tone: "warning",
   })
     .addFields(
       embedField(
         "Request",
         [
+          `**Type:** ${label}`,
           `**Server:** ${options.guildName} (\`${options.guildId}\`)`,
           `**Requested by:** <@${options.requesterId}> (\`${options.requesterTag}\`)`,
+          `**Source:** ${options.requestChannelId === DASHBOARD_REQUEST_CHANNEL || !options.requestChannelId ? "Dashboard" : "Discord"}`,
           `**Request id:** \`${request.id}\``,
         ].join("\n"),
       ),
     )
-    .setImage(avatarAttachmentUrl())
-    .setFooter({ text: "Approve to apply this avatar in the requesting server only." });
+    .setImage(brandImageAttachmentUrl(options.kind))
+    .setFooter({
+      text: `Approve to apply this ${options.kind} in the requesting server only.`,
+    });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -107,20 +132,44 @@ export async function submitAvatarForReview(options: {
   return { request: { ...request, reviewMessageId: reviewMessage.id }, reviewPosted: true };
 }
 
+/** @deprecated Prefer submitBrandImageForReview */
+export async function submitAvatarForReview(options: {
+  client: Client;
+  guildId: string;
+  guildName: string;
+  requesterId: string;
+  requesterTag: string;
+  requestChannelId: string;
+  avatarPng: Buffer;
+}): Promise<{ request: BotAvatarRequest; reviewPosted: boolean }> {
+  return submitBrandImageForReview({
+    client: options.client,
+    guildId: options.guildId,
+    guildName: options.guildName,
+    requesterId: options.requesterId,
+    requesterTag: options.requesterTag,
+    requestChannelId: options.requestChannelId,
+    imagePng: options.avatarPng,
+    kind: "avatar",
+  });
+}
+
 export function pendingUserEmbed(
   client: Client,
   guildName: string,
   reviewPosted: boolean,
+  kind: BotBrandImageKind = "avatar",
 ) {
+  const label = kindLabel(kind).toLowerCase();
   return buildResultEmbed(
-    "Avatar pending review",
+    `${kindLabel(kind)} pending review`,
     reviewPosted
-      ? `Dreamliner's new avatar for **${guildName}** is waiting for staff approval. You'll get a reply here when it's approved or denied.\n\nTo replace it, run \`/bot avatar cancel\` first, then set a new one.`
+      ? `Dreamliner's new ${label} for **${guildName}** is waiting for staff approval. Track progress on the dashboard Brand page.`
       : `Your request was saved, but Dreamliner could not reach the review channel. Staff have been notified via logs — try again later if nothing happens.`,
     {
       client,
       tone: "warning",
-      imageURL: avatarAttachmentUrl(),
+      imageURL: brandImageAttachmentUrl(kind),
     },
   );
 }
@@ -139,6 +188,7 @@ export async function markReviewMessageCancelled(
   if (!message) return;
 
   const guildName = client.guilds.cache.get(request.guildId)?.name ?? request.guildId;
+  const label = kindLabel(request.kind);
   const disabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`dl:botavatar:done:c:${request.id}`)
@@ -147,11 +197,12 @@ export async function markReviewMessageCancelled(
       .setDisabled(true),
   );
 
-  const embed = setEmbedAuthor(baseEmbed(), "Avatar cancelled", client, { tone: "unchecked" })
+  const embed = setEmbedAuthor(baseEmbed(), `${label} cancelled`, client, { tone: "unchecked" })
     .addFields(
       embedField(
         "Request",
         [
+          `**Type:** ${label}`,
           `**Server:** ${guildName} (\`${request.guildId}\`)`,
           `**Requested by:** <@${request.requesterId}>`,
           `**Cancelled by:** <@${cancelledById}>`,
@@ -160,13 +211,13 @@ export async function markReviewMessageCancelled(
         ].join("\n"),
       ),
     )
-    .setImage(avatarAttachmentUrl());
+    .setImage(brandImageAttachmentUrl(request.kind));
 
   await message
     .edit({
       embeds: [embed],
       components: [disabled],
-      files: [avatarAttachment(Buffer.from(request.avatarPng, "base64"))],
+      files: [brandImageAttachment(Buffer.from(request.avatarPng, "base64"), request.kind)],
     })
     .catch(() => null);
 }

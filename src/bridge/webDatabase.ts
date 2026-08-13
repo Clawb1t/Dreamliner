@@ -79,8 +79,12 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
     description: "Community suggestions with review queue and voting.",
   },
   bot_avatar_requests: {
-    label: "Bot avatar requests",
-    description: "Pending and resolved bot avatar change requests.",
+    label: "Bot brand requests",
+    description: "Pending and resolved bot avatar/banner change requests.",
+  },
+  bot_guild_profiles: {
+    label: "Bot guild profiles",
+    description: "Stored per-server bot bio and related brand state.",
   },
 };
 

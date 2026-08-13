@@ -17,7 +17,6 @@ import {
   getGuildDashboardUrl,
   getGuildStatsDashboardUrl,
   getInviteUrl,
-  getSiteUrl,
 } from "./docsUrl.js";
 import { publicLeaderboardUrl } from "./publicLeaderboard.js";
 
@@ -95,7 +94,6 @@ export async function buildGuildOnboardingPayload(
   const dashboardUrl = getGuildDashboardUrl(guildId);
   const statsDashUrl = getGuildStatsDashboardUrl(guildId);
   const publicLb = publicLeaderboardUrl(guildId);
-  const site = getSiteUrl();
 
   const [statsServer, configEditor, about] = await Promise.all([
     commandMention(client, "stats", "server"),
@@ -112,27 +110,22 @@ export async function buildGuildOnboardingPayload(
 
   const dashboardSection = [
     "## Dashboard first",
-    `Open the [server dashboard](${dashboardUrl}) (sign in with Discord), pick this server, then configure plugins and save. Changes apply immediately.`,
+    "Open the **server dashboard** (button below), sign in with Discord, pick this server, then configure plugins and save. Changes apply immediately.",
     "",
-    `Prefer Discord? Start with ${configEditor} for the same link, or ${about} for website and docs.`,
+    `Prefer Discord? Start with ${configEditor}, or ${about} for website and docs.`,
   ].join("\n");
 
   const statsSection = [
     "## Stats and leaderboards",
-    `Use ${statsServer} for interactive charts in Discord.`,
-    `Or open the [stats dashboard](${statsDashUrl}) in your browser.`,
+    `Use ${statsServer} for interactive charts in Discord, or open **Server stats** below.`,
     publicLb
-      ? `Share this server's [public messager leaderboard](${publicLb}).`
-      : `Browse [global stats](${getGlobalStatsUrl()}) and the [global leaderboard](${getGlobalLeaderboardUrl()}).`,
-    `Platform-wide: [global stats](${getGlobalStatsUrl()}) · [global leaderboard](${getGlobalLeaderboardUrl()}).`,
+      ? "Share this server's public messager leaderboard with the button below."
+      : "Browse global stats and the global leaderboard with the buttons below.",
   ].join("\n");
 
   const helpSection = [
     "## Help",
-    `Docs: ${docsPageUrl("getting-started")}`,
-    `Site: ${site}`,
-    `Invite again: ${getInviteUrl()}`,
-    `Support: ${SUPPORT_URL}`,
+    `Need more? Use **Docs** and **Support** below, or invite Dreamliner again: ${getInviteUrl()}`,
   ].join("\n");
 
   const row1 = [

@@ -82,6 +82,10 @@ const PLUGIN_DOCS: Record<string, string> = {
   custom_events: "plugins/custom_events",
   command_aliases: "plugins/command_aliases",
   dream_commands: "plugins/dream_commands",
+  translation: "plugins/translation",
+  bot_customisation: "plugins/bot_customisation",
+  reviews: "plugins/reviews",
+  suggestions: "plugins/suggestions",
   config: "configuration",
   starboard: "plugins/starboard",
   autorole: "plugins/autorole",
@@ -324,26 +328,21 @@ function docsPathFor(entries: CommandEntry[], fallback = ""): string {
 }
 
 function buildHomeEmbed(entries: CommandEntry[], client: Client, emojis?: EmojisConfig): APIEmbed {
-  const fields = CATEGORIES.map((category) => {
-    const count = categoryEntries(category, entries).length;
-    return {
-      name: category.label,
-      value: `${category.blurb}\n**${count}** command${count === 1 ? "" : "s"}`,
-      inline: false,
-    };
-  });
+  const categoryNames = CATEGORIES.filter(
+    (category) => category.id === "config" || categoryEntries(category, entries).length > 0,
+  )
+    .map((category) => category.label)
+    .join(" · ");
 
   return setEmbedAuthor(baseEmbed(), "Help", client, { tone: "neutral", emojis })
     .setDescription(
       trimLines(`
-        Pick a **category** below to browse commands.
+        Choose a **category** from the menu below to browse commands, or search with \`/help query:ban\`.
 
-        Tip: \`/help query:ban\` jumps straight to matching commands.
-        Select a command inside a category for usage details and options.
+        ${categoryNames}
       `),
     )
-    .addFields(fields)
-    .setFooter({ text: `${entries.length} commands · Choose a category to begin` })
+    .setFooter({ text: `${entries.length} commands` })
     .toJSON();
 }
 
@@ -361,6 +360,7 @@ const GROUP_LABELS: Record<string, string> = {
   self_grantable_roles: "Self roles",
   pingable_roles: "Pingable roles",
   role_manager: "Role manager",
+  autorole: "Autorole",
   locate_user: "Locate",
   name_history: "Name history",
   welcome_message: "Welcome",
@@ -369,6 +369,7 @@ const GROUP_LABELS: Record<string, string> = {
   autodelete: "Autodelete",
   autoreactions: "Autoreactions",
   autoreplies: "Autoreplies",
+  translation: "Translation",
   reminders: "Reminders",
   counters: "Counters",
   companion_channels: "Companion channels",
@@ -376,6 +377,9 @@ const GROUP_LABELS: Record<string, string> = {
   command_aliases: "Aliases",
   dream_commands: "Dreamcode",
   stats: "Stats",
+  bot_customisation: "Bot customisation",
+  reviews: "Reviews",
+  suggestions: "Suggestions",
   config: "Config",
 };
 
@@ -516,14 +520,16 @@ function buildNavButtons(view: HelpView, query: string, pageCount: number): Acti
   }
 
   if (view.kind === "category" || view.kind === "search") {
+    // Distinct action names so disabled prev/next never share a custom_id when both
+    // fall back to the current view (single-page categories).
     row.addComponents(
       new ButtonBuilder()
-        .setCustomId(buildCustomId("go", prevView ?? view, query))
+        .setCustomId(buildCustomId("prev", prevView ?? view, query))
         .setLabel("Previous")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!prevView),
       new ButtonBuilder()
-        .setCustomId(buildCustomId("go", nextView ?? view, query))
+        .setCustomId(buildCustomId("next", nextView ?? view, query))
         .setLabel("Next")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!nextView),
@@ -551,19 +557,18 @@ function buildCategorySelect(view: HelpView, query: string, entries: CommandEntr
   const options = [
     {
       label: "Home",
-      description: "Category overview",
+      description: "Start here",
       value: "home",
       default: view.kind === "home",
     },
-    ...CATEGORIES.map((category) => {
-      const count = categoryEntries(category, entries).length;
-      return {
-        label: category.label,
-        description: `${count} command${count === 1 ? "" : "s"}`,
-        value: `cat:${category.id}`,
-        default: current === category.id,
-      };
-    }),
+    ...CATEGORIES.filter(
+      (category) => category.id === "config" || categoryEntries(category, entries).length > 0,
+    ).map((category) => ({
+      label: category.label,
+      description: category.blurb.slice(0, 100),
+      value: `cat:${category.id}`,
+      default: current === category.id,
+    })),
   ];
 
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
@@ -794,7 +799,7 @@ function parseHelpInteraction(
     return { type: "select", value: selectValue, view: parsed.view, query: parsed.query };
   }
 
-  if (parsed.action === "go") {
+  if (parsed.action === "go" || parsed.action === "prev" || parsed.action === "next") {
     return { type: "button", view: parsed.view, query: parsed.query };
   }
 
