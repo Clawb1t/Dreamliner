@@ -5,6 +5,7 @@ import { zUtilityConfig } from "./schemas/utility.js";
 import { loadDefaultConfig } from "./default.js";
 import { migrateAutomodAndCensorInConfig } from "../plugins/automod/functions/migrate.js";
 import { migrateWelcomeMessageInConfig } from "./schemas/welcome.js";
+import { migrateCompanionChannelsInConfig } from "./schemas/companion.js";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -101,6 +102,10 @@ export function repairGuildConfig(raw: unknown): {
 
   if (migrateWelcomeMessageInConfig(value)) {
     repairs.push("plugins.welcome_message (migrated to join/leave/dm welcomer)");
+  }
+
+  if (migrateCompanionChannelsInConfig(value)) {
+    repairs.push("plugins.companion_channels (migrated to dashboard join-to-create setups)");
   }
 
   if (migrateServerAccentColor(value) && !repairs.some((r) => r.includes("server_accent_color"))) {

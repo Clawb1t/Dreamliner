@@ -580,19 +580,37 @@
     "companion_channels": {
       "enabled": true,
       "config": {
-        "can_create": false,
-        "can_delete": false,
-        "name_template": "{user}'s channel"
+        "setups": [],
+        "features": {
+          "name": true,
+          "limit": true,
+          "status": true,
+          "lock": true,
+          "claim": true,
+          "reject": true,
+          "permit": true,
+          "ghost": true,
+          "lfm": true,
+          "text": true,
+          "bitrate": true,
+          "invite": true,
+          "transfer": true,
+          "nsfw": false,
+          "interface": true,
+          "interface_ping": false,
+          "manage_channel": true,
+          "move_member": true,
+          "autotext": false,
+          "region": true
+        },
+        "log_channel_id": "",
+        "lfm_channel_id": "",
+        "staff_role_id": "",
+        "text_channel_message": "",
+        "text_access_role_id": "",
+        "join_role_id": "",
+        "member_role_id": ""
       },
-      "overrides": [
-        {
-          "level": ">=50",
-          "config": {
-            "can_create": true,
-            "can_delete": true
-          }
-        }
-      ],
       "replaceDefaultOverrides": false
     },
     "name_history": {

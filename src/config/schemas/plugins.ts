@@ -41,16 +41,25 @@ export {
   type WelcomeMessageConfig,
 } from "./welcome.js";
 
+export {
+  zPersistButton,
+  zPersistConfig,
+  zPersistEmbedConfig,
+  zPersistEmbedField,
+  zPersistSticky,
+  type PersistButton,
+  type PersistConfig,
+  type PersistEmbedConfig,
+  type PersistEmbedField,
+  type PersistSticky,
+} from "./persist.js";
+
+import { zPersistConfig } from "./persist.js";
+
 export const zAdminConfig = z.strictObject({
   lockdown_role_id: roleId("Role applied during channel lockdown (optional)."),
   can_lockdown: boolPerm("lock down channels"),
   can_unlock: boolPerm("unlock channels"),
-});
-
-export const zPersistConfig = z.strictObject({
-  can_add: boolPerm("add sticky/persist messages"),
-  can_remove: boolPerm("remove sticky/persist messages"),
-  can_list: boolPerm("list sticky/persist messages"),
 });
 
 export const zSlowmodeRuleTarget = z.enum(["user", "role"]);
@@ -269,14 +278,23 @@ export const zCountersConfig = z.strictObject({
   can_delete: boolPerm("delete counters"),
 });
 
-export const zCompanionChannelsConfig = z.strictObject({
-  can_create: boolPerm("create companion voice hubs"),
-  can_delete: boolPerm("delete companion setups"),
-  name_template: z
-    .string()
-    .default("{user}'s channel")
-    .describe("Name for temporary voice channels. Placeholder: {user}."),
-});
+export {
+  COMPANION_FEATURE_KEYS,
+  COMPANION_PERMISSION_SOURCES,
+  COMPANION_SETUP_TYPES,
+  migrateCompanionChannelsInConfig,
+  zCompanionChannelsConfig,
+  zCompanionFeatures,
+  zCompanionSetup,
+  type CompanionChannelsConfig,
+  type CompanionFeatureKey,
+  type CompanionFeatures,
+  type CompanionPermissionSource,
+  type CompanionSetup,
+  type CompanionSetupType,
+} from "./companion.js";
+
+import { zCompanionChannelsConfig } from "./companion.js";
 
 export const zNameHistoryConfig = z.strictObject({
   can_view: boolPerm("view name history"),
@@ -367,7 +385,6 @@ export const zDreamCommandsPluginSection = zPluginSection(zDreamCommandsConfig.s
 export const zBotCustomisationPluginSection = zPluginSection(zBotCustomisationConfig.shape);
 
 export type AdminConfig = z.infer<typeof zAdminConfig>;
-export type PersistConfig = z.infer<typeof zPersistConfig>;
 export type SlowmodeConfig = z.infer<typeof zSlowmodeConfig>;
 export type SlowmodeRule = z.infer<typeof zSlowmodeRule>;
 export type SlowmodeRuleTarget = z.infer<typeof zSlowmodeRuleTarget>;

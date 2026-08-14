@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-13T07:02:27.542Z",
+  "generatedAt": "2026-08-14T04:46:16.192Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -44,7 +44,7 @@
         {
           "key": "persist",
           "name": "Persist",
-          "description": "Sticky channel messages."
+          "description": "Dashboard sticky messages that stay at the bottom of a channel."
         },
         {
           "key": "autodelete",
@@ -137,7 +137,7 @@
         {
           "key": "companion_channels",
           "name": "Companion channels",
-          "description": "Personal voice channels from a hub."
+          "description": "Join-to-create temporary voice rooms with owner controls."
         },
         {
           "key": "starboard",
@@ -291,7 +291,7 @@
     {
       "key": "persist",
       "name": "Persist",
-      "description": "Sticky channel messages.",
+      "description": "Dashboard sticky messages that stay at the bottom of a channel.",
       "category": "Protection",
       "categoryId": "protect"
     },
@@ -382,7 +382,7 @@
     {
       "key": "companion_channels",
       "name": "Companion channels",
-      "description": "Personal voice channels from a hub.",
+      "description": "Join-to-create temporary voice rooms with owner controls.",
       "category": "Engagement",
       "categoryId": "engage"
     },

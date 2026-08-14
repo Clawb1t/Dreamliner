@@ -176,7 +176,7 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      auto_translate: false
+      auto_translate: false # Dreamliner One exclusive
       ignored_channels: []
   starboard:
     enabled: true
@@ -248,15 +248,7 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      can_add: false
-      can_remove: false
-      can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_add: true
-          can_remove: true
-          can_list: true
+      messages: []
   slowmode:
     enabled: true
     replaceDefaultOverrides: false
@@ -480,14 +472,35 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      name_template: "{user}'s channel"
-      can_create: false
-      can_delete: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_delete: true
+      setups: []
+      features:
+        name: true
+        limit: true
+        status: true
+        lock: true
+        claim: true
+        reject: true
+        permit: true
+        ghost: true
+        lfm: true
+        text: true
+        bitrate: true
+        invite: true
+        transfer: true
+        nsfw: false
+        interface: true
+        interface_ping: false
+        manage_channel: true
+        move_member: true
+        autotext: false
+        region: true
+      log_channel_id: ""
+      lfm_channel_id: ""
+      staff_role_id: ""
+      text_channel_message: ""
+      text_access_role_id: ""
+      join_role_id: ""
+      member_role_id: ""
   name_history:
     enabled: true
     replaceDefaultOverrides: false

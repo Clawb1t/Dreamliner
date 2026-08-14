@@ -30,7 +30,28 @@ function isPermissionOverrideMatch(
   return false;
 }
 
+type ConfigSaveListener = (guildId: string, config: GuildConfig) => void;
+
 export class ConfigManager {
+  private saveListeners = new Set<ConfigSaveListener>();
+
+  onSave(listener: ConfigSaveListener): () => void {
+    this.saveListeners.add(listener);
+    return () => {
+      this.saveListeners.delete(listener);
+    };
+  }
+
+  private notifySave(guildId: string, config: GuildConfig): void {
+    for (const listener of this.saveListeners) {
+      try {
+        listener(guildId, config);
+      } catch (error) {
+        console.error("[dreamliner] Config save listener failed:", error);
+      }
+    }
+  }
+
   async getGuildConfig(guildId: string): Promise<GuildConfig | null> {
     if (cache.has(guildId)) {
       return cache.get(guildId)!;
@@ -220,6 +241,7 @@ export class ConfigManager {
       });
 
     cache.set(guildId, result.data);
+    this.notifySave(guildId, result.data);
     return { success: true, data: result.data };
   }
 
@@ -286,6 +308,7 @@ export class ConfigManager {
       .where(eq(guildConfigs.guildId, guildId));
 
     cache.set(guildId, result.data);
+    this.notifySave(guildId, result.data);
     return { success: true, data: result.data, usedLegacyDiff };
   }
 

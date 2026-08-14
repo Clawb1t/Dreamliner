@@ -159,13 +159,13 @@ export const reminders = sqliteTable("reminders", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Tracks the live Discord message ID for a dashboard-configured sticky. */
 export const persistedMessages = sqliteTable(
   "persisted_messages",
   {
     guildId: text("guild_id").notNull(),
     channelId: text("channel_id").notNull(),
     messageId: text("message_id").notNull(),
-    content: text("content").notNull(),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.channelId] })],
 );
@@ -292,14 +292,20 @@ export const counters = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.name] })],
 );
 
-export const companionChannels = sqliteTable(
-  "companion_channels",
+export const companionRooms = sqliteTable(
+  "companion_rooms",
   {
     guildId: text("guild_id").notNull(),
-    ownerId: text("owner_id").notNull(),
     channelId: text("channel_id").notNull(),
+    ownerId: text("owner_id").notNull().default(""),
+    setupId: text("setup_id").notNull().default(""),
+    textChannelId: text("text_channel_id").notNull().default(""),
+    interfaceMessageId: text("interface_message_id").notNull().default(""),
+    locked: integer("locked", { mode: "boolean" }).notNull().default(false),
+    ghosted: integer("ghosted", { mode: "boolean" }).notNull().default(false),
+    seq: integer("seq", { mode: "number" }).notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.ownerId] })],
+  (table) => [primaryKey({ columns: [table.guildId, table.channelId] })],
 );
 
 export const managedRoles = sqliteTable("managed_roles", {

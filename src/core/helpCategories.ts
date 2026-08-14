@@ -191,7 +191,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description: "Honeypot channel that softbans anyone who posts in it.",
   },
   admin: { key: "admin", name: "Admin", description: "Channel lockdown and unlock." },
-  persist: { key: "persist", name: "Persist", description: "Sticky channel messages." },
+  persist: { key: "persist", name: "Persist", description: "Dashboard sticky messages that stay at the bottom of a channel." },
   slowmode: {
     key: "slowmode",
     name: "Slowmode",
@@ -260,7 +260,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   companion_channels: {
     key: "companion_channels",
     name: "Companion channels",
-    description: "Personal voice channels from a hub.",
+    description: "Join-to-create temporary voice rooms with owner controls.",
   },
   name_history: {
     key: "name_history",

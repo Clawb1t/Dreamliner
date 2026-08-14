@@ -15,7 +15,6 @@ import { customEventsDefaultOverrides } from "../plugins/custom_events/defaultOv
 import { commandAliasesDefaultOverrides } from "../plugins/command_aliases/defaultOverrides.js";
 import { automodDefaultOverrides } from "../plugins/automod/defaultOverrides.js";
 import { adminDefaultOverrides } from "../plugins/admin/defaultOverrides.js";
-import { persistDefaultOverrides } from "../plugins/persist/defaultOverrides.js";
 import { slowmodeDefaultOverrides } from "../plugins/slowmode/defaultOverrides.js";
 import { welcomeMessageDefaultOverrides } from "../plugins/welcome_message/defaultOverrides.js";
 import { tagsDefaultOverrides } from "../plugins/tags/defaultOverrides.js";
@@ -28,7 +27,6 @@ import { translationDefaultOverrides } from "../plugins/translation/defaultOverr
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
 import { zTranslationConfig, type TranslationConfig } from "../config/schemas/translation.js";
 import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.js";
-import { companionChannelsDefaultOverrides } from "../plugins/companion_channels/defaultOverrides.js";
 import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/defaultOverrides.js";
 import { botCustomisationDefaultOverrides } from "../plugins/bot_customisation/defaultOverrides.js";
 import { reviewsDefaultOverrides } from "../plugins/reviews/defaultOverrides.js";
@@ -44,7 +42,6 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   automod: automodDefaultOverrides,
   scam_protect: scamProtectDefaultOverrides,
   admin: adminDefaultOverrides,
-  persist: persistDefaultOverrides,
   slowmode: slowmodeDefaultOverrides,
   name_history: nameHistoryDefaultOverrides,
   locate_user: locateUserDefaultOverrides,
@@ -67,7 +64,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   translation: translationDefaultOverrides,
   reminders: remindersDefaultOverrides,
   counters: countersDefaultOverrides,
-  companion_channels: companionChannelsDefaultOverrides,
+  companion_channels: [],
   dream_commands: dreamCommandsDefaultOverrides,
   bot_customisation: botCustomisationDefaultOverrides,
   reviews: reviewsDefaultOverrides,

@@ -1,81 +1,136 @@
-import { and, eq, like } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
-import { companionChannels } from "../../../db/schema.js";
-import { HUB_OWNER_PREFIX, hubOwnerId, isHubOwnerId } from "../defaultOverrides.js";
+import { companionRooms } from "../../../db/schema.js";
 
-export type CompanionChannelRow = {
+export type CompanionRoomRow = {
   guildId: string;
-  ownerId: string;
   channelId: string;
+  ownerId: string;
+  setupId: string;
+  textChannelId: string;
+  interfaceMessageId: string;
+  locked: boolean;
+  ghosted: boolean;
+  seq: number;
 };
 
-export async function registerHub(guildId: string, hubChannelId: string): Promise<void> {
+function mapRow(row: typeof companionRooms.$inferSelect): CompanionRoomRow {
+  return {
+    guildId: row.guildId,
+    channelId: row.channelId,
+    ownerId: row.ownerId ?? "",
+    setupId: row.setupId ?? "",
+    textChannelId: row.textChannelId ?? "",
+    interfaceMessageId: row.interfaceMessageId ?? "",
+    locked: Boolean(row.locked),
+    ghosted: Boolean(row.ghosted),
+    seq: row.seq ?? 0,
+  };
+}
+
+export async function listGuildRooms(guildId: string): Promise<CompanionRoomRow[]> {
+  const rows = await getDb().select().from(companionRooms).where(eq(companionRooms.guildId, guildId)).all();
+  return rows.map(mapRow);
+}
+
+export async function listSetupRooms(guildId: string, setupId: string): Promise<CompanionRoomRow[]> {
+  const rows = await getDb()
+    .select()
+    .from(companionRooms)
+    .where(and(eq(companionRooms.guildId, guildId), eq(companionRooms.setupId, setupId)))
+    .all();
+  return rows.map(mapRow);
+}
+
+export async function getRoomByChannel(guildId: string, channelId: string): Promise<CompanionRoomRow | null> {
+  const row = await getDb()
+    .select()
+    .from(companionRooms)
+    .where(and(eq(companionRooms.guildId, guildId), eq(companionRooms.channelId, channelId)))
+    .get();
+  return row ? mapRow(row) : null;
+}
+
+export async function getOwnedRoom(guildId: string, ownerId: string): Promise<CompanionRoomRow | null> {
+  if (!ownerId) return null;
+  const row = await getDb()
+    .select()
+    .from(companionRooms)
+    .where(and(eq(companionRooms.guildId, guildId), eq(companionRooms.ownerId, ownerId)))
+    .get();
+  return row ? mapRow(row) : null;
+}
+
+export async function nextSetupSeq(guildId: string, setupId: string): Promise<number> {
+  const row = await getDb()
+    .select({ max: sql<number>`max(${companionRooms.seq})` })
+    .from(companionRooms)
+    .where(and(eq(companionRooms.guildId, guildId), eq(companionRooms.setupId, setupId)))
+    .get();
+  const current = typeof row?.max === "number" ? row.max : Number(row?.max ?? 0);
+  return (Number.isFinite(current) ? current : 0) + 1;
+}
+
+export async function insertRoom(row: CompanionRoomRow): Promise<void> {
   await getDb()
-    .insert(companionChannels)
+    .insert(companionRooms)
     .values({
-      guildId,
-      ownerId: hubOwnerId(hubChannelId),
-      channelId: hubChannelId,
+      guildId: row.guildId,
+      channelId: row.channelId,
+      ownerId: row.ownerId,
+      setupId: row.setupId,
+      textChannelId: row.textChannelId,
+      interfaceMessageId: row.interfaceMessageId,
+      locked: row.locked,
+      ghosted: row.ghosted,
+      seq: row.seq,
     })
     .onConflictDoUpdate({
-      target: [companionChannels.guildId, companionChannels.ownerId],
-      set: { channelId: hubChannelId },
+      target: [companionRooms.guildId, companionRooms.channelId],
+      set: {
+        ownerId: row.ownerId,
+        setupId: row.setupId,
+        textChannelId: row.textChannelId,
+        interfaceMessageId: row.interfaceMessageId,
+        locked: row.locked,
+        ghosted: row.ghosted,
+        seq: row.seq,
+      },
     });
 }
 
-export async function unregisterHub(guildId: string, hubChannelId: string): Promise<boolean> {
-  const result = await getDb()
-    .delete(companionChannels)
-    .where(and(eq(companionChannels.guildId, guildId), eq(companionChannels.ownerId, hubOwnerId(hubChannelId))))
-    .returning()
-    .get();
-  return Boolean(result);
-}
-
-export async function isHubChannel(guildId: string, channelId: string): Promise<boolean> {
-  const row = await getDb()
-    .select()
-    .from(companionChannels)
-    .where(and(eq(companionChannels.guildId, guildId), eq(companionChannels.ownerId, hubOwnerId(channelId))))
-    .get();
-  return Boolean(row);
-}
-
-export async function listHubs(guildId: string): Promise<CompanionChannelRow[]> {
-  return getDb()
-    .select()
-    .from(companionChannels)
-    .where(and(eq(companionChannels.guildId, guildId), like(companionChannels.ownerId, `${HUB_OWNER_PREFIX}%`)))
-    .all();
-}
-
-export async function getUserCompanion(guildId: string, ownerId: string): Promise<CompanionChannelRow | null> {
-  if (isHubOwnerId(ownerId)) return null;
-  const row = await getDb()
-    .select()
-    .from(companionChannels)
-    .where(and(eq(companionChannels.guildId, guildId), eq(companionChannels.ownerId, ownerId)))
-    .get();
-  return row ?? null;
-}
-
-export async function setUserCompanion(guildId: string, ownerId: string, channelId: string): Promise<void> {
+export async function updateRoom(
+  guildId: string,
+  channelId: string,
+  patch: Partial<Omit<CompanionRoomRow, "guildId" | "channelId">>,
+): Promise<void> {
+  const current = await getRoomByChannel(guildId, channelId);
+  if (!current) return;
+  const next = { ...current, ...patch };
   await getDb()
-    .insert(companionChannels)
-    .values({ guildId, ownerId, channelId })
-    .onConflictDoUpdate({
-      target: [companionChannels.guildId, companionChannels.ownerId],
-      set: { channelId },
-    });
+    .update(companionRooms)
+    .set({
+      ownerId: next.ownerId,
+      setupId: next.setupId,
+      textChannelId: next.textChannelId,
+      interfaceMessageId: next.interfaceMessageId,
+      locked: next.locked,
+      ghosted: next.ghosted,
+      seq: next.seq,
+    })
+    .where(and(eq(companionRooms.guildId, guildId), eq(companionRooms.channelId, channelId)));
 }
 
-export async function removeUserCompanion(guildId: string, ownerId: string): Promise<void> {
+export async function removeRoom(guildId: string, channelId: string): Promise<void> {
   await getDb()
-    .delete(companionChannels)
-    .where(and(eq(companionChannels.guildId, guildId), eq(companionChannels.ownerId, ownerId)));
+    .delete(companionRooms)
+    .where(and(eq(companionRooms.guildId, guildId), eq(companionRooms.channelId, channelId)));
 }
 
-export async function getCompanionByChannelId(guildId: string, channelId: string): Promise<CompanionChannelRow | null> {
-  const rows = await getDb().select().from(companionChannels).where(eq(companionChannels.guildId, guildId)).all();
-  return rows.find((row) => !isHubOwnerId(row.ownerId) && row.channelId === channelId) ?? null;
+export async function removeGuildRoomsForSetup(guildId: string, setupId: string): Promise<CompanionRoomRow[]> {
+  const rooms = await listSetupRooms(guildId, setupId);
+  await getDb()
+    .delete(companionRooms)
+    .where(and(eq(companionRooms.guildId, guildId), eq(companionRooms.setupId, setupId)));
+  return rooms;
 }

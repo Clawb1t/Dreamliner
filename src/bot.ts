@@ -76,6 +76,11 @@ import {
   handleWelcomeWaveButtonInteraction,
   WELCOME_WAVE_CUSTOM_ID,
 } from "./plugins/welcome_message/functions/waveButton.js";
+import {
+  handleCompanionEntitySelect,
+  handleCompanionModalSubmit,
+  handleCompanionSelectInteraction,
+} from "./plugins/companion_channels/functions/interface.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
@@ -216,7 +221,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await handleStatsSelectInteraction(configManager, interaction);
         if (handled) return;
       }
+      const companionSelect = await handleCompanionSelectInteraction(interaction);
+      if (companionSelect) return;
       await handleHelpSelectInteraction(configManager, interaction);
+      return;
+    }
+    if (interaction.isUserSelectMenu() || interaction.isMentionableSelectMenu()) {
+      const handled = await handleCompanionEntitySelect(interaction);
+      if (handled) return;
       return;
     }
     if (interaction.isModalSubmit()) {
@@ -326,7 +338,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
               .catch(() => null);
           }
         }
+        return;
       }
+      const companionModal = await handleCompanionModalSubmit(interaction);
+      if (companionModal) return;
     }
   });
 

@@ -6,7 +6,6 @@ import {
   type MessageActionRowComponentBuilder,
 } from "discord.js";
 import type { WelcomeWaveButton } from "../../../config/schemas/welcome.js";
-import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { configManager } from "../../../config/manager.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { addWelcomeWave, getWelcomeJoinMessage } from "./store.js";
@@ -49,7 +48,6 @@ export async function handleWelcomeWaveButtonInteraction(
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId!);
-  const ephemeral = resolveEphemeral(guildConfig);
   const messageId = interaction.message.id;
 
   const tracked = await getWelcomeJoinMessage(messageId);
@@ -58,7 +56,7 @@ export async function handleWelcomeWaveButtonInteraction(
       resultReply(
         "Unavailable",
         "This wave button is no longer active.",
-        ephemeral,
+        true,
         guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
       ),
     );
@@ -82,7 +80,7 @@ export async function handleWelcomeWaveButtonInteraction(
       resultReply(
         "Unavailable",
         "This wave button is no longer active.",
-        ephemeral,
+        true,
         guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
       ),
     );

@@ -575,7 +575,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -962,7 +966,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -1148,7 +1156,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -1201,8 +1213,11 @@
                 "auto_translate": {
                   "type": "boolean",
                   "default": false,
-                  "description": "When true, react with the server default-language flag on messages that are not in that language. Members can press the reaction for a translation reply.",
-                  "title": "Auto Translate"
+                  "description": "Dreamliner One exclusive. When true, react with the server default-language flag on messages that are not in that language. Members can press the reaction for a translation reply.",
+                  "title": "Auto Translate",
+                  "x-dreamliner": {
+                    "oneExclusive": true
+                  }
                 },
                 "ignored_channels": {
                   "type": "array",
@@ -1253,7 +1268,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -1495,7 +1514,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -1895,7 +1918,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2034,7 +2061,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2139,7 +2170,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2190,35 +2225,342 @@
             "config": {
               "type": "object",
               "properties": {
-                "can_add": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to add sticky/persist messages. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Add",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "can_remove": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to remove sticky/persist messages. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Remove",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "can_list": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to list sticky/persist messages. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "List",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Turn this sticky on or off without deleting it.",
+                        "title": "Enabled"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Optional label in the dashboard. Also used as the webhook username fallback.",
+                        "title": "Name"
+                      },
+                      "channel_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Channel where this sticky message stays at the bottom.",
+                        "title": "Channel Id",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "content": {
+                        "type": "string",
+                        "maxLength": 2000,
+                        "default": "",
+                        "description": "Optional text above the embed. Supports placeholders like {guild}, {channel}, {member_count}. Can be empty if an embed or buttons are set.",
+                        "title": "Content"
+                      },
+                      "delay_seconds": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 86400,
+                        "default": 0,
+                        "description": "Seconds to wait after a new message before deleting and resending the sticky. 0 resends immediately.",
+                        "title": "Delay Seconds",
+                        "x-dreamliner": {
+                          "kind": "seconds",
+                          "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                        }
+                      },
+                      "embed": {
+                        "type": "object",
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Include a Discord embed in the sticky.",
+                            "title": "Enabled"
+                          },
+                          "title": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Embed title. Supports placeholders like {guild}.",
+                            "title": "Title"
+                          },
+                          "title_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the title links to.",
+                            "title": "Title Url"
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 4096,
+                            "default": "",
+                            "description": "Embed description. Supports placeholders.",
+                            "title": "Description"
+                          },
+                          "color": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 16777215,
+                            "description": "Embed accent color as a decimal integer (0–16777215).",
+                            "default": 5661429,
+                            "title": "Color",
+                            "x-dreamliner": {
+                              "kind": "color",
+                              "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                            }
+                          },
+                          "author_name": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Optional embed author name.",
+                            "title": "Author Name"
+                          },
+                          "author_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the author name links to.",
+                            "title": "Author Url"
+                          },
+                          "author_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Author icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Author Icon"
+                          },
+                          "author_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Author icon URL when source is url.",
+                            "title": "Author Icon Url"
+                          },
+                          "thumbnail": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Thumbnail image source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Thumbnail"
+                          },
+                          "thumbnail_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Thumbnail URL when source is url.",
+                            "title": "Thumbnail Url"
+                          },
+                          "image_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Large embed image URL (https). Leave empty for none.",
+                            "title": "Image Url"
+                          },
+                          "footer_text": {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "default": "",
+                            "description": "Footer text. Supports placeholders.",
+                            "title": "Footer Text"
+                          },
+                          "footer_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Footer icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Footer Icon"
+                          },
+                          "footer_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Footer icon URL when source is url.",
+                            "title": "Footer Icon Url"
+                          },
+                          "timestamp": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show the current time in the embed footer.",
+                            "title": "Timestamp"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "maxLength": 256,
+                                  "default": "",
+                                  "description": "Embed field name. Supports {guild} placeholders.",
+                                  "title": "Name"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "maxLength": 1024,
+                                  "default": "",
+                                  "description": "Embed field value. Supports placeholders.",
+                                  "title": "Value"
+                                },
+                                "inline": {
+                                  "type": "boolean",
+                                  "default": false,
+                                  "description": "Display the field inline.",
+                                  "title": "Inline"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "maxItems": 25,
+                            "default": [],
+                            "description": "Optional embed fields (max 25).",
+                            "title": "Fields"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "default": {},
+                        "description": "Optional Discord embed.",
+                        "title": "Embed"
+                      },
+                      "buttons": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80,
+                              "description": "Button label.",
+                              "title": "Label"
+                            },
+                            "url": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512,
+                              "description": "https URL this button opens.",
+                              "title": "Url"
+                            },
+                            "emoji": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Optional button emoji (unicode or <:name:id>).",
+                              "title": "Emoji",
+                              "x-dreamliner": {
+                                "kind": "emoji",
+                                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                              }
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "url"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 5,
+                        "default": [],
+                        "description": "Optional link buttons under the sticky (max 5).",
+                        "title": "Buttons"
+                      },
+                      "webhook": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Send as a webhook with a custom name and avatar. Requires Manage Webhooks. Falls back to the bot if a webhook cannot be created.",
+                        "title": "Webhook"
+                      },
+                      "webhook_name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Webhook display name. Defaults to the sticky name, then Sticky.",
+                        "title": "Webhook Name"
+                      },
+                      "webhook_avatar_url": {
+                        "type": "string",
+                        "maxLength": 512,
+                        "default": "",
+                        "description": "Webhook avatar image URL (https).",
+                        "title": "Webhook Avatar Url"
+                      },
+                      "silent": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Send without notifying members (suppress notifications).",
+                        "title": "Silent"
+                      },
+                      "suppress_embeds": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Do not unfurl links in the text content into extra embeds.",
+                        "title": "Suppress Embeds"
+                      },
+                      "mention_users": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Allow @user mentions in the sticky text.",
+                        "title": "Mention Users"
+                      },
+                      "mention_roles": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Allow @role mentions in the sticky text.",
+                        "title": "Mention Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "mention_everyone": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Allow @everyone / @here in the sticky text.",
+                        "title": "Mention Everyone"
+                      },
+                      "ignore_bots": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Do not bump the sticky when a bot posts in the channel.",
+                        "title": "Ignore Bots"
+                      },
+                      "ignore_webhooks": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Do not bump the sticky when a webhook posts in the channel.",
+                        "title": "Ignore Webhooks"
+                      }
+                    },
+                    "required": [
+                      "channel_id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "default": [],
+                  "description": "Sticky messages. Add one entry per channel. If two entries share a channel, the last enabled one is used.",
+                  "title": "Messages"
                 }
               },
               "additionalProperties": false,
@@ -2246,7 +2588,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2478,7 +2824,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2585,7 +2935,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2686,7 +3040,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2787,7 +3145,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2882,7 +3244,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -2983,7 +3349,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -3094,7 +3464,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -4539,7 +4913,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -4666,7 +5044,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -4773,7 +5155,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -4881,7 +5267,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5078,7 +5468,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5273,7 +5667,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5380,7 +5778,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5487,7 +5889,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5538,31 +5944,359 @@
             "config": {
               "type": "object",
               "properties": {
-                "can_create": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to create companion voice hubs. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Create",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
+                "setups": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Turn this join-to-create setup on or off.",
+                        "title": "Enabled"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Dashboard label for this setup.",
+                        "title": "Name"
+                      },
+                      "hub_channel_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Join-to-create voice channel. Joining it creates or assigns a temporary room.",
+                        "title": "Hub Channel Id",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "default",
+                          "sequential",
+                          "predefined",
+                          "clone",
+                          "dynamic"
+                        ],
+                        "default": "default",
+                        "description": "How rooms are named and created: default (owner customises), sequential (Name 1, Name 2), predefined (template variables), clone (copy the hub), dynamic (keep empty rooms ready).",
+                        "title": "Type"
+                      },
+                      "name_template": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "default": "{user_display}'s channel",
+                        "description": "Name for new rooms. Placeholders: {user_display}, {username}, {seq}, {animals}, {colors}, {trees}. Ignored for clone.",
+                        "title": "Name Template"
+                      },
+                      "user_limit": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 99,
+                        "default": 0,
+                        "description": "Default user limit. 0 is unlimited. Clone uses the hub's limit instead.",
+                        "title": "User Limit"
+                      },
+                      "bitrate": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 384,
+                        "default": 0,
+                        "description": "Default bitrate in kbps. 0 inherits the hub or server. Clone uses the hub bitrate.",
+                        "title": "Bitrate"
+                      },
+                      "category_id": {
+                        "type": "string",
+                        "maxLength": 32,
+                        "default": "",
+                        "description": "Category for new rooms. Empty uses the hub's category.",
+                        "title": "Category Id",
+                        "x-dreamliner": {
+                          "kind": "category",
+                          "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                        }
+                      },
+                      "permission_source": {
+                        "type": "string",
+                        "enum": [
+                          "category",
+                          "hub"
+                        ],
+                        "default": "category",
+                        "description": "Copy permission overwrites from the category or from the join-to-create hub.",
+                        "title": "Permission Source"
+                      },
+                      "editable": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Owners can change the name and user limit (when those features are also enabled).",
+                        "title": "Editable"
+                      },
+                      "auto_text": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Create a private text channel with each room. Also requires the autotext feature.",
+                        "title": "Auto Text"
+                      },
+                      "default_lock": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Lock new rooms so only the owner can join.",
+                        "title": "Default Lock"
+                      },
+                      "default_ghost": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Hide new rooms from the channel list.",
+                        "title": "Default Ghost"
+                      },
+                      "default_nsfw": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Mark new rooms as NSFW.",
+                        "title": "Default Nsfw"
+                      },
+                      "default_status": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "default": "",
+                        "description": "Optional voice status set on new rooms.",
+                        "title": "Default Status"
+                      },
+                      "region": {
+                        "type": "string",
+                        "maxLength": 64,
+                        "default": "",
+                        "description": "Voice region for new rooms. Empty lets Discord pick automatically.",
+                        "title": "Region"
+                      },
+                      "dynamic_ready": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 15,
+                        "default": 3,
+                        "description": "For dynamic setups, how many empty rooms to keep ready.",
+                        "title": "Dynamic Ready"
+                      }
+                    },
+                    "required": [
+                      "hub_channel_id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 25,
+                  "default": [],
+                  "description": "Join-to-create setups. Each one needs a hub voice channel.",
+                  "title": "Setups"
                 },
-                "can_delete": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to delete companion setups. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Delete",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
+                "features": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can rename their temporary channel.",
+                      "title": "Name"
+                    },
+                    "limit": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can set a user limit.",
+                      "title": "Limit"
+                    },
+                    "status": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can set a voice channel status.",
+                      "title": "Status"
+                    },
+                    "lock": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can lock and unlock their channel.",
+                      "title": "Lock"
+                    },
+                    "claim": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Members can claim a channel after the owner leaves.",
+                      "title": "Claim"
+                    },
+                    "reject": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can reject users or roles and kick them.",
+                      "title": "Reject"
+                    },
+                    "permit": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can permit users or roles into a locked/ghosted channel.",
+                      "title": "Permit"
+                    },
+                    "ghost": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can hide the channel from the channel list.",
+                      "title": "Ghost"
+                    },
+                    "lfm": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can post Looking for Members in the LFM channel.",
+                      "title": "Lfm"
+                    },
+                    "text": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can create a linked temporary text channel.",
+                      "title": "Text"
+                    },
+                    "bitrate": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can change bitrate.",
+                      "title": "Bitrate"
+                    },
+                    "invite": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can DM invite links to members.",
+                      "title": "Invite"
+                    },
+                    "transfer": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can transfer ownership.",
+                      "title": "Transfer"
+                    },
+                    "nsfw": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Owners can mark the channel NSFW.",
+                      "title": "Nsfw"
+                    },
+                    "interface": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Post a control panel in new temporary channels.",
+                      "title": "Interface"
+                    },
+                    "interface_ping": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Post a public confirmation when someone uses the control panel.",
+                      "title": "Interface Ping"
+                    },
+                    "manage_channel": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Give owners Discord Manage Channel on their room.",
+                      "title": "Manage Channel",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "move_member": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Give owners Discord Move Members on their room.",
+                      "title": "Move Member"
+                    },
+                    "autotext": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Automatically create a linked text channel with each room.",
+                      "title": "Autotext"
+                    },
+                    "region": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Owners can change the voice region.",
+                      "title": "Region"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Which owner controls are allowed on this server.",
+                  "title": "Features"
                 },
-                "name_template": {
+                "log_channel_id": {
                   "type": "string",
-                  "default": "{user}'s channel",
-                  "description": "Name for temporary voice channels. Placeholder: {user}.",
-                  "title": "Name Template"
+                  "maxLength": 32,
+                  "default": "",
+                  "description": "Optional log channel for room create, delete, claim, and transfer.",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "lfm_channel_id": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "default": "",
+                  "description": "Channel where Looking for Members posts go.",
+                  "title": "Lfm Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "staff_role_id": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "default": "",
+                  "description": "Members with this role can manage any temporary room.",
+                  "title": "Staff Role Id",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "text_channel_message": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "default": "",
+                  "description": "Optional message posted in new linked text channels. Supports {user_display}, {channel}, {guild}.",
+                  "title": "Text Channel Message"
+                },
+                "text_access_role_id": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "default": "",
+                  "description": "Optional extra role that can always see linked text channels.",
+                  "title": "Text Access Role Id",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "join_role_id": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "default": "",
+                  "description": "Optional role given while a member is in a temporary room.",
+                  "title": "Join Role Id",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "member_role_id": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "default": "",
+                  "description": "Optional member role used when restoring visibility after ghost/lock.",
+                  "title": "Member Role Id",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
                 }
               },
               "additionalProperties": false,
@@ -5590,7 +6324,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5687,7 +6425,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5770,7 +6512,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5857,7 +6603,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -5964,7 +6714,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -6071,7 +6825,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -6194,7 +6952,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -6318,7 +7080,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -6435,7 +7201,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -6674,7 +7444,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",
@@ -7174,7 +7948,11 @@
                   "category": {
                     "type": "string",
                     "description": "Only apply in channels under this category ID.",
-                    "title": "Category"
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
                   },
                   "user": {
                     "type": "string",

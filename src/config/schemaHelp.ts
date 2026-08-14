@@ -35,8 +35,10 @@ export type DreamlinerFieldMeta = {
     | "level"
     | "emoji"
     | "permission"
-    | "color";
+    | "color"
+    | "category";
   setup?: string;
+  oneExclusive?: boolean;
 };
 
 export const SETUP_HINTS: Record<NonNullable<DreamlinerFieldMeta["kind"]>, string> = {
@@ -54,6 +56,7 @@ export const SETUP_HINTS: Record<NonNullable<DreamlinerFieldMeta["kind"]>, strin
   permission:
     "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels.",
   color: "Pick a color for embeds. Stored as a decimal integer (0–16777215).",
+  category: "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID.",
 };
 
 type JsonSchemaNode = {
@@ -98,6 +101,13 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
   ) {
     return "role";
   }
+  if (
+    key === "category_id" ||
+    key.endsWith("_category_id") ||
+    key === "category"
+  ) {
+    return "category";
+  }
   if (key === "user" || key.endsWith("_user_id")) return "user";
   if (key === "levels" || key === "level" || key === "ignore_above_level" || key === "staff_level") {
     return "level";
@@ -125,12 +135,13 @@ export function enrichJsonSchemaForEditor(schema: JsonSchemaNode, key?: string):
     if (!next.title) next.title = humanizeKey(key);
 
     const kind = detectKind(key);
-    if (kind) {
+    if (kind || key === "auto_translate") {
       const existing = next["x-dreamliner"] ?? {};
       next["x-dreamliner"] = {
         ...existing,
         kind: existing.kind ?? kind,
-        setup: existing.setup ?? SETUP_HINTS[kind],
+        setup: existing.setup ?? (kind ? SETUP_HINTS[kind] : undefined),
+        oneExclusive: existing.oneExclusive ?? (key === "auto_translate" ? true : undefined),
       };
     }
 

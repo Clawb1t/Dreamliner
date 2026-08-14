@@ -6,7 +6,6 @@ export type PersistedMessageRow = {
   guildId: string;
   channelId: string;
   messageId: string;
-  content: string;
 };
 
 export async function listPersistedMessages(guildId: string): Promise<PersistedMessageRow[]> {
@@ -15,7 +14,6 @@ export async function listPersistedMessages(guildId: string): Promise<PersistedM
     guildId: row.guildId,
     channelId: row.channelId,
     messageId: row.messageId,
-    content: row.content,
   }));
 }
 
@@ -31,7 +29,6 @@ export async function getPersistedMessage(guildId: string, channelId: string): P
     guildId: row.guildId,
     channelId: row.channelId,
     messageId: row.messageId,
-    content: row.content,
   };
 }
 
@@ -39,17 +36,13 @@ export async function upsertPersistedMessage(input: {
   guildId: string;
   channelId: string;
   messageId: string;
-  content: string;
 }): Promise<void> {
   await getDb()
     .insert(persistedMessages)
     .values(input)
     .onConflictDoUpdate({
       target: [persistedMessages.guildId, persistedMessages.channelId],
-      set: {
-        messageId: input.messageId,
-        content: input.content,
-      },
+      set: { messageId: input.messageId },
     });
 }
 
@@ -60,15 +53,4 @@ export async function removePersistedMessage(guildId: string, channelId: string)
     .returning()
     .get();
   return Boolean(result);
-}
-
-export async function updatePersistedMessageId(
-  guildId: string,
-  channelId: string,
-  messageId: string,
-): Promise<void> {
-  await getDb()
-    .update(persistedMessages)
-    .set({ messageId })
-    .where(and(eq(persistedMessages.guildId, guildId), eq(persistedMessages.channelId, channelId)));
 }

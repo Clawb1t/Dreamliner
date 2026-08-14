@@ -59,9 +59,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "scamprotect status", label: "/scamprotect status", plugin: "scam_protect", permission: "can_status" },
   { key: "lockdown", label: "/lockdown", plugin: "admin", permission: "can_lockdown" },
   { key: "unlock", label: "/unlock", plugin: "admin", permission: "can_unlock" },
-  { key: "persist add", label: "/persist add", plugin: "persist", permission: "can_add" },
-  { key: "persist remove", label: "/persist remove", plugin: "persist", permission: "can_remove" },
-  { key: "persist list", label: "/persist list", plugin: "persist", permission: "can_list" },
   { key: "slowmode set", label: "/slowmode set", plugin: "slowmode", permission: "can_set" },
   { key: "slowmode clear", label: "/slowmode clear", plugin: "slowmode", permission: "can_clear" },
   { key: "slowmode rule", label: "/slowmode rule", plugin: "slowmode", permission: "can_manage_rules" },
@@ -110,8 +107,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "counter create", label: "/counter create", plugin: "counters", permission: "can_create" },
   { key: "counter set", label: "/counter set", plugin: "counters", permission: "can_set" },
   { key: "counter delete", label: "/counter delete", plugin: "counters", permission: "can_delete" },
-  { key: "companion create", label: "/companion create", plugin: "companion_channels", permission: "can_create" },
-  { key: "companion delete", label: "/companion delete", plugin: "companion_channels", permission: "can_delete" },
 
   // Tracking & misc
   { key: "names user", label: "/names user", plugin: "name_history", permission: "can_view" },

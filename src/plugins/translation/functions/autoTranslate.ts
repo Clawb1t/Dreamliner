@@ -17,7 +17,7 @@ import {
 } from "./detectGuard.js";
 import { buildAutoTranslatePayload, buildAutoTranslateWebhookPayload } from "./embed.js";
 import { translateText, waitGuildTranslateSlot } from "./translate.js";
-import { getAutoTranslateWebhook } from "./webhook.js";
+import { isDreamlinerOneActive } from "../../../bridge/dreamlinerOne.js";
 
 const recentlyTranslated = new Map<string, number>();
 const TRANSLATE_DEDUP_MS = 60_000;
@@ -55,6 +55,7 @@ export async function handleAutoTranslateMessage(message: Message): Promise<void
 
   const pluginConfig = getTranslationPluginConfig(guildConfig);
   if (!pluginConfig.auto_translate) return;
+  if (!(await isDreamlinerOneActive(message.guild.id))) return;
   if (pluginConfig.ignored_channels.includes(message.channelId)) return;
 
   const defaultLanguage = guildConfig.default_language || DEFAULT_LANGUAGE_CODE;
@@ -109,6 +110,7 @@ export async function handleAutoTranslateReaction(
 
   const pluginConfig = getTranslationPluginConfig(guildConfig);
   if (!pluginConfig.auto_translate) return;
+  if (!(await isDreamlinerOneActive(message.guild.id))) return;
   if (pluginConfig.ignored_channels.includes(message.channelId)) return;
 
   const defaultLanguage = guildConfig.default_language || DEFAULT_LANGUAGE_CODE;
