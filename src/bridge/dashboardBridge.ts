@@ -698,6 +698,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const logStatsMatch = /^\/bridge\/guilds\/(\d+)\/logs\/stats$/.exec(url.pathname);
         const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const logsMatch = /^\/bridge\/guilds\/(\d+)\/logs$/.exec(url.pathname);
+        const trackerMatch = /^\/bridge\/guilds\/(\d+)\/tracker\/(\d+)$/.exec(url.pathname);
         const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
         const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
         const suggestionActionMatch =
@@ -758,6 +759,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !logStatsMatch &&
           !logOneMatch &&
           !logsMatch &&
+          !trackerMatch &&
           !reviewOneMatch &&
           !reviewsMatch &&
           !suggestionActionMatch &&
@@ -801,6 +803,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           logStatsMatch?.[1] ??
           logOneMatch?.[1] ??
           logsMatch?.[1] ??
+          trackerMatch?.[1] ??
           reviewOneMatch?.[1] ??
           reviewsMatch?.[1] ??
           suggestionActionMatch?.[1] ??
@@ -1784,6 +1787,32 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             log: detail,
+          });
+          return;
+        }
+
+        if (trackerMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const targetUserId = trackerMatch[2]!;
+          const { getWebUserTrail } = await import("./webTracker.js");
+          const limit = Math.min(120, Math.max(20, Number(url.searchParams.get("limit") ?? 80) || 80));
+          const trail = await getWebUserTrail(guild, targetUserId, limit);
+          sendJson(res, 200, {
+            guild: { id: guild.id, name: guild.name, icon: guild.icon },
+            userId: targetUserId,
+            ...trail,
           });
           return;
         }

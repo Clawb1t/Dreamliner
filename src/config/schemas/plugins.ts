@@ -310,6 +310,7 @@ export const zUsernameSaverConfig = z.strictObject({
 
 export const zLocateUserConfig = z.strictObject({
   can_locate: boolPerm("locate where a member currently is"),
+  can_seen: boolPerm("see when a member was last active"),
 });
 
 export const zStatsConfig = z.strictObject({

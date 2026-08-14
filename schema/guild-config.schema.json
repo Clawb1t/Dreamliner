@@ -6576,6 +6576,16 @@
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
+                },
+                "can_seen": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to see when a member was last active. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Seen",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
                 }
               },
               "additionalProperties": false,

@@ -1,6 +1,7 @@
 import { and, asc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { guildStatsChannelDaily, guildStatsDaily, guildStatsUserDaily } from "../../../db/schema.js";
+import { recordUserTrail } from "../../../core/logging/userTrail.js";
 
 export function statDate(d = new Date()): string {
   return d.toISOString().slice(0, 10);
@@ -160,11 +161,13 @@ export async function recordMessageActivity(
   userId: string,
   channelId: string,
   attachmentCount = 0,
+  content?: string | null,
 ): Promise<void> {
   const tasks: Promise<void>[] = [
     incrementDailyStat(guildId, "messages"),
     incrementUserDailyStat(guildId, userId),
     incrementChannelDailyStat(guildId, channelId),
+    recordUserTrail(guildId, userId, channelId, content),
   ];
   if (attachmentCount > 0) {
     tasks.push(incrementDailyStat(guildId, "attachments", attachmentCount));

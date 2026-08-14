@@ -112,6 +112,7 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "names user", label: "/names user", plugin: "name_history", permission: "can_view" },
   { key: "names search", label: "/names search", plugin: "name_history", permission: "can_search" },
   { key: "locate", label: "/locate", plugin: "locate_user", permission: "can_locate" },
+  { key: "seen", label: "/seen", plugin: "locate_user", permission: "can_seen" },
   { key: "stats server", label: "/stats server", plugin: "stats", permission: "can_server" },
   { key: "stats user", label: "/stats user", plugin: "stats", permission: "can_user" },
   { key: "stats channel", label: "/stats channel", plugin: "stats", permission: "can_channel" },

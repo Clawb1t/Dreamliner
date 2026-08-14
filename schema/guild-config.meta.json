@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-14T04:58:21.705Z",
+  "generatedAt": "2026-08-14T15:14:47.117Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -110,7 +110,7 @@
         {
           "key": "locate_user",
           "name": "Locate user",
-          "description": "Find where a member is."
+          "description": "Find where a member is, and when they were last seen."
         },
         {
           "key": "name_history",
@@ -354,7 +354,7 @@
     {
       "key": "locate_user",
       "name": "Locate user",
-      "description": "Find where a member is.",
+      "description": "Find where a member is, and when they were last seen.",
       "category": "Lookups",
       "categoryId": "info"
     },

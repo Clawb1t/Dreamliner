@@ -522,10 +522,12 @@ plugins:
     replaceDefaultOverrides: false
     config:
       can_locate: false
+      can_seen: false
     overrides:
       - level: ">=50"
         config:
           can_locate: true
+          can_seen: true
   stats:
     enabled: true
     replaceDefaultOverrides: false

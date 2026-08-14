@@ -24,9 +24,13 @@ export const statsPlugin = definePlugin({
         const msg = message as import("discord.js").Message;
         if (!msg.guild || msg.author.bot || !msg.channelId) return;
         if (!(await statsActive(msg.guild.id))) return;
-        await recordMessageActivity(msg.guild.id, msg.author.id, msg.channelId, msg.attachments.size).catch(
-          () => null,
-        );
+        await recordMessageActivity(
+          msg.guild.id,
+          msg.author.id,
+          msg.channelId,
+          msg.attachments.size,
+          msg.content,
+        ).catch(() => null);
       },
     },
     {

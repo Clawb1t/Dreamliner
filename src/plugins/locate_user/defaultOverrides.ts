@@ -5,6 +5,7 @@ export const locateUserDefaultOverrides: ConfigOverride[] = [
     level: ">=50",
     config: {
       can_locate: true,
+      can_seen: true,
     },
   },
 ];

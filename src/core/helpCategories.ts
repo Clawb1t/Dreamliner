@@ -275,7 +275,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   locate_user: {
     key: "locate_user",
     name: "Locate user",
-    description: "Find where a member is.",
+    description: "Find where a member is, and when they were last seen.",
   },
   stats: { key: "stats", name: "Stats", description: "Server, user, and channel stats." },
   custom_events: {

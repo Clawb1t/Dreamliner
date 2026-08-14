@@ -73,6 +73,18 @@ export const logMessages = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.channelId, table.messageId] })],
 );
 
+/** Collapsed per-user channel hops for the dashboard Tracker. */
+export const guildUserTrail = sqliteTable("guild_user_trail", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+  endedAt: integer("ended_at", { mode: "timestamp" }).notNull(),
+  messageCount: integer("message_count").notNull().default(1),
+  snippet: text("snippet").notNull().default(""),
+});
+
 export const censorRules = sqliteTable("censor_rules", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   guildId: text("guild_id").notNull(),
