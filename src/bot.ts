@@ -112,6 +112,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
   });
 
+  client.on(Events.Error, (error) => {
+    console.error("[discord] Client error:", error);
+  });
+
   const ctx = await loadPlugins(client, configManager, availablePlugins);
 
   client.once(Events.ClientReady, (c) => {

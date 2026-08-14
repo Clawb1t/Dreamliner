@@ -3,6 +3,10 @@ import { createBot, registerSlashCommands } from "./bot.js";
 import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
 
+process.on("unhandledRejection", (reason) => {
+  console.error("[dreamliner] Unhandled promise rejection:", reason);
+});
+
 function shouldExportSchemaOnStart(): boolean {
   if (process.env.EXPORT_SCHEMA_ON_START === "true") return true;
   if (process.env.EXPORT_SCHEMA_ON_START === "false") return false;

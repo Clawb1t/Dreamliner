@@ -26,6 +26,7 @@ import { autoroleDefaultOverrides } from "../plugins/autorole/defaultOverrides.j
 import { translationDefaultOverrides } from "../plugins/translation/defaultOverrides.js";
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
 import { zTranslationConfig, type TranslationConfig } from "../config/schemas/translation.js";
+import { parsePluginConfig } from "./pluginSchemas.js";
 import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.js";
 import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/defaultOverrides.js";
 import { botCustomisationDefaultOverrides } from "../plugins/bot_customisation/defaultOverrides.js";
@@ -101,7 +102,7 @@ export function getAutorolePluginConfig(guildConfig: GuildConfig) {
 
 export function getTranslationPluginConfig(guildConfig: GuildConfig): TranslationConfig {
   const resolved = resolvePluginConfig(guildConfig, "translation", translationDefaultOverrides);
-  return zTranslationConfig.parse(resolved);
+  return parsePluginConfig(zTranslationConfig, resolved);
 }
 
 export function getStarboardPluginConfig(guildConfig: GuildConfig): StarboardConfig {

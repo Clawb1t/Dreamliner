@@ -1,7 +1,7 @@
 import type { GuildMember } from "discord.js";
 import type { ConfigOverride } from "./types.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
-import { getPluginBaseConfig } from "./pluginSchemas.js";
+import { getPluginBaseConfig, stripUnknownPluginKeys } from "./pluginSchemas.js";
 
 function parseLevelRequirement(level: string): { op: ">=" | ">" | "<=" | "<" | "="; value: number } | null {
   const match = level.match(/^(>=|>|<=|<|=)(\d+)$/);
@@ -95,7 +95,7 @@ export function resolvePluginConfig(
     Object.assign(config, override.config);
   }
 
-  return config;
+  return stripUnknownPluginKeys(pluginName, config);
 }
 
 export function hasPluginPermission(

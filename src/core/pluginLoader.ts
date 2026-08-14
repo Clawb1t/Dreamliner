@@ -1,9 +1,19 @@
 import type { Client } from "discord.js";
 import { Collection } from "discord.js";
 import type { ConfigManager } from "../config/manager.js";
-import { collectCommands, collectEvents } from "./plugin.js";
+import { collectCommands } from "./plugin.js";
 import { setSchedulerClient } from "./scheduler.js";
 import type { BotContext, DreamlinerPlugin, InteractionStore } from "./types.js";
+
+function runPluginEvent(
+  pluginName: string,
+  eventName: string,
+  task: () => Promise<void>,
+): void {
+  void task().catch((error) => {
+    console.error(`[${pluginName}] ${eventName} handler failed:`, error);
+  });
+}
 
 export async function loadPlugins(
   client: Client,
@@ -35,11 +45,16 @@ export async function loadPlugins(
     }
   }
 
-  for (const event of collectEvents(plugins)) {
-    if (event.once) {
-      client.once(event.name, (...args) => event.execute(client, ...args));
-    } else {
-      client.on(event.name, (...args) => event.execute(client, ...args));
+  for (const plugin of plugins) {
+    for (const event of plugin.events ?? []) {
+      const run = (...args: unknown[]) => {
+        runPluginEvent(plugin.name, event.name, () => event.execute(client, ...args));
+      };
+      if (event.once) {
+        client.once(event.name, run);
+      } else {
+        client.on(event.name, run);
+      }
     }
   }
 

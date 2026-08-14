@@ -6,11 +6,14 @@ import {
 } from "../../../config/schemas/companion.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { resolvePluginConfig } from "../../../core/permissions.js";
+import { parsePluginConfig } from "../../../core/pluginSchemas.js";
 
 export function loadCompanionConfig(guildConfig: GuildConfig): CompanionChannelsConfig {
-  // Overrides are untyped records, so leftover hub-command keys (can_create / can_delete)
-  // can still be merged in. Strip unknowns instead of failing the whole plugin.
-  return zCompanionChannelsConfig.strip().parse(resolvePluginConfig(guildConfig, "companion_channels"));
+  // Overrides are untyped records, so leftover hub-command keys can still be merged in.
+  return parsePluginConfig(
+    zCompanionChannelsConfig,
+    resolvePluginConfig(guildConfig, "companion_channels"),
+  );
 }
 
 export function enabledSetups(config: CompanionChannelsConfig): CompanionSetup[] {
