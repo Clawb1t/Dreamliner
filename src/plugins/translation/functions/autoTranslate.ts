@@ -17,6 +17,7 @@ import {
 } from "./detectGuard.js";
 import { buildAutoTranslatePayload, buildAutoTranslateWebhookPayload } from "./embed.js";
 import { translateText, waitGuildTranslateSlot } from "./translate.js";
+import { getAutoTranslateWebhook } from "./webhook.js";
 import { isDreamlinerOneActive } from "../../../bridge/dreamlinerOne.js";
 
 const recentlyTranslated = new Map<string, number>();
