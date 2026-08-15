@@ -428,7 +428,7 @@ function powerScore(pet: { atk: number; def: number; hp: number; speed: number; 
   return pet.atk * 2 + pet.def * 1.5 + pet.hp + pet.speed * 1.2 + pet.level * 5 + pet.happiness * 0.2;
 }
 
-/** Friendly non-wager battle — no currency changes. */
+/** Friendly non-wager battle with no currency changes. */
 export function battlePets(opts: {
   guildId: string;
   challengerUserId: string;

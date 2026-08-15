@@ -186,7 +186,7 @@ export function collectCraft(opts: {
   if (entry.collected) throw new EconomyError("Already collected.", "conflict");
   if (entry.completesAt.getTime() > Date.now()) {
     const secs = Math.ceil((entry.completesAt.getTime() - Date.now()) / 1000);
-    throw new EconomyError(`Still crafting — ${secs}s remaining.`, "limit");
+    throw new EconomyError(`Still crafting. ${secs}s remaining.`, "limit");
   }
 
   const recipe = getRecipeById(opts.guildId, entry.recipeId);
@@ -216,7 +216,7 @@ export function cancelCraft(opts: {
   if (entry.collected) throw new EconomyError("Already collected.", "conflict");
   if (entry.cancelled) throw new EconomyError("Already cancelled.", "conflict");
   if (entry.completesAt.getTime() <= Date.now()) {
-    throw new EconomyError("Craft finished — collect it instead.", "invalid");
+    throw new EconomyError("Craft finished. Collect it instead.", "invalid");
   }
 
   const recipe = getRecipeById(opts.guildId, entry.recipeId);

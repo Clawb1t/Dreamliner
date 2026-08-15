@@ -31,7 +31,7 @@ export const economyPlugin = definePlugin({
         try {
           tryGrantMessageReward(msg.member as GuildMember, msg, config);
         } catch (err) {
-          // Anti-farm skips throw EconomyError — ignore expected skips.
+          // Anti-farm skips throw EconomyError; ignore expected skips.
           if (err && typeof err === "object" && "code" in err) return;
           console.error("Economy activity reward failed:", err);
         }

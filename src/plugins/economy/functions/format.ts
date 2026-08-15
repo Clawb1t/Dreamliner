@@ -28,12 +28,14 @@ export function formatBalances(
   currencyKey = "coins",
 ): string {
   return [
-    `Pocket: ${formatCurrency(balances.pocket, config, { currencyKey })}`,
-    `Bank: ${formatCurrency(balances.bank, config, { currencyKey })}`,
-    balances.frozen > 0 ? `Frozen: ${formatCurrency(balances.frozen, config, { currencyKey })}` : null,
+    `**Pocket**\n${formatCurrency(balances.pocket, config, { currencyKey })}`,
+    `**Bank**\n${formatCurrency(balances.bank, config, { currencyKey })}`,
+    balances.frozen > 0
+      ? `**Frozen**\n${formatCurrency(balances.frozen, config, { currencyKey })}`
+      : null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join("\n");
 }
 
 const SHORT_BY_CODE: Record<EconomyError["code"], string> = {
@@ -42,7 +44,7 @@ const SHORT_BY_CODE: Record<EconomyError["code"], string> = {
   insufficient: "Insufficient funds or items.",
   invalid: "Invalid request.",
   not_found: "Not found.",
-  conflict: "Conflict — try again.",
+  conflict: "That changed while you were working. Please try again.",
   limit: "Limit reached.",
 };
 

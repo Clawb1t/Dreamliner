@@ -96,7 +96,7 @@ export const economyCommands: SlashCommandDefinition[] = [
     plugin: "economy",
     data: new SlashCommandBuilder()
       .setName("economy")
-      .setDescription("Server economy — balances, rewards, shops, pets, markets, and more")
+      .setDescription("Server economy: balances, rewards, shops, pets, markets, and more")
       .addSubcommandGroup((g) =>
         g
           .setName("account")
@@ -714,17 +714,25 @@ async function dispatch(opts: {
         throw new EconomyError("That member hides their balances.", "invalid");
       }
       const bal = money.getAccount(guildId, target.id, currency);
-      return `**${target.username}** — ${formatBalances(bal, config, currency)}`;
+      return [`### ${target.displayName}'s balance`, `<@${target.id}>`, "", formatBalances(bal, config, currency)].join("\n");
     }
     if (sub === "deposit") {
       const amount = i.options.getInteger("amount", true);
       const bal = money.depositToBank({ guildId, userId, currencyKey: currency, amount, config });
-      return `Deposited. ${formatBalances(bal, config, currency)}`;
+      return [
+        `Deposited **${formatCurrency(amount, config, { currencyKey: currency })}** into your bank.`,
+        "",
+        formatBalances(bal, config, currency),
+      ].join("\n");
     }
     if (sub === "withdraw") {
       const amount = i.options.getInteger("amount", true);
       const bal = money.withdrawFromBank({ guildId, userId, currencyKey: currency, amount, config });
-      return `Withdrew. ${formatBalances(bal, config, currency)}`;
+      return [
+        `Withdrew **${formatCurrency(amount, config, { currencyKey: currency })}** from your bank.`,
+        "",
+        formatBalances(bal, config, currency),
+      ].join("\n");
     }
     if (sub === "history") {
       const limit = i.options.getInteger("limit") ?? 10;
@@ -733,9 +741,13 @@ async function dispatch(opts: {
       return rows
         .map(
           (r) =>
-            `#${r.id} \`${r.reason}\` pocket ${r.deltaPocket >= 0 ? "+" : ""}${r.deltaPocket} → ${r.balancePocket}`,
+            [
+              `**\`#${r.id}\` ${r.reason.replaceAll("_", " ")}**`,
+              `Pocket: **${r.deltaPocket >= 0 ? "+" : ""}${r.deltaPocket.toLocaleString()}**  •  Balance: **${r.balancePocket.toLocaleString()}**`,
+              `<t:${Math.floor(r.createdAt.getTime() / 1000)}:R>`,
+            ].join("\n"),
         )
-        .join("\n");
+        .join("\n\n");
     }
     if (sub === "profile") {
       const target = i.options.getUser("user") ?? i.user;
@@ -743,11 +755,21 @@ async function dispatch(opts: {
       const primary = money.getPrimaryCurrencyKey(guildId, config);
       const net = money.getNetWorth(guildId, target.id, primary);
       return [
-        `**${target.username}**`,
-        `Level ${profile.level} · ${profile.xp} XP · Prestige ${profile.prestige}`,
-        `Job: ${profile.jobKey ?? "none"} (Lv ${profile.jobLevel})`,
-        `Net worth: ${formatCurrency(net, config, { currencyKey: primary })}`,
-        profile.frozen ? `Frozen: ${profile.freezeReason ?? "yes"}` : "Account active",
+        `### ${target.displayName}'s profile`,
+        `<@${target.id}>`,
+        "",
+        `**Progression**`,
+        `Level **${profile.level}**  •  **${profile.xp.toLocaleString()} XP**  •  Prestige **${profile.prestige}**`,
+        "",
+        `**Career**`,
+        profile.jobKey ? `\`${profile.jobKey}\`  •  Job level **${profile.jobLevel}**` : "No career selected",
+        "",
+        `**Net worth**`,
+        formatCurrency(net, config, { currencyKey: primary }),
+        "",
+        profile.frozen
+          ? `🔒 **Account frozen**\n${profile.freezeReason ?? "No reason provided"}`
+          : "✅ **Account active**",
       ].join("\n");
     }
     if (sub === "privacy") {
@@ -761,7 +783,9 @@ async function dispatch(opts: {
         .set({ hideBalances: hide, updatedAt: new Date() })
         .where(and(eq(economyProfiles.guildId, guildId), eq(economyProfiles.userId, userId)))
         .run();
-      return hide ? "Balances are now hidden from others." : "Balances are now visible.";
+      return hide
+        ? "🔒 Your balances are now **hidden** from other members."
+        : "👁️ Your balances are now **visible** to other members.";
     }
   }
 
@@ -775,7 +799,11 @@ async function dispatch(opts: {
         member: i.member as import("discord.js").GuildMember,
       });
       quests.bumpProgress(guildId, userId, "claim_daily", 1, config);
-      return `Claimed ${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })} (streak ${result.streak}).`;
+      return [
+        `### ${sub[0]!.toUpperCase()}${sub.slice(1)} reward claimed`,
+        `You received **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`,
+        `🔥 Current streak: **${result.streak}**`,
+      ].join("\n");
     }
     if (sub === "work") {
       const result = rewards.claimWork({
@@ -785,14 +813,15 @@ async function dispatch(opts: {
         member: i.member as import("discord.js").GuildMember,
       });
       quests.bumpProgress(guildId, userId, "work", 1, config);
-      return `You earned ${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}.`;
+      return `### Shift complete\nYou earned **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`;
     }
     if (sub === "streak" || sub === "status") {
       const status = rewards.getRewardStatus(guildId, userId, config);
       return [
-        `Daily: ${status.daily.claimed ? "claimed" : "available"} · streak ${status.daily.streak}`,
-        `Weekly: ${status.weekly.claimed ? "claimed" : "available"}`,
-        `Monthly: ${status.monthly.claimed ? "claimed" : "available"}`,
+        "### Reward status",
+        `${status.daily.claimed ? "☑️" : "✅"} **Daily:** ${status.daily.claimed ? "Claimed" : "Available"}  •  Streak **${status.daily.streak}**`,
+        `${status.weekly.claimed ? "☑️" : "✅"} **Weekly:** ${status.weekly.claimed ? "Claimed" : "Available"}`,
+        `${status.monthly.claimed ? "☑️" : "✅"} **Monthly:** ${status.monthly.claimed ? "Claimed" : "Available"}`,
       ].join("\n");
     }
   }
@@ -818,7 +847,16 @@ async function dispatch(opts: {
         `**Tax:** ${result.tax}`,
       ], { guildId, actorId: userId, targetId: target.id });
       quests.bumpProgress(guildId, userId, "pay", 1, config);
-      return `Paid ${target} ${formatCurrency(amount, config, { currencyKey: currency })}${result.tax ? ` (tax ${result.tax})` : ""}.`;
+      return [
+        "### Payment sent",
+        `**Recipient:** <@${target.id}>`,
+        `**Amount:** ${formatCurrency(amount, config, { currencyKey: currency })}`,
+        result.tax
+          ? `**Tax:** ${formatCurrency(result.tax, config, { currencyKey: currency })}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
     if (sub === "gift") {
       if (!config.inventory.allow_gift) throw new EconomyError("Gifting is disabled.", "invalid");
@@ -829,17 +867,17 @@ async function dispatch(opts: {
       if (!item) throw new EconomyError("Item not found.", "not_found");
       inventory.removeInventory(guildId, userId, item.id, qty);
       inventory.addInventory(guildId, target.id, item.id, qty, config);
-      return `Gifted ${qty}× ${item.name} to ${target}.`;
+      return `### Gift sent\n${item.emoji} **${item.name}** × **${qty}**\n**Recipient:** <@${target.id}>`;
     }
     if (sub === "inspect") {
       const target = i.options.getUser("user", true);
       const profile = money.ensureProfile(guildId, target.id);
       const primary = money.getPrimaryCurrencyKey(guildId, config);
       if (profile.hideBalances || config.privacy.hide_balances_by_default) {
-        return `**${target.username}** · Level ${profile.level} · balances hidden`;
+        return `### ${target.displayName}\n<@${target.id}>\n\n**Level ${profile.level}**\n🔒 Balances hidden`;
       }
       const bal = money.getAccount(guildId, target.id, primary);
-      return `**${target.username}** · Level ${profile.level}\n${formatBalances(bal, config, primary)}`;
+      return `### ${target.displayName}\n<@${target.id}>\n\n**Level ${profile.level}**\n${formatBalances(bal, config, primary)}`;
     }
   }
 
@@ -855,16 +893,25 @@ async function dispatch(opts: {
         return listings
           .map((l) => {
             const item = inventory.getItemById(guildId, l.itemId);
-            return `#${l.id} ${item?.name ?? "?"} — ${formatCurrency(l.price, config, { currencyKey: l.currencyKey })} (stock ${l.stock ?? "∞"})`;
+            return `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}**  •  \`#${l.id}\`\nPrice: **${formatCurrency(l.price, config, { currencyKey: l.currencyKey })}**  •  Stock: **${l.stock ?? "∞"}**`;
           })
-          .join("\n");
+          .join("\n\n");
       }
-      return shops.map((s) => `\`${s.key}\` — **${s.name}**`).join("\n") || "No shops yet.";
+      return shops.map((s) => `🏪 **${s.name}**\nUse shop key \`${s.key}\``).join("\n\n") || "No shops yet.";
     }
     if (sub === "item") {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
       if (!item) throw new EconomyError("Item not found.", "not_found");
-      return `**${item.name}** (\`${item.key}\`)\n${item.description || "No description."}\nType: ${item.itemType} · Sell: ${item.sellValue}`;
+      return [
+        `### ${item.emoji} ${item.name}`,
+        `\`${item.key}\``,
+        "",
+        item.description || "*No description provided.*",
+        "",
+        `**Type:** ${item.itemType}`,
+        `**Sell value:** ${formatCurrency(item.sellValue, config, { currencyKey: item.currencyKey })}`,
+        `**Tradeable:** ${item.tradeable ? "Yes" : "No"}  •  **Stackable:** ${item.stackable ? "Yes" : "No"}`,
+      ].join("\n");
     }
     if (sub === "buy") {
       const result = inventory.buyFromShop({
@@ -881,7 +928,8 @@ async function dispatch(opts: {
         `**Listing:** #${result.listing.id}`,
         `**Total:** ${result.total}`,
       ], { guildId, actorId: userId });
-      return `Bought ${result.qty}× item for ${formatCurrency(result.total, config, { currencyKey: result.listing.currencyKey })}.`;
+      const item = inventory.getItemById(guildId, result.listing.itemId);
+      return `### Purchase complete\n${item?.emoji ?? "📦"} **${item?.name ?? "Item"}** × **${result.qty}**\n**Total:** ${formatCurrency(result.total, config, { currencyKey: result.listing.currencyKey })}`;
     }
     if (sub === "sell") {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
@@ -893,13 +941,13 @@ async function dispatch(opts: {
         quantity: i.options.getInteger("quantity") ?? 1,
         config,
       });
-      return `Sold ${result.qty}× ${result.item.name} for ${formatCurrency(result.credit, config, { currencyKey: result.item.currencyKey })}.`;
+      return `### Item sold\n${result.item.emoji} **${result.item.name}** × **${result.qty}**\n**Received:** ${formatCurrency(result.credit, config, { currencyKey: result.item.currencyKey })}`;
     }
     if (sub === "use") {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
       if (!item) throw new EconomyError("Item not found.", "not_found");
       const result = inventory.useItem({ guildId, userId, itemId: item.id, config });
-      return `Used **${result.item.name}**.`;
+      return `${result.item.emoji} Used **${result.item.name}**.`;
     }
     if (sub === "equip" || sub === "unequip") {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
@@ -914,20 +962,26 @@ async function dispatch(opts: {
       return rows
         .map((r) => {
           const item = inventory.getItemById(guildId, r.itemId);
-          return `${r.equipped ? "[E] " : ""}${item?.name ?? r.itemId} ×${r.quantity}`;
+          return `${r.equipped ? "🛡️ " : ""}${item?.emoji ?? "📦"} **${item?.name ?? `Item ${r.itemId}`}** × **${r.quantity}**${r.equipped ? "\n*Equipped*" : ""}`;
         })
-        .join("\n");
+        .join("\n\n");
     }
   }
 
   if (group === "jobs") {
     if (sub === "list") {
       const rows = jobs.listJobs(guildId, true);
-      return rows.map((j) => `\`${j.key}\` ${j.name} — ${j.payMin}-${j.payMax}`).join("\n") || "No jobs configured.";
+      return rows
+        .map(
+          (j) =>
+            `${j.emoji} **${j.name}**  •  \`${j.key}\`\nPay: **${formatCurrency(j.payMin, config, { currencyKey: j.currencyKey })} to ${formatCurrency(j.payMax, config, { currencyKey: j.currencyKey })}**`,
+        )
+        .join("\n\n") || "No jobs configured.";
     }
     if (sub === "choose") {
       jobs.chooseJob(guildId, userId, i.options.getString("job", true), config);
-      return "Job selected.";
+      const profile = money.ensureProfile(guildId, userId);
+      return `💼 Career selected: **${profile.jobKey ?? "Unknown"}**.`;
     }
     if (sub === "work") {
       const result = jobs.doJobWork({
@@ -936,7 +990,14 @@ async function dispatch(opts: {
         config,
       });
       quests.bumpProgress(guildId, userId, "job_work", 1, config);
-      return `${result.flavor}\n${result.failed ? "Shift failed" : "Earned"} ${formatCurrency(Math.abs(result.paid), config, { currencyKey: result.currencyKey })}${result.paid < 0 ? " (fine)" : ""}.`;
+      return [
+        result.failed ? "### Shift failed" : "### Shift complete",
+        `*${result.flavor}*`,
+        "",
+        result.paid < 0
+          ? `**Fine:** ${formatCurrency(Math.abs(result.paid), config, { currencyKey: result.currencyKey })}`
+          : `**Earned:** ${formatCurrency(result.paid, config, { currencyKey: result.currencyKey })}`,
+      ].join("\n");
     }
     if (sub === "resign") {
       jobs.resignJob(guildId, userId);
@@ -944,7 +1005,7 @@ async function dispatch(opts: {
     }
     if (sub === "progress") {
       const profile = money.ensureProfile(guildId, userId);
-      return `Job: ${profile.jobKey ?? "none"} · Level ${profile.jobLevel} · ${profile.jobXp} XP`;
+      return `### Career progress\n**Job:** ${profile.jobKey ? `\`${profile.jobKey}\`` : "None"}\n**Level:** ${profile.jobLevel}\n**XP:** ${profile.jobXp.toLocaleString()}`;
     }
   }
 
@@ -952,7 +1013,10 @@ async function dispatch(opts: {
     const petId = i.options.getInteger("pet") ?? 0;
     if (sub === "list") {
       const owned = pets.listOwnedPets(guildId, userId);
-      return owned.map((p) => `#${p.id} **${p.name}** Lv${p.level}`).join("\n") || "You have no pets.";
+      const activePetId = money.ensureProfile(guildId, userId).activePetId;
+      return owned
+        .map((p) => `🐾 **${p.name}**  •  \`#${p.id}\`\nLevel **${p.level}**${p.id === activePetId ? "  •  ⭐ Active" : ""}`)
+        .join("\n\n") || "You have no pets.";
     }
     if (sub === "adopt") {
       const pet = pets.adoptPet({
@@ -962,33 +1026,42 @@ async function dispatch(opts: {
         name: i.options.getString("name") ?? undefined,
         config,
       });
-      return `Adopted **${pet.pet.name}** (#${pet.pet.id}).`;
+      return `### New pet adopted\n🐾 Meet **${pet.pet.name}**!\nPet ID: \`#${pet.pet.id}\``;
     }
     if (sub === "info") {
       const pet = pets.lazyTickPet(petId, guildId, config);
-      return `**${pet.name}** (#${pet.id}) Lv${pet.level}\nHunger ${pet.hunger} · Energy ${pet.energy} · Happy ${pet.happiness}\nATK ${pet.atk} DEF ${pet.def} HP ${pet.hp} SPD ${pet.speed}`;
+      return [
+        `### 🐾 ${pet.name}`,
+        `Pet \`#${pet.id}\`  •  Level **${pet.level}**`,
+        "",
+        `**Care**`,
+        `🍖 Hunger **${pet.hunger}**  •  ⚡ Energy **${pet.energy}**  •  💛 Happiness **${pet.happiness}**`,
+        "",
+        `**Stats**`,
+        `⚔️ ATK **${pet.atk}**  •  🛡️ DEF **${pet.def}**  •  ❤️ HP **${pet.hp}**  •  💨 SPD **${pet.speed}**`,
+      ].join("\n");
     }
     if (sub === "active") {
       pets.setActivePet(guildId, userId, petId);
-      return `Active pet set to #${petId}.`;
+      return `⭐ Pet \`#${petId}\` is now your **active pet**.`;
     }
     if (sub === "feed") {
       pets.feedPet({ guildId, userId, petId, config });
-      return "Pet fed.";
+      return `🍖 Fed pet \`#${petId}\`.`;
     }
     if (sub === "play") {
       pets.playWithPet({ guildId, userId, petId, config });
-      return "You played with your pet.";
+      return `🎾 Played with pet \`#${petId}\`.`;
     }
     if (sub === "train") {
       pets.trainPet({ guildId, userId, petId, config });
-      return "Training complete.";
+      return `💪 Pet \`#${petId}\` finished training.`;
     }
     if (sub === "adventure") {
       const result = pets.adventurePet({ guildId, userId, petId, config });
       return result.success
-        ? `Adventure success! Earned ${formatCurrency(result.reward, config, { currencyKey: result.currencyKey })}.`
-        : "Adventure failed — better luck next time.";
+        ? `### Adventure complete\nPet \`#${petId}\` returned with **${formatCurrency(result.reward, config, { currencyKey: result.currencyKey })}**.`
+        : `### Adventure unsuccessful\nPet \`#${petId}\` returned safely, but found no reward this time.`;
     }
     if (sub === "battle") {
       const result = pets.battlePets({
@@ -998,15 +1071,19 @@ async function dispatch(opts: {
         opponentPetId: i.options.getInteger("opponent", true),
         config,
       });
-      return `Battle ${result.challengerWon ? "won" : "lost"}! Winner pet #${result.winnerPetId} (${result.scoreA} vs ${result.scoreB}).`;
+      return [
+        result.challengerWon ? "### 🏆 Battle won" : "### Battle lost",
+        `**Winner:** Pet \`#${result.winnerPetId}\``,
+        `**Score:** ${result.scoreA} to ${result.scoreB}`,
+      ].join("\n");
     }
     if (sub === "rename") {
       pets.renamePet(guildId, userId, petId, i.options.getString("name", true), config);
-      return "Pet renamed.";
+      return `✏️ Pet \`#${petId}\` was renamed to **${i.options.getString("name", true)}**.`;
     }
     if (sub === "release") {
       pets.releasePet(guildId, userId, petId, config);
-      return "Pet released.";
+      return `Pet \`#${petId}\` was released.`;
     }
   }
 
@@ -1015,8 +1092,8 @@ async function dispatch(opts: {
       return (
         crafting
           .listRecipes(guildId, true)
-          .map((r) => `\`${r.key}\` ${r.name} (${r.durationSeconds}s)`)
-          .join("\n") || "No recipes."
+          .map((r) => `🧰 **${r.name}**  •  \`${r.key}\`\nCraft time: **${r.durationSeconds.toLocaleString()} seconds**`)
+          .join("\n\n") || "No recipes."
       );
     }
     if (sub === "make") {
@@ -1027,7 +1104,12 @@ async function dispatch(opts: {
         config,
       });
       quests.bumpProgress(guildId, userId, "craft", 1, config);
-      return `Crafting started (#${entry.entry.id}). Ready <t:${Math.floor(entry.entry.completesAt.getTime() / 1000)}:R>.`;
+      return [
+        "### Crafting started",
+        `Queue ID: \`#${entry.entry.id}\``,
+        `**Ready:** <t:${Math.floor(entry.entry.completesAt.getTime() / 1000)}:R>`,
+        `<t:${Math.floor(entry.entry.completesAt.getTime() / 1000)}:F>`,
+      ].join("\n");
     }
     if (sub === "queue") {
       const queue = crafting.listQueue(guildId, userId, true);
@@ -1035,18 +1117,26 @@ async function dispatch(opts: {
         queue
           .map(
             (q) =>
-              `#${q.id} recipe ${q.recipeId} · ${q.cancelled ? "cancelled" : q.collected ? "collected" : q.completesAt.getTime() <= Date.now() ? "ready" : "cooking"}`,
+              `🧰 **Craft \`#${q.id}\`**  •  Recipe \`#${q.recipeId}\`\n${
+                q.cancelled
+                  ? "❌ Cancelled"
+                  : q.collected
+                    ? "✅ Collected"
+                    : q.completesAt.getTime() <= Date.now()
+                      ? "📦 **Ready to collect**"
+                      : `⏳ Ready <t:${Math.floor(q.completesAt.getTime() / 1000)}:R>`
+              }`,
           )
-          .join("\n") || "Queue empty."
+          .join("\n\n") || "Queue empty."
       );
     }
     if (sub === "collect") {
       crafting.collectCraft({ guildId, userId, craftId: i.options.getInteger("id", true), config });
-      return "Craft collected.";
+      return `📦 Collected craft \`#${i.options.getInteger("id", true)}\`.`;
     }
     if (sub === "cancel") {
       crafting.cancelCraft({ guildId, userId, craftId: i.options.getInteger("id", true), config });
-      return "Craft cancelled.";
+      return `Cancelled craft \`#${i.options.getInteger("id", true)}\`.`;
     }
   }
 
@@ -1055,16 +1145,22 @@ async function dispatch(opts: {
       return (
         quests
           .listQuests(guildId, true)
-          .map((q) => `\`${q.key}\` ${q.name} (${q.questType})`)
-          .join("\n") || "No quests."
+          .map(
+            (q) =>
+              `📜 **${q.name}**  •  \`${q.key}\`\n${q.description || "*No description*"}\n**Resets:** ${q.questType}`,
+          )
+          .join("\n\n") || "No quests."
       );
     }
     if (sub === "progress") {
       const rows = quests.listQuestProgress(guildId, userId, config);
       return (
         rows
-          .map((r) => `${r.quest.name}: ${r.progress.progress}/${r.quest.objectiveTarget}${r.progress.claimed ? " ✓" : ""}`)
-          .join("\n") || "No progress yet."
+          .map((r) => {
+            const complete = r.progress.progress >= r.quest.objectiveTarget;
+            return `${r.progress.claimed ? "☑️" : complete ? "✅" : "⬜"} **${r.quest.name}**\nProgress: **${r.progress.progress}/${r.quest.objectiveTarget}**${r.progress.claimed ? "  •  Claimed" : complete ? "  •  Ready to claim" : ""}`;
+          })
+          .join("\n\n") || "No progress yet."
       );
     }
     if (sub === "claim") {
@@ -1074,14 +1170,14 @@ async function dispatch(opts: {
         questKey: i.options.getString("quest", true),
         config,
       });
-      return `Claimed quest reward: ${formatCurrency(result.rewardAmount, config, { currencyKey: result.quest.rewardCurrencyKey })}.`;
+      return `### Quest complete\n📜 **${result.quest.name}**\n**Reward:** ${formatCurrency(result.rewardAmount, config, { currencyKey: result.quest.rewardCurrencyKey })}`;
     }
     if (sub === "achievements") {
       return (
         quests
           .listAchievements(guildId, true)
-          .map((a) => `\`${a.key}\` ${a.name}`)
-          .join("\n") || "No achievements."
+          .map((a) => `🏅 **${a.name}**  •  \`${a.key}\`\n${a.description || "*No description*"}`)
+          .join("\n\n") || "No achievements."
       );
     }
   }
@@ -1095,9 +1191,9 @@ async function dispatch(opts: {
         rows
           .map((l) => {
             const item = inventory.getItemById(guildId, l.itemId);
-            return `#${l.id} ${item?.name ?? "?"} ×${l.quantity} — ${formatCurrency(l.price, config, { currencyKey: l.currencyKey })}`;
+            return `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}** × **${l.quantity}**  •  \`#${l.id}\`\n**Price:** ${formatCurrency(l.price, config, { currencyKey: l.currencyKey })}\n**Seller:** <@${l.sellerId}>`;
           })
-          .join("\n") || "No listings."
+          .join("\n\n") || "No listings."
       );
     }
     if (sub === "list") {
@@ -1112,7 +1208,7 @@ async function dispatch(opts: {
         currencyKey: currency,
         config,
       });
-      return `Listed #${listing.listing.id}.`;
+      return `### Market listing created\n${item.emoji} **${item.name}** × **${listing.listing.quantity}**\n**Listing:** \`#${listing.listing.id}\`\n**Price:** ${formatCurrency(listing.listing.price, config, { currencyKey: listing.listing.currencyKey })}`;
     }
     if (sub === "buy") {
       markets.buyMarketListing({
@@ -1121,7 +1217,7 @@ async function dispatch(opts: {
         listingId: i.options.getInteger("listing", true),
         config,
       });
-      return "Purchase complete.";
+      return `✅ Purchased market listing \`#${i.options.getInteger("listing", true)}\`.`;
     }
     if (sub === "cancel") {
       markets.cancelMarketListing({
@@ -1130,7 +1226,7 @@ async function dispatch(opts: {
         listingId: i.options.getInteger("listing", true),
         config,
       });
-      return "Listing cancelled.";
+      return `Cancelled market listing \`#${i.options.getInteger("listing", true)}\`.`;
     }
   }
 
@@ -1143,7 +1239,7 @@ async function dispatch(opts: {
         partnerId: partner.id,
         config,
       });
-      return `Trade #${trade.id} started with ${partner}.`;
+      return `### Trade started\n**Trade:** \`#${trade.id}\`\n**Partner:** <@${partner.id}>\n\nUse \`/economy trade add\` to build your offer.`;
     }
     if (sub === "add") {
       const type = i.options.getString("type", true) as "currency" | "item";
@@ -1160,7 +1256,7 @@ async function dispatch(opts: {
         quantity: type === "item" ? i.options.getInteger("amount", true) : 0,
         config,
       });
-      return "Offer added.";
+      return `✅ Offer added to trade \`#${i.options.getInteger("trade", true)}\`.`;
     }
     if (sub === "remove") {
       const offerId = i.options.getInteger("offer", true);
@@ -1176,11 +1272,27 @@ async function dispatch(opts: {
         userId,
         config,
       });
-      return "Offer removed.";
+      return `Removed offer \`#${offerId}\` from trade \`#${offer.tradeId}\`.`;
     }
     if (sub === "review") {
       const review = markets.reviewTrade(i.options.getInteger("trade", true));
-      return `Trade #${review.trade.id} status=${review.trade.status} rev=${review.trade.revision}\nOffers: ${review.offers.length}`;
+      return [
+        `### Trade \`#${review.trade.id}\``,
+        `**Status:** ${review.trade.status}`,
+        `**Members:** <@${review.trade.initiatorId}> and <@${review.trade.partnerId}>`,
+        `**Revision:** ${review.trade.revision}`,
+        "",
+        `**Offers (${review.offers.length})**`,
+        review.offers.length
+          ? review.offers
+              .map((offer) =>
+                offer.offerType === "currency"
+                  ? `• <@${offer.userId}>: **${formatCurrency(offer.amount, config, { currencyKey: offer.currencyKey ?? "coins" })}**`
+                  : `• <@${offer.userId}>: Item \`#${offer.itemId}\` × **${offer.quantity}**`,
+              )
+              .join("\n")
+          : "*No offers yet.*",
+      ].join("\n");
     }
     if (sub === "confirm") {
       const tradeId = i.options.getInteger("trade", true);
@@ -1195,7 +1307,9 @@ async function dispatch(opts: {
         `**By:** <@${userId}>`,
         `**Completed:** ${result.completed ? "yes" : "pending"}`,
       ], { guildId, actorId: userId });
-      return result.completed ? "Trade completed." : "Confirmed. Waiting for partner.";
+      return result.completed
+        ? `✅ Trade \`#${tradeId}\` **completed**.`
+        : `☑️ Trade \`#${tradeId}\` confirmed.\nWaiting for the other member to confirm.`;
     }
     if (sub === "cancel") {
       markets.cancelTrade({
@@ -1204,7 +1318,7 @@ async function dispatch(opts: {
         userId,
         config,
       });
-      return "Trade cancelled.";
+      return `Cancelled trade \`#${i.options.getInteger("trade", true)}\`.`;
     }
   }
 
@@ -1215,9 +1329,15 @@ async function dispatch(opts: {
         rows
           .map((a) => {
             const item = inventory.getItemById(guildId, a.itemId);
-            return `#${a.id} ${item?.name ?? "?"} bid ${a.currentBid || a.startingBid} ends <t:${Math.floor(a.endsAt.getTime() / 1000)}:R>`;
+            const bid = a.currentBid || a.startingBid;
+            return [
+              `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}** × **${a.quantity}**  •  \`#${a.id}\``,
+              `**Current bid:** ${formatCurrency(bid, config, { currencyKey: a.currencyKey })}`,
+              `**Seller:** <@${a.sellerId}>`,
+              `**Ends:** <t:${Math.floor(a.endsAt.getTime() / 1000)}:R>`,
+            ].join("\n");
           })
-          .join("\n") || "No auctions."
+          .join("\n\n") || "No auctions."
       );
     }
     if (sub === "create") {
@@ -1234,17 +1354,30 @@ async function dispatch(opts: {
         currencyKey: currency,
         config,
       });
-      return `Auction #${auction.id} created.`;
+      return [
+        "### Auction created",
+        `${item.emoji} **${item.name}** × **${auction.quantity}**`,
+        `**Auction:** \`#${auction.id}\``,
+        `**Starting bid:** ${formatCurrency(auction.startingBid, config, { currencyKey: auction.currencyKey })}`,
+        auction.buyoutPrice
+          ? `**Buyout:** ${formatCurrency(auction.buyoutPrice, config, { currencyKey: auction.currencyKey })}`
+          : null,
+        `**Ends:** <t:${Math.floor(auction.endsAt.getTime() / 1000)}:R>`,
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
     if (sub === "bid") {
-      markets.bidOnAuction({
+      const auctionId = i.options.getInteger("auction", true);
+      const amount = i.options.getInteger("amount", true);
+      const auction = markets.bidOnAuction({
         guildId,
-        auctionId: i.options.getInteger("auction", true),
+        auctionId,
         bidderId: userId,
-        amount: i.options.getInteger("amount", true),
+        amount,
         config,
       });
-      return "Bid placed.";
+      return `### Bid placed\n**Auction:** \`#${auctionId}\`\n**Your bid:** ${formatCurrency(amount, config, { currencyKey: auction.currencyKey })}\n**Ends:** <t:${Math.floor(auction.endsAt.getTime() / 1000)}:R>`;
     }
     if (sub === "buyout") {
       markets.buyoutAuction({
@@ -1257,18 +1390,18 @@ async function dispatch(opts: {
         `**Auction:** #${i.options.getInteger("auction", true)}`,
         `**Buyer:** <@${userId}>`,
       ], { guildId, actorId: userId });
-      return "Buyout complete.";
+      return `✅ Bought out auction \`#${i.options.getInteger("auction", true)}\`.`;
     }
     if (sub === "cancel") {
       const auction = markets.getAuction(guildId, i.options.getInteger("auction", true));
       if (!auction || auction.sellerId !== userId) throw new EconomyError("Auction not found.", "not_found");
       if (auction.currentBidderId) throw new EconomyError("Cannot cancel after bids.", "invalid");
       markets.settleAuction(guildId, auction.id, config);
-      return "Auction cancelled/settled.";
+      return `Auction \`#${auction.id}\` was cancelled and its item was returned.`;
     }
     if (sub === "watch") {
       markets.watchAuction(guildId, i.options.getInteger("auction", true), userId);
-      return "Watching auction.";
+      return `👀 Watching auction \`#${i.options.getInteger("auction", true)}\`.\nYou will be notified when it changes.`;
     }
   }
 
@@ -1277,7 +1410,9 @@ async function dispatch(opts: {
       const active = seasons.getActiveSeason(guildId);
       if (!active) return "No active season.";
       const board = seasons.getSeasonLeaderboard(guildId, active.id, 10);
-      return board.map((r, idx) => `${idx + 1}. <@${r.userId}> — ${r.score}`).join("\n") || "No scores.";
+      return board
+        .map((r, idx) => `${rankMark(idx)} <@${r.userId}>\n**${r.score.toLocaleString()} points**`)
+        .join("\n\n") || "No scores.";
     }
     if (sub === "xp") {
       const { getDb } = await import("../../db/client.js");
@@ -1290,7 +1425,9 @@ async function dispatch(opts: {
         .orderBy(desc(economyProfiles.level), desc(economyProfiles.xp))
         .limit(10)
         .all();
-      return rows.map((r, idx) => `${idx + 1}. <@${r.userId}> — Lv${r.level} (${r.xp} XP)`).join("\n") || "Empty.";
+      return rows
+        .map((r, idx) => `${rankMark(idx)} <@${r.userId}>\nLevel **${r.level}**  •  **${r.xp.toLocaleString()} XP**`)
+        .join("\n\n") || "Empty.";
     }
     if (sub === "pets") {
       const { getDb } = await import("../../db/client.js");
@@ -1307,25 +1444,54 @@ async function dispatch(opts: {
         .orderBy(sql`count(*) DESC`)
         .limit(10)
         .all();
-      return rows.map((r, idx) => `${idx + 1}. <@${r.userId}> — ${r.count} pets`).join("\n") || "Empty.";
+      return rows
+        .map((r, idx) => `${rankMark(idx)} <@${r.userId}>\n🐾 **${r.count.toLocaleString()} pets**`)
+        .join("\n\n") || "Empty.";
     }
     const primary = money.getPrimaryCurrencyKey(guildId, config);
     const board = money.leaderboardRichest(guildId, primary, 10);
-    return board.map((r, idx) => `${idx + 1}. <@${r.userId}> — ${formatCurrency(Number(r.total), config, { currencyKey: primary })}`).join("\n") || "Empty.";
+    return board
+      .map(
+        (r, idx) =>
+          `${rankMark(idx)} <@${r.userId}>\n**${formatCurrency(Number(r.total), config, { currencyKey: primary })}**`,
+      )
+      .join("\n\n") || "Empty.";
   }
 
   if (group === "season") {
     const active = seasons.getActiveSeason(guildId);
     if (!active) return "No active season.";
     if (sub === "info") {
-      return `**${active.name}** (\`${active.key}\`)\n${active.description}\nEnds <t:${Math.floor(active.endsAt.getTime() / 1000)}:R>`;
+      return [
+        `### 🏆 ${active.name}`,
+        `\`${active.key}\``,
+        "",
+        active.description || "*No description provided.*",
+        "",
+        `**Starts:** <t:${Math.floor(active.startsAt.getTime() / 1000)}:F>`,
+        `**Ends:** <t:${Math.floor(active.endsAt.getTime() / 1000)}:R>`,
+      ].join("\n");
     }
     if (sub === "rewards") {
-      return `Rewards: ${active.rewardsJson}`;
+      const parsed = JSON.parse(active.rewardsJson) as Array<{
+        minRank?: number;
+        maxRank?: number;
+        amount?: number;
+      }>;
+      return [
+        `### ${active.name} rewards`,
+        ...parsed.map((reward) => {
+          const placement =
+            reward.minRank === reward.maxRank
+              ? `#${reward.minRank}`
+              : `#${reward.minRank ?? "?"} to #${reward.maxRank ?? "?"}`;
+          return `🏅 **${placement}:** ${Number(reward.amount ?? 0).toLocaleString()}`;
+        }),
+      ].join("\n");
     }
     if (sub === "progress") {
       const score = seasons.getUserSeasonScore(guildId, active.id, userId);
-      return `Your score: ${score?.score ?? 0}${score?.claimed ? " (claimed)" : ""}`;
+      return `### Your season progress\n**Score:** ${(score?.score ?? 0).toLocaleString()}\n**Reward:** ${score?.claimed ? "☑️ Claimed" : "Not claimed"}`;
     }
   }
 
@@ -1351,7 +1517,13 @@ async function dispatch(opts: {
         `**Mode:** ${mode}`,
         `**Amount:** ${amount} ${currency} (${wallet})`,
       ], { guildId, actorId: userId, targetId: target.id });
-      return `Adjusted ${target}. ${formatBalances(bal, config, currency)}`;
+      return [
+        "### Balance adjusted",
+        `**Member:** <@${target.id}>`,
+        `**Action:** ${mode} ${formatCurrency(amount, config, { currencyKey: currency })} in ${wallet}`,
+        "",
+        formatBalances(bal, config, currency),
+      ].join("\n");
     }
     if (sub === "freeze" || sub === "unfreeze") {
       const target = i.options.getUser("user", true);
@@ -1360,14 +1532,25 @@ async function dispatch(opts: {
         `**Staff:** <@${userId}>`,
         `**Target:** ${target}`,
       ], { guildId, actorId: userId, targetId: target.id });
-      return sub === "freeze" ? "Account frozen." : "Account unfrozen.";
+      return sub === "freeze"
+        ? `🔒 Froze <@${target.id}>'s economy account.`
+        : `🔓 Unfroze <@${target.id}>'s economy account.`;
     }
     if (sub === "inspect") {
       const target = i.options.getUser("user", true);
       const profile = money.ensureProfile(guildId, target.id);
       const primary = money.getPrimaryCurrencyKey(guildId, config);
       const bal = money.getAccount(guildId, target.id, primary);
-      return `**${target.username}** (${target.id})\n${formatBalances(bal, config, primary)}\nFrozen=${profile.frozen} Job=${profile.jobKey ?? "none"} Lv${profile.level}`;
+      return [
+        `### Account inspection`,
+        `**Member:** <@${target.id}>`,
+        `**User ID:** \`${target.id}\``,
+        "",
+        formatBalances(bal, config, primary),
+        "",
+        `**Status:** ${profile.frozen ? "🔒 Frozen" : "✅ Active"}`,
+        `**Level:** ${profile.level}  •  **Job:** ${profile.jobKey ? `\`${profile.jobKey}\`` : "None"}`,
+      ].join("\n");
     }
     if (sub === "wipe") {
       if (i.options.getString("confirm", true) !== "WIPE") {
@@ -1387,26 +1570,32 @@ async function dispatch(opts: {
       db.delete(schema.economyProfiles)
         .where(and(eq(schema.economyProfiles.guildId, guildId), eq(schema.economyProfiles.userId, target.id)))
         .run();
-      return `Wiped economy data for ${target}.`;
+      return `🗑️ Wiped all economy data for <@${target.id}> (\`${target.id}\`).`;
     }
     if (sub === "pause" || sub === "resume") {
       money.setGuildPaused(guildId, sub === "pause");
-      return sub === "pause" ? "Economy paused." : "Economy resumed.";
+      return sub === "pause"
+        ? "⏸️ The server economy is now **paused**."
+        : "▶️ The server economy is now **running**.";
     }
     if (sub === "restock") {
       const n = inventory.restockDueListings(guildId);
-      return `Restocked ${n} listings.`;
+      return `📦 Restocked **${n.toLocaleString()}** shop ${n === 1 ? "listing" : "listings"}.`;
     }
     if (sub === "settle") {
       const n = markets.settleExpiredAuctions(guildId, config);
-      return `Settled ${n} auctions.`;
+      return `⚖️ Settled **${n.toLocaleString()}** expired ${n === 1 ? "auction" : "auctions"}.`;
     }
     if (sub === "seed") {
       inventory.seedDefaultCatalog(guildId);
       quests.seedDefaultQuests(guildId);
-      return "Seeded default catalog and quests.";
+      return "🌱 Seeded the **default catalog and quests**.";
     }
   }
 
   throw new EconomyError("Unknown subcommand.", "invalid");
+}
+
+function rankMark(index: number): string {
+  return ["🥇", "🥈", "🥉"][index] ?? `**${index + 1}.**`;
 }
