@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { applyBps, applyMultiplier, EconomyError } from "./money.js";
-import { formatCurrency, shortEconomyError } from "./format.js";
+import { formatCurrency, parseAutocompleteId, shortEconomyError } from "./format.js";
 import { zEconomyConfig } from "../../../config/schemas/economy.js";
 
 describe("economy money helpers", () => {
@@ -29,6 +29,30 @@ describe("economy format", () => {
   it("maps EconomyError messages", () => {
     assert.equal(shortEconomyError(new EconomyError("Nope", "paused")), "Nope");
     assert.equal(shortEconomyError(new Error("boom")), "boom");
+  });
+
+  it("formats insufficient funds shortfalls", () => {
+    const text = shortEconomyError(
+      new EconomyError("Not enough money in your pocket.", "insufficient", {
+        kind: "funds",
+        wallet: "pocket",
+        currencyKey: "coins",
+        required: 500,
+        available: 200,
+      }),
+      config,
+    );
+    assert.match(text, /Need:/);
+    assert.match(text, /Have:/);
+    assert.match(text, /Short:/);
+    assert.match(text, /500/);
+    assert.match(text, /200/);
+    assert.match(text, /300/);
+  });
+
+  it("parses autocomplete ids", () => {
+    assert.equal(parseAutocompleteId("42", "pet"), 42);
+    assert.throws(() => parseAutocompleteId("nope", "pet"), /autocomplete/i);
   });
 });
 

@@ -348,7 +348,18 @@ export function removeInventory(guildId: string, userId: string, itemId: number,
     )
     .get();
   if (!existing || existing.quantity < qty) {
-    throw new EconomyError("Not enough items.", "insufficient");
+    const item = getItemById(guildId, itemId);
+    throw new EconomyError(
+      item ? `You do not have enough ${item.name}.` : "Not enough items.",
+      "insufficient",
+      {
+        kind: "items",
+        itemName: item?.name,
+        itemEmoji: item?.emoji,
+        required: qty,
+        available: existing?.quantity ?? 0,
+      },
+    );
   }
   const next = existing.quantity - qty;
   if (next <= 0) {
@@ -399,7 +410,18 @@ export function buyFromShop(opts: {
     .get();
   if (!shop?.enabled) throw new EconomyError("Shop is disabled.", "invalid");
   if (listing.stock !== null && listing.stock !== undefined && listing.stock < qty) {
-    throw new EconomyError("Not enough stock.", "insufficient");
+    const item = getItemById(opts.guildId, listing.itemId);
+    throw new EconomyError(
+      item ? `${item.name} is low on stock.` : "Not enough stock.",
+      "insufficient",
+      {
+        kind: "stock",
+        itemName: item?.name,
+        itemEmoji: item?.emoji,
+        required: qty,
+        available: listing.stock,
+      },
+    );
   }
 
   const total = listing.price * qty;

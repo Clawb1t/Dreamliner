@@ -116,6 +116,10 @@ export function listOwnedPets(guildId: string, userId: string) {
     .all();
 }
 
+export function listGuildPets(guildId: string) {
+  return getDb().select().from(economyPets).where(eq(economyPets.guildId, guildId)).all();
+}
+
 export function getPet(guildId: string, petId: number) {
   return getDb()
     .select()

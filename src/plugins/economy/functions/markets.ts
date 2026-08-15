@@ -42,6 +42,29 @@ export function getTrade(tradeId: number) {
   return getDb().select().from(economyTrades).where(eq(economyTrades.id, tradeId)).get();
 }
 
+export function listOpenTradesForUser(guildId: string, userId: string) {
+  return getDb()
+    .select()
+    .from(economyTrades)
+    .where(and(eq(economyTrades.guildId, guildId), eq(economyTrades.status, "open")))
+    .all()
+    .filter((t) => t.initiatorId === userId || t.partnerId === userId);
+}
+
+export function listOffersForUser(guildId: string, userId: string) {
+  const trades = listOpenTradesForUser(guildId, userId);
+  const out: Array<{
+    offer: ReturnType<typeof listTradeOffers>[number];
+    trade: (typeof trades)[number];
+  }> = [];
+  for (const trade of trades) {
+    for (const offer of listTradeOffers(trade.id)) {
+      if (offer.userId === userId) out.push({ offer, trade });
+    }
+  }
+  return out;
+}
+
 export function listTradeOffers(tradeId: number) {
   return getDb().select().from(economyTradeOffers).where(eq(economyTradeOffers.tradeId, tradeId)).all();
 }
@@ -390,7 +413,13 @@ export function createMarketListing(opts: {
   const db = getDb();
   return db.transaction(() => {
     if (getInventoryQty(opts.guildId, opts.sellerId, opts.itemId) < qty) {
-      throw new EconomyError("Not enough items.", "insufficient");
+      throw new EconomyError("Not enough items.", "insufficient", {
+        kind: "items",
+        itemName: item.name,
+        itemEmoji: item.emoji,
+        required: qty,
+        available: getInventoryQty(opts.guildId, opts.sellerId, opts.itemId),
+      });
     }
     removeInventory(opts.guildId, opts.sellerId, opts.itemId, qty);
     if (fee > 0) {

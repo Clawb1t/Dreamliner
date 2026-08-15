@@ -10,7 +10,7 @@ import {
   isGuildPaused,
   mutateMoney,
 } from "./money.js";
-import { assertCooldown, getInventoryQty, setCooldown } from "./inventory.js";
+import { assertCooldown, getInventoryQty, getItemById, setCooldown } from "./inventory.js";
 
 function now() {
   return new Date();
@@ -139,8 +139,20 @@ export function chooseJob(guildId: string, userId: string, jobKey: string, confi
     throw new EconomyError(`Requires economy level ${job.requiredLevel}.`, "limit");
   }
   if (job.requiredItemId) {
-    if (getInventoryQty(guildId, userId, job.requiredItemId) < 1) {
-      throw new EconomyError("You lack the required item for this job.", "insufficient");
+    const have = getInventoryQty(guildId, userId, job.requiredItemId);
+    if (have < 1) {
+      const item = getItemById(guildId, job.requiredItemId);
+      throw new EconomyError(
+        item ? `You need a ${item.name} for this job.` : "You lack the required item for this job.",
+        "insufficient",
+        {
+          kind: "items",
+          itemName: item?.name,
+          itemEmoji: item?.emoji,
+          required: 1,
+          available: have,
+        },
+      );
     }
   }
   getDb()

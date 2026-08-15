@@ -34,6 +34,17 @@ export type MoneyMutation = {
   allowFrozenAccount?: boolean;
 };
 
+export type EconomyShortfall = {
+  kind: "funds" | "items" | "stock";
+  /** Human wallet label when kind is funds. */
+  wallet?: "pocket" | "bank" | "frozen";
+  currencyKey?: string;
+  itemName?: string;
+  itemEmoji?: string;
+  required: number;
+  available: number;
+};
+
 export class EconomyError extends Error {
   constructor(
     message: string,
@@ -45,6 +56,7 @@ export class EconomyError extends Error {
       | "not_found"
       | "conflict"
       | "limit",
+    public shortfall?: EconomyShortfall,
   ) {
     super(message);
     this.name = "EconomyError";
@@ -376,8 +388,32 @@ export function mutateMoney(
     const nextPocket = account.pocket + deltaPocket;
     const nextBank = account.bank + deltaBank;
     const nextFrozen = account.frozen + deltaFrozen;
-    if (nextPocket < 0 || nextBank < 0 || nextFrozen < 0) {
-      throw new EconomyError("Insufficient funds.", "insufficient");
+    if (nextPocket < 0) {
+      throw new EconomyError("Not enough money in your pocket.", "insufficient", {
+        kind: "funds",
+        wallet: "pocket",
+        currencyKey: mutation.currencyKey,
+        required: -deltaPocket,
+        available: account.pocket,
+      });
+    }
+    if (nextBank < 0) {
+      throw new EconomyError("Not enough money in your bank.", "insufficient", {
+        kind: "funds",
+        wallet: "bank",
+        currencyKey: mutation.currencyKey,
+        required: -deltaBank,
+        available: account.bank,
+      });
+    }
+    if (nextFrozen < 0) {
+      throw new EconomyError("Not enough frozen balance for that action.", "insufficient", {
+        kind: "funds",
+        wallet: "frozen",
+        currencyKey: mutation.currencyKey,
+        required: -deltaFrozen,
+        available: account.frozen,
+      });
     }
 
     tx.update(economyAccounts)

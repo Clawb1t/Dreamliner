@@ -7,7 +7,7 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { deferReplyOptions, resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
 import { zEconomyConfig, type EconomyConfig } from "../../config/schemas/economy.js";
 import { emitLog } from "../../core/logging/send.js";
-import { shortEconomyError, formatBalances, formatCurrency } from "./functions/format.js";
+import { shortEconomyError, formatBalances, formatCurrency, parseAutocompleteId } from "./functions/format.js";
 import { EconomyError } from "./functions/money.js";
 import * as money from "./functions/money.js";
 import * as inventory from "./functions/inventory.js";
@@ -74,8 +74,9 @@ async function replyErr(
   ctx: import("../../core/types.js").SlashCommandContext,
   err: unknown,
   deferred: boolean,
+  config?: EconomyConfig,
 ) {
-  const msg = shortEconomyError(err);
+  const msg = shortEconomyError(err, config);
   const payload = resultEdit("Economy", msg, slashResultOptions(ctx, { tone: "error" }));
   if (deferred) await interaction.editReply(payload);
   else await interaction.reply(resultReply("Economy", msg, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
@@ -89,6 +90,13 @@ function currencyOption(
     .setDescription("Currency key (coins or gems)")
     .setRequired(false)
     .setAutocomplete(true);
+}
+
+function idAutocompleteOption(
+  name: string,
+  description: string,
+): (opt: import("discord.js").SlashCommandStringOption) => import("discord.js").SlashCommandStringOption {
+  return (opt) => opt.setName(name).setDescription(description).setRequired(true).setAutocomplete(true);
 }
 
 export const economyCommands: SlashCommandDefinition[] = [
@@ -205,7 +213,7 @@ export const economyCommands: SlashCommandDefinition[] = [
             s
               .setName("buy")
               .setDescription("Buy from a listing")
-              .addIntegerOption((o) => o.setName("listing").setDescription("Listing ID").setRequired(true))
+              .addStringOption(idAutocompleteOption("listing", "Shop listing"))
               .addIntegerOption((o) => o.setName("quantity").setDescription("Quantity").setMinValue(1)),
           )
           .addSubcommand((s) =>
@@ -271,57 +279,57 @@ export const economyCommands: SlashCommandDefinition[] = [
             s
               .setName("info")
               .setDescription("Pet details")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet")),
           )
           .addSubcommand((s) =>
             s
               .setName("active")
               .setDescription("Set active pet")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet")),
           )
           .addSubcommand((s) =>
             s
               .setName("feed")
               .setDescription("Feed a pet")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet")),
           )
           .addSubcommand((s) =>
             s
               .setName("play")
               .setDescription("Play with a pet")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet")),
           )
           .addSubcommand((s) =>
             s
               .setName("train")
               .setDescription("Train a pet")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet")),
           )
           .addSubcommand((s) =>
             s
               .setName("adventure")
               .setDescription("Send a pet on an adventure")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet")),
           )
           .addSubcommand((s) =>
             s
               .setName("battle")
               .setDescription("Battle another pet (no wagers)")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Your pet ID").setRequired(true))
-              .addIntegerOption((o) => o.setName("opponent").setDescription("Opponent pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet"))
+              .addStringOption(idAutocompleteOption("opponent", "Opponent pet")),
           )
           .addSubcommand((s) =>
             s
               .setName("rename")
               .setDescription("Rename a pet")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true))
+              .addStringOption(idAutocompleteOption("pet", "Your pet"))
               .addStringOption((o) => o.setName("name").setDescription("New name").setRequired(true)),
           )
           .addSubcommand((s) =>
             s
               .setName("release")
               .setDescription("Release a pet")
-              .addIntegerOption((o) => o.setName("pet").setDescription("Pet ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("pet", "Your pet")),
           ),
       )
       .addSubcommandGroup((g) =>
@@ -340,13 +348,13 @@ export const economyCommands: SlashCommandDefinition[] = [
             s
               .setName("collect")
               .setDescription("Collect a finished craft")
-              .addIntegerOption((o) => o.setName("id").setDescription("Craft queue ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("id", "Craft in your queue")),
           )
           .addSubcommand((s) =>
             s
               .setName("cancel")
               .setDescription("Cancel a craft")
-              .addIntegerOption((o) => o.setName("id").setDescription("Craft queue ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("id", "Craft in your queue")),
           ),
       )
       .addSubcommandGroup((g) =>
@@ -381,13 +389,13 @@ export const economyCommands: SlashCommandDefinition[] = [
             s
               .setName("buy")
               .setDescription("Buy a listing")
-              .addIntegerOption((o) => o.setName("listing").setDescription("Listing ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("listing", "Market listing")),
           )
           .addSubcommand((s) =>
             s
               .setName("cancel")
               .setDescription("Cancel your listing")
-              .addIntegerOption((o) => o.setName("listing").setDescription("Listing ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("listing", "Your market listing")),
           )
           .addSubcommand((s) => s.setName("my-listings").setDescription("Your active listings")),
       )
@@ -405,7 +413,7 @@ export const economyCommands: SlashCommandDefinition[] = [
             s
               .setName("add")
               .setDescription("Add currency or item to a trade")
-              .addIntegerOption((o) => o.setName("trade").setDescription("Trade ID").setRequired(true))
+              .addStringOption(idAutocompleteOption("trade", "Open trade"))
               .addStringOption((o) =>
                 o
                   .setName("type")
@@ -421,25 +429,25 @@ export const economyCommands: SlashCommandDefinition[] = [
             s
               .setName("remove")
               .setDescription("Remove an offer from a trade")
-              .addIntegerOption((o) => o.setName("offer").setDescription("Offer ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("offer", "Your trade offer")),
           )
           .addSubcommand((s) =>
             s
               .setName("review")
               .setDescription("Review a trade")
-              .addIntegerOption((o) => o.setName("trade").setDescription("Trade ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("trade", "Open trade")),
           )
           .addSubcommand((s) =>
             s
               .setName("confirm")
               .setDescription("Confirm a trade")
-              .addIntegerOption((o) => o.setName("trade").setDescription("Trade ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("trade", "Open trade")),
           )
           .addSubcommand((s) =>
             s
               .setName("cancel")
               .setDescription("Cancel a trade")
-              .addIntegerOption((o) => o.setName("trade").setDescription("Trade ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("trade", "Open trade")),
           ),
       )
       .addSubcommandGroup((g) =>
@@ -462,26 +470,26 @@ export const economyCommands: SlashCommandDefinition[] = [
             s
               .setName("bid")
               .setDescription("Bid on an auction")
-              .addIntegerOption((o) => o.setName("auction").setDescription("Auction ID").setRequired(true))
+              .addStringOption(idAutocompleteOption("auction", "Auction"))
               .addIntegerOption((o) => o.setName("amount").setDescription("Bid amount").setRequired(true).setMinValue(1)),
           )
           .addSubcommand((s) =>
             s
               .setName("buyout")
               .setDescription("Buy out an auction")
-              .addIntegerOption((o) => o.setName("auction").setDescription("Auction ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("auction", "Auction")),
           )
           .addSubcommand((s) =>
             s
               .setName("cancel")
               .setDescription("Cancel your auction (no bids)")
-              .addIntegerOption((o) => o.setName("auction").setDescription("Auction ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("auction", "Your auction")),
           )
           .addSubcommand((s) =>
             s
               .setName("watch")
               .setDescription("Watch an auction")
-              .addIntegerOption((o) => o.setName("auction").setDescription("Auction ID").setRequired(true)),
+              .addStringOption(idAutocompleteOption("auction", "Auction")),
           ),
       )
       .addSubcommandGroup((g) =>
@@ -589,7 +597,7 @@ export const economyCommands: SlashCommandDefinition[] = [
           resultEdit("Economy", details, slashResultOptions(ctx, { tone: "success" })),
         );
       } catch (err) {
-        await replyErr(ctx.interaction, ctx, err, true);
+        await replyErr(ctx.interaction, ctx, err, true, config);
       }
     },
   },
@@ -714,7 +722,7 @@ async function dispatch(opts: {
         throw new EconomyError("That member hides their balances.", "invalid");
       }
       const bal = money.getAccount(guildId, target.id, currency);
-      return [`### ${target.displayName}'s balance`, `<@${target.id}>`, "", formatBalances(bal, config, currency)].join("\n");
+      return [`**${target.displayName}'s balance**`, `<@${target.id}>`, "", formatBalances(bal, config, currency)].join("\n");
     }
     if (sub === "deposit") {
       const amount = i.options.getInteger("amount", true);
@@ -755,7 +763,7 @@ async function dispatch(opts: {
       const primary = money.getPrimaryCurrencyKey(guildId, config);
       const net = money.getNetWorth(guildId, target.id, primary);
       return [
-        `### ${target.displayName}'s profile`,
+        `**${target.displayName}'s profile**`,
         `<@${target.id}>`,
         "",
         `**Progression**`,
@@ -800,7 +808,7 @@ async function dispatch(opts: {
       });
       quests.bumpProgress(guildId, userId, "claim_daily", 1, config);
       return [
-        `### ${sub[0]!.toUpperCase()}${sub.slice(1)} reward claimed`,
+        `**${sub[0]!.toUpperCase()}${sub.slice(1)} reward claimed**`,
         `You received **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`,
         `🔥 Current streak: **${result.streak}**`,
       ].join("\n");
@@ -813,12 +821,12 @@ async function dispatch(opts: {
         member: i.member as import("discord.js").GuildMember,
       });
       quests.bumpProgress(guildId, userId, "work", 1, config);
-      return `### Shift complete\nYou earned **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`;
+      return `**Shift complete**\nYou earned **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`;
     }
     if (sub === "streak" || sub === "status") {
       const status = rewards.getRewardStatus(guildId, userId, config);
       return [
-        "### Reward status",
+        "**Reward status**",
         `${status.daily.claimed ? "☑️" : "✅"} **Daily:** ${status.daily.claimed ? "Claimed" : "Available"}  •  Streak **${status.daily.streak}**`,
         `${status.weekly.claimed ? "☑️" : "✅"} **Weekly:** ${status.weekly.claimed ? "Claimed" : "Available"}`,
         `${status.monthly.claimed ? "☑️" : "✅"} **Monthly:** ${status.monthly.claimed ? "Claimed" : "Available"}`,
@@ -848,7 +856,7 @@ async function dispatch(opts: {
       ], { guildId, actorId: userId, targetId: target.id });
       quests.bumpProgress(guildId, userId, "pay", 1, config);
       return [
-        "### Payment sent",
+        "**Payment sent**",
         `**Recipient:** <@${target.id}>`,
         `**Amount:** ${formatCurrency(amount, config, { currencyKey: currency })}`,
         result.tax
@@ -867,17 +875,17 @@ async function dispatch(opts: {
       if (!item) throw new EconomyError("Item not found.", "not_found");
       inventory.removeInventory(guildId, userId, item.id, qty);
       inventory.addInventory(guildId, target.id, item.id, qty, config);
-      return `### Gift sent\n${item.emoji} **${item.name}** × **${qty}**\n**Recipient:** <@${target.id}>`;
+      return `**Gift sent**\n${item.emoji} **${item.name}** × **${qty}**\n**Recipient:** <@${target.id}>`;
     }
     if (sub === "inspect") {
       const target = i.options.getUser("user", true);
       const profile = money.ensureProfile(guildId, target.id);
       const primary = money.getPrimaryCurrencyKey(guildId, config);
       if (profile.hideBalances || config.privacy.hide_balances_by_default) {
-        return `### ${target.displayName}\n<@${target.id}>\n\n**Level ${profile.level}**\n🔒 Balances hidden`;
+        return `**${target.displayName}**\n<@${target.id}>\n\n**Level ${profile.level}**\n🔒 Balances hidden`;
       }
       const bal = money.getAccount(guildId, target.id, primary);
-      return `### ${target.displayName}\n<@${target.id}>\n\n**Level ${profile.level}**\n${formatBalances(bal, config, primary)}`;
+      return `**${target.displayName}**\n<@${target.id}>\n\n**Level ${profile.level}**\n${formatBalances(bal, config, primary)}`;
     }
   }
 
@@ -893,7 +901,7 @@ async function dispatch(opts: {
         return listings
           .map((l) => {
             const item = inventory.getItemById(guildId, l.itemId);
-            return `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}**  •  \`#${l.id}\`\nPrice: **${formatCurrency(l.price, config, { currencyKey: l.currencyKey })}**  •  Stock: **${l.stock ?? "∞"}**`;
+            return `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}**\nPrice: **${formatCurrency(l.price, config, { currencyKey: l.currencyKey })}**  •  Stock: **${l.stock ?? "∞"}**`;
           })
           .join("\n\n");
       }
@@ -903,7 +911,7 @@ async function dispatch(opts: {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
       if (!item) throw new EconomyError("Item not found.", "not_found");
       return [
-        `### ${item.emoji} ${item.name}`,
+        `**${item.emoji} ${item.name}**`,
         `\`${item.key}\``,
         "",
         item.description || "*No description provided.*",
@@ -917,7 +925,7 @@ async function dispatch(opts: {
       const result = inventory.buyFromShop({
         guildId,
         userId,
-        listingId: i.options.getInteger("listing", true),
+        listingId: parseAutocompleteId(i.options.getString("listing", true), "listing"),
         quantity: i.options.getInteger("quantity") ?? 1,
         config,
       });
@@ -929,7 +937,7 @@ async function dispatch(opts: {
         `**Total:** ${result.total}`,
       ], { guildId, actorId: userId });
       const item = inventory.getItemById(guildId, result.listing.itemId);
-      return `### Purchase complete\n${item?.emoji ?? "📦"} **${item?.name ?? "Item"}** × **${result.qty}**\n**Total:** ${formatCurrency(result.total, config, { currencyKey: result.listing.currencyKey })}`;
+      return `**Purchase complete**\n${item?.emoji ?? "📦"} **${item?.name ?? "Item"}** × **${result.qty}**\n**Total:** ${formatCurrency(result.total, config, { currencyKey: result.listing.currencyKey })}`;
     }
     if (sub === "sell") {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
@@ -941,7 +949,7 @@ async function dispatch(opts: {
         quantity: i.options.getInteger("quantity") ?? 1,
         config,
       });
-      return `### Item sold\n${result.item.emoji} **${result.item.name}** × **${result.qty}**\n**Received:** ${formatCurrency(result.credit, config, { currencyKey: result.item.currencyKey })}`;
+      return `**Item sold**\n${result.item.emoji} **${result.item.name}** × **${result.qty}**\n**Received:** ${formatCurrency(result.credit, config, { currencyKey: result.item.currencyKey })}`;
     }
     if (sub === "use") {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
@@ -991,7 +999,7 @@ async function dispatch(opts: {
       });
       quests.bumpProgress(guildId, userId, "job_work", 1, config);
       return [
-        result.failed ? "### Shift failed" : "### Shift complete",
+        result.failed ? "**Shift failed**" : "**Shift complete**",
         `*${result.flavor}*`,
         "",
         result.paid < 0
@@ -1005,17 +1013,20 @@ async function dispatch(opts: {
     }
     if (sub === "progress") {
       const profile = money.ensureProfile(guildId, userId);
-      return `### Career progress\n**Job:** ${profile.jobKey ? `\`${profile.jobKey}\`` : "None"}\n**Level:** ${profile.jobLevel}\n**XP:** ${profile.jobXp.toLocaleString()}`;
+      return `**Career progress**\n**Job:** ${profile.jobKey ? `\`${profile.jobKey}\`` : "None"}\n**Level:** ${profile.jobLevel}\n**XP:** ${profile.jobXp.toLocaleString()}`;
     }
   }
 
   if (group === "pets") {
-    const petId = i.options.getInteger("pet") ?? 0;
+    const petId = (() => { const raw = i.options.getString("pet"); return raw ? parseAutocompleteId(raw, "pet") : 0; })();
     if (sub === "list") {
       const owned = pets.listOwnedPets(guildId, userId);
       const activePetId = money.ensureProfile(guildId, userId).activePetId;
       return owned
-        .map((p) => `🐾 **${p.name}**  •  \`#${p.id}\`\nLevel **${p.level}**${p.id === activePetId ? "  •  ⭐ Active" : ""}`)
+        .map((p) => {
+          const species = pets.getSpeciesById(guildId, p.speciesId);
+          return `${species?.emoji ?? "🐾"} **${p.name}**\nLevel **${p.level}**${p.id === activePetId ? "  •  ⭐ Active" : ""}`;
+        })
         .join("\n\n") || "You have no pets.";
     }
     if (sub === "adopt") {
@@ -1026,13 +1037,13 @@ async function dispatch(opts: {
         name: i.options.getString("name") ?? undefined,
         config,
       });
-      return `### New pet adopted\n🐾 Meet **${pet.pet.name}**!\nPet ID: \`#${pet.pet.id}\``;
+      return `**New pet adopted**\n🐾 Meet **${pet.pet.name}**!`;
     }
     if (sub === "info") {
       const pet = pets.lazyTickPet(petId, guildId, config);
       return [
-        `### 🐾 ${pet.name}`,
-        `Pet \`#${pet.id}\`  •  Level **${pet.level}**`,
+        `**🐾 ${pet.name}**`,
+        `Level **${pet.level}**`,
         "",
         `**Care**`,
         `🍖 Hunger **${pet.hunger}**  •  ⚡ Energy **${pet.energy}**  •  💛 Happiness **${pet.happiness}**`,
@@ -1043,47 +1054,51 @@ async function dispatch(opts: {
     }
     if (sub === "active") {
       pets.setActivePet(guildId, userId, petId);
-      return `⭐ Pet \`#${petId}\` is now your **active pet**.`;
+      const pet = pets.getPet(guildId, petId);
+      return `⭐ **${pet?.name ?? "Pet"}** is now your active pet.`;
     }
     if (sub === "feed") {
-      pets.feedPet({ guildId, userId, petId, config });
-      return `🍖 Fed pet \`#${petId}\`.`;
+      const result = pets.feedPet({ guildId, userId, petId, config });
+      return `🍖 Fed **${result.pet.name}**.`;
     }
     if (sub === "play") {
-      pets.playWithPet({ guildId, userId, petId, config });
-      return `🎾 Played with pet \`#${petId}\`.`;
+      const result = pets.playWithPet({ guildId, userId, petId, config });
+      return `🎾 Played with **${result.pet.name}**.`;
     }
     if (sub === "train") {
-      pets.trainPet({ guildId, userId, petId, config });
-      return `💪 Pet \`#${petId}\` finished training.`;
+      const result = pets.trainPet({ guildId, userId, petId, config });
+      return `💪 **${result.pet.name}** finished training.`;
     }
     if (sub === "adventure") {
       const result = pets.adventurePet({ guildId, userId, petId, config });
+      const pet = pets.getPet(guildId, petId);
       return result.success
-        ? `### Adventure complete\nPet \`#${petId}\` returned with **${formatCurrency(result.reward, config, { currencyKey: result.currencyKey })}**.`
-        : `### Adventure unsuccessful\nPet \`#${petId}\` returned safely, but found no reward this time.`;
+        ? `**Adventure complete**\n**${pet?.name ?? "Your pet"}** returned with **${formatCurrency(result.reward, config, { currencyKey: result.currencyKey })}**.`
+        : `**Adventure unsuccessful**\n**${pet?.name ?? "Your pet"}** returned safely, but found no reward this time.`;
     }
     if (sub === "battle") {
       const result = pets.battlePets({
         guildId,
         challengerUserId: userId,
         challengerPetId: petId,
-        opponentPetId: i.options.getInteger("opponent", true),
+        opponentPetId: parseAutocompleteId(i.options.getString("opponent", true), "opponent pet"),
         config,
       });
+      const winner = pets.getPet(guildId, result.winnerPetId);
       return [
-        result.challengerWon ? "### 🏆 Battle won" : "### Battle lost",
-        `**Winner:** Pet \`#${result.winnerPetId}\``,
+        result.challengerWon ? "**🏆 Battle won**" : "**Battle lost**",
+        `**Winner:** **${winner?.name ?? "Pet"}**`,
         `**Score:** ${result.scoreA} to ${result.scoreB}`,
       ].join("\n");
     }
     if (sub === "rename") {
-      pets.renamePet(guildId, userId, petId, i.options.getString("name", true), config);
-      return `✏️ Pet \`#${petId}\` was renamed to **${i.options.getString("name", true)}**.`;
+      const name = i.options.getString("name", true);
+      pets.renamePet(guildId, userId, petId, name, config);
+      return `✏️ Your pet was renamed to **${name}**.`;
     }
     if (sub === "release") {
-      pets.releasePet(guildId, userId, petId, config);
-      return `Pet \`#${petId}\` was released.`;
+      const pet = pets.releasePet(guildId, userId, petId, config);
+      return `Released **${pet.name}**.`;
     }
   }
 
@@ -1104,39 +1119,44 @@ async function dispatch(opts: {
         config,
       });
       quests.bumpProgress(guildId, userId, "craft", 1, config);
+      const recipe = crafting.getRecipeById(guildId, entry.entry.recipeId);
       return [
-        "### Crafting started",
-        `Queue ID: \`#${entry.entry.id}\``,
+        "**Crafting started**",
+        `**Recipe:** ${recipe?.name ?? "Unknown"}`,
         `**Ready:** <t:${Math.floor(entry.entry.completesAt.getTime() / 1000)}:R>`,
-        `<t:${Math.floor(entry.entry.completesAt.getTime() / 1000)}:F>`,
       ].join("\n");
     }
     if (sub === "queue") {
       const queue = crafting.listQueue(guildId, userId, true);
       return (
         queue
-          .map(
-            (q) =>
-              `🧰 **Craft \`#${q.id}\`**  •  Recipe \`#${q.recipeId}\`\n${
-                q.cancelled
-                  ? "❌ Cancelled"
-                  : q.collected
-                    ? "✅ Collected"
-                    : q.completesAt.getTime() <= Date.now()
-                      ? "📦 **Ready to collect**"
-                      : `⏳ Ready <t:${Math.floor(q.completesAt.getTime() / 1000)}:R>`
-              }`,
-          )
+          .map((q) => {
+            const recipe = crafting.getRecipeById(guildId, q.recipeId);
+            const status = q.cancelled
+              ? "❌ Cancelled"
+              : q.collected
+                ? "✅ Collected"
+                : q.completesAt.getTime() <= Date.now()
+                  ? "📦 **Ready to collect**"
+                  : `⏳ Ready <t:${Math.floor(q.completesAt.getTime() / 1000)}:R>`;
+            return `🧰 **${recipe?.name ?? "Craft"}**\n${status}`;
+          })
           .join("\n\n") || "Queue empty."
       );
     }
     if (sub === "collect") {
-      crafting.collectCraft({ guildId, userId, craftId: i.options.getInteger("id", true), config });
-      return `📦 Collected craft \`#${i.options.getInteger("id", true)}\`.`;
+      const craftId = parseAutocompleteId(i.options.getString("id", true), "craft");
+      const before = crafting.getCraftEntry(guildId, craftId);
+      const recipe = before ? crafting.getRecipeById(guildId, before.recipeId) : null;
+      crafting.collectCraft({ guildId, userId, craftId, config });
+      return `📦 Collected **${recipe?.name ?? "craft"}**.`;
     }
     if (sub === "cancel") {
-      crafting.cancelCraft({ guildId, userId, craftId: i.options.getInteger("id", true), config });
-      return `Cancelled craft \`#${i.options.getInteger("id", true)}\`.`;
+      const craftId = parseAutocompleteId(i.options.getString("id", true), "craft");
+      const before = crafting.getCraftEntry(guildId, craftId);
+      const recipe = before ? crafting.getRecipeById(guildId, before.recipeId) : null;
+      crafting.cancelCraft({ guildId, userId, craftId, config });
+      return `Cancelled **${recipe?.name ?? "craft"}**.`;
     }
   }
 
@@ -1170,7 +1190,7 @@ async function dispatch(opts: {
         questKey: i.options.getString("quest", true),
         config,
       });
-      return `### Quest complete\n📜 **${result.quest.name}**\n**Reward:** ${formatCurrency(result.rewardAmount, config, { currencyKey: result.quest.rewardCurrencyKey })}`;
+      return `**Quest complete**\n📜 **${result.quest.name}**\n**Reward:** ${formatCurrency(result.rewardAmount, config, { currencyKey: result.quest.rewardCurrencyKey })}`;
     }
     if (sub === "achievements") {
       return (
@@ -1191,7 +1211,7 @@ async function dispatch(opts: {
         rows
           .map((l) => {
             const item = inventory.getItemById(guildId, l.itemId);
-            return `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}** × **${l.quantity}**  •  \`#${l.id}\`\n**Price:** ${formatCurrency(l.price, config, { currencyKey: l.currencyKey })}\n**Seller:** <@${l.sellerId}>`;
+            return `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}** × **${l.quantity}**\n**Price:** ${formatCurrency(l.price, config, { currencyKey: l.currencyKey })}\n**Seller:** <@${l.sellerId}>`;
           })
           .join("\n\n") || "No listings."
       );
@@ -1208,46 +1228,53 @@ async function dispatch(opts: {
         currencyKey: currency,
         config,
       });
-      return `### Market listing created\n${item.emoji} **${item.name}** × **${listing.listing.quantity}**\n**Listing:** \`#${listing.listing.id}\`\n**Price:** ${formatCurrency(listing.listing.price, config, { currencyKey: listing.listing.currencyKey })}`;
+      return `**Market listing created**\n${item.emoji} **${item.name}** × **${listing.listing.quantity}**\n**Price:** ${formatCurrency(listing.listing.price, config, { currencyKey: listing.listing.currencyKey })}`;
     }
     if (sub === "buy") {
+      const listingId = parseAutocompleteId(i.options.getString("listing", true), "listing");
+      const before = markets.listMarketListings(guildId).find((l) => l.id === listingId);
+      const item = before ? inventory.getItemById(guildId, before.itemId) : null;
       markets.buyMarketListing({
         guildId,
         buyerId: userId,
-        listingId: i.options.getInteger("listing", true),
+        listingId,
         config,
       });
-      return `✅ Purchased market listing \`#${i.options.getInteger("listing", true)}\`.`;
+      return `✅ Purchased ${item?.emoji ?? "📦"} **${item?.name ?? "listing"}**.`;
     }
     if (sub === "cancel") {
+      const listingId = parseAutocompleteId(i.options.getString("listing", true), "listing");
+      const before = markets.listMarketListings(guildId).find((l) => l.id === listingId);
+      const item = before ? inventory.getItemById(guildId, before.itemId) : null;
       markets.cancelMarketListing({
         guildId,
         userId,
-        listingId: i.options.getInteger("listing", true),
+        listingId,
         config,
       });
-      return `Cancelled market listing \`#${i.options.getInteger("listing", true)}\`.`;
+      return `Cancelled listing for ${item?.emoji ?? "📦"} **${item?.name ?? "item"}**.`;
     }
   }
 
   if (group === "trade") {
     if (sub === "start") {
       const partner = i.options.getUser("user", true);
-      const trade = markets.startTrade({
+      markets.startTrade({
         guildId,
         initiatorId: userId,
         partnerId: partner.id,
         config,
       });
-      return `### Trade started\n**Trade:** \`#${trade.id}\`\n**Partner:** <@${partner.id}>\n\nUse \`/economy trade add\` to build your offer.`;
+      return `**Trade started**\n**Partner:** <@${partner.id}>\n\nUse \`/economy trade add\` to build your offer.`;
     }
     if (sub === "add") {
       const type = i.options.getString("type", true) as "currency" | "item";
       const itemKey = i.options.getString("item");
       const item = itemKey ? inventory.getItemByKey(guildId, itemKey) : null;
+      const tradeId = parseAutocompleteId(i.options.getString("trade", true), "trade");
       markets.addTradeOffer({
         guildId,
-        tradeId: i.options.getInteger("trade", true),
+        tradeId,
         userId,
         offerType: type,
         amount: type === "currency" ? i.options.getInteger("amount", true) : 0,
@@ -1256,10 +1283,12 @@ async function dispatch(opts: {
         quantity: type === "item" ? i.options.getInteger("amount", true) : 0,
         config,
       });
-      return `✅ Offer added to trade \`#${i.options.getInteger("trade", true)}\`.`;
+      return type === "item"
+        ? `✅ Added ${item?.emoji ?? "📦"} **${item?.name ?? "item"}** to the trade.`
+        : `✅ Added **${formatCurrency(i.options.getInteger("amount", true), config, { currencyKey: currency })}** to the trade.`;
     }
     if (sub === "remove") {
-      const offerId = i.options.getInteger("offer", true);
+      const offerId = parseAutocompleteId(i.options.getString("offer", true), "offer");
       const { getDb } = await import("../../db/client.js");
       const { economyTradeOffers } = await import("../../db/schema.js");
       const { eq } = await import("drizzle-orm");
@@ -1272,30 +1301,31 @@ async function dispatch(opts: {
         userId,
         config,
       });
-      return `Removed offer \`#${offerId}\` from trade \`#${offer.tradeId}\`.`;
+      return "Offer removed from the trade.";
     }
     if (sub === "review") {
-      const review = markets.reviewTrade(i.options.getInteger("trade", true));
+      const review = markets.reviewTrade(parseAutocompleteId(i.options.getString("trade", true), "trade"));
       return [
-        `### Trade \`#${review.trade.id}\``,
+        `**Open trade**`,
         `**Status:** ${review.trade.status}`,
         `**Members:** <@${review.trade.initiatorId}> and <@${review.trade.partnerId}>`,
-        `**Revision:** ${review.trade.revision}`,
         "",
         `**Offers (${review.offers.length})**`,
         review.offers.length
           ? review.offers
-              .map((offer) =>
-                offer.offerType === "currency"
-                  ? `• <@${offer.userId}>: **${formatCurrency(offer.amount, config, { currencyKey: offer.currencyKey ?? "coins" })}**`
-                  : `• <@${offer.userId}>: Item \`#${offer.itemId}\` × **${offer.quantity}**`,
-              )
+              .map((offer) => {
+                if (offer.offerType === "currency") {
+                  return `• <@${offer.userId}>: **${formatCurrency(offer.amount, config, { currencyKey: offer.currencyKey ?? "coins" })}**`;
+                }
+                const item = offer.itemId ? inventory.getItemById(guildId, offer.itemId) : null;
+                return `• <@${offer.userId}>: ${item?.emoji ?? "📦"} **${item?.name ?? "Item"}** × **${offer.quantity}**`;
+              })
               .join("\n")
           : "*No offers yet.*",
       ].join("\n");
     }
     if (sub === "confirm") {
-      const tradeId = i.options.getInteger("trade", true);
+      const tradeId = parseAutocompleteId(i.options.getString("trade", true), "trade");
       const result = markets.confirmTrade({
         guildId,
         tradeId,
@@ -1308,17 +1338,17 @@ async function dispatch(opts: {
         `**Completed:** ${result.completed ? "yes" : "pending"}`,
       ], { guildId, actorId: userId });
       return result.completed
-        ? `✅ Trade \`#${tradeId}\` **completed**.`
-        : `☑️ Trade \`#${tradeId}\` confirmed.\nWaiting for the other member to confirm.`;
+        ? "✅ Trade **completed**."
+        : "☑️ Trade confirmed.\nWaiting for the other member to confirm.";
     }
     if (sub === "cancel") {
       markets.cancelTrade({
         guildId,
-        tradeId: i.options.getInteger("trade", true),
+        tradeId: parseAutocompleteId(i.options.getString("trade", true), "trade"),
         userId,
         config,
       });
-      return `Cancelled trade \`#${i.options.getInteger("trade", true)}\`.`;
+      return "Trade cancelled.";
     }
   }
 
@@ -1331,7 +1361,7 @@ async function dispatch(opts: {
             const item = inventory.getItemById(guildId, a.itemId);
             const bid = a.currentBid || a.startingBid;
             return [
-              `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}** × **${a.quantity}**  •  \`#${a.id}\``,
+              `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}** × **${a.quantity}**`,
               `**Current bid:** ${formatCurrency(bid, config, { currencyKey: a.currencyKey })}`,
               `**Seller:** <@${a.sellerId}>`,
               `**Ends:** <t:${Math.floor(a.endsAt.getTime() / 1000)}:R>`,
@@ -1355,9 +1385,8 @@ async function dispatch(opts: {
         config,
       });
       return [
-        "### Auction created",
+        "**Auction created**",
         `${item.emoji} **${item.name}** × **${auction.quantity}**`,
-        `**Auction:** \`#${auction.id}\``,
         `**Starting bid:** ${formatCurrency(auction.startingBid, config, { currencyKey: auction.currencyKey })}`,
         auction.buyoutPrice
           ? `**Buyout:** ${formatCurrency(auction.buyoutPrice, config, { currencyKey: auction.currencyKey })}`
@@ -1368,7 +1397,7 @@ async function dispatch(opts: {
         .join("\n");
     }
     if (sub === "bid") {
-      const auctionId = i.options.getInteger("auction", true);
+      const auctionId = parseAutocompleteId(i.options.getString("auction", true), "auction");
       const amount = i.options.getInteger("amount", true);
       const auction = markets.bidOnAuction({
         guildId,
@@ -1377,31 +1406,44 @@ async function dispatch(opts: {
         amount,
         config,
       });
-      return `### Bid placed\n**Auction:** \`#${auctionId}\`\n**Your bid:** ${formatCurrency(amount, config, { currencyKey: auction.currencyKey })}\n**Ends:** <t:${Math.floor(auction.endsAt.getTime() / 1000)}:R>`;
+      const item = inventory.getItemById(guildId, auction.itemId);
+      return [
+        "**Bid placed**",
+        `${item?.emoji ?? "📦"} **${item?.name ?? "Auction item"}**`,
+        `**Your bid:** ${formatCurrency(amount, config, { currencyKey: auction.currencyKey })}`,
+        `**Ends:** <t:${Math.floor(auction.endsAt.getTime() / 1000)}:R>`,
+      ].join("\n");
     }
     if (sub === "buyout") {
+      const auctionId = parseAutocompleteId(i.options.getString("auction", true), "auction");
+      const before = markets.getAuction(guildId, auctionId);
+      const item = before ? inventory.getItemById(guildId, before.itemId) : null;
       markets.buyoutAuction({
         guildId,
-        auctionId: i.options.getInteger("auction", true),
+        auctionId,
         buyerId: userId,
         config,
       });
       void logEconomy(ctx, "economy_auction", "Economy auction buyout", [
-        `**Auction:** #${i.options.getInteger("auction", true)}`,
+        `**Auction:** #${auctionId}`,
         `**Buyer:** <@${userId}>`,
       ], { guildId, actorId: userId });
-      return `✅ Bought out auction \`#${i.options.getInteger("auction", true)}\`.`;
+      return `✅ Bought out ${item?.emoji ?? "📦"} **${item?.name ?? "auction"}**.`;
     }
     if (sub === "cancel") {
-      const auction = markets.getAuction(guildId, i.options.getInteger("auction", true));
+      const auction = markets.getAuction(guildId, parseAutocompleteId(i.options.getString("auction", true), "auction"));
       if (!auction || auction.sellerId !== userId) throw new EconomyError("Auction not found.", "not_found");
       if (auction.currentBidderId) throw new EconomyError("Cannot cancel after bids.", "invalid");
+      const item = inventory.getItemById(guildId, auction.itemId);
       markets.settleAuction(guildId, auction.id, config);
-      return `Auction \`#${auction.id}\` was cancelled and its item was returned.`;
+      return `Cancelled auction for ${item?.emoji ?? "📦"} **${item?.name ?? "item"}** and returned it.`;
     }
     if (sub === "watch") {
-      markets.watchAuction(guildId, i.options.getInteger("auction", true), userId);
-      return `👀 Watching auction \`#${i.options.getInteger("auction", true)}\`.\nYou will be notified when it changes.`;
+      const auctionId = parseAutocompleteId(i.options.getString("auction", true), "auction");
+      const auction = markets.getAuction(guildId, auctionId);
+      const item = auction ? inventory.getItemById(guildId, auction.itemId) : null;
+      markets.watchAuction(guildId, auctionId, userId);
+      return `👀 Watching ${item?.emoji ?? "📦"} **${item?.name ?? "auction"}**.\nYou will be notified when it changes.`;
     }
   }
 
@@ -1463,7 +1505,7 @@ async function dispatch(opts: {
     if (!active) return "No active season.";
     if (sub === "info") {
       return [
-        `### 🏆 ${active.name}`,
+        `**🏆 ${active.name}**`,
         `\`${active.key}\``,
         "",
         active.description || "*No description provided.*",
@@ -1479,7 +1521,7 @@ async function dispatch(opts: {
         amount?: number;
       }>;
       return [
-        `### ${active.name} rewards`,
+        `**${active.name} rewards**`,
         ...parsed.map((reward) => {
           const placement =
             reward.minRank === reward.maxRank
@@ -1491,7 +1533,7 @@ async function dispatch(opts: {
     }
     if (sub === "progress") {
       const score = seasons.getUserSeasonScore(guildId, active.id, userId);
-      return `### Your season progress\n**Score:** ${(score?.score ?? 0).toLocaleString()}\n**Reward:** ${score?.claimed ? "☑️ Claimed" : "Not claimed"}`;
+      return `**Your season progress**\n**Score:** ${(score?.score ?? 0).toLocaleString()}\n**Reward:** ${score?.claimed ? "☑️ Claimed" : "Not claimed"}`;
     }
   }
 
@@ -1518,7 +1560,7 @@ async function dispatch(opts: {
         `**Amount:** ${amount} ${currency} (${wallet})`,
       ], { guildId, actorId: userId, targetId: target.id });
       return [
-        "### Balance adjusted",
+        "**Balance adjusted**",
         `**Member:** <@${target.id}>`,
         `**Action:** ${mode} ${formatCurrency(amount, config, { currencyKey: currency })} in ${wallet}`,
         "",
@@ -1542,7 +1584,7 @@ async function dispatch(opts: {
       const primary = money.getPrimaryCurrencyKey(guildId, config);
       const bal = money.getAccount(guildId, target.id, primary);
       return [
-        `### Account inspection`,
+        `**Account inspection**`,
         `**Member:** <@${target.id}>`,
         `**User ID:** \`${target.id}\``,
         "",
