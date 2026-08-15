@@ -144,6 +144,7 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 - [Pingable roles](docs/plugins/pingable_roles.md)
 - [Role manager](docs/plugins/role_manager.md)
 - [Autorole](docs/plugins/autorole.md)
+- [Member identity](docs/plugins/member_identity.md)
 
 </details>
 

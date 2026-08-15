@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 8 July 2026
+**Last updated:** 14 August 2026
 
 This Privacy Policy explains how **Dreamliner** ("we," "us," or the "Service") collects, uses, stores, and shares information when you invite the bot to a Discord server or use its features.
 
@@ -40,7 +40,7 @@ When Dreamliner is in your server and has the required intents and permissions, 
 |----------|----------|
 | **Server identifiers** | Guild ID, channel IDs, role IDs, message IDs |
 | **User identifiers** | Discord user IDs, roles a member has |
-| **Profile / display data** | Usernames, nicknames, and related display fields needed for name history, logs, and embeds |
+| **Profile / display data** | Usernames, nicknames, and related display fields needed for name history, member identity restore, logs, and embeds |
 | **Message data** | Message content, attachments metadata/URLs, embeds, and edit/delete context (when Message Content intent and logging/moderation features apply) |
 | **Voice data** | Voice channel membership for voice tools, companion channels, and related logs |
 | **Reactions** | Emoji reactions for reaction roles and starboard |
@@ -69,6 +69,7 @@ Depending on enabled plugins, we may store:
 - **Message archives** from tools like `/clean` or `/source` (author tags, content, attachment URLs)
 - **Aggregate stats** (message counts, joins/leaves; typically without full message bodies)
 - **Username and nickname history**
+- **Member identity snapshots** (per-server nickname, role IDs, and optional timeout expiry used to restore chosen fields on rejoin)
 - **Starboard** post references and star counts
 - **Role panel** mappings and related message/role IDs
 - **Companion channel** hub and ownership state
@@ -139,6 +140,7 @@ Retention depends on the feature and whether administrators delete data or remov
 | **Moderation cases & strikes** | Kept until deleted by authorized commands/operators; expired actions may remain as inactive history |
 | **Clean/source archives** | Kept until deleted by operators (no automatic short TTL) |
 | **Name / username history** | Kept while the related plugins remain in use and records are not cleared |
+| **Member identity snapshots** | Kept while Member Identity is in use (latest snapshot per member per server) until overwritten or deleted |
 | **Stats & counters** | Kept as aggregate history until cleared or removed |
 | **Tags, reminders, panels, stickies, aliases, etc.** | Until removed by commands or operators |
 

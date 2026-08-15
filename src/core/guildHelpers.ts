@@ -33,6 +33,8 @@ import { botCustomisationDefaultOverrides } from "../plugins/bot_customisation/d
 import { reviewsDefaultOverrides } from "../plugins/reviews/defaultOverrides.js";
 import { suggestionsDefaultOverrides } from "../plugins/suggestions/defaultOverrides.js";
 import { scamProtectDefaultOverrides } from "../plugins/scam_protect/defaultOverrides.js";
+import { passportDefaultOverrides } from "../plugins/passport/defaultOverrides.js";
+import { economyDefaultOverrides } from "../plugins/economy/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { zStarboardBoard, zStarboardConfig, type StarboardBoard, type StarboardConfig } from "../config/schemas/starboard.js";
 import type { GuildMember } from "discord.js";
@@ -42,6 +44,8 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   infractions: infractionDefaultOverrides,
   automod: automodDefaultOverrides,
   scam_protect: scamProtectDefaultOverrides,
+  passport: passportDefaultOverrides,
+  economy: economyDefaultOverrides,
   admin: adminDefaultOverrides,
   slowmode: slowmodeDefaultOverrides,
   name_history: nameHistoryDefaultOverrides,
@@ -66,6 +70,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   reminders: remindersDefaultOverrides,
   counters: countersDefaultOverrides,
   companion_channels: [],
+  member_identity: [],
   dream_commands: dreamCommandsDefaultOverrides,
   bot_customisation: botCustomisationDefaultOverrides,
   reviews: reviewsDefaultOverrides,

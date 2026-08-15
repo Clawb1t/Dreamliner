@@ -36,6 +36,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       { plugin: "automod" },
       { plugin: "scam_protect" },
+      { plugin: "passport" },
       { plugin: "persist" },
       { plugin: "autodelete" },
     ],
@@ -43,7 +44,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "roles",
     label: "Role management",
-    blurb: "Staff role assign, templates, autorole, and pingables.",
+    blurb: "Staff role assign, templates, autorole, identity restore, and pingables.",
     include: [
       { plugin: "roles" },
       { plugin: "role_manager" },
@@ -149,6 +150,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [{ plugin: "reviews" }, { plugin: "suggestions" }],
   },
   {
+    id: "economy",
+    label: "Economy",
+    blurb: "Server currency, shops, jobs, pets, crafts, quests, and markets.",
+    include: [{ plugin: "economy" }],
+  },
+  {
     id: "config",
     label: "Configuration",
     blurb: "Permissions and server configuration commands.",
@@ -190,6 +197,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Scam Protect",
     description: "Honeypot channel that softbans anyone who posts in it.",
   },
+  passport: {
+    key: "passport",
+    name: "Passport",
+    description: "Web-gated member verification with Discord login and a human check.",
+  },
   admin: { key: "admin", name: "Admin", description: "Channel lockdown and unlock." },
   persist: { key: "persist", name: "Persist", description: "Dashboard sticky messages that stay at the bottom of a channel." },
   slowmode: {
@@ -227,6 +239,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     key: "autorole",
     name: "Autorole",
     description: "Auto-assign roles on join for humans and bots.",
+  },
+  member_identity: {
+    key: "member_identity",
+    name: "Member identity",
+    description: "Save nickname, roles, and timeout when members leave, and reapply chosen parts on rejoin.",
   },
   welcome_message: {
     key: "welcome_message",
@@ -313,6 +330,12 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Suggestions",
     description: "Community suggestions with staff review, voting, and statuses.",
   },
+  economy: {
+    key: "economy",
+    name: "Economy",
+    description:
+      "Fully customisable server economy: currencies, banks, shops, jobs, pets, crafting, quests, trades, and auctions.",
+  },
 };
 
 /**
@@ -326,11 +349,13 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   slowmode: "mod",
   automod: "protect",
   scam_protect: "protect",
+  passport: "protect",
   persist: "protect",
   autodelete: "protect",
   roles: "roles",
   role_manager: "roles",
   autorole: "roles",
+  member_identity: "roles",
   pingable_roles: "roles",
   reaction_roles: "self_roles",
   role_buttons: "self_roles",
@@ -356,6 +381,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   bot_customisation: "tools",
   reviews: "feedback",
   suggestions: "feedback",
+  economy: "economy",
 };
 
 /** Plugin categories for the website config editor (and schema meta), matching `/help` labels. */

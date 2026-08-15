@@ -21,6 +21,7 @@
     * [Infractions plugin](docs/plugins/infraction.md)
     * [Locate user plugin](docs/plugins/locate_user.md)
     * [Logs plugin](docs/plugins/logs.md)
+    * [Member identity plugin](docs/plugins/member_identity.md)
     * [Name history plugin](docs/plugins/name_history.md)
     * [Persist plugin](docs/plugins/persist.md)
     * [Pingable roles plugin](docs/plugins/pingable_roles.md)

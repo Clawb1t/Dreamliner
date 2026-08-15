@@ -86,10 +86,13 @@ const PLUGIN_DOCS: Record<string, string> = {
   bot_customisation: "plugins/bot_customisation",
   reviews: "plugins/reviews",
   suggestions: "plugins/suggestions",
+  passport: "plugins/passport",
+  economy: "plugins/economy",
   config: "configuration",
   starboard: "plugins/starboard",
   autorole: "plugins/autorole",
   username_saver: "plugins/username_saver",
+  member_identity: "plugins/member_identity",
 };
 
 function decodeQuery(encoded: string | undefined): string {
@@ -361,6 +364,7 @@ const GROUP_LABELS: Record<string, string> = {
   pingable_roles: "Pingable roles",
   role_manager: "Role manager",
   autorole: "Autorole",
+  member_identity: "Member identity",
   locate_user: "Locate",
   name_history: "Name history",
   welcome_message: "Welcome",

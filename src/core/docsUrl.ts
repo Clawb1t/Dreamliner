@@ -27,6 +27,11 @@ export function getGuildServerPageUrl(guildId: string): string {
   return `${resolveSiteUrl()}/server/${guildId}`;
 }
 
+/** Public Passport verification page for a guild. */
+export function getPassportUrl(guildId: string): string {
+  return `${resolveSiteUrl()}/passport/${guildId}`;
+}
+
 /** Guild-scoped dashboard (config editor for one server). */
 export function getGuildDashboardUrl(guildId: string): string {
   return `${resolveSiteUrl()}/dashboard/${guildId}`;

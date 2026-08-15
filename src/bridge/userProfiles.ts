@@ -5,6 +5,7 @@ import {
   guildMessageCounts,
   guildStatsUserDaily,
   nameHistory,
+  memberIdentity,
   reminders,
   reviews,
   suggestionBlocks,
@@ -200,6 +201,18 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       ),
     },
     {
+      key: "member_identity",
+      label: "Member identity",
+      description: "Saved nickname, roles, and timeout used to restore identity on rejoin.",
+      total: countRows(() =>
+        db
+          .select({ total: count() })
+          .from(memberIdentity)
+          .where(eq(memberIdentity.userId, userId))
+          .get(),
+      ),
+    },
+    {
       key: "reminders",
       label: "Reminders",
       description: "Pending and past reminders you created.",
@@ -347,6 +360,10 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   await wipe(
     "username_snapshots",
     db.delete(usernameSnapshots).where(eq(usernameSnapshots.userId, userId)).returning(),
+  );
+  await wipe(
+    "member_identity",
+    db.delete(memberIdentity).where(eq(memberIdentity.userId, userId)).returning(),
   );
   await wipe(
     "reminders",

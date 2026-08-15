@@ -308,6 +308,56 @@ export const zUsernameSaverConfig = z.strictObject({
     .describe("When true, Dreamliner stores username history for members."),
 });
 
+export const zMemberIdentityConfig = z.strictObject({
+  save_on_leave: z
+    .boolean()
+    .default(true)
+    .describe("Save a member's nickname, roles, and timeout when they leave the server."),
+  save_on_update: z
+    .boolean()
+    .default(true)
+    .describe(
+      "Keep the snapshot current whenever nickname, roles, or timeout change. Recommended so leave events with incomplete member data still restore correctly.",
+    ),
+  restore_nickname: z
+    .boolean()
+    .default(true)
+    .describe("Reapply the saved server nickname when the member rejoins."),
+  restore_roles: z
+    .boolean()
+    .default(true)
+    .describe(
+      "Reapply saved roles when the member rejoins. Roles are added on top of autorole and other join roles; existing roles are not stripped.",
+    ),
+  restore_timeout: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Reapply a remaining timeout (communication disabled until) if it had not expired when they left. Requires Moderate Members. Off by default.",
+    ),
+  skip_managed_roles: z
+    .boolean()
+    .default(true)
+    .describe("Do not restore integration, bot, or boost roles that Discord manages."),
+  ignore_bots: z
+    .boolean()
+    .default(true)
+    .describe("Skip saving and restoring identity for bot accounts."),
+  ignored_roles: z
+    .array(z.string())
+    .default([])
+    .describe("Role IDs that are never restored, even if they were saved."),
+  delay_ms: z
+    .number()
+    .int()
+    .min(0)
+    .max(300000)
+    .default(0)
+    .describe(
+      "Wait this many milliseconds after join before restoring. Use a short delay if another join plugin should run first. 0 = restore immediately.",
+    ),
+});
+
 export const zLocateUserConfig = z.strictObject({
   can_locate: boolPerm("locate where a member currently is"),
   can_seen: boolPerm("see when a member was last active"),
@@ -378,6 +428,7 @@ export const zCountersPluginSection = zPluginSection(zCountersConfig.shape);
 export const zCompanionChannelsPluginSection = zPluginSection(zCompanionChannelsConfig.shape);
 export const zNameHistoryPluginSection = zPluginSection(zNameHistoryConfig.shape);
 export const zUsernameSaverPluginSection = zPluginSection(zUsernameSaverConfig.shape);
+export const zMemberIdentityPluginSection = zPluginSection(zMemberIdentityConfig.shape);
 export const zLocateUserPluginSection = zPluginSection(zLocateUserConfig.shape);
 export const zStatsPluginSection = zPluginSection(zStatsConfig.shape);
 export const zCustomEventsPluginSection = zPluginSection(zCustomEventsConfig.shape);
@@ -399,3 +450,4 @@ export type RoleManagerConfig = z.infer<typeof zRoleManagerConfig>;
 export type DreamCommandsConfig = z.infer<typeof zDreamCommandsConfig>;
 export type BotCustomisationConfig = z.infer<typeof zBotCustomisationConfig>;
 export type CommandAliasesConfig = z.infer<typeof zCommandAliasesConfig>;
+export type MemberIdentityConfig = z.infer<typeof zMemberIdentityConfig>;

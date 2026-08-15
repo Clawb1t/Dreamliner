@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const guildConfigs = sqliteTable("guild_configs", {
   guildId: text("guild_id").primaryKey(),
@@ -207,6 +207,21 @@ export const usernameSnapshots = sqliteTable("username_snapshots", {
   username: text("username").notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+/** Last known guild nickname, roles, and timeout for Member Identity restore. */
+export const memberIdentity = sqliteTable(
+  "member_identity",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    nickname: text("nickname").notNull().default(""),
+    roleIds: text("role_ids").notNull().default("[]"),
+    timeoutUntil: integer("timeout_until", { mode: "number" }),
+    username: text("username").notNull().default(""),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
 
 export const guildStatsDaily = sqliteTable(
   "guild_stats_daily",
@@ -609,4 +624,479 @@ export const welcomeJoinMessages = sqliteTable("welcome_join_messages", {
   waveEnabled: integer("wave_enabled", { mode: "boolean" }).notNull().default(false),
   waveCount: integer("wave_count", { mode: "number" }).notNull().default(0),
   waverIds: text("waver_ids").notNull().default("[]"),
+});
+
+/** Members waiting to complete Passport verification. */
+export const passportPending = sqliteTable(
+  "passport_pending",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    joinedAt: integer("joined_at", { mode: "timestamp" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+    pingMessageId: text("ping_message_id"),
+    pingChannelId: text("ping_channel_id"),
+    status: text("status").notNull().default("pending"),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+/** Completed Passport verifications. */
+export const passportVerifications = sqliteTable(
+  "passport_verifications",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    verifiedAt: integer("verified_at", { mode: "timestamp" }).notNull(),
+    method: text("method").notNull().default("web"),
+    accountCreatedAt: integer("account_created_at", { mode: "timestamp" }),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+// --- Economy -----------------------------------------------------------------
+
+export const economyCurrencies = sqliteTable(
+  "economy_currencies",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    nameSingular: text("name_singular").notNull(),
+    symbol: text("symbol").notNull().default("🪙"),
+    isPrimary: integer("is_primary", { mode: "boolean" }).notNull().default(false),
+    tradeable: integer("tradeable", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [uniqueIndex("economy_currencies_guild_key").on(table.guildId, table.key)],
+);
+
+export const economyAccounts = sqliteTable(
+  "economy_accounts",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    currencyKey: text("currency_key").notNull(),
+    pocket: integer("pocket", { mode: "number" }).notNull().default(0),
+    bank: integer("bank", { mode: "number" }).notNull().default(0),
+    frozen: integer("frozen", { mode: "number" }).notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.currencyKey] })],
+);
+
+export const economyTransactions = sqliteTable("economy_transactions", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  currencyKey: text("currency_key").notNull(),
+  deltaPocket: integer("delta_pocket", { mode: "number" }).notNull().default(0),
+  deltaBank: integer("delta_bank", { mode: "number" }).notNull().default(0),
+  deltaFrozen: integer("delta_frozen", { mode: "number" }).notNull().default(0),
+  balancePocket: integer("balance_pocket", { mode: "number" }).notNull(),
+  balanceBank: integer("balance_bank", { mode: "number" }).notNull(),
+  balanceFrozen: integer("balance_frozen", { mode: "number" }).notNull(),
+  reason: text("reason").notNull(),
+  actorId: text("actor_id"),
+  refType: text("ref_type"),
+  refId: text("ref_id"),
+  idempotencyKey: text("idempotency_key"),
+  metaJson: text("meta_json").notNull().default("{}"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyProfiles = sqliteTable(
+  "economy_profiles",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    xp: integer("xp", { mode: "number" }).notNull().default(0),
+    level: integer("level", { mode: "number" }).notNull().default(1),
+    prestige: integer("prestige", { mode: "number" }).notNull().default(0),
+    hideBalances: integer("hide_balances", { mode: "boolean" }).notNull().default(false),
+    frozen: integer("frozen", { mode: "boolean" }).notNull().default(false),
+    freezeReason: text("freeze_reason"),
+    jobKey: text("job_key"),
+    jobXp: integer("job_xp", { mode: "number" }).notNull().default(0),
+    jobLevel: integer("job_level", { mode: "number" }).notNull().default(1),
+    activePetId: integer("active_pet_id", { mode: "number" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+export const economyCooldowns = sqliteTable(
+  "economy_cooldowns",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    key: text("key").notNull(),
+    availableAt: integer("available_at", { mode: "timestamp" }).notNull(),
+    metaJson: text("meta_json").notNull().default("{}"),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.key] })],
+);
+
+export const economyStreaks = sqliteTable(
+  "economy_streaks",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    key: text("key").notNull(),
+    count: integer("count", { mode: "number" }).notNull().default(0),
+    lastClaimAt: integer("last_claim_at", { mode: "timestamp" }),
+    lastClaimDay: text("last_claim_day"),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.key] })],
+);
+
+export const economyItems = sqliteTable("economy_items", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  emoji: text("emoji").notNull().default("📦"),
+  itemType: text("item_type").notNull().default("collectible"),
+  stackable: integer("stackable", { mode: "boolean" }).notNull().default(true),
+  tradeable: integer("tradeable", { mode: "boolean" }).notNull().default(true),
+  sellValue: integer("sell_value", { mode: "number" }).notNull().default(0),
+  currencyKey: text("currency_key").notNull().default("coins"),
+  effectJson: text("effect_json").notNull().default("{}"),
+  lootJson: text("loot_json").notNull().default("[]"),
+  roleId: text("role_id"),
+  petSpeciesKey: text("pet_species_key"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyShops = sqliteTable("economy_shops", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  channelId: text("channel_id"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyShopListings = sqliteTable("economy_shop_listings", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  shopId: integer("shop_id", { mode: "number" }).notNull(),
+  itemId: integer("item_id", { mode: "number" }).notNull(),
+  price: integer("price", { mode: "number" }).notNull(),
+  currencyKey: text("currency_key").notNull().default("coins"),
+  stock: integer("stock", { mode: "number" }),
+  maxPerUser: integer("max_per_user", { mode: "number" }),
+  restockAmount: integer("restock_amount", { mode: "number" }),
+  restockIntervalSeconds: integer("restock_interval_seconds", { mode: "number" }),
+  nextRestockAt: integer("next_restock_at", { mode: "timestamp" }),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+});
+
+export const economyInventory = sqliteTable(
+  "economy_inventory",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    itemId: integer("item_id", { mode: "number" }).notNull(),
+    quantity: integer("quantity", { mode: "number" }).notNull().default(0),
+    equipped: integer("equipped", { mode: "boolean" }).notNull().default(false),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.itemId] })],
+);
+
+export const economyEffects = sqliteTable("economy_effects", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  key: text("key").notNull(),
+  magnitude: integer("magnitude", { mode: "number" }).notNull().default(0),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  metaJson: text("meta_json").notNull().default("{}"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyJobs = sqliteTable("economy_jobs", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  emoji: text("emoji").notNull().default("💼"),
+  payMin: integer("pay_min", { mode: "number" }).notNull().default(50),
+  payMax: integer("pay_max", { mode: "number" }).notNull().default(150),
+  currencyKey: text("currency_key").notNull().default("coins"),
+  cooldownSeconds: integer("cooldown_seconds", { mode: "number" }).notNull().default(3600),
+  requiredLevel: integer("required_level", { mode: "number" }).notNull().default(1),
+  requiredItemId: integer("required_item_id", { mode: "number" }),
+  failChanceBps: integer("fail_chance_bps", { mode: "number" }).notNull().default(0),
+  failFine: integer("fail_fine", { mode: "number" }).notNull().default(0),
+  careerXp: integer("career_xp", { mode: "number" }).notNull().default(10),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  flavorJson: text("flavor_json").notNull().default("[]"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyPetSpecies = sqliteTable("economy_pet_species", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  emoji: text("emoji").notNull().default("🐾"),
+  rarity: text("rarity").notNull().default("common"),
+  baseAtk: integer("base_atk", { mode: "number" }).notNull().default(10),
+  baseDef: integer("base_def", { mode: "number" }).notNull().default(10),
+  baseHp: integer("base_hp", { mode: "number" }).notNull().default(50),
+  baseSpeed: integer("base_speed", { mode: "number" }).notNull().default(10),
+  adoptCost: integer("adopt_cost", { mode: "number" }).notNull().default(500),
+  currencyKey: text("currency_key").notNull().default("coins"),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyPets = sqliteTable("economy_pets", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  speciesId: integer("species_id", { mode: "number" }).notNull(),
+  name: text("name").notNull(),
+  xp: integer("xp", { mode: "number" }).notNull().default(0),
+  level: integer("level", { mode: "number" }).notNull().default(1),
+  hunger: integer("hunger", { mode: "number" }).notNull().default(100),
+  energy: integer("energy", { mode: "number" }).notNull().default(100),
+  happiness: integer("happiness", { mode: "number" }).notNull().default(100),
+  atk: integer("atk", { mode: "number" }).notNull().default(10),
+  def: integer("def", { mode: "number" }).notNull().default(10),
+  hp: integer("hp", { mode: "number" }).notNull().default(50),
+  speed: integer("speed", { mode: "number" }).notNull().default(10),
+  lastTickAt: integer("last_tick_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyRecipes = sqliteTable("economy_recipes", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  outputItemId: integer("output_item_id", { mode: "number" }).notNull(),
+  outputQty: integer("output_qty", { mode: "number" }).notNull().default(1),
+  inputsJson: text("inputs_json").notNull().default("[]"),
+  durationSeconds: integer("duration_seconds", { mode: "number" }).notNull().default(60),
+  requiredLevel: integer("required_level", { mode: "number" }).notNull().default(1),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyCraftQueue = sqliteTable("economy_craft_queue", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  recipeId: integer("recipe_id", { mode: "number" }).notNull(),
+  startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+  completesAt: integer("completes_at", { mode: "timestamp" }).notNull(),
+  collected: integer("collected", { mode: "boolean" }).notNull().default(false),
+  cancelled: integer("cancelled", { mode: "boolean" }).notNull().default(false),
+});
+
+export const economyQuests = sqliteTable("economy_quests", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  questType: text("quest_type").notNull().default("daily"),
+  objectiveType: text("objective_type").notNull(),
+  objectiveTarget: integer("objective_target", { mode: "number" }).notNull().default(1),
+  rewardCurrencyKey: text("reward_currency_key").notNull().default("coins"),
+  rewardAmount: integer("reward_amount", { mode: "number" }).notNull().default(100),
+  rewardItemId: integer("reward_item_id", { mode: "number" }),
+  rewardItemQty: integer("reward_item_qty", { mode: "number" }).notNull().default(0),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyQuestProgress = sqliteTable(
+  "economy_quest_progress",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    questId: integer("quest_id", { mode: "number" }).notNull(),
+    progress: integer("progress", { mode: "number" }).notNull().default(0),
+    claimed: integer("claimed", { mode: "boolean" }).notNull().default(false),
+    periodKey: text("period_key").notNull().default(""),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.questId, table.periodKey] })],
+);
+
+export const economyAchievements = sqliteTable("economy_achievements", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  objectiveType: text("objective_type").notNull(),
+  objectiveTarget: integer("objective_target", { mode: "number" }).notNull().default(1),
+  rewardCurrencyKey: text("reward_currency_key").notNull().default("coins"),
+  rewardAmount: integer("reward_amount", { mode: "number" }).notNull().default(0),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyAchievementProgress = sqliteTable(
+  "economy_achievement_progress",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    achievementId: integer("achievement_id", { mode: "number" }).notNull(),
+    progress: integer("progress", { mode: "number" }).notNull().default(0),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.achievementId] })],
+);
+
+export const economyTrades = sqliteTable("economy_trades", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  initiatorId: text("initiator_id").notNull(),
+  partnerId: text("partner_id").notNull(),
+  status: text("status").notNull().default("open"),
+  initiatorConfirmed: integer("initiator_confirmed", { mode: "boolean" }).notNull().default(false),
+  partnerConfirmed: integer("partner_confirmed", { mode: "boolean" }).notNull().default(false),
+  revision: integer("revision", { mode: "number" }).notNull().default(0),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyTradeOffers = sqliteTable("economy_trade_offers", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  tradeId: integer("trade_id", { mode: "number" }).notNull(),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(),
+  offerType: text("offer_type").notNull(),
+  currencyKey: text("currency_key"),
+  amount: integer("amount", { mode: "number" }).notNull().default(0),
+  itemId: integer("item_id", { mode: "number" }),
+  quantity: integer("quantity", { mode: "number" }).notNull().default(0),
+});
+
+export const economyMarketListings = sqliteTable("economy_market_listings", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  sellerId: text("seller_id").notNull(),
+  itemId: integer("item_id", { mode: "number" }).notNull(),
+  quantity: integer("quantity", { mode: "number" }).notNull().default(1),
+  price: integer("price", { mode: "number" }).notNull(),
+  currencyKey: text("currency_key").notNull().default("coins"),
+  status: text("status").notNull().default("active"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  soldAt: integer("sold_at", { mode: "timestamp" }),
+  buyerId: text("buyer_id"),
+});
+
+export const economyAuctions = sqliteTable("economy_auctions", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  sellerId: text("seller_id").notNull(),
+  itemId: integer("item_id", { mode: "number" }).notNull(),
+  quantity: integer("quantity", { mode: "number" }).notNull().default(1),
+  currencyKey: text("currency_key").notNull().default("coins"),
+  startingBid: integer("starting_bid", { mode: "number" }).notNull(),
+  buyoutPrice: integer("buyout_price", { mode: "number" }),
+  currentBid: integer("current_bid", { mode: "number" }).notNull().default(0),
+  currentBidderId: text("current_bidder_id"),
+  status: text("status").notNull().default("active"),
+  endsAt: integer("ends_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  settledAt: integer("settled_at", { mode: "timestamp" }),
+});
+
+export const economyAuctionBids = sqliteTable("economy_auction_bids", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  auctionId: integer("auction_id", { mode: "number" }).notNull(),
+  guildId: text("guild_id").notNull(),
+  bidderId: text("bidder_id").notNull(),
+  amount: integer("amount", { mode: "number" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economyAuctionWatches = sqliteTable(
+  "economy_auction_watches",
+  {
+    guildId: text("guild_id").notNull(),
+    auctionId: integer("auction_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.auctionId, table.userId] })],
+);
+
+export const economySeasons = sqliteTable("economy_seasons", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  startsAt: integer("starts_at", { mode: "timestamp" }).notNull(),
+  endsAt: integer("ends_at", { mode: "timestamp" }).notNull(),
+  softReset: integer("soft_reset", { mode: "boolean" }).notNull().default(false),
+  status: text("status").notNull().default("scheduled"),
+  rewardsJson: text("rewards_json").notNull().default("[]"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const economySeasonScores = sqliteTable(
+  "economy_season_scores",
+  {
+    guildId: text("guild_id").notNull(),
+    seasonId: integer("season_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    score: integer("score", { mode: "number" }).notNull().default(0),
+    claimed: integer("claimed", { mode: "boolean" }).notNull().default(false),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.seasonId, table.userId] })],
+);
+
+export const economyDailyStats = sqliteTable(
+  "economy_daily_stats",
+  {
+    guildId: text("guild_id").notNull(),
+    day: text("day").notNull(),
+    minted: integer("minted", { mode: "number" }).notNull().default(0),
+    sunk: integer("sunk", { mode: "number" }).notNull().default(0),
+    transfers: integer("transfers", { mode: "number" }).notNull().default(0),
+    shopRevenue: integer("shop_revenue", { mode: "number" }).notNull().default(0),
+    marketVolume: integer("market_volume", { mode: "number" }).notNull().default(0),
+    adminAdjust: integer("admin_adjust", { mode: "number" }).notNull().default(0),
+    activeUsers: integer("active_users", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.day] })],
+);
+
+export const economySchedulerLeases = sqliteTable(
+  "economy_scheduler_leases",
+  {
+    guildId: text("guild_id").notNull(),
+    taskKey: text("task_key").notNull(),
+    leaseUntil: integer("lease_until", { mode: "timestamp" }).notNull(),
+    lastRunAt: integer("last_run_at", { mode: "timestamp" }),
+    checkpointJson: text("checkpoint_json").notNull().default("{}"),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.taskKey] })],
+);
+
+export const economyGuildState = sqliteTable("economy_guild_state", {
+  guildId: text("guild_id").primaryKey(),
+  paused: integer("paused", { mode: "boolean" }).notNull().default(false),
+  seeded: integer("seeded", { mode: "boolean" }).notNull().default(false),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });

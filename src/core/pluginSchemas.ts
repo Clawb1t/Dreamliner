@@ -6,6 +6,8 @@ import { zStarboardConfig } from "../config/schemas/starboard.js";
 import { zReviewsConfig } from "../config/schemas/reviews.js";
 import { zSuggestionsConfig } from "../config/schemas/suggestions.js";
 import { zScamProtectConfig } from "../config/schemas/scamProtect.js";
+import { zPassportConfig } from "../config/schemas/passport.js";
+import { zEconomyConfig } from "../config/schemas/economy.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import {
   zAdminConfig,
@@ -14,6 +16,7 @@ import {
   zCustomEventsConfig,
   zDreamCommandsConfig,
   zLocateUserConfig,
+  zMemberIdentityConfig,
   zNameHistoryConfig,
   zPersistConfig,
   zPingableRolesConfig,
@@ -41,10 +44,13 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   utility: zUtilityConfig,
   infractions: zInfractionConfig,
   autorole: zAutoroleConfig,
+  member_identity: zMemberIdentityConfig,
   translation: zTranslationConfig,
   starboard: zStarboardConfig,
   automod: zAutomodConfig,
   scam_protect: zScamProtectConfig,
+  passport: zPassportConfig,
+  economy: zEconomyConfig,
   admin: zAdminConfig,
   persist: zPersistConfig,
   slowmode: zSlowmodeConfig,

@@ -171,6 +171,13 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         await handleTranslateAutocomplete(interaction).catch((error) => {
           console.error("Translate autocomplete error:", error);
         });
+        return;
+      }
+      if (interaction.commandName === "economy") {
+        const { handleEconomyAutocomplete } = await import("./plugins/economy/autocomplete.js");
+        await handleEconomyAutocomplete(interaction).catch((error) => {
+          console.error("Economy autocomplete error:", error);
+        });
       }
       return;
     }

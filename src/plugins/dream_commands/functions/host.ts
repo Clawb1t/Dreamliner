@@ -172,6 +172,14 @@ export function createDiscordActionHost(ctx: HostContext): ActionHost {
           return actCounterSet(ctx, args, pos, false);
         case "counter_add":
           return actCounterSet(ctx, args, pos, true);
+        case "economy_balance":
+          return actEconomyBalance(ctx, args, pos);
+        case "economy_add":
+          return actEconomyMutate(ctx, args, pos, "add");
+        case "economy_take":
+          return actEconomyMutate(ctx, args, pos, "take");
+        case "economy_has_item":
+          return actEconomyHasItem(ctx, args, pos);
         case "remind":
           return actRemind(ctx, args, pos);
         case "remind_cancel":
@@ -1077,6 +1085,67 @@ function actFormatTime(args: BoundActionArgs, pos: SourcePos): DreamValue {
   if (!ms) throw new DreamcodeError("runtime", "format_time requires ms", pos);
   const style = (valueToString(args.style, "R") || "R") as "R" | "F" | "D" | "f" | "t" | "T";
   return discordTimestamp(new Date(ms), style);
+}
+
+async function actEconomyBalance(ctx: HostContext, args: BoundActionArgs, pos: SourcePos): Promise<DreamValue> {
+  const { loadEconomyConfig } = await import("../../economy/functions/config.js");
+  const { getAccount, getPrimaryCurrencyKey, ensureGuildCurrencies } = await import("../../economy/functions/money.js");
+  const config = await loadEconomyConfig(ctx.guild.id);
+  if (!config) return null;
+  ensureGuildCurrencies(ctx.guild.id, config);
+  const user = await resolveUser(ctx, args.user, pos);
+  const currencyKey = valueToString(args.currency) || getPrimaryCurrencyKey(ctx.guild.id, config);
+  const bal = getAccount(ctx.guild.id, user.id, currencyKey);
+  return { pocket: bal.pocket, bank: bal.bank, frozen: bal.frozen, currencyKey };
+}
+
+async function actEconomyMutate(
+  ctx: HostContext,
+  args: BoundActionArgs,
+  pos: SourcePos,
+  mode: "add" | "take",
+): Promise<DreamValue> {
+  const { loadEconomyConfig } = await import("../../economy/functions/config.js");
+  const { mutateMoney, getPrimaryCurrencyKey, ensureGuildCurrencies, grantStartingBalance } = await import(
+    "../../economy/functions/money.js"
+  );
+  const config = await loadEconomyConfig(ctx.guild.id);
+  if (!config) throw new DreamcodeError("runtime", "Economy plugin is disabled", pos);
+  if (getMemberLevel(ctx.actor, ctx.guildConfig.levels) < 50) {
+    throw new DreamcodeError("runtime", "economy_add/take require level >= 50", pos);
+  }
+  ensureGuildCurrencies(ctx.guild.id, config);
+  const user = await resolveUser(ctx, args.user, pos);
+  grantStartingBalance(ctx.guild.id, user.id, config);
+  const amount = Math.abs(valueToInt(args.amount, 0));
+  if (amount <= 0) throw new DreamcodeError("runtime", "amount must be positive", pos);
+  const currencyKey = valueToString(args.currency) || getPrimaryCurrencyKey(ctx.guild.id, config);
+  const bal = mutateMoney(
+    {
+      guildId: ctx.guild.id,
+      userId: user.id,
+      currencyKey,
+      deltaPocket: mode === "add" ? amount : -amount,
+      reason: mode === "add" ? "dreamcode_add" : "dreamcode_take",
+      actorId: ctx.actor.id,
+    },
+    { config, skipPauseCheck: true },
+  );
+  return bal.pocket;
+}
+
+async function actEconomyHasItem(ctx: HostContext, args: BoundActionArgs, pos: SourcePos): Promise<DreamValue> {
+  const { loadEconomyConfig } = await import("../../economy/functions/config.js");
+  const { getItemByKey, getInventoryQty } = await import("../../economy/functions/inventory.js");
+  const config = await loadEconomyConfig(ctx.guild.id);
+  if (!config) return false;
+  const user = await resolveUser(ctx, args.user, pos);
+  const itemKey = valueToString(args.item);
+  if (!itemKey) throw new DreamcodeError("runtime", "economy_has_item requires item", pos);
+  const item = getItemByKey(ctx.guild.id, itemKey);
+  if (!item) return false;
+  const need = Math.max(1, valueToInt(args.quantity, 1));
+  return getInventoryQty(ctx.guild.id, user.id, item.id) >= need;
 }
 
 export { guildObject, memberObject, channelObject, messageObject };

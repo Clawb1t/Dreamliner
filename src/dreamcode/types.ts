@@ -124,7 +124,8 @@ export type ActionCategory =
   | "logging"
   | "lookup"
   | "utility"
-  | "control";
+  | "control"
+  | "economy";
 
 export type ActionDef = {
   key: string;

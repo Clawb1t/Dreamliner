@@ -134,7 +134,7 @@ For everyday grants (user / role / everyone) and level assignment, prefer `/perm
 
 On upload, your YAML is **deep-merged** with `config/default.server.yaml`. You only need to include keys you want to change.
 
-See also: [Autorole](plugins/autorole.md), [Translation](plugins/translation.md), [Logs](plugins/logs.md), [Starboard](plugins/starboard.md).
+See also: [Autorole](plugins/autorole.md), [Member identity](plugins/member_identity.md), [Translation](plugins/translation.md), [Logs](plugins/logs.md), [Starboard](plugins/starboard.md).
 
 ## Config commands
 

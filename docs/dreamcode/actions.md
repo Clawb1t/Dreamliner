@@ -121,6 +121,19 @@ Counters must already exist (created via `/counter`).
 
 ---
 
+## Economy
+
+Requires the Economy plugin enabled. Mutating actions need actor level ≥ 50.
+
+| Key | Mutates | Returns | Params |
+|-----|---------|---------|--------|
+| `economy_balance` | no | `{pocket,bank,frozen,currencyKey}` \| null | `user`; `currency?` |
+| `economy_add` | yes | new pocket balance | `user`, `amount`; `currency?` |
+| `economy_take` | yes | new pocket balance | `user`, `amount`; `currency?` |
+| `economy_has_item` | no | boolean | `user`, `item`; `quantity?` |
+
+---
+
 ## Reminders & posts
 
 | Key | Mutates | Returns | Params |

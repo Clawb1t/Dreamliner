@@ -16,7 +16,8 @@
     "dreamcode:export": "tsx scripts/export-dreamcode-catalog.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/migrate.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "engines": {
     "node": ">=20"

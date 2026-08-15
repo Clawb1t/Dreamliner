@@ -79,25 +79,31 @@ function humanizeKey(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function isToggleKey(key: string): boolean {
+  return /^(restore_|skip_|save_|allow_|ignore_|enabled)/.test(key);
+}
+
 function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
   if (key.startsWith("can_")) return "permission";
   if (
-    key === "channel_id" ||
-    key.endsWith("_channel_id") ||
-    key.endsWith("_channel") ||
-    key === "case_log_channel" ||
-    key === "ignored_channels" ||
-    key === "channels"
+    !isToggleKey(key) &&
+    (key === "channel_id" ||
+      key.endsWith("_channel_id") ||
+      key.endsWith("_channel") ||
+      key === "case_log_channel" ||
+      key === "ignored_channels" ||
+      key === "channels")
   ) {
     return "channel";
   }
   if (
-    key === "mute_role" ||
-    key.endsWith("_role_id") ||
-    key.endsWith("_role") ||
-    key.endsWith("_roles") ||
-    key === "ignored_roles" ||
-    key === "roles"
+    !isToggleKey(key) &&
+    (key === "mute_role" ||
+      key.endsWith("_role_id") ||
+      key.endsWith("_role") ||
+      key.endsWith("_roles") ||
+      key === "ignored_roles" ||
+      key === "roles")
   ) {
     return "role";
   }

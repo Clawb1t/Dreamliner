@@ -12,6 +12,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Automod](./automod.md)
 - [Scam Protect](./scam_protect.md)
+- [Passport](./passport.md) — verification gate with a website + captcha step
 - [Persist](./persist.md)
 - [Autodelete](./autodelete.md)
 
@@ -20,6 +21,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 - [Roles](./roles.md)
 - [Role manager](./role_manager.md)
 - [Autorole](./autorole.md)
+- [Member identity](./member_identity.md)
 - [Pingable roles](./pingable_roles.md)
 
 ## Self-serve roles
@@ -70,3 +72,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Reviews](./reviews.md) - star ratings and written server feedback
 - [Suggestions](./suggestions.md) - community suggestions with review queue, voting, and statuses
+
+## Economy
+
+- [Economy](./economy.md) — currencies, banks, shops, jobs, pets, crafting, quests, trades, and auctions

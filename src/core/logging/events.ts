@@ -58,6 +58,15 @@ export const LOG_EVENT_TYPES = [
   "dm_failed",
   "dreamcode_mod",
   "dreamcode_server",
+  "passport_verify",
+  "passport_kick",
+  "economy_adjust",
+  "economy_transfer",
+  "economy_shop",
+  "economy_trade",
+  "economy_auction",
+  "economy_freeze",
+  "economy_season",
   // Dashboard / website admin actions
   "dashboard_config",
   "dashboard_tag",
@@ -69,6 +78,7 @@ export const LOG_EVENT_TYPES = [
   "dashboard_welcome",
   "dashboard_review",
   "dashboard_bot_brand",
+  "dashboard_economy",
 ] as const;
 
 export type LogEventType = (typeof LOG_EVENT_TYPES)[number];
@@ -131,6 +141,15 @@ export const LOG_EVENT_META: Record<
   dm_failed: { label: "DM failed", category: "moderation", group: "Moderation" },
   dreamcode_mod: { label: "Dreamcode mod log", category: "moderation", group: "Moderation" },
   dreamcode_server: { label: "Dreamcode server log", category: "server", group: "Server" },
+  passport_verify: { label: "Passport verify", category: "moderation", group: "Passport" },
+  passport_kick: { label: "Passport kick", category: "moderation", group: "Passport" },
+  economy_adjust: { label: "Economy adjust", category: "server", group: "Economy" },
+  economy_transfer: { label: "Economy transfer", category: "server", group: "Economy" },
+  economy_shop: { label: "Economy shop", category: "server", group: "Economy" },
+  economy_trade: { label: "Economy trade", category: "server", group: "Economy" },
+  economy_auction: { label: "Economy auction", category: "server", group: "Economy" },
+  economy_freeze: { label: "Economy freeze", category: "server", group: "Economy" },
+  economy_season: { label: "Economy season", category: "server", group: "Economy" },
   dashboard_config: { label: "Config update", category: "server", group: "Dashboard" },
   dashboard_tag: { label: "Tag change", category: "server", group: "Dashboard" },
   dashboard_command: { label: "Dream command change", category: "server", group: "Dashboard" },
@@ -141,6 +160,7 @@ export const LOG_EVENT_META: Record<
   dashboard_welcome: { label: "Welcomer asset", category: "server", group: "Dashboard" },
   dashboard_review: { label: "Review admin", category: "server", group: "Dashboard" },
   dashboard_bot_brand: { label: "Bot brand", category: "server", group: "Dashboard" },
+  dashboard_economy: { label: "Economy change", category: "server", group: "Dashboard" },
 };
 
 export function isLogEventType(value: string): value is LogEventType {

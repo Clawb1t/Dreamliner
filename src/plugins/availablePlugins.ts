@@ -3,6 +3,7 @@ import { configPlugin } from "../plugins/config/index.js";
 import { utilityPlugin } from "../plugins/utility/index.js";
 import { infractionPlugin } from "../plugins/infraction/index.js";
 import { autorolePlugin } from "../plugins/autorole/index.js";
+import { memberIdentityPlugin } from "../plugins/member_identity/index.js";
 import { translationPlugin } from "../plugins/translation/index.js";
 import { starboardPlugin } from "../plugins/starboard/index.js";
 import { logsPlugin } from "../plugins/logs/index.js";
@@ -36,17 +37,22 @@ import { botCustomisationPlugin } from "../plugins/bot_customisation/index.js";
 import { reviewsPlugin } from "../plugins/reviews/index.js";
 import { suggestionsPlugin } from "../plugins/suggestions/index.js";
 import { scamProtectPlugin } from "../plugins/scam_protect/index.js";
+import { passportPlugin } from "../plugins/passport/index.js";
+import { economyPlugin } from "../plugins/economy/index.js";
 
 export const availablePlugins: DreamlinerPlugin[] = [
   configPlugin,
   utilityPlugin,
   infractionPlugin,
   autorolePlugin,
+  memberIdentityPlugin,
   translationPlugin,
   starboardPlugin,
   logsPlugin,
   automodPlugin,
   scamProtectPlugin,
+  passportPlugin,
+  economyPlugin,
   adminPlugin,
   persistPlugin,
   slowmodePlugin,

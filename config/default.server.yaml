@@ -172,6 +172,19 @@ plugins:
         - role: "1111111111111111111"
           delay_ms: 0
       bot_roles: []
+  member_identity:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      save_on_leave: true
+      save_on_update: true
+      restore_nickname: true
+      restore_roles: true
+      restore_timeout: false
+      skip_managed_roles: true
+      ignore_bots: true
+      ignored_roles: []
+      delay_ms: 0
   translation:
     enabled: true
     replaceDefaultOverrides: false
@@ -233,6 +246,221 @@ plugins:
         config:
           can_setup: true
           can_status: true
+  passport:
+    enabled: false
+    replaceDefaultOverrides: false
+    config:
+      channel_id: ""
+      unverified_role_id: ""
+      grant_role_ids: []
+      remove_role_ids: []
+      strip_roles_until_verified: false
+      nickname: ""
+      ping:
+        enabled: true
+        ping_style: mention
+        content: "Hey {user}, welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server."
+        button_label: "Verify"
+        also_dm: false
+        delete_on_verify: true
+        delete_on_leave: true
+        delete_after_seconds: 0
+        embed:
+          enabled: false
+      panel:
+        content: "Welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server."
+        button_label: "Verify"
+        embed:
+          enabled: false
+      page:
+        headline: "Welcome to {guild}"
+        body: "Sign in with Discord and complete a quick check to prove you're human."
+        rules: ""
+        inherit_accent: true
+        background: none
+        show_server_icon: true
+        show_server_name: true
+        show_member_count: true
+        show_user_avatar: true
+      remember_verifications: true
+      min_account_age_seconds: 0
+      bypass_role_ids: []
+      timeout_action: none
+      timeout_seconds: 0
+      timeout_dm: ""
+      can_panel: false
+      can_force: false
+      can_revoke: false
+      can_test: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_panel: true
+          can_force: true
+          can_revoke: true
+          can_test: true
+  economy:
+    enabled: false
+    replaceDefaultOverrides: false
+    config:
+      modules:
+        banking: true
+        rewards: true
+        work: true
+        jobs: true
+        shop: true
+        pets: true
+        crafting: true
+        quests: true
+        trading: true
+        marketplace: true
+        auctions: true
+        seasons: true
+        activity_rewards: false
+      currency:
+        name: Coins
+        name_singular: Coin
+        symbol: "🪙"
+        secondary_name: Gems
+        secondary_name_singular: Gem
+        secondary_symbol: "💎"
+      bank:
+        enabled: true
+        deposit_fee_bps: 0
+        withdraw_fee_bps: 0
+        interest_bps_daily: 0
+        max_balance: 0
+      rewards:
+        daily_amount: 250
+        daily_streak_bonus: 25
+        daily_streak_cap: 30
+        daily_streak_grace_hours: 6
+        weekly_amount: 1500
+        monthly_amount: 5000
+        work_min: 50
+        work_max: 200
+        work_cooldown_seconds: 3600
+        timezone: UTC
+      transfers:
+        enabled: true
+        tax_bps: 0
+        min_amount: 1
+        max_amount: 0
+        confirm_above: 10000
+      inventory:
+        max_slots: 100
+        max_stack: 9999
+        allow_gift: true
+      market:
+        listing_fee_bps: 0
+        sale_tax_bps: 500
+        max_listings_per_user: 10
+        auction_min_duration_seconds: 3600
+        auction_max_duration_seconds: 604800
+        auction_anti_snipe_seconds: 120
+        auction_min_increment_bps: 500
+        trade_timeout_seconds: 900
+      activity:
+        message_amount: 1
+        message_cooldown_seconds: 60
+        message_min_length: 5
+        voice_amount_per_minute: 2
+        voice_afk_ignored: true
+        daily_mint_cap: 500
+        min_account_age_days: 3
+        min_member_age_days: 0
+        allowed_channel_ids: []
+        denied_channel_ids: []
+        denied_role_ids: []
+      pets:
+        max_pets: 5
+        hunger_decay_per_hour: 2
+        energy_decay_per_hour: 3
+        feed_cost: 25
+        play_energy_cost: 10
+        battles_enabled: true
+      progression:
+        xp_per_work: 10
+        xp_per_daily: 15
+        xp_per_purchase: 5
+        level_curve_base: 100
+        level_curve_factor: 1.15
+      privacy:
+        hide_balances_by_default: false
+        leaderboard_public: true
+      paused: false
+      booster_multiplier_bps: 0
+      multiplier_role_ids: []
+      role_multiplier_bps: 0
+      starting_balance: 100
+      starting_secondary: 0
+      can_balance: false
+      can_bank: false
+      can_history: false
+      can_profile: false
+      can_daily: false
+      can_weekly: false
+      can_monthly: false
+      can_work: false
+      can_pay: false
+      can_gift: false
+      can_inspect: false
+      can_shop: false
+      can_inventory: false
+      can_jobs: false
+      can_pets: false
+      can_craft: false
+      can_quests: false
+      can_trade: false
+      can_market: false
+      can_auction: false
+      can_leaderboard: false
+      can_season: false
+      can_admin_adjust: false
+      can_admin_freeze: false
+      can_admin_inspect: false
+      can_admin_wipe: false
+      can_admin_pause: false
+      can_admin_catalog: false
+      can_admin_market: false
+      can_admin_export: false
+    overrides:
+      - level: ">=0"
+        config:
+          can_balance: true
+          can_bank: true
+          can_history: true
+          can_profile: true
+          can_daily: true
+          can_weekly: true
+          can_monthly: true
+          can_work: true
+          can_pay: true
+          can_gift: true
+          can_inspect: true
+          can_shop: true
+          can_inventory: true
+          can_jobs: true
+          can_pets: true
+          can_craft: true
+          can_quests: true
+          can_trade: true
+          can_market: true
+          can_auction: true
+          can_leaderboard: true
+          can_season: true
+      - level: ">=50"
+        config:
+          can_admin_adjust: true
+          can_admin_freeze: true
+          can_admin_inspect: true
+          can_admin_pause: true
+          can_admin_catalog: true
+          can_admin_market: true
+          can_admin_export: true
+      - level: ">=100"
+        config:
+          can_admin_wipe: true
   admin:
     enabled: true
     replaceDefaultOverrides: false

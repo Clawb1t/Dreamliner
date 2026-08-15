@@ -1199,6 +1199,154 @@
           "additionalProperties": false,
           "title": "Autorole"
         },
+        "member_identity": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "save_on_leave": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Save a member's nickname, roles, and timeout when they leave the server.",
+                  "title": "Save On Leave"
+                },
+                "save_on_update": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Keep the snapshot current whenever nickname, roles, or timeout change. Recommended so leave events with incomplete member data still restore correctly.",
+                  "title": "Save On Update"
+                },
+                "restore_nickname": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Reapply the saved server nickname when the member rejoins.",
+                  "title": "Restore Nickname"
+                },
+                "restore_roles": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Reapply saved roles when the member rejoins. Roles are added on top of autorole and other join roles; existing roles are not stripped.",
+                  "title": "Restore Roles"
+                },
+                "restore_timeout": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Reapply a remaining timeout (communication disabled until) if it had not expired when they left. Requires Moderate Members. Off by default.",
+                  "title": "Restore Timeout"
+                },
+                "skip_managed_roles": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Do not restore integration, bot, or boost roles that Discord manages.",
+                  "title": "Skip Managed Roles"
+                },
+                "ignore_bots": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Skip saving and restoring identity for bot accounts.",
+                  "title": "Ignore Bots"
+                },
+                "ignored_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Role IDs that are never restored, even if they were saved.",
+                  "title": "Ignored Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "delay_ms": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 300000,
+                  "default": 0,
+                  "description": "Wait this many milliseconds after join before restoring. Use a short delay if another join plugin should run first. 0 = restore immediately.",
+                  "title": "Delay Ms",
+                  "x-dreamliner": {
+                    "kind": "ms",
+                    "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Conditional config merges. Use these to grant can_* permissions to mods/admins.",
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Member Identity"
+        },
         "translation": {
           "type": "object",
           "properties": {
@@ -2103,6 +2251,1956 @@
           },
           "additionalProperties": false,
           "title": "Scam Protect"
+        },
+        "passport": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "channel_id": {
+                  "type": "string",
+                  "description": "Channel where join pings and the persistent Verify panel are posted. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "unverified_role_id": {
+                  "type": "string",
+                  "description": "Role applied when a member joins, until they verify. Paste a Discord role ID (Developer Mode → right-click role → Copy Role ID).",
+                  "title": "Unverified Role Id",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "grant_role_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Roles granted after a successful verification.",
+                  "title": "Grant Role Ids"
+                },
+                "remove_role_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Extra roles removed after a successful verification.",
+                  "title": "Remove Role Ids"
+                },
+                "strip_roles_until_verified": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Strip every other role on join until they verify. Use with care.",
+                  "title": "Strip Roles Until Verified"
+                },
+                "nickname": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "default": "",
+                  "description": "Optional nickname template applied on success. Supports placeholders.",
+                  "title": "Nickname"
+                },
+                "ping": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Ping new members in the verify channel.",
+                      "title": "Enabled"
+                    },
+                    "ping_style": {
+                      "type": "string",
+                      "enum": [
+                        "mention",
+                        "none"
+                      ],
+                      "default": "mention",
+                      "description": "Whether the join ping mentions the member.",
+                      "title": "Ping Style"
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Hey {user}, welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server.",
+                      "description": "Join ping content. Supports placeholders.",
+                      "title": "Content"
+                    },
+                    "embed": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Include a Discord embed in the message.",
+                          "title": "Enabled"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Embed title. Supports placeholders.",
+                          "title": "Title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 4096,
+                          "default": "",
+                          "description": "Embed description. Supports placeholders.",
+                          "title": "Description"
+                        },
+                        "color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Embed accent color as a decimal integer (0–16777215).",
+                          "default": 5661429,
+                          "title": "Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Optional embed author name.",
+                          "title": "Author Name"
+                        },
+                        "author_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Author icon source.",
+                          "title": "Author Icon"
+                        },
+                        "author_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Author icon URL when mode is url.",
+                          "title": "Author Icon Url"
+                        },
+                        "thumbnail": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "avatar",
+                          "description": "Thumbnail image source.",
+                          "title": "Thumbnail"
+                        },
+                        "thumbnail_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Thumbnail URL when mode is url.",
+                          "title": "Thumbnail Url"
+                        },
+                        "image": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Large embed image. Image cards attach as files, not embed images.",
+                          "title": "Image"
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Image URL when mode is url.",
+                          "title": "Image Url"
+                        },
+                        "footer_text": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "default": "",
+                          "description": "Footer text. Supports placeholders.",
+                          "title": "Footer Text"
+                        },
+                        "footer_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Footer icon source.",
+                          "title": "Footer Icon"
+                        },
+                        "footer_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Footer icon URL when mode is url.",
+                          "title": "Footer Icon Url"
+                        },
+                        "timestamp": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Show the current time in the embed footer.",
+                          "title": "Timestamp"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "default": "",
+                                "description": "Embed field name.",
+                                "title": "Name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 1024,
+                                "default": "",
+                                "description": "Embed field value. Supports placeholders.",
+                                "title": "Value"
+                              },
+                              "inline": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "Display the field inline.",
+                                "title": "Inline"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 25,
+                          "default": [],
+                          "description": "Optional embed fields.",
+                          "title": "Fields"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Embed"
+                    },
+                    "button_label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Verify",
+                      "description": "Label on the Verify link button.",
+                      "title": "Button Label"
+                    },
+                    "button_emoji": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "default": "",
+                      "description": "Optional emoji on the Verify button (unicode or <:name:id>).",
+                      "title": "Button Emoji",
+                      "x-dreamliner": {
+                        "kind": "emoji",
+                        "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                      }
+                    },
+                    "also_dm": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Also DM the member a Verify link.",
+                      "title": "Also Dm"
+                    },
+                    "delete_on_verify": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Delete the join ping after they verify.",
+                      "title": "Delete On Verify"
+                    },
+                    "delete_on_leave": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Delete the join ping if they leave first.",
+                      "title": "Delete On Leave"
+                    },
+                    "delete_after_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 604800,
+                      "default": 0,
+                      "description": "Delete the join ping after this many seconds (0 = keep).",
+                      "title": "Delete After Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Ping"
+                },
+                "panel": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server.",
+                      "description": "Persistent panel content. Supports placeholders.",
+                      "title": "Content"
+                    },
+                    "embed": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Include a Discord embed in the message.",
+                          "title": "Enabled"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Embed title. Supports placeholders.",
+                          "title": "Title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 4096,
+                          "default": "",
+                          "description": "Embed description. Supports placeholders.",
+                          "title": "Description"
+                        },
+                        "color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Embed accent color as a decimal integer (0–16777215).",
+                          "default": 5661429,
+                          "title": "Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Optional embed author name.",
+                          "title": "Author Name"
+                        },
+                        "author_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Author icon source.",
+                          "title": "Author Icon"
+                        },
+                        "author_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Author icon URL when mode is url.",
+                          "title": "Author Icon Url"
+                        },
+                        "thumbnail": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "avatar",
+                          "description": "Thumbnail image source.",
+                          "title": "Thumbnail"
+                        },
+                        "thumbnail_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Thumbnail URL when mode is url.",
+                          "title": "Thumbnail Url"
+                        },
+                        "image": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Large embed image. Image cards attach as files, not embed images.",
+                          "title": "Image"
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Image URL when mode is url.",
+                          "title": "Image Url"
+                        },
+                        "footer_text": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "default": "",
+                          "description": "Footer text. Supports placeholders.",
+                          "title": "Footer Text"
+                        },
+                        "footer_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Footer icon source.",
+                          "title": "Footer Icon"
+                        },
+                        "footer_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Footer icon URL when mode is url.",
+                          "title": "Footer Icon Url"
+                        },
+                        "timestamp": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Show the current time in the embed footer.",
+                          "title": "Timestamp"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "default": "",
+                                "description": "Embed field name.",
+                                "title": "Name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 1024,
+                                "default": "",
+                                "description": "Embed field value. Supports placeholders.",
+                                "title": "Value"
+                              },
+                              "inline": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "Display the field inline.",
+                                "title": "Inline"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 25,
+                          "default": [],
+                          "description": "Optional embed fields.",
+                          "title": "Fields"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Embed"
+                    },
+                    "button_label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Verify",
+                      "description": "Label on the persistent Verify button.",
+                      "title": "Button Label"
+                    },
+                    "button_emoji": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "default": "",
+                      "description": "Optional emoji on the persistent Verify button.",
+                      "title": "Button Emoji",
+                      "x-dreamliner": {
+                        "kind": "emoji",
+                        "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Panel"
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "headline": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "Welcome to {guild}",
+                      "description": "Page headline. Supports placeholders.",
+                      "title": "Headline"
+                    },
+                    "body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Sign in with Discord and complete a quick check to prove you're human.",
+                      "description": "Page body text. Supports placeholders.",
+                      "title": "Body"
+                    },
+                    "rules": {
+                      "type": "string",
+                      "maxLength": 4000,
+                      "default": "",
+                      "description": "Optional rules block shown above the captcha.",
+                      "title": "Rules"
+                    },
+                    "login_button_label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Continue with Discord",
+                      "description": "Sign-in button label.",
+                      "title": "Login Button Label"
+                    },
+                    "verify_button_label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Verify",
+                      "description": "Verify button label after captcha.",
+                      "title": "Verify Button Label"
+                    },
+                    "inherit_accent": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Use this server's public accent color on the Passport page.",
+                      "title": "Inherit Accent"
+                    },
+                    "accent_color": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215,
+                      "description": "Page accent when inherit_accent is off.",
+                      "default": 5661429,
+                      "title": "Accent Color",
+                      "x-dreamliner": {
+                        "kind": "color",
+                        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                      }
+                    },
+                    "background": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "color",
+                        "url",
+                        "guild_banner"
+                      ],
+                      "default": "none",
+                      "description": "Page background source.",
+                      "title": "Background"
+                    },
+                    "background_color": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215,
+                      "description": "Solid background when type is color.",
+                      "default": 16053751,
+                      "title": "Background Color",
+                      "x-dreamliner": {
+                        "kind": "color",
+                        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                      }
+                    },
+                    "background_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Background image URL when type is url.",
+                      "title": "Background Url"
+                    },
+                    "show_server_icon": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the server icon on the page.",
+                      "title": "Show Server Icon"
+                    },
+                    "show_server_name": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the server name on the page.",
+                      "title": "Show Server Name"
+                    },
+                    "show_member_count": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the member count on the page.",
+                      "title": "Show Member Count"
+                    },
+                    "show_user_avatar": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the signed-in user's avatar.",
+                      "title": "Show User Avatar"
+                    },
+                    "success_title": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "You're verified",
+                      "description": "Title after a successful verify.",
+                      "title": "Success Title"
+                    },
+                    "success_body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "You can close this tab and head back to Discord.",
+                      "description": "Body after a successful verify.",
+                      "title": "Success Body"
+                    },
+                    "already_verified_title": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "Already verified",
+                      "description": "Title when already verified.",
+                      "title": "Already Verified Title"
+                    },
+                    "already_verified_body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "You're already verified in this server.",
+                      "description": "Body when already verified.",
+                      "title": "Already Verified Body"
+                    },
+                    "not_a_member_title": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "Join the server first",
+                      "description": "Title when the user is not in the guild.",
+                      "title": "Not A Member Title"
+                    },
+                    "not_a_member_body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "You need to be a member of this server to verify.",
+                      "description": "Body when the user is not in the guild.",
+                      "title": "Not A Member Body"
+                    },
+                    "disabled_title": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "Verification is off",
+                      "description": "Title when Passport is disabled.",
+                      "title": "Disabled Title"
+                    },
+                    "disabled_body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "This server isn't using Passport right now.",
+                      "description": "Body when Passport is disabled.",
+                      "title": "Disabled Body"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Page"
+                },
+                "remember_verifications": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Skip the gate when a previously verified member rejoins.",
+                  "title": "Remember Verifications"
+                },
+                "min_account_age_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 31536000,
+                  "default": 0,
+                  "description": "Minimum Discord account age in seconds (0 = off).",
+                  "title": "Min Account Age Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "bypass_role_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Members with any of these roles skip Passport.",
+                  "title": "Bypass Role Ids"
+                },
+                "timeout_action": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "kick"
+                  ],
+                  "default": "none",
+                  "description": "What to do if they never finish verification.",
+                  "title": "Timeout Action"
+                },
+                "timeout_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2592000,
+                  "default": 0,
+                  "description": "Seconds to wait before the timeout action (0 = never).",
+                  "title": "Timeout Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "timeout_dm": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "default": "",
+                  "description": "Optional DM sent before a timeout kick. Supports placeholders.",
+                  "title": "Timeout Dm"
+                },
+                "can_panel": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to post a persistent Passport panel. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Panel",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_force": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to force-verify a member. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Force",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_revoke": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to revoke a member's verification. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Revoke",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_test": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to send a test Passport ping. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Test",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Conditional config merges. Use these to grant can_* permissions to mods/admins.",
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Passport"
+        },
+        "economy": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "modules": {
+                  "type": "object",
+                  "properties": {
+                    "banking": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable bank deposit/withdraw.",
+                      "title": "Banking"
+                    },
+                    "rewards": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable daily/weekly/monthly claims.",
+                      "title": "Rewards"
+                    },
+                    "work": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable /economy rewards work.",
+                      "title": "Work"
+                    },
+                    "jobs": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable career jobs.",
+                      "title": "Jobs"
+                    },
+                    "shop": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable shops and inventory.",
+                      "title": "Shop"
+                    },
+                    "pets": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable pets.",
+                      "title": "Pets"
+                    },
+                    "crafting": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable crafting.",
+                      "title": "Crafting"
+                    },
+                    "quests": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable quests and achievements.",
+                      "title": "Quests"
+                    },
+                    "trading": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable direct player trades.",
+                      "title": "Trading"
+                    },
+                    "marketplace": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable fixed-price marketplace.",
+                      "title": "Marketplace"
+                    },
+                    "auctions": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable auctions.",
+                      "title": "Auctions"
+                    },
+                    "seasons": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable seasons.",
+                      "title": "Seasons"
+                    },
+                    "activity_rewards": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Pay for messages/voice activity.",
+                      "title": "Activity Rewards"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Modules"
+                },
+                "currency": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "default": "Coins",
+                      "description": "Primary currency display name.",
+                      "title": "Name"
+                    },
+                    "name_singular": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "default": "Coin",
+                      "description": "Singular form of the primary currency.",
+                      "title": "Name Singular"
+                    },
+                    "symbol": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "default": "🪙",
+                      "description": "Primary currency emoji or symbol. Custom server emojis (<:coin:123>) work too.",
+                      "title": "Symbol"
+                    },
+                    "secondary_name": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "default": "Gems",
+                      "description": "Secondary currency display name.",
+                      "title": "Secondary Name"
+                    },
+                    "secondary_name_singular": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "default": "Gem",
+                      "description": "Singular secondary currency.",
+                      "title": "Secondary Name Singular"
+                    },
+                    "secondary_symbol": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "default": "💎",
+                      "description": "Secondary currency emoji or symbol. Custom server emojis (<:gem:123>) work too.",
+                      "title": "Secondary Symbol"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Currency"
+                },
+                "bank": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Allow bank storage.",
+                      "title": "Enabled"
+                    },
+                    "deposit_fee_bps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "default": 0,
+                      "description": "Deposit fee in basis points (100 = 1%).",
+                      "title": "Deposit Fee Bps"
+                    },
+                    "withdraw_fee_bps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "default": 0,
+                      "description": "Withdraw fee in basis points (100 = 1%).",
+                      "title": "Withdraw Fee Bps"
+                    },
+                    "interest_bps_daily": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000,
+                      "default": 0,
+                      "description": "Daily bank interest in basis points.",
+                      "title": "Interest Bps Daily"
+                    },
+                    "max_balance": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 0,
+                      "description": "Maximum bank balance per currency (0 = unlimited).",
+                      "title": "Max Balance"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Bank"
+                },
+                "rewards": {
+                  "type": "object",
+                  "properties": {
+                    "daily_amount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 250,
+                      "description": "Base daily claim amount (primary currency).",
+                      "title": "Daily Amount"
+                    },
+                    "daily_streak_bonus": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 25,
+                      "description": "Extra primary currency per consecutive daily streak day.",
+                      "title": "Daily Streak Bonus"
+                    },
+                    "daily_streak_cap": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 30,
+                      "description": "Maximum streak days that grant bonus.",
+                      "title": "Daily Streak Cap"
+                    },
+                    "daily_streak_grace_hours": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 168,
+                      "default": 6,
+                      "description": "Hours after reset where a late claim keeps the streak.",
+                      "title": "Daily Streak Grace Hours"
+                    },
+                    "weekly_amount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 1500,
+                      "description": "Weekly claim amount (primary currency).",
+                      "title": "Weekly Amount"
+                    },
+                    "monthly_amount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 5000,
+                      "description": "Monthly claim amount (primary currency).",
+                      "title": "Monthly Amount"
+                    },
+                    "work_min": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 50,
+                      "description": "Minimum work payout.",
+                      "title": "Work Min"
+                    },
+                    "work_max": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 200,
+                      "description": "Maximum work payout.",
+                      "title": "Work Max"
+                    },
+                    "work_cooldown_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 604800,
+                      "default": 3600,
+                      "description": "Work cooldown in seconds.",
+                      "title": "Work Cooldown Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "default": "UTC",
+                      "description": "IANA timezone used for daily/weekly/monthly resets.",
+                      "title": "Timezone"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Rewards"
+                },
+                "transfers": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Allow member-to-member payments.",
+                      "title": "Enabled"
+                    },
+                    "tax_bps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "default": 0,
+                      "description": "Transfer tax in basis points (100 = 1%).",
+                      "title": "Tax Bps"
+                    },
+                    "min_amount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 1,
+                      "description": "Minimum transfer amount.",
+                      "title": "Min Amount"
+                    },
+                    "max_amount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 0,
+                      "description": "Maximum transfer amount (0 = unlimited).",
+                      "title": "Max Amount"
+                    },
+                    "confirm_above": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 10000,
+                      "description": "Require confirmation when transferring at or above this amount.",
+                      "title": "Confirm Above"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Transfers"
+                },
+                "inventory": {
+                  "type": "object",
+                  "properties": {
+                    "max_slots": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000,
+                      "default": 100,
+                      "description": "Maximum distinct inventory stacks per member.",
+                      "title": "Max Slots"
+                    },
+                    "max_stack": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000,
+                      "default": 9999,
+                      "description": "Maximum quantity per stack.",
+                      "title": "Max Stack"
+                    },
+                    "allow_gift": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Allow gifting inventory items.",
+                      "title": "Allow Gift"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Inventory"
+                },
+                "market": {
+                  "type": "object",
+                  "properties": {
+                    "listing_fee_bps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "default": 0,
+                      "description": "Marketplace listing fee in basis points.",
+                      "title": "Listing Fee Bps"
+                    },
+                    "sale_tax_bps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "default": 500,
+                      "description": "Marketplace sale tax in basis points.",
+                      "title": "Sale Tax Bps"
+                    },
+                    "max_listings_per_user": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "default": 10,
+                      "description": "Max active marketplace listings per member.",
+                      "title": "Max Listings Per User"
+                    },
+                    "auction_min_duration_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2592000,
+                      "default": 3600,
+                      "description": "Minimum auction duration seconds.",
+                      "title": "Auction Min Duration Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    },
+                    "auction_max_duration_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2592000,
+                      "default": 604800,
+                      "description": "Maximum auction duration seconds.",
+                      "title": "Auction Max Duration Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    },
+                    "auction_anti_snipe_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3600,
+                      "default": 120,
+                      "description": "Extend auction by this many seconds on late bids.",
+                      "title": "Auction Anti Snipe Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    },
+                    "auction_min_increment_bps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "default": 500,
+                      "description": "Minimum bid increment over current bid (bps).",
+                      "title": "Auction Min Increment Bps"
+                    },
+                    "trade_timeout_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 86400,
+                      "default": 900,
+                      "description": "Direct trade session timeout seconds.",
+                      "title": "Trade Timeout Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Market"
+                },
+                "activity": {
+                  "type": "object",
+                  "properties": {
+                    "message_amount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000,
+                      "default": 1,
+                      "description": "Primary currency per rewarded message.",
+                      "title": "Message Amount"
+                    },
+                    "message_cooldown_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 86400,
+                      "default": 60,
+                      "description": "Cooldown between message rewards for a user.",
+                      "title": "Message Cooldown Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    },
+                    "message_min_length": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2000,
+                      "default": 5,
+                      "description": "Minimum message length to earn.",
+                      "title": "Message Min Length"
+                    },
+                    "voice_amount_per_minute": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000,
+                      "default": 2,
+                      "description": "Primary currency per rewarded voice minute.",
+                      "title": "Voice Amount Per Minute"
+                    },
+                    "voice_afk_ignored": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Ignore AFK voice channel for rewards.",
+                      "title": "Voice Afk Ignored"
+                    },
+                    "daily_mint_cap": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 500,
+                      "description": "Max primary currency a user can mint from activity per day (0 = unlimited).",
+                      "title": "Daily Mint Cap"
+                    },
+                    "min_account_age_days": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 365,
+                      "default": 3,
+                      "description": "Minimum Discord account age in days to earn activity rewards.",
+                      "title": "Min Account Age Days"
+                    },
+                    "min_member_age_days": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 365,
+                      "default": 0,
+                      "description": "Minimum server membership age in days to earn activity rewards.",
+                      "title": "Min Member Age Days"
+                    },
+                    "allowed_channel_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "If non-empty, only these channels grant activity rewards.",
+                      "title": "Allowed Channel Ids"
+                    },
+                    "denied_channel_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "Channels that never grant activity rewards.",
+                      "title": "Denied Channel Ids"
+                    },
+                    "denied_role_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "Roles that never grant activity rewards.",
+                      "title": "Denied Role Ids"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Activity"
+                },
+                "pets": {
+                  "type": "object",
+                  "properties": {
+                    "max_pets": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 50,
+                      "default": 5,
+                      "description": "Maximum pets a member may own.",
+                      "title": "Max Pets"
+                    },
+                    "hunger_decay_per_hour": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "default": 2,
+                      "description": "Hunger points lost per hour (lazy).",
+                      "title": "Hunger Decay Per Hour"
+                    },
+                    "energy_decay_per_hour": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "default": 3,
+                      "description": "Energy points lost per hour (lazy).",
+                      "title": "Energy Decay Per Hour"
+                    },
+                    "feed_cost": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 25,
+                      "description": "Primary currency cost to feed (if no food item).",
+                      "title": "Feed Cost"
+                    },
+                    "play_energy_cost": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "default": 10,
+                      "description": "Energy spent when playing.",
+                      "title": "Play Energy Cost"
+                    },
+                    "battles_enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Allow non-wager pet battles.",
+                      "title": "Battles Enabled"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Pets"
+                },
+                "progression": {
+                  "type": "object",
+                  "properties": {
+                    "xp_per_work": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 10,
+                      "description": "Economy XP granted on work.",
+                      "title": "Xp Per Work"
+                    },
+                    "xp_per_daily": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 15,
+                      "description": "Economy XP granted on daily claim.",
+                      "title": "Xp Per Daily"
+                    },
+                    "xp_per_purchase": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 5,
+                      "description": "Economy XP granted on shop purchase.",
+                      "title": "Xp Per Purchase"
+                    },
+                    "level_curve_base": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000,
+                      "default": 100,
+                      "description": "XP required for level 2; grows by curve factor each level.",
+                      "title": "Level Curve Base"
+                    },
+                    "level_curve_factor": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 3,
+                      "default": 1.15,
+                      "description": "Multiplies XP requirement each level.",
+                      "title": "Level Curve Factor"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Progression"
+                },
+                "privacy": {
+                  "type": "object",
+                  "properties": {
+                    "hide_balances_by_default": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "When true, other members cannot inspect balances unless opted in.",
+                      "title": "Hide Balances By Default"
+                    },
+                    "leaderboard_public": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Allow public economy leaderboards.",
+                      "title": "Leaderboard Public"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Privacy"
+                },
+                "log_channel_id": {
+                  "type": "string",
+                  "description": "Optional dedicated economy audit channel. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "announcement_channel_id": {
+                  "type": "string",
+                  "description": "Optional channel for season/auction announcements. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Announcement Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "paused": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Emergency pause — blocks earning, spending, trading, and markets.",
+                  "title": "Paused"
+                },
+                "booster_multiplier_bps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000,
+                  "default": 0,
+                  "description": "Extra reward multiplier for Discord Nitro boosters in basis points (1000 = +10%).",
+                  "title": "Booster Multiplier Bps"
+                },
+                "multiplier_role_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Roles that receive the role reward multiplier.",
+                  "title": "Multiplier Role Ids"
+                },
+                "role_multiplier_bps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000,
+                  "default": 0,
+                  "description": "Extra reward multiplier for multiplier_role_ids in basis points.",
+                  "title": "Role Multiplier Bps"
+                },
+                "starting_balance": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000,
+                  "default": 100,
+                  "description": "Primary currency granted when a member first touches the economy.",
+                  "title": "Starting Balance"
+                },
+                "starting_secondary": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000,
+                  "default": 0,
+                  "description": "Secondary currency granted on first touch.",
+                  "title": "Starting Secondary"
+                },
+                "can_balance": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view balances. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Balance",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_bank": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use the bank. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Bank",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_history": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view transaction history. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "History",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_profile": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view economy profiles. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Profile",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_daily": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to claim daily rewards. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Daily",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_weekly": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to claim weekly rewards. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Weekly",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_monthly": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to claim monthly rewards. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Monthly",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_work": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use work / jobs. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Work",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_pay": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to pay other members. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Pay",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_gift": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to gift items. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Gift",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_inspect": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to inspect other members' public economy info. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Inspect",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_shop": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to browse and buy from shops. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Shop",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_inventory": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manage inventory. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Inventory",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_jobs": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use jobs. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Jobs",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_pets": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use pets. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Pets",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_craft": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to craft items. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Craft",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_quests": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view and claim quests. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Quests",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_trade": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use direct trades. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Trade",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_market": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use the marketplace. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Market",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_auction": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use auctions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Auction",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_leaderboard": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view economy leaderboards. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Leaderboard",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_season": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view season info. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Season",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_adjust": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to adjust balances as staff. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Adjust",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_freeze": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to freeze and unfreeze accounts. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Freeze",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_inspect": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to inspect any account and ledger. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Inspect",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_wipe": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to wipe accounts or reset economy data. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Wipe",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_pause": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to pause and resume the economy. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Pause",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_catalog": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manage shops, items, jobs, pets, recipes, and quests. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Catalog",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_market": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to moderate markets, trades, and auctions. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Market",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_admin_export": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to export and import economy data. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Admin Export",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Conditional config merges. Use these to grant can_* permissions to mods/admins.",
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Economy"
         },
         "admin": {
           "type": "object",

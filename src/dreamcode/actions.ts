@@ -513,6 +513,57 @@ export const ACTION_DEFS: ActionDef[] = [
     mutates: true,
   },
 
+  // ── Economy ───────────────────────────────────────────────
+  {
+    key: "economy_balance",
+    category: "economy",
+    description: "Get a member's economy balances for a currency.",
+    positional: [
+      { name: "user", required: true, description: "Member.", type: "user" },
+      { name: "currency", required: false, description: "Currency key (default coins).", type: "string" },
+    ],
+    named: [],
+    returns: "object { pocket, bank, frozen, currencyKey } or null if economy disabled",
+  },
+  {
+    key: "economy_add",
+    category: "economy",
+    description: "Add currency to a member's pocket (ledger-backed).",
+    positional: [
+      { name: "user", required: true, description: "Member.", type: "user" },
+      { name: "amount", required: true, description: "Positive amount.", type: "number" },
+      { name: "currency", required: false, description: "Currency key.", type: "string" },
+    ],
+    named: [],
+    returns: "new pocket balance",
+    mutates: true,
+  },
+  {
+    key: "economy_take",
+    category: "economy",
+    description: "Remove currency from a member's pocket (ledger-backed).",
+    positional: [
+      { name: "user", required: true, description: "Member.", type: "user" },
+      { name: "amount", required: true, description: "Positive amount.", type: "number" },
+      { name: "currency", required: false, description: "Currency key.", type: "string" },
+    ],
+    named: [],
+    returns: "new pocket balance",
+    mutates: true,
+  },
+  {
+    key: "economy_has_item",
+    category: "economy",
+    description: "Check whether a member owns at least N of an item key.",
+    positional: [
+      { name: "user", required: true, description: "Member.", type: "user" },
+      { name: "item", required: true, description: "Item key.", type: "string" },
+      { name: "quantity", required: false, description: "Minimum quantity (default 1).", type: "number" },
+    ],
+    named: [],
+    returns: "boolean",
+  },
+
   // ── Reminders / posts ─────────────────────────────────────
   {
     key: "remind",

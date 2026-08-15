@@ -6,6 +6,8 @@ import { zStarboardPluginSection } from "./starboard.js";
 import { zReviewsPluginSection } from "./reviews.js";
 import { zSuggestionsPluginSection } from "./suggestions.js";
 import { zScamProtectPluginSection } from "./scamProtect.js";
+import { zPassportPluginSection } from "./passport.js";
+import { zEconomyPluginSection } from "./economy.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import {
   zAdminPluginSection,
@@ -20,6 +22,7 @@ import {
   zBotCustomisationPluginSection,
   zDreamCommandsPluginSection,
   zLocateUserPluginSection,
+  zMemberIdentityPluginSection,
   zNameHistoryPluginSection,
   zPersistPluginSection,
   zPingableRolesPluginSection,
@@ -156,10 +159,13 @@ export const zGuildConfig = z.strictObject({
       utility: zUtilityPluginSection.optional(),
       infractions: zInfractionPluginSection.optional(),
       autorole: zAutorolePluginSection.optional(),
+      member_identity: zMemberIdentityPluginSection.optional(),
       translation: zTranslationPluginSection.optional(),
       starboard: zStarboardPluginSection.optional(),
       automod: zAutomodPluginSection.optional(),
       scam_protect: zScamProtectPluginSection.optional(),
+      passport: zPassportPluginSection.optional(),
+      economy: zEconomyPluginSection.optional(),
       admin: zAdminPluginSection.optional(),
       persist: zPersistPluginSection.optional(),
       slowmode: zSlowmodePluginSection.optional(),

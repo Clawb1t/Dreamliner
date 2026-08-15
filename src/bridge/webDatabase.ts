@@ -74,6 +74,14 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
     label: "Welcome join messages",
     description: "Tracked join welcomes for wave tallies and early-leave deletes.",
   },
+  passport_pending: {
+    label: "Passport pending",
+    description: "Members waiting to complete Passport verification.",
+  },
+  passport_verifications: {
+    label: "Passport verifications",
+    description: "Completed Passport verifications for this server.",
+  },
   suggestions: {
     label: "Suggestions",
     description: "Community suggestions with review queue and voting.",
@@ -85,6 +93,74 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
   bot_guild_profiles: {
     label: "Bot guild profiles",
     description: "Stored per-server bot bio and related brand state.",
+  },
+  economy_currencies: {
+    label: "Economy currencies",
+    description: "Per-guild currency definitions (coins, gems, custom).",
+  },
+  economy_accounts: {
+    label: "Economy accounts",
+    description: "Member pocket, bank, and frozen balances by currency.",
+  },
+  economy_transactions: {
+    label: "Economy transactions",
+    description: "Ledger of balance mutations and transfers.",
+  },
+  economy_profiles: {
+    label: "Economy profiles",
+    description: "Member economy XP, jobs, freeze state, and privacy.",
+  },
+  economy_items: {
+    label: "Economy items",
+    description: "Catalog items for shops, inventory, and crafting.",
+  },
+  economy_shops: {
+    label: "Economy shops",
+    description: "Shop definitions for the server catalog.",
+  },
+  economy_shop_listings: {
+    label: "Economy shop listings",
+    description: "Priced stock listings inside shops.",
+  },
+  economy_inventory: {
+    label: "Economy inventory",
+    description: "Items owned by members.",
+  },
+  economy_jobs: {
+    label: "Economy jobs",
+    description: "Career jobs members can work.",
+  },
+  economy_pet_species: {
+    label: "Economy pet species",
+    description: "Adoptable pet species definitions.",
+  },
+  economy_pets: {
+    label: "Economy pets",
+    description: "Pets owned by members.",
+  },
+  economy_recipes: {
+    label: "Economy recipes",
+    description: "Crafting recipes and inputs.",
+  },
+  economy_quests: {
+    label: "Economy quests",
+    description: "Quest definitions and rewards.",
+  },
+  economy_achievements: {
+    label: "Economy achievements",
+    description: "Long-term achievement definitions.",
+  },
+  economy_seasons: {
+    label: "Economy seasons",
+    description: "Seasonal events and reward tiers.",
+  },
+  economy_daily_stats: {
+    label: "Economy daily stats",
+    description: "Per-day mint, sink, and market volume analytics.",
+  },
+  economy_guild_state: {
+    label: "Economy guild state",
+    description: "Pause and seed flags for the guild economy.",
   },
 };
 

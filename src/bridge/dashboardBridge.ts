@@ -720,6 +720,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const welcomePreviewMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/preview$/.exec(url.pathname);
         const welcomeTestMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/test$/.exec(url.pathname);
+        const passportMatch =
+          /^\/bridge\/guilds\/(\d+)\/passport(?:\/(verify|test-ping|panel|diagnostics|practice))?$/.exec(
+            url.pathname,
+          );
+        const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
         const botProfileRequestImageMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/requests\/(\d+)\/image$/.exec(
           url.pathname,
         );
@@ -770,6 +775,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !welcomeAssetMatch &&
           !welcomePreviewMatch &&
           !welcomeTestMatch &&
+          !passportMatch &&
+          !economyMatch &&
           !botProfileRequestImageMatch &&
           !botProfileRequestCancelMatch &&
           !botProfileMediaMatch &&
@@ -814,6 +821,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           welcomeAssetMatch?.[1] ??
           welcomePreviewMatch?.[1] ??
           welcomeTestMatch?.[1] ??
+          passportMatch?.[1] ??
+          economyMatch?.[1] ??
           botProfileRequestImageMatch?.[1] ??
           botProfileRequestCancelMatch?.[1] ??
           botProfileMediaMatch?.[1] ??
@@ -1359,6 +1368,109 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               ok: removed,
               error: removed ? undefined : "Asset not found",
             });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (passportMatch) {
+          const {
+            buildPassportPagePayload,
+            completeWebPassportVerification,
+            postWebPassportPanel,
+            resetWebPassportPractice,
+            runPassportDiagnostics,
+            sendWebPassportTestPing,
+          } = await import("./webPassport.js");
+          const sub = passportMatch[2] ?? null;
+
+          // Public page payload for /passport/[guildId]. No Manage Server required;
+          // the website server still sends the Bearer secret.
+          if (!sub && req.method === "GET") {
+            const viewerUserId = url.searchParams.get("userId");
+            sendJson(res, 200, await buildPassportPagePayload(guild, viewerUserId));
+            return;
+          }
+
+          // Member-facing verification. Trusts the website's Auth.js session +
+          // captcha; here we only require that userId is a real guild member.
+          if (sub === "verify" && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            const result = await completeWebPassportVerification(client, guild, userId);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+
+          // Dashboard Test step: read-only permission + wiring report.
+          if (sub === "diagnostics" && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await runPassportDiagnostics(guild));
+            return;
+          }
+
+          // Dashboard-only actions require Manage Server.
+          if ((sub === "panel" || sub === "test-ping" || sub === "practice") && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result =
+              sub === "panel"
+                ? await postWebPassportPanel(guild, userId)
+                : sub === "practice"
+                  ? await resetWebPassportPractice(guild, userId)
+                  : await sendWebPassportTestPing(guild, userId);
+            if (result.ok) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title:
+                  sub === "panel"
+                    ? "Passport panel posted"
+                    : sub === "practice"
+                      ? "Passport practice reset"
+                      : "Passport test ping sent",
+                summary:
+                  sub === "panel"
+                    ? "A Passport verify panel was posted from the dashboard."
+                    : sub === "practice"
+                      ? "A staff Passport practice run was reset from the dashboard."
+                      : "A Passport test ping was sent from the dashboard.",
+              });
+            }
+            sendJson(res, result.ok ? 200 : 400, result);
             return;
           }
 
@@ -2119,6 +2231,320 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             ...payload,
           });
+          return;
+        }
+
+        if (economyMatch) {
+          const rest = (economyMatch[2] ?? "").replace(/\/+$/, "");
+          const segments = rest ? rest.split("/") : [];
+          const econ = await import("./webEconomy.js");
+
+          const requireManage = async (userId: string | undefined | null): Promise<string | null> => {
+            const id = userId?.trim();
+            if (!id) {
+              sendJson(res, 400, { error: "userId is required" });
+              return null;
+            }
+            if (!(await memberCanManage(guild, id))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return null;
+            }
+            return id;
+          };
+
+          const readJsonBody = async <T extends Record<string, unknown>>(): Promise<T | null> => {
+            try {
+              return JSON.parse(await readBody(req)) as T;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return null;
+            }
+          };
+
+          // GET /economy — overview
+          if (segments.length === 0 && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            const result = await econ.getEconomyOverview(configManager, guildId);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            const { ok: _ok, ...payload } = result;
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...payload,
+            });
+            return;
+          }
+
+          // GET /economy/analytics
+          if (segments[0] === "analytics" && segments.length === 1 && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            const days = Number(url.searchParams.get("days") ?? 14) || 14;
+            const result = await econ.getEconomyAnalytics(configManager, guildId, days);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { days: result.days, stats: result.stats });
+            return;
+          }
+
+          // POST /economy/actions
+          if (segments[0] === "actions" && segments.length === 1 && req.method === "POST") {
+            const body = await readJsonBody<{ userId?: string; action?: string }>();
+            if (!body) return;
+            const userId = await requireManage(body.userId);
+            if (!userId) return;
+            const action = typeof body.action === "string" ? body.action.trim() : "";
+            const result = await econ.runEconomyAction(configManager, guildId, action);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_economy",
+              title: `Economy ${result.action}`,
+              summary: `Economy action \`${result.action}\` ran from the dashboard.`,
+              payload: { action: result.action, result: result.result },
+            });
+            sendJson(res, 200, { ok: true, action: result.action, result: result.result });
+            return;
+          }
+
+          // Accounts
+          if (segments[0] === "accounts" && segments[1]) {
+            const targetUserId = segments[1]!;
+            if (segments.length === 2 && req.method === "GET") {
+              const userId = await requireManage(url.searchParams.get("userId"));
+              if (!userId) return;
+              const result = await econ.getEconomyAccount(configManager, guildId, targetUserId);
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              const { ok: _ok, ...payload } = result;
+              sendJson(res, 200, payload);
+              return;
+            }
+            if (segments.length === 3 && segments[2] === "transactions" && req.method === "GET") {
+              const userId = await requireManage(url.searchParams.get("userId"));
+              if (!userId) return;
+              const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
+              const result = await econ.listEconomyTransactions(
+                configManager,
+                guildId,
+                targetUserId,
+                limit,
+              );
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              sendJson(res, 200, { transactions: result.transactions });
+              return;
+            }
+            if (segments.length === 3 && segments[2] === "adjust" && req.method === "POST") {
+              const body = await readJsonBody<{
+                userId?: string;
+                currencyKey?: string;
+                mode?: "add" | "take" | "set";
+                pocketDelta?: number;
+                bankDelta?: number;
+                reason?: string;
+              }>();
+              if (!body) return;
+              const actorId = await requireManage(body.userId);
+              if (!actorId) return;
+              const result = await econ.adjustEconomyAccount(configManager, guildId, targetUserId, {
+                actorId,
+                currencyKey: body.currencyKey,
+                mode: body.mode,
+                pocketDelta: body.pocketDelta,
+                bankDelta: body.bankDelta,
+                reason: body.reason,
+              });
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, actorId, {
+                eventType: "dashboard_economy",
+                title: "Economy balance adjust",
+                summary: `Adjusted balances for <@${targetUserId}> (${result.currencyKey}).`,
+                targetId: targetUserId,
+                payload: {
+                  currencyKey: result.currencyKey,
+                  balances: result.balances,
+                  mode: body.mode ?? "add",
+                },
+              });
+              sendJson(res, 200, {
+                ok: true,
+                currencyKey: result.currencyKey,
+                balances: result.balances,
+              });
+              return;
+            }
+            if (segments.length === 3 && segments[2] === "freeze" && req.method === "POST") {
+              const body = await readJsonBody<{
+                userId?: string;
+                frozen?: boolean;
+                reason?: string;
+              }>();
+              if (!body) return;
+              const actorId = await requireManage(body.userId);
+              if (!actorId) return;
+              if (typeof body.frozen !== "boolean") {
+                sendJson(res, 400, { error: "frozen must be a boolean" });
+                return;
+              }
+              const result = await econ.freezeEconomyAccount(configManager, guildId, targetUserId, {
+                frozen: body.frozen,
+                reason: body.reason,
+              });
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, actorId, {
+                eventType: "dashboard_economy",
+                title: body.frozen ? "Economy account frozen" : "Economy account unfrozen",
+                summary: `${body.frozen ? "Froze" : "Unfroze"} economy account for <@${targetUserId}>.`,
+                targetId: targetUserId,
+                payload: { frozen: body.frozen },
+              });
+              sendJson(res, 200, { ok: true, profile: result.profile });
+              return;
+            }
+          }
+
+          // Catalog CRUD: /economy/{kind} and /economy/{kind}/:id
+          // Also accept pets as alias for species
+          if (segments[0]) {
+            const kind = econ.parseCatalogKind(segments[0]!);
+            if (kind) {
+              if (segments.length === 1 && req.method === "GET") {
+                const userId = await requireManage(url.searchParams.get("userId"));
+                if (!userId) return;
+                const shopIdRaw = url.searchParams.get("shopId");
+                const shopId = shopIdRaw ? Number(shopIdRaw) : undefined;
+                const result = await econ.listEconomyCatalog(
+                  configManager,
+                  guildId,
+                  kind,
+                  Number.isInteger(shopId) ? shopId : undefined,
+                );
+                if (!result.ok) {
+                  sendJson(res, result.status, { error: result.error });
+                  return;
+                }
+                sendJson(res, 200, { items: result.items });
+                return;
+              }
+
+              if (segments.length === 1 && req.method === "POST") {
+                const body = await readJsonBody<Record<string, unknown>>();
+                if (!body) return;
+                const actorId = await requireManage(
+                  typeof body.userId === "string" ? body.userId : undefined,
+                );
+                if (!actorId) return;
+                const { userId: _u, ...payload } = body;
+                const result = await econ.createEconomyCatalog(
+                  configManager,
+                  guildId,
+                  kind,
+                  payload,
+                );
+                if (!result.ok) {
+                  sendJson(res, result.status, { error: result.error });
+                  return;
+                }
+                trackDashboardAction(client, guildId, actorId, {
+                  eventType: "dashboard_economy",
+                  title: `Economy ${kind} created`,
+                  summary: `Created economy ${kind} from the dashboard.`,
+                  payload: { kind, id: result.item.id, key: result.item.key },
+                });
+                sendJson(res, 200, { ok: true, item: result.item });
+                return;
+              }
+
+              if (segments.length === 2) {
+                const id = econ.parseId(segments[1]!);
+                if (!id) {
+                  sendJson(res, 400, { error: "Invalid id" });
+                  return;
+                }
+
+                if (req.method === "GET") {
+                  const userId = await requireManage(url.searchParams.get("userId"));
+                  if (!userId) return;
+                  const result = await econ.getEconomyCatalogOne(configManager, guildId, kind, id);
+                  if (!result.ok) {
+                    sendJson(res, result.status, { error: result.error });
+                    return;
+                  }
+                  sendJson(res, 200, { item: result.item });
+                  return;
+                }
+
+                if (req.method === "PUT") {
+                  const body = await readJsonBody<Record<string, unknown>>();
+                  if (!body) return;
+                  const actorId = await requireManage(
+                    typeof body.userId === "string" ? body.userId : undefined,
+                  );
+                  if (!actorId) return;
+                  const { userId: _u, ...payload } = body;
+                  const result = await econ.updateEconomyCatalog(
+                    configManager,
+                    guildId,
+                    kind,
+                    id,
+                    payload,
+                  );
+                  if (!result.ok) {
+                    sendJson(res, result.status, { error: result.error });
+                    return;
+                  }
+                  trackDashboardAction(client, guildId, actorId, {
+                    eventType: "dashboard_economy",
+                    title: `Economy ${kind} updated`,
+                    summary: `Updated economy ${kind} #${id} from the dashboard.`,
+                    targetId: String(id),
+                    payload: { kind, id },
+                  });
+                  sendJson(res, 200, { ok: true, item: result.item });
+                  return;
+                }
+
+                if (req.method === "DELETE") {
+                  const userId = await requireManage(url.searchParams.get("userId"));
+                  if (!userId) return;
+                  const result = await econ.deleteEconomyCatalog(configManager, guildId, kind, id);
+                  if (!result.ok) {
+                    sendJson(res, result.status, { error: result.error });
+                    return;
+                  }
+                  trackDashboardAction(client, guildId, userId, {
+                    eventType: "dashboard_economy",
+                    title: `Economy ${kind} deleted`,
+                    summary: `Deleted economy ${kind} #${id} from the dashboard.`,
+                    targetId: String(id),
+                    payload: { kind, id },
+                  });
+                  sendJson(res, 200, { ok: true });
+                  return;
+                }
+              }
+            }
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

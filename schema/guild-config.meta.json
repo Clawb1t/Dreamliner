@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-14T15:14:47.117Z",
+  "generatedAt": "2026-08-15T03:20:26.790Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -42,6 +42,11 @@
           "description": "Honeypot channel that softbans anyone who posts in it."
         },
         {
+          "key": "passport",
+          "name": "Passport",
+          "description": "Web-gated member verification with Discord login and a human check."
+        },
+        {
           "key": "persist",
           "name": "Persist",
           "description": "Dashboard sticky messages that stay at the bottom of a channel."
@@ -56,7 +61,7 @@
     {
       "id": "roles",
       "label": "Role management",
-      "description": "Staff role assign, templates, autorole, and pingables.",
+      "description": "Staff role assign, templates, autorole, identity restore, and pingables.",
       "plugins": [
         {
           "key": "roles",
@@ -72,6 +77,11 @@
           "key": "autorole",
           "name": "Autorole",
           "description": "Auto-assign roles on join for humans and bots."
+        },
+        {
+          "key": "member_identity",
+          "name": "Member identity",
+          "description": "Save nickname, roles, and timeout when members leave, and reapply chosen parts on rejoin."
         },
         {
           "key": "pingable_roles",
@@ -250,6 +260,18 @@
           "description": "Community suggestions with staff review, voting, and statuses."
         }
       ]
+    },
+    {
+      "id": "economy",
+      "label": "Economy",
+      "description": "Server currency, shops, jobs, pets, crafts, quests, and markets.",
+      "plugins": [
+        {
+          "key": "economy",
+          "name": "Economy",
+          "description": "Fully customisable server economy: currencies, banks, shops, jobs, pets, crafting, quests, trades, and auctions."
+        }
+      ]
     }
   ],
   "plugins": [
@@ -289,6 +311,13 @@
       "categoryId": "protect"
     },
     {
+      "key": "passport",
+      "name": "Passport",
+      "description": "Web-gated member verification with Discord login and a human check.",
+      "category": "Protection",
+      "categoryId": "protect"
+    },
+    {
       "key": "persist",
       "name": "Persist",
       "description": "Dashboard sticky messages that stay at the bottom of a channel.",
@@ -320,6 +349,13 @@
       "key": "autorole",
       "name": "Autorole",
       "description": "Auto-assign roles on join for humans and bots.",
+      "category": "Role management",
+      "categoryId": "roles"
+    },
+    {
+      "key": "member_identity",
+      "name": "Member identity",
+      "description": "Save nickname, roles, and timeout when members leave, and reapply chosen parts on rejoin.",
       "category": "Role management",
       "categoryId": "roles"
     },
@@ -490,6 +526,13 @@
       "description": "Community suggestions with staff review, voting, and statuses.",
       "category": "Feedback",
       "categoryId": "feedback"
+    },
+    {
+      "key": "economy",
+      "name": "Economy",
+      "description": "Fully customisable server economy: currencies, banks, shops, jobs, pets, crafting, quests, trades, and auctions.",
+      "category": "Economy",
+      "categoryId": "economy"
     }
   ]
 }
