@@ -19,10 +19,12 @@ import {
   getBotAvatarRequest,
   getLatestApprovedBrandRequest,
   getStoredBotBio,
+  getStoredBotNameStyle,
   getStoredBrandImage,
   listPendingBotBrandRequests,
   listRecentBotBrandRequests,
   setStoredBotBio,
+  setStoredBotNameStyle,
   setStoredBrandImage,
   type BotAvatarRequest,
   type BotBrandImageKind,
@@ -31,6 +33,16 @@ import { DREAMLINER_ONE_REQUIRED, isDreamlinerOneActive } from "./dreamlinerOne.
 
 const MAX_NICKNAME_LENGTH = 32;
 const MAX_BIO_LENGTH = 190;
+/** Monkey Bars (13) through Journal (16) never render, so they are not offered. */
+const DISPLAY_NAME_FONT_IDS = new Set([3, 4, 6, 7, 8, 10, 11, 12]);
+/** Prism (7) and Gummy (8) are excluded alongside the fonts Discord fails to render. */
+const DISPLAY_NAME_EFFECT_IDS = new Set([1, 2, 3, 4, 5, 6]);
+
+export type BridgeDisplayNameStyle = {
+  fontId: number;
+  effectId: number;
+  colors: number[];
+};
 
 export type BridgeBotBrandRequest = {
   id: number;
@@ -58,6 +70,7 @@ export type BridgeBotProfile = {
   appliedBannerRequestId: number | null;
   username: string | null;
   canChangeNickname: boolean;
+  displayNameStyle: BridgeDisplayNameStyle | null;
   pending: BridgeBotBrandRequest[];
   recent: BridgeBotBrandRequest[];
 };
@@ -154,6 +167,40 @@ async function fetchMemberAssetHashes(
   return { avatar, banner };
 }
 
+/** Reads display_name_styles off a private guild member payload. */
+function parseDisplayNameStyle(payload: unknown): BridgeDisplayNameStyle | null {
+  const style = (
+    payload as {
+      display_name_styles?: { font_id?: unknown; effect_id?: unknown; colors?: unknown } | null;
+    } | null
+  )?.display_name_styles;
+  if (!style || typeof style.font_id !== "number" || typeof style.effect_id !== "number") {
+    return null;
+  }
+  const colors = Array.isArray(style.colors)
+    ? style.colors.filter(
+        (color): color is number =>
+          typeof color === "number" && Number.isInteger(color) && color >= 0 && color <= 0xffffff,
+      )
+    : [];
+  return { fontId: style.font_id, effectId: style.effect_id, colors };
+}
+
+/**
+ * Only the private member object carries display_name_styles, and Discord serves
+ * that from the current-user route rather than the regular guild member route.
+ */
+async function fetchMemberDisplayNameStyle(
+  client: Client,
+  guild: Guild,
+): Promise<BridgeDisplayNameStyle | null> {
+  try {
+    return parseDisplayNameStyle(await client.rest.get(`/users/@me/guilds/${guild.id}/member`));
+  } catch {
+    return null;
+  }
+}
+
 /** Applied PNG, hydrating from the latest approval when we have never stored one. */
 async function resolveAppliedBrandPng(
   guildId: string,
@@ -186,6 +233,9 @@ export async function getBridgeBotProfile(
   const recent = enabled ? await listRecentBotBrandRequests(guild.id, 12) : [];
   const bio = enabled ? await getStoredBotBio(guild.id) : null;
   const hashes = await fetchMemberAssetHashes(client, guild, me);
+  const displayNameStyle =
+    (await fetchMemberDisplayNameStyle(client, guild)) ??
+    (enabled ? await getStoredBotNameStyle(guild.id) : null);
   const appliedAvatarPng = enabled ? await resolveAppliedBrandPng(guild.id, "avatar") : null;
   const appliedBannerPng = enabled ? await resolveAppliedBrandPng(guild.id, "banner") : null;
   const appliedAvatar = enabled && appliedAvatarPng ? await getLatestApprovedBrandRequest(guild.id, "avatar") : null;
@@ -216,6 +266,7 @@ export async function getBridgeBotProfile(
       appliedBannerRequestId: appliedBanner?.id ?? null,
       username: me?.user.username ?? client.user?.username ?? null,
       canChangeNickname: Boolean(me?.permissions.has(PermissionFlagsBits.ChangeNickname)),
+      displayNameStyle,
       pending: pending.map((row) => serializeRequest(guild.id, row)),
       recent: recent.map((row) => serializeRequest(guild.id, row)),
     },
@@ -487,6 +538,74 @@ export async function setBridgeBotBio(
     return {
       ok: false,
       error: apiErrorMessage(error, "Discord rejected the bio change."),
+      status: 400,
+    };
+  }
+}
+
+export async function setBridgeBotDisplayNameStyle(
+  client: Client,
+  configManager: ConfigManager,
+  guild: Guild,
+  userId: string,
+  style: BridgeDisplayNameStyle | null,
+): Promise<
+  | { ok: true; displayNameStyle: BridgeDisplayNameStyle | null }
+  | { ok: false; error: string; status: number }
+> {
+  const plugin = await assertPluginEnabled(configManager, guild.id);
+  if (!plugin.ok) return plugin;
+  const one = await assertDreamlinerOne(guild.id);
+  if (!one.ok) return one;
+
+  if (style) {
+    if (!DISPLAY_NAME_FONT_IDS.has(style.fontId)) {
+      return { ok: false, error: "That display name font is not supported.", status: 400 };
+    }
+    if (!DISPLAY_NAME_EFFECT_IDS.has(style.effectId)) {
+      return { ok: false, error: "That display name effect is not supported.", status: 400 };
+    }
+    if (
+      style.colors.length < 1 ||
+      style.colors.length > 2 ||
+      style.colors.some(
+        (color) => !Number.isInteger(color) || color < 0 || color > 0xffffff,
+      )
+    ) {
+      return {
+        ok: false,
+        error: "Choose one or two valid hexadecimal display name colors.",
+        status: 400,
+      };
+    }
+  }
+
+  const member = await guild.members.fetch(userId).catch(() => null);
+  const tag = member?.user.tag ?? userId;
+
+  try {
+    const updated = await client.rest.patch(Routes.guildMember(guild.id, "@me"), {
+      body: style
+        ? {
+            display_name_font_id: style.fontId,
+            display_name_effect_id: style.effectId,
+            display_name_colors: style.colors,
+          }
+        : {
+            display_name_font_id: null,
+            display_name_effect_id: null,
+            display_name_colors: null,
+          },
+      reason: `Guild display name style ${style ? "set" : "cleared"} from dashboard by ${tag}`,
+    });
+    // Discord echoes the applied style; keep it so the dashboard survives an incomplete read.
+    const applied = style ? (parseDisplayNameStyle(updated) ?? style) : null;
+    await setStoredBotNameStyle(guild.id, applied, userId);
+    return { ok: true, displayNameStyle: applied };
+  } catch (error) {
+    return {
+      ok: false,
+      error: apiErrorMessage(error, "Discord rejected the display name style change."),
       status: 400,
     };
   }

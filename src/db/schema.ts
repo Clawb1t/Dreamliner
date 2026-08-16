@@ -406,6 +406,8 @@ export const botGuildProfiles = sqliteTable("bot_guild_profiles", {
   avatarPng: text("avatar_png"),
   /** Base64 PNG, empty string if cleared, null if never stored. */
   bannerPng: text("banner_png"),
+  /** JSON display name style, null when cleared or never set. */
+  nameStyle: text("name_style"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   updatedBy: text("updated_by"),
 });

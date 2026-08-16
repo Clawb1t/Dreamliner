@@ -8,6 +8,7 @@ export const botCustomisationDefaultOverrides: ConfigOverride[] = [
       can_banner: true,
       can_nickname: true,
       can_bio: true,
+      can_display_name: true,
     },
   },
 ];

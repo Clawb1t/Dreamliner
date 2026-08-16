@@ -9282,6 +9282,16 @@
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
+                },
+                "can_display_name": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to set or clear Dreamliner's display name font, effect, and colors (dashboard). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Display Name",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
                 }
               },
               "additionalProperties": false,

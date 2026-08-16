@@ -57,6 +57,8 @@ export class EconomyError extends Error {
       | "conflict"
       | "limit",
     public shortfall?: EconomyShortfall,
+    /** When the action becomes possible again; rendered as a Discord relative timestamp. */
+    public retryAt?: Date,
   ) {
     super(message);
     this.name = "EconomyError";

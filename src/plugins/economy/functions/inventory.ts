@@ -20,7 +20,49 @@ export type ItemEffect = {
   multiplier_bps?: number;
   duration_seconds?: number;
   role_id?: string;
+  amount?: number;
+  currency_key?: string;
+  hunger?: number;
 };
+
+/** One weighted outcome inside a crate's loot pool. */
+export type LootEntry = {
+  kind?: "item" | "currency";
+  itemId?: number;
+  /** Legacy shape from the seeded catalog. */
+  itemKey?: string;
+  qty?: number;
+  weight?: number;
+  currencyKey?: string;
+  amount?: number;
+};
+
+export type LootDrop =
+  | { kind: "item"; itemId: number; name: string; emoji: string; qty: number }
+  | { kind: "currency"; currencyKey: string; amount: number };
+
+export function parseLootPool(json: string | null | undefined): LootEntry[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((entry): entry is LootEntry => Boolean(entry) && typeof entry === "object");
+  } catch {
+    return [];
+  }
+}
+
+function rollLoot(entries: LootEntry[]): LootEntry | null {
+  const pool = entries.filter((entry) => (entry.weight ?? 1) > 0);
+  if (pool.length === 0) return null;
+  const total = pool.reduce((sum, entry) => sum + (entry.weight ?? 1), 0);
+  let ticket = Math.random() * total;
+  for (const entry of pool) {
+    ticket -= entry.weight ?? 1;
+    if (ticket <= 0) return entry;
+  }
+  return pool[pool.length - 1] ?? null;
+}
 
 export function listItems(guildId: string) {
   return getDb().select().from(economyItems).where(eq(economyItems.guildId, guildId)).all();
@@ -532,7 +574,63 @@ export function useItem(opts: {
       })
       .run();
   }
-  return { item, effect };
+
+  const drops: LootDrop[] = [];
+  if (effect.type === "currency" && effect.amount && effect.amount > 0) {
+    const currencyKey = effect.currency_key || "coins";
+    mutateMoney(
+      {
+        guildId: opts.guildId,
+        userId: opts.userId,
+        currencyKey,
+        deltaPocket: effect.amount,
+        reason: "item_use",
+        refType: "item",
+        refId: String(item.id),
+      },
+      { config: opts.config },
+    );
+    drops.push({ kind: "currency", currencyKey, amount: effect.amount });
+  }
+
+  if (item.itemType === "crate") {
+    const entry = rollLoot(parseLootPool(item.lootJson));
+    if (entry) {
+      if (entry.kind === "currency") {
+        const amount = Math.max(0, Math.floor(entry.amount ?? 0));
+        if (amount > 0) {
+          const currencyKey = entry.currencyKey || "coins";
+          mutateMoney(
+            {
+              guildId: opts.guildId,
+              userId: opts.userId,
+              currencyKey,
+              deltaPocket: amount,
+              reason: "crate",
+              refType: "item",
+              refId: String(item.id),
+            },
+            { config: opts.config },
+          );
+          drops.push({ kind: "currency", currencyKey, amount });
+        }
+      } else {
+        const won =
+          entry.itemId != null
+            ? getItemById(opts.guildId, entry.itemId)
+            : entry.itemKey
+              ? getItemByKey(opts.guildId, entry.itemKey)
+              : undefined;
+        const qty = Math.max(1, Math.floor(entry.qty ?? 1));
+        if (won) {
+          addInventory(opts.guildId, opts.userId, won.id, qty, opts.config);
+          drops.push({ kind: "item", itemId: won.id, name: won.name, emoji: won.emoji, qty });
+        }
+      }
+    }
+  }
+
+  return { item, effect, drops };
 }
 
 export function getActiveRewardBoostBps(guildId: string, userId: string): number {
@@ -596,8 +694,7 @@ export function setCooldown(guildId: string, userId: string, key: string, availa
 export function assertCooldown(guildId: string, userId: string, key: string) {
   const row = getCooldown(guildId, userId, key);
   if (row && row.availableAt.getTime() > Date.now()) {
-    const secs = Math.ceil((row.availableAt.getTime() - Date.now()) / 1000);
-    throw new EconomyError(`On cooldown for ${secs}s.`, "limit");
+    throw new EconomyError("That is still on cooldown.", "limit", undefined, row.availableAt);
   }
 }
 

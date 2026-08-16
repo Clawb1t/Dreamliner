@@ -13,7 +13,7 @@ import {
   isGuildPaused,
   mutateMoney,
 } from "./money.js";
-import { assertCooldown, getActiveRewardBoostBps, setCooldown } from "./inventory.js";
+import { assertCooldown, getActiveRewardBoostBps, getCooldown, setCooldown } from "./inventory.js";
 
 function now() {
   return new Date();
@@ -38,16 +38,84 @@ export function calendarDay(timezone: string, date = new Date()): string {
   return date.toISOString().slice(0, 10);
 }
 
-function weekKey(timezone: string, date = new Date()): string {
-  const day = calendarDay(timezone, date);
+function weekKeyForDay(day: string): string {
   const utc = new Date(`${day}T00:00:00Z`);
   const onejan = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
   const week = Math.ceil(((utc.getTime() - onejan.getTime()) / 86400000 + onejan.getUTCDay() + 1) / 7);
   return `${utc.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
+function monthKeyForDay(day: string): string {
+  return day.slice(0, 7);
+}
+
+function weekKey(timezone: string, date = new Date()): string {
+  return weekKeyForDay(calendarDay(timezone, date));
+}
+
 function monthKey(timezone: string, date = new Date()): string {
-  return calendarDay(timezone, date).slice(0, 7);
+  return monthKeyForDay(calendarDay(timezone, date));
+}
+
+/** Offset between the timezone's wall clock and UTC at the given instant, in ms. */
+function timezoneOffsetMs(timezone: string, date: Date): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).formatToParts(date);
+    const num = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? "0");
+    const asUtc = Date.UTC(
+      num("year"),
+      num("month") - 1,
+      num("day"),
+      num("hour") % 24,
+      num("minute"),
+      num("second"),
+    );
+    return asUtc - date.getTime();
+  } catch {
+    return 0;
+  }
+}
+
+/** Instant at which the given local calendar day begins in the timezone. */
+function zonedDayStart(timezone: string, day: string): Date {
+  const base = Date.parse(`${day}T00:00:00Z`);
+  let ts = base;
+  // Two passes settle DST transitions where the offset differs either side of midnight.
+  for (let i = 0; i < 2; i += 1) ts = base - timezoneOffsetMs(timezone, new Date(ts));
+  return new Date(ts);
+}
+
+function shiftDay(day: string, delta: number): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+/** When the next daily/weekly/monthly claim window opens. */
+export function nextRewardResetAt(
+  kind: "daily" | "weekly" | "monthly",
+  timezone: string,
+  from = new Date(),
+): Date {
+  const tz = timezone || "UTC";
+  const today = calendarDay(tz, from);
+  if (kind === "daily") return zonedDayStart(tz, shiftDay(today, 1));
+  const keyOf = kind === "weekly" ? weekKeyForDay : monthKeyForDay;
+  const current = keyOf(today);
+  for (let i = 1; i <= 40; i += 1) {
+    const day = shiftDay(today, i);
+    if (keyOf(day) !== current) return zonedDayStart(tz, day);
+  }
+  return zonedDayStart(tz, shiftDay(today, 1));
 }
 
 export function memberRewardBonusBps(member: GuildMember | null | undefined, config: EconomyConfig): number {
@@ -130,7 +198,12 @@ export function claimPeriodic(opts: {
   const streakKey = opts.kind;
   const existing = getStreak(opts.guildId, opts.userId, streakKey);
   if (existing?.lastClaimDay === period) {
-    throw new EconomyError(`You already claimed your ${opts.kind} reward.`, "limit");
+    throw new EconomyError(
+      `You already claimed your ${opts.kind} reward.`,
+      "limit",
+      undefined,
+      nextRewardResetAt(opts.kind, tz),
+    );
   }
 
   let streak = 1;
@@ -178,7 +251,7 @@ export function claimPeriodic(opts: {
     addXp(opts.guildId, opts.userId, opts.config.progression.xp_per_daily, opts.config);
   }
 
-  return { amount, currencyKey, streak, period, bonusBps };
+  return { amount, currencyKey, streak, period, bonusBps, nextAt: nextRewardResetAt(opts.kind, tz) };
 }
 
 export function claimWork(opts: {
@@ -212,14 +285,10 @@ export function claimWork(opts: {
     },
     { config: opts.config },
   );
-  setCooldown(
-    opts.guildId,
-    opts.userId,
-    "work",
-    new Date(Date.now() + opts.config.rewards.work_cooldown_seconds * 1000),
-  );
+  const nextAt = new Date(Date.now() + opts.config.rewards.work_cooldown_seconds * 1000);
+  setCooldown(opts.guildId, opts.userId, "work", nextAt);
   addXp(opts.guildId, opts.userId, opts.config.progression.xp_per_work, opts.config);
-  return { amount, currencyKey, bonusBps };
+  return { amount, currencyKey, bonusBps, nextAt };
 }
 
 export function getRewardStatus(guildId: string, userId: string, config: EconomyConfig) {
@@ -227,19 +296,35 @@ export function getRewardStatus(guildId: string, userId: string, config: Economy
   const daily = getStreak(guildId, userId, "daily");
   const weekly = getStreak(guildId, userId, "weekly");
   const monthly = getStreak(guildId, userId, "monthly");
+  const dailyClaimed = daily?.lastClaimDay === calendarDay(tz);
+  const weeklyClaimed = weekly?.lastClaimDay === weekKey(tz);
+  const monthlyClaimed = monthly?.lastClaimDay === monthKey(tz);
+  const workCooldown = getCooldown(guildId, userId, "work");
+  const workReadyAt =
+    workCooldown && workCooldown.availableAt.getTime() > Date.now() ? workCooldown.availableAt : null;
   return {
     daily: {
-      claimed: daily?.lastClaimDay === calendarDay(tz),
+      claimed: dailyClaimed,
       streak: daily?.count ?? 0,
       lastDay: daily?.lastClaimDay ?? null,
+      nextAt: dailyClaimed ? nextRewardResetAt("daily", tz) : null,
+      lastClaimAt: daily?.lastClaimAt ?? null,
     },
     weekly: {
-      claimed: weekly?.lastClaimDay === weekKey(tz),
+      claimed: weeklyClaimed,
       lastPeriod: weekly?.lastClaimDay ?? null,
+      nextAt: weeklyClaimed ? nextRewardResetAt("weekly", tz) : null,
+      lastClaimAt: weekly?.lastClaimAt ?? null,
     },
     monthly: {
-      claimed: monthly?.lastClaimDay === monthKey(tz),
+      claimed: monthlyClaimed,
       lastPeriod: monthly?.lastClaimDay ?? null,
+      nextAt: monthlyClaimed ? nextRewardResetAt("monthly", tz) : null,
+      lastClaimAt: monthly?.lastClaimAt ?? null,
+    },
+    work: {
+      ready: !workReadyAt,
+      nextAt: workReadyAt,
     },
   };
 }

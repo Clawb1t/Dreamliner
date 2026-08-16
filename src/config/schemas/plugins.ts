@@ -405,6 +405,7 @@ export const zBotCustomisationConfig = z.strictObject({
   can_banner: boolPerm("submit or clear Dreamliner's per-server banner (dashboard)"),
   can_nickname: boolPerm("set or clear Dreamliner's server nickname (dashboard)"),
   can_bio: boolPerm("set or clear Dreamliner's server bio (dashboard)"),
+  can_display_name: boolPerm("set or clear Dreamliner's display name font, effect, and colors (dashboard)"),
 });
 
 export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape);

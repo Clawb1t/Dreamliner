@@ -1,6 +1,6 @@
 # Bot customisation plugin
 
-Let trusted members customise Dreamliner's **per-server** avatar, banner, nickname, and bio so it can match the server's branding.
+Let trusted members customise Dreamliner's **per-server** avatar, banner, nickname, bio, and display name style so it can match the server's branding.
 
 Managed from the **web dashboard** (Brand / bot customisation page). Uses Discord's modify-current-member API (`guild.members.editMe`) — changes apply only in that guild.
 
@@ -17,6 +17,7 @@ plugins:
           can_banner: true
           can_nickname: true
           can_bio: true
+          can_display_name: true
 ```
 
 Dashboard access still requires **Manage Server** (or server owner / platform superuser). Plugin permission flags document which brand fields that level may manage.
@@ -31,6 +32,7 @@ Dashboard access still requires **Manage Server** (or server owner / platform su
 | Clear banner | Immediate | |
 | Set / clear nickname | Immediate | Max 32 characters; bot needs **Change Nickname** |
 | Set / clear bio | Immediate | Max 190 characters |
+| Set / clear display name style | Immediate | Font, effect, and one or two colors; uses Discord's experimental member API |
 
 Track pending avatar/banner requests live on the dashboard — status updates as staff approve, deny, or as the apply step succeeds/fails. Cancel a pending request from the same page.
 
@@ -50,4 +52,5 @@ Reviewers need **Manage Server** in the review channel's server.
 - **Images:** PNG, JPEG, GIF, or WebP (max ~10MB). Dreamliner re-encodes before review.
 - **Nickname:** Max 32 characters. Dreamliner needs Discord's **Change Nickname** permission.
 - **Bio:** Max 190 characters.
+- **Display name style:** Eight fonts and six effects, with one or two colors depending on the effect. Monkey Bars, Mainframe, Headbang, Journal, Prism, and Gummy are left out because Discord does not render them. This API is undocumented and may change before discord.js supports it.
 - Some Discord clients cache member profiles briefly after changes.

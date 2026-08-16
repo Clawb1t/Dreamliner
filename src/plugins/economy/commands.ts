@@ -7,6 +7,7 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { deferReplyOptions, resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
 import { zEconomyConfig, type EconomyConfig } from "../../config/schemas/economy.js";
 import { emitLog } from "../../core/logging/send.js";
+import { discordTimestamp, formatDuration } from "../../core/datetime.js";
 import { shortEconomyError, formatBalances, formatCurrency, parseAutocompleteId } from "./functions/format.js";
 import { EconomyError } from "./functions/money.js";
 import * as money from "./functions/money.js";
@@ -752,7 +753,7 @@ async function dispatch(opts: {
             [
               `**\`#${r.id}\` ${r.reason.replaceAll("_", " ")}**`,
               `Pocket: **${r.deltaPocket >= 0 ? "+" : ""}${r.deltaPocket.toLocaleString()}**  •  Balance: **${r.balancePocket.toLocaleString()}**`,
-              `<t:${Math.floor(r.createdAt.getTime() / 1000)}:R>`,
+              discordTimestamp(r.createdAt),
             ].join("\n"),
         )
         .join("\n\n");
@@ -811,6 +812,7 @@ async function dispatch(opts: {
         `**${sub[0]!.toUpperCase()}${sub.slice(1)} reward claimed**`,
         `You received **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`,
         `🔥 Current streak: **${result.streak}**`,
+        `⏳ Next claim ${discordTimestamp(result.nextAt)}`,
       ].join("\n");
     }
     if (sub === "work") {
@@ -821,16 +823,32 @@ async function dispatch(opts: {
         member: i.member as import("discord.js").GuildMember,
       });
       quests.bumpProgress(guildId, userId, "work", 1, config);
-      return `**Shift complete**\nYou earned **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`;
+      return [
+        "**Shift complete**",
+        `You earned **${formatCurrency(result.amount, config, { currencyKey: result.currencyKey })}**.`,
+        `⏳ You can work again ${discordTimestamp(result.nextAt)}`,
+      ].join("\n");
     }
     if (sub === "streak" || sub === "status") {
       const status = rewards.getRewardStatus(guildId, userId, config);
+      const readiness = (entry: { claimed: boolean; nextAt: Date | null }) =>
+        entry.claimed
+          ? `Claimed · Ready ${discordTimestamp(entry.nextAt ?? new Date())}`
+          : "**Available now**";
       return [
         "**Reward status**",
-        `${status.daily.claimed ? "☑️" : "✅"} **Daily:** ${status.daily.claimed ? "Claimed" : "Available"}  •  Streak **${status.daily.streak}**`,
-        `${status.weekly.claimed ? "☑️" : "✅"} **Weekly:** ${status.weekly.claimed ? "Claimed" : "Available"}`,
-        `${status.monthly.claimed ? "☑️" : "✅"} **Monthly:** ${status.monthly.claimed ? "Claimed" : "Available"}`,
-      ].join("\n");
+        `${status.daily.claimed ? "☑️" : "✅"} **Daily:** ${readiness(status.daily)}  •  Streak **${status.daily.streak}**`,
+        `${status.weekly.claimed ? "☑️" : "✅"} **Weekly:** ${readiness(status.weekly)}`,
+        `${status.monthly.claimed ? "☑️" : "✅"} **Monthly:** ${readiness(status.monthly)}`,
+        `${status.work.ready ? "✅" : "⏳"} **Work:** ${
+          status.work.nextAt ? `Ready ${discordTimestamp(status.work.nextAt)}` : "**Available now**"
+        }`,
+        status.daily.lastClaimAt
+          ? `\nLast daily claim: ${discordTimestamp(status.daily.lastClaimAt)}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
   }
 
@@ -955,7 +973,29 @@ async function dispatch(opts: {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
       if (!item) throw new EconomyError("Item not found.", "not_found");
       const result = inventory.useItem({ guildId, userId, itemId: item.id, config });
-      return `${result.item.emoji} Used **${result.item.name}**.`;
+      const lines = [`**Item used**`, `${result.item.emoji} **${result.item.name}**`];
+      if (
+        result.effect.type === "boost" &&
+        result.effect.multiplier_bps &&
+        result.effect.duration_seconds
+      ) {
+        lines.push(
+          `✨ **+${(result.effect.multiplier_bps / 100).toFixed(0)}% rewards** until ${discordTimestamp(
+            new Date(Date.now() + result.effect.duration_seconds * 1000),
+          )}`,
+        );
+      }
+      for (const drop of result.drops) {
+        lines.push(
+          drop.kind === "item"
+            ? `🎁 You got ${drop.emoji} **${drop.name}** × **${drop.qty}**`
+            : `🎁 You got **${formatCurrency(drop.amount, config, { currencyKey: drop.currencyKey })}**`,
+        );
+      }
+      if (result.item.itemType === "crate" && result.drops.length === 0) {
+        lines.push("*The crate was empty. Ask an admin to fill its loot pool.*");
+      }
+      return lines.join("\n");
     }
     if (sub === "equip" || sub === "unequip") {
       const item = inventory.getItemByKey(guildId, i.options.getString("item", true));
@@ -1107,7 +1147,7 @@ async function dispatch(opts: {
       return (
         crafting
           .listRecipes(guildId, true)
-          .map((r) => `🧰 **${r.name}**  •  \`${r.key}\`\nCraft time: **${r.durationSeconds.toLocaleString()} seconds**`)
+          .map((r) => `🧰 **${r.name}**  •  \`${r.key}\`\nCraft time: **${formatDuration(r.durationSeconds * 1000)}**`)
           .join("\n\n") || "No recipes."
       );
     }
@@ -1123,7 +1163,7 @@ async function dispatch(opts: {
       return [
         "**Crafting started**",
         `**Recipe:** ${recipe?.name ?? "Unknown"}`,
-        `**Ready:** <t:${Math.floor(entry.entry.completesAt.getTime() / 1000)}:R>`,
+        `**Ready:** ${discordTimestamp(entry.entry.completesAt)}`,
       ].join("\n");
     }
     if (sub === "queue") {
@@ -1138,7 +1178,7 @@ async function dispatch(opts: {
                 ? "✅ Collected"
                 : q.completesAt.getTime() <= Date.now()
                   ? "📦 **Ready to collect**"
-                  : `⏳ Ready <t:${Math.floor(q.completesAt.getTime() / 1000)}:R>`;
+                  : `⏳ Ready ${discordTimestamp(q.completesAt)}`;
             return `🧰 **${recipe?.name ?? "Craft"}**\n${status}`;
           })
           .join("\n\n") || "Queue empty."
@@ -1364,7 +1404,7 @@ async function dispatch(opts: {
               `${item?.emoji ?? "📦"} **${item?.name ?? "Unknown item"}** × **${a.quantity}**`,
               `**Current bid:** ${formatCurrency(bid, config, { currencyKey: a.currencyKey })}`,
               `**Seller:** <@${a.sellerId}>`,
-              `**Ends:** <t:${Math.floor(a.endsAt.getTime() / 1000)}:R>`,
+              `**Ends:** ${discordTimestamp(a.endsAt)}`,
             ].join("\n");
           })
           .join("\n\n") || "No auctions."
@@ -1391,7 +1431,7 @@ async function dispatch(opts: {
         auction.buyoutPrice
           ? `**Buyout:** ${formatCurrency(auction.buyoutPrice, config, { currencyKey: auction.currencyKey })}`
           : null,
-        `**Ends:** <t:${Math.floor(auction.endsAt.getTime() / 1000)}:R>`,
+        `**Ends:** ${discordTimestamp(auction.endsAt)}`,
       ]
         .filter(Boolean)
         .join("\n");
@@ -1411,7 +1451,7 @@ async function dispatch(opts: {
         "**Bid placed**",
         `${item?.emoji ?? "📦"} **${item?.name ?? "Auction item"}**`,
         `**Your bid:** ${formatCurrency(amount, config, { currencyKey: auction.currencyKey })}`,
-        `**Ends:** <t:${Math.floor(auction.endsAt.getTime() / 1000)}:R>`,
+        `**Ends:** ${discordTimestamp(auction.endsAt)}`,
       ].join("\n");
     }
     if (sub === "buyout") {
@@ -1510,8 +1550,8 @@ async function dispatch(opts: {
         "",
         active.description || "*No description provided.*",
         "",
-        `**Starts:** <t:${Math.floor(active.startsAt.getTime() / 1000)}:F>`,
-        `**Ends:** <t:${Math.floor(active.endsAt.getTime() / 1000)}:R>`,
+        `**Starts:** ${discordTimestamp(active.startsAt, "F")}`,
+        `**Ends:** ${discordTimestamp(active.endsAt)}`,
       ].join("\n");
     }
     if (sub === "rewards") {

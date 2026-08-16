@@ -279,6 +279,64 @@ export async function setStoredBotBio(
     });
 }
 
+export type StoredBotNameStyle = {
+  fontId: number;
+  effectId: number;
+  colors: number[];
+};
+
+export async function getStoredBotNameStyle(guildId: string): Promise<StoredBotNameStyle | null> {
+  const rows = await getDb()
+    .select()
+    .from(botGuildProfiles)
+    .where(eq(botGuildProfiles.guildId, guildId))
+    .limit(1);
+  const raw = rows[0]?.nameStyle;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredBotNameStyle>;
+    if (
+      typeof parsed.fontId !== "number" ||
+      typeof parsed.effectId !== "number" ||
+      !Array.isArray(parsed.colors)
+    ) {
+      return null;
+    }
+    return {
+      fontId: parsed.fontId,
+      effectId: parsed.effectId,
+      colors: parsed.colors.filter((color): color is number => typeof color === "number"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function setStoredBotNameStyle(
+  guildId: string,
+  style: StoredBotNameStyle | null,
+  updatedBy: string,
+): Promise<void> {
+  const now = new Date();
+  const nameStyle = style ? JSON.stringify(style) : null;
+  await getDb()
+    .insert(botGuildProfiles)
+    .values({
+      guildId,
+      nameStyle,
+      updatedAt: now,
+      updatedBy,
+    })
+    .onConflictDoUpdate({
+      target: botGuildProfiles.guildId,
+      set: {
+        nameStyle,
+        updatedAt: now,
+        updatedBy,
+      },
+    });
+}
+
 export type StoredBrandImage =
   | { state: "unknown" }
   | { state: "cleared" }

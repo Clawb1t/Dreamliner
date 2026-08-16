@@ -1,4 +1,5 @@
 import type { EconomyConfig } from "../../../config/schemas/economy.js";
+import { discordTimestamp } from "../../../core/datetime.js";
 import { EconomyError, type AccountBalances, type EconomyShortfall } from "./money.js";
 
 export function formatCurrency(
@@ -76,8 +77,11 @@ function formatShortfall(shortfall: EconomyShortfall, config?: EconomyConfig): s
 
 export function shortEconomyError(err: unknown, config?: EconomyConfig): string {
   if (err instanceof EconomyError) {
-    if (err.shortfall) return formatShortfall(err.shortfall, config);
-    return err.message || SHORT_BY_CODE[err.code] || "Economy error.";
+    const body = err.shortfall
+      ? formatShortfall(err.shortfall, config)
+      : err.message || SHORT_BY_CODE[err.code] || "Economy error.";
+    if (err.retryAt) return `${body}\n**Ready:** ${discordTimestamp(err.retryAt)}`;
+    return body;
   }
   if (err instanceof Error && err.message) return err.message;
   return "Something went wrong.";

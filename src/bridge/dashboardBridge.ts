@@ -735,7 +735,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const botProfileActionMatch =
-          /^\/bridge\/guilds\/(\d+)\/bot-profile(?:\/(avatar|banner|nickname|bio))?$/.exec(url.pathname);
+          /^\/bridge\/guilds\/(\d+)\/bot-profile(?:\/(avatar|banner|nickname|bio|display-name-style))?$/.exec(url.pathname);
         const automodPresetMatch = /^\/bridge\/guilds\/(\d+)\/automod\/presets\/(light|standard|strict)$/.exec(
           url.pathname,
         );
@@ -977,6 +977,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             getBridgeBotProfile,
             getBridgeLiveBrandImage,
             setBridgeBotBio,
+            setBridgeBotDisplayNameStyle,
             setBridgeBotNickname,
             submitBridgeBrandImage,
           } = await import("./webBotProfile.js");
@@ -1200,6 +1201,59 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               payload: { bioLength: result.bio?.length ?? 0 },
             });
             sendJson(res, 200, { ok: true, bio: result.bio });
+            return;
+          }
+
+          if (action === "display-name-style" && req.method === "PUT") {
+            let body: {
+              userId?: string;
+              style?: { fontId?: unknown; effectId?: unknown; colors?: unknown } | null;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = await requireManage(body.userId);
+            if (!userId) return;
+            if (!("style" in body)) {
+              sendJson(res, 400, { error: "style is required (object or null to clear)" });
+              return;
+            }
+            const style =
+              body.style == null
+                ? null
+                : {
+                    fontId: Number(body.style.fontId),
+                    effectId: Number(body.style.effectId),
+                    colors: Array.isArray(body.style.colors)
+                      ? body.style.colors.map((color) => Number(color))
+                      : [],
+                  };
+            const result = await setBridgeBotDisplayNameStyle(
+              client,
+              configManager,
+              guild,
+              userId,
+              style,
+            );
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_bot_brand",
+              title: "Bot display name style updated",
+              summary: style
+                ? "Updated Dreamliner's display name font, effect, and colors from the dashboard."
+                : "Cleared Dreamliner's display name style from the dashboard.",
+              payload: { displayNameStyle: result.displayNameStyle },
+            });
+            sendJson(res, 200, {
+              ok: true,
+              displayNameStyle: result.displayNameStyle,
+            });
             return;
           }
 
