@@ -1,6 +1,7 @@
 import type { GuildMember, Message } from "discord.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { getMemberLevel } from "./permissions.js";
+import { userRegexMatches } from "./userRegex.js";
 
 export type RuleContext = {
   message: Message;
@@ -42,11 +43,7 @@ export function messageMatchesChannelRule(ctx: RuleContext, filter: ChannelRuleF
 export function contentMatchesPattern(content: string, pattern: string, regex = false, caseSensitive = false): boolean {
   if (!pattern) return false;
   if (regex) {
-    try {
-      return new RegExp(pattern, caseSensitive ? "" : "i").test(content);
-    } catch {
-      return false;
-    }
+    return userRegexMatches(content, pattern, { caseInsensitive: !caseSensitive });
   }
   const hay = caseSensitive ? content : content.toLowerCase();
   const needle = caseSensitive ? pattern : pattern.toLowerCase();

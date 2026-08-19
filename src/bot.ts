@@ -77,6 +77,10 @@ import {
   WELCOME_WAVE_CUSTOM_ID,
 } from "./plugins/welcome_message/functions/waveButton.js";
 import {
+  handleQuoteRemoveButtonInteraction,
+  QUOTE_REMOVE_PREFIX,
+} from "./plugins/utility/functions/quoteRemoveButton.js";
+import {
   handleCompanionEntitySelect,
   handleCompanionModalSubmit,
   handleCompanionSelectInteraction,
@@ -185,6 +189,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       await handleSlashCommand(ctx, configManager, interaction);
       return;
     }
+    if (interaction.isMessageContextMenuCommand()) {
+      await handleContextMenuCommand(ctx, configManager, interaction);
+      return;
+    }
     if (interaction.isButton()) {
       if (interaction.customId.startsWith(BOT_AVATAR_PREFIX)) {
         const handled = await handleBotAvatarButtonInteraction(interaction);
@@ -200,6 +208,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {
         const handled = await handleWelcomeWaveButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(QUOTE_REMOVE_PREFIX)) {
+        const handled = await handleQuoteRemoveButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {
@@ -381,6 +393,145 @@ async function ensurePluginEnabledForModal(
     return false;
   }
   return true;
+}
+
+async function handleContextMenuCommand(
+  ctx: BotContext,
+  configManager: ConfigManager,
+  interaction: import("discord.js").MessageContextMenuCommandInteraction,
+) {
+  const command = ctx.contextMenuCommands.get(interaction.commandName);
+  if (!command) return;
+
+  if (!interaction.inGuild() || !interaction.guildId) {
+    await interaction.reply({ content: "This command can only be used in a server.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+
+  if (command.plugin !== "config" && !pluginEnabled(guildConfig, command.plugin)) {
+    await interaction.reply(
+      resultReply(
+        "Plugin disabled",
+        `The **${command.plugin}** plugin is disabled for this server.`,
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
+    );
+    return;
+  }
+
+  if (command.manageServer) {
+    const member = interaction.member;
+    if (!member || typeof member === "string" || !("permissions" in member)) return;
+    if (!(member as import("discord.js").GuildMember).permissions.has(PermissionFlagsBits.ManageGuild)) {
+      await interaction.reply(
+        resultReply(
+          "Permission denied",
+          "You need **Manage Server** to use this command.",
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+        ),
+      );
+      return;
+    }
+  }
+
+  if (command.plugin !== "config" && pluginsRequiringConfig.has(command.plugin)) {
+    const hasStoredConfig = (await configManager.getGuildConfig(interaction.guildId)) !== null;
+    if (!hasStoredConfig) {
+      await interaction.reply(
+        resultReply(
+          "Configuration required",
+          "This server has no configuration yet. Open the dashboard (or run `/config editor`) to set up Dreamliner, then save. You can also use `/config template` + `/config upload` if you prefer YAML files.",
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+          [configEditorWithSupportRow(interaction.guildId!)],
+        ),
+      );
+      return;
+    }
+  }
+
+  if (command.permission && command.plugin !== "config") {
+    const member = interaction.member;
+    if (!member || typeof member === "string") return;
+    const guildMember = member as import("discord.js").GuildMember;
+    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
+
+    const defaultOverrides = getPluginDefaultOverrides(command.plugin);
+    if (
+      !hasPluginPermission(
+        guildConfig,
+        command.plugin,
+        command.permission,
+        guildMember,
+        interaction.channelId,
+        categoryId,
+        defaultOverrides,
+      )
+    ) {
+      await interaction.reply(
+        resultReply(
+          "Permission denied",
+          "You do not have permission to use this command.",
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+        ),
+      );
+      return;
+    }
+  }
+
+  if (command.discordPermissions) {
+    const member = interaction.member;
+    if (!member || typeof member === "string" || !("permissions" in member)) return;
+    if (!(member as import("discord.js").GuildMember).permissions.has(command.discordPermissions)) {
+      await interaction.reply(
+        resultReply(
+          "Permission denied",
+          "You lack required Discord permissions.",
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+        ),
+      );
+      return;
+    }
+  }
+
+  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
+  const member = interaction.member;
+  const guildMember = member && typeof member !== "string" ? (member as import("discord.js").GuildMember) : undefined;
+  const getter = pluginConfigGetters[command.plugin];
+  const pluginConfig = getter ? getter(guildConfig, guildMember, interaction.channelId, categoryId) : {};
+
+  try {
+    await command.execute({
+      interaction,
+      guildConfig,
+      pluginConfig,
+      client: ctx.client,
+      configManager,
+    });
+    const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
+    trackCommandUsage(interaction.guildId, interaction.commandName);
+  } catch (error) {
+    console.error(`Error in context menu ${interaction.commandName}:`, error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction
+        .reply(
+          resultReply(
+            "Error",
+            "An unexpected error occurred. If this keeps happening, ask in the support server.",
+            true,
+            guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+            [supportLinkRow()],
+          ),
+        )
+        .catch(() => null);
+    }
+  }
 }
 
 async function handleSlashCommand(
@@ -651,12 +802,19 @@ async function handleStatsPermissionInteraction(
   );
 }
 
-export async function registerSlashCommands(token: string, clientId: string) {
-  const body = availablePlugins.flatMap((p) =>
-    p.slashCommands.map((cmd) => cmd.data.toJSON()),
+export async function registerApplicationCommands(token: string, clientId: string) {
+  const slashBody = availablePlugins.flatMap((p) => p.slashCommands.map((cmd) => cmd.data.toJSON()));
+  const contextBody = availablePlugins.flatMap((p) =>
+    (p.contextMenuCommands ?? []).map((cmd) => cmd.data.toJSON()),
   );
+  const body = [...slashBody, ...contextBody];
 
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationCommands(clientId), { body });
-  console.log(`Registered ${body.length} slash commands.`);
+  console.log(`Registered ${slashBody.length} slash commands and ${contextBody.length} context menu commands.`);
+}
+
+/** @deprecated Use registerApplicationCommands */
+export async function registerSlashCommands(token: string, clientId: string) {
+  return registerApplicationCommands(token, clientId);
 }

@@ -50,6 +50,8 @@ export const zUtilityConfig = z.strictObject({
   can_stealemoji: boolPerm("use /stealemoji to copy custom emojis into this server"),
   can_info: boolPerm("use generic /info"),
   can_time: boolPerm("use time utilities"),
+  can_convert_gif: boolPerm("use the Convert to GIF message context command"),
+  can_create_quote: boolPerm("use the Create Quote message context command"),
 });
 
 export type UtilityConfig = z.infer<typeof zUtilityConfig>;

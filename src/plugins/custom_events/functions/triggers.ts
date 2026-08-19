@@ -1,4 +1,5 @@
 import type { Message } from "discord.js";
+import { userRegexMatches } from "../../../core/userRegex.js";
 import type { CustomEventConfig, CustomEventRecord } from "./store.js";
 
 export function messageMatchesEvent(message: Message, event: CustomEventRecord): boolean {
@@ -13,13 +14,7 @@ export function messageMatchesEvent(message: Message, event: CustomEventRecord):
   if (!match) return false;
 
   if (config.regex) {
-    try {
-      const flags = config.case_sensitive ? "" : "i";
-      const re = new RegExp(match, flags);
-      return re.test(content);
-    } catch {
-      return false;
-    }
+    return userRegexMatches(content, match, { caseInsensitive: !config.case_sensitive });
   }
 
   const haystack = config.case_sensitive ? content : content.toLowerCase();

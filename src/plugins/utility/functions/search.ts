@@ -1,5 +1,6 @@
 import type { GuildBan, GuildMember, User } from "discord.js";
 import { getMemberLevel } from "../../../core/permissions.js";
+import { userRegexMatches } from "../../../core/userRegex.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { codeBlock } from "../../../core/embeds.js";
 
@@ -29,12 +30,7 @@ export type SearchResult = {
 function matchQuery(text: string, query: string, caseSensitive: boolean, regex: boolean): boolean {
   if (!query) return true;
   if (regex) {
-    try {
-      const flags = caseSensitive ? "" : "i";
-      return new RegExp(query, flags).test(text);
-    } catch {
-      return false;
-    }
+    return userRegexMatches(text, query, { caseInsensitive: !caseSensitive });
   }
   const hay = caseSensitive ? text : text.toLowerCase();
   const needle = caseSensitive ? query : query.toLowerCase();

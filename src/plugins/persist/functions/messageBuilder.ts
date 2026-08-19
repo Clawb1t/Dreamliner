@@ -6,9 +6,11 @@ import {
   MessageFlags,
   type Client,
   type Guild,
+  type GuildMember,
   type GuildTextBasedChannel,
   type Message,
   type MessageCreateOptions,
+  type User,
   type WebhookMessageCreateOptions,
 } from "discord.js";
 import type {
@@ -22,6 +24,8 @@ export type PersistBuildContext = {
   client: Client;
   guild: Guild;
   channel: GuildTextBasedChannel;
+  user?: User | null;
+  member?: GuildMember | null;
 };
 
 function httpUrl(raw: string): string | undefined {
@@ -40,6 +44,8 @@ function templateCtx(ctx: PersistBuildContext): TemplateContext {
   return {
     guild: ctx.guild,
     channel: ctx.channel as TemplateContext["channel"],
+    user: ctx.user ?? null,
+    member: ctx.member ?? null,
   };
 }
 

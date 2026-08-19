@@ -548,6 +548,26 @@
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
+                },
+                "can_convert_gif": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use the Convert to GIF message context command. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Convert Gif",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_create_quote": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use the Create Quote message context command. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Create Quote",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
                 }
               },
               "additionalProperties": false,
@@ -4376,7 +4396,7 @@
                           "enabled": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Include a Discord embed in the sticky.",
+                            "description": "Include a Discord embed.",
                             "title": "Enabled"
                           },
                           "title": {
@@ -7433,7 +7453,7 @@
                       },
                       "channel_id": {
                         "type": "string",
-                        "description": "Channel ID where this rule listens.",
+                        "description": "Channel ID where this rule listens. Leave empty or use * for all channels.",
                         "title": "Channel Id",
                         "x-dreamliner": {
                           "kind": "channel",
@@ -7463,7 +7483,7 @@
                       },
                       "match": {
                         "type": "string",
-                        "description": "Text used by contains / starts_with / exact / regex triggers.",
+                        "description": "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
                         "title": "Match"
                       },
                       "regex": {
@@ -7501,13 +7521,12 @@
                       }
                     },
                     "required": [
-                      "channel_id",
                       "emoji"
                     ],
                     "additionalProperties": false
                   },
                   "default": [],
-                  "description": "Autoreaction rules. Each rule watches one channel and reacts when it matches.",
+                  "description": "Autoreaction rules. Each rule listens in one channel (or all channels) and reacts when it matches.",
                   "title": "Rules"
                 },
                 "can_add": {
@@ -7634,7 +7653,7 @@
                       },
                       "channel_id": {
                         "type": "string",
-                        "description": "Channel ID where this rule listens.",
+                        "description": "Channel ID where this rule listens. Leave empty or use * for all channels.",
                         "title": "Channel Id",
                         "x-dreamliner": {
                           "kind": "channel",
@@ -7643,9 +7662,9 @@
                       },
                       "response": {
                         "type": "string",
-                        "minLength": 1,
                         "maxLength": 2000,
-                        "description": "Message Dreamliner sends when the rule matches.",
+                        "default": "",
+                        "description": "Optional text above the embed. Supports placeholders like {user}, {guild}, {channel}. Can be empty if an embed or buttons are set.",
                         "title": "Response"
                       },
                       "trigger": {
@@ -7662,7 +7681,7 @@
                       },
                       "match": {
                         "type": "string",
-                        "description": "Text used by contains / starts_with / exact / regex triggers.",
+                        "description": "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
                         "title": "Match"
                       },
                       "every_n": {
@@ -7695,18 +7714,274 @@
                       },
                       "reply_to_message": {
                         "type": "boolean",
-                        "description": "When true (default), reply to the triggering message instead of sending a standalone message.",
+                        "description": "When true (default), reply to the triggering message instead of sending a standalone message. Ignored when sending as a webhook.",
                         "title": "Reply To Message"
+                      },
+                      "embed": {
+                        "type": "object",
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Include a Discord embed.",
+                            "title": "Enabled"
+                          },
+                          "title": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Embed title. Supports placeholders like {guild}.",
+                            "title": "Title"
+                          },
+                          "title_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the title links to.",
+                            "title": "Title Url"
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 4096,
+                            "default": "",
+                            "description": "Embed description. Supports placeholders.",
+                            "title": "Description"
+                          },
+                          "color": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 16777215,
+                            "description": "Embed accent color as a decimal integer (0–16777215).",
+                            "default": 5661429,
+                            "title": "Color",
+                            "x-dreamliner": {
+                              "kind": "color",
+                              "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                            }
+                          },
+                          "author_name": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Optional embed author name.",
+                            "title": "Author Name"
+                          },
+                          "author_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the author name links to.",
+                            "title": "Author Url"
+                          },
+                          "author_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Author icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Author Icon"
+                          },
+                          "author_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Author icon URL when source is url.",
+                            "title": "Author Icon Url"
+                          },
+                          "thumbnail": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Thumbnail image source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Thumbnail"
+                          },
+                          "thumbnail_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Thumbnail URL when source is url.",
+                            "title": "Thumbnail Url"
+                          },
+                          "image_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Large embed image URL (https). Leave empty for none.",
+                            "title": "Image Url"
+                          },
+                          "footer_text": {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "default": "",
+                            "description": "Footer text. Supports placeholders.",
+                            "title": "Footer Text"
+                          },
+                          "footer_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Footer icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Footer Icon"
+                          },
+                          "footer_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Footer icon URL when source is url.",
+                            "title": "Footer Icon Url"
+                          },
+                          "timestamp": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show the current time in the embed footer.",
+                            "title": "Timestamp"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "maxLength": 256,
+                                  "default": "",
+                                  "description": "Embed field name. Supports {guild} placeholders.",
+                                  "title": "Name"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "maxLength": 1024,
+                                  "default": "",
+                                  "description": "Embed field value. Supports placeholders.",
+                                  "title": "Value"
+                                },
+                                "inline": {
+                                  "type": "boolean",
+                                  "default": false,
+                                  "description": "Display the field inline.",
+                                  "title": "Inline"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "maxItems": 25,
+                            "default": [],
+                            "description": "Optional embed fields (max 25).",
+                            "title": "Fields"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "default": {},
+                        "description": "Optional Discord embed.",
+                        "title": "Embed"
+                      },
+                      "buttons": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80,
+                              "description": "Button label.",
+                              "title": "Label"
+                            },
+                            "url": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512,
+                              "description": "https URL this button opens.",
+                              "title": "Url"
+                            },
+                            "emoji": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Optional button emoji (unicode or <:name:id>).",
+                              "title": "Emoji",
+                              "x-dreamliner": {
+                                "kind": "emoji",
+                                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                              }
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "url"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 5,
+                        "default": [],
+                        "description": "Optional link buttons under the reply (max 5).",
+                        "title": "Buttons"
+                      },
+                      "webhook": {
+                        "type": "boolean",
+                        "description": "Send as a webhook with a custom name and avatar. Requires Manage Webhooks. Falls back to the bot if a webhook cannot be created.",
+                        "title": "Webhook"
+                      },
+                      "webhook_name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "description": "Webhook display name. Defaults to Autoreply.",
+                        "title": "Webhook Name"
+                      },
+                      "webhook_avatar_url": {
+                        "type": "string",
+                        "maxLength": 512,
+                        "description": "Webhook avatar image URL (https).",
+                        "title": "Webhook Avatar Url"
+                      },
+                      "silent": {
+                        "type": "boolean",
+                        "description": "Send without notifying members (suppress notifications).",
+                        "title": "Silent"
+                      },
+                      "suppress_embeds": {
+                        "type": "boolean",
+                        "description": "Do not unfurl links in the text content into extra embeds.",
+                        "title": "Suppress Embeds"
+                      },
+                      "mention_users": {
+                        "type": "boolean",
+                        "description": "Allow @user mentions in the reply text.",
+                        "title": "Mention Users"
+                      },
+                      "mention_roles": {
+                        "type": "boolean",
+                        "description": "Allow @role mentions in the reply text.",
+                        "title": "Mention Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "mention_everyone": {
+                        "type": "boolean",
+                        "description": "Allow @everyone / @here in the reply text.",
+                        "title": "Mention Everyone"
                       }
                     },
-                    "required": [
-                      "channel_id",
-                      "response"
-                    ],
                     "additionalProperties": false
                   },
                   "default": [],
-                  "description": "Autoreply rules. Each rule watches one channel and replies when it matches.",
+                  "description": "Autoreply rules. Each rule listens in one channel (or all channels) and replies when it matches.",
                   "title": "Rules"
                 },
                 "can_add": {
@@ -7808,6 +8083,486 @@
           },
           "additionalProperties": false,
           "title": "Autoreplies"
+        },
+        "autothreads": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "description": "Optional rule id.",
+                        "title": "Id"
+                      },
+                      "channel_id": {
+                        "type": "string",
+                        "description": "Channel ID where this rule listens. Leave empty or use * for all channels.",
+                        "title": "Channel Id",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "thread_name": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "default": "{user_display}",
+                        "description": "Thread title. Supports placeholders like {user_display}, {guild}, {channel}.",
+                        "title": "Thread Name"
+                      },
+                      "auto_archive_minutes": {
+                        "type": "number",
+                        "enum": [
+                          60,
+                          1440,
+                          4320,
+                          10080
+                        ],
+                        "default": 1440,
+                        "description": "How long the thread stays idle before auto-archiving: 60, 1440, 4320, or 10080 minutes.",
+                        "title": "Auto Archive Minutes"
+                      },
+                      "thread_slowmode_seconds": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 21600,
+                        "description": "Optional slowmode inside the new thread (seconds). 0 or omit for none.",
+                        "title": "Thread Slowmode Seconds",
+                        "x-dreamliner": {
+                          "kind": "seconds",
+                          "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                        }
+                      },
+                      "response": {
+                        "type": "string",
+                        "maxLength": 2000,
+                        "default": "",
+                        "description": "Optional text posted in the new thread. Supports placeholders. Can be empty if an embed or buttons are set.",
+                        "title": "Response"
+                      },
+                      "trigger": {
+                        "type": "string",
+                        "enum": [
+                          "every_message",
+                          "contains",
+                          "starts_with",
+                          "exact",
+                          "regex"
+                        ],
+                        "description": "When to match: every_message, contains, starts_with, exact, or regex.",
+                        "title": "Trigger"
+                      },
+                      "match": {
+                        "type": "string",
+                        "description": "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
+                        "title": "Match"
+                      },
+                      "every_n": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 1000,
+                        "description": "Only create a thread on every Nth matching message.",
+                        "title": "Every N"
+                      },
+                      "cooldown_seconds": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 86400,
+                        "description": "Minimum seconds between threads for this rule.",
+                        "title": "Cooldown Seconds",
+                        "x-dreamliner": {
+                          "kind": "seconds",
+                          "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                        }
+                      },
+                      "attachments_only": {
+                        "type": "boolean",
+                        "description": "Only match messages that include attachments.",
+                        "title": "Attachments Only"
+                      },
+                      "links_only": {
+                        "type": "boolean",
+                        "description": "Only match messages that include links.",
+                        "title": "Links Only"
+                      },
+                      "embed": {
+                        "type": "object",
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Include a Discord embed.",
+                            "title": "Enabled"
+                          },
+                          "title": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Embed title. Supports placeholders like {guild}.",
+                            "title": "Title"
+                          },
+                          "title_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the title links to.",
+                            "title": "Title Url"
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 4096,
+                            "default": "",
+                            "description": "Embed description. Supports placeholders.",
+                            "title": "Description"
+                          },
+                          "color": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 16777215,
+                            "description": "Embed accent color as a decimal integer (0–16777215).",
+                            "default": 5661429,
+                            "title": "Color",
+                            "x-dreamliner": {
+                              "kind": "color",
+                              "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                            }
+                          },
+                          "author_name": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Optional embed author name.",
+                            "title": "Author Name"
+                          },
+                          "author_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the author name links to.",
+                            "title": "Author Url"
+                          },
+                          "author_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Author icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Author Icon"
+                          },
+                          "author_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Author icon URL when source is url.",
+                            "title": "Author Icon Url"
+                          },
+                          "thumbnail": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Thumbnail image source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Thumbnail"
+                          },
+                          "thumbnail_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Thumbnail URL when source is url.",
+                            "title": "Thumbnail Url"
+                          },
+                          "image_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Large embed image URL (https). Leave empty for none.",
+                            "title": "Image Url"
+                          },
+                          "footer_text": {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "default": "",
+                            "description": "Footer text. Supports placeholders.",
+                            "title": "Footer Text"
+                          },
+                          "footer_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Footer icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Footer Icon"
+                          },
+                          "footer_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Footer icon URL when source is url.",
+                            "title": "Footer Icon Url"
+                          },
+                          "timestamp": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show the current time in the embed footer.",
+                            "title": "Timestamp"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "maxLength": 256,
+                                  "default": "",
+                                  "description": "Embed field name. Supports {guild} placeholders.",
+                                  "title": "Name"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "maxLength": 1024,
+                                  "default": "",
+                                  "description": "Embed field value. Supports placeholders.",
+                                  "title": "Value"
+                                },
+                                "inline": {
+                                  "type": "boolean",
+                                  "default": false,
+                                  "description": "Display the field inline.",
+                                  "title": "Inline"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "maxItems": 25,
+                            "default": [],
+                            "description": "Optional embed fields (max 25).",
+                            "title": "Fields"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "default": {},
+                        "description": "Optional Discord embed posted in the thread.",
+                        "title": "Embed"
+                      },
+                      "buttons": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80,
+                              "description": "Button label.",
+                              "title": "Label"
+                            },
+                            "url": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512,
+                              "description": "https URL this button opens.",
+                              "title": "Url"
+                            },
+                            "emoji": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Optional button emoji (unicode or <:name:id>).",
+                              "title": "Emoji",
+                              "x-dreamliner": {
+                                "kind": "emoji",
+                                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                              }
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "url"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 5,
+                        "default": [],
+                        "description": "Optional link buttons under the thread message (max 5).",
+                        "title": "Buttons"
+                      },
+                      "webhook": {
+                        "type": "boolean",
+                        "description": "Send the thread message as a webhook with a custom name and avatar. Requires Manage Webhooks.",
+                        "title": "Webhook"
+                      },
+                      "webhook_name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "description": "Webhook display name. Defaults to Autothread.",
+                        "title": "Webhook Name"
+                      },
+                      "webhook_avatar_url": {
+                        "type": "string",
+                        "maxLength": 512,
+                        "description": "Webhook avatar image URL (https).",
+                        "title": "Webhook Avatar Url"
+                      },
+                      "silent": {
+                        "type": "boolean",
+                        "description": "Send without notifying members (suppress notifications).",
+                        "title": "Silent"
+                      },
+                      "suppress_embeds": {
+                        "type": "boolean",
+                        "description": "Do not unfurl links in the text content into extra embeds.",
+                        "title": "Suppress Embeds"
+                      },
+                      "mention_users": {
+                        "type": "boolean",
+                        "description": "Allow @user mentions in the thread message.",
+                        "title": "Mention Users"
+                      },
+                      "mention_roles": {
+                        "type": "boolean",
+                        "description": "Allow @role mentions in the thread message.",
+                        "title": "Mention Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "mention_everyone": {
+                        "type": "boolean",
+                        "description": "Allow @everyone / @here in the thread message.",
+                        "title": "Mention Everyone"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "default": [],
+                  "description": "Autothread rules. Each rule listens in one channel (or all channels) and starts a thread when it matches.",
+                  "title": "Rules"
+                },
+                "can_add": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to add autothread rules. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Add",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_remove": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to remove autothread rules. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Remove",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_list": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to list autothread rules. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "List",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Conditional config merges. Use these to grant can_* permissions to mods/admins.",
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Autothreads"
         },
         "reminders": {
           "type": "object",

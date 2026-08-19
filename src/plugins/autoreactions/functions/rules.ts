@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { zAutoreactionsConfig, zAutoreactionTrigger } from "../../../config/schemas/plugins.js";
+import { userRegexMatches } from "../../../core/userRegex.js";
 
 export type AutoreactionTrigger = z.infer<typeof zAutoreactionTrigger>;
 
@@ -16,6 +17,13 @@ export type AutoreactionRule = {
 };
 
 type AutoreactionsConfig = z.infer<typeof zAutoreactionsConfig>;
+
+export const AUTOREACTION_ALL_CHANNELS = "*";
+
+export function resolveAutoreactionChannelId(channelId: string | undefined): string {
+  const trimmed = channelId?.trim();
+  return !trimmed || trimmed === AUTOREACTION_ALL_CHANNELS ? AUTOREACTION_ALL_CHANNELS : trimmed;
+}
 
 export function normalizeAutoreactionRules(rules: AutoreactionsConfig["rules"]): AutoreactionRule[] {
   let nextId = 1;
@@ -36,7 +44,7 @@ export function normalizeAutoreactionRules(rules: AutoreactionsConfig["rules"]):
 
     return {
       id,
-      channel_id: rule.channel_id,
+      channel_id: resolveAutoreactionChannelId(rule.channel_id),
       emoji: rule.emoji,
       trigger,
       ...(match ? { match } : {}),
@@ -68,11 +76,7 @@ export function contentMatchesTrigger(content: string, trigger: AutoreactionTrig
   if (!match) return false;
 
   if (trigger === "regex") {
-    try {
-      return new RegExp(match).test(content);
-    } catch {
-      return false;
-    }
+    return userRegexMatches(content, match);
   }
 
   const haystack = content.toLowerCase();

@@ -22,6 +22,7 @@ import { postDefaultOverrides } from "../plugins/post/defaultOverrides.js";
 import { autodeleteDefaultOverrides } from "../plugins/autodelete/defaultOverrides.js";
 import { autoreactionsDefaultOverrides } from "../plugins/autoreactions/defaultOverrides.js";
 import { autorepliesDefaultOverrides } from "../plugins/autoreplies/defaultOverrides.js";
+import { autothreadsDefaultOverrides } from "../plugins/autothreads/defaultOverrides.js";
 import { autoroleDefaultOverrides } from "../plugins/autorole/defaultOverrides.js";
 import { translationDefaultOverrides } from "../plugins/translation/defaultOverrides.js";
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
@@ -65,6 +66,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   autodelete: autodeleteDefaultOverrides,
   autoreactions: autoreactionsDefaultOverrides,
   autoreplies: autorepliesDefaultOverrides,
+  autothreads: autothreadsDefaultOverrides,
   autorole: autoroleDefaultOverrides,
   translation: translationDefaultOverrides,
   reminders: remindersDefaultOverrides,

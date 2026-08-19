@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T02:05:46.805Z",
+  "generatedAt": "2026-08-19T13:14:21.688Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -159,7 +159,7 @@
     {
       "id": "respond",
       "label": "Auto responses",
-      "description": "Tags, replies, reactions, and translation.",
+      "description": "Tags, replies, threads, reactions, and translation.",
       "plugins": [
         {
           "key": "tags",
@@ -170,6 +170,11 @@
           "key": "autoreplies",
           "name": "Autoreplies",
           "description": "Auto-reply to matching messages."
+        },
+        {
+          "key": "autothreads",
+          "name": "Autothreads",
+          "description": "Start a thread on matching messages."
         },
         {
           "key": "autoreactions",
@@ -440,6 +445,13 @@
       "key": "autoreplies",
       "name": "Autoreplies",
       "description": "Auto-reply to matching messages.",
+      "category": "Auto responses",
+      "categoryId": "respond"
+    },
+    {
+      "key": "autothreads",
+      "name": "Autothreads",
+      "description": "Start a thread on matching messages.",
       "category": "Auto responses",
       "categoryId": "respond"
     },

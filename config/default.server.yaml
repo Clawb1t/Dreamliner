@@ -79,6 +79,8 @@ plugins:
       can_stealemoji: false
       can_info: false
       can_time: false
+      can_convert_gif: false
+      can_create_quote: false
     overrides:
       - level: ">=50"
         config:
@@ -105,6 +107,8 @@ plugins:
           can_stealemoji: true
           can_info: true
           can_time: true
+          can_convert_gif: true
+          can_create_quote: true
       - level: ">=100"
         config:
           can_reload_guild: true
@@ -657,6 +661,20 @@ plugins:
           can_remove: true
           can_list: true
   autoreplies:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      rules: []
+      can_add: false
+      can_remove: false
+      can_list: false
+    overrides:
+      - level: ">=50"
+        config:
+          can_add: true
+          can_remove: true
+          can_list: true
+  autothreads:
     enabled: true
     replaceDefaultOverrides: false
     config:

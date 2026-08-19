@@ -1,16 +1,23 @@
-import type { Message, TextChannel } from "discord.js";
+import type { GuildMember, Message, TextChannel } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zAutorepliesConfig } from "../../../config/schemas/plugins.js";
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { resolvePluginConfig } from "../../../core/permissions.js";
-import { autoreplyPassesFilters, normalizeAutoreplyRules } from "./rules.js";
+import { buildPersistPayload } from "../../persist/functions/messageBuilder.js";
+import { getAutoreplyWebhook } from "../../persist/functions/webhook.js";
+import {
+  autoreplyAsSticky,
+  autoreplyHasContent,
+  autoreplyPassesFilters,
+  normalizeAutoreplyRules,
+} from "./rules.js";
 import { shouldTriggerAutoreplyByCadence } from "./state.js";
 
 const ALL_CHANNELS = "*";
 
 export async function handleAutoreplyMessage(message: Message): Promise<void> {
-  if (!message.guild || message.author.bot) return;
+  if (!message.guild || message.author.bot || message.webhookId) return;
   if (!message.channel.isTextBased() || message.channel.isDMBased()) return;
 
   const guildConfig = await configManager.getEffectiveConfig(message.guild.id);
@@ -25,6 +32,7 @@ export async function handleAutoreplyMessage(message: Message): Promise<void> {
   );
 
   for (const rule of rules) {
+    if (!autoreplyHasContent(rule)) continue;
     if (!autoreplyPassesFilters(message, rule)) continue;
 
     if (rule.every_n || rule.cooldown_seconds) {
@@ -39,10 +47,28 @@ export async function handleAutoreplyMessage(message: Message): Promise<void> {
     }
 
     const channel = message.channel as TextChannel;
+    const sticky = autoreplyAsSticky(rule);
+    const built = buildPersistPayload(sticky, {
+      client: message.client,
+      guild: message.guild,
+      channel,
+      user: message.author,
+      member: message.member as GuildMember | null,
+    });
+    if (built.empty) continue;
+
+    if (rule.webhook) {
+      const hook = await getAutoreplyWebhook(channel);
+      if (hook) {
+        const sent = await hook.send(built.webhookPayload).catch(() => null);
+        if (sent) continue;
+      }
+    }
+
     if (rule.reply_to_message === false) {
-      await channel.send({ content: rule.response }).catch(() => null);
+      await channel.send(built.payload).catch(() => null);
     } else {
-      await message.reply({ content: rule.response }).catch(() => null);
+      await message.reply(built.payload).catch(() => null);
     }
   }
 }

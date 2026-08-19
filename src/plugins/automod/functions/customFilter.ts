@@ -1,18 +1,14 @@
 import type { AutomodFilterEntry } from "../../../config/schemas/automod.js";
+import { compileUserRegex } from "../../../core/userRegex.js";
 
 const regexCache = new Map<string, RegExp | null>();
 
 function getRegex(pattern: string): RegExp | null {
   const cached = regexCache.get(pattern);
   if (cached !== undefined) return cached;
-  try {
-    const re = new RegExp(pattern, "i");
-    regexCache.set(pattern, re);
-    return re;
-  } catch {
-    regexCache.set(pattern, null);
-    return null;
-  }
+  const re = compileUserRegex(pattern);
+  regexCache.set(pattern, re);
+  return re;
 }
 
 export function matchCustomFilter(

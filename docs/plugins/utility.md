@@ -31,6 +31,8 @@ The Utility plugin provides server management, search, info, message tools, voic
 | `can_jumbo` | `/jumbo` |
 | `can_stealemoji` | `/stealemoji` |
 | `can_info` | `/info` |
+| `can_convert_gif` | **Convert to GIF** (message context menu) |
+| `can_create_quote` | **Create Quote** (message context menu) |
 
 ### Settings
 
@@ -232,6 +234,24 @@ Copy a custom emoji into this server from its markup. Works even if Dreamliner i
 | `name` | Optional new name (2-32 letters, numbers, underscores) |
 
 Unicode emoji cannot be stolen. Animated and static emojis both work, subject to the server’s remaining emoji slots.
+
+---
+
+## Message context menu commands
+
+Right-click a message → **Apps** to use these commands.
+
+### Convert to GIF
+
+Converts image file attachments on the target message to GIF format so members can favorite them in Discord. Replies publicly on success with the GIF(s) and a short hint; failures are ephemeral.
+
+Requires `can_convert_gif`.
+
+### Create Quote
+
+Renders a quote card GIF from the target message text, with the author's avatar in grayscale on the left and quote text on the right. Includes a **Remove my quote** button that only the quoted person can use to revoke the image. Replies publicly with the GIF; failures are ephemeral.
+
+Requires `can_create_quote`.
 
 ---
 

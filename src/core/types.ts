@@ -5,6 +5,7 @@ import type {
   GuildMember,
   Interaction,
   Message,
+  MessageContextMenuCommandInteraction,
 } from "discord.js";
 import type { ZodType } from "zod";
 import type { GuildConfig } from "../config/schemas/guild.js";
@@ -43,6 +44,26 @@ export type SlashCommandDefinition = {
   execute: (ctx: SlashCommandContext) => Promise<void>;
 };
 
+export type ContextMenuCommandContext = {
+  interaction: MessageContextMenuCommandInteraction;
+  guildConfig: GuildConfig;
+  pluginConfig: Record<string, unknown>;
+  client: Client;
+  configManager: ConfigManager;
+};
+
+export type ContextMenuCommandDefinition = {
+  data: {
+    name: string;
+    toJSON: () => unknown;
+  };
+  plugin: string;
+  permission?: string;
+  manageServer?: boolean;
+  discordPermissions?: bigint;
+  execute: (ctx: ContextMenuCommandContext) => Promise<void>;
+};
+
 export type EventHandler = {
   name: string;
   once?: boolean;
@@ -55,6 +76,7 @@ export type DreamlinerPlugin = {
   defaultOverrides?: ConfigOverride[];
   dependencies?: string[];
   slashCommands: SlashCommandDefinition[];
+  contextMenuCommands?: ContextMenuCommandDefinition[];
   events?: EventHandler[];
   onLoad?: (ctx: PluginLoadContext) => Promise<void>;
 };
@@ -89,6 +111,7 @@ export type BotContext = {
   configManager: ConfigManager;
   plugins: DreamlinerPlugin[];
   commands: Collection<string, SlashCommandDefinition>;
+  contextMenuCommands: Collection<string, ContextMenuCommandDefinition>;
   interactionStore: InteractionStore;
 };
 
@@ -103,4 +126,4 @@ export type ArchivedMessage = {
 
 export type LogFn = (guildId: string, message: string) => Promise<void>;
 
-export type { GuildConfig, ChatInputCommandInteraction, GuildMember, Message };
+export type { GuildConfig, ChatInputCommandInteraction, MessageContextMenuCommandInteraction, GuildMember, Message };

@@ -285,6 +285,18 @@ export const autoreplyState = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.ruleId, table.channelId] })],
 );
 
+export const autothreadState = sqliteTable(
+  "autothread_state",
+  {
+    guildId: text("guild_id").notNull(),
+    ruleId: integer("rule_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    messageCount: integer("message_count").notNull().default(0),
+    lastTriggeredAt: integer("last_triggered_at", { mode: "timestamp" }),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.ruleId, table.channelId] })],
+);
+
 export const customEvents = sqliteTable("custom_events", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   guildId: text("guild_id").notNull(),

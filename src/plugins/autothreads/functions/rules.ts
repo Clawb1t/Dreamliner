@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { zAutorepliesConfig, zAutoreplyTrigger } from "../../../config/schemas/plugins.js";
+import { zAutothreadsConfig, zAutothreadTrigger } from "../../../config/schemas/plugins.js";
 import type { PersistButton, PersistEmbedConfig, PersistSticky } from "../../../config/schemas/persist.js";
 import {
   contentMatchesTrigger,
@@ -8,19 +8,24 @@ import {
 } from "../../autoreactions/functions/rules.js";
 import { stickyHasContent } from "../../persist/functions/messageBuilder.js";
 
-export type AutoreplyTrigger = z.infer<typeof zAutoreplyTrigger>;
+export type AutothreadTrigger = z.infer<typeof zAutothreadTrigger>;
 
-export type AutoreplyRule = {
+export const THREAD_ARCHIVE_MINUTES = [60, 1440, 4320, 10080] as const;
+export type ThreadArchiveMinutes = (typeof THREAD_ARCHIVE_MINUTES)[number];
+
+export type AutothreadRule = {
   id: number;
   channel_id: string;
+  thread_name: string;
+  auto_archive_minutes: ThreadArchiveMinutes;
+  thread_slowmode_seconds?: number;
   response: string;
-  trigger: AutoreplyTrigger;
+  trigger: AutothreadTrigger;
   match?: string;
   every_n?: number;
   cooldown_seconds?: number;
   attachments_only?: boolean;
   links_only?: boolean;
-  reply_to_message?: boolean;
   embed?: PersistEmbedConfig;
   buttons?: PersistButton[];
   webhook?: boolean;
@@ -33,7 +38,7 @@ export type AutoreplyRule = {
   mention_everyone?: boolean;
 };
 
-type AutorepliesConfig = z.infer<typeof zAutorepliesConfig>;
+type AutothreadsConfig = z.infer<typeof zAutothreadsConfig>;
 
 const DEFAULT_EMBED: PersistEmbedConfig = {
   enabled: false,
@@ -55,7 +60,11 @@ const DEFAULT_EMBED: PersistEmbedConfig = {
   fields: [],
 };
 
-export function normalizeAutoreplyRules(rules: AutorepliesConfig["rules"]): AutoreplyRule[] {
+function isArchiveMinutes(value: number): value is ThreadArchiveMinutes {
+  return (THREAD_ARCHIVE_MINUTES as readonly number[]).includes(value);
+}
+
+export function normalizeAutothreadRules(rules: AutothreadsConfig["rules"]): AutothreadRule[] {
   let nextId = 1;
   const used = new Set<number>();
 
@@ -68,11 +77,17 @@ export function normalizeAutoreplyRules(rules: AutorepliesConfig["rules"]): Auto
     used.add(id);
 
     const match = rule.match?.trim() || undefined;
-    const trigger: AutoreplyTrigger = rule.trigger ?? "every_message";
+    const trigger: AutothreadTrigger = rule.trigger ?? "every_message";
+    const archiveRaw = rule.auto_archive_minutes;
+    const auto_archive_minutes: ThreadArchiveMinutes = isArchiveMinutes(archiveRaw) ? archiveRaw : 1440;
+    const slowmode = rule.thread_slowmode_seconds;
 
     return {
       id,
       channel_id: resolveAutoreactionChannelId(rule.channel_id),
+      thread_name: rule.thread_name || "{user_display}",
+      auto_archive_minutes,
+      ...(slowmode && slowmode > 0 ? { thread_slowmode_seconds: slowmode } : {}),
       response: rule.response ?? "",
       trigger,
       ...(match ? { match } : {}),
@@ -80,7 +95,6 @@ export function normalizeAutoreplyRules(rules: AutorepliesConfig["rules"]): Auto
       ...(rule.cooldown_seconds ? { cooldown_seconds: rule.cooldown_seconds } : {}),
       ...(rule.attachments_only ? { attachments_only: true } : {}),
       ...(rule.links_only ? { links_only: true } : {}),
-      reply_to_message: rule.reply_to_message !== false,
       embed: rule.embed ?? { ...DEFAULT_EMBED },
       buttons: rule.buttons ?? [],
       ...(rule.webhook ? { webhook: true } : {}),
@@ -95,27 +109,27 @@ export function normalizeAutoreplyRules(rules: AutorepliesConfig["rules"]): Auto
   });
 }
 
-export function nextAutoreplyRuleId(rules: AutoreplyRule[]): number {
+export function nextAutothreadRuleId(rules: AutothreadRule[]): number {
   return rules.reduce((max, rule) => Math.max(max, rule.id), 0) + 1;
 }
 
-export function formatAutoreplyRule(rule: AutoreplyRule): string {
+export function formatAutothreadRule(rule: AutothreadRule): string {
   const parts: string[] = [];
   if (rule.trigger === "every_message") parts.push("every message");
   else parts.push(`${rule.trigger} \`${rule.match ?? ""}\``);
+  parts.push(`archive ${rule.auto_archive_minutes}m`);
   if (rule.every_n) parts.push(`every ${rule.every_n} msgs`);
   if (rule.cooldown_seconds) parts.push(`${rule.cooldown_seconds}s cooldown`);
   if (rule.attachments_only) parts.push("attachments only");
   if (rule.links_only) parts.push("links only");
   if (rule.webhook) parts.push("webhook");
   if (rule.embed?.enabled) parts.push("embed");
-  parts.push(rule.webhook || rule.reply_to_message === false ? "send after" : "reply");
   return parts.join(" · ");
 }
 
-export function autoreplyPassesFilters(
+export function autothreadPassesFilters(
   message: { content: string | null; attachments: { size: number } },
-  rule: AutoreplyRule,
+  rule: AutothreadRule,
 ): boolean {
   return baseMessagePassesFilters(message, {
     id: rule.id,
@@ -128,10 +142,10 @@ export function autoreplyPassesFilters(
   });
 }
 
-export function autoreplyAsSticky(rule: AutoreplyRule): PersistSticky {
+export function autothreadAsSticky(rule: AutothreadRule): PersistSticky {
   return {
     enabled: true,
-    name: rule.webhook_name?.trim() || "Autoreply",
+    name: rule.webhook_name?.trim() || "Autothread",
     channel_id: rule.channel_id,
     content: rule.response,
     delay_seconds: 0,
@@ -150,8 +164,8 @@ export function autoreplyAsSticky(rule: AutoreplyRule): PersistSticky {
   };
 }
 
-export function autoreplyHasContent(rule: AutoreplyRule): boolean {
-  return stickyHasContent(autoreplyAsSticky(rule));
+export function autothreadHasContent(rule: AutothreadRule): boolean {
+  return stickyHasContent(autothreadAsSticky(rule));
 }
 
 export { contentMatchesTrigger };

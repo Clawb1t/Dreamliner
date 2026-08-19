@@ -10,6 +10,7 @@ import {
   parseEventConfigJson,
   type CustomEventConfig,
 } from "../functions/store.js";
+import { compileUserRegex } from "../../../core/userRegex.js";
 import { buildDefaultMessageConfig, formatEventConfig } from "../functions/triggers.js";
 
 export const eventCommands: SlashCommandDefinition[] = [
@@ -84,9 +85,7 @@ export const eventCommands: SlashCommandDefinition[] = [
         }
 
         if (matchType === "regex") {
-          try {
-            new RegExp(match, caseSensitive ? "" : "i");
-          } catch {
+          if (!compileUserRegex(match, { caseInsensitive: !caseSensitive })) {
             await ctx.interaction.reply(
               resultReply("Invalid regex", "Provide a valid regular expression in `match`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
             );

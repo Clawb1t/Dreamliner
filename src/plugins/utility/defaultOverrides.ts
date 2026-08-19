@@ -27,6 +27,8 @@ export const utilityDefaultOverrides: ConfigOverride[] = [
       can_stealemoji: true,
       can_info: true,
       can_time: true,
+      can_convert_gif: true,
+      can_create_quote: true,
     },
   },
   {

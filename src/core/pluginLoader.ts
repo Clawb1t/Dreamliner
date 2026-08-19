@@ -1,7 +1,7 @@
 import type { Client } from "discord.js";
 import { Collection } from "discord.js";
 import type { ConfigManager } from "../config/manager.js";
-import { collectCommands } from "./plugin.js";
+import { collectCommands, collectContextMenuCommands } from "./plugin.js";
 import { setSchedulerClient } from "./scheduler.js";
 import type { BotContext, DreamlinerPlugin, InteractionStore } from "./types.js";
 
@@ -25,6 +25,11 @@ export async function loadPlugins(
     commands.set(cmd.data.name, cmd);
   }
 
+  const contextMenuCommands = new Collection<string, ReturnType<typeof collectContextMenuCommands>[number]>();
+  for (const cmd of collectContextMenuCommands(plugins)) {
+    contextMenuCommands.set(cmd.data.name, cmd);
+  }
+
   const interactionStore: InteractionStore = {
     buttonHandlers: new Collection(),
   };
@@ -34,6 +39,7 @@ export async function loadPlugins(
     configManager,
     plugins,
     commands,
+    contextMenuCommands,
     interactionStore,
   };
 

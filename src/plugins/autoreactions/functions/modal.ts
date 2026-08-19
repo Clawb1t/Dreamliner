@@ -13,11 +13,14 @@ import { zAutoreactionTrigger, zAutoreactionsConfig } from "../../../config/sche
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
+import { compileUserRegex } from "../../../core/userRegex.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import {
+  AUTOREACTION_ALL_CHANNELS,
   formatAutoreactionRule,
   nextAutoreactionRuleId,
   normalizeAutoreactionRules,
+  resolveAutoreactionChannelId,
   type AutoreactionRule,
   type AutoreactionTrigger,
 } from "./rules.js";
@@ -43,8 +46,6 @@ const FIELD = {
   channel: "dl:ar:channel",
   extras: "dl:ar:extras",
 } as const;
-
-const ALL_CHANNELS = "*";
 
 const TRIGGER_OPTIONS = [
   {
@@ -86,7 +87,7 @@ const EXTRA_OPTIONS = [
 ] as const;
 
 function formatChannelLabel(channelId: string): string {
-  return channelId === ALL_CHANNELS ? "All channels" : `<#${channelId}>`;
+  return channelId === AUTOREACTION_ALL_CHANNELS ? "All channels" : `<#${channelId}>`;
 }
 
 export function buildAutoreactionAddModal(): ModalBuilder {
@@ -198,16 +199,14 @@ export async function createAutoreactionRule(
   }
 
   if (input.trigger === "regex" && matchRaw) {
-    try {
-      new RegExp(matchRaw);
-    } catch {
+    if (!compileUserRegex(matchRaw)) {
       return { ok: false, title: "Invalid regex", message: "Provide a valid regular expression in match text.", tone: "error" };
     }
   }
 
   const config = zAutoreactionsConfig.parse(pluginConfig);
   const rules = normalizeAutoreactionRules(config.rules);
-  const channelId = input.channelId ?? ALL_CHANNELS;
+  const channelId = resolveAutoreactionChannelId(input.channelId);
   const extras = parseExtras(input.extras);
 
   const newRule: AutoreactionRule = {

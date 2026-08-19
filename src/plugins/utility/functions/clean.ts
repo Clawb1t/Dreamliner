@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Collection, Message, TextChannel } from "discord.js";
+import { compileUserRegex } from "../../../core/userRegex.js";
 import { getDb } from "../../../db/client.js";
 import { messageArchives } from "../../../db/schema.js";
 import type { ArchivedMessage } from "../../../core/types.js";
@@ -39,11 +40,9 @@ export async function collectMessagesForClean(
     filtered = filtered.filter((m) => INVITE_REGEX.test(m.content));
   }
   if (filters.regex) {
-    try {
-      const re = new RegExp(filters.regex, "i");
+    const re = compileUserRegex(filters.regex);
+    if (re) {
       filtered = filtered.filter((m) => re.test(m.content));
-    } catch {
-      // invalid regex - no additional filter
     }
   }
 

@@ -38,10 +38,10 @@ plugins:
 |-------|-------------|
 | `rules` | List of rules (see below) |
 | `id` | Unique rule ID |
-| `channel_id` | Channel ID, or `*` for all channels |
+| `channel_id` | Channel ID, or empty/`*` for all channels |
 | `emoji` | Emoji to react with |
 | `trigger` | `every_message`, `contains`, `starts_with`, `exact`, or `regex` (default: `every_message`) |
-| `match` | Text/regex to match (required unless `trigger` is `every_message`) |
+| `match` | Text/regex to match (required unless `trigger` is `every_message`). Regex is case-insensitive. Whole word: `\bpog\b` |
 | `regex` | Legacy: treated as `trigger: regex` + `match` |
 | `every_n` | Only react on every Nth matching message (optional, ≥2) |
 | `cooldown_seconds` | Minimum seconds between reactions for this rule (optional) |

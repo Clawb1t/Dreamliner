@@ -23,7 +23,7 @@ export const zPersistEmbedField = z.strictObject({
 });
 
 export const zPersistEmbedConfig = z.strictObject({
-  enabled: z.boolean().default(false).describe("Include a Discord embed in the sticky."),
+  enabled: z.boolean().default(false).describe("Include a Discord embed."),
   title: z.string().max(256).default("").describe("Embed title. Supports placeholders like {guild}."),
   title_url: z
     .string()

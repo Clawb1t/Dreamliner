@@ -37,6 +37,8 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "jumbo", label: "/jumbo", plugin: "utility", permission: "can_jumbo" },
   { key: "stealemoji", label: "/stealemoji", plugin: "utility", permission: "can_stealemoji" },
   { key: "time", label: "/time", plugin: "utility", permission: "can_time" },
+  { key: "convert to gif", label: "Convert to GIF", plugin: "utility", permission: "can_convert_gif" },
+  { key: "create quote", label: "Create Quote", plugin: "utility", permission: "can_create_quote" },
 
   // Infractions
   { key: "warn", label: "/warn", plugin: "infractions", permission: "can_warn" },
@@ -101,6 +103,9 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "autoreply add", label: "/autoreply add", plugin: "autoreplies", permission: "can_add" },
   { key: "autoreply remove", label: "/autoreply remove", plugin: "autoreplies", permission: "can_remove" },
   { key: "autoreply list", label: "/autoreply list", plugin: "autoreplies", permission: "can_list" },
+  { key: "autothread add", label: "/autothread add", plugin: "autothreads", permission: "can_add" },
+  { key: "autothread remove", label: "/autothread remove", plugin: "autothreads", permission: "can_remove" },
+  { key: "autothread list", label: "/autothread list", plugin: "autothreads", permission: "can_list" },
   { key: "remind", label: "/remind", plugin: "reminders", permission: "can_create" },
   { key: "reminders list", label: "/reminders list", plugin: "reminders", permission: "can_list" },
   { key: "reminders cancel", label: "/reminders cancel", plugin: "reminders", permission: "can_cancel" },

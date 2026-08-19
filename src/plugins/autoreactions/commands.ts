@@ -5,14 +5,12 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../core/embeds.js";
 import { normalizeEmojiInput } from "../../core/emoji.js";
 import { zAutoreactionsConfig } from "../../config/schemas/plugins.js";
-import { formatAutoreactionRule, normalizeAutoreactionRules } from "./functions/rules.js";
+import { formatAutoreactionRule, normalizeAutoreactionRules, AUTOREACTION_ALL_CHANNELS } from "./functions/rules.js";
 import { buildAutoreactionAddModal } from "./functions/modal.js";
 import { setPendingAutoreactionEmoji } from "./functions/pending.js";
 
-const ALL_CHANNELS = "*";
-
 function formatChannelLabel(channelId: string): string {
-  return channelId === ALL_CHANNELS ? "All channels" : `<#${channelId}>`;
+  return channelId === AUTOREACTION_ALL_CHANNELS ? "All channels" : `<#${channelId}>`;
 }
 
 export const autoreactionsCommands: SlashCommandDefinition[] = [

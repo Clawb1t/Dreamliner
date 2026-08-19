@@ -54,7 +54,7 @@ export {
   type PersistSticky,
 } from "./persist.js";
 
-import { zPersistConfig } from "./persist.js";
+import { zPersistButton, zPersistConfig, zPersistEmbedConfig } from "./persist.js";
 
 export const zAdminConfig = z.strictObject({
   lockdown_role_id: roleId("Role applied during channel lockdown (optional)."),
@@ -187,12 +187,20 @@ export const zAutoreactionsConfig = z.strictObject({
     .array(
       z.strictObject({
         id: z.number().int().positive().optional().describe("Optional rule id."),
-        channel_id: z.string().describe("Channel ID where this rule listens."),
+        channel_id: z
+          .string()
+          .optional()
+          .describe("Channel ID where this rule listens. Leave empty or use * for all channels."),
         emoji: z.string().describe("Emoji to react with (Unicode or <:name:id>)."),
         trigger: zAutoreactionTrigger
           .optional()
           .describe("When to match: every_message, contains, starts_with, exact, or regex."),
-        match: z.string().optional().describe("Text used by contains / starts_with / exact / regex triggers."),
+        match: z
+          .string()
+          .optional()
+          .describe(
+            "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
+          ),
         regex: z.string().optional().describe("Deprecated. Prefer trigger=regex with match."),
         every_n: z
           .number()
@@ -213,7 +221,7 @@ export const zAutoreactionsConfig = z.strictObject({
       }),
     )
     .default([])
-    .describe("Autoreaction rules. Each rule watches one channel and reacts when it matches."),
+    .describe("Autoreaction rules. Each rule listens in one channel (or all channels) and reacts when it matches."),
   can_add: boolPerm("add autoreaction rules"),
   can_remove: boolPerm("remove autoreaction rules"),
   can_list: boolPerm("list autoreaction rules"),
@@ -227,16 +235,26 @@ export const zAutorepliesConfig = z.strictObject({
     .array(
       z.strictObject({
         id: z.number().int().positive().optional().describe("Optional rule id."),
-        channel_id: z.string().describe("Channel ID where this rule listens."),
+        channel_id: z
+          .string()
+          .optional()
+          .describe("Channel ID where this rule listens. Leave empty or use * for all channels."),
         response: z
           .string()
-          .min(1)
           .max(2000)
-          .describe("Message Dreamliner sends when the rule matches."),
+          .default("")
+          .describe(
+            "Optional text above the embed. Supports placeholders like {user}, {guild}, {channel}. Can be empty if an embed or buttons are set.",
+          ),
         trigger: zAutoreplyTrigger
           .optional()
           .describe("When to match: every_message, contains, starts_with, exact, or regex."),
-        match: z.string().optional().describe("Text used by contains / starts_with / exact / regex triggers."),
+        match: z
+          .string()
+          .optional()
+          .describe(
+            "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
+          ),
         every_n: z
           .number()
           .int()
@@ -256,14 +274,147 @@ export const zAutorepliesConfig = z.strictObject({
         reply_to_message: z
           .boolean()
           .optional()
-          .describe("When true (default), reply to the triggering message instead of sending a standalone message."),
+          .describe("When true (default), reply to the triggering message instead of sending a standalone message. Ignored when sending as a webhook."),
+        embed: zPersistEmbedConfig.default({}).describe("Optional Discord embed."),
+        buttons: z
+          .array(zPersistButton)
+          .max(5)
+          .default([])
+          .describe("Optional link buttons under the reply (max 5)."),
+        webhook: z
+          .boolean()
+          .optional()
+          .describe(
+            "Send as a webhook with a custom name and avatar. Requires Manage Webhooks. Falls back to the bot if a webhook cannot be created.",
+          ),
+        webhook_name: z
+          .string()
+          .max(80)
+          .optional()
+          .describe("Webhook display name. Defaults to Autoreply."),
+        webhook_avatar_url: z
+          .string()
+          .max(512)
+          .optional()
+          .describe("Webhook avatar image URL (https)."),
+        silent: z.boolean().optional().describe("Send without notifying members (suppress notifications)."),
+        suppress_embeds: z
+          .boolean()
+          .optional()
+          .describe("Do not unfurl links in the text content into extra embeds."),
+        mention_users: z.boolean().optional().describe("Allow @user mentions in the reply text."),
+        mention_roles: z.boolean().optional().describe("Allow @role mentions in the reply text."),
+        mention_everyone: z.boolean().optional().describe("Allow @everyone / @here in the reply text."),
       }),
     )
     .default([])
-    .describe("Autoreply rules. Each rule watches one channel and replies when it matches."),
+    .describe("Autoreply rules. Each rule listens in one channel (or all channels) and replies when it matches."),
   can_add: boolPerm("add autoreply rules"),
   can_remove: boolPerm("remove autoreply rules"),
   can_list: boolPerm("list autoreply rules"),
+});
+
+const zThreadArchiveMinutes = z
+  .union([z.literal(60), z.literal(1440), z.literal(4320), z.literal(10080)])
+  .default(1440)
+  .describe("How long the thread stays idle before auto-archiving: 60, 1440, 4320, or 10080 minutes.");
+
+/** Same match modes and rich message payload as autoreplies; starts a thread on the matching message. */
+export const zAutothreadTrigger = zAutoreactionTrigger;
+
+export const zAutothreadsConfig = z.strictObject({
+  rules: z
+    .array(
+      z.strictObject({
+        id: z.number().int().positive().optional().describe("Optional rule id."),
+        channel_id: z
+          .string()
+          .optional()
+          .describe("Channel ID where this rule listens. Leave empty or use * for all channels."),
+        thread_name: z
+          .string()
+          .max(100)
+          .default("{user_display}")
+          .describe("Thread title. Supports placeholders like {user_display}, {guild}, {channel}."),
+        auto_archive_minutes: zThreadArchiveMinutes,
+        thread_slowmode_seconds: z
+          .number()
+          .int()
+          .min(0)
+          .max(21_600)
+          .optional()
+          .describe("Optional slowmode inside the new thread (seconds). 0 or omit for none."),
+        response: z
+          .string()
+          .max(2000)
+          .default("")
+          .describe(
+            "Optional text posted in the new thread. Supports placeholders. Can be empty if an embed or buttons are set.",
+          ),
+        trigger: zAutothreadTrigger
+          .optional()
+          .describe("When to match: every_message, contains, starts_with, exact, or regex."),
+        match: z
+          .string()
+          .optional()
+          .describe(
+            "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
+          ),
+        every_n: z
+          .number()
+          .int()
+          .min(2)
+          .max(1000)
+          .optional()
+          .describe("Only create a thread on every Nth matching message."),
+        cooldown_seconds: z
+          .number()
+          .int()
+          .min(0)
+          .max(86_400)
+          .optional()
+          .describe("Minimum seconds between threads for this rule."),
+        attachments_only: z.boolean().optional().describe("Only match messages that include attachments."),
+        links_only: z.boolean().optional().describe("Only match messages that include links."),
+        embed: zPersistEmbedConfig.default({}).describe("Optional Discord embed posted in the thread."),
+        buttons: z
+          .array(zPersistButton)
+          .max(5)
+          .default([])
+          .describe("Optional link buttons under the thread message (max 5)."),
+        webhook: z
+          .boolean()
+          .optional()
+          .describe(
+            "Send the thread message as a webhook with a custom name and avatar. Requires Manage Webhooks.",
+          ),
+        webhook_name: z
+          .string()
+          .max(80)
+          .optional()
+          .describe("Webhook display name. Defaults to Autothread."),
+        webhook_avatar_url: z
+          .string()
+          .max(512)
+          .optional()
+          .describe("Webhook avatar image URL (https)."),
+        silent: z.boolean().optional().describe("Send without notifying members (suppress notifications)."),
+        suppress_embeds: z
+          .boolean()
+          .optional()
+          .describe("Do not unfurl links in the text content into extra embeds."),
+        mention_users: z.boolean().optional().describe("Allow @user mentions in the thread message."),
+        mention_roles: z.boolean().optional().describe("Allow @role mentions in the thread message."),
+        mention_everyone: z.boolean().optional().describe("Allow @everyone / @here in the thread message."),
+      }),
+    )
+    .default([])
+    .describe(
+      "Autothread rules. Each rule listens in one channel (or all channels) and starts a thread when it matches.",
+    ),
+  can_add: boolPerm("add autothread rules"),
+  can_remove: boolPerm("remove autothread rules"),
+  can_list: boolPerm("list autothread rules"),
 });
 
 export const zRemindersConfig = z.strictObject({
@@ -424,6 +575,7 @@ export const zPostPluginSection = zPluginSection(zPostConfig.shape);
 export const zAutodeletePluginSection = zPluginSection(zAutodeleteConfig.shape);
 export const zAutoreactionsPluginSection = zPluginSection(zAutoreactionsConfig.shape);
 export const zAutorepliesPluginSection = zPluginSection(zAutorepliesConfig.shape);
+export const zAutothreadsPluginSection = zPluginSection(zAutothreadsConfig.shape);
 export const zRemindersPluginSection = zPluginSection(zRemindersConfig.shape);
 export const zCountersPluginSection = zPluginSection(zCountersConfig.shape);
 export const zCompanionChannelsPluginSection = zPluginSection(zCompanionChannelsConfig.shape);

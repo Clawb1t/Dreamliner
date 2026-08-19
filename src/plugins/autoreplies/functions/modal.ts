@@ -13,6 +13,7 @@ import { zAutorepliesConfig, zAutoreplyTrigger } from "../../../config/schemas/p
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
+import { compileUserRegex } from "../../../core/userRegex.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import {
   formatAutoreplyRule,
@@ -243,16 +244,14 @@ export async function createAutoreplyRule(
   }
 
   if (input.trigger === "regex" && matchRaw) {
-    try {
-      new RegExp(matchRaw);
-    } catch {
+    if (!compileUserRegex(matchRaw)) {
       return { ok: false, title: "Invalid regex", message: "Provide a valid regular expression in match text.", tone: "error" };
     }
   }
 
   const config = zAutorepliesConfig.parse(pluginConfig);
   const rules = normalizeAutoreplyRules(config.rules);
-  const channelId = input.channelId ?? ALL_CHANNELS;
+  const channelId = input.channelId?.trim() || ALL_CHANNELS;
   const extras = parseExtras(input.extras);
 
   const newRule: AutoreplyRule = {

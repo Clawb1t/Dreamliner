@@ -5,7 +5,8 @@ import {
   type Webhook,
 } from "discord.js";
 
-const WEBHOOK_NAME = "Dreamliner Persist";
+const PERSIST_WEBHOOK_NAME = "Dreamliner Persist";
+const AUTOREPLY_WEBHOOK_NAME = "Dreamliner Autoreplies";
 
 const persistWebhookIds = new Set<string>();
 
@@ -24,7 +25,12 @@ export function rememberPersistWebhook(webhookId: string): void {
   persistWebhookIds.add(webhookId);
 }
 
-export async function getPersistWebhook(channel: GuildTextBasedChannel): Promise<Webhook | null> {
+async function getOwnedWebhook(
+  channel: GuildTextBasedChannel,
+  name: string,
+  reason: string,
+  remember?: (id: string) => void,
+): Promise<Webhook | null> {
   const textChannel = asWebhookChannel(channel);
   if (!textChannel) return null;
 
@@ -35,21 +41,39 @@ export async function getPersistWebhook(channel: GuildTextBasedChannel): Promise
 
   try {
     const existing = await textChannel.fetchWebhooks();
-    const owned = existing.find((hook) => hook.owner?.id === me.id && hook.name === WEBHOOK_NAME);
+    const owned = existing.find((hook) => hook.owner?.id === me.id && hook.name === name);
     if (owned) {
-      persistWebhookIds.add(owned.id);
+      remember?.(owned.id);
       return owned;
     }
 
-    const created = await textChannel.createWebhook({
-      name: WEBHOOK_NAME,
-      reason: "Sticky persist messages with custom name and avatar",
-    });
-    persistWebhookIds.add(created.id);
+    const created = await textChannel.createWebhook({ name, reason });
+    remember?.(created.id);
     return created;
   } catch {
     return null;
   }
+}
+
+export async function getPersistWebhook(channel: GuildTextBasedChannel): Promise<Webhook | null> {
+  return getOwnedWebhook(
+    channel,
+    PERSIST_WEBHOOK_NAME,
+    "Sticky persist messages with custom name and avatar",
+    (id) => persistWebhookIds.add(id),
+  );
+}
+
+export async function getAutoreplyWebhook(channel: GuildTextBasedChannel): Promise<Webhook | null> {
+  return getOwnedWebhook(channel, AUTOREPLY_WEBHOOK_NAME, "Auto-reply messages with custom name and avatar");
+}
+
+export async function getAutothreadWebhook(channel: GuildTextBasedChannel): Promise<Webhook | null> {
+  return getOwnedWebhook(
+    channel,
+    "Dreamliner Autothreads",
+    "Auto-thread messages with custom name and avatar",
+  );
 }
 
 export async function deletePersistWebhookMessage(

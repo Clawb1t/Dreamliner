@@ -7,6 +7,7 @@ import { infoCommands } from "./commands/info.js";
 import { moderationCommands } from "./commands/moderation.js";
 import { voiceCommands, nicknameCommands } from "./commands/voice.js";
 import { metaCommands } from "./commands/meta.js";
+import { contextMenuCommands } from "./commands/contextMenu.js";
 import { configManager } from "../../config/manager.js";
 import { getUtilityPluginConfig } from "../../core/guildHelpers.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
@@ -25,6 +26,7 @@ export const utilityPlugin = definePlugin({
     ...nicknameCommands,
     ...metaCommands,
   ],
+  contextMenuCommands,
   events: [
     {
       name: Events.MessageCreate,

@@ -1,6 +1,6 @@
 {
   "name": "dreamliner",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Dreamliner — a Discord moderation bot with file-based configuration",
   "type": "module",
   "main": "dist/index.js",
@@ -29,6 +29,7 @@
     "discord.js": "^14.26.4",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.43.1",
+    "gifenc": "^1.0.3",
     "google-translate-api-x": "^10.7.3",
     "yaml": "^2.7.1",
     "zod": "^3.24.4"

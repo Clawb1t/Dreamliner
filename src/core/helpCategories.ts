@@ -103,10 +103,11 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "respond",
     label: "Auto responses",
-    blurb: "Tags, replies, reactions, and translation.",
+    blurb: "Tags, replies, threads, reactions, and translation.",
     include: [
       { plugin: "tags" },
       { plugin: "autoreplies" },
+      { plugin: "autothreads" },
       { plugin: "autoreactions" },
       { plugin: "translation" },
     ],
@@ -267,6 +268,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Autoreplies",
     description: "Auto-reply to matching messages.",
   },
+  autothreads: {
+    key: "autothreads",
+    name: "Autothreads",
+    description: "Start a thread on matching messages.",
+  },
   translation: {
     key: "translation",
     name: "Translation",
@@ -368,6 +374,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   starboard: "engage",
   tags: "respond",
   autoreplies: "respond",
+  autothreads: "respond",
   autoreactions: "respond",
   translation: "respond",
   post: "schedule",

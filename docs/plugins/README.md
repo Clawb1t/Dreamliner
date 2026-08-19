@@ -46,6 +46,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Tags](./tags.md)
 - [Autoreplies](./autoreplies.md)
+- [Autothreads](./autothreads.md)
 - [Autoreactions](./autoreactions.md)
 - [Translation](./translation.md)
 

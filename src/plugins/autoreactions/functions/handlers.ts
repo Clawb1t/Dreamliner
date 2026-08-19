@@ -4,10 +4,8 @@ import { zAutoreactionsConfig } from "../../../config/schemas/plugins.js";
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { resolvePluginConfig } from "../../../core/permissions.js";
-import { messagePassesFilters, normalizeAutoreactionRules } from "./rules.js";
+import { messagePassesFilters, normalizeAutoreactionRules, AUTOREACTION_ALL_CHANNELS } from "./rules.js";
 import { shouldTriggerByCadence } from "./state.js";
-
-const ALL_CHANNELS = "*";
 
 export async function handleAutoreactionMessage(message: Message): Promise<void> {
   if (!message.guild || message.author.bot) return;
@@ -20,7 +18,7 @@ export async function handleAutoreactionMessage(message: Message): Promise<void>
   );
 
   const rules = normalizeAutoreactionRules(pluginConfig.rules).filter(
-    (rule) => rule.channel_id === ALL_CHANNELS || rule.channel_id === message.channel.id,
+    (rule) => rule.channel_id === AUTOREACTION_ALL_CHANNELS || rule.channel_id === message.channel.id,
   );
 
   for (const rule of rules) {

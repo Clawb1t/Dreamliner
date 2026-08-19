@@ -1,6 +1,6 @@
 # Autoreplies plugin
 
-Automatically reply when messages match a trigger. Setup mirrors autoreactions: pick the reply text in the slash command, then finish the rule in a modal.
+Automatically reply when messages match a trigger. Dashboard setup mirrors persist for the reply payload (embeds, webhooks, link buttons, mention flags) plus the same match/limit controls as autoreactions.
 
 ## Configuration
 
@@ -28,15 +28,22 @@ plugins:
 |-------|-------------|
 | `rules` | List of reply rules |
 | `id` | Unique rule ID |
-| `channel_id` | Channel ID, or `*` for all channels |
-| `response` | Message the bot sends (max 2000) |
+| `channel_id` | Channel ID, or empty/`*` for all channels |
+| `response` | Optional text above the embed (max 2000). Supports `{user}`, `{guild}`, `{channel}` |
 | `trigger` | `every_message`, `contains`, `starts_with`, `exact`, or `regex` |
-| `match` | Text/regex to match (required unless `trigger` is `every_message`) |
+| `match` | Text/regex to match (required unless `trigger` is `every_message`). Regex is case-insensitive. Whole word: `\bhelp\b` |
 | `every_n` | Only reply on every Nth matching message |
 | `cooldown_seconds` | Minimum seconds between replies for this rule |
 | `attachments_only` | Only messages with attachments |
 | `links_only` | Only messages containing a link |
-| `reply_to_message` | When `true` (default), reply to the trigger message |
+| `reply_to_message` | When `true` (default), reply to the trigger message. Ignored when `webhook` is on |
+| `embed` | Same embed options as persist (title, description, color, images, footer) |
+| `buttons` | Optional link buttons (max 5) |
+| `webhook` | Send with a custom name/avatar (needs Manage Webhooks) |
+| `webhook_name` / `webhook_avatar_url` | Custom webhook identity |
+| `silent` | Suppress notifications |
+| `suppress_embeds` | Don’t unfurl links in the text |
+| `mention_users` / `mention_roles` / `mention_everyone` | Allowed mention types |
 
 ## Commands
 
@@ -59,4 +66,5 @@ plugins:
 ## Requirements
 
 - The bot needs **Send Messages** (and **Read Message History** if using reply) in the target channel(s).
-- Bot messages are ignored and will not trigger rules.
+- Webhook replies need **Manage Webhooks**. If a webhook cannot be created, Dreamliner falls back to sending as the bot.
+- Bot and webhook messages are ignored and will not trigger rules.
