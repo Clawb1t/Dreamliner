@@ -5,7 +5,8 @@ import {
   type ButtonInteraction,
 } from "discord.js";
 import { configManager } from "../../../config/manager.js";
-import { trimLines } from "../../../core/embeds.js";
+import { discordTs, trimLines } from "../../../core/embeds.js";
+import { decodeSnowflake } from "../../../core/datetime.js";
 import { guildResultOptions, resultEdit, resultReply } from "../../../core/responses.js";
 
 export const QUOTE_REMOVE_PREFIX = "utility:quote:remove:";
@@ -54,8 +55,15 @@ export async function handleQuoteRemoveButtonInteraction(
     return true;
   }
 
+  const decoded = decodeSnowflake(interaction.user.id);
   const removalDetails = trimLines(`
     <@!${interaction.user.id}> has requested their quote be removed.
+
+    Snowflake: \`${interaction.user.id}\`
+    Created: **${discordTs(decoded.timestamp)}**
+    Worker ID: **${decoded.workerId}**
+    Process ID: **${decoded.processId}**
+    Increment: **${decoded.increment}**
   `);
 
   await interaction
@@ -65,7 +73,6 @@ export async function handleQuoteRemoveButtonInteraction(
         removalDetails,
         guildResultOptions(interaction.client, guildConfig, { tone: "neutral" }),
       ),
-      content: "",
       files: [],
       components: [],
     })
