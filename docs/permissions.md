@@ -83,10 +83,11 @@ Quote every ID as a string so YAML does not alter large snowflakes. Comments aft
 
 A member's level is the **highest** value from:
 
-* Their user ID entry in `levels`, and
-* Every role they have that appears in `levels`.
+* Their user ID entry in `levels`,
+* Every role they have that appears in `levels`, and
+* **100** (the built-in admin tier) if they're the server owner or hold Discord's own **Administrator** or **Manage Server** permission — always, even with an empty `levels: {}` map. An explicit `levels` entry can only raise this further, never lower it.
 
-If a member has no matching entries, their level is **0**.
+If a member has no matching entries and no Administrator/Manage Server permission, their level is **0**. This means a freshly-invited Dreamliner isn't locked out for server admins — they get full access to every plugin's default (`>=100`) tier immediately, without editing `levels` first. (Utility and Infractions commands still need one `/config upload` or dashboard save first — see [Troubleshooting](#troubleshooting) below — that's a one-time setup step, not a permission gap.)
 
 ***
 

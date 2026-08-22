@@ -119,6 +119,149 @@
           "default": {},
           "description": "Per-event log toggles. Missing keys default to enabled. Keys match dashboard Logging toggles.",
           "title": "Events"
+        },
+        "emojis": {
+          "type": "object",
+          "properties": {
+            "action_emoji": {
+              "type": "string",
+              "default": "<:dl_action:1540811113711665203>",
+              "description": "Fallback emoji for log events that don't fit any other category (e.g. message pin, DM failed).",
+              "title": "Action Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "create_emoji": {
+              "type": "string",
+              "default": "<:dl_create:1540811386790346793>",
+              "description": "Emoji for create events (channels, roles, threads, invites).",
+              "title": "Create Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "delete_emoji": {
+              "type": "string",
+              "default": "<:dl_delete:1540811399993757816>",
+              "description": "Emoji for delete events (channels, roles, messages, cases, clean).",
+              "title": "Delete Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "edit_emoji": {
+              "type": "string",
+              "default": "<:dl_edit:1540811455249645668>",
+              "description": "Emoji for edit/update events (messages, channels, roles, nicknames).",
+              "title": "Edit Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "emoji_sticker_emoji": {
+              "type": "string",
+              "default": "<:dl_emoji:1540811163284144169>",
+              "description": "Emoji for emoji and sticker create/update/delete events.",
+              "title": "Emoji Sticker Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "join_emoji": {
+              "type": "string",
+              "default": "<:dl_join:1540811526447824976>",
+              "description": "Emoji for member and voice join events.",
+              "title": "Join Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "leave_emoji": {
+              "type": "string",
+              "default": "<:dl_leave:1540811513802133554>",
+              "description": "Emoji for member and voice leave events.",
+              "title": "Leave Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "voice_emoji": {
+              "type": "string",
+              "default": "<:dl_voice:1540811146380972144>",
+              "description": "Emoji for voice activity that isn't a plain join/leave (move, mute, deafen, stream, video).",
+              "title": "Voice Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "unban_emoji": {
+              "type": "string",
+              "default": "<:dl_unban:1540811470391214111>",
+              "description": "Emoji for member unban and case unban events.",
+              "title": "Unban Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "server_update_emoji": {
+              "type": "string",
+              "default": "<:dl_serverupdate:1540811181290160328>",
+              "description": "Emoji for server/config-level changes: guild settings, webhooks, dashboard config saves.",
+              "title": "Server Update Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "moderation_default_emoji": {
+              "type": "string",
+              "default": "<:dl_moderation_default:1540811132242239651>",
+              "description": "Emoji for non-punitive moderation bookkeeping: notes, case edits, passport checks, dashboard admin actions.",
+              "title": "Moderation Default Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "moderation_moderate_emoji": {
+              "type": "string",
+              "default": "<:dl_moderation_moderate:1540811497184297040>",
+              "description": "Emoji for corrective-but-not-account-ending actions: warns, mutes, timeouts, automod, censor.",
+              "title": "Moderation Moderate Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            },
+            "moderation_severe_emoji": {
+              "type": "string",
+              "default": "<:dl_moderation_severe:1540811485079671046>",
+              "description": "Emoji for account-ending or emergency actions: kicks, bans, raids, failed-verification kicks.",
+              "title": "Moderation Severe Emoji",
+              "x-dreamliner": {
+                "kind": "emoji",
+                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+              }
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "description": "Custom emoji per log category, prefixed to every log card title in this server.",
+          "title": "Emojis",
+          "x-dreamliner": {
+            "kind": "emoji",
+            "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+          }
         }
       },
       "additionalProperties": false,

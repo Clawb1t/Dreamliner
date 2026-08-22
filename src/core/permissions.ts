@@ -1,7 +1,15 @@
-import type { GuildMember } from "discord.js";
+import { PermissionFlagsBits, type GuildMember } from "discord.js";
 import type { ConfigOverride } from "./types.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { getPluginBaseConfig, stripUnknownPluginKeys } from "./pluginSchemas.js";
+
+/**
+ * The built-in "admin tier" every plugin's default overrides top out at (see each plugin's
+ * defaultOverrides.ts). Discord Administrator / Manage Server holders always reach at least
+ * this level so a freshly-invited bot with an empty `levels: {}` map isn't locked out of every
+ * command until someone manually maps role/user IDs.
+ */
+const ADMIN_TIER_LEVEL = 100;
 
 function parseLevelRequirement(level: string): { op: ">=" | ">" | "<=" | "<" | "="; value: number } | null {
   const match = level.match(/^(>=|>|<=|<|=)(\d+)$/);
@@ -37,6 +45,17 @@ export function getMemberLevel(member: GuildMember, levels: Record<string, numbe
     if (levels[role.id]) {
       maxLevel = Math.max(maxLevel, levels[role.id]);
     }
+  }
+
+  // Owner and Discord Administrator / Manage Server holders always reach the admin tier, even
+  // with no `levels` entries configured. An explicit `levels` entry can only raise this further,
+  // never lower it below the admin tier.
+  if (
+    member.id === member.guild.ownerId ||
+    member.permissions.has(PermissionFlagsBits.Administrator) ||
+    member.permissions.has(PermissionFlagsBits.ManageGuild)
+  ) {
+    maxLevel = Math.max(maxLevel, ADMIN_TIER_LEVEL);
   }
 
   return maxLevel;

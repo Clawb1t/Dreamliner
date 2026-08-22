@@ -61,8 +61,29 @@ function channelRef(channelId: string, name?: string | null) {
   return { id: channelId, name: name ?? undefined };
 }
 
-function userRef(userId: string, name?: string | null, avatarUrl?: string | null) {
-  return { id: userId, name: name ?? undefined, avatarUrl: avatarUrl ?? undefined };
+function userRef(
+  userId: string,
+  name?: string | null,
+  avatarUrl?: string | null,
+  extra?: { createdAt?: number | null; joinedAt?: number | null; bot?: boolean },
+) {
+  return {
+    id: userId,
+    name: name ?? undefined,
+    avatarUrl: avatarUrl ?? undefined,
+    createdAt: extra?.createdAt ?? undefined,
+    joinedAt: extra?.joinedAt ?? undefined,
+    bot: extra?.bot,
+  };
+}
+
+/** Ref for a member, including account-created / joined-server timestamps for the log card. */
+function memberRef(member: GuildMember) {
+  return userRef(member.id, member.user.username, member.displayAvatarURL({ size: 128 }), {
+    createdAt: member.user.createdTimestamp,
+    joinedAt: member.joinedTimestamp ?? undefined,
+    bot: member.user.bot,
+  });
 }
 
 function channelTypeName(type: ChannelType | number): string {
@@ -91,12 +112,13 @@ export async function handleMemberJoin(member: GuildMember): Promise<void> {
   await sendServerLog(
     member.client,
     guildConfig,
-    buildMemberJoinLog(userRef(member.id, member.user.username, member.displayAvatarURL({ size: 128 }))),
+    buildMemberJoinLog(memberRef(member), { memberCount: member.guild.memberCount }),
     {
       guildId: member.guild.id,
       eventType: "member_join",
       targetId: member.id,
       summary: `${member.user.username} joined`,
+      payload: { accountCreatedAt: member.user.createdTimestamp },
     },
   );
 }
@@ -106,6 +128,13 @@ export async function handleMemberLeave(member: GuildMember | PartialGuildMember
   const user = member.user ?? (await member.client.users.fetch(member.id).catch(() => null));
   if (!user || user.bot) return;
 
+  const roles =
+    !member.partial && "roles" in member
+      ? [...member.roles.cache.values()]
+          .filter((role) => role.id !== member.guild.id)
+          .map((role) => ({ id: role.id, name: role.name }))
+      : [];
+
   const guildConfig = await configManager.getEffectiveConfig(member.guild.id);
   const kick = await findKickOrBanReason(member.guild, AuditLogEvent.MemberKick, member.id);
   if (kick) {
@@ -113,7 +142,9 @@ export async function handleMemberLeave(member: GuildMember | PartialGuildMember
       member.client,
       guildConfig,
       buildMemberKickLog({
-        user: userRef(user.id, user.username, user.displayAvatarURL({ size: 128 })),
+        user: userRef(user.id, user.username, user.displayAvatarURL({ size: 128 }), {
+          createdAt: user.createdTimestamp,
+        }),
         mod: kick.executorId ? { id: kick.executorId } : null,
         reason: kick.reason,
       }),
@@ -132,7 +163,13 @@ export async function handleMemberLeave(member: GuildMember | PartialGuildMember
   await sendServerLog(
     member.client,
     guildConfig,
-    buildMemberLeaveLog(userRef(user.id, user.username, user.displayAvatarURL({ size: 128 }))),
+    buildMemberLeaveLog(
+      userRef(user.id, user.username, user.displayAvatarURL({ size: 128 }), {
+        createdAt: user.createdTimestamp,
+        joinedAt: !member.partial && "joinedTimestamp" in member ? (member.joinedTimestamp ?? undefined) : undefined,
+      }),
+      { memberCount: member.guild.memberCount, roles },
+    ),
     {
       guildId: member.guild.id,
       eventType: "member_leave",
@@ -145,7 +182,7 @@ export async function handleMemberLeave(member: GuildMember | PartialGuildMember
 export async function handleMemberUpdate(oldMember: GuildMember, newMember: GuildMember): Promise<void> {
   if (!newMember.guild || newMember.user.bot) return;
   const guildConfig = await configManager.getEffectiveConfig(newMember.guild.id);
-  const user = userRef(newMember.id, newMember.user.username, newMember.displayAvatarURL({ size: 128 }));
+  const user = memberRef(newMember);
 
   const oldNick = oldMember.nickname ?? oldMember.user.username;
   const newNick = newMember.nickname ?? newMember.user.username;
@@ -190,6 +227,7 @@ export async function handleMemberUpdate(oldMember: GuildMember, newMember: Guil
         user,
         added: [...added.values()].map((role) => ({ id: role.id, name: role.name })),
         removed: [...removed.values()].map((role) => ({ id: role.id, name: role.name })),
+        mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
       }),
       {
         guildId: newMember.guild.id,
@@ -219,6 +257,7 @@ export async function handleMemberUpdate(oldMember: GuildMember, newMember: Guil
         mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
         before: formatTimeout(oldTimeout),
         after: formatTimeout(newTimeout),
+        reason: mod?.reason,
       }),
       {
         guildId: newMember.guild.id,
@@ -310,6 +349,7 @@ export async function handleMessageUpdate(
       channel: channelRef(newMessage.channelId, channelName),
       before: beforeContent,
       after: afterContent,
+      attachments,
     }),
     {
       guildId: newMessage.guild.id,
@@ -382,6 +422,8 @@ export async function handleMessageDelete(message: Message | PartialMessage): Pr
       user: userRef(authorId, resolved.author?.username ?? stored?.authorName, authorAvatar),
       channel: channelRef(resolved.channelId, channelName),
       content,
+      attachments,
+      executor: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
     }),
     {
       guildId: message.guild.id,
@@ -410,6 +452,18 @@ export async function handleMessageBulkDelete(
     maxAgeMs: 20_000,
   });
 
+  const authorTally = new Map<string, { user: { id: string; name?: string }; count: number }>();
+  for (const message of messages.values()) {
+    const author = message.author;
+    if (!author) continue;
+    const existing = authorTally.get(author.id);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      authorTally.set(author.id, { user: { id: author.id, name: author.username }, count: 1 });
+    }
+  }
+
   await sendServerLog(
     guild.client,
     guildConfig,
@@ -417,6 +471,7 @@ export async function handleMessageBulkDelete(
       channel: channelRef(channel.id, channel.name),
       count: messages.size,
       mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
+      authorCounts: [...authorTally.values()],
     }),
     {
       guildId: guild.id,
@@ -513,37 +568,37 @@ export async function handleVoiceStateUpdate(oldState: VoiceState, newState: Voi
     {
       changed: oldState.serverMute !== newState.serverMute,
       eventType: "voice_server_mute",
-      title: newState.serverMute ? "🔇 Server Muted" : "🔊 Server Unmuted",
+      title: newState.serverMute ? "Server Muted" : "Server Unmuted",
       detail: `Server mute: ${newState.serverMute ? "on" : "off"}`,
     },
     {
       changed: oldState.serverDeaf !== newState.serverDeaf,
       eventType: "voice_server_deafen",
-      title: newState.serverDeaf ? "🔇 Server Deafened" : "🔊 Server Undeafened",
+      title: newState.serverDeaf ? "Server Deafened" : "Server Undeafened",
       detail: `Server deafen: ${newState.serverDeaf ? "on" : "off"}`,
     },
     {
       changed: oldState.selfMute !== newState.selfMute,
       eventType: "voice_self_mute",
-      title: newState.selfMute ? "🔇 Self Muted" : "🔊 Self Unmuted",
+      title: newState.selfMute ? "Self Muted" : "Self Unmuted",
       detail: `Self mute: ${newState.selfMute ? "on" : "off"}`,
     },
     {
       changed: oldState.selfDeaf !== newState.selfDeaf,
       eventType: "voice_self_deafen",
-      title: newState.selfDeaf ? "🔇 Self Deafened" : "🔊 Self Undeafened",
+      title: newState.selfDeaf ? "Self Deafened" : "Self Undeafened",
       detail: `Self deafen: ${newState.selfDeaf ? "on" : "off"}`,
     },
     {
       changed: oldState.streaming !== newState.streaming,
       eventType: "voice_stream",
-      title: newState.streaming ? "📡 Stream Started" : "📡 Stream Ended",
+      title: newState.streaming ? "Stream Started" : "Stream Ended",
       detail: `Streaming: ${newState.streaming ? "on" : "off"}`,
     },
     {
       changed: oldState.selfVideo !== newState.selfVideo,
       eventType: "voice_video",
-      title: newState.selfVideo ? "📷 Camera On" : "📷 Camera Off",
+      title: newState.selfVideo ? "Camera On" : "Camera Off",
       detail: `Camera: ${newState.selfVideo ? "on" : "off"}`,
     },
   ];
@@ -584,6 +639,7 @@ export async function handleThreadCreate(thread: AnyThreadChannel): Promise<void
       user: userRef(owner?.id ?? "unknown", owner?.username, owner?.displayAvatarURL({ size: 128 })),
       thread: { id: thread.id, name: thread.name },
       parentChannel: channelRef(parent?.id ?? thread.parentId ?? thread.id, parent?.name),
+      type: channelTypeName(thread.type),
     }),
     {
       guildId: thread.guild.id,
@@ -683,7 +739,9 @@ export async function handleGuildBanAdd(ban: GuildBan): Promise<void> {
     ban.client,
     guildConfig,
     buildMemberBanLog({
-      user: userRef(ban.user.id, ban.user.username, ban.user.displayAvatarURL({ size: 128 })),
+      user: userRef(ban.user.id, ban.user.username, ban.user.displayAvatarURL({ size: 128 }), {
+        createdAt: ban.user.createdTimestamp,
+      }),
       mod: detail?.executorId ? { id: detail.executorId } : null,
       reason: detail?.reason ?? ban.reason,
     }),
@@ -708,7 +766,9 @@ export async function handleGuildBanRemove(ban: GuildBan): Promise<void> {
     ban.client,
     guildConfig,
     buildMemberUnbanLog({
-      user: userRef(ban.user.id, ban.user.username, ban.user.displayAvatarURL({ size: 128 })),
+      user: userRef(ban.user.id, ban.user.username, ban.user.displayAvatarURL({ size: 128 }), {
+        createdAt: ban.user.createdTimestamp,
+      }),
       mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
     }),
     {
@@ -735,6 +795,7 @@ export async function handleChannelCreate(channel: GuildBasedChannel): Promise<v
       channel: channelRef(ch.id, ch.name),
       type: channelTypeName(ch.type),
       mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
+      parent: ch.parent ? channelRef(ch.parent.id, ch.parent.name) : null,
     }),
     {
       guildId: channel.guild.id,
@@ -833,6 +894,7 @@ export async function handleRoleCreate(role: Role): Promise<void> {
     buildRoleCreateLog({
       role: { id: role.id, name: role.name },
       mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
+      color: role.color ? role.hexColor : null,
     }),
     {
       guildId: role.guild.id,
@@ -940,6 +1002,7 @@ export async function handleEmojiCreate(emoji: GuildEmoji): Promise<void> {
       name: emoji.name ?? emoji.id,
       id: emoji.id,
       mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
+      animated: emoji.animated ?? undefined,
     }),
     {
       guildId: emoji.guild.id,
@@ -1010,6 +1073,7 @@ export async function handleStickerCreate(sticker: Sticker): Promise<void> {
       name: sticker.name,
       id: sticker.id,
       mod: mod ? { id: mod.id, name: mod.name ?? undefined } : null,
+      description: sticker.description,
     }),
     {
       guildId: guild.id,
@@ -1083,6 +1147,7 @@ export async function handleInviteCreate(invite: Invite): Promise<void> {
         : null,
       maxUses: invite.maxUses,
       maxAge: invite.maxAge,
+      temporary: invite.temporary ?? undefined,
     }),
     {
       guildId: guild.id,

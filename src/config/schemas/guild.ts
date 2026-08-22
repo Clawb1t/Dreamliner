@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LOG_EMOJI } from "../../core/logging/emojis.js";
 import { zUtilityPluginSection } from "./utility.js";
 import { zInfractionPluginSection } from "./infraction.js";
 import { zAutorolePluginSection } from "./autorole.js";
@@ -64,6 +65,43 @@ export const zEmojisConfig = z.strictObject({
     .describe("Emoji prefix for disabled or off states."),
 });
 
+export const zLogEmojisConfig = z.strictObject({
+  action_emoji: z
+    .string()
+    .default(LOG_EMOJI.action)
+    .describe("Fallback emoji for log events that don't fit any other category (e.g. message pin, DM failed)."),
+  create_emoji: z.string().default(LOG_EMOJI.create).describe("Emoji for create events (channels, roles, threads, invites)."),
+  delete_emoji: z.string().default(LOG_EMOJI.delete).describe("Emoji for delete events (channels, roles, messages, cases, clean)."),
+  edit_emoji: z.string().default(LOG_EMOJI.edit).describe("Emoji for edit/update events (messages, channels, roles, nicknames)."),
+  emoji_sticker_emoji: z
+    .string()
+    .default(LOG_EMOJI.emojiSticker)
+    .describe("Emoji for emoji and sticker create/update/delete events."),
+  join_emoji: z.string().default(LOG_EMOJI.join).describe("Emoji for member and voice join events."),
+  leave_emoji: z.string().default(LOG_EMOJI.leave).describe("Emoji for member and voice leave events."),
+  voice_emoji: z
+    .string()
+    .default(LOG_EMOJI.voice)
+    .describe("Emoji for voice activity that isn't a plain join/leave (move, mute, deafen, stream, video)."),
+  unban_emoji: z.string().default(LOG_EMOJI.unban).describe("Emoji for member unban and case unban events."),
+  server_update_emoji: z
+    .string()
+    .default(LOG_EMOJI.serverUpdate)
+    .describe("Emoji for server/config-level changes: guild settings, webhooks, dashboard config saves."),
+  moderation_default_emoji: z
+    .string()
+    .default(LOG_EMOJI.modDefault)
+    .describe("Emoji for non-punitive moderation bookkeeping: notes, case edits, passport checks, dashboard admin actions."),
+  moderation_moderate_emoji: z
+    .string()
+    .default(LOG_EMOJI.modModerate)
+    .describe("Emoji for corrective-but-not-account-ending actions: warns, mutes, timeouts, automod, censor."),
+  moderation_severe_emoji: z
+    .string()
+    .default(LOG_EMOJI.modSevere)
+    .describe("Emoji for account-ending or emergency actions: kicks, bans, raids, failed-verification kicks."),
+});
+
 export const zLoggingConfig = z
   .strictObject({
     events: z
@@ -72,6 +110,9 @@ export const zLoggingConfig = z
       .describe(
         "Per-event log toggles. Missing keys default to enabled. Keys match dashboard Logging toggles.",
       ),
+    emojis: zLogEmojisConfig
+      .default({})
+      .describe("Custom emoji per log category, prefixed to every log card title in this server."),
   })
   .default({});
 
@@ -202,6 +243,7 @@ export const zGuildConfig = z.strictObject({
 
 export type GuildConfig = z.infer<typeof zGuildConfig>;
 export type EmojisConfig = z.infer<typeof zEmojisConfig>;
+export type LogEmojisConfig = z.infer<typeof zLogEmojisConfig>;
 export type LoggingConfig = z.infer<typeof zLoggingConfig>;
 export type PublicStatsConfig = z.infer<typeof zPublicStatsConfig>;
 

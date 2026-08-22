@@ -86,6 +86,8 @@ levels:
 
 A member's level is the **highest** level from their roles and their user ID. Overrides use level syntax like `">=50"` to grant plugin permissions to mods without listing every user.
 
+Server owners and anyone with Discord's own **Administrator** or **Manage Server** permission always reach level **100** (the built-in admin tier), even with an empty `levels: {}` map — so a freshly-invited bot isn't locked out of every command before you've mapped any roles.
+
 For a complete setup guide with examples, see [Permissions setup](permissions.md).
 
 ## Log channels

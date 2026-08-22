@@ -81,6 +81,7 @@ export async function completePassportVerification(options: {
         `**Member:** ${member} \`${member.id}\``,
         `**Method:** ${method === "force" ? "staff force" : "website"}`,
       ],
+      emojiCategory: "modDefault",
     },
     {
       guildId: member.guild.id,

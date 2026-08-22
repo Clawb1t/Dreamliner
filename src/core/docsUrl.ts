@@ -42,6 +42,16 @@ export function getGuildStatsDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=stats`;
 }
 
+/** Guild dashboard opened on the Logs section. */
+export function getGuildLogsDashboardUrl(guildId: string): string {
+  return `${getGuildDashboardUrl(guildId)}?section=logs`;
+}
+
+/** Guild dashboard opened on the moderation Cases section. */
+export function getGuildCasesDashboardUrl(guildId: string): string {
+  return `${getGuildDashboardUrl(guildId)}?section=cases`;
+}
+
 export function getGlobalStatsUrl(): string {
   return `${resolveSiteUrl()}/stats`;
 }

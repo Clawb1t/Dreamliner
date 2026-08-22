@@ -696,6 +696,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const modCasesMatch = /^\/bridge\/guilds\/(\d+)\/moderation\/cases$/.exec(url.pathname);
         const logStatsMatch = /^\/bridge\/guilds\/(\d+)\/logs\/stats$/.exec(url.pathname);
+        const logTestMatch = /^\/bridge\/guilds\/(\d+)\/logs\/test$/.exec(url.pathname);
         const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const logsMatch = /^\/bridge\/guilds\/(\d+)\/logs$/.exec(url.pathname);
         const trackerMatch = /^\/bridge\/guilds\/(\d+)\/tracker\/(\d+)$/.exec(url.pathname);
@@ -762,6 +763,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !modCaseMatch &&
           !modCasesMatch &&
           !logStatsMatch &&
+          !logTestMatch &&
           !logOneMatch &&
           !logsMatch &&
           !trackerMatch &&
@@ -808,6 +810,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           modCaseMatch?.[1] ??
           modCasesMatch?.[1] ??
           logStatsMatch?.[1] ??
+          logTestMatch?.[1] ??
           logOneMatch?.[1] ??
           logsMatch?.[1] ??
           trackerMatch?.[1] ??
@@ -1902,6 +1905,47 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             case: detail,
+          });
+          return;
+        }
+
+        if (logTestMatch) {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { userId?: string; eventTypes?: string[] };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { sendAllLogTests } = await import("../core/logging/testLogs.js");
+          const { isLogEventType } = await import("../core/logging/events.js");
+          const { configManager } = await import("../config/manager.js");
+
+          const requested = Array.isArray(body.eventTypes)
+            ? body.eventTypes.filter((t): t is import("../core/logging/events.js").LogEventType => isLogEventType(t))
+            : undefined;
+
+          const guildConfig = await configManager.getEffectiveConfig(guild.id);
+          const results = await sendAllLogTests(client, guild, guildConfig, userId, requested);
+          sendJson(res, 200, {
+            ok: true,
+            sent: results.filter((r) => r.ok).length,
+            failed: results.filter((r) => !r.ok).length,
+            results,
           });
           return;
         }

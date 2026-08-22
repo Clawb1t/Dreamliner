@@ -52,13 +52,14 @@ export async function findAuditExecutor(
   guild: Guild,
   type: AuditLogEvent,
   options: { targetId?: string | null; maxAgeMs?: number } = {},
-): Promise<{ id: string; name: string | null } | null> {
+): Promise<{ id: string; name: string | null; reason: string | null } | null> {
   const entries = await fetchRecent(guild, type);
   const entry = matchEntry(entries, options);
   if (!entry?.executorId) return null;
   return {
     id: entry.executorId,
     name: entry.executor?.username ?? null,
+    reason: entry.reason ?? null,
   };
 }
 

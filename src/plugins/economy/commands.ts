@@ -7,6 +7,7 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { deferReplyOptions, resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
 import { zEconomyConfig, type EconomyConfig } from "../../config/schemas/economy.js";
 import { emitLog } from "../../core/logging/send.js";
+import type { LogEmojiCategory } from "../../core/logging/emojis.js";
 import { discordTimestamp, formatDuration } from "../../core/datetime.js";
 import { shortEconomyError, formatBalances, formatCurrency, parseAutocompleteId } from "./functions/format.js";
 import { EconomyError } from "./functions/money.js";
@@ -20,19 +21,32 @@ import * as quests from "./functions/quests.js";
 import * as markets from "./functions/markets.js";
 import * as seasons from "./functions/seasons.js";
 
+type EconomyEventType =
+  | "economy_adjust"
+  | "economy_transfer"
+  | "economy_shop"
+  | "economy_trade"
+  | "economy_auction"
+  | "economy_freeze"
+  | "economy_season";
+
+const ECONOMY_EVENT_EMOJI: Record<EconomyEventType, LogEmojiCategory> = {
+  economy_adjust: "action",
+  economy_transfer: "action",
+  economy_shop: "action",
+  economy_trade: "action",
+  economy_auction: "action",
+  // Freeze restricts a member's economy access — treat it like a moderate moderation action.
+  economy_freeze: "modModerate",
+  economy_season: "serverUpdate",
+};
+
 async function logEconomy(
   ctx: {
     client: import("discord.js").Client;
     guildConfig: import("../../config/schemas/guild.js").GuildConfig;
   },
-  eventType:
-    | "economy_adjust"
-    | "economy_transfer"
-    | "economy_shop"
-    | "economy_trade"
-    | "economy_auction"
-    | "economy_freeze"
-    | "economy_season",
+  eventType: EconomyEventType,
   title: string,
   information: string[],
   meta: { guildId: string; actorId?: string; targetId?: string; summary?: string },
@@ -40,7 +54,7 @@ async function logEconomy(
   await emitLog(
     ctx.client,
     ctx.guildConfig,
-    { title, information },
+    { title, information, emojiCategory: ECONOMY_EVENT_EMOJI[eventType] },
     {
       guildId: meta.guildId,
       eventType,

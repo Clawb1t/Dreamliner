@@ -2,6 +2,21 @@ import type { Client } from "discord.js";
 import { configManager } from "../config/manager.js";
 import { emitLog } from "../core/logging/send.js";
 import type { LogEventType } from "../core/logging/events.js";
+import type { LogEmojiCategory } from "../core/logging/emojis.js";
+
+const DASHBOARD_EVENT_EMOJI: Partial<Record<LogEventType, LogEmojiCategory>> = {
+  dashboard_config: "serverUpdate",
+  dashboard_tag: "edit",
+  dashboard_command: "edit",
+  dashboard_suggestion: "modDefault",
+  dashboard_automod: "serverUpdate",
+  dashboard_chart: "edit",
+  dashboard_scam_protect: "serverUpdate",
+  dashboard_welcome: "edit",
+  dashboard_review: "modDefault",
+  dashboard_bot_brand: "edit",
+  dashboard_economy: "serverUpdate",
+};
 
 export type DashboardAuditInput = {
   eventType: LogEventType;
@@ -56,6 +71,7 @@ export async function logDashboardAction(
             : []),
         ],
         extra: changeExtra,
+        emojiCategory: DASHBOARD_EVENT_EMOJI[input.eventType] ?? "modDefault",
       },
       {
         guildId,

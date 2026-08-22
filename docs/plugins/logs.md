@@ -38,10 +38,16 @@ Each Discord log is a **Components v2** message:
 - Colorless **container**
 - **Section** with the member's avatar thumbnail (when available)
 - Bold **title**
-- **Information** block with labeled fields and snowflakes
-- **Separator** + extra block for message content or before/after edits
+- **Information** block with labeled fields, snowflakes, and (where known) account-created / joined-server timestamps
+- **Separator** + extra block for message content, before/after edits, or a changes list
+- Up to 5 **link buttons** below the container — an automatic "Jump to Message" button when the event has a message, plus a "View in Dashboard" button, ahead of any event-specific buttons
+- **Attached files** when a field is too long to read inline (e.g. a long message body, a large before/after diff, or a big bulk-delete author breakdown) instead of silently truncating it
 
 `allowedMentions` is disabled on every log message.
+
+## Testing your log setup
+
+The dashboard **Logs** page has a **Test all logs** button (Manage Server required). It fires one sample card per event type at your configured server/moderation log channels — titled `🧪 TEST — …` — so you can see the full layout, buttons, and file-attachment behavior without waiting for something to actually happen. Test sends are not written to the 90-day log history.
 
 ## Server log coverage
 

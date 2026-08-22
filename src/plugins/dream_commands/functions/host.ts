@@ -944,6 +944,7 @@ async function actLog(
     title,
     information: [content],
     extra: valueToString(args.extra) || undefined,
+    emojiCategory: kind === "mod" ? ("modDefault" as const) : ("serverUpdate" as const),
   };
   if (kind === "mod") {
     await sendModerationLog(ctx.client, ctx.guildConfig, card, {

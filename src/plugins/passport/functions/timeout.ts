@@ -54,6 +54,7 @@ export async function processExpiredPassports(client: Client): Promise<void> {
             `**Member:** ${member} \`${member.id}\``,
             "**Reason:** Did not finish verification in time.",
           ],
+          emojiCategory: "modSevere",
         },
         {
           guildId: guild.id,
