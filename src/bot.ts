@@ -82,6 +82,14 @@ import {
   QUOTE_REMOVE_PREFIX,
 } from "./plugins/utility/functions/quoteRemoveButton.js";
 import {
+  CONTEXT_NAV_PREFIX,
+  handleContextNavButtonInteraction,
+} from "./plugins/utility/functions/contextNav.js";
+import {
+  EXPAND_DELETE_PREFIX,
+  handleExpandDeleteButtonInteraction,
+} from "./plugins/utility/functions/expandDeleteButton.js";
+import {
   handleCompanionEntitySelect,
   handleCompanionModalSubmit,
   handleCompanionSelectInteraction,
@@ -213,6 +221,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(QUOTE_REMOVE_PREFIX)) {
         const handled = await handleQuoteRemoveButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(CONTEXT_NAV_PREFIX)) {
+        const handled = await handleContextNavButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(EXPAND_DELETE_PREFIX)) {
+        const handled = await handleExpandDeleteButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {

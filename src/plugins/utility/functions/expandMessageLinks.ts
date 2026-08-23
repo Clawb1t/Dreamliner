@@ -1,4 +1,7 @@
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   MessageFlags,
   type Client,
   type Message,
@@ -7,9 +10,10 @@ import {
 } from "discord.js";
 import { extractMessageLinks } from "../../../core/messageLink.js";
 import { getExpandMessageWebhook } from "./expandWebhook.js";
+import { buildExpandDeleteButton } from "./expandDeleteButton.js";
+import { parseComponentEmoji } from "../../../core/emoji.js";
 
-const DREAMLINER_SITE = "https://dreamliner.site";
-const EXPAND_FOOTER = `-# <:dreamlinerlogo:1536010087468892161> Message found by [Dreamliner](<${DREAMLINER_SITE}>)`;
+const DREAMLINER_LOGO_EMOJI = "<:dreamlinerlogo:1536010087468892161>";
 const CONTENT_MAX = 1800;
 const MAX_FILES = 10;
 
@@ -23,9 +27,24 @@ function buildExpandContent(source: Message): string {
     parts.push(`_Sticker${source.stickers.size === 1 ? "" : "s"}: ${stickerNames}_`);
   }
 
-  const jump = `[Jump to message](<${source.url}>)`;
-  parts.push(`${EXPAND_FOOTER} · ${jump}`);
   return parts.join("\n");
+}
+
+function buildFoundByButton(source: Message): ButtonBuilder {
+  const button = new ButtonBuilder()
+    .setStyle(ButtonStyle.Link)
+    .setURL(source.url)
+    .setLabel("Found by Dreamliner · Jump to message");
+  const emoji = parseComponentEmoji(DREAMLINER_LOGO_EMOJI);
+  if (emoji) button.setEmoji(emoji);
+  return button;
+}
+
+function buildExpandActionsRow(source: Message, requesterId: string): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    buildExpandDeleteButton(requesterId),
+    buildFoundByButton(source),
+  );
 }
 
 function buildExpandFiles(source: Message) {
@@ -41,7 +60,7 @@ function authorName(source: Message): string {
   return display.slice(0, 80);
 }
 
-function buildWebhookPayload(source: Message): WebhookMessageCreateOptions {
+function buildWebhookPayload(source: Message, requesterId: string): WebhookMessageCreateOptions {
   const files = buildExpandFiles(source);
   return {
     username: authorName(source),
@@ -49,18 +68,20 @@ function buildWebhookPayload(source: Message): WebhookMessageCreateOptions {
     content: buildExpandContent(source),
     embeds: source.embeds.length ? source.embeds.slice(0, 10).map((e) => e.toJSON()) : undefined,
     files: files.length ? files : undefined,
+    components: [buildExpandActionsRow(source, requesterId)],
     flags: MessageFlags.SuppressNotifications,
     allowedMentions: { parse: [] },
   };
 }
 
-function buildFallbackPayload(source: Message): MessageCreateOptions {
+function buildFallbackPayload(source: Message, requesterId: string): MessageCreateOptions {
   const files = buildExpandFiles(source);
   const name = authorName(source);
   return {
     content: `**${name}**\n${buildExpandContent(source)}`,
     embeds: source.embeds.length ? source.embeds.slice(0, 10).map((e) => e.toJSON()) : undefined,
     files: files.length ? files : undefined,
+    components: [buildExpandActionsRow(source, requesterId)],
     flags: MessageFlags.SuppressNotifications,
     allowedMentions: { parse: [], repliedUser: false },
   };
@@ -104,9 +125,9 @@ export async function handleExpandMessageLinks(message: Message): Promise<void> 
 
   const webhook = await getExpandMessageWebhook(channel);
   if (webhook) {
-    await webhook.send(buildWebhookPayload(source)).catch(() => null);
+    await webhook.send(buildWebhookPayload(source, message.author.id)).catch(() => null);
     return;
   }
 
-  await channel.send(buildFallbackPayload(source)).catch(() => null);
+  await channel.send(buildFallbackPayload(source, message.author.id)).catch(() => null);
 }

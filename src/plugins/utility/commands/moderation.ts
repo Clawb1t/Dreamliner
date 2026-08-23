@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, AttachmentBuilder } from "discord.js";
+import { SlashCommandBuilder, AttachmentBuilder, MessageFlags } from "discord.js";
 import type { TextChannel } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resultReply, resultEdit, embedWithFilesReply, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
@@ -10,6 +10,7 @@ import { sendModerationLog } from "../../../core/logging/send.js";
 import { getInfractionPluginConfig } from "../../../core/guildHelpers.js";
 import { createInfraction, postCaseLog } from "../../infraction/functions/infractions.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
+import { buildContextNavPayload, fetchMessageAtOffset } from "../functions/contextNav.js";
 
 export const moderationCommands: SlashCommandDefinition[] = [
   {
@@ -115,7 +116,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
     permission: "can_context",
     data: new SlashCommandBuilder()
       .setName("context")
-      .setDescription("Get a link to the message before the given message")
+      .setDescription("View the message before the given message, with paging up to 5 messages either way")
       .addStringOption((o) => o.setName("message_id").setDescription("Message ID").setRequired(true)),
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_context");
@@ -124,23 +125,21 @@ export const moderationCommands: SlashCommandDefinition[] = [
       if (!channel?.isTextBased() || channel.isDMBased()) return;
 
       const messageId = ctx.interaction.options.getString("message_id", true);
-      const message = await channel.messages.fetch(messageId).catch(() => null);
-      if (!message) {
+      const anchor = await channel.messages.fetch(messageId).catch(() => null);
+      if (!anchor) {
         await ctx.interaction.reply(resultReply("Context", "Message not found.", ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
-      const prior = await channel.messages.fetch({ limit: 1, before: message.id }).catch(() => null);
-      const priorMsg = prior?.first();
-      if (!priorMsg) {
+      const startOffset = -1;
+      const message = await fetchMessageAtOffset(channel, anchor.id, startOffset);
+      if (!message) {
         await ctx.interaction.reply(resultReply("Context", "No prior message found.", ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
-      const link = `https://discord.com/channels/${ctx.interaction.guildId}/${channel.id}/${priorMsg.id}`;
-      await ctx.interaction.reply(
-        resultReply("Context", `Prior message: [**Go to message ➔**](${link})`, ctx.ephemeral, slashResultOptions(ctx)),
-      );
+      const payload = buildContextNavPayload(message, channel.id, anchor.id, startOffset, ctx.interaction.user.id);
+      await ctx.interaction.reply({ ...payload, ...(ctx.ephemeral ? { flags: MessageFlags.Ephemeral } : {}) });
     },
   },
   {
