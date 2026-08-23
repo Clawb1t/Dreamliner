@@ -56,6 +56,17 @@ export {
 
 import { zPersistButton, zPersistConfig, zPersistEmbedConfig } from "./persist.js";
 
+export {
+  zRolePanel,
+  zRolePanelRole,
+  zRolePanelsConfig,
+  type RolePanel,
+  type RolePanelRole,
+  type RolePanelsConfig,
+} from "./rolePanels.js";
+
+import { zRolePanelsConfig } from "./rolePanels.js";
+
 export const zAdminConfig = z.strictObject({
   lockdown_role_id: roleId("Role applied during channel lockdown (optional)."),
   can_lockdown: boolPerm("lock down channels"),
@@ -566,6 +577,7 @@ export const zSlowmodePluginSection = zPluginSection(zSlowmodeConfig.shape);
 export const zRolesPluginSection = zPluginSection(zRolesConfig.shape);
 export const zReactionRolesPluginSection = zPluginSection(zReactionRolesConfig.shape);
 export const zRoleButtonsPluginSection = zPluginSection(zRoleButtonsConfig.shape);
+export const zRolePanelsPluginSection = zPluginSection(zRolePanelsConfig.shape);
 export const zSelfGrantableRolesPluginSection = zPluginSection(zSelfGrantableRolesConfig.shape);
 export const zPingableRolesPluginSection = zPluginSection(zPingableRolesConfig.shape);
 export const zRoleManagerPluginSection = zPluginSection(zRoleManagerConfig.shape);

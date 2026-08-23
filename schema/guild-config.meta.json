@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-22T21:51:52.887Z",
+  "generatedAt": "2026-08-23T17:18:33.953Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -93,17 +93,12 @@
     {
       "id": "self_roles",
       "label": "Self-serve roles",
-      "description": "Reaction, button, and panel roles members can claim.",
+      "description": "Dashboard-managed role panels and self-serve role menus members can claim.",
       "plugins": [
         {
-          "key": "reaction_roles",
-          "name": "Reaction roles",
-          "description": "React to claim a role."
-        },
-        {
-          "key": "role_buttons",
-          "name": "Role buttons",
-          "description": "Button-based role assignment."
+          "key": "role_panels",
+          "name": "Role panels",
+          "description": "Dashboard-managed reaction/button role panels, with full embed customisation and a live preview."
         },
         {
           "key": "self_grantable_roles",
@@ -372,16 +367,9 @@
       "categoryId": "roles"
     },
     {
-      "key": "reaction_roles",
-      "name": "Reaction roles",
-      "description": "React to claim a role.",
-      "category": "Self-serve roles",
-      "categoryId": "self_roles"
-    },
-    {
-      "key": "role_buttons",
-      "name": "Role buttons",
-      "description": "Button-based role assignment.",
+      "key": "role_panels",
+      "name": "Role panels",
+      "description": "Dashboard-managed reaction/button role panels, with full embed customisation and a live preview.",
       "category": "Self-serve roles",
       "categoryId": "self_roles"
     },

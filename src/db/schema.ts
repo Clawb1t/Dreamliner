@@ -182,6 +182,26 @@ export const persistedMessages = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.channelId] })],
 );
 
+/**
+ * Tracks the live Discord message for a dashboard-configured role panel, for both post modes.
+ * `fingerprint` diffs bot-posted content; `appliedRoleIds` (JSON array) diffs which
+ * reactions/button rows this panel has actually applied on an "existing" mode message, so sync
+ * only touches its own contribution and never a message's other content.
+ */
+export const rolePanelMessages = sqliteTable(
+  "role_panel_messages",
+  {
+    guildId: text("guild_id").notNull(),
+    panelId: text("panel_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    messageId: text("message_id").notNull(),
+    postMode: text("post_mode").notNull(),
+    fingerprint: text("fingerprint").notNull().default(""),
+    appliedRoleIds: text("applied_role_ids").notNull().default("[]"),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.panelId] })],
+);
+
 export const channelAutodelete = sqliteTable(
   "channel_autodelete",
   {

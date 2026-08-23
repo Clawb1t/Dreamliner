@@ -32,6 +32,7 @@ import { handleHelpButton, handleHelpSelect, HELP_BUTTON_PREFIX } from "./plugin
 import { handlePluginListButtonInteraction, PLUGIN_LIST_PREFIX } from "./plugins/config/pluginList.js";
 import { handleStatsInteraction, STATS_PREFIX } from "./plugins/stats/functions/ui/index.js";
 import { handleRoleButtonInteraction, ROLE_BUTTON_PREFIX } from "./plugins/role_buttons/index.js";
+import { handleRolePanelButtonInteraction, ROLE_PANEL_PREFIX } from "./plugins/role_panels/index.js";
 import {
   handleSelfRoleButtonInteraction,
   handleSelfRoleSelectInteraction,
@@ -216,6 +217,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {
         const handled = await handleRoleButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(ROLE_PANEL_PREFIX)) {
+        const handled = await handleRolePanelButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(SELF_ROLE_PREFIX) && interaction.customId.includes(":", SELF_ROLE_PREFIX.length)) {

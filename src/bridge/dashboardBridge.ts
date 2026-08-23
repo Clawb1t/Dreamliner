@@ -721,6 +721,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const welcomePreviewMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/preview$/.exec(url.pathname);
         const welcomeTestMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/test$/.exec(url.pathname);
+        const rolePanelsPreviewMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/preview$/.exec(url.pathname);
+        const rolePanelsTestMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/test$/.exec(url.pathname);
+        const rolePanelsValidateMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/validate$/.exec(url.pathname);
         const passportMatch =
           /^\/bridge\/guilds\/(\d+)\/passport(?:\/(verify|test-ping|panel|diagnostics|practice))?$/.exec(
             url.pathname,
@@ -777,6 +780,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !welcomeAssetMatch &&
           !welcomePreviewMatch &&
           !welcomeTestMatch &&
+          !rolePanelsPreviewMatch &&
+          !rolePanelsTestMatch &&
+          !rolePanelsValidateMatch &&
           !passportMatch &&
           !economyMatch &&
           !botProfileRequestImageMatch &&
@@ -824,6 +830,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           welcomeAssetMatch?.[1] ??
           welcomePreviewMatch?.[1] ??
           welcomeTestMatch?.[1] ??
+          rolePanelsPreviewMatch?.[1] ??
+          rolePanelsTestMatch?.[1] ??
+          rolePanelsValidateMatch?.[1] ??
           passportMatch?.[1] ??
           economyMatch?.[1] ??
           botProfileRequestImageMatch?.[1] ??
@@ -1425,6 +1434,98 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               ok: removed,
               error: removed ? undefined : "Asset not found",
             });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (rolePanelsPreviewMatch || rolePanelsTestMatch || rolePanelsValidateMatch) {
+          const { buildRolePanelPreview, sendRolePanelTest, validateRolePanelExistingMessage } = await import(
+            "./webRolePanels.js"
+          );
+
+          if (rolePanelsPreviewMatch && req.method === "POST") {
+            let body: { userId?: string; panel?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const preview = await buildRolePanelPreview(client, guild, { panel: body.panel });
+            sendJson(res, 200, preview);
+            return;
+          }
+
+          if (rolePanelsTestMatch && req.method === "POST") {
+            let body: { userId?: string; channelId?: string; panel?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const channelId = body.channelId?.trim();
+            if (!channelId) {
+              sendJson(res, 400, { error: "channelId is required" });
+              return;
+            }
+            const result = await sendRolePanelTest(client, guild, channelId, body.panel);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+
+          if (rolePanelsValidateMatch && req.method === "POST") {
+            let body: {
+              userId?: string;
+              messageLink?: string;
+              triggerType?: string;
+              selectionMode?: string;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const messageLink = body.messageLink?.trim();
+            if (!messageLink) {
+              sendJson(res, 400, { error: "messageLink is required" });
+              return;
+            }
+            const triggerType = body.triggerType === "button" ? "button" : "reaction";
+            const selectionMode = body.selectionMode === "single" ? "single" : "multiple";
+            const result = await validateRolePanelExistingMessage(client, guild, messageLink, triggerType, selectionMode);
+            sendJson(res, result.ok ? 200 : 400, result);
             return;
           }
 

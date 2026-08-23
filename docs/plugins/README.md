@@ -26,8 +26,9 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 ## Self-serve roles
 
-- [Reaction roles](./reaction_roles.md)
-- [Role buttons](./role_buttons.md)
+- [Role panels](./role_panels.md) — reaction/button role panels on the dashboard
+- [Reaction roles](./reaction_roles.md) — legacy, superseded by Role panels
+- [Role buttons](./role_buttons.md) — legacy, superseded by Role panels
 - [Self-grantable roles](./self_grantable_roles.md)
 
 ## Lookups

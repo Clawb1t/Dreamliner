@@ -4,6 +4,7 @@ import { utilityDefaultOverrides } from "../plugins/utility/defaultOverrides.js"
 import { infractionDefaultOverrides } from "../plugins/infraction/defaultOverrides.js";
 import { rolesDefaultOverrides } from "../plugins/roles/defaultOverrides.js";
 import { reactionRolesDefaultOverrides } from "../plugins/reaction_roles/defaultOverrides.js";
+import { rolePanelsDefaultOverrides } from "../plugins/role_panels/defaultOverrides.js";
 import { roleButtonsDefaultOverrides } from "../plugins/role_buttons/defaultOverrides.js";
 import { selfGrantableRolesDefaultOverrides } from "../plugins/self_grantable_roles/defaultOverrides.js";
 import { pingableRolesDefaultOverrides } from "../plugins/pingable_roles/defaultOverrides.js";
@@ -56,6 +57,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   command_aliases: commandAliasesDefaultOverrides,
   roles: rolesDefaultOverrides,
   reaction_roles: reactionRolesDefaultOverrides,
+  role_panels: rolePanelsDefaultOverrides,
   role_buttons: roleButtonsDefaultOverrides,
   self_grantable_roles: selfGrantableRolesDefaultOverrides,
   pingable_roles: pingableRolesDefaultOverrides,

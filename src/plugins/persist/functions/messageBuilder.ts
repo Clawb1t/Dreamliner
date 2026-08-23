@@ -60,7 +60,8 @@ function resolveIconUrl(
   return httpUrl(url);
 }
 
-function buildEmbed(embed: PersistEmbedConfig, ctx: PersistBuildContext): EmbedBuilder | null {
+/** Exported for reuse by role_panels' message builder — same `zPersistEmbedConfig` shape. */
+export function buildEmbed(embed: PersistEmbedConfig, ctx: PersistBuildContext): EmbedBuilder | null {
   if (!embed.enabled) return null;
 
   const t = templateCtx(ctx);

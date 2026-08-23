@@ -19,6 +19,7 @@ import { customEventsPlugin } from "../plugins/custom_events/index.js";
 import { commandAliasesPlugin } from "../plugins/command_aliases/index.js";
 import { rolesPlugin } from "../plugins/roles/index.js";
 import { reactionRolesPlugin } from "../plugins/reaction_roles/index.js";
+import { rolePanelsPlugin } from "../plugins/role_panels/index.js";
 import { roleButtonsPlugin } from "../plugins/role_buttons/index.js";
 import { selfGrantableRolesPlugin } from "../plugins/self_grantable_roles/index.js";
 import { pingableRolesPlugin } from "../plugins/pingable_roles/index.js";
@@ -65,6 +66,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   commandAliasesPlugin,
   rolesPlugin,
   reactionRolesPlugin,
+  rolePanelsPlugin,
   roleButtonsPlugin,
   selfGrantableRolesPlugin,
   pingableRolesPlugin,

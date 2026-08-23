@@ -1,6 +1,11 @@
-# Role buttons plugin
+# Role buttons plugin (legacy)
 
-Toggle roles with button components on a message. Create a new panel or add buttons to an existing message.
+> **Superseded.** Button roles are now configured through the [Role Panels](./role_panels.md)
+> dashboard feature — `/rolebutton` has been removed. Panels created with the old command before
+> this change keep working automatically; there is just no way to create new ones via command
+> anymore. To manage button roles going forward, use Role Panels in the dashboard.
+
+Toggle roles with button components on a message.
 
 ## Configuration
 
@@ -15,12 +20,8 @@ plugins:
           can_delete: true
 ```
 
-## Commands
-
-| Command | Permission | Description |
-|---------|------------|-------------|
-| `/rolebutton create` | `can_create` | Add a role toggle button to a new or existing message |
-| `/rolebutton delete` | `can_delete` | Remove role buttons from a message |
+The `can_create`/`can_delete` flags no longer gate anything (there's no command left to gate) —
+they're kept only so old configs stay valid.
 
 ## Requirements
 
