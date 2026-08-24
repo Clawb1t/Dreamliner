@@ -1,7 +1,6 @@
 import {
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
   MessageFlags,
   type Client,
   type Message,
@@ -11,9 +10,7 @@ import {
 import { extractMessageLinks } from "../../../core/messageLink.js";
 import { getExpandMessageWebhook } from "./expandWebhook.js";
 import { buildExpandDeleteButton } from "./expandDeleteButton.js";
-import { parseComponentEmoji } from "../../../core/emoji.js";
 
-const DREAMLINER_LOGO_EMOJI = "<:dreamlinerlogo:1536010087468892161>";
 const CONTENT_MAX = 1800;
 const MAX_FILES = 10;
 
@@ -30,21 +27,8 @@ function buildExpandContent(source: Message): string {
   return parts.join("\n");
 }
 
-function buildFoundByButton(source: Message): ButtonBuilder {
-  const button = new ButtonBuilder()
-    .setStyle(ButtonStyle.Link)
-    .setURL(source.url)
-    .setLabel("Found by Dreamliner · Jump to message");
-  const emoji = parseComponentEmoji(DREAMLINER_LOGO_EMOJI);
-  if (emoji) button.setEmoji(emoji);
-  return button;
-}
-
-function buildExpandActionsRow(source: Message, requesterId: string): ActionRowBuilder<ButtonBuilder> {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    buildExpandDeleteButton(requesterId),
-    buildFoundByButton(source),
-  );
+function buildExpandActionsRow(requesterId: string): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(buildExpandDeleteButton(requesterId));
 }
 
 function buildExpandFiles(source: Message) {
@@ -68,7 +52,7 @@ function buildWebhookPayload(source: Message, requesterId: string): WebhookMessa
     content: buildExpandContent(source),
     embeds: source.embeds.length ? source.embeds.slice(0, 10).map((e) => e.toJSON()) : undefined,
     files: files.length ? files : undefined,
-    components: [buildExpandActionsRow(source, requesterId)],
+    components: [buildExpandActionsRow(requesterId)],
     flags: MessageFlags.SuppressNotifications,
     allowedMentions: { parse: [] },
   };
@@ -81,7 +65,7 @@ function buildFallbackPayload(source: Message, requesterId: string): MessageCrea
     content: `**${name}**\n${buildExpandContent(source)}`,
     embeds: source.embeds.length ? source.embeds.slice(0, 10).map((e) => e.toJSON()) : undefined,
     files: files.length ? files : undefined,
-    components: [buildExpandActionsRow(source, requesterId)],
+    components: [buildExpandActionsRow(requesterId)],
     flags: MessageFlags.SuppressNotifications,
     allowedMentions: { parse: [], repliedUser: false },
   };

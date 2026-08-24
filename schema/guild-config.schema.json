@@ -1524,10 +1524,10 @@
                 "auto_translate": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Dreamliner One exclusive. When true, react with the server default-language flag on messages that are not in that language. Members can press the reaction for a translation reply.",
+                  "description": "Dreamliner Aero exclusive. When true, react with the server default-language flag on messages that are not in that language. Members can press the reaction for a translation reply.",
                   "title": "Auto Translate",
                   "x-dreamliner": {
-                    "oneExclusive": true
+                    "aeroExclusive": true
                   }
                 },
                 "ignored_channels": {
@@ -7888,36 +7888,65 @@
             "config": {
               "type": "object",
               "properties": {
-                "can_set": {
+                "can_manage": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to set autodelete on a channel. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Set",
+                  "description": "Vestigial — dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency.",
+                  "title": "Manage",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
                 },
-                "can_clear": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to clear autodelete. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Clear",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "default_delay_seconds": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "default": 60,
-                  "description": "Default delay before messages are deleted (seconds).",
-                  "title": "Default Delay Seconds",
-                  "x-dreamliner": {
-                    "kind": "seconds",
-                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
-                  }
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Turn this rule on or off without deleting it.",
+                        "title": "Enabled"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Optional label in the dashboard.",
+                        "title": "Name"
+                      },
+                      "channel_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Channel where messages are auto-deleted after the delay.",
+                        "title": "Channel Id",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "delay_seconds": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 604800,
+                        "default": 60,
+                        "description": "How long to wait before deleting a message, in seconds.",
+                        "title": "Delay Seconds",
+                        "x-dreamliner": {
+                          "kind": "seconds",
+                          "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                        }
+                      }
+                    },
+                    "required": [
+                      "channel_id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "default": [],
+                  "description": "Channels with auto-delete enabled.",
+                  "title": "Rules"
                 }
               },
               "additionalProperties": false,

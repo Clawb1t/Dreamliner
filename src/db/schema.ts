@@ -603,7 +603,9 @@ export const botStatusDaily = sqliteTable("bot_status_daily", {
   pingMax: integer("ping_max", { mode: "number" }).notNull().default(0),
 });
 
-/** Per-guild Dreamliner One subscription (platform-managed). */
+/** Per-guild Dreamliner Aero subscription (platform-managed). Table/column
+ *  names stay "one" — renaming a live, in-use table is out of scope for the
+ *  Aero rebrand (see rebrand plan). */
 export const guildOneSubscriptions = sqliteTable("guild_one_subscriptions", {
   guildId: text("guild_id").primaryKey(),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
@@ -615,7 +617,7 @@ export const guildOneSubscriptions = sqliteTable("guild_one_subscriptions", {
   revokedAt: integer("revoked_at", { mode: "timestamp" }),
 });
 
-/** Discord guild-SKU entitlements for Dreamliner One. */
+/** Discord guild-SKU entitlements for Dreamliner Aero. */
 export const guildOneEntitlements = sqliteTable("guild_one_entitlements", {
   entitlementId: text("entitlement_id").primaryKey(),
   guildId: text("guild_id").notNull(),
@@ -627,7 +629,7 @@ export const guildOneEntitlements = sqliteTable("guild_one_entitlements", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
-/** Complimentary One codes created from the superuser dashboard. */
+/** Complimentary Aero codes created from the superuser dashboard. */
 export const oneDiscountCodes = sqliteTable("one_discount_codes", {
   code: text("code").primaryKey(),
   label: text("label"),

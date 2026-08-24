@@ -39,8 +39,8 @@ let server: http.Server | null = null;
 
 async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
   const guilds = [...client.guilds.cache.values()];
-  const { listActiveOneGuildIds } = await import("./dreamlinerOne.js");
-  const oneGuildIds = await listActiveOneGuildIds();
+  const { listActiveAeroGuildIds } = await import("./dreamlinerAero.js");
+  const aeroGuildIds = await listActiveAeroGuildIds();
   return Promise.all(
     guilds.map(async (guild) => {
       let ownerName: string | null = null;
@@ -68,7 +68,7 @@ async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
         ownerDisplayName,
         ownerAvatar,
         memberCount: guild.memberCount,
-        oneActive: oneGuildIds.has(guild.id),
+        oneActive: aeroGuildIds.has(guild.id),
       };
     }),
   );
@@ -265,8 +265,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Platform access required." });
             return;
           }
-          const { listPlatformDreamlinerOne } = await import("./dreamlinerOne.js");
-          sendJson(res, 200, await listPlatformDreamlinerOne(client));
+          const { listPlatformDreamlinerAero } = await import("./dreamlinerAero.js");
+          sendJson(res, 200, await listPlatformDreamlinerAero(client));
           return;
         }
 
@@ -281,8 +281,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Platform access required." });
               return;
             }
-            const { listOneDiscountCodes } = await import("./oneDiscounts.js");
-            sendJson(res, 200, { discounts: await listOneDiscountCodes() });
+            const { listAeroDiscountCodes } = await import("./oneDiscounts.js");
+            sendJson(res, 200, { discounts: await listAeroDiscountCodes() });
             return;
           }
           if (req.method === "POST") {
@@ -338,8 +338,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               }
             }
             try {
-              const { createOneDiscountCode } = await import("./oneDiscounts.js");
-              const discount = await createOneDiscountCode({
+              const { createAeroDiscountCode } = await import("./oneDiscounts.js");
+              const discount = await createAeroDiscountCode({
                 code: typeof body.code === "string" ? body.code : "",
                 actorId: userId,
                 days,
@@ -377,8 +377,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Platform access required." });
             return;
           }
-          const { revokeOneDiscountCode } = await import("./oneDiscounts.js");
-          const discount = await revokeOneDiscountCode(decodeURIComponent(discountCodeMatch[1]!));
+          const { revokeAeroDiscountCode } = await import("./oneDiscounts.js");
+          const discount = await revokeAeroDiscountCode(decodeURIComponent(discountCodeMatch[1]!));
           if (!discount) {
             sendJson(res, 404, { error: "Discount code not found." });
             return;
@@ -414,8 +414,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           try {
-            const { redeemOneDiscountCode } = await import("./oneDiscounts.js");
-            const result = await redeemOneDiscountCode({
+            const { redeemAeroDiscountCode } = await import("./oneDiscounts.js");
+            const result = await redeemAeroDiscountCode({
               code: decodeURIComponent(discountRedeemMatch[1]!),
               guildId,
               actorId: userId,
@@ -499,7 +499,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Platform access required." });
               return;
             }
-            const { parseExpiresAt, upsertDreamlinerOne } = await import("./dreamlinerOne.js");
+            const { parseExpiresAt, upsertDreamlinerAero } = await import("./dreamlinerAero.js");
             if (!("expiresAt" in body)) {
               sendJson(res, 400, { error: "expiresAt is required (ISO string or null for forever)." });
               return;
@@ -510,7 +510,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const note = typeof body.note === "string" || body.note === null ? body.note : undefined;
-            const one = await upsertDreamlinerOne({
+            // Response field stays "one" — unchanged wire protocol (see rebrand plan).
+            const one = await upsertDreamlinerAero({
               guildId,
               actorId: userId,
               expiresAt,
@@ -537,10 +538,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Platform access required." });
               return;
             }
-            const { revokeDreamlinerOne } = await import("./dreamlinerOne.js");
-            const one = await revokeDreamlinerOne(guildId, userId);
+            const { revokeDreamlinerAero } = await import("./dreamlinerAero.js");
+            const one = await revokeDreamlinerAero(guildId, userId);
             if (!one) {
-              sendJson(res, 404, { error: "No Dreamliner One subscription for that server." });
+              sendJson(res, 404, { error: "No Dreamliner Aero subscription for that server." });
               return;
             }
             sendJson(res, 200, { ok: true, one });
@@ -568,8 +569,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
-          const { getDreamlinerOnePublicStatus } = await import("./dreamlinerOne.js");
-          sendJson(res, 200, await getDreamlinerOnePublicStatus(guildId));
+          const { getDreamlinerAeroPublicStatus } = await import("./dreamlinerAero.js");
+          sendJson(res, 200, await getDreamlinerAeroPublicStatus(guildId));
           return;
         }
 

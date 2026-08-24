@@ -33,7 +33,7 @@ npx tsx --test src/core/userRegex.test.ts
 
 There is no lint script/config in this repo — `typecheck` is the correctness gate.
 
-`.env` needs at least `DISCORD_TOKEN`; see `.env.example` for the rest (dashboard bridge, Dreamliner One SKU,
+`.env` needs at least `DISCORD_TOKEN`; see `.env.example` for the rest (dashboard bridge, Dreamliner Aero SKU,
 etc.). `DATABASE_URL` defaults to `file:./data/dreamliner.db`.
 
 ## Architecture

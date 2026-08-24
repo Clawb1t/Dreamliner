@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-23T17:44:22.244Z",
+  "generatedAt": "2026-08-24T19:29:04.009Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -54,7 +54,7 @@
         {
           "key": "autodelete",
           "name": "Autodelete",
-          "description": "Auto-clear messages after a delay."
+          "description": "Dashboard-managed auto-clear: messages in a channel are deleted after a delay you set."
         }
       ]
     },
@@ -327,7 +327,7 @@
     {
       "key": "autodelete",
       "name": "Autodelete",
-      "description": "Auto-clear messages after a delay.",
+      "description": "Dashboard-managed auto-clear: messages in a channel are deleted after a delay you set.",
       "category": "Protection",
       "categoryId": "protect"
     },

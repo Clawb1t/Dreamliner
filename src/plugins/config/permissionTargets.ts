@@ -91,8 +91,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "post create", label: "/post create", plugin: "post", permission: "can_create" },
   { key: "post list", label: "/post list", plugin: "post", permission: "can_list" },
   { key: "post delete", label: "/post delete", plugin: "post", permission: "can_delete" },
-  { key: "autodelete set", label: "/autodelete set", plugin: "autodelete", permission: "can_set" },
-  { key: "autodelete clear", label: "/autodelete clear", plugin: "autodelete", permission: "can_clear" },
   { key: "autoreaction add", label: "/autoreaction add", plugin: "autoreactions", permission: "can_add" },
   { key: "autoreaction remove", label: "/autoreaction remove", plugin: "autoreactions", permission: "can_remove" },
   { key: "autoreaction list", label: "/autoreaction list", plugin: "autoreactions", permission: "can_list" },

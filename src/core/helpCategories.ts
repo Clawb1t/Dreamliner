@@ -260,7 +260,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   autodelete: {
     key: "autodelete",
     name: "Autodelete",
-    description: "Auto-clear messages after a delay.",
+    description: "Dashboard-managed auto-clear: messages in a channel are deleted after a delay you set.",
   },
   autoreactions: {
     key: "autoreactions",

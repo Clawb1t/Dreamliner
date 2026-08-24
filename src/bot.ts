@@ -136,9 +136,9 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     console.log(`Dreamliner ready as ${c.user.tag}`);
     startStatusMonitor(c);
     startDashboardBridge(c, configManager);
-    void import("./bridge/oneEntitlements.js").then(({ startDreamlinerOneEntitlements }) =>
-      startDreamlinerOneEntitlements(c).catch((error) => {
-        console.error("[dreamliner-one] Failed to start entitlement sync.", error);
+    void import("./bridge/oneEntitlements.js").then(({ startDreamlinerAeroEntitlements }) =>
+      startDreamlinerAeroEntitlements(c).catch((error) => {
+        console.error("[dreamliner-aero] Failed to start entitlement sync.", error);
       }),
     );
   });

@@ -214,7 +214,7 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      auto_translate: false # Dreamliner One exclusive
+      auto_translate: false # Dreamliner Aero exclusive
       ignored_channels: []
   starboard:
     enabled: true
@@ -659,14 +659,7 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      default_delay_seconds: 60
-      can_set: false
-      can_clear: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_set: true
-          can_clear: true
+      rules: []
   autoreactions:
     enabled: true
     replaceDefaultOverrides: false

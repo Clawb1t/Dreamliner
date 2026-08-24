@@ -16,6 +16,7 @@
     "dreamcode:export": "tsx scripts/export-dreamcode-catalog.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/migrate.ts",
+    "migrate:autodelete": "tsx src/scripts/migrate-autodelete-to-config.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts"
   },

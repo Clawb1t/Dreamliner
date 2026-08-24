@@ -5,3 +5,5 @@ data/
 *.db
 *.db-journal
 .DS_Store
+.cursor/plans/
+.claude/

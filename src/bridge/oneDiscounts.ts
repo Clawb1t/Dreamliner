@@ -1,9 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { oneDiscountCodes, oneDiscountRedemptions } from "../db/schema.js";
-import { getDreamlinerOneAdminStatus, upsertDreamlinerOne } from "./dreamlinerOne.js";
+import { getDreamlinerAeroAdminStatus, upsertDreamlinerAero } from "./dreamlinerAero.js";
 
-export type OneDiscountCodeRow = {
+export type AeroDiscountCodeRow = {
   code: string;
   label: string | null;
   days: number | null;
@@ -34,7 +34,7 @@ function isCodeActive(
   return true;
 }
 
-function serialize(row: typeof oneDiscountCodes.$inferSelect): OneDiscountCodeRow {
+function serialize(row: typeof oneDiscountCodes.$inferSelect): AeroDiscountCodeRow {
   return {
     code: row.code,
     label: row.label,
@@ -49,7 +49,7 @@ function serialize(row: typeof oneDiscountCodes.$inferSelect): OneDiscountCodeRo
   };
 }
 
-export async function listOneDiscountCodes(): Promise<OneDiscountCodeRow[]> {
+export async function listAeroDiscountCodes(): Promise<AeroDiscountCodeRow[]> {
   const rows = await getDb()
     .select()
     .from(oneDiscountCodes)
@@ -58,14 +58,14 @@ export async function listOneDiscountCodes(): Promise<OneDiscountCodeRow[]> {
   return rows.map(serialize);
 }
 
-export async function createOneDiscountCode(input: {
+export async function createAeroDiscountCode(input: {
   code: string;
   actorId: string;
   days: number | null;
   maxRedemptions: number | null;
   expiresAt: Date | null;
   label?: string | null;
-}): Promise<OneDiscountCodeRow> {
+}): Promise<AeroDiscountCodeRow> {
   const code = normalizeCode(input.code);
   if (code.length < 3 || code.length > 24) {
     throw new Error("Code must be 3 to 24 letters, numbers, dashes, or underscores.");
@@ -117,7 +117,7 @@ export async function createOneDiscountCode(input: {
   return serialize(row);
 }
 
-export async function revokeOneDiscountCode(codeRaw: string): Promise<OneDiscountCodeRow | null> {
+export async function revokeAeroDiscountCode(codeRaw: string): Promise<AeroDiscountCodeRow | null> {
   const code = normalizeCode(codeRaw);
   const existing = await getDb()
     .select()
@@ -139,11 +139,11 @@ export async function revokeOneDiscountCode(codeRaw: string): Promise<OneDiscoun
   return row ? serialize(row) : null;
 }
 
-export async function redeemOneDiscountCode(input: {
+export async function redeemAeroDiscountCode(input: {
   code: string;
   guildId: string;
   actorId: string;
-}): Promise<{ one: Awaited<ReturnType<typeof upsertDreamlinerOne>>; discount: OneDiscountCodeRow }> {
+}): Promise<{ one: Awaited<ReturnType<typeof upsertDreamlinerAero>>; discount: AeroDiscountCodeRow }> {
   const code = normalizeCode(input.code);
   const row = await getDb()
     .select()
@@ -165,9 +165,9 @@ export async function redeemOneDiscountCode(input: {
     throw new Error("That server already redeemed this code.");
   }
 
-  const current = await getDreamlinerOneAdminStatus(input.guildId);
+  const current = await getDreamlinerAeroAdminStatus(input.guildId);
   if (current.active && current.forever) {
-    throw new Error("That server already has One forever.");
+    throw new Error("That server already has Aero forever.");
   }
 
   let start = Date.now();
@@ -180,7 +180,7 @@ export async function redeemOneDiscountCode(input: {
     ? `Discount ${row.code}: ${row.label.trim()}`
     : `Discount ${row.code}`;
 
-  const one = await upsertDreamlinerOne({
+  const aero = await upsertDreamlinerAero({
     guildId: input.guildId,
     actorId: input.actorId,
     expiresAt,
@@ -204,5 +204,7 @@ export async function redeemOneDiscountCode(input: {
     .from(oneDiscountCodes)
     .where(eq(oneDiscountCodes.code, code))
     .get();
-  return { one, discount: updated ? serialize(updated) : serialize({ ...row, redemptionCount: row.redemptionCount + 1 }) };
+  // Field name stays "one" — the website's bot-bridge client keys off this
+  // unchanged wire protocol field regardless of the Aero rebrand.
+  return { one: aero, discount: updated ? serialize(updated) : serialize({ ...row, redemptionCount: row.redemptionCount + 1 }) };
 }

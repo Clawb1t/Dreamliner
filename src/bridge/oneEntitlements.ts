@@ -4,12 +4,12 @@ import { getDb } from "../db/client.js";
 import { guildOneEntitlements } from "../db/schema.js";
 import { registerIntervalTask } from "../core/scheduler.js";
 
-export const DREAMLINER_ONE_APPLICATION_ID = "1524053555114151946";
-export const DREAMLINER_ONE_SKU_ID_DEFAULT = "1537178843033501727";
+export const DREAMLINER_AERO_APPLICATION_ID = "1524053555114151946";
+export const DREAMLINER_AERO_SKU_ID_DEFAULT = "1537178843033501727";
 
 type EntitlementRow = typeof guildOneEntitlements.$inferSelect;
 
-let resolvedSkuIds = new Set<string>([getConfiguredOneSkuId()]);
+let resolvedSkuIds = new Set<string>([getConfiguredAeroSkuId()]);
 let entitlementsClient: Client | null = null;
 
 function requireApplication(client: Client) {
@@ -19,19 +19,21 @@ function requireApplication(client: Client) {
   return client.application;
 }
 
-export function getConfiguredOneSkuId(): string {
-  return process.env.DREAMLINER_ONE_SKU_ID?.trim() || DREAMLINER_ONE_SKU_ID_DEFAULT;
+// Env var name stays DREAMLINER_ONE_SKU_ID — unchanged deployment config key
+// (see rebrand plan; renaming it needs a lockstep PebbleHost env change).
+export function getConfiguredAeroSkuId(): string {
+  return process.env.DREAMLINER_ONE_SKU_ID?.trim() || DREAMLINER_AERO_SKU_ID_DEFAULT;
 }
 
-export function getDreamlinerOneSkuIds(): string[] {
+export function getDreamlinerAeroSkuIds(): string[] {
   return [...resolvedSkuIds];
 }
 
-export function isDreamlinerOneSku(skuId: string): boolean {
+export function isDreamlinerAeroSku(skuId: string): boolean {
   return resolvedSkuIds.has(skuId);
 }
 
-export function getDreamlinerOneClient(): Client | null {
+export function getDreamlinerAeroClient(): Client | null {
   return entitlementsClient;
 }
 
@@ -41,8 +43,8 @@ function isRowActive(row: EntitlementRow, now = Date.now()): boolean {
   return true;
 }
 
-export async function resolveDreamlinerOneSkus(client: Client): Promise<void> {
-  const configured = getConfiguredOneSkuId();
+export async function resolveDreamlinerAeroSkus(client: Client): Promise<void> {
+  const configured = getConfiguredAeroSkuId();
   const ids = new Set<string>([configured]);
   try {
     const skus = await requireApplication(client).fetchSKUs();
@@ -57,17 +59,17 @@ export async function resolveDreamlinerOneSkus(client: Client): Promise<void> {
       }
     }
   } catch (error) {
-    console.warn("[dreamliner-one] Failed to list SKUs; using configured SKU only.", error);
+    console.warn("[dreamliner-aero] Failed to list SKUs; using configured SKU only.", error);
   }
   resolvedSkuIds = ids;
-  console.log(`[dreamliner-one] Tracking SKUs: ${[...ids].join(", ")}`);
+  console.log(`[dreamliner-aero] Tracking SKUs: ${[...ids].join(", ")}`);
 }
 
 export async function upsertDiscordEntitlement(entitlement: Entitlement): Promise<void> {
-  if (!isDreamlinerOneSku(entitlement.skuId)) return;
+  if (!isDreamlinerAeroSku(entitlement.skuId)) return;
   if (!entitlement.guildId) {
     console.warn(
-      `[dreamliner-one] Ignoring entitlement ${entitlement.id} with no guild (not a guild SKU).`,
+      `[dreamliner-aero] Ignoring entitlement ${entitlement.id} with no guild (not a guild SKU).`,
     );
     return;
   }
@@ -100,7 +102,7 @@ export async function upsertDiscordEntitlement(entitlement: Entitlement): Promis
   }
 
   if (entitlement.isActive()) {
-    console.log(`[dreamliner-one] Active in guild ${entitlement.guildId} (entitlement ${entitlement.id}).`);
+    console.log(`[dreamliner-aero] Active in guild ${entitlement.guildId} (entitlement ${entitlement.id}).`);
   }
 }
 
@@ -125,7 +127,7 @@ export async function listActiveDiscordEntitlements(): Promise<EntitlementRow[]>
   return rows.filter((row) => isRowActive(row));
 }
 
-export async function guildHasDiscordOne(guildId: string): Promise<boolean> {
+export async function guildHasDiscordAero(guildId: string): Promise<boolean> {
   return Boolean(await getActiveDiscordEntitlement(guildId));
 }
 
@@ -133,7 +135,7 @@ async function fetchGuildEntitlementFromDiscord(
   client: Client,
   guildId: string,
 ): Promise<Entitlement | null> {
-  const skus = getDreamlinerOneSkuIds();
+  const skus = getDreamlinerAeroSkuIds();
   const batch = await requireApplication(client).entitlements.fetch({
     guild: guildId,
     skus,
@@ -141,7 +143,7 @@ async function fetchGuildEntitlementFromDiscord(
     excludeDeleted: true,
   });
   for (const entitlement of batch.values()) {
-    if (entitlement.guildId === guildId && entitlement.isActive() && isDreamlinerOneSku(entitlement.skuId)) {
+    if (entitlement.guildId === guildId && entitlement.isActive() && isDreamlinerAeroSku(entitlement.skuId)) {
       return entitlement;
     }
   }
@@ -150,7 +152,7 @@ async function fetchGuildEntitlementFromDiscord(
 
 export async function refreshGuildDiscordOne(guildId: string): Promise<boolean> {
   const client = entitlementsClient;
-  if (!client?.application) return guildHasDiscordOne(guildId);
+  if (!client?.application) return guildHasDiscordAero(guildId);
   try {
     const live = await fetchGuildEntitlementFromDiscord(client, guildId);
     if (live) {
@@ -158,13 +160,13 @@ export async function refreshGuildDiscordOne(guildId: string): Promise<boolean> 
       return true;
     }
   } catch (error) {
-    console.warn(`[dreamliner-one] Live entitlement check failed for ${guildId}.`, error);
+    console.warn(`[dreamliner-aero] Live entitlement check failed for ${guildId}.`, error);
   }
-  return guildHasDiscordOne(guildId);
+  return guildHasDiscordAero(guildId);
 }
 
 export async function syncAllDiscordEntitlements(client: Client): Promise<void> {
-  const skus = getDreamlinerOneSkuIds();
+  const skus = getDreamlinerAeroSkuIds();
   let after: string | undefined;
   let stored = 0;
 
@@ -178,7 +180,7 @@ export async function syncAllDiscordEntitlements(client: Client): Promise<void> 
     if (batch.size === 0) break;
     const ids = [...batch.keys()].sort();
     for (const entitlement of batch.values()) {
-      if (!entitlement.guildId || !isDreamlinerOneSku(entitlement.skuId)) continue;
+      if (!entitlement.guildId || !isDreamlinerAeroSku(entitlement.skuId)) continue;
       await upsertDiscordEntitlement(entitlement);
       stored += 1;
     }
@@ -186,14 +188,14 @@ export async function syncAllDiscordEntitlements(client: Client): Promise<void> 
     after = ids[ids.length - 1];
   }
 
-  console.log(`[dreamliner-one] Synced ${stored} Discord entitlement(s).`);
+  console.log(`[dreamliner-aero] Synced ${stored} Discord entitlement(s).`);
 }
 
 export async function handleDiscordEntitlement(entitlement: Entitlement): Promise<void> {
   try {
     await upsertDiscordEntitlement(entitlement);
   } catch (error) {
-    console.error("[dreamliner-one] Failed to persist entitlement.", error);
+    console.error("[dreamliner-aero] Failed to persist entitlement.", error);
   }
 }
 
@@ -201,24 +203,24 @@ export async function handleDiscordEntitlementDelete(entitlement: Entitlement): 
   try {
     await markDiscordEntitlementDeleted(entitlement.id);
   } catch (error) {
-    console.error("[dreamliner-one] Failed to delete entitlement.", error);
+    console.error("[dreamliner-aero] Failed to delete entitlement.", error);
   }
 }
 
-export async function startDreamlinerOneEntitlements(client: Client): Promise<void> {
+export async function startDreamlinerAeroEntitlements(client: Client): Promise<void> {
   entitlementsClient = client;
-  await resolveDreamlinerOneSkus(client);
+  await resolveDreamlinerAeroSkus(client);
   try {
     await syncAllDiscordEntitlements(client);
   } catch (error) {
-    console.warn("[dreamliner-one] Startup entitlement sync failed.", error);
+    console.warn("[dreamliner-aero] Startup entitlement sync failed.", error);
   }
 
   registerIntervalTask({
-    id: "dreamliner-one-entitlements",
+    id: "dreamliner-aero-entitlements",
     intervalMs: 15 * 60 * 1000,
     run: async (c) => {
-      await resolveDreamlinerOneSkus(c);
+      await resolveDreamlinerAeroSkus(c);
       await syncAllDiscordEntitlements(c);
     },
   });
@@ -230,7 +232,7 @@ export async function createGuildOneTestEntitlement(
 ): Promise<{ id: string; guildId: string }> {
   const app = requireApplication(client);
   const entitlement = await app.entitlements.createTest({
-    sku: getConfiguredOneSkuId(),
+    sku: getConfiguredAeroSkuId(),
     guild: guildId,
   });
   await upsertDiscordEntitlement(entitlement);
@@ -244,7 +246,7 @@ export async function deleteGuildOneTestEntitlements(
   const app = requireApplication(client);
   const batch = await app.entitlements.fetch({
     guild: guildId,
-    skus: getDreamlinerOneSkuIds(),
+    skus: getDreamlinerAeroSkuIds(),
     excludeEnded: false,
     excludeDeleted: true,
   });

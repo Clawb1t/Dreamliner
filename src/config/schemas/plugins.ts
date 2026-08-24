@@ -67,6 +67,15 @@ export {
 
 import { zRolePanelsConfig } from "./rolePanels.js";
 
+export {
+  zAutodeleteConfig,
+  zAutodeleteRule,
+  type AutodeleteConfig,
+  type AutodeleteRule,
+} from "./autodelete.js";
+
+import { zAutodeleteConfig } from "./autodelete.js";
+
 export const zAdminConfig = z.strictObject({
   lockdown_role_id: roleId("Role applied during channel lockdown (optional)."),
   can_lockdown: boolPerm("lock down channels"),
@@ -178,17 +187,6 @@ export const zPostConfig = z.strictObject({
   can_create: boolPerm("create scheduled posts"),
   can_list: boolPerm("list scheduled posts"),
   can_delete: boolPerm("delete scheduled posts"),
-});
-
-export const zAutodeleteConfig = z.strictObject({
-  can_set: boolPerm("set autodelete on a channel"),
-  can_clear: boolPerm("clear autodelete"),
-  default_delay_seconds: z
-    .number()
-    .int()
-    .min(1)
-    .default(60)
-    .describe("Default delay before messages are deleted (seconds)."),
 });
 
 export const zAutoreactionTrigger = z.enum(["every_message", "contains", "starts_with", "exact", "regex"]);
