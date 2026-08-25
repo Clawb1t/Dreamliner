@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { counters } from "../../../db/schema.js";
 
@@ -8,14 +8,14 @@ export type CounterRow = {
   channelId: string;
   messageId: string | null;
   value: number;
-  counterType: string;
+  lastRenamedAt: number | null;
 };
 
 export function normalizeCounterName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-export async function getCounter(guildId: string, name: string): Promise<CounterRow | null> {
+export async function getCounterRow(guildId: string, name: string): Promise<CounterRow | null> {
   const row = await getDb()
     .select()
     .from(counters)
@@ -24,17 +24,16 @@ export async function getCounter(guildId: string, name: string): Promise<Counter
   return row ?? null;
 }
 
-export async function listCounters(guildId: string): Promise<CounterRow[]> {
+export async function listCounterRows(guildId: string): Promise<CounterRow[]> {
   return getDb().select().from(counters).where(eq(counters.guildId, guildId)).all();
 }
 
-export async function createCounter(input: {
+/** Insert a row for a counter the config now defines but the DB doesn't track yet. */
+export async function ensureCounterRow(input: {
   guildId: string;
   name: string;
   channelId: string;
-  counterType: string;
   value: number;
-  messageId?: string | null;
 }): Promise<CounterRow> {
   const row = await getDb()
     .insert(counters)
@@ -42,23 +41,25 @@ export async function createCounter(input: {
       guildId: input.guildId,
       name: normalizeCounterName(input.name),
       channelId: input.channelId,
-      counterType: input.counterType,
       value: input.value,
-      messageId: input.messageId ?? null,
     })
     .returning()
     .get();
   return row;
 }
 
-export async function updateCounterValue(guildId: string, name: string, value: number): Promise<boolean> {
-  const result = await getDb()
+export async function updateCounterValue(guildId: string, name: string, value: number): Promise<void> {
+  await getDb()
     .update(counters)
     .set({ value })
-    .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))))
-    .returning()
-    .get();
-  return Boolean(result);
+    .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))));
+}
+
+export async function setCounterChannelId(guildId: string, name: string, channelId: string): Promise<void> {
+  await getDb()
+    .update(counters)
+    .set({ channelId })
+    .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))));
 }
 
 export async function setCounterMessageId(guildId: string, name: string, messageId: string): Promise<void> {
@@ -68,19 +69,40 @@ export async function setCounterMessageId(guildId: string, name: string, message
     .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))));
 }
 
-export async function deleteCounter(guildId: string, name: string): Promise<boolean> {
-  const result = await getDb()
-    .delete(counters)
-    .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))))
-    .returning()
-    .get();
-  return Boolean(result);
+export async function setCounterLastRenamedAt(guildId: string, name: string, at: number): Promise<void> {
+  await getDb()
+    .update(counters)
+    .set({ lastRenamedAt: at })
+    .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))));
 }
 
-export async function getCountersByType(guildId: string, counterType: string): Promise<CounterRow[]> {
-  return getDb()
-    .select()
-    .from(counters)
-    .where(and(eq(counters.guildId, guildId), eq(counters.counterType, counterType)))
-    .all();
+export async function deleteCounterRow(guildId: string, name: string): Promise<void> {
+  await getDb()
+    .delete(counters)
+    .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))));
+}
+
+/** Drop tracked rows for counters no longer present in config (renamed/deleted from the dashboard). */
+export async function pruneCounterRows(guildId: string, keepNames: string[]): Promise<CounterRow[]> {
+  const normalized = keepNames.map(normalizeCounterName);
+  const stale =
+    normalized.length > 0
+      ? await getDb()
+          .select()
+          .from(counters)
+          .where(and(eq(counters.guildId, guildId), notInArray(counters.name, normalized)))
+          .all()
+      : await listCounterRows(guildId);
+
+  if (stale.length === 0) return [];
+
+  await getDb()
+    .delete(counters)
+    .where(
+      normalized.length > 0
+        ? and(eq(counters.guildId, guildId), notInArray(counters.name, normalized))
+        : eq(counters.guildId, guildId),
+    );
+
+  return stale;
 }

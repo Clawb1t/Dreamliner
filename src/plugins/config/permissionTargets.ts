@@ -103,9 +103,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "remind", label: "/remind", plugin: "reminders", permission: "can_create" },
   { key: "reminders list", label: "/reminders list", plugin: "reminders", permission: "can_list" },
   { key: "reminders cancel", label: "/reminders cancel", plugin: "reminders", permission: "can_cancel" },
-  { key: "counter create", label: "/counter create", plugin: "counters", permission: "can_create" },
-  { key: "counter set", label: "/counter set", plugin: "counters", permission: "can_set" },
-  { key: "counter delete", label: "/counter delete", plugin: "counters", permission: "can_delete" },
 
   // Tracking & misc
   { key: "names user", label: "/names user", plugin: "name_history", permission: "can_view" },

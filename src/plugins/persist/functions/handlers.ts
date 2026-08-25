@@ -32,9 +32,26 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const bumpChains = new Map<string, Promise<unknown>>();
 const knownStickyIds = new Set<string>();
 const bumpingChannels = new Set<string>();
+/** Qualifying messages seen since the last bump, per channel. Gates
+ * message_threshold — always incremented alongside the delay_seconds timer
+ * (see scheduleBump), and only cleared once a sticky actually reposts. */
+const messageCounts = new Map<string, number>();
 
 function channelKey(guildId: string, channelId: string): string {
   return `${guildId}:${channelId}`;
+}
+
+function bumpMessageCount(key: string): void {
+  messageCounts.set(key, (messageCounts.get(key) ?? 0) + 1);
+}
+
+function resetMessageCount(key: string): void {
+  messageCounts.delete(key);
+}
+
+function messageThresholdMet(key: string, sticky: PersistSticky): boolean {
+  if (sticky.message_threshold <= 0) return true;
+  return (messageCounts.get(key) ?? 0) >= sticky.message_threshold;
 }
 
 function runExclusive(key: string, task: () => Promise<void>): Promise<void> {
@@ -136,8 +153,10 @@ async function bumpSticky(client: Client, guildId: string, channelId: string): P
 
   const sticky = stickyByChannel(loadPersistConfig(guildConfig)).get(channelId);
   const tracked = await getPersistedMessage(guildId, channelId);
+  const key = channelKey(guildId, channelId);
 
   if (!sticky) {
+    resetMessageCount(key);
     if (tracked) {
       const guild = await client.guilds.fetch(guildId).catch(() => null);
       const channel = await guild?.channels.fetch(channelId).catch(() => null);
@@ -148,6 +167,11 @@ async function bumpSticky(client: Client, guildId: string, channelId: string): P
     }
     return;
   }
+
+  // Both rules must hold: even once enough messages have piled up, the
+  // sticky still waits out delay_seconds of quiet (scheduleBump already
+  // re-arms that timer on every message) before it's allowed to bump.
+  if (!messageThresholdMet(key, sticky)) return;
 
   const guild = client.guilds.cache.get(guildId) ?? (await client.guilds.fetch(guildId).catch(() => null));
   if (!guild) return;
@@ -169,6 +193,7 @@ async function bumpSticky(client: Client, guildId: string, channelId: string): P
     messageId: tracked?.messageId,
     webhookId: last?.id === tracked?.messageId ? last?.webhookId : undefined,
   });
+  resetMessageCount(key);
 }
 
 function cancelChannelTimer(guildId: string, channelId: string): void {
@@ -212,6 +237,7 @@ export async function handlePersistMessageCreate(message: Message): Promise<void
 
   if (shouldIgnoreTrigger(message, sticky)) return;
 
+  bumpMessageCount(channelKey(message.guild.id, channel.id));
   scheduleBump(message.client, message.guild.id, channel.id, sticky.delay_seconds);
 }
 
@@ -256,6 +282,7 @@ export async function handlePersistChannelDelete(channel: {
   const guildId = channel.guild?.id;
   if (!guildId) return;
   cancelChannelTimer(guildId, channel.id);
+  resetMessageCount(channelKey(guildId, channel.id));
   const tracked = await getPersistedMessage(guildId, channel.id);
   if (tracked) knownStickyIds.delete(tracked.messageId);
   await removePersistedMessage(guildId, channel.id);
@@ -277,6 +304,9 @@ export async function syncGuildStickies(
         timers.delete(key);
       }
     }
+    for (const key of [...messageCounts.keys()]) {
+      if (key.startsWith(`${guildId}:`)) resetMessageCount(key);
+    }
     return;
   }
 
@@ -287,6 +317,7 @@ export async function syncGuildStickies(
   for (const row of trackedRows) {
     if (stickies.has(row.channelId)) continue;
     cancelChannelTimer(guildId, row.channelId);
+    resetMessageCount(channelKey(guildId, row.channelId));
     const channel = await guild.channels.fetch(row.channelId).catch(() => null);
     if (channel?.isTextBased() && "send" in channel) {
       await deleteTrackedMessage(channel as GuildTextBasedChannel, row.messageId);

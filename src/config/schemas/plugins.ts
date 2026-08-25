@@ -57,6 +57,19 @@ export {
 import { zPersistButton, zPersistConfig, zPersistEmbedConfig } from "./persist.js";
 
 export {
+  COUNTER_DISPLAYS,
+  COUNTER_METRICS,
+  zCounterEntry,
+  zCountersConfig,
+  type CounterDisplay,
+  type CounterEntry,
+  type CounterMetric,
+  type CountersConfig,
+} from "./counters.js";
+
+import { zCountersConfig } from "./counters.js";
+
+export {
   zRolePanel,
   zRolePanelRole,
   zRolePanelsConfig,
@@ -432,11 +445,6 @@ export const zRemindersConfig = z.strictObject({
   can_cancel: boolPerm("cancel reminders"),
 });
 
-export const zCountersConfig = z.strictObject({
-  can_create: boolPerm("create counters"),
-  can_set: boolPerm("set counter values"),
-  can_delete: boolPerm("delete counters"),
-});
 
 export {
   COMPANION_FEATURE_KEYS,

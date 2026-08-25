@@ -135,6 +135,7 @@ export function autoreplyAsSticky(rule: AutoreplyRule): PersistSticky {
     channel_id: rule.channel_id,
     content: rule.response,
     delay_seconds: 0,
+    message_threshold: 0,
     embed: rule.embed ?? { ...DEFAULT_EMBED },
     buttons: rule.buttons ?? [],
     webhook: Boolean(rule.webhook),

@@ -46,8 +46,9 @@ import { applyLockdown, applyUnlock } from "../../admin/functions/lockdown.js";
 import { archiveMessages, collectMessagesForClean, serializeMessages } from "../../utility/functions/clean.js";
 import { getGuildMessageCount } from "../../utility/functions/messageCounts.js";
 import { createTag, deleteTag, getTag, updateTag } from "../../tags/functions/store.js";
-import { getCounter, updateCounterValue } from "../../counters/functions/store.js";
-import { refreshCounterDisplay } from "../../counters/functions/handlers.js";
+import { getCounterRow, updateCounterValue } from "../../counters/functions/store.js";
+import { applyCounterDisplay } from "../../counters/functions/handlers.js";
+import { countersByName, loadCountersConfig } from "../../counters/functions/config.js";
 import { cancelReminder, createReminder } from "../../reminders/functions/store.js";
 import { createScheduledPost, deleteScheduledPost } from "../../post/functions/store.js";
 import { getUserNameHistory } from "../../name_history/functions/store.js";
@@ -863,7 +864,7 @@ async function actTagDelete(ctx: HostContext, args: BoundActionArgs, pos: Source
 async function actCounterGet(ctx: HostContext, args: BoundActionArgs, pos: SourcePos): Promise<DreamValue> {
   const name = valueToString(args.name);
   if (!name) throw new DreamcodeError("runtime", "counter name required", pos);
-  const row = await getCounter(ctx.guild.id, name);
+  const row = await getCounterRow(ctx.guild.id, name);
   return row ? { name: row.name, value: row.value, channelId: row.channelId } : null;
 }
 
@@ -875,11 +876,14 @@ async function actCounterSet(
 ): Promise<DreamValue> {
   const name = valueToString(args.name);
   if (!name) throw new DreamcodeError("runtime", "counter name required", pos);
-  const row = await getCounter(ctx.guild.id, name);
+  const row = await getCounterRow(ctx.guild.id, name);
   if (!row) throw new DreamcodeError("runtime", `Counter '${name}' not found`, pos);
+  const entry = countersByName(loadCountersConfig(ctx.guildConfig)).get(name.trim().toLowerCase());
+  if (!entry) throw new DreamcodeError("runtime", `Counter '${name}' not found`, pos);
   const next = relative ? row.value + valueToInt(args.amount, 0) : valueToInt(args.value, 0);
   await updateCounterValue(ctx.guild.id, name, next);
-  await refreshCounterDisplay(ctx.guild, { ...row, value: next }, next);
+  const updated = await getCounterRow(ctx.guild.id, name);
+  await applyCounterDisplay(ctx.guild, entry, updated, next);
   return next;
 }
 

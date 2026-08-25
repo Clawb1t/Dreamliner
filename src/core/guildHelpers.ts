@@ -29,7 +29,6 @@ import { translationDefaultOverrides } from "../plugins/translation/defaultOverr
 import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
 import { zTranslationConfig, type TranslationConfig } from "../config/schemas/translation.js";
 import { parsePluginConfig } from "./pluginSchemas.js";
-import { countersDefaultOverrides } from "../plugins/counters/defaultOverrides.js";
 import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/defaultOverrides.js";
 import { botCustomisationDefaultOverrides } from "../plugins/bot_customisation/defaultOverrides.js";
 import { reviewsDefaultOverrides } from "../plugins/reviews/defaultOverrides.js";
@@ -72,7 +71,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   autorole: autoroleDefaultOverrides,
   translation: translationDefaultOverrides,
   reminders: remindersDefaultOverrides,
-  counters: countersDefaultOverrides,
+  counters: [],
   companion_channels: [],
   member_identity: [],
   dream_commands: dreamCommandsDefaultOverrides,

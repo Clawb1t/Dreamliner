@@ -87,6 +87,15 @@ export const zPersistSticky = z.strictObject({
     .describe(
       "Seconds to wait after a new message before deleting and resending the sticky. 0 resends immediately.",
     ),
+  message_threshold: z
+    .number()
+    .int()
+    .min(0)
+    .max(1000)
+    .default(0)
+    .describe(
+      "Other messages that must be sent in the channel before the sticky is allowed to resend. 0 disables this and only delay_seconds gates the resend. Both rules apply together: once this many messages have been sent, the sticky still waits for delay_seconds of quiet before it actually bumps.",
+    ),
   embed: zPersistEmbedConfig.default({}).describe("Optional Discord embed."),
   buttons: z
     .array(zPersistButton)

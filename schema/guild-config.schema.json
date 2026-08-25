@@ -4533,6 +4533,14 @@
                           "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
                         }
                       },
+                      "message_threshold": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000,
+                        "default": 0,
+                        "description": "Other messages that must be sent in the channel before the sticky is allowed to resend. 0 disables this and only delay_seconds gates the resend. Both rules apply together: once this many messages have been sent, the sticky still waits for delay_seconds of quiet before it actually bumps.",
+                        "title": "Message Threshold"
+                      },
                       "embed": {
                         "type": "object",
                         "properties": {
@@ -9275,35 +9283,89 @@
             "config": {
               "type": "object",
               "properties": {
-                "can_create": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to create counters. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Create",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "can_set": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to set counter values. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Set",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
-                },
-                "can_delete": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to delete counters. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
-                  "title": "Delete",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
-                  }
+                "counters": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Turn this counter on or off without deleting it.",
+                        "title": "Enabled"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Counter label. Shown in the dashboard and, for message display, in the embed.",
+                        "title": "Name"
+                      },
+                      "metric": {
+                        "type": "string",
+                        "enum": [
+                          "members",
+                          "messages",
+                          "boosts",
+                          "custom"
+                        ],
+                        "default": "members",
+                        "description": "What this counter tracks. members/messages/boosts update automatically; custom is set from the dashboard.",
+                        "title": "Metric"
+                      },
+                      "display": {
+                        "type": "string",
+                        "enum": [
+                          "message",
+                          "channel_name",
+                          "voice_name"
+                        ],
+                        "default": "message",
+                        "description": "Where to show the count: an embed message, a text channel's name, or a voice channel's name.",
+                        "title": "Display"
+                      },
+                      "channel_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Channel to display the counter in. A text channel for message/channel_name display, a voice channel for voice_name display.",
+                        "title": "Channel Id",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "format": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "default": "{value}",
+                        "description": "Template for the displayed text. {value} is replaced with the formatted count. Used as the embed line for message display, or the channel name for channel_name/voice_name display.",
+                        "title": "Format"
+                      },
+                      "refresh_minutes": {
+                        "type": "integer",
+                        "minimum": 5,
+                        "maximum": 1440,
+                        "default": 10,
+                        "description": "Minimum minutes between channel renames for channel_name/voice_name display — Discord allows at most 2 renames per 10 minutes per channel, so the name lags behind the real count. Ignored for message display, which updates immediately.",
+                        "title": "Refresh Minutes"
+                      },
+                      "value": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647,
+                        "default": 0,
+                        "description": "Current value. Kept in sync automatically for members/messages/boosts; set this directly for custom counters.",
+                        "title": "Value"
+                      }
+                    },
+                    "required": [
+                      "channel_id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "default": [],
+                  "description": "Counters to display. Add one entry per counter.",
+                  "title": "Counters"
                 }
               },
               "additionalProperties": false,

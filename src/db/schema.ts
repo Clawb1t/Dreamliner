@@ -346,7 +346,12 @@ export const counters = sqliteTable(
     channelId: text("channel_id").notNull(),
     messageId: text("message_id"),
     value: integer("value").notNull().default(0),
+    // Unused since counters moved to dashboard config (each entry carries its
+    // own `metric` there); kept to avoid a destructive column drop.
     counterType: text("counter_type").notNull().default("custom"),
+    // Last time a channel_name/voice_name counter actually renamed its
+    // channel, so the refresh sweep can respect Discord's rename rate limit.
+    lastRenamedAt: integer("last_renamed_at"),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.name] })],
 );
