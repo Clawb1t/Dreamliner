@@ -19,10 +19,13 @@ import {
 } from "../db/schema.js";
 
 const ACCENT_RE = /^#[0-9a-fA-F]{6}$/;
+const BIO_MAX_LENGTH = 280;
 
 export type UserProfile = {
   userId: string;
   accentColor: string | null;
+  bio: string | null;
+  profileVisible: boolean;
   updatedAt: string | null;
 };
 
@@ -36,6 +39,16 @@ export function normalizeAccentColor(raw: unknown): string | null | undefined {
   return withHash.toLowerCase();
 }
 
+/** Returns `undefined` for "field not provided", `null`/string for a valid value, or throws on invalid input. */
+export function normalizeBio(raw: unknown): string | null | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, BIO_MAX_LENGTH);
+}
+
 export async function getUserProfile(userId: string): Promise<UserProfile> {
   const row = await getDb()
     .select()
@@ -45,6 +58,8 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
   return {
     userId,
     accentColor: row?.accentColor ?? null,
+    bio: row?.bio ?? null,
+    profileVisible: row?.profileVisible ?? true,
     updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
   };
 }
@@ -73,9 +88,15 @@ export async function getAccentColorsForUsers(
   return map;
 }
 
-export async function upsertUserAccent(
+export type UpsertUserProfileInput = {
+  accentColor?: string | null;
+  bio?: string | null;
+  profileVisible?: boolean;
+};
+
+export async function upsertUserProfileFields(
   userId: string,
-  accentColor: string | null,
+  fields: UpsertUserProfileInput,
 ): Promise<UserProfile> {
   const now = new Date();
   const existing = await getDb()
@@ -84,20 +105,30 @@ export async function upsertUserAccent(
     .where(eq(userProfiles.userId, userId))
     .get();
 
+  const patch: Omit<typeof userProfiles.$inferInsert, "userId"> = { updatedAt: now };
+  if ("accentColor" in fields) patch.accentColor = fields.accentColor ?? null;
+  if ("bio" in fields) patch.bio = fields.bio ?? null;
+  if ("profileVisible" in fields && fields.profileVisible !== undefined) {
+    patch.profileVisible = fields.profileVisible;
+  }
+
   if (existing) {
-    await getDb()
-      .update(userProfiles)
-      .set({ accentColor, updatedAt: now })
-      .where(eq(userProfiles.userId, userId));
+    await getDb().update(userProfiles).set(patch).where(eq(userProfiles.userId, userId));
   } else {
-    await getDb().insert(userProfiles).values({
-      userId,
-      accentColor,
-      updatedAt: now,
-    });
+    await getDb()
+      .insert(userProfiles)
+      .values({ userId, ...patch });
   }
 
   return getUserProfile(userId);
+}
+
+/** @deprecated use upsertUserProfileFields */
+export async function upsertUserAccent(
+  userId: string,
+  accentColor: string | null,
+): Promise<UserProfile> {
+  return upsertUserProfileFields(userId, { accentColor });
 }
 
 export type DeleteUserDataResult = {

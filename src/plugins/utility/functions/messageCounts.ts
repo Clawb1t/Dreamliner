@@ -13,12 +13,13 @@ export async function recordUserMessage(guildId: string, userId: string): Promis
       set: { count: sql`${guildMessageCounts.count} + 1` },
     });
 
+  const now = new Date();
   await db
     .insert(userMessageCounts)
-    .values({ userId, count: 1 })
+    .values({ userId, count: 1, lastMessageAt: now })
     .onConflictDoUpdate({
       target: userMessageCounts.userId,
-      set: { count: sql`${userMessageCounts.count} + 1` },
+      set: { count: sql`${userMessageCounts.count} + 1`, lastMessageAt: now },
     });
 }
 

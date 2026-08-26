@@ -120,26 +120,31 @@ async function resolvePeople(
   options?: { includeAccents?: boolean },
 ) {
   const includeAccents = options?.includeAccents !== false;
-  const accents = includeAccents
-    ? await (
-        await import("./userProfiles.js")
-      ).getAccentColorsForUsers(entries.map((entry) => entry.userId))
-    : new Map<string, string>();
+  const userIds = entries.map((entry) => entry.userId);
+  const { getAccentColorsForUsers } = await import("./userProfiles.js");
+  const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
+  const [accents, badgesByUser] = await Promise.all([
+    includeAccents ? getAccentColorsForUsers(userIds) : Promise.resolve(new Map<string, string>()),
+    getDisplayedBadgesForUsers(userIds),
+  ]);
   return Promise.all(
     entries.map(async (entry, index) => {
-      const member = await guild.members.fetch(entry.userId).catch(() => null);
+      const member = await guild.members.fetch({ user: entry.userId, force: true }).catch(() => null);
       const user =
-        member?.user ?? (await guild.client.users.fetch(entry.userId).catch(() => null));
+        member?.user ??
+        (await guild.client.users.fetch(entry.userId, { force: true }).catch(() => null));
       return {
         rank: index + 1,
         id: entry.userId,
         name: member?.displayName ?? user?.username ?? entry.userId,
         username: user?.username ?? null,
         avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
+        bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
         count: entry.count,
         sharePct: sharePctValue(entry.count, trafficTotal),
         shareLabel: formatSharePct(entry.count, trafficTotal),
         accentColor: accents.get(entry.userId) ?? null,
+        badges: badgesByUser.get(entry.userId) ?? [],
       };
     }),
   );
@@ -208,21 +213,28 @@ async function resolveGlobalPeople(
   entries: Array<{ userId: string; count: number }>,
   trafficTotal: number,
 ) {
+  const userIds = entries.map((entry) => entry.userId);
   const { getAccentColorsForUsers } = await import("./userProfiles.js");
-  const accents = await getAccentColorsForUsers(entries.map((entry) => entry.userId));
+  const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
+  const [accents, badgesByUser] = await Promise.all([
+    getAccentColorsForUsers(userIds),
+    getDisplayedBadgesForUsers(userIds),
+  ]);
   return Promise.all(
     entries.map(async (entry, index) => {
-      const user = await client.users.fetch(entry.userId).catch(() => null);
+      const user = await client.users.fetch(entry.userId, { force: true }).catch(() => null);
       return {
         rank: index + 1,
         id: entry.userId,
         name: user?.globalName ?? user?.username ?? entry.userId,
         username: user?.username ?? null,
         avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
+        bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
         count: entry.count,
         sharePct: sharePctValue(entry.count, trafficTotal),
         shareLabel: formatSharePct(entry.count, trafficTotal),
         accentColor: accents.get(entry.userId) ?? null,
+        badges: badgesByUser.get(entry.userId) ?? [],
       };
     }),
   );

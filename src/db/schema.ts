@@ -42,6 +42,8 @@ export const guildMessageCounts = sqliteTable(
 export const userMessageCounts = sqliteTable("user_message_counts", {
   userId: text("user_id").primaryKey(),
   count: integer("count").notNull().default(0),
+  /** When this user last sent a tracked message, for public-profile "last seen". */
+  lastMessageAt: integer("last_message_at", { mode: "timestamp" }),
 });
 
 export const starboardPosts = sqliteTable(
@@ -583,12 +585,54 @@ export const commandUsageTotals = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.commandName] })],
 );
 
-/** Website/Discord user preferences (accent color, etc.). */
+/** Website/Discord user preferences (accent color, public profile bio/visibility, etc.). */
 export const userProfiles = sqliteTable("user_profiles", {
   userId: text("user_id").primaryKey(),
   accentColor: text("accent_color"),
+  bio: text("bio"),
+  profileVisible: integer("profile_visible", { mode: "boolean" }).notNull().default(true),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+/** Platform-wide badge definitions (Developer, Dreamliner One Supporter, etc.), superuser-managed. */
+export const badgeDefinitions = sqliteTable("badge_definitions", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").notNull().default(""),
+  /** Base64-encoded PNG, uploaded by a superuser. Falls back to `icon` (emoji/glyph) when unset. */
+  iconImage: text("icon_image"),
+  colorHex: text("color_hex"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Lifetime count of messages a user has sent per UTC hour-of-day (0-23), for "active hours". */
+export const userHourlyActivity = sqliteTable(
+  "user_hourly_activity",
+  {
+    userId: text("user_id").notNull(),
+    hourUtc: integer("hour_utc", { mode: "number" }).notNull(),
+    count: integer("count", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.hourUtc] })],
+);
+
+/** Badges assigned to a user, and whether/where they show on the user's public profile. */
+export const userBadges = sqliteTable(
+  "user_badges",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    badgeId: integer("badge_id", { mode: "number" }).notNull(),
+    assignedAt: integer("assigned_at", { mode: "timestamp" }).notNull(),
+    assignedBy: text("assigned_by").notNull(),
+    displayed: integer("displayed", { mode: "boolean" }).notNull().default(true),
+    displayOrder: integer("display_order", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [uniqueIndex("user_badges_user_badge_idx").on(table.userId, table.badgeId)],
+);
 
 /** Periodic Discord gateway ping / uptime samples for the public status page. */
 export const botStatusSamples = sqliteTable("bot_status_samples", {

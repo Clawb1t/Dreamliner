@@ -586,9 +586,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (profileMatch && req.method === "PUT") {
-          let body: { accentColor?: unknown };
+          let body: { accentColor?: unknown; bio?: unknown; profileVisible?: unknown };
           try {
-            body = JSON.parse(await readBody(req)) as { accentColor?: unknown };
+            body = JSON.parse(await readBody(req)) as typeof body;
           } catch {
             sendJson(res, 400, { error: "Invalid JSON body" });
             return;
@@ -596,18 +596,42 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const {
             getUserProfile,
             normalizeAccentColor,
-            upsertUserAccent,
+            normalizeBio,
+            upsertUserProfileFields,
           } = await import("./userProfiles.js");
-          if (!("accentColor" in body)) {
+
+          const patch: { accentColor?: string | null; bio?: string | null; profileVisible?: boolean } =
+            {};
+
+          if ("accentColor" in body) {
+            const accent = normalizeAccentColor(body.accentColor);
+            if (accent === undefined) {
+              sendJson(res, 400, { error: "accentColor must be a #RRGGBB hex color or null." });
+              return;
+            }
+            patch.accentColor = accent;
+          }
+          if ("bio" in body) {
+            const bio = normalizeBio(body.bio);
+            if (bio === undefined && body.bio !== undefined) {
+              sendJson(res, 400, { error: "bio must be a string or null." });
+              return;
+            }
+            patch.bio = bio ?? null;
+          }
+          if ("profileVisible" in body) {
+            if (typeof body.profileVisible !== "boolean") {
+              sendJson(res, 400, { error: "profileVisible must be a boolean." });
+              return;
+            }
+            patch.profileVisible = body.profileVisible;
+          }
+
+          if (Object.keys(patch).length === 0) {
             sendJson(res, 200, { ok: true, profile: await getUserProfile(profileMatch[1]!) });
             return;
           }
-          const accent = normalizeAccentColor(body.accentColor);
-          if (accent === undefined) {
-            sendJson(res, 400, { error: "accentColor must be a #RRGGBB hex color or null." });
-            return;
-          }
-          const profile = await upsertUserAccent(profileMatch[1]!, accent);
+          const profile = await upsertUserProfileFields(profileMatch[1]!, patch);
           sendJson(res, 200, { ok: true, profile });
           return;
         }
@@ -634,6 +658,265 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { deleteUserPersonalData } = await import("./userProfiles.js");
           const result = await deleteUserPersonalData(deleteDataMatch[1]!);
           sendJson(res, 200, result);
+          return;
+        }
+
+        // --- Public profile / badges ---------------------------------------------------
+
+        const publicProfileMatch = /^\/bridge\/users\/(\d+)\/public-profile$/.exec(url.pathname);
+        if (publicProfileMatch && req.method === "GET") {
+          const { buildPublicUserProfile } = await import("./userPublicProfile.js");
+          const profile = await buildPublicUserProfile(client, publicProfileMatch[1]!);
+          if (!profile) {
+            sendJson(res, 404, { error: "User not found." });
+            return;
+          }
+          sendJson(res, 200, { ok: true, profile });
+          return;
+        }
+
+        const userLookupMatch = /^\/bridge\/users\/(\d+)\/lookup$/.exec(url.pathname);
+        if (userLookupMatch && req.method === "GET") {
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId || !isDashboardSuperuser(requesterId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { lookupDiscordUser } = await import("./userPublicProfile.js");
+          const user = await lookupDiscordUser(client, userLookupMatch[1]!);
+          if (!user) {
+            sendJson(res, 404, { error: "Discord user not found." });
+            return;
+          }
+          sendJson(res, 200, { ok: true, user });
+          return;
+        }
+
+        const ownedBadgesMatch = /^\/bridge\/users\/(\d+)\/badges$/.exec(url.pathname);
+        if (ownedBadgesMatch && req.method === "GET") {
+          const { listUserBadges } = await import("./userBadges.js");
+          sendJson(res, 200, { ok: true, badges: await listUserBadges(ownedBadgesMatch[1]!) });
+          return;
+        }
+        if (ownedBadgesMatch && req.method === "POST") {
+          let body: { badgeId?: unknown; userId?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const badgeId = Number(body.badgeId);
+          if (!Number.isInteger(badgeId)) {
+            sendJson(res, 400, { error: "badgeId must be an integer." });
+            return;
+          }
+          const { assignBadge } = await import("./userBadges.js");
+          const badges = await assignBadge(ownedBadgesMatch[1]!, badgeId, actorId);
+          sendJson(res, 200, { ok: true, badges });
+          return;
+        }
+
+        const userBadgeMatch = /^\/bridge\/users\/(\d+)\/badges\/(\d+)$/.exec(url.pathname);
+        if (userBadgeMatch && req.method === "DELETE") {
+          let body: { userId?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { unassignBadge } = await import("./userBadges.js");
+          const badges = await unassignBadge(userBadgeMatch[1]!, Number(userBadgeMatch[2]));
+          sendJson(res, 200, { ok: true, badges });
+          return;
+        }
+
+        const badgeDisplayMatch = /^\/bridge\/users\/(\d+)\/badges\/display$/.exec(url.pathname);
+        if (badgeDisplayMatch && req.method === "PUT") {
+          let body: { badgeIds?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (!Array.isArray(body.badgeIds) || body.badgeIds.some((id) => typeof id !== "number")) {
+            sendJson(res, 400, { error: "badgeIds must be an array of numbers." });
+            return;
+          }
+          const { setDisplayedBadges } = await import("./userBadges.js");
+          const badges = await setDisplayedBadges(badgeDisplayMatch[1]!, body.badgeIds as number[]);
+          sendJson(res, 200, { ok: true, badges });
+          return;
+        }
+
+        if (url.pathname === "/bridge/platform/badges") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listBadges } = await import("./badges.js");
+            sendJson(res, 200, { ok: true, badges: await listBadges() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: {
+              userId?: string;
+              key?: unknown;
+              name?: unknown;
+              description?: unknown;
+              icon?: unknown;
+              iconImage?: unknown;
+              colorHex?: unknown;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { normalizeBadgeKey, normalizeBadgeColor, normalizeBadgeIconImage, createBadge } =
+              await import("./badges.js");
+            const key = normalizeBadgeKey(body.key);
+            if (!key) {
+              sendJson(res, 400, {
+                error: "key must be lowercase letters/numbers/dashes/underscores, 2-64 chars.",
+              });
+              return;
+            }
+            const name = typeof body.name === "string" ? body.name.trim().slice(0, 60) : "";
+            if (!name) {
+              sendJson(res, 400, { error: "name is required." });
+              return;
+            }
+            const colorHex = normalizeBadgeColor(body.colorHex);
+            if (colorHex === undefined) {
+              sendJson(res, 400, { error: "colorHex must be a #RRGGBB hex color or null." });
+              return;
+            }
+            let iconImage: string | null;
+            try {
+              iconImage = normalizeBadgeIconImage(body.iconImage) ?? null;
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Invalid icon image.",
+              });
+              return;
+            }
+            try {
+              const badge = await createBadge({
+                key,
+                name,
+                description:
+                  typeof body.description === "string" ? body.description.trim().slice(0, 200) : null,
+                icon: typeof body.icon === "string" ? body.icon.trim().slice(0, 16) : "",
+                iconImage,
+                colorHex,
+              });
+              sendJson(res, 200, { ok: true, badge });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to create badge.",
+              });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformBadgeMatch = /^\/bridge\/platform\/badges\/(\d+)$/.exec(url.pathname);
+        if (platformBadgeMatch && (req.method === "PUT" || req.method === "DELETE")) {
+          let body: {
+            userId?: string;
+            name?: unknown;
+            description?: unknown;
+            icon?: unknown;
+            iconImage?: unknown;
+            colorHex?: unknown;
+          };
+          try {
+            body = JSON.parse(await readBody(req) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const badgeId = Number(platformBadgeMatch[1]);
+
+          if (req.method === "DELETE") {
+            const { deleteBadge } = await import("./badges.js");
+            const ok = await deleteBadge(badgeId);
+            if (!ok) {
+              sendJson(res, 404, { error: "Badge not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          const { normalizeBadgeColor, normalizeBadgeIconImage, updateBadge } = await import(
+            "./badges.js"
+          );
+          const colorHex = normalizeBadgeColor(body.colorHex);
+          if ("colorHex" in body && colorHex === undefined) {
+            sendJson(res, 400, { error: "colorHex must be a #RRGGBB hex color or null." });
+            return;
+          }
+          let iconImage: string | null | undefined;
+          try {
+            iconImage = "iconImage" in body ? normalizeBadgeIconImage(body.iconImage) : undefined;
+          } catch (error) {
+            sendJson(res, 400, {
+              error: error instanceof Error ? error.message : "Invalid icon image.",
+            });
+            return;
+          }
+          try {
+            const badge = await updateBadge(badgeId, {
+              name: typeof body.name === "string" ? body.name.trim().slice(0, 60) : undefined,
+              description:
+                typeof body.description === "string"
+                  ? body.description.trim().slice(0, 200)
+                  : body.description === null
+                    ? null
+                    : undefined,
+              icon: typeof body.icon === "string" ? body.icon.trim().slice(0, 16) : undefined,
+              iconImage,
+              colorHex: "colorHex" in body ? colorHex : undefined,
+            });
+            if (!badge) {
+              sendJson(res, 404, { error: "Badge not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, badge });
+          } catch (error) {
+            sendJson(res, 400, {
+              error: error instanceof Error ? error.message : "Failed to update badge.",
+            });
+          }
           return;
         }
 

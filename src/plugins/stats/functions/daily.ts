@@ -1,6 +1,11 @@
 import { and, asc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
-import { guildStatsChannelDaily, guildStatsDaily, guildStatsUserDaily } from "../../../db/schema.js";
+import {
+  guildStatsChannelDaily,
+  guildStatsDaily,
+  guildStatsUserDaily,
+  userHourlyActivity,
+} from "../../../db/schema.js";
 import { recordUserTrail } from "../../../core/logging/userTrail.js";
 
 export function statDate(d = new Date()): string {
@@ -144,6 +149,19 @@ export async function incrementUserDailyStat(guildId: string, userId: string): P
     });
 }
 
+/** Bumps the user's lifetime count for the current UTC hour-of-day, used for "active hours". */
+export async function incrementUserHourlyStat(userId: string): Promise<void> {
+  const db = getDb();
+  const hourUtc = new Date().getUTCHours();
+  await db
+    .insert(userHourlyActivity)
+    .values({ userId, hourUtc, count: 1 })
+    .onConflictDoUpdate({
+      target: [userHourlyActivity.userId, userHourlyActivity.hourUtc],
+      set: { count: sql`${userHourlyActivity.count} + 1` },
+    });
+}
+
 export async function incrementChannelDailyStat(guildId: string, channelId: string): Promise<void> {
   const db = getDb();
   const date = statDate();
@@ -167,6 +185,7 @@ export async function recordMessageActivity(
     incrementDailyStat(guildId, "messages"),
     incrementUserDailyStat(guildId, userId),
     incrementChannelDailyStat(guildId, channelId),
+    incrementUserHourlyStat(userId),
     recordUserTrail(guildId, userId, channelId, content),
   ];
   if (attachmentCount > 0) {
