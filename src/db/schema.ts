@@ -591,6 +591,8 @@ export const userProfiles = sqliteTable("user_profiles", {
   accentColor: text("accent_color"),
   bio: text("bio"),
   profileVisible: integer("profile_visible", { mode: "boolean" }).notNull().default(true),
+  /** Days a user's message *content* (not counts/timestamps) stays retained: 0/1/7/14/30. */
+  contentRetentionDays: integer("content_retention_days").notNull().default(30),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 

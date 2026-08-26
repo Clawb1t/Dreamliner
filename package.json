@@ -1,6 +1,6 @@
 {
   "name": "dreamliner",
-  "version": "0.1.10",
+  "version": "0.1.12",
   "description": "Dreamliner — a Discord moderation bot with file-based configuration",
   "type": "module",
   "main": "dist/index.js",

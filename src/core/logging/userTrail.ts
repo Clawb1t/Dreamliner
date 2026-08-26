@@ -1,6 +1,7 @@
 import { and, desc, eq, lte } from "drizzle-orm";
 import { getDb } from "../../db/client.js";
 import { guildUserTrail } from "../../db/schema.js";
+import { getContentRetentionDays } from "../contentRetention.js";
 
 const GAP_MS = 15 * 60 * 1000;
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -20,7 +21,8 @@ export async function recordUserTrail(
   if (!guildId || !userId || !channelId) return;
   const db = getDb();
   const now = new Date();
-  const snippet = trailSnippet(content);
+  const retentionDays = await getContentRetentionDays(userId);
+  const snippet = retentionDays <= 0 ? "" : trailSnippet(content);
 
   const last = await db
     .select()
@@ -38,12 +40,15 @@ export async function recordUserTrail(
     now.getTime() - lastEnded < GAP_MS;
 
   if (sameBurst && last) {
+    // Never fall back to a merged row's previous snippet for a 0-retention user —
+    // that snippet could predate them turning retention off.
+    const mergedSnippet = retentionDays <= 0 ? "" : snippet || last.snippet;
     await db
       .update(guildUserTrail)
       .set({
         endedAt: now,
         messageCount: last.messageCount + 1,
-        snippet: snippet || last.snippet,
+        snippet: mergedSnippet,
       })
       .where(eq(guildUserTrail.id, last.id));
   } else {

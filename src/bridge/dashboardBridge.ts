@@ -586,7 +586,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (profileMatch && req.method === "PUT") {
-          let body: { accentColor?: unknown; bio?: unknown; profileVisible?: unknown };
+          let body: {
+            accentColor?: unknown;
+            bio?: unknown;
+            profileVisible?: unknown;
+            contentRetentionDays?: unknown;
+          };
           try {
             body = JSON.parse(await readBody(req)) as typeof body;
           } catch {
@@ -599,9 +604,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             normalizeBio,
             upsertUserProfileFields,
           } = await import("./userProfiles.js");
+          const { normalizeContentRetentionDays } = await import("../core/contentRetention.js");
 
-          const patch: { accentColor?: string | null; bio?: string | null; profileVisible?: boolean } =
-            {};
+          const patch: {
+            accentColor?: string | null;
+            bio?: string | null;
+            profileVisible?: boolean;
+            contentRetentionDays?: number;
+          } = {};
 
           if ("accentColor" in body) {
             const accent = normalizeAccentColor(body.accentColor);
@@ -626,14 +636,27 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             patch.profileVisible = body.profileVisible;
           }
+          if ("contentRetentionDays" in body) {
+            try {
+              const days = normalizeContentRetentionDays(body.contentRetentionDays);
+              if (days === undefined) {
+                sendJson(res, 400, { error: "contentRetentionDays is required." });
+                return;
+              }
+              patch.contentRetentionDays = days;
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Invalid contentRetentionDays.",
+              });
+              return;
+            }
+          }
 
           if (Object.keys(patch).length === 0) {
             sendJson(res, 200, { ok: true, profile: await getUserProfile(profileMatch[1]!) });
             return;
           }
           const profile = await upsertUserProfileFields(profileMatch[1]!, patch);
-          const { invalidateCached } = await import("./responseCache.js");
-          invalidateCached(`public-profile:${profileMatch[1]!}`);
           sendJson(res, 200, { ok: true, profile });
           return;
         }
@@ -665,19 +688,72 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         // --- Public profile / badges ---------------------------------------------------
 
+        // Profiles are never cached bridge-side — always fresh. The website fetches these
+        // in parallel (identity first/fast, the rest streamed in as each resolves) rather
+        // than blocking the whole page on one combined response.
         const publicProfileMatch = /^\/bridge\/users\/(\d+)\/public-profile$/.exec(url.pathname);
         if (publicProfileMatch && req.method === "GET") {
           const { buildPublicUserProfile } = await import("./userPublicProfile.js");
-          const { cached } = await import("./responseCache.js");
-          const userId = publicProfileMatch[1]!;
-          const profile = await cached(`public-profile:${userId}`, 60_000, () =>
-            buildPublicUserProfile(client, userId),
-          );
+          const profile = await buildPublicUserProfile(client, publicProfileMatch[1]!);
           if (!profile) {
             sendJson(res, 404, { error: "User not found." });
             return;
           }
           sendJson(res, 200, { ok: true, profile });
+          return;
+        }
+
+        const publicProfileIdentityMatch = /^\/bridge\/users\/(\d+)\/public-profile\/identity$/.exec(
+          url.pathname,
+        );
+        if (publicProfileIdentityMatch && req.method === "GET") {
+          const { buildPublicProfileIdentity } = await import("./userPublicProfile.js");
+          const identity = await buildPublicProfileIdentity(client, publicProfileIdentityMatch[1]!);
+          if (!identity) {
+            sendJson(res, 404, { error: "User not found." });
+            return;
+          }
+          sendJson(res, 200, { ok: true, identity });
+          return;
+        }
+
+        const publicProfileStatsMatch = /^\/bridge\/users\/(\d+)\/public-profile\/stats$/.exec(
+          url.pathname,
+        );
+        if (publicProfileStatsMatch && req.method === "GET") {
+          const { buildPublicProfileStats } = await import("./userPublicProfile.js");
+          const stats = await buildPublicProfileStats(publicProfileStatsMatch[1]!);
+          sendJson(res, 200, { ok: true, stats });
+          return;
+        }
+
+        const publicProfileActivityMatch = /^\/bridge\/users\/(\d+)\/public-profile\/activity$/.exec(
+          url.pathname,
+        );
+        if (publicProfileActivityMatch && req.method === "GET") {
+          const { buildPublicProfileActivity } = await import("./userPublicProfile.js");
+          const daily = await buildPublicProfileActivity(publicProfileActivityMatch[1]!);
+          sendJson(res, 200, { ok: true, daily });
+          return;
+        }
+
+        const publicProfileHoursMatch = /^\/bridge\/users\/(\d+)\/public-profile\/hours$/.exec(
+          url.pathname,
+        );
+        if (publicProfileHoursMatch && req.method === "GET") {
+          const { buildPublicProfileHours } = await import("./userPublicProfile.js");
+          const activeHoursUtc = await buildPublicProfileHours(publicProfileHoursMatch[1]!);
+          sendJson(res, 200, { ok: true, activeHoursUtc });
+          return;
+        }
+
+        const publicProfileServersMatch = /^\/bridge\/users\/(\d+)\/public-profile\/servers$/.exec(
+          url.pathname,
+        );
+        if (publicProfileServersMatch && req.method === "GET") {
+          const { buildPublicProfileServers } = await import("./userPublicProfile.js");
+          const guilds = await buildPublicProfileServers(client, publicProfileServersMatch[1]!);
+          sendJson(res, 200, { ok: true, guilds });
           return;
         }
 
@@ -724,8 +800,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const { assignBadge } = await import("./userBadges.js");
           const badges = await assignBadge(ownedBadgesMatch[1]!, badgeId, actorId);
-          const { invalidateCached } = await import("./responseCache.js");
-          invalidateCached(`public-profile:${ownedBadgesMatch[1]!}`);
           sendJson(res, 200, { ok: true, badges });
           return;
         }
@@ -746,8 +820,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const { unassignBadge } = await import("./userBadges.js");
           const badges = await unassignBadge(userBadgeMatch[1]!, Number(userBadgeMatch[2]));
-          const { invalidateCached } = await import("./responseCache.js");
-          invalidateCached(`public-profile:${userBadgeMatch[1]!}`);
           sendJson(res, 200, { ok: true, badges });
           return;
         }
@@ -767,8 +839,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const { setDisplayedBadges } = await import("./userBadges.js");
           const badges = await setDisplayedBadges(badgeDisplayMatch[1]!, body.badgeIds as number[]);
-          const { invalidateCached } = await import("./responseCache.js");
-          invalidateCached(`public-profile:${badgeDisplayMatch[1]!}`);
           sendJson(res, 200, { ok: true, badges });
           return;
         }
@@ -885,10 +955,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 404, { error: "Badge not found." });
               return;
             }
-            // Cheap and rare (admin action) — simplest way to make sure no profile
-            // keeps showing a badge that no longer exists or just changed appearance.
-            const { invalidateCached } = await import("./responseCache.js");
-            invalidateCached("public-profile:");
             sendJson(res, 200, { ok: true });
             return;
           }
@@ -927,8 +993,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 404, { error: "Badge not found." });
               return;
             }
-            const { invalidateCached } = await import("./responseCache.js");
-            invalidateCached("public-profile:");
             sendJson(res, 200, { ok: true, badge });
           } catch (error) {
             sendJson(res, 400, {

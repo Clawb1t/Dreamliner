@@ -138,21 +138,37 @@ export function repairGuildConfig(raw: unknown): {
     }
 
     if (!changed) {
-      // Last resort for stubborn plugin sections: reset only the broken plugin.
+      // Last resort for stubborn sections: reset the whole top-level key back to
+      // its default value (a plugin section if the issue is under plugins.<name>,
+      // otherwise the top-level field itself — levels, emojis, etc). Every default
+      // field validates on its own, so this always makes forward progress.
       for (const issue of parsed.error.issues) {
-        const pluginIdx = issue.path[0] === "plugins" ? 1 : -1;
-        if (pluginIdx < 0 || issue.path.length < 2) continue;
-        const pluginKey = String(issue.path[1]);
-        const label = `plugins.${pluginKey}`;
+        if (issue.path.length === 0) continue;
+        const topKey = String(issue.path[0]);
+        const isPluginSection = topKey === "plugins" && issue.path.length > 1;
+        const pluginKey = isPluginSection ? String(issue.path[1]) : undefined;
+        const label = isPluginSection ? `plugins.${pluginKey}` : topKey;
         if (seen.has(`${label}#section-reset`)) continue;
-        const defaultSection = getAtPath(defaults, ["plugins", pluginKey]);
-        const plugins = getAtPath(value, ["plugins"]);
-        if (!isPlainObject(plugins)) continue;
-        if (defaultSection === undefined) {
-          delete plugins[pluginKey];
+
+        if (isPluginSection && pluginKey) {
+          const defaultSection = getAtPath(defaults, ["plugins", pluginKey]);
+          const plugins = getAtPath(value, ["plugins"]);
+          if (!isPlainObject(plugins)) continue;
+          if (defaultSection === undefined) {
+            delete plugins[pluginKey];
+          } else {
+            plugins[pluginKey] = cloneJson(defaultSection);
+          }
         } else {
-          plugins[pluginKey] = cloneJson(defaultSection);
+          const container = value as Record<string, unknown>;
+          const defaultTop = defaults[topKey];
+          if (defaultTop === undefined) {
+            delete container[topKey];
+          } else {
+            container[topKey] = cloneJson(defaultTop);
+          }
         }
+
         seen.add(`${label}#section-reset`);
         repairs.push(`${label} (reset to defaults)`);
         changed = true;
@@ -160,20 +176,33 @@ export function repairGuildConfig(raw: unknown): {
       }
     }
 
-    if (!changed) {
-      return {
-        success: false,
-        errors: parsed.error.issues.map((i) => `${pathLabel(i.path)}: ${i.message}`),
-      };
-    }
+    if (!changed) break;
 
     // Re-fill any required structure removed while repairing.
     value = deepMerge(defaults, value as Record<string, unknown>);
   }
 
+  // Guaranteed convergence: defaults validate cleanly on their own (checked at
+  // startup), so if every targeted repair pass above still couldn't produce a
+  // valid config, fall all the way back to a clean default config rather than
+  // leaving the guild permanently stuck failing validation on every read.
+  const finalAttempt = zGuildConfig.safeParse(value);
+  if (finalAttempt.success) {
+    return { success: true, data: finalAttempt.data, repairs };
+  }
+
+  const fallback = zGuildConfig.safeParse(defaults);
+  if (fallback.success) {
+    return {
+      success: true,
+      data: fallback.data,
+      repairs: [...repairs, "(full reset — config could not be repaired safely, restored to defaults)"],
+    };
+  }
+
   return {
     success: false,
-    errors: ["Config repair exceeded the maximum number of passes."],
+    errors: finalAttempt.success ? [] : finalAttempt.error.issues.map((i) => `${pathLabel(i.path)}: ${i.message}`),
   };
 }
 

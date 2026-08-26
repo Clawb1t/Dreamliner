@@ -34,6 +34,10 @@ type ConfigSaveListener = (guildId: string, config: GuildConfig) => void;
 
 export class ConfigManager {
   private saveListeners = new Set<ConfigSaveListener>();
+  // Guilds with no row in guild_configs at all — a normal, expected state (never
+  // ran /config upload), not an error. Tracked so getEffectiveConfig can tell
+  // that apart from a stored config that actually failed to validate.
+  private guildsWithoutStoredConfig = new Set<string>();
 
   onSave(listener: ConfigSaveListener): () => void {
     this.saveListeners.add(listener);
@@ -60,59 +64,67 @@ export class ConfigManager {
     const db = getDb();
     const row = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).get();
     if (!row) {
+      this.guildsWithoutStoredConfig.add(guildId);
       return null;
     }
+    this.guildsWithoutStoredConfig.delete(guildId);
 
     let parsed: unknown;
     try {
       parsed = YAML.parse(row.configYaml);
     } catch (error) {
       console.error(
-        `[dreamliner] Invalid guild config YAML for ${guildId}:`,
+        `[dreamliner] Guild config YAML for ${guildId} would not parse, repairing from what's on file:`,
         error instanceof Error ? error.message : error,
       );
-      parsed = null;
+      parsed = undefined;
     }
 
-    // Repair only broken fragments (obsolete keys / invalid values). Never wipe the whole guild config.
-    let validated =
-      parsed == null
-        ? ({ success: false as const, errors: ["Config YAML could not be parsed."] })
-        : validateGuildConfig(parsed, { repair: true });
+    // repairGuildConfig always converges to *something* valid — it fills missing
+    // structure from defaults, strips obsolete/invalid fragments, and as a last
+    // resort resets just the broken section(s). Worst case it falls all the way
+    // back to clean defaults, but it never just gives up. See validator.ts.
+    let validated = validateGuildConfig(parsed ?? {}, { repair: true });
+    let repairs = validated.success ? validated.repairs ?? validated.strippedKeys ?? [] : [];
+    const neededFullReset = !validated.success || repairs.some((r) => r.startsWith("(full reset"));
 
-    if (!validated.success && row.userConfigYaml) {
+    // A full reset throws away every customization. If the guild's own override
+    // diff is still on file, rebuilding straight from that almost always keeps
+    // far more of their setup than falling all the way back to bare defaults.
+    if (neededFullReset && row.userConfigYaml) {
       try {
         const userOverrides = (parseYamlConfig(row.userConfigYaml) ?? {}) as Record<string, unknown>;
-        const rebuilt = mergeConfigWithDefaults(userOverrides);
+        const merged = deepMerge(loadDefaultConfig() as unknown as Record<string, unknown>, userOverrides);
+        const rebuilt = validateGuildConfig(merged, { repair: true });
         if (rebuilt.success) {
-          console.warn(
-            `[dreamliner] Repaired guild config for ${guildId} from user overrides after snapshot repair failed:`,
-            validated.errors,
-          );
-          validated = {
-            success: true,
-            data: rebuilt.data,
-            strippedKeys: ["(repaired-from-user-overrides)"],
-            repairs: ["(repaired-from-user-overrides)"],
-          };
+          const rebuiltRepairs = rebuilt.repairs ?? rebuilt.strippedKeys ?? [];
+          if (!rebuiltRepairs.some((r) => r.startsWith("(full reset"))) {
+            validated = rebuilt;
+            repairs = [
+              ...rebuiltRepairs,
+              "(rebuilt from stored overrides — the saved snapshot needed a full reset)",
+            ];
+          }
         }
       } catch (error) {
         console.error(
-          `[dreamliner] Failed to repair guild config for ${guildId} from user overrides:`,
+          `[dreamliner] Failed to rebuild guild config for ${guildId} from stored overrides:`,
           error,
         );
       }
     }
 
     if (!validated.success) {
+      // Should be unreachable: repairGuildConfig only fails to converge when the
+      // shipped defaults themselves don't validate, which is a bug to fix in
+      // code/schema, not something a per-guild config repair can resolve.
       console.error(
-        `[dreamliner] Invalid guild config for ${guildId}; falling back to defaults until fixed. Errors:`,
+        `[dreamliner] Guild config for ${guildId} could not be repaired even from defaults (this points to a bug in the schema/defaults):`,
         validated.errors,
       );
       return null;
     }
 
-    const repairs = validated.repairs ?? validated.strippedKeys ?? [];
     if (repairs.length) {
       console.warn(
         `[dreamliner] Repaired guild config for ${guildId} (kept valid settings): ${repairs.join(", ")}`,
@@ -193,9 +205,14 @@ export class ConfigManager {
   async getEffectiveConfig(guildId: string): Promise<GuildConfig> {
     const stored = await this.getGuildConfig(guildId);
     if (stored) return stored;
-    console.warn(
-      `[dreamliner] No valid stored config for guild ${guildId}; using default.server.yaml (custom settings are not applied until config loads successfully).`,
-    );
+    // Only warn when a stored config actually exists but failed to validate
+    // (getGuildConfig already logged the specifics above) — a guild that has
+    // simply never saved a config is expected to fall back to defaults.
+    if (!this.guildsWithoutStoredConfig.has(guildId)) {
+      console.warn(
+        `[dreamliner] No valid stored config for guild ${guildId}; using default.server.yaml (custom settings are not applied until config loads successfully).`,
+      );
+    }
     return loadDefaultConfig();
   }
 
@@ -241,6 +258,7 @@ export class ConfigManager {
       });
 
     cache.set(guildId, result.data);
+    this.guildsWithoutStoredConfig.delete(guildId);
     this.notifySave(guildId, result.data);
     return { success: true, data: result.data };
   }
@@ -308,6 +326,7 @@ export class ConfigManager {
       .where(eq(guildConfigs.guildId, guildId));
 
     cache.set(guildId, result.data);
+    this.guildsWithoutStoredConfig.delete(guildId);
     this.notifySave(guildId, result.data);
     return { success: true, data: result.data, usedLegacyDiff };
   }

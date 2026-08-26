@@ -13,6 +13,8 @@ import { getUtilityPluginConfig } from "../../core/guildHelpers.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
 import { recordUserMessage } from "./functions/messageCounts.js";
 import { handleExpandMessageLinks } from "./functions/expandMessageLinks.js";
+import { registerIntervalTask } from "../../core/scheduler.js";
+import { sweepExpiredMessageContent } from "../../core/contentRetentionSweep.js";
 
 export const utilityPlugin = definePlugin({
   name: "utility",
@@ -27,6 +29,13 @@ export const utilityPlugin = definePlugin({
     ...metaCommands,
   ],
   contextMenuCommands,
+  onLoad: async () => {
+    registerIntervalTask({
+      id: "content-retention:sweep",
+      intervalMs: 30 * 60_000,
+      run: sweepExpiredMessageContent,
+    });
+  },
   events: [
     {
       name: Events.MessageCreate,

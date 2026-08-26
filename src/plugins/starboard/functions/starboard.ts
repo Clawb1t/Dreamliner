@@ -70,7 +70,25 @@ function shouldCountStarFromUser(message: Message, user: User, board: StarboardB
 
 function isNsfwSourceChannel(message: Message): boolean {
   const channel = message.channel;
-  return Boolean(channel && "nsfw" in channel && channel.nsfw);
+  if (!channel) return false;
+  if ("nsfw" in channel && channel.nsfw) return true;
+  // Threads don't carry their own nsfw flag — they inherit it from their parent
+  // channel — so check that too, otherwise NSFW messages posted in a thread
+  // under an NSFW channel would slip past allow_nsfw: false.
+  if (channel.isThread() && channel.parent && "nsfw" in channel.parent) {
+    return Boolean(channel.parent.nsfw);
+  }
+  return false;
+}
+
+/** The message's channel id, plus its parent channel id when it's a thread —
+ * so `ignored_channels` and the starboard-channel self-reference check both
+ * work for messages posted inside threads under a normal/forum channel. */
+function sourceChannelIds(message: Message): string[] {
+  const channel = message.channel;
+  const ids = [channel.id];
+  if (channel.isThread() && channel.parentId) ids.push(channel.parentId);
+  return ids;
 }
 
 async function authorHasIgnoredRole(
@@ -93,17 +111,21 @@ export async function countStarReactions(
   if (!message.guild) return 0;
 
   if (!message.author) {
+    // Author unknown means this is an uncached/partial message — fetching is
+    // required to get anything usable, so bail if it fails.
     try {
       await message.fetch();
     } catch {
       return 0;
     }
-  }
-
-  try {
-    await message.fetch();
-  } catch {
-    // continue with cached reactions
+  } else {
+    // Already have the message; still refresh it so reaction counts aren't stale,
+    // but tolerate failure and fall back to whatever's cached.
+    try {
+      await message.fetch();
+    } catch {
+      // continue with cached reactions
+    }
   }
 
   const voters = new Set<string>();
@@ -253,8 +275,9 @@ async function processBoard(
   reactionEvent?: { user: User; emoji: MessageReaction["emoji"]; type: "add" | "remove" },
 ): Promise<void> {
   if (!message.guild || !board.enabled || !board.channel_id) return;
-  if (starboardChannelIds.has(message.channel.id)) return;
-  if (board.ignored_channels.includes(message.channel.id)) return;
+  const channelIds = sourceChannelIds(message);
+  if (channelIds.some((id) => starboardChannelIds.has(id))) return;
+  if (channelIds.some((id) => board.ignored_channels.includes(id))) return;
   if (!board.allow_nsfw && isNsfwSourceChannel(message)) return;
   if (message.author?.bot && !board.allow_bot_messages) return;
   if (await authorHasIgnoredRole(message, board.ignored_roles)) return;
@@ -282,15 +305,16 @@ async function processBoard(
 
     if (existing) {
       const starboardMessage = await starboardChannel.messages.fetch(existing.starboardMessageId).catch(() => null);
-      if (!starboardMessage) {
-        await deleteStarboardPost(message.guild!.id, boardName, message.id);
-      } else {
-        await starboardMessage.edit(payload).catch(async () => {
-          await deleteStarboardPost(message.guild!.id, boardName, message.id);
-        });
+      const edited = starboardMessage ? await starboardMessage.edit(payload).catch(() => null) : null;
+      if (edited) {
         await updateStarboardPostStarCount(message.guild!.id, boardName, message.id, starCount);
         return;
       }
+      // The starboard message is gone or couldn't be edited (deleted manually,
+      // permissions changed, etc) — drop the stale row and fall through to
+      // repost fresh below, rather than leaving this post missing until the
+      // next reaction event happens to touch it again.
+      await deleteStarboardPost(message.guild!.id, boardName, message.id);
     }
 
     const posted = await starboardChannel.send(payload).catch(() => null);
@@ -369,13 +393,11 @@ export async function handleStarboardReaction(
   await processMessageForStarboard(client, message, guildConfig, { user, emoji: reaction.emoji, type });
 }
 
-export async function handleStarboardMessageDelete(client: Client, message: Message): Promise<void> {
-  if (!message.guild) return;
-
-  const rows = await deleteStarboardPostsForSourceMessage(message.guild.id, message.id);
+async function cleanupStarboardPostsForMessage(client: Client, guildId: string, messageId: string): Promise<void> {
+  const rows = await deleteStarboardPostsForSourceMessage(guildId, messageId);
   if (rows.length === 0) return;
 
-  const guildConfig = await configManager.getEffectiveConfig(message.guild.id);
+  const guildConfig = await configManager.getEffectiveConfig(guildId);
   const config = getStarboardPluginConfig(guildConfig) as StarboardConfig;
 
   for (const row of rows) {
@@ -385,5 +407,29 @@ export async function handleStarboardMessageDelete(client: Client, message: Mess
     const starboardChannel = await fetchTextChannel(client, board.channel_id);
     const posted = await starboardChannel?.messages.fetch(row.starboardMessageId).catch(() => null);
     await posted?.delete().catch(() => null);
+  }
+}
+
+export async function handleStarboardMessageDelete(client: Client, message: Message): Promise<void> {
+  if (!message.guild) return;
+  await cleanupStarboardPostsForMessage(client, message.guild.id, message.id);
+}
+
+/** Bulk/purge deletes don't fire individual MessageDelete events, so without this
+ * a starred message removed via a mod-tool purge would leave its starboard post
+ * (and a now-dead "Jump to message" link) behind forever. */
+export async function handleStarboardMessageBulkDelete(
+  client: Client,
+  messages: ReadonlyMap<string, Message | { id: string }>,
+  channel: unknown,
+): Promise<void> {
+  const guildId =
+    channel && typeof channel === "object" && "guild" in channel
+      ? (channel as { guild?: { id: string } | null }).guild?.id
+      : undefined;
+  if (!guildId) return;
+
+  for (const message of messages.values()) {
+    await cleanupStarboardPostsForMessage(client, guildId, message.id);
   }
 }

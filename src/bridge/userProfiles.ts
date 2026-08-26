@@ -17,6 +17,7 @@ import {
   userProfiles,
   welcomeJoinMessages,
 } from "../db/schema.js";
+import { DEFAULT_CONTENT_RETENTION_DAYS } from "../core/contentRetention.js";
 
 const ACCENT_RE = /^#[0-9a-fA-F]{6}$/;
 const BIO_MAX_LENGTH = 280;
@@ -26,6 +27,7 @@ export type UserProfile = {
   accentColor: string | null;
   bio: string | null;
   profileVisible: boolean;
+  contentRetentionDays: number;
   updatedAt: string | null;
 };
 
@@ -60,6 +62,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
     accentColor: row?.accentColor ?? null,
     bio: row?.bio ?? null,
     profileVisible: row?.profileVisible ?? true,
+    contentRetentionDays: row?.contentRetentionDays ?? DEFAULT_CONTENT_RETENTION_DAYS,
     updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
   };
 }
@@ -92,6 +95,7 @@ export type UpsertUserProfileInput = {
   accentColor?: string | null;
   bio?: string | null;
   profileVisible?: boolean;
+  contentRetentionDays?: number;
 };
 
 export async function upsertUserProfileFields(
@@ -111,6 +115,9 @@ export async function upsertUserProfileFields(
   if ("profileVisible" in fields && fields.profileVisible !== undefined) {
     patch.profileVisible = fields.profileVisible;
   }
+  if ("contentRetentionDays" in fields && fields.contentRetentionDays !== undefined) {
+    patch.contentRetentionDays = fields.contentRetentionDays;
+  }
 
   if (existing) {
     await getDb().update(userProfiles).set(patch).where(eq(userProfiles.userId, userId));
@@ -118,6 +125,11 @@ export async function upsertUserProfileFields(
     await getDb()
       .insert(userProfiles)
       .values({ userId, ...patch });
+  }
+
+  if ("contentRetentionDays" in fields) {
+    const { invalidateContentRetentionCache } = await import("../core/contentRetention.js");
+    invalidateContentRetentionCache(userId);
   }
 
   return getUserProfile(userId);
@@ -352,8 +364,14 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
         description: "Guild settings and plugin config are not personal data and are kept.",
       },
       {
-        label: "Message content archives",
-        description: "Logged message content used for moderation is retained by the server.",
+        label: "Moderation message log",
+        description:
+          "The edit/delete audit trail staff use to investigate reports is retained for 42 days regardless of your content retention setting.",
+      },
+      {
+        label: "Message content retention",
+        description:
+          "Your chosen content retention window (Account → Message retention) governs archives and activity-tracker snippets — this deletion doesn't change that setting.",
       },
     ],
   };

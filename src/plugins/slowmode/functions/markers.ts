@@ -81,7 +81,9 @@ export function startSlowmodeMarkerSweeper(client: Client): void {
   clientRef = client;
   if (sweepTimer) return;
   sweepTimer = setInterval(() => {
-    void sweepAll();
+    sweepAll().catch((error) => {
+      console.error("[slowmode] Marker sweep failed:", error);
+    });
   }, 500);
 }
 

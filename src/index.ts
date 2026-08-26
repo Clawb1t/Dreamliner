@@ -7,6 +7,14 @@ process.on("unhandledRejection", (reason) => {
   console.error("[dreamliner] Unhandled promise rejection:", reason);
 });
 
+// Without this, an uncaught synchronous throw anywhere (a bad plugin, a
+// third-party dependency, whatever) has no listener and Node's default
+// behavior kicks in: dump the stack and kill the process. Log it and keep
+// the bot running instead of dying and relying on a process manager restart.
+process.on("uncaughtException", (error, origin) => {
+  console.error(`[dreamliner] Uncaught exception (${origin}):`, error);
+});
+
 function shouldExportSchemaOnStart(): boolean {
   if (process.env.EXPORT_SCHEMA_ON_START === "true") return true;
   if (process.env.EXPORT_SCHEMA_ON_START === "false") return false;

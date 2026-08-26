@@ -1,7 +1,11 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zStarboardConfig } from "../../config/schemas/starboard.js";
-import { handleStarboardMessageDelete, handleStarboardReaction } from "./functions/starboard.js";
+import {
+  handleStarboardMessageBulkDelete,
+  handleStarboardMessageDelete,
+  handleStarboardReaction,
+} from "./functions/starboard.js";
 
 export const starboardPlugin = definePlugin({
   name: "starboard",
@@ -34,6 +38,16 @@ export const starboardPlugin = definePlugin({
       name: Events.MessageDelete,
       execute: async (client, message: unknown) => {
         await handleStarboardMessageDelete(client, message as import("discord.js").Message);
+      },
+    },
+    {
+      name: Events.MessageBulkDelete,
+      execute: async (client, messages: unknown, channel: unknown) => {
+        await handleStarboardMessageBulkDelete(
+          client,
+          messages as ReadonlyMap<string, import("discord.js").Message | import("discord.js").PartialMessage>,
+          channel as import("discord.js").Message["channel"],
+        );
       },
     },
   ],
