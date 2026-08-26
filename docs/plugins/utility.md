@@ -216,6 +216,11 @@ Browse every command through a slim category home screen. Categories include **M
 
 Hot-reload guild configuration from the database.
 
+### `/vote`
+
+Sends a link to vote for Dreamliner on [top.gg](https://top.gg/bot/1524053555114151946). Not gated by a
+`can_*` flag — available to everyone as soon as the utility plugin is enabled.
+
 ### `/avatar`
 
 Display a user's avatar (2048px).

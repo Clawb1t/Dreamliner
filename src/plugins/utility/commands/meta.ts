@@ -1,6 +1,7 @@
-import { DiscordAPIError, SlashCommandBuilder } from "discord.js";
+import { DiscordAPIError, MessageFlags, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resolveDocsUrl } from "../../../core/docsUrl.js";
+import { buildVotePayload } from "../functions/vote.js";
 import {
   resultReply,
   resultEdit,
@@ -38,6 +39,17 @@ export const metaCommands: SlashCommandDefinition[] = [
       const roundtrip = Date.now() - sent;
       const ws = ctx.interaction.client.ws.ping;
       await ctx.interaction.editReply(embedEdit(buildPingEmbed(roundtrip, ws, ctx.client, ctx.guildConfig.emojis)));
+    },
+  },
+  {
+    // No `permission` — voting should never need an admin to set up levels first,
+    // so every member can use this the moment the utility plugin is enabled.
+    plugin: "utility",
+    data: new SlashCommandBuilder().setName("vote").setDescription("Vote for Dreamliner on top.gg"),
+    execute: async (ctx) => {
+      const payload = buildVotePayload();
+      const flags: number = MessageFlags.IsComponentsV2 | (ctx.ephemeral ? MessageFlags.Ephemeral : 0);
+      await ctx.interaction.reply({ ...payload, flags });
     },
   },
   {

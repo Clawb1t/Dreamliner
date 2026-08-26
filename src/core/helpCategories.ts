@@ -138,7 +138,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       {
         plugin: "utility",
-        roots: ["search", "voice", "nickname", "jumbo", "stealemoji", "ping", "about", "help", "reload"],
+        roots: ["search", "voice", "nickname", "jumbo", "stealemoji", "ping", "about", "help", "reload", "vote"],
       },
       { plugin: "stats" },
     ],
