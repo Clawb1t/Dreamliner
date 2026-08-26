@@ -632,6 +632,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const profile = await upsertUserProfileFields(profileMatch[1]!, patch);
+          const { invalidateCached } = await import("./responseCache.js");
+          invalidateCached(`public-profile:${profileMatch[1]!}`);
           sendJson(res, 200, { ok: true, profile });
           return;
         }
@@ -666,7 +668,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const publicProfileMatch = /^\/bridge\/users\/(\d+)\/public-profile$/.exec(url.pathname);
         if (publicProfileMatch && req.method === "GET") {
           const { buildPublicUserProfile } = await import("./userPublicProfile.js");
-          const profile = await buildPublicUserProfile(client, publicProfileMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const userId = publicProfileMatch[1]!;
+          const profile = await cached(`public-profile:${userId}`, 60_000, () =>
+            buildPublicUserProfile(client, userId),
+          );
           if (!profile) {
             sendJson(res, 404, { error: "User not found." });
             return;
@@ -718,6 +724,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const { assignBadge } = await import("./userBadges.js");
           const badges = await assignBadge(ownedBadgesMatch[1]!, badgeId, actorId);
+          const { invalidateCached } = await import("./responseCache.js");
+          invalidateCached(`public-profile:${ownedBadgesMatch[1]!}`);
           sendJson(res, 200, { ok: true, badges });
           return;
         }
@@ -738,6 +746,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const { unassignBadge } = await import("./userBadges.js");
           const badges = await unassignBadge(userBadgeMatch[1]!, Number(userBadgeMatch[2]));
+          const { invalidateCached } = await import("./responseCache.js");
+          invalidateCached(`public-profile:${userBadgeMatch[1]!}`);
           sendJson(res, 200, { ok: true, badges });
           return;
         }
@@ -757,6 +767,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const { setDisplayedBadges } = await import("./userBadges.js");
           const badges = await setDisplayedBadges(badgeDisplayMatch[1]!, body.badgeIds as number[]);
+          const { invalidateCached } = await import("./responseCache.js");
+          invalidateCached(`public-profile:${badgeDisplayMatch[1]!}`);
           sendJson(res, 200, { ok: true, badges });
           return;
         }
@@ -873,6 +885,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 404, { error: "Badge not found." });
               return;
             }
+            // Cheap and rare (admin action) — simplest way to make sure no profile
+            // keeps showing a badge that no longer exists or just changed appearance.
+            const { invalidateCached } = await import("./responseCache.js");
+            invalidateCached("public-profile:");
             sendJson(res, 200, { ok: true });
             return;
           }
@@ -911,6 +927,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 404, { error: "Badge not found." });
               return;
             }
+            const { invalidateCached } = await import("./responseCache.js");
+            invalidateCached("public-profile:");
             sendJson(res, 200, { ok: true, badge });
           } catch (error) {
             sendJson(res, 400, {
@@ -932,16 +950,22 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Public global analytics (no guild / Manage Server required).
         if (req.method === "GET" && url.pathname === "/bridge/stats/global") {
           const { parseWebStatsQuery, buildWebGlobalStats } = await import("./webStats.js");
+          const { cached } = await import("./responseCache.js");
           const query = parseWebStatsQuery(url);
-          const payload = await buildWebGlobalStats(client, query);
+          const payload = await cached(`stats:global:${JSON.stringify(query)}`, 30_000, () =>
+            buildWebGlobalStats(client, query),
+          );
           sendJson(res, 200, payload);
           return;
         }
 
         if (req.method === "GET" && url.pathname === "/bridge/stats/global/public-leaderboard") {
           const { buildWebGlobalPublicMessagerLeaderboard } = await import("./webStats.js");
+          const { cached } = await import("./responseCache.js");
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          const payload = await buildWebGlobalPublicMessagerLeaderboard(client, limit);
+          const payload = await cached(`leaderboard:global:${limit}`, 30_000, () =>
+            buildWebGlobalPublicMessagerLeaderboard(client, limit),
+          );
           sendJson(res, 200, payload);
           return;
         }
@@ -2020,8 +2044,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const { buildWebPublicMessagerLeaderboard } = await import("./webStats.js");
+          const { cached } = await import("./responseCache.js");
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          const payload = await buildWebPublicMessagerLeaderboard(guild, limit);
+          const payload = await cached(`leaderboard:guild:${guild.id}:${limit}`, 30_000, () =>
+            buildWebPublicMessagerLeaderboard(guild, limit),
+          );
           sendJson(res, 200, payload);
           return;
         }
@@ -2032,7 +2059,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const { buildPublicGuildHome } = await import("./publicGuild.js");
-          sendJson(res, 200, await buildPublicGuildHome(guild));
+          const { cached } = await import("./responseCache.js");
+          const payload = await cached(`public-guild-home:${guild.id}`, 30_000, () =>
+            buildPublicGuildHome(guild),
+          );
+          sendJson(res, 200, payload);
           return;
         }
 
@@ -2044,7 +2075,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { buildWebPublicServerStats, parseWebStatsQuery } = await import(
             "./publicGuild.js"
           );
-          const payload = await buildWebPublicServerStats(guild, parseWebStatsQuery(url));
+          const { cached } = await import("./responseCache.js");
+          const query = parseWebStatsQuery(url);
+          const payload = await cached(
+            `public-guild-stats:${guild.id}:${JSON.stringify(query)}`,
+            30_000,
+            () => buildWebPublicServerStats(guild, query),
+          );
           if (!payload.ok) {
             sendJson(res, 404, payload);
             return;
@@ -3391,8 +3428,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const { parseWebStatsQuery, buildWebServerStats } = await import("./webStats.js");
+          const { cached } = await import("./responseCache.js");
           const query = parseWebStatsQuery(url);
-          const payload = await buildWebServerStats(guild, query);
+          const payload = await cached(
+            `stats:guild:${guild.id}:${JSON.stringify(query)}`,
+            30_000,
+            () => buildWebServerStats(guild, query),
+          );
           sendJson(res, 200, payload);
           return;
         }

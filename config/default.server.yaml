@@ -719,15 +719,7 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      can_create: false
-      can_set: false
-      can_delete: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_set: true
-          can_delete: true
+      counters: []
   companion_channels:
     enabled: true
     replaceDefaultOverrides: false
