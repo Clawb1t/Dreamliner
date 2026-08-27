@@ -1072,6 +1072,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const logsMatch = /^\/bridge\/guilds\/(\d+)\/logs$/.exec(url.pathname);
         const trackerMatch = /^\/bridge\/guilds\/(\d+)\/tracker\/(\d+)$/.exec(url.pathname);
+        const watchdogMatch = /^\/bridge\/guilds\/(\d+)\/watchdog$/.exec(url.pathname);
         const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
         const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
         const suggestionActionMatch =
@@ -1142,6 +1143,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !logOneMatch &&
           !logsMatch &&
           !trackerMatch &&
+          !watchdogMatch &&
           !reviewOneMatch &&
           !reviewsMatch &&
           !suggestionActionMatch &&
@@ -1192,6 +1194,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           logOneMatch?.[1] ??
           logsMatch?.[1] ??
           trackerMatch?.[1] ??
+          watchdogMatch?.[1] ??
           reviewOneMatch?.[1] ??
           reviewsMatch?.[1] ??
           suggestionActionMatch?.[1] ??
@@ -2510,6 +2513,26 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             userId: targetUserId,
             ...trail,
           });
+          return;
+        }
+
+        if (watchdogMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { buildWebWatchdogList } = await import("./webWatchdog.js");
+          const payload = await buildWebWatchdogList(guild);
+          sendJson(res, 200, { ok: true, ...payload });
           return;
         }
 
