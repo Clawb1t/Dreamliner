@@ -1,4 +1,4 @@
-import { and, asc, count, desc, gte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import {
   guildStatsChannelDaily,
@@ -51,6 +51,29 @@ export async function getGlobalActiveMessagerCount(): Promise<number> {
     .where(gte(userMessageCounts.count, 1))
     .get();
   return Number(row?.total ?? 0);
+}
+
+/** Lifetime global message count for a single user. */
+export async function getGlobalUserMessageCount(userId: string): Promise<number> {
+  const db = getDb();
+  const row = await db
+    .select({ count: userMessageCounts.count })
+    .from(userMessageCounts)
+    .where(eq(userMessageCounts.userId, userId))
+    .get();
+  return row?.count ?? 0;
+}
+
+/** 1-based global rank of a user by lifetime message count (1 = most messages). */
+export async function getGlobalUserMessageRank(userCount: number): Promise<number> {
+  if (userCount <= 0) return 0;
+  const db = getDb();
+  const row = await db
+    .select({ total: count() })
+    .from(userMessageCounts)
+    .where(sql`${userMessageCounts.count} > ${userCount}`)
+    .get();
+  return (row?.total ?? 0) + 1;
 }
 
 export async function getTopGlobalMessagers(

@@ -10,11 +10,12 @@ import type { ConfigManager } from "../config/manager.js";
 import { pluginEnabled } from "../core/pluginCommand.js";
 import { normalizeBrandImageBase64 } from "../plugins/bot_customisation/functions/normalizeImage.js";
 import {
+  logBrandImageApplied,
   markReviewMessageCancelled,
-  submitBrandImageForReview,
 } from "../plugins/bot_customisation/functions/review.js";
 import {
   cancelBotBrandRequestById,
+  createAppliedBotBrandRequest,
   DASHBOARD_REQUEST_CHANNEL,
   getBotAvatarRequest,
   getLatestApprovedBrandRequest,
@@ -26,6 +27,7 @@ import {
   setStoredBotBio,
   setStoredBotNameStyle,
   setStoredBrandImage,
+  supersedePendingBotBrandRequests,
   type BotAvatarRequest,
   type BotBrandImageKind,
 } from "../plugins/bot_customisation/functions/store.js";
@@ -336,6 +338,10 @@ export async function getBridgeBotBrandRequestImage(
   };
 }
 
+/**
+ * Applies the avatar/banner immediately (no staff approval gate), then posts a
+ * photo-log message with a "Remove" button so staff can moderate after the fact.
+ */
 export async function submitBridgeBrandImage(
   client: Client,
   configManager: ConfigManager,
@@ -352,15 +358,6 @@ export async function submitBridgeBrandImage(
   const aero = await assertDreamlinerAero(guild.id);
   if (!aero.ok) return aero;
 
-  const existing = (await listPendingBotBrandRequests(guild.id)).find((row) => row.kind === kind);
-  if (existing) {
-    return {
-      ok: false,
-      error: `This server already has a pending ${kind} request (#${existing.id}). Cancel it before submitting a new one.`,
-      status: 409,
-    };
-  }
-
   const normalized = await normalizeBrandImageBase64(imageBase64, kind);
   if (!normalized.ok) {
     return { ok: false, error: `${normalized.title}: ${normalized.details}`, status: 400 };
@@ -370,28 +367,53 @@ export async function submitBridgeBrandImage(
   const requesterTag = member?.user.tag ?? userId;
 
   try {
-    const { request, reviewPosted } = await submitBrandImageForReview({
-      client,
-      guildId: guild.id,
-      guildName: guild.name,
-      requesterId: userId,
-      requesterTag,
-      requestChannelId: DASHBOARD_REQUEST_CHANNEL,
-      imagePng: normalized.buffer,
-      kind,
+    await guild.members.editMe({
+      ...(kind === "banner" ? { banner: normalized.buffer } : { avatar: normalized.buffer }),
+      reason: `Guild ${kind} set from dashboard by ${requesterTag}`,
     });
-    return {
-      ok: true,
-      request: serializeRequest(guild.id, request),
-      reviewPosted,
-    };
   } catch (error) {
     return {
       ok: false,
-      error: apiErrorMessage(error, `Failed to queue ${kind} for review.`),
-      status: 500,
+      error: apiErrorMessage(error, `Discord rejected the ${kind} change.`),
+      status: 400,
     };
   }
+
+  const pngBase64 = normalized.buffer.toString("base64");
+  await setStoredBrandImage(guild.id, kind, pngBase64, userId).catch(() => undefined);
+  // Clear out any leftover pending row for this kind (e.g. from before immediate-apply
+  // shipped) so the dashboard doesn't keep showing a stale "waiting on staff" state.
+  await supersedePendingBotBrandRequests(guild.id, kind, userId).catch(() => undefined);
+
+  const request = await createAppliedBotBrandRequest({
+    guildId: guild.id,
+    requesterId: userId,
+    requestChannelId: DASHBOARD_REQUEST_CHANNEL,
+    imagePngBase64: pngBase64,
+    kind,
+  });
+
+  let logPosted = false;
+  try {
+    const logged = await logBrandImageApplied({
+      client,
+      guildName: guild.name,
+      requesterId: userId,
+      requesterTag,
+      request,
+      imagePng: normalized.buffer,
+      kind,
+    });
+    logPosted = logged.logPosted;
+  } catch (error) {
+    console.error(`[bot_customisation] Failed to post ${kind} photo log`, error);
+  }
+
+  return {
+    ok: true,
+    request: serializeRequest(guild.id, request),
+    reviewPosted: logPosted,
+  };
 }
 
 export async function cancelBridgeBrandRequest(

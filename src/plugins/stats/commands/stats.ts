@@ -1,9 +1,10 @@
-import { ChannelType, SlashCommandBuilder, SlashCommandIntegerOption } from "discord.js";
+import { AttachmentBuilder, ChannelType, SlashCommandBuilder, SlashCommandIntegerOption } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { deferReplyOptions, resultReply, slashResultOptions } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
 import { ALL_TIME_WINDOW, isValidStatsWindow, type StatsWindow } from "../functions/daily.js";
 import { buildStatsMessage, type StatsState } from "../functions/ui/index.js";
+import { renderUserRankCard, type RankScope } from "../functions/rank.js";
 
 function daysOption(): SlashCommandIntegerOption {
   return new SlashCommandIntegerOption()
@@ -98,6 +99,34 @@ export const statsCommands: SlashCommandDefinition[] = [
         embeds: message.embeds,
         files: message.files,
         components: message.components,
+      });
+    },
+  },
+  {
+    plugin: "stats",
+    permission: "can_user",
+    data: new SlashCommandBuilder()
+      .setName("rank")
+      .setDescription("Show a leaderboard-style rank card for a user")
+      .addStringOption((o) =>
+        o
+          .setName("scope")
+          .setDescription("Rank within this server or across every server")
+          .setRequired(true)
+          .addChoices({ name: "Server", value: "server" }, { name: "Global", value: "global" }),
+      )
+      .addUserOption((o) => o.setName("user").setDescription("User to look up")),
+    execute: async (ctx) => {
+      const auth = await requirePluginPermission(ctx, "stats", "can_user");
+      if (!auth) return;
+
+      const scope = ctx.interaction.options.getString("scope", true) as RankScope;
+      const user = ctx.interaction.options.getUser("user") ?? ctx.interaction.user;
+
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+      const result = await renderUserRankCard(scope, ctx.interaction.guild!, user);
+      await ctx.interaction.editReply({
+        files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
       });
     },
   },

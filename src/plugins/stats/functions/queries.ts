@@ -72,6 +72,17 @@ export async function getActiveMessagerCount(guildId: string): Promise<number> {
   return row?.total ?? 0;
 }
 
+/** Lifetime message count for a single user in a guild. */
+export async function getUserMessageCount(guildId: string, userId: string): Promise<number> {
+  const db = getDb();
+  const row = await db
+    .select({ count: guildMessageCounts.count })
+    .from(guildMessageCounts)
+    .where(and(eq(guildMessageCounts.guildId, guildId), eq(guildMessageCounts.userId, userId)))
+    .get();
+  return row?.count ?? 0;
+}
+
 export async function getUserMessageRank(guildId: string, _userId: string, userCount: number): Promise<number> {
   if (userCount <= 0) return 0;
   const db = getDb();

@@ -182,16 +182,9 @@ export function buildResultEmbed(
 }
 
 export function buildPingEmbed(roundtrip: number, ws: number, client: Client, emojis?: EmojisConfig): EmbedBuilder {
-  return setEmbedAuthor(baseEmbed(), "Ping", client, { tone: "neutral", emojis }).addFields(
-    embedField(
-      "Latency",
-      trimLines(`
-        Roundtrip: **${roundtrip}ms**
-        WebSocket: **${ws}ms**
-      `),
-      true,
-    ),
-  );
+  return setEmbedAuthor(baseEmbed(), "Pong!", client, { tone: "success", emojis })
+    .setDescription(`**${ws}ms**`)
+    .setFooter({ text: `Roundtrip is ${roundtrip}ms` });
 }
 
 export function memberAccentColor(member: GuildMember | null): number | undefined {

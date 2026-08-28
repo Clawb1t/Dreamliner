@@ -10,7 +10,9 @@ export type BotAvatarRequestStatus =
   | "denied"
   | "failed"
   | "cancelled"
-  | "superseded";
+  | "superseded"
+  /** Staff pulled a live (applied) avatar/banner back down from the photo log. */
+  | "removed";
 
 export type BotAvatarRequest = {
   id: number;
@@ -133,6 +135,62 @@ export async function createBotBrandRequest(input: {
   return mapRow(inserted[0]!);
 }
 
+/**
+ * Records an avatar/banner change that was already applied live (no staff gate) —
+ * inserted straight into the "approved" terminal state so it shows in the photo log
+ * and history exactly like a staff-approved request used to.
+ */
+export async function createAppliedBotBrandRequest(input: {
+  guildId: string;
+  requesterId: string;
+  requestChannelId: string;
+  imagePngBase64: string;
+  kind: BotBrandImageKind;
+}): Promise<BotAvatarRequest> {
+  const now = new Date();
+  const inserted = await getDb()
+    .insert(botAvatarRequests)
+    .values({
+      guildId: input.guildId,
+      requesterId: input.requesterId,
+      requestChannelId: input.requestChannelId,
+      avatarPng: input.imagePngBase64,
+      kind: input.kind,
+      status: "approved",
+      createdAt: now,
+      resolvedAt: now,
+    })
+    .returning();
+
+  return mapRow(inserted[0]!);
+}
+
+/**
+ * Marks any still-pending requests of this kind as superseded — leftovers from
+ * before immediate-apply shipped, or a race with another in-flight submission —
+ * so the dashboard stops showing a stale "waiting" state for this kind.
+ */
+export async function supersedePendingBotBrandRequests(
+  guildId: string,
+  kind: BotBrandImageKind,
+  supersededBy: string,
+): Promise<void> {
+  await getDb()
+    .update(botAvatarRequests)
+    .set({
+      status: "superseded",
+      reviewerId: supersededBy,
+      resolvedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(botAvatarRequests.guildId, guildId),
+        eq(botAvatarRequests.status, "pending"),
+        eq(botAvatarRequests.kind, kind),
+      ),
+    );
+}
+
 /** @deprecated Prefer createBotBrandRequest */
 export async function createBotAvatarRequest(input: {
   guildId: string;
@@ -244,6 +302,23 @@ export async function markBotAvatarRequestFailed(id: number): Promise<void> {
     .update(botAvatarRequests)
     .set({ status: "failed", resolvedAt: new Date() })
     .where(eq(botAvatarRequests.id, id));
+}
+
+/** Staff pulled a live avatar/banner back down from the photo log; race-safe like resolveBotAvatarRequest. */
+export async function markBotBrandRequestRemoved(
+  id: number,
+  removedById: string,
+): Promise<BotAvatarRequest | null> {
+  const updated = await getDb()
+    .update(botAvatarRequests)
+    .set({
+      status: "removed",
+      reviewerId: removedById,
+      resolvedAt: new Date(),
+    })
+    .where(and(eq(botAvatarRequests.id, id), eq(botAvatarRequests.status, "approved")))
+    .returning();
+  return updated[0] ? mapRow(updated[0]) : null;
 }
 
 export async function getStoredBotBio(guildId: string): Promise<string | null> {

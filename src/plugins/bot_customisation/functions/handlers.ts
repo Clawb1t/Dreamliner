@@ -14,12 +14,13 @@ import {
   DASHBOARD_REQUEST_CHANNEL,
   getBotAvatarRequest,
   markBotAvatarRequestFailed,
+  markBotBrandRequestRemoved,
   resolveBotAvatarRequest,
   setStoredBrandImage,
   type BotAvatarRequest,
   type BotBrandImageKind,
 } from "./store.js";
-import { brandImageAttachment, brandImageAttachmentUrl } from "./review.js";
+import { brandImageAttachment, brandImageAttachmentUrl, finalizeBrandLogRemoved } from "./review.js";
 
 function asTextChannel(channel: unknown): GuildTextBasedChannel | null {
   if (
@@ -188,6 +189,43 @@ export async function handleBotAvatarButtonInteraction(
       content: "The **bot_customisation** plugin is disabled for that server.",
       ephemeral: true,
     });
+    return true;
+  }
+
+  if (parsed.action === "remove") {
+    if (request.status !== "approved") {
+      await interaction.reply({
+        content: `This ${kindLabel(request.kind).toLowerCase()} was already **${request.status}**.`,
+        ephemeral: true,
+      });
+      return true;
+    }
+
+    await interaction.deferUpdate();
+
+    const removed = await markBotBrandRequestRemoved(request.id, interaction.user.id);
+    if (!removed) {
+      await interaction.followUp({ content: "Someone else already resolved this request.", ephemeral: true });
+      return true;
+    }
+
+    const targetGuild =
+      interaction.client.guilds.cache.get(removed.guildId) ??
+      (await interaction.client.guilds.fetch(removed.guildId).catch(() => null));
+
+    if (targetGuild) {
+      try {
+        await targetGuild.members.editMe({
+          ...(removed.kind === "banner" ? { banner: null } : { avatar: null }),
+          reason: `Guild ${removed.kind} removed by staff ${interaction.user.tag} (request #${removed.id})`,
+        });
+      } catch {
+        // Keep the stored/log state as removed even if Discord rejects reverting the live asset.
+      }
+      await setStoredBrandImage(removed.guildId, removed.kind, "", interaction.user.id).catch(() => undefined);
+    }
+
+    await finalizeBrandLogRemoved(interaction.client, removed, interaction.user.id);
     return true;
   }
 

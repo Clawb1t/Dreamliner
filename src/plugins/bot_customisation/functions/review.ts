@@ -7,16 +7,12 @@ import {
   type Client,
   type GuildTextBasedChannel,
 } from "discord.js";
+import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import {
-  baseEmbed,
-  buildResultEmbed,
-  embedField,
-  setEmbedAuthor,
-} from "../../../core/embeds.js";
-import {
-  AVATAR_REVIEW_CHANNEL_ID,
+  BOT_BRAND_LOG_CHANNEL_ID,
   botAvatarApproveCustomId,
   botAvatarDenyCustomId,
+  botBrandRemoveCustomId,
 } from "../constants.js";
 import {
   createBotBrandRequest,
@@ -48,10 +44,10 @@ export function avatarAttachmentUrl(): string {
   return brandImageAttachmentUrl("avatar");
 }
 
-async function reviewChannel(client: Client): Promise<GuildTextBasedChannel | null> {
+async function brandLogChannel(client: Client): Promise<GuildTextBasedChannel | null> {
   const channel =
-    client.channels.cache.get(AVATAR_REVIEW_CHANNEL_ID) ??
-    (await client.channels.fetch(AVATAR_REVIEW_CHANNEL_ID).catch(() => null));
+    client.channels.cache.get(BOT_BRAND_LOG_CHANNEL_ID) ??
+    (await client.channels.fetch(BOT_BRAND_LOG_CHANNEL_ID).catch(() => null));
   if (!channel?.isTextBased() || channel.isDMBased()) return null;
   if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
     return null;
@@ -81,10 +77,10 @@ export async function submitBrandImageForReview(options: {
     kind: options.kind,
   });
 
-  const channel = await reviewChannel(options.client);
+  const channel = await brandLogChannel(options.client);
   if (!channel) {
     console.error(
-      `[bot_customisation] Review channel ${AVATAR_REVIEW_CHANNEL_ID} missing or not a text channel`,
+      `[bot_customisation] Photo log channel ${BOT_BRAND_LOG_CHANNEL_ID} missing or not a text channel`,
     );
     return { request, reviewPosted: false };
   }
@@ -154,24 +150,112 @@ export async function submitAvatarForReview(options: {
   });
 }
 
-export function pendingUserEmbed(
-  client: Client,
-  guildName: string,
-  reviewPosted: boolean,
-  kind: BotBrandImageKind = "avatar",
-) {
-  const label = kindLabel(kind).toLowerCase();
-  return buildResultEmbed(
-    `${kindLabel(kind)} pending review`,
-    reviewPosted
-      ? `Dreamliner's new ${label} for **${guildName}** is waiting for staff approval. Track progress on the dashboard Brand page.`
-      : `Your request was saved, but Dreamliner could not reach the review channel. Staff have been notified via logs — try again later if nothing happens.`,
-    {
-      client,
-      tone: "warning",
-      imageURL: brandImageAttachmentUrl(kind),
-    },
+/**
+ * Applies immediately — no staff gate. Posts a photo-log message with a single
+ * "Remove" button so staff can moderate after the fact instead of approving beforehand.
+ */
+export async function logBrandImageApplied(options: {
+  client: Client;
+  guildName: string;
+  requesterId: string;
+  requesterTag: string;
+  request: BotAvatarRequest;
+  imagePng: Buffer;
+  kind: BotBrandImageKind;
+}): Promise<{ logPosted: boolean }> {
+  const channel = await brandLogChannel(options.client);
+  if (!channel) {
+    console.error(
+      `[bot_customisation] Photo log channel ${BOT_BRAND_LOG_CHANNEL_ID} missing or not a text channel`,
+    );
+    return { logPosted: false };
+  }
+
+  const label = kindLabel(options.kind);
+  const file = brandImageAttachment(options.imagePng, options.kind);
+  const embed = setEmbedAuthor(baseEmbed(), `${label} updated`, options.client, {
+    tone: "success",
+  })
+    .addFields(
+      embedField(
+        "Change",
+        [
+          `**Type:** ${label}`,
+          `**Server:** ${options.guildName} (\`${options.request.guildId}\`)`,
+          `**Set by:** <@${options.requesterId}> (\`${options.requesterTag}\`)`,
+          `**Source:** ${options.request.requestChannelId === DASHBOARD_REQUEST_CHANNEL ? "Dashboard" : "Discord"}`,
+          `**Request id:** \`${options.request.id}\``,
+        ].join("\n"),
+      ),
+    )
+    .setImage(brandImageAttachmentUrl(options.kind))
+    .setFooter({
+      text: `Live now in the server. Remove pulls it back to Dreamliner's default ${options.kind}.`,
+    });
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(botBrandRemoveCustomId(options.request.id))
+      .setLabel("Remove")
+      .setStyle(ButtonStyle.Danger),
   );
+
+  const logMessage = await channel.send({
+    embeds: [embed],
+    files: [file],
+    components: [row],
+  });
+
+  await updateBotAvatarRequestMessageIds(options.request.id, { reviewMessageId: logMessage.id });
+  return { logPosted: true };
+}
+
+/** Disable the photo-log message once staff removes a live avatar/banner. */
+export async function finalizeBrandLogRemoved(
+  client: Client,
+  request: BotAvatarRequest,
+  removedById: string,
+): Promise<void> {
+  if (!request.reviewMessageId) return;
+  const channel = await brandLogChannel(client);
+  if (!channel) return;
+
+  const message = await channel.messages.fetch(request.reviewMessageId).catch(() => null);
+  if (!message) return;
+
+  const guildName = client.guilds.cache.get(request.guildId)?.name ?? request.guildId;
+  const label = kindLabel(request.kind);
+  const disabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`dl:botavatar:done:r:${request.id}`)
+      .setLabel("Removed")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true),
+  );
+
+  const embed = setEmbedAuthor(baseEmbed(), `${label} removed`, client, { tone: "unchecked" })
+    .addFields(
+      embedField(
+        "Change",
+        [
+          `**Type:** ${label}`,
+          `**Server:** ${guildName} (\`${request.guildId}\`)`,
+          `**Set by:** <@${request.requesterId}>`,
+          `**Removed by:** <@${removedById}>`,
+          `**Request id:** \`${request.id}\``,
+          "**Status:** removed",
+        ].join("\n"),
+      ),
+    )
+    .setImage(brandImageAttachmentUrl(request.kind));
+
+  await message
+    .edit({
+      embeds: [embed],
+      components: [disabled],
+      files: [brandImageAttachment(Buffer.from(request.avatarPng, "base64"), request.kind)],
+    })
+    .catch(() => null);
 }
 
 /** Disable the staff review message after a user cancels their queue entry. */
@@ -181,7 +265,7 @@ export async function markReviewMessageCancelled(
   cancelledById: string,
 ): Promise<void> {
   if (!request.reviewMessageId) return;
-  const channel = await reviewChannel(client);
+  const channel = await brandLogChannel(client);
   if (!channel) return;
 
   const message = await channel.messages.fetch(request.reviewMessageId).catch(() => null);
