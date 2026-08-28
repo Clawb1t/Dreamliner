@@ -2,7 +2,7 @@ import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resultReply, embedReply, slashResultOptions } from "../../../core/responses.js";
 import { buildResultEmbed } from "../../../core/embeds.js";
-import { requireInfractionPermission } from "../functions/commandHelpers.js";
+import { replyIfReasonRequired, requireInfractionPermission } from "../functions/commandHelpers.js";
 import { requireDiscordPerm, BanMembers, KickMembers } from "../../utility/functions/commandHelpers.js";
 import { canModerateTarget, formatReason } from "../functions/moderation.js";
 import { parseDuration, formatDurationShort } from "../functions/duration.js";
@@ -33,6 +33,16 @@ async function finishAction(
 ) {
   const durationLabel = extras?.match(/Duration: \*\*(.+)\*\*/)?.[1] ?? null;
   await postCaseLog(ctx.client, ctx.guildConfig, pluginConfig, record, user, ctx.interaction.user, { durationLabel });
+
+  const { maybeEscalate } = await import("../functions/escalation.js");
+  await maybeEscalate({
+    client: ctx.client,
+    guild: ctx.interaction.guild!,
+    guildConfig: ctx.guildConfig,
+    pluginConfig,
+    user,
+    triggeringType: record.type,
+  }).catch((err) => console.error("Escalation error:", err));
 
   const notifyKey = type.replace("temp", "") as keyof InfractionConfig["notify"];
   const notifyMsg = buildNotifyMessage(pluginConfig, notifyKey in pluginConfig.notify ? notifyKey : "warn", {
@@ -67,13 +77,9 @@ async function finishAction(
   }
 
   const details = buildActionConfirmDetails(type, user.tag, user.id, reason, extras);
-  if (pluginConfig.confirm_actions) {
-    await ctx.interaction.reply(
-      embedReply(buildResultEmbed(`Infraction #${record.id}`, details, slashResultOptions(ctx)), ctx.ephemeral),
-    );
-  } else {
-    await ctx.interaction.reply(resultReply(`Infraction #${record.id}`, details, ctx.ephemeral, slashResultOptions(ctx)));
-  }
+  await ctx.interaction.reply(
+    embedReply(buildResultEmbed(`Infraction #${record.id}`, details, slashResultOptions(ctx)), ctx.ephemeral),
+  );
 }
 
 export const actionCommands: SlashCommandDefinition[] = [
@@ -95,7 +101,9 @@ export const actionCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(resultReply("Warn", err, ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
-      const reason = formatReason(ctx.interaction.options.getString("reason"));
+      const rawReason = ctx.interaction.options.getString("reason");
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "warn", rawReason, "Warn")) return;
+      const reason = formatReason(rawReason);
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
         userId: user.id,
@@ -139,7 +147,7 @@ export const actionCommands: SlashCommandDefinition[] = [
       .setDescription("Timeout a member (Discord mute)")
       .addUserOption((o) => o.setName("user").setDescription("Member to mute").setRequired(true))
       .addStringOption((o) =>
-        o.setName("duration").setDescription("Timeout length (e.g. 30m, 2h, 1d; max 28d)").setRequired(true),
+        o.setName("duration").setDescription("Timeout length (e.g. 30m, 2h, 1d; max 28d). Uses the server default if left blank."),
       )
       .addStringOption((o) => o.setName("reason").setDescription("Reason")),
     execute: async (ctx) => {
@@ -160,10 +168,19 @@ export const actionCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const durationStr = ctx.interaction.options.getString("duration", true);
-      const parsedMs = parseDuration(durationStr);
+      const durationStr = ctx.interaction.options.getString("duration");
+      const parsedMs = durationStr ? parseDuration(durationStr) : auth.pluginConfig.default_duration.tempmute;
       if (!parsedMs) {
-        await ctx.interaction.reply(resultReply("Mute", "Invalid duration. Use formats like `30m`, `2h`, `1d`.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply(
+            "Mute",
+            durationStr
+              ? "Invalid duration. Use formats like `30m`, `2h`, `1d`."
+              : "No duration given and no server default is configured.",
+            ctx.ephemeral,
+            slashResultOptions(ctx),
+          ),
+        );
         return;
       }
 
@@ -180,7 +197,9 @@ export const actionCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const reason = formatReason(ctx.interaction.options.getString("reason"));
+      const rawReason = ctx.interaction.options.getString("reason");
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "mute", rawReason, "Mute")) return;
+      const reason = formatReason(rawReason);
       try {
         await applyTimeout(target, durationMs, reason ?? "Dreamliner mute");
       } catch {
@@ -205,7 +224,7 @@ export const actionCommands: SlashCommandDefinition[] = [
         metadata: { method: "timeout" },
       });
 
-      await finishAction(ctx, auth.pluginConfig, "tempmute", user, reason, record, `Duration: **${durationStr}**`);
+      await finishAction(ctx, auth.pluginConfig, "tempmute", user, reason, record, `Duration: **${formatDurationShort(durationMs)}**`);
     },
   },
   {
@@ -283,7 +302,9 @@ export const actionCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const reason = formatReason(ctx.interaction.options.getString("reason"));
+      const rawReason = ctx.interaction.options.getString("reason");
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "kick", rawReason, "Kick")) return;
+      const reason = formatReason(rawReason);
       await target.kick(reason);
 
       const record = await createInfraction({
@@ -323,7 +344,9 @@ export const actionCommands: SlashCommandDefinition[] = [
       }
 
       const deleteDays = ctx.interaction.options.getInteger("delete_days") ?? auth.pluginConfig.ban_delete_message_days;
-      const reason = formatReason(ctx.interaction.options.getString("reason"));
+      const rawReason = ctx.interaction.options.getString("reason");
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "ban", rawReason, "Ban")) return;
+      const reason = formatReason(rawReason);
 
       await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
 
@@ -346,7 +369,9 @@ export const actionCommands: SlashCommandDefinition[] = [
       .setName("tempban")
       .setDescription("Temporarily ban a member")
       .addUserOption((o) => o.setName("user").setDescription("Member to tempban").setRequired(true))
-      .addStringOption((o) => o.setName("duration").setDescription("Duration (e.g. 1d, 12h, 1w)").setRequired(true))
+      .addStringOption((o) =>
+        o.setName("duration").setDescription("Duration (e.g. 1d, 12h, 1w). Uses the server default if left blank."),
+      )
       .addIntegerOption((o) =>
         o.setName("delete_days").setDescription("Days of messages to delete (0-7)").setMinValue(0).setMaxValue(7),
       )
@@ -364,17 +389,26 @@ export const actionCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const durationStr = ctx.interaction.options.getString("duration", true);
-      const durationMs = parseDuration(durationStr);
+      const durationStr = ctx.interaction.options.getString("duration");
+      const durationMs = durationStr ? parseDuration(durationStr) : auth.pluginConfig.default_duration.tempban;
       if (!durationMs) {
         await ctx.interaction.reply(
-          resultReply("Tempban", "Invalid duration. Use formats like `30m`, `2h`, `1d`.", ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Tempban",
+            durationStr
+              ? "Invalid duration. Use formats like `30m`, `2h`, `1d`."
+              : "No duration given and no server default is configured.",
+            ctx.ephemeral,
+            slashResultOptions(ctx),
+          ),
         );
         return;
       }
 
       const deleteDays = ctx.interaction.options.getInteger("delete_days") ?? auth.pluginConfig.ban_delete_message_days;
-      const reason = formatReason(ctx.interaction.options.getString("reason"));
+      const rawReason = ctx.interaction.options.getString("reason");
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "tempban", rawReason, "Tempban")) return;
+      const reason = formatReason(rawReason);
 
       await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
 
@@ -387,7 +421,7 @@ export const actionCommands: SlashCommandDefinition[] = [
         expiresAt: new Date(Date.now() + durationMs),
       });
 
-      await finishAction(ctx, auth.pluginConfig, "tempban", user, reason, record, `Duration: **${durationStr}**`);
+      await finishAction(ctx, auth.pluginConfig, "tempban", user, reason, record, `Duration: **${formatDurationShort(durationMs)}**`);
     },
   },
   {
@@ -445,7 +479,9 @@ export const actionCommands: SlashCommandDefinition[] = [
       }
 
       const deleteDays = auth.pluginConfig.softban_delete_message_days;
-      const reason = formatReason(ctx.interaction.options.getString("reason"));
+      const rawReason = ctx.interaction.options.getString("reason");
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "softban", rawReason, "Softban")) return;
+      const reason = formatReason(rawReason);
       const guild = ctx.interaction.guild!;
 
       await guild.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });

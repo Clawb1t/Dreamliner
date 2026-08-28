@@ -53,7 +53,7 @@ plugins:
 
 ### Feature toggles
 
-Owner controls you can allow or block server-wide: name, limit, status, lock, claim, reject, permit, ghost, lfm, text, bitrate, invite, transfer, nsfw, interface, interface ping, manage channel, move member, autotext, region.
+Owner controls you can allow or block server-wide: name, limit, status, lock, claim, reject, permit, ghost, lfm, text, bitrate, transfer, nsfw, interface, interface ping, manage channel, move member, autotext, region.
 
 Staff with `staff_role_id` can always manage any room.
 
@@ -70,7 +70,6 @@ Staff with `staff_role_id` can always manage any room.
 | `/companion claim` | Take ownership if the owner left |
 | `/companion permit` / `reject` | Allow or block a user/role |
 | `/companion transfer` | Give ownership to someone else |
-| `/companion invite` | DM an invite |
 | `/companion status` | Voice channel status |
 | `/companion bitrate` | Audio quality |
 | `/companion region` | Voice region |
@@ -80,6 +79,6 @@ Staff with `staff_role_id` can always manage any room.
 
 ## Requirements
 
-- **Manage Channels**, **Move Members**, **Connect**, **Send Messages**. Status needs **Set Voice Channel Status**. Invites need **Create Instant Invite**.
+- **Manage Channels**, **Move Members**, **Connect**, **Send Messages**. Status needs **Set Voice Channel Status**. LFM posts need **Create Instant Invite**.
 - Empty rooms are deleted when the last person leaves. Dynamic rooms reset into the ready pool instead when possible.
 - If someone already owns a room, joining a hub moves them back to it.

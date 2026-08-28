@@ -18,7 +18,6 @@ import type { EmojisConfig } from "../../../config/schemas/guild.js";
 import {
   claimCompanion,
   ghostCompanion,
-  inviteUser,
   lockCompanion,
   permitTarget,
   postLookingForMembers,
@@ -184,10 +183,10 @@ export async function handleCompanionSelectInteraction(interaction: StringSelect
     });
     return true;
   }
-  if (choice === "invite" || choice === "transfer") {
+  if (choice === "transfer") {
     await interaction.reply({
       ephemeral: true,
-      content: choice === "invite" ? "Choose who to invite." : "Choose the new owner.",
+      content: "Choose the new owner.",
       components: [
         new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
           new UserSelectMenuBuilder()
@@ -250,7 +249,6 @@ export async function handleCompanionEntitySelect(interaction: MessageComponentI
       await replyResult(interaction, failResult("Pick a member."), false, actor.emojis);
       return true;
     }
-    if (action === "invite") result = await inviteUser(actor, channel, user);
     if (action === "transfer") result = await transferCompanion(actor, channel, user);
   }
 

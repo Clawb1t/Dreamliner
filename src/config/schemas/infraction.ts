@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { boolPerm, channelId, roleId } from "../schemaHelp.js";
+import { boolPerm, channelId } from "../schemaHelp.js";
 import { zPluginOverride } from "./pluginSection.js";
 
 const notifyActionSchema = z.strictObject({
@@ -7,18 +7,90 @@ const notifyActionSchema = z.strictObject({
   format: z.string().optional().describe("Optional custom DM message template for this action."),
 });
 
-export const zInfractionConfig = z.strictObject({
-  confirm_actions: z
-    .boolean()
-    .default(true)
-    .describe("Ask for confirmation before applying moderation actions."),
-  confirm_actions_expiry: z
+/** Infraction types that can require a reason before the command runs. */
+export const REASON_REQUIRABLE_TYPES = ["warn", "mute", "kick", "ban", "tempban", "softban"] as const;
+
+/** Infraction types that can feed the auto-escalation strike count. */
+export const ESCALATION_COUNT_TYPES = ["warn", "mute", "tempmute", "kick", "softban", "tempban", "ban"] as const;
+
+/** Punishments an escalation step can apply automatically. */
+export const ESCALATION_STEP_TYPES = ["mute", "kick", "softban", "tempban", "ban"] as const;
+
+export type ReasonRequirableType = (typeof REASON_REQUIRABLE_TYPES)[number];
+export type EscalationCountType = (typeof ESCALATION_COUNT_TYPES)[number];
+export type EscalationStepType = (typeof ESCALATION_STEP_TYPES)[number];
+
+const zRequireReason = z
+  .strictObject(
+    Object.fromEntries(
+      REASON_REQUIRABLE_TYPES.map((type) => [type, z.boolean().default(false)]),
+    ) as Record<ReasonRequirableType, z.ZodDefault<z.ZodBoolean>>,
+  )
+  .default({})
+  .describe("Per-action toggle: block the command with an error if no reason is given.");
+
+const zDefaultDuration = z
+  .strictObject({
+    tempmute: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Fallback /mute duration (ms) when no duration option is given."),
+    tempban: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Fallback /tempban duration (ms) when no duration option is given."),
+  })
+  .default({})
+  .describe("Default durations used when a timed command's duration option is left blank.");
+
+const zEscalationStep = z.strictObject({
+  after: z
+    .number()
+    .int()
+    .min(1)
+    .describe("Trigger this step when the member reaches this many qualifying infractions."),
+  type: z.enum(ESCALATION_STEP_TYPES).describe("Punishment to apply automatically."),
+  duration_ms: z
     .number()
     .int()
     .min(0)
-    .default(0)
-    .describe("Seconds before a confirmation prompt expires. 0 uses the bot default."),
-  mute_role: roleId("Role applied for mutes. Create a muted role and paste its ID here."),
+    .optional()
+    .describe("Duration in milliseconds for mute/tempban steps. Omit for a permanent ban/kick/softban."),
+});
+
+export type EscalationStep = z.infer<typeof zEscalationStep>;
+
+const zEscalation = z
+  .strictObject({
+    enabled: z
+      .boolean()
+      .default(false)
+      .describe("Automatically apply a punishment once a member reaches a configured strike count."),
+    count_types: z
+      .array(z.enum(ESCALATION_COUNT_TYPES))
+      .default(["warn"])
+      .describe("Infraction types that count toward the strike total."),
+    window_ms: z
+      .number()
+      .int()
+      .min(0)
+      .default(0)
+      .describe("Only count infractions issued within this many milliseconds. 0 counts all-time."),
+    steps: z
+      .array(zEscalationStep)
+      .default([])
+      .describe("Ladder of strike counts and the punishment to auto-apply at each."),
+  })
+  .default({})
+  .describe("Automatic escalation ladder for repeat offenders, applied after each qualifying infraction.");
+
+export type EscalationConfig = z.infer<typeof zEscalation>;
+
+export const zInfractionConfig = z.strictObject({
   case_log_channel: channelId("Optional channel for case logs. Falls back to moderation_log_channel_id."),
   reason_edit_level: z
     .number()
@@ -56,6 +128,9 @@ export const zInfractionConfig = z.strictObject({
     })
     .default({})
     .describe("DM notification settings for each punishment type."),
+  require_reason: zRequireReason,
+  default_duration: zDefaultDuration,
+  escalation: zEscalation,
   can_warn: boolPerm("warn members"),
   can_note: boolPerm("add notes to members"),
   can_mute: boolPerm("mute members"),

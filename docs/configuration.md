@@ -72,6 +72,14 @@ ephemeral_responses: false
 
 When `false` (default), command replies are **public** in the channel. Set to `true` to make all responses ephemeral (only visible to the user who ran the command).
 
+## Admin bypass
+
+```yaml
+admin_bypass: true
+```
+
+When `true` (the default, no configuration required), anyone with Discord's **Administrator** permission — or the server owner — can use any bot command, regardless of `levels`/`can_*` overrides. This is what lets a freshly-invited bot work for admins immediately. Toggle it from the dashboard's server settings page, or set `admin_bypass: false` here to require explicit `levels`/overrides even for admins.
+
 ## Permission levels
 
 The template ships with an empty map: `levels: {}`.

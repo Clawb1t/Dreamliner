@@ -2,6 +2,8 @@ import { AttachmentBuilder, ChannelType, SlashCommandBuilder, SlashCommandIntege
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { deferReplyOptions, resultReply, slashResultOptions } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
+import { getGlobalLeaderboardUrl, getGuildStatsDashboardUrl } from "../../../core/docsUrl.js";
+import { publicLeaderboardUrl } from "../../../core/publicLeaderboard.js";
 import { ALL_TIME_WINDOW, isValidStatsWindow, type StatsWindow } from "../functions/daily.js";
 import { buildStatsMessage, type StatsState } from "../functions/ui/index.js";
 import { renderUserRankCard, type RankScope } from "../functions/rank.js";
@@ -122,10 +124,19 @@ export const statsCommands: SlashCommandDefinition[] = [
 
       const scope = ctx.interaction.options.getString("scope", true) as RankScope;
       const user = ctx.interaction.options.getUser("user") ?? ctx.interaction.user;
+      const guild = ctx.interaction.guild!;
 
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
-      const result = await renderUserRankCard(scope, ctx.interaction.guild!, user);
+      const result = await renderUserRankCard(scope, guild, user);
+
+      const leaderboardUrl =
+        scope === "global"
+          ? getGlobalLeaderboardUrl()
+          : (publicLeaderboardUrl(guild.id) ?? getGuildStatsDashboardUrl(guild.id));
+      const leaderboardLabel = scope === "global" ? "Global Leaderboard" : "Server Leaderboard";
+
       await ctx.interaction.editReply({
+        content: `<:dreamlinerlogo:1536010087468892161> This is your ${scope} rank. View [${leaderboardLabel}](${leaderboardUrl})`,
         files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
       });
     },

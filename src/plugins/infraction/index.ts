@@ -26,24 +26,9 @@ export const infractionPlugin = definePlugin({
         const newM = newMember as import("discord.js").GuildMember;
         if (!newM.guild) return;
 
-        const { configManager } = await import("../../config/manager.js");
-        const { getInfractionPluginConfig } = await import("../../core/guildHelpers.js");
-        const guildConfig = await configManager.getEffectiveConfig(newM.guild.id);
-        const pluginConfig = getInfractionPluginConfig(guildConfig) as import("../../config/schemas/infraction.js").InfractionConfig;
         const hadTimeout = Boolean(oldM.communicationDisabledUntilTimestamp);
         const hasTimeout = Boolean(newM.communicationDisabledUntilTimestamp);
         if (hadTimeout && !hasTimeout) {
-          const { deactivateInfractions } = await import("./functions/infractions.js");
-          await deactivateInfractions(newM.guild.id, newM.id, ["mute", "tempmute"]);
-          return;
-        }
-
-        // Legacy mute-role tracking
-        const muteRoleId = pluginConfig.mute_role;
-        if (!muteRoleId) return;
-        const hadMute = oldM.roles.cache.has(muteRoleId);
-        const hasMute = newM.roles.cache.has(muteRoleId);
-        if (hadMute && !hasMute) {
           const { deactivateInfractions } = await import("./functions/infractions.js");
           await deactivateInfractions(newM.guild.id, newM.id, ["mute", "tempmute"]);
         }

@@ -98,8 +98,7 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
   }
   if (
     !isToggleKey(key) &&
-    (key === "mute_role" ||
-      key.endsWith("_role_id") ||
+    (key.endsWith("_role_id") ||
       key.endsWith("_role") ||
       key.endsWith("_roles") ||
       key === "ignored_roles" ||

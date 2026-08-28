@@ -6,6 +6,7 @@ import { zAutorolePluginSection } from "./autorole.js";
 import { zStarboardPluginSection } from "./starboard.js";
 import { zReviewsPluginSection } from "./reviews.js";
 import { zSuggestionsPluginSection } from "./suggestions.js";
+import { zTicketsPluginSection } from "./tickets.js";
 import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
 import { zEconomyPluginSection } from "./economy.js";
@@ -186,6 +187,12 @@ export const zGuildConfig = z.strictObject({
     .boolean()
     .default(false)
     .describe("When true, command replies are only visible to the user who ran the command."),
+  admin_bypass: z
+    .boolean()
+    .default(true)
+    .describe(
+      "When true (default), anyone with Discord's Administrator permission (or the server owner) can use any bot command, regardless of levels/overrides — no configuration required. Disable to require explicit levels/overrides for admins too.",
+    ),
   server_accent_color: serverAccentColor,
   leaderboard_override_user_accents: z
     .boolean()
@@ -239,6 +246,7 @@ export const zGuildConfig = z.strictObject({
       bot_customisation: zBotCustomisationPluginSection.optional(),
       reviews: zReviewsPluginSection.optional(),
       suggestions: zSuggestionsPluginSection.optional(),
+      tickets: zTicketsPluginSection.optional(),
     })
     .default({}),
 });

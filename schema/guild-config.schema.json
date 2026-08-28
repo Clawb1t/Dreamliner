@@ -275,6 +275,12 @@
       "description": "When true, command replies are only visible to the user who ran the command.",
       "title": "Ephemeral Responses"
     },
+    "admin_bypass": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true (default), anyone with Discord's Administrator permission (or the server owner) can use any bot command, regardless of levels/overrides — no configuration required. Disable to require explicit levels/overrides for admins too.",
+      "title": "Admin Bypass"
+    },
     "server_accent_color": {
       "type": "integer",
       "minimum": 0,
@@ -802,28 +808,6 @@
             "config": {
               "type": "object",
               "properties": {
-                "confirm_actions": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Ask for confirmation before applying moderation actions.",
-                  "title": "Confirm Actions"
-                },
-                "confirm_actions_expiry": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "default": 0,
-                  "description": "Seconds before a confirmation prompt expires. 0 uses the bot default.",
-                  "title": "Confirm Actions Expiry"
-                },
-                "mute_role": {
-                  "type": "string",
-                  "description": "Role applied for mutes. Create a muted role and paste its ID here. Paste a Discord role ID (Developer Mode → right-click role → Copy Role ID).",
-                  "title": "Mute Role",
-                  "x-dreamliner": {
-                    "kind": "role",
-                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
-                  }
-                },
                 "case_log_channel": {
                   "type": "string",
                   "description": "Optional channel for case logs. Falls back to moderation_log_channel_id. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
@@ -1002,6 +986,156 @@
                   "default": {},
                   "description": "DM notification settings for each punishment type.",
                   "title": "Notify"
+                },
+                "require_reason": {
+                  "type": "object",
+                  "properties": {
+                    "warn": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "Warn"
+                    },
+                    "mute": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "Mute"
+                    },
+                    "kick": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "Kick"
+                    },
+                    "ban": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "Ban"
+                    },
+                    "tempban": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "Tempban"
+                    },
+                    "softban": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "Softban"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Per-action toggle: block the command with an error if no reason is given.",
+                  "title": "Require Reason"
+                },
+                "default_duration": {
+                  "type": "object",
+                  "properties": {
+                    "tempmute": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Fallback /mute duration (ms) when no duration option is given.",
+                      "title": "Tempmute"
+                    },
+                    "tempban": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Fallback /tempban duration (ms) when no duration option is given.",
+                      "title": "Tempban"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Default durations used when a timed command's duration option is left blank.",
+                  "title": "Default Duration"
+                },
+                "escalation": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Automatically apply a punishment once a member reaches a configured strike count.",
+                      "title": "Enabled"
+                    },
+                    "count_types": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "warn",
+                          "mute",
+                          "tempmute",
+                          "kick",
+                          "softban",
+                          "tempban",
+                          "ban"
+                        ]
+                      },
+                      "default": [
+                        "warn"
+                      ],
+                      "description": "Infraction types that count toward the strike total.",
+                      "title": "Count Types"
+                    },
+                    "window_ms": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "default": 0,
+                      "description": "Only count infractions issued within this many milliseconds. 0 counts all-time.",
+                      "title": "Window Ms",
+                      "x-dreamliner": {
+                        "kind": "ms",
+                        "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                      }
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "after": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Trigger this step when the member reaches this many qualifying infractions.",
+                            "title": "After"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "mute",
+                              "kick",
+                              "softban",
+                              "tempban",
+                              "ban"
+                            ],
+                            "description": "Punishment to apply automatically.",
+                            "title": "Type"
+                          },
+                          "duration_ms": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Duration in milliseconds for mute/tempban steps. Omit for a permanent ban/kick/softban.",
+                            "title": "Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          }
+                        },
+                        "required": [
+                          "after",
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "default": [],
+                      "description": "Ladder of strike counts and the punishment to auto-apply at each.",
+                      "title": "Steps"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Automatic escalation ladder for repeat offenders, applied after each qualifying infraction.",
+                  "title": "Escalation"
                 },
                 "can_warn": {
                   "type": "boolean",
@@ -9675,12 +9809,6 @@
                       "description": "Owners can change bitrate.",
                       "title": "Bitrate"
                     },
-                    "invite": {
-                      "type": "boolean",
-                      "default": true,
-                      "description": "Owners can DM invite links to members.",
-                      "title": "Invite"
-                    },
                     "transfer": {
                       "type": "boolean",
                       "default": true,
@@ -11523,6 +11651,761 @@
           },
           "additionalProperties": false,
           "title": "Suggestions"
+        },
+        "tickets": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn tickets on or off for this server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "staff_role_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Plugin-wide support staff roles. Used as the fallback when a category has no support_role_ids of its own.",
+                  "title": "Staff Role Ids"
+                },
+                "log_channel_id": {
+                  "type": "string",
+                  "description": "Channel for ticket open/claim/close event logs. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "default_transcript_channel_id": {
+                  "type": "string",
+                  "description": "Default channel transcripts are posted to when a category has no override. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Default Transcript Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "dm_transcript_on_close": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "DM the ticket opener their transcript when the ticket closes.",
+                  "title": "Dm Transcript On Close"
+                },
+                "feedback_enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Plugin-wide default: DM the opener a rating request after close.",
+                  "title": "Feedback Enabled"
+                },
+                "max_open_tickets_per_user": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 1,
+                  "description": "Plugin-wide default limit on how many tickets one member may have open at once.",
+                  "title": "Max Open Tickets Per User"
+                },
+                "blacklist_notify": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Tell blacklisted members why their ticket attempt was blocked.",
+                  "title": "Blacklist Notify"
+                },
+                "panels": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Stable panel ID. Generated by the dashboard, do not edit by hand.",
+                        "title": "Id"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Dashboard-only label for this panel.",
+                        "title": "Name"
+                      },
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Turn this panel on or off without deleting it.",
+                        "title": "Enabled"
+                      },
+                      "channel_id": {
+                        "type": "string",
+                        "description": "Channel this panel's message is posted in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                        "title": "Channel Id",
+                        "x-dreamliner": {
+                          "kind": "channel",
+                          "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                        }
+                      },
+                      "style": {
+                        "type": "string",
+                        "enum": [
+                          "buttons",
+                          "select"
+                        ],
+                        "default": "buttons",
+                        "description": "Show each category as its own button (max 5) or as options in one select menu (max 25).",
+                        "title": "Style"
+                      },
+                      "content": {
+                        "type": "string",
+                        "maxLength": 2000,
+                        "default": "",
+                        "description": "Optional message text above the embed.",
+                        "title": "Content"
+                      },
+                      "embed": {
+                        "type": "object",
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Include a Discord embed.",
+                            "title": "Enabled"
+                          },
+                          "title": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Embed title. Supports placeholders like {guild}.",
+                            "title": "Title"
+                          },
+                          "title_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the title links to.",
+                            "title": "Title Url"
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 4096,
+                            "default": "",
+                            "description": "Embed description. Supports placeholders.",
+                            "title": "Description"
+                          },
+                          "color": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 16777215,
+                            "description": "Embed accent color as a decimal integer (0–16777215).",
+                            "default": 5661429,
+                            "title": "Color",
+                            "x-dreamliner": {
+                              "kind": "color",
+                              "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                            }
+                          },
+                          "author_name": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Optional embed author name.",
+                            "title": "Author Name"
+                          },
+                          "author_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Optional https URL the author name links to.",
+                            "title": "Author Url"
+                          },
+                          "author_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Author icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Author Icon"
+                          },
+                          "author_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Author icon URL when source is url.",
+                            "title": "Author Icon Url"
+                          },
+                          "thumbnail": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Thumbnail image source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Thumbnail"
+                          },
+                          "thumbnail_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Thumbnail URL when source is url.",
+                            "title": "Thumbnail Url"
+                          },
+                          "image_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Large embed image URL (https). Leave empty for none.",
+                            "title": "Image Url"
+                          },
+                          "footer_text": {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "default": "",
+                            "description": "Footer text. Supports placeholders.",
+                            "title": "Footer Text"
+                          },
+                          "footer_icon": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "guild",
+                              "bot",
+                              "url"
+                            ],
+                            "default": "none",
+                            "description": "Footer icon source. none, guild icon, bot avatar, or a custom URL.",
+                            "title": "Footer Icon"
+                          },
+                          "footer_icon_url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Footer icon URL when source is url.",
+                            "title": "Footer Icon Url"
+                          },
+                          "timestamp": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show the current time in the embed footer.",
+                            "title": "Timestamp"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "maxLength": 256,
+                                  "default": "",
+                                  "description": "Embed field name. Supports {guild} placeholders.",
+                                  "title": "Name"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "maxLength": 1024,
+                                  "default": "",
+                                  "description": "Embed field value. Supports placeholders.",
+                                  "title": "Value"
+                                },
+                                "inline": {
+                                  "type": "boolean",
+                                  "default": false,
+                                  "description": "Display the field inline.",
+                                  "title": "Inline"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "maxItems": 25,
+                            "default": [],
+                            "description": "Optional embed fields (max 25).",
+                            "title": "Fields"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "default": {},
+                        "description": "The panel's embed. Supports {guild} placeholders.",
+                        "title": "Embed"
+                      },
+                      "categories": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "Stable category ID. Generated by the dashboard, do not edit by hand.",
+                              "title": "Id"
+                            },
+                            "label": {
+                              "type": "string",
+                              "maxLength": 80,
+                              "default": "",
+                              "description": "Shown on the button or in the select menu.",
+                              "title": "Label"
+                            },
+                            "description": {
+                              "type": "string",
+                              "maxLength": 100,
+                              "default": "",
+                              "description": "Short description. Select-menu panels only.",
+                              "title": "Description"
+                            },
+                            "emoji": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Unicode or <:name:id> emoji for the button/option.",
+                              "title": "Emoji",
+                              "x-dreamliner": {
+                                "kind": "emoji",
+                                "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                              }
+                            },
+                            "button_style": {
+                              "type": "string",
+                              "enum": [
+                                "primary",
+                                "secondary",
+                                "success",
+                                "danger"
+                              ],
+                              "default": "primary",
+                              "description": "Button color. Only used when the panel's style is buttons.",
+                              "title": "Button Style"
+                            },
+                            "category_channel_id": {
+                              "type": "string",
+                              "description": "Discord channel category ticket channels are created under. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                              "title": "Category Channel Id",
+                              "x-dreamliner": {
+                                "kind": "channel",
+                                "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                              }
+                            },
+                            "mode": {
+                              "type": "string",
+                              "enum": [
+                                "channel",
+                                "thread"
+                              ],
+                              "default": "channel",
+                              "description": "Open tickets as a private channel or a private thread.",
+                              "title": "Mode"
+                            },
+                            "naming_pattern": {
+                              "type": "string",
+                              "maxLength": 80,
+                              "default": "ticket-{number}",
+                              "description": "Channel/thread name pattern. Supports {number}, {username}, {category}.",
+                              "title": "Naming Pattern"
+                            },
+                            "welcome_message": {
+                              "type": "string",
+                              "maxLength": 2000,
+                              "default": "Thanks for reaching out, {user}! Support will be with you shortly.",
+                              "description": "Message posted in the new ticket. Supports {user}, {guild}, {category}, plus each question's answer as {answer_1}, {answer_2}, ...",
+                              "title": "Welcome Message"
+                            },
+                            "support_role_ids": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "default": [],
+                              "description": "Roles that can see and reply in tickets from this category. Falls back to the plugin-wide staff roles when empty.",
+                              "title": "Support Role Ids"
+                            },
+                            "ping_role_ids": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "default": [],
+                              "description": "Roles pinged (then message deleted) when a new ticket in this category opens.",
+                              "title": "Ping Role Ids"
+                            },
+                            "form_questions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "description": "Stable question ID. Generated by the dashboard, do not edit by hand.",
+                                    "title": "Id"
+                                  },
+                                  "label": {
+                                    "type": "string",
+                                    "maxLength": 45,
+                                    "default": "",
+                                    "description": "Modal field label (Discord limit: 45 characters).",
+                                    "title": "Label"
+                                  },
+                                  "style": {
+                                    "type": "string",
+                                    "enum": [
+                                      "short",
+                                      "paragraph"
+                                    ],
+                                    "default": "short",
+                                    "description": "Short is a single line, paragraph is a multi-line box.",
+                                    "title": "Style"
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Block ticket creation until this question is answered.",
+                                    "title": "Required"
+                                  },
+                                  "placeholder": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "default": "",
+                                    "description": "Optional placeholder text shown in the empty field.",
+                                    "title": "Placeholder"
+                                  },
+                                  "max_length": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 4000,
+                                    "default": 1000,
+                                    "description": "Maximum answer length.",
+                                    "title": "Max Length"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "maxItems": 5,
+                              "default": [],
+                              "description": "Up to 5 questions asked in a modal before the ticket opens.",
+                              "title": "Form Questions"
+                            },
+                            "max_open_per_user": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "description": "Per-user open-ticket limit for this category. 0 disables new tickets. Leave empty to use the plugin-wide limit.",
+                              "title": "Max Open Per User"
+                            },
+                            "auto_close_hours": {
+                              "type": "number",
+                              "minimum": 0,
+                              "default": 0,
+                              "description": "Auto-close the ticket after this many hours of opener inactivity. 0 disables auto-close.",
+                              "title": "Auto Close Hours"
+                            },
+                            "escalation": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "description": "Stable step ID. Generated by the dashboard, do not edit by hand.",
+                                    "title": "Id"
+                                  },
+                                  "after_minutes": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "description": "Trigger this step after this many minutes without a staff reply (or since the ticket opened, if staff never replied).",
+                                    "title": "After Minutes"
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "enum": [
+                                      "ping_role",
+                                      "notify_channel",
+                                      "set_priority",
+                                      "close"
+                                    ],
+                                    "description": "ping_role: mention a role in the ticket. notify_channel: post an alert to another channel. set_priority: bump the ticket's priority. close: auto-close the ticket.",
+                                    "title": "Action"
+                                  },
+                                  "role_id": {
+                                    "type": "string",
+                                    "description": "Role to ping in the ticket channel. Only used by ping_role. Paste a Discord role ID (Developer Mode → right-click role → Copy Role ID).",
+                                    "title": "Role Id",
+                                    "x-dreamliner": {
+                                      "kind": "snowflake",
+                                      "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                                    }
+                                  },
+                                  "channel_id": {
+                                    "type": "string",
+                                    "description": "Channel to post the alert to. Only used by notify_channel. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                                    "title": "Channel Id",
+                                    "x-dreamliner": {
+                                      "kind": "channel",
+                                      "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                                    }
+                                  },
+                                  "priority": {
+                                    "type": "string",
+                                    "enum": [
+                                      "low",
+                                      "medium",
+                                      "high",
+                                      "urgent"
+                                    ],
+                                    "description": "Priority to set. Only used by set_priority.",
+                                    "title": "Priority"
+                                  },
+                                  "message": {
+                                    "type": "string",
+                                    "maxLength": 500,
+                                    "default": "",
+                                    "description": "Optional note appended to the ping/alert.",
+                                    "title": "Message"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "after_minutes",
+                                  "action"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "maxItems": 10,
+                              "default": [],
+                              "description": "SLA ladder: steps fire in order based on minutes of staff silence (no staff reply since the ticket opened, or since their last reply). Re-arms whenever staff replies again.",
+                              "title": "Escalation"
+                            },
+                            "close_permission": {
+                              "type": "string",
+                              "enum": [
+                                "opener",
+                                "staff",
+                                "either"
+                              ],
+                              "default": "either",
+                              "description": "Who may close tickets from this category: the opener, staff only, or either.",
+                              "title": "Close Permission"
+                            },
+                            "require_close_reason": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Require a reason when closing a ticket.",
+                              "title": "Require Close Reason"
+                            },
+                            "transcript_channel_id": {
+                              "type": "string",
+                              "description": "Transcript log channel override for this category. Falls back to the plugin-wide transcript channel. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                              "title": "Transcript Channel Id",
+                              "x-dreamliner": {
+                                "kind": "channel",
+                                "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                              }
+                            },
+                            "feedback_enabled": {
+                              "type": "boolean",
+                              "description": "DM the opener a rating request when their ticket closes. Leave empty to use the plugin-wide setting.",
+                              "title": "Feedback Enabled"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1,
+                        "maxItems": 25,
+                        "default": [],
+                        "title": "Categories"
+                      },
+                      "message_id": {
+                        "type": "string",
+                        "description": "ID of the currently-posted panel message. Set automatically when the bot posts/reposts this panel.",
+                        "title": "Message Id",
+                        "x-dreamliner": {
+                          "kind": "snowflake",
+                          "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "categories"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "default": [],
+                  "description": "Ticket panels for this server.",
+                  "title": "Panels"
+                },
+                "can_claim": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to claim tickets. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Claim",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_close": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to close their own tickets. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Close",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_close_others": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to close tickets opened by other members. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Close Others",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_reopen": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to reopen closed tickets. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Reopen",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_add_remove_members": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to add or remove members from a ticket. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Add Remove Members",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_manage_panels": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to post, repost, and edit ticket panels. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Manage Panels",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_view_all": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view any ticket, not just ones they're part of. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "View All",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_delete": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to permanently delete tickets. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Delete",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_blacklist": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to blacklist members or roles from opening tickets. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Blacklist",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Tickets"
         }
       },
       "additionalProperties": false,

@@ -5,6 +5,7 @@ import { zTranslationConfig } from "../config/schemas/translation.js";
 import { zStarboardConfig } from "../config/schemas/starboard.js";
 import { zReviewsConfig } from "../config/schemas/reviews.js";
 import { zSuggestionsConfig } from "../config/schemas/suggestions.js";
+import { zTicketsConfig } from "../config/schemas/tickets.js";
 import { zScamProtectConfig } from "../config/schemas/scamProtect.js";
 import { zPassportConfig } from "../config/schemas/passport.js";
 import { zEconomyConfig } from "../config/schemas/economy.js";
@@ -83,6 +84,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   bot_customisation: zBotCustomisationConfig,
   reviews: zReviewsConfig,
   suggestions: zSuggestionsConfig,
+  tickets: zTicketsConfig,
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

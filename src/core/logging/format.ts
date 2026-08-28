@@ -882,6 +882,49 @@ export function buildMessageBulkDeleteLog(input: {
   );
 }
 
+export function buildTicketOpenLog(input: {
+  ticketNumber: number;
+  opener: LogRef;
+  category: string;
+  channel: LogRef;
+}): LogCard {
+  return card(
+    `Ticket #${input.ticketNumber} Opened`,
+    [`Time: ${logTimestamp()}`, userLine(input.opener, "Opened by"), `Category: ${bold(input.category)}`, channelLine(input.channel)],
+    { avatarUrl: input.opener.avatarUrl, emojiCategory: "create" },
+  );
+}
+
+export function buildTicketClaimLog(input: {
+  ticketNumber: number;
+  staff: LogRef;
+  channel: LogRef;
+}): LogCard {
+  return card(
+    `Ticket #${input.ticketNumber} Claimed`,
+    [`Time: ${logTimestamp()}`, userLine(input.staff, "Claimed by"), channelLine(input.channel)],
+    { avatarUrl: input.staff.avatarUrl, emojiCategory: "action" },
+  );
+}
+
+export function buildTicketCloseLog(input: {
+  ticketNumber: number;
+  actor: LogRef;
+  channel: LogRef;
+  reason?: string | null;
+}): LogCard {
+  return card(
+    `Ticket #${input.ticketNumber} Closed`,
+    [
+      `Time: ${logTimestamp()}`,
+      userLine(input.actor, "Closed by"),
+      channelLine(input.channel),
+      input.reason?.trim() ? `Reason: ${truncate(input.reason, 400)}` : "Reason: *(none given)*",
+    ],
+    { avatarUrl: input.actor.avatarUrl, emojiCategory: "delete" },
+  );
+}
+
 export function buildGenericServerLog(
   title: string,
   lines: string[],

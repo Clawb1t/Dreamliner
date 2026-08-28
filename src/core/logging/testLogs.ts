@@ -202,6 +202,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
     buildGenericServerLog("Economy Freeze", [`Member: <@${ctx.target.id}>`, `By: <@${ctx.actor.id}>`], null, "modModerate"),
   economy_season: () => buildGenericServerLog("Economy Season", ["A new economy season started."], null, "serverUpdate"),
 
+  ticket_open: (ctx) =>
+    buildGenericServerLog("Ticket #1 Opened", [`Opened by: <@${ctx.actor.id}>`, "Category: **Test Category**", `Channel: <#${ctx.channel.id}>`], ctx.actor.avatarUrl, "create"),
+  ticket_claim: (ctx) =>
+    buildGenericServerLog("Ticket #1 Claimed", [`Claimed by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`], ctx.actor.avatarUrl, "action"),
+  ticket_close: (ctx) =>
+    buildGenericServerLog("Ticket #1 Closed", [`Closed by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`, `Reason: ${TEST_REASON}`], ctx.actor.avatarUrl, "delete"),
+
   dashboard_config: (ctx) =>
     buildGenericServerLog(
       "Config Update",
@@ -263,6 +270,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Adjusted the economy config."],
       null,
       "serverUpdate",
+    ),
+  dashboard_ticket: (ctx) =>
+    buildGenericServerLog(
+      "Ticket Admin",
+      [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Performed a ticket action."],
+      null,
+      "modDefault",
     ),
 };
 

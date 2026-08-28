@@ -10,11 +10,11 @@ Infraction tracking and moderation commands for Dreamliner.
 |---------|------------|-------------|
 | `/warn` | `can_warn` | Issue a warning |
 | `/note` | `can_note` | Add a staff note |
-| `/mute` | `can_mute` | Timeout a member via Discord (requires `duration`, max 28d) |
+| `/mute` | `can_mute` | Timeout a member via Discord (max 28d; `duration` optional if `default_duration.tempmute` is set) |
 | `/unmute` | `can_mute` | Clear a member's Discord timeout |
 | `/kick` | `can_kick` | Kick a member |
 | `/ban` | `can_ban` | Permanently ban a member |
-| `/tempban` | `can_ban` | Temporarily ban a member |
+| `/tempban` | `can_ban` | Temporarily ban a member (`duration` optional if `default_duration.tempban` is set) |
 | `/unban` | `can_unban` | Unban by user ID |
 | `/softban` | `can_softban` | Ban and immediately unban to purge messages |
 
@@ -34,9 +34,7 @@ Infraction tracking and moderation commands for Dreamliner.
 plugins:
   infractions:
     config:
-      mute_role: "1234567890123456789"      # Optional legacy; /mute uses Discord timeout instead
       case_log_channel: "1234567890123456789"  # Optional; falls back to moderation_log_channel_id
-      confirm_actions: true
       ban_delete_message_days: 0
       softban_delete_message_days: 7
       reason_edit_level: 100
@@ -46,6 +44,22 @@ plugins:
           dm: true
         mute:
           dm: false
+      require_reason:            # Per-action: reject the command if no reason is given
+        warn: true
+        ban: true
+      default_duration:          # Fallback duration (ms) when the command's duration option is blank
+        tempmute: 600000          # 10m
+        tempban: 86400000         # 1d
+      escalation:                 # Auto-escalation ladder for repeat offenders
+        enabled: true
+        count_types: ["warn"]     # Which infraction types count toward the strike total
+        window_ms: 0              # 0 = count all-time; otherwise only strikes within this window
+        steps:
+          - after: 3
+            type: mute
+            duration_ms: 1800000  # 30m
+          - after: 5
+            type: ban
     overrides:
       - level: ">=50"
         config:
@@ -54,15 +68,21 @@ plugins:
           can_view: true
 ```
 
+## Auto-escalation
+
+When `escalation.enabled` is `true`, Dreamliner counts a member's qualifying infractions (`escalation.count_types`, within `escalation.window_ms` if set) after every punishment command. If the new total exactly matches a step's `after` value, that step's punishment is applied automatically and logged as its own case with reason `Auto-escalation: reached N infractions`. Steps only fire on an exact match, so keep `after` values strictly increasing (e.g. 3, 5, 8).
+
+Configure all of this — punishment-specific reason requirements, default durations, and the escalation ladder — from the dashboard's Infractions page, which opens each punishment type into its own settings panel similar to Automod.
+
 ## Duration format
 
 Timed actions use Dreamliner duration formats: `30s`, `5m`, `2h`, `1d`, `1w`.
 
 ## Expiration
 
-Timed mutes and bans are checked every minute. When a tempmute or tempban expires, the bot removes the mute role or unbans the user and marks the infraction inactive.
+Timed mutes and bans are checked every minute. When a tempmute or tempban expires, the bot clears the timeout or unbans the user and marks the infraction inactive.
 
-Manual unmute/unban or removing the mute role also clears active infraction records.
+Manual `/unmute` or `/unban` also clears active infraction records.
 
 ## Case log
 

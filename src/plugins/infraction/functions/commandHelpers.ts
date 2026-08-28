@@ -2,7 +2,7 @@ import type { SlashCommandContext } from "../../../core/types.js";
 import { canUseInfractions, getInfractionPluginConfig } from "../../../core/guildHelpers.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import type { GuildMember } from "discord.js";
-import type { InfractionConfig } from "../../../config/schemas/infraction.js";
+import type { InfractionConfig, ReasonRequirableType } from "../../../config/schemas/infraction.js";
 
 export async function requireInfractionPermission(
   ctx: SlashCommandContext,
@@ -30,4 +30,22 @@ export async function requireInfractionPermission(
   }
 
   return { member: guildMember, pluginConfig };
+}
+
+/**
+ * If the guild requires a reason for this action and none (or a blank string) was given,
+ * replies with an error and returns true so the caller can bail out.
+ */
+export async function replyIfReasonRequired(
+  ctx: SlashCommandContext,
+  pluginConfig: InfractionConfig,
+  type: ReasonRequirableType,
+  rawReason: string | null,
+  label: string,
+): Promise<boolean> {
+  if (!pluginConfig.require_reason[type] || rawReason?.trim()) return false;
+  await ctx.interaction.reply(
+    resultReply(label, "This server requires a reason for this action.", ctx.ephemeral, guildResultOptions(ctx.client, ctx.guildConfig, { tone: "error" })),
+  );
+  return true;
 }

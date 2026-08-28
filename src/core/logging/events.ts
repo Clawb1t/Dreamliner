@@ -67,6 +67,10 @@ export const LOG_EVENT_TYPES = [
   "economy_auction",
   "economy_freeze",
   "economy_season",
+  // Tickets
+  "ticket_open",
+  "ticket_claim",
+  "ticket_close",
   // Dashboard / website admin actions
   "dashboard_config",
   "dashboard_tag",
@@ -79,6 +83,7 @@ export const LOG_EVENT_TYPES = [
   "dashboard_review",
   "dashboard_bot_brand",
   "dashboard_economy",
+  "dashboard_ticket",
 ] as const;
 
 export type LogEventType = (typeof LOG_EVENT_TYPES)[number];
@@ -150,6 +155,9 @@ export const LOG_EVENT_META: Record<
   economy_auction: { label: "Economy auction", category: "server", group: "Economy" },
   economy_freeze: { label: "Economy freeze", category: "server", group: "Economy" },
   economy_season: { label: "Economy season", category: "server", group: "Economy" },
+  ticket_open: { label: "Ticket opened", category: "moderation", group: "Tickets" },
+  ticket_claim: { label: "Ticket claimed", category: "moderation", group: "Tickets" },
+  ticket_close: { label: "Ticket closed", category: "moderation", group: "Tickets" },
   dashboard_config: { label: "Config update", category: "server", group: "Dashboard" },
   dashboard_tag: { label: "Tag change", category: "server", group: "Dashboard" },
   dashboard_command: { label: "Dream command change", category: "server", group: "Dashboard" },
@@ -161,6 +169,7 @@ export const LOG_EVENT_META: Record<
   dashboard_review: { label: "Review admin", category: "server", group: "Dashboard" },
   dashboard_bot_brand: { label: "Bot brand", category: "server", group: "Dashboard" },
   dashboard_economy: { label: "Economy change", category: "server", group: "Dashboard" },
+  dashboard_ticket: { label: "Ticket admin", category: "moderation", group: "Dashboard" },
 };
 
 export function isLogEventType(value: string): value is LogEventType {

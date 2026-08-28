@@ -36,6 +36,7 @@ import { suggestionsDefaultOverrides } from "../plugins/suggestions/defaultOverr
 import { scamProtectDefaultOverrides } from "../plugins/scam_protect/defaultOverrides.js";
 import { passportDefaultOverrides } from "../plugins/passport/defaultOverrides.js";
 import { economyDefaultOverrides } from "../plugins/economy/defaultOverrides.js";
+import { ticketsDefaultOverrides } from "../plugins/tickets/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { zStarboardBoard, zStarboardConfig, type StarboardBoard, type StarboardConfig } from "../config/schemas/starboard.js";
 import type { GuildMember } from "discord.js";
@@ -78,6 +79,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   bot_customisation: botCustomisationDefaultOverrides,
   reviews: reviewsDefaultOverrides,
   suggestions: suggestionsDefaultOverrides,
+  tickets: ticketsDefaultOverrides,
 };
 
 export const pluginsRequiringConfig = new Set(["utility", "infractions"]);
@@ -157,6 +159,25 @@ export function canUseInfractions(
     categoryId,
     infractionDefaultOverrides,
   );
+}
+
+export function getTicketsPluginConfig(
+  guildConfig: GuildConfig,
+  member?: GuildMember,
+  channelId?: string,
+  categoryId?: string | null,
+) {
+  return resolvePluginConfig(guildConfig, "tickets", ticketsDefaultOverrides, member, channelId, categoryId);
+}
+
+export function canUseTickets(
+  guildConfig: GuildConfig,
+  permission: string,
+  member: GuildMember,
+  channelId: string,
+  categoryId?: string | null,
+): boolean {
+  return hasPluginPermission(guildConfig, "tickets", permission, member, channelId, categoryId, ticketsDefaultOverrides);
 }
 
 export async function ensureGuildConfigured(guildId: string): Promise<boolean> {

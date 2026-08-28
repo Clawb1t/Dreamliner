@@ -241,31 +241,6 @@ export async function rejectTarget(
   return ok(`Rejected **${target.name}**.`);
 }
 
-export async function inviteUser(
-  actor: CompanionActor,
-  channel: VoiceBasedChannel,
-  user: User,
-  message?: string,
-): Promise<CompanionActionResult> {
-  const resolved = await requireManagedRoom(actor, channel, "invite");
-  if (isActionResult(resolved)) return resolved;
-  await resolved.channel.permissionOverwrites.edit(user.id, { Connect: true, ViewChannel: true }).catch(() => null);
-  const invite = await resolved.channel
-    .createInvite({ maxAge: 3600, maxUses: 1, unique: true, reason: `Companion invite from ${actor.member.user.tag}` })
-    .catch(() => null);
-  const note = message?.trim();
-  const body = [
-    `**${actor.member.displayName}** invited you to join ${resolved.channel} in **${actor.member.guild.name}**.`,
-    note,
-    invite?.url,
-  ]
-    .filter(Boolean)
-    .join("\n");
-  const sent = await user.send(body).catch(() => null);
-  if (!sent) return fail("Could not DM that member. They may have DMs closed.");
-  return ok(`Invited **${user.username}**.`);
-}
-
 export async function transferCompanion(
   actor: CompanionActor,
   channel: VoiceBasedChannel,

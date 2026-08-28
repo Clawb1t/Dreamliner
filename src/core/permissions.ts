@@ -34,7 +34,11 @@ function compareLevel(memberLevel: number, req: { op: string; value: number }): 
   }
 }
 
-export function getMemberLevel(member: GuildMember, levels: Record<string, number>): number {
+export function getMemberLevel(
+  member: GuildMember,
+  levels: Record<string, number>,
+  adminBypassEnabled = true,
+): number {
   let maxLevel = 0;
 
   if (levels[member.id]) {
@@ -49,11 +53,14 @@ export function getMemberLevel(member: GuildMember, levels: Record<string, numbe
 
   // Owner and Discord Administrator / Manage Server holders always reach the admin tier, even
   // with no `levels` entries configured. An explicit `levels` entry can only raise this further,
-  // never lower it below the admin tier.
+  // never lower it below the admin tier. Guilds can turn this off (`admin_bypass: false` /
+  // dashboard toggle) to require explicit levels/overrides even for admins; callers that don't
+  // pass `adminBypassEnabled` keep the always-on default (e.g. moderation hierarchy checks).
   if (
-    member.id === member.guild.ownerId ||
-    member.permissions.has(PermissionFlagsBits.Administrator) ||
-    member.permissions.has(PermissionFlagsBits.ManageGuild)
+    adminBypassEnabled &&
+    (member.id === member.guild.ownerId ||
+      member.permissions.has(PermissionFlagsBits.Administrator) ||
+      member.permissions.has(PermissionFlagsBits.ManageGuild))
   ) {
     maxLevel = Math.max(maxLevel, ADMIN_TIER_LEVEL);
   }
@@ -108,7 +115,7 @@ export function resolvePluginConfig(
 
   for (const override of overrides) {
     if (member && channelId !== undefined) {
-      const level = getMemberLevel(member, guildConfig.levels);
+      const level = getMemberLevel(member, guildConfig.levels, guildConfig.admin_bypass);
       if (!overrideMatches(override, member, channelId, categoryId, level)) continue;
     }
     Object.assign(config, override.config);

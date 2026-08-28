@@ -151,6 +151,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [{ plugin: "reviews" }, { plugin: "suggestions" }],
   },
   {
+    id: "support",
+    label: "Support",
+    blurb: "Ticket panels, staff claiming, transcripts, and support automation.",
+    include: [{ plugin: "tickets" }],
+  },
+  {
     id: "economy",
     label: "Economy",
     blurb: "Server currency, shops, jobs, pets, crafts, quests, and markets.",
@@ -341,6 +347,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Suggestions",
     description: "Community suggestions with staff review, voting, and statuses.",
   },
+  tickets: {
+    key: "tickets",
+    name: "Tickets",
+    description: "Support ticket panels, categories, staff claiming, and transcripts.",
+  },
   economy: {
     key: "economy",
     name: "Economy",
@@ -394,6 +405,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   bot_customisation: "tools",
   reviews: "feedback",
   suggestions: "feedback",
+  tickets: "support",
   economy: "economy",
 };
 

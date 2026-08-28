@@ -73,6 +73,12 @@ import {
 } from "./plugins/suggestions/constants.js";
 import { handleSuggestModalSubmit } from "./plugins/suggestions/functions/modal.js";
 import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functions/handlers.js";
+import { TICKET_PREFIX } from "./plugins/tickets/constants.js";
+import {
+  handleTicketButtonInteraction,
+  handleTicketModalSubmit,
+  handleTicketSelectMenuInteraction,
+} from "./plugins/tickets/functions/panels.js";
 import {
   handleWelcomeWaveButtonInteraction,
   WELCOME_WAVE_CUSTOM_ID,
@@ -215,6 +221,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await handleSuggestionButtonInteraction(interaction);
         if (handled) return;
       }
+      if (interaction.customId.startsWith(TICKET_PREFIX)) {
+        const handled = await handleTicketButtonInteraction(interaction);
+        if (handled) return;
+      }
       if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {
         const handled = await handleWelcomeWaveButtonInteraction(interaction);
         if (handled) return;
@@ -257,6 +267,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isStringSelectMenu()) {
+      if (interaction.customId.startsWith(TICKET_PREFIX)) {
+        const handled = await handleTicketSelectMenuInteraction(interaction);
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(SELF_ROLE_PREFIX)) {
         const handled = await handleSelfRoleSelectInteraction(interaction);
         if (handled) return;
@@ -276,6 +290,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith(TICKET_PREFIX)) {
+        const handled = await handleTicketModalSubmit(interaction);
+        if (handled) return;
+      }
       if (interaction.customId === AUTOREACTION_ADD_MODAL_ID) {
         if (!(await ensurePluginEnabledForModal(configManager, interaction, "autoreactions"))) return;
         try {

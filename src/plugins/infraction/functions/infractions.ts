@@ -282,16 +282,6 @@ export function isTimedOut(member: GuildMember): boolean {
   return member.isCommunicationDisabled();
 }
 
-/** @deprecated Prefer applyTimeout — kept for any legacy mute-role callers. */
-export async function applyMuteRole(member: GuildMember, muteRoleId: string) {
-  await member.roles.add(muteRoleId, "Dreamliner mute");
-}
-
-/** @deprecated Prefer clearTimeout — kept for any legacy mute-role callers. */
-export async function removeMuteRole(member: GuildMember, muteRoleId: string) {
-  await member.roles.remove(muteRoleId, "Dreamliner unmute");
-}
-
 export async function expireInfraction(client: Client, record: InfractionRecord) {
   const guild = await client.guilds.fetch(record.guildId).catch(() => null);
   if (!guild) return;
@@ -311,13 +301,6 @@ export async function expireInfraction(client: Client, record: InfractionRecord)
     const member = await guild.members.fetch(record.userId).catch(() => null);
     if (member && isTimedOut(member)) {
       await clearTimeout(member, "Dreamliner mute expired").catch(() => null);
-    }
-    // Legacy mute-role cleanup if still configured.
-    const { getInfractionPluginConfig } = await import("../../../core/guildHelpers.js");
-    const pluginConfig = getInfractionPluginConfig(guildConfig) as InfractionConfig;
-    const muteRoleId = pluginConfig.mute_role;
-    if (muteRoleId && member?.roles.cache.has(muteRoleId)) {
-      await removeMuteRole(member, muteRoleId).catch(() => null);
     }
     const user = await client.users.fetch(record.userId).catch(() => null);
     const userRef = user
@@ -355,15 +338,8 @@ export async function processExpiredInfractions(client: Client) {
   }
 }
 
-export function requireMuteRole(pluginConfig: InfractionConfig): string | null {
-  return pluginConfig.mute_role ?? null;
-}
-
-export async function isUserMuted(guild: Guild, userId: string, _muteRoleId?: string): Promise<boolean> {
+export async function isUserMuted(guild: Guild, userId: string): Promise<boolean> {
   const member = await guild.members.fetch(userId).catch(() => null);
   if (!member) return false;
-  if (isTimedOut(member)) return true;
-  // Legacy: still treat mute role as muted if present.
-  if (_muteRoleId && member.roles.cache.has(_muteRoleId)) return true;
-  return false;
+  return isTimedOut(member);
 }

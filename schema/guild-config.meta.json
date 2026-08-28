@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-28T03:41:24.012Z",
+  "generatedAt": "2026-08-28T20:12:42.923Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -258,6 +258,18 @@
           "key": "suggestions",
           "name": "Suggestions",
           "description": "Community suggestions with staff review, voting, and statuses."
+        }
+      ]
+    },
+    {
+      "id": "support",
+      "label": "Support",
+      "description": "Ticket panels, staff claiming, transcripts, and support automation.",
+      "plugins": [
+        {
+          "key": "tickets",
+          "name": "Tickets",
+          "description": "Support ticket panels, categories, staff claiming, and transcripts."
         }
       ]
     },
@@ -526,6 +538,13 @@
       "description": "Community suggestions with staff review, voting, and statuses.",
       "category": "Feedback",
       "categoryId": "feedback"
+    },
+    {
+      "key": "tickets",
+      "name": "Tickets",
+      "description": "Support ticket panels, categories, staff claiming, and transcripts.",
+      "category": "Support",
+      "categoryId": "support"
     },
     {
       "key": "economy",

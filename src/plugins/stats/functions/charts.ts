@@ -737,7 +737,7 @@ export async function renderRankCard(options: RankCardOptions): Promise<Buffer> 
   const ringStroke = 3;
   const nameSize = 19;
   const subSize = 14.5;
-  const badgeSize = 13;
+  const badgeSize = 11.5;
 
   const identityHeight = 24 + 6 + 20; // name line + row-gap + subtitle line
   const rowHeight = padY * 2 + Math.max(avatarSize, identityHeight);
@@ -764,10 +764,16 @@ export async function renderRankCard(options: RankCardOptions): Promise<Buffer> 
       const drawY = (height - drawH) / 2;
       ctx.drawImage(banner, 0, drawY, drawW, drawH);
 
-      // Fade the banner into the row background left→right, matching the site's overlay.
+      // Fade the banner into the row background left→right — longer and smoother than the
+      // site's own two-stop overlay, easing gradually across most of the card's width.
       const gradient = ctx.createLinearGradient(0, 0, width, 0);
-      gradient.addColorStop(0, hexToRgba(RANK_CARD.bg, 0.6));
-      gradient.addColorStop(0.5, hexToRgba(RANK_CARD.bg, 1));
+      const fadeEnd = 0.92; // fully opaque row background from here to the right edge
+      const steps = 10;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps; // 0..1 across the fade zone
+        const eased = t * t * (3 - 2 * t); // smoothstep, for a gentler ease than a linear ramp
+        gradient.addColorStop(t * fadeEnd, hexToRgba(RANK_CARD.bg, 0.28 + eased * 0.72));
+      }
       gradient.addColorStop(1, hexToRgba(RANK_CARD.bg, 1));
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
@@ -852,11 +858,14 @@ export async function renderRankCard(options: RankCardOptions): Promise<Buffer> 
   const badges = (row.badges ?? []).slice(0, 3);
   const hasEmojiGlyphs = ensureEmojiFont();
 
-  // Chip layout constants — generous inner padding around the icon and text.
-  const chipPadX = 12;
-  const chipIconGap = 7;
-  const chipIconSize = 20;
-  const chipHeight = 26;
+  // Chip layout constants — inner padding around the icon and text.
+  const chipPadX = 6;
+  const chipIconGap = 5;
+  const chipIconSize = 14;
+  const chipHeight = 19;
+  // Visual center of the name text above its baseline (nameY), so the chip can be centered
+  // on the same line as the name instead of a hand-picked offset.
+  const nameVisualCenterOffset = nameSize * 0.36;
 
   // Reserve space for badge chips on the name row, matching the site's flex layout.
   let badgeTotalWidth = 0;
@@ -884,8 +893,8 @@ export async function renderRankCard(options: RankCardOptions): Promise<Buffer> 
   for (const metrics of badgeMetrics) {
     if (badgeCursorX + metrics.w > textRight) break;
     const chipColor = metrics.badge.colorHex || accent;
-    const pillTop = nameY - chipHeight / 2 - 3;
-    const pillCenterY = pillTop + chipHeight / 2; // true vertical center of the chip, used for both icon and text
+    const pillCenterY = nameY - nameVisualCenterOffset; // aligned with the name text's own visual center
+    const pillTop = pillCenterY - chipHeight / 2;
     ctx.fillStyle = colorMix(chipColor, 14, RANK_CARD.dashTrack);
     roundRect(ctx, badgeCursorX, pillTop, metrics.w, chipHeight, 999);
     ctx.fill();

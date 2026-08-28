@@ -46,6 +46,12 @@ logging:
 # When true, command replies are only visible to the user who ran the command.
 ephemeral_responses: false
 
+# When true (default), anyone with Discord's Administrator permission (or the server owner) can
+# use any bot command, regardless of levels/overrides - no configuration required. Toggle from
+# the dashboard's server settings page, or set false here to require explicit levels/overrides
+# for admins too.
+admin_bypass: true
+
 # Public server page accent (decimal 0–16777215). Used on /server/:id, leaderboard, and public stats.
 server_accent_color: 5661429
 
@@ -139,9 +145,6 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      confirm_actions: true
-      confirm_actions_expiry: 0
-      mute_role: "1111111111111111111"
       case_log_channel: "1111111111111111111"
       reason_edit_level: 100
       duration_edit_level: 100
@@ -737,7 +740,6 @@ plugins:
         lfm: true
         text: true
         bitrate: true
-        invite: true
         transfer: true
         nsfw: false
         interface: true
@@ -943,3 +945,43 @@ plugins:
           can_delete: true
           can_block: true
           can_manage: true
+
+  tickets:
+    enabled: false
+    replaceDefaultOverrides: false
+    config:
+      staff_role_ids: []
+      log_channel_id: ""
+      default_transcript_channel_id: ""
+      dm_transcript_on_close: true
+      feedback_enabled: false
+      max_open_tickets_per_user: 1
+      blacklist_notify: true
+      panels: []
+      can_claim: false
+      can_close: false
+      can_close_others: false
+      can_reopen: false
+      can_add_remove_members: false
+      can_manage_panels: false
+      can_view_all: false
+      can_delete: false
+      can_blacklist: false
+    overrides:
+      - level: ">=25"
+        config:
+          can_claim: true
+          can_close: true
+          can_reopen: true
+          can_add_remove_members: true
+      - level: ">=50"
+        config:
+          can_close_others: true
+      - level: ">=75"
+        config:
+          can_manage_panels: true
+          can_view_all: true
+          can_blacklist: true
+      - level: ">=100"
+        config:
+          can_delete: true

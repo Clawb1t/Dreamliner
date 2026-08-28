@@ -1086,6 +1086,19 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const suggestionsMatch = /^\/bridge\/guilds\/(\d+)\/suggestions$/.exec(url.pathname);
+        const ticketActionMatch =
+          /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)\/(close|claim|unclaim|reopen|add|remove|rename)$/.exec(
+            url.pathname,
+          );
+        const ticketPanelPublishMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/panels\/([0-9a-fA-F-]{36})\/publish$/.exec(
+          url.pathname,
+        );
+        const ticketBlacklistMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/blacklist(?:\/([^/]+))?$/.exec(
+          url.pathname,
+        );
+        const ticketStatsMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/stats$/.exec(url.pathname);
+        const ticketOneMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)$/.exec(url.pathname);
+        const ticketsMatch = /^\/bridge\/guilds\/(\d+)\/tickets$/.exec(url.pathname);
         const scamProtectMatch = /^\/bridge\/guilds\/(\d+)\/scam-protect(?:\/(setup|disable))?$/.exec(
           url.pathname,
         );
@@ -1150,6 +1163,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !suggestionOneMatch &&
           !suggestionStatsMatch &&
           !suggestionsMatch &&
+          !ticketActionMatch &&
+          !ticketPanelPublishMatch &&
+          !ticketBlacklistMatch &&
+          !ticketStatsMatch &&
+          !ticketOneMatch &&
+          !ticketsMatch &&
           !scamProtectMatch &&
           !welcomeAssetMatch &&
           !welcomePreviewMatch &&
@@ -1201,6 +1220,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           suggestionOneMatch?.[1] ??
           suggestionStatsMatch?.[1] ??
           suggestionsMatch?.[1] ??
+          ticketActionMatch?.[1] ??
+          ticketPanelPublishMatch?.[1] ??
+          ticketBlacklistMatch?.[1] ??
+          ticketStatsMatch?.[1] ??
+          ticketOneMatch?.[1] ??
+          ticketsMatch?.[1] ??
           scamProtectMatch?.[1] ??
           welcomeAssetMatch?.[1] ??
           welcomePreviewMatch?.[1] ??
@@ -2775,6 +2800,210 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             suggestion: detail,
           });
+          return;
+        }
+
+        if (ticketsMatch || ticketOneMatch || ticketStatsMatch || ticketActionMatch || ticketPanelPublishMatch || ticketBlacklistMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const {
+            parseWebTicketsQuery,
+            listGuildTickets,
+            getGuildTicket,
+            getGuildTicketStats,
+            performTicketAction,
+            deleteGuildTicket,
+            webRenameTicket,
+            publishTicketPanel,
+            listGuildTicketBlacklist,
+            addGuildTicketBlacklist,
+            removeGuildTicketBlacklist,
+          } = await import("./webTickets.js");
+
+          if (ticketStatsMatch) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const stats = await getGuildTicketStats(guild);
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, stats });
+            return;
+          }
+
+          if (ticketBlacklistMatch) {
+            if (req.method === "GET") {
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, blacklist: await listGuildTicketBlacklist(guild) });
+              return;
+            }
+            if (req.method === "POST") {
+              let body: { targetId?: string; targetType?: "user" | "role"; reason?: string } = {};
+              try {
+                body = JSON.parse(await readBody(req)) as typeof body;
+              } catch {
+                sendJson(res, 400, { error: "Invalid JSON body" });
+                return;
+              }
+              if (!body.targetId) {
+                sendJson(res, 400, { error: "targetId is required" });
+                return;
+              }
+              const blacklist = await addGuildTicketBlacklist(guild, body.targetId, body.targetType ?? "user", body.reason);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_ticket",
+                title: "Ticket blacklist updated",
+                summary: `\`${body.targetId}\` was blocked from opening tickets from the dashboard.`,
+                targetId: body.targetId,
+                payload: { action: "blacklist_add", targetId: body.targetId },
+              });
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, blacklist });
+              return;
+            }
+            if (req.method === "DELETE") {
+              const targetId = ticketBlacklistMatch[2];
+              if (!targetId) {
+                sendJson(res, 400, { error: "targetId is required" });
+                return;
+              }
+              const blacklist = await removeGuildTicketBlacklist(guild, targetId);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_ticket",
+                title: "Ticket blacklist updated",
+                summary: `\`${targetId}\` was unblocked from opening tickets from the dashboard.`,
+                targetId,
+                payload: { action: "blacklist_remove", targetId },
+              });
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, blacklist });
+              return;
+            }
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+
+          if (ticketPanelPublishMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const panelId = ticketPanelPublishMatch[2]!;
+            const result = await publishTicketPanel(guild, panelId, userId);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_ticket",
+              title: "Ticket panel published",
+              summary: `Panel \`${panelId}\` was posted from the dashboard.`,
+              targetId: panelId,
+              payload: { action: "panel_publish", panelId, messageId: result.messageId },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+            return;
+          }
+
+          if (ticketActionMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            let body: { reason?: string; userId?: string; name?: string } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const ticketId = Number(ticketActionMatch[2]);
+            const action = ticketActionMatch[3]!;
+
+            if (action === "rename") {
+              if (!body.name?.trim()) {
+                sendJson(res, 400, { error: "name is required" });
+                return;
+              }
+              const result = await webRenameTicket(guild, ticketId, body.name.trim());
+              if ("error" in result) {
+                sendJson(res, 400, { error: result.error });
+                return;
+              }
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ok: true });
+              return;
+            }
+
+            const result = await performTicketAction(
+              guild,
+              ticketId,
+              action as "close" | "claim" | "unclaim" | "reopen" | "add" | "remove",
+              userId,
+              body,
+            );
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_ticket",
+              title: `Ticket ${action}`,
+              summary: `Ticket \`#${ticketId}\` was ${action}ed from the dashboard.`,
+              targetId: String(ticketId),
+              payload: { ticketId, action },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ticket: result.ticket });
+            return;
+          }
+
+          if (ticketsMatch) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const query = parseWebTicketsQuery(url);
+            const result = await listGuildTickets(guild, query);
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+            return;
+          }
+
+          const ticketId = Number(ticketOneMatch![2]);
+          if (!Number.isFinite(ticketId) || ticketId <= 0) {
+            sendJson(res, 400, { error: "Invalid ticket id" });
+            return;
+          }
+
+          if (req.method === "DELETE") {
+            const result = await deleteGuildTicket(guild, ticketId);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_ticket",
+              title: "Ticket deleted",
+              summary: `Ticket \`#${ticketId}\` was deleted from the dashboard.`,
+              targetId: String(ticketId),
+              payload: { ticketId, action: "delete" },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, deleted: true, id: ticketId });
+            return;
+          }
+
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const detail = await getGuildTicket(guild, ticketId);
+          if (!detail) {
+            sendJson(res, 404, { error: "Ticket not found" });
+            return;
+          }
+          sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ticket: detail });
           return;
         }
 

@@ -41,6 +41,7 @@ import { suggestionsPlugin } from "../plugins/suggestions/index.js";
 import { scamProtectPlugin } from "../plugins/scam_protect/index.js";
 import { passportPlugin } from "../plugins/passport/index.js";
 import { economyPlugin } from "../plugins/economy/index.js";
+import { ticketsPlugin } from "../plugins/tickets/index.js";
 
 export const availablePlugins: DreamlinerPlugin[] = [
   configPlugin,
@@ -85,6 +86,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   botCustomisationPlugin,
   reviewsPlugin,
   suggestionsPlugin,
+  ticketsPlugin,
 ];
 
 export function getAllSlashCommands() {

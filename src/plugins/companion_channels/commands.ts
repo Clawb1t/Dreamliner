@@ -5,7 +5,6 @@ import { resultReply, slashResultOptions } from "../../core/responses.js";
 import {
   claimCompanion,
   ghostCompanion,
-  inviteUser,
   lockCompanion,
   permitTarget,
   postLookingForMembers,
@@ -95,13 +94,6 @@ export const companionChannelsCommands: SlashCommandDefinition[] = [
       .addSubcommand((sub) => sub.setName("unghost").setDescription("Show the room in the channel list"))
       .addSubcommand((sub) =>
         sub
-          .setName("invite")
-          .setDescription("DM someone an invite")
-          .addUserOption((o) => o.setName("member").setDescription("Member to invite").setRequired(true))
-          .addStringOption((o) => o.setName("message").setDescription("Optional note").setMaxLength(200)),
-      )
-      .addSubcommand((sub) =>
-        sub
           .setName("nsfw")
           .setDescription("Toggle NSFW on your room")
           .addBooleanOption((o) => o.setName("enabled").setDescription("Mark as NSFW").setRequired(true)),
@@ -173,14 +165,7 @@ export const companionChannelsCommands: SlashCommandDefinition[] = [
       else if (sub === "bitrate") result = await setCompanionBitrate(actor, channel, ctx.interaction.options.getInteger("bitrate", true));
       else if (sub === "ghost") result = await ghostCompanion(actor, channel, true);
       else if (sub === "unghost") result = await ghostCompanion(actor, channel, false);
-      else if (sub === "invite") {
-        result = await inviteUser(
-          actor,
-          channel,
-          ctx.interaction.options.getUser("member", true),
-          ctx.interaction.options.getString("message") ?? "",
-        );
-      } else if (sub === "nsfw") {
+      else if (sub === "nsfw") {
         const enabled = ctx.interaction.options.getBoolean("enabled", true);
         const current = channel.nsfw;
         if (enabled === current) {

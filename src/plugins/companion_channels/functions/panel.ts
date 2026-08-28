@@ -53,9 +53,6 @@ export function buildCompanionInterface(config: CompanionChannelsConfig) {
     featureEnabled(config, "reject")
       ? { label: "Reject", value: "reject", description: "Block and kick a user or role" }
       : null,
-    featureEnabled(config, "invite")
-      ? { label: "Invite", value: "invite", description: "DM someone an invite" }
-      : null,
     featureEnabled(config, "transfer")
       ? { label: "Transfer", value: "transfer", description: "Give ownership to someone else" }
       : null,

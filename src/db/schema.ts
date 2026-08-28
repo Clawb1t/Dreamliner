@@ -1185,3 +1185,49 @@ export const economyGuildState = sqliteTable("economy_guild_state", {
   seeded: integer("seeded", { mode: "boolean" }).notNull().default(false),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+export const tickets = sqliteTable("tickets", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  panelId: text("panel_id").notNull(),
+  categoryId: text("category_id").notNull(),
+  number: integer("number", { mode: "number" }).notNull(),
+  channelId: text("channel_id").notNull(),
+  threadId: text("thread_id"),
+  mode: text("mode").notNull().default("channel"),
+  openerId: text("opener_id").notNull(),
+  claimedBy: text("claimed_by"),
+  status: text("status").notNull().default("open"),
+  priority: text("priority").notNull().default("medium"),
+  formResponses: text("form_responses").notNull().default("[]"),
+  memberIds: text("member_ids").notNull().default("[]"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  closedAt: integer("closed_at", { mode: "timestamp" }),
+  closedBy: text("closed_by"),
+  closeReason: text("close_reason"),
+  lastActivityAt: integer("last_activity_at", { mode: "timestamp" }).notNull(),
+  ratingScore: integer("rating_score", { mode: "number" }),
+  ratingComment: text("rating_comment"),
+  lastStaffReplyAt: integer("last_staff_reply_at", { mode: "timestamp" }),
+  escalationStep: integer("escalation_step", { mode: "number" }).notNull().default(-1),
+});
+
+export const ticketTranscripts = sqliteTable("ticket_transcripts", {
+  id: text("id").primaryKey(),
+  ticketId: integer("ticket_id", { mode: "number" }).notNull(),
+  guildId: text("guild_id").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  payload: text("payload").notNull(),
+});
+
+export const ticketBlacklist = sqliteTable(
+  "ticket_blacklist",
+  {
+    guildId: text("guild_id").notNull(),
+    targetId: text("target_id").notNull(),
+    targetType: text("target_type").notNull(),
+    reason: text("reason"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.targetId] })],
+);

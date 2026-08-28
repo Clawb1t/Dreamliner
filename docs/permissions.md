@@ -63,6 +63,8 @@ The template starts with an empty map:
 levels: {}
 ```
 
+Server owners and anyone with Discord's own **Administrator** or **Manage Server** permission always reach level **100** automatically — no `levels` entries required. This is controlled by `admin_bypass` (default `true`; see [Configuration](configuration.md#admin-bypass)) and is toggleable from the dashboard's server settings page if you'd rather admins go through configured levels/overrides too.
+
 Replace that with indented entries (do **not** keep the `{}` braces when adding IDs):
 
 ```yaml
