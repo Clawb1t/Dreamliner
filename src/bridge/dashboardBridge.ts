@@ -3333,14 +3333,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 200, {
               guild: { id: guild.id, name: guild.name, icon: guild.icon },
               commands: result.commands,
-              slashCount: result.slashCount,
-              maxSlash: result.maxSlash,
+              count: result.count,
+              maxCommands: result.maxCommands,
             });
             return;
           }
 
           if (commandsMatch && req.method === "POST") {
-            let body: { userId?: string; name?: string; source?: string; minLevel?: number };
+            let body: { userId?: string; name?: string; program?: unknown };
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
@@ -3348,8 +3348,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const requesterId = body.userId?.trim();
-            if (!requesterId || typeof body.name !== "string" || typeof body.source !== "string") {
-              sendJson(res, 400, { error: "userId, name, and source are required" });
+            if (!requesterId || typeof body.name !== "string" || typeof body.program !== "object" || body.program === null) {
+              sendJson(res, 400, { error: "userId, name, and program are required" });
               return;
             }
             if (!(await memberCanManage(guild, requesterId))) {
@@ -3360,8 +3360,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const result = await createBridgeDreamCommand(client, configManager, guildId, {
               userId: requesterId,
               name: body.name,
-              source: body.source,
-              minLevel: body.minLevel,
+              program: body.program,
             });
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
@@ -3369,8 +3368,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             trackDashboardAction(client, guildId, requesterId, {
               eventType: "dashboard_command",
-              title: "Dream command created",
-              summary: `Dream command \`/${result.command.name}\` was created from the dashboard.`,
+              title: "Custom command created",
+              summary: `Custom command \`/${result.command.name}\` was created from the dashboard.`,
               targetId: result.command.name,
               payload: { name: result.command.name },
             });
@@ -3402,7 +3401,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           if (commandOneMatch && req.method === "PUT") {
-            let body: { userId?: string; source?: string; minLevel?: number };
+            let body: { userId?: string; program?: unknown };
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
@@ -3410,8 +3409,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const requesterId = body.userId?.trim();
-            if (!requesterId || typeof body.source !== "string") {
-              sendJson(res, 400, { error: "userId and source are required" });
+            if (!requesterId || typeof body.program !== "object" || body.program === null) {
+              sendJson(res, 400, { error: "userId and program are required" });
               return;
             }
             if (!(await memberCanManage(guild, requesterId))) {
@@ -3424,7 +3423,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               configManager,
               guildId,
               commandOneMatch[2]!,
-              { source: body.source, minLevel: body.minLevel },
+              { program: body.program },
             );
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
@@ -3432,8 +3431,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             trackDashboardAction(client, guildId, requesterId, {
               eventType: "dashboard_command",
-              title: "Dream command updated",
-              summary: `Dream command \`/${result.command.name}\` was updated from the dashboard.`,
+              title: "Custom command updated",
+              summary: `Custom command \`/${result.command.name}\` was updated from the dashboard.`,
               targetId: result.command.name,
               payload: { name: result.command.name },
             });
@@ -3463,8 +3462,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             trackDashboardAction(client, guildId, userId, {
               eventType: "dashboard_command",
-              title: "Dream command deleted",
-              summary: `Dream command \`/${result.command.name}\` was deleted from the dashboard.`,
+              title: "Custom command deleted",
+              summary: `Custom command \`/${result.command.name}\` was deleted from the dashboard.`,
               targetId: result.command.name,
               payload: { name: result.command.name },
             });

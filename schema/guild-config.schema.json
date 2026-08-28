@@ -552,6 +552,16 @@
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
                 },
+                "can_watchdog": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to run /watchdog risk checks on a member. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Watchdog",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
                 "can_context": {
                   "type": "boolean",
                   "default": false,
@@ -10525,13 +10535,12 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 10,
-                  "description": "Deprecated and ignored. Dreamcode custom commands are slash-only.",
+                  "description": "Deprecated and ignored.",
                   "title": "Prefix"
                 },
                 "can_create": {
                   "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to create Dreamcode custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Deprecated and ignored.",
                   "title": "Create",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -10541,7 +10550,7 @@
                 "can_edit": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to download/upload Dreamcode command source. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to toggle custom commands on or off. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Edit",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -10551,7 +10560,7 @@
                 "can_remove": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to remove Dreamcode custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to remove custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Remove",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -10561,7 +10570,7 @@
                 "can_list": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to list Dreamcode custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to list custom commands. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "List",
                   "x-dreamliner": {
                     "kind": "permission",

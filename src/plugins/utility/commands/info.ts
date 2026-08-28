@@ -16,6 +16,7 @@ import {
   buildLevelEmbed,
   resolveInfoTarget,
 } from "../functions/info.js";
+import { buildWatchdogEmbed } from "../functions/watchdog.js";
 
 export const infoCommands: SlashCommandDefinition[] = [
   {
@@ -262,6 +263,27 @@ export const infoCommands: SlashCommandDefinition[] = [
       const user = ctx.interaction.options.getUser("member") ?? ctx.interaction.user;
       const member = await ctx.interaction.guild!.members.fetch(user.id);
       await ctx.interaction.reply(embedReply(buildLevelEmbed(member, ctx.guildConfig, ctx.client), ctx.ephemeral));
+    },
+  },
+  {
+    plugin: "utility",
+    permission: "can_watchdog",
+    data: new SlashCommandBuilder()
+      .setName("watchdog")
+      .setDescription("Show a member's Watchdog risk score and reasons")
+      .addUserOption((o) => o.setName("member").setDescription("Member to check").setRequired(true)),
+    execute: async (ctx) => {
+      const auth = await requireUtilityPermission(ctx, "can_watchdog");
+      if (!auth) return;
+      const user = ctx.interaction.options.getUser("member", true);
+      const member = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
+      if (!member) {
+        await ctx.interaction.reply(resultReply("Watchdog", "That user isn't a member of this server.", ctx.ephemeral, slashResultOptions(ctx)));
+        return;
+      }
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+      const embed = await buildWatchdogEmbed(member, ctx.guildConfig, ctx.client);
+      await ctx.interaction.editReply(embedEdit(embed));
     },
   },
 ];

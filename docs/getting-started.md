@@ -44,7 +44,7 @@ Open the YAML file in any text editor. Common first steps:
    * **Engagement** - welcomes, companion channels, starboard
    * **Auto responses** - tags, autoreplies, autoreactions, translation
    * **Scheduling** - timed posts, reminders, counters
-   * **Customization** - custom events, aliases, Dreamcode commands
+   * **Customization** - custom events, aliases, custom commands
    * **Utilities** - utility commands, stats, bot customisation, logs
    * **Feedback** - reviews and suggestions
 4. Tweak `plugins.utility` permissions and overrides.

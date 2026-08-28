@@ -562,9 +562,9 @@ async function handleSlashCommand(
 ) {
   const command = ctx.commands.get(interaction.commandName);
   if (!command) {
-    // Guild-scoped Dreamcode slash commands are not in the global command map.
+    // Guild-scoped custom slash commands are not in the global command map.
     const handled = await handleDreamCommandSlash(interaction, configManager).catch((error) => {
-      console.error("Dreamcode slash command error:", error);
+      console.error("Custom slash command error:", error);
       return true;
     });
     if (!handled && !interaction.replied && !interaction.deferred) {

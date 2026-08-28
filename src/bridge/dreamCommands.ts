@@ -1,33 +1,29 @@
 import type { Client } from "discord.js";
-import { compileDreamcode, DreamcodeError } from "../dreamcode/index.js";
+import { CommandProgramError, validateProgram, type CommandProgram } from "../plugins/dream_commands/functions/program.js";
 import { pluginEnabled } from "../core/pluginCommand.js";
 import type { ConfigManager } from "../config/manager.js";
 import {
-  countSlashDreamCommands,
+  countDreamCommands,
   createDreamCommand,
   deleteDreamCommand,
   getDreamCommand,
   isValidCommandName,
   listDreamCommands,
-  MAX_SLASH_DREAM_COMMANDS,
+  MAX_DREAM_COMMANDS,
   normalizeCommandName,
   updateDreamCommand,
   type DreamCommandRow,
 } from "../plugins/dream_commands/functions/store.js";
 import {
-  DREAM_SLASH_CAP,
+  DREAM_COMMAND_CAP,
   isReservedCommandName,
   syncGuildDreamSlashCommands,
 } from "../plugins/dream_commands/functions/guildSlash.js";
 
-const MAX_SOURCE_BYTES = 32_000;
-
 export type BridgeDreamCommand = {
   guildId: string;
   name: string;
-  source: string;
-  triggerType: string;
-  minLevel: number;
+  program: CommandProgram;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -38,9 +34,7 @@ function serializeCommand(row: DreamCommandRow): BridgeDreamCommand {
   return {
     guildId: row.guildId,
     name: row.name,
-    source: row.source,
-    triggerType: row.triggerType,
-    minLevel: row.minLevel,
+    program: row.program,
     createdBy: row.createdBy,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -48,35 +42,15 @@ function serializeCommand(row: DreamCommandRow): BridgeDreamCommand {
   };
 }
 
-export type DreamCommandValidation =
-  | { ok: true; source: string }
+export type CommandProgramValidation =
+  | { ok: true; program: CommandProgram }
   | { ok: false; error: string; status: number };
 
-function validateSource(source: string): DreamCommandValidation {
-  if (typeof source !== "string" || !source.trim()) {
-    return { ok: false, error: "source is required", status: 400 };
-  }
-  const bytes = Buffer.byteLength(source, "utf8");
-  if (bytes > MAX_SOURCE_BYTES) {
-    return {
-      ok: false,
-      error: `Dreamcode files must be under ${MAX_SOURCE_BYTES} bytes.`,
-      status: 400,
-    };
-  }
+function validateProgramInput(input: unknown): CommandProgramValidation {
   try {
-    const program = compileDreamcode(source);
-    if (program.trigger !== "slash") {
-      return {
-        ok: false,
-        error:
-          "Add `@slash` at the top of the file. Dreamcode commands are slash-only (`@prefix` is not supported).",
-        status: 400,
-      };
-    }
-    return { ok: true, source };
+    return { ok: true, program: validateProgram(input) };
   } catch (err) {
-    const message = err instanceof DreamcodeError ? err.message : "Invalid Dreamcode.";
+    const message = err instanceof CommandProgramError ? err.message : "Invalid command.";
     return { ok: false, error: message, status: 400 };
   }
 }
@@ -100,20 +74,20 @@ export async function listBridgeDreamCommands(
   configManager: ConfigManager,
   guildId: string,
 ): Promise<
-  | { ok: true; commands: BridgeDreamCommand[]; slashCount: number; maxSlash: number }
+  | { ok: true; commands: BridgeDreamCommand[]; count: number; maxCommands: number }
   | { ok: false; error: string; status: number }
 > {
   const plugin = await assertPluginEnabled(configManager, guildId);
   if (!plugin.ok) return plugin;
-  const [commands, slashCount] = await Promise.all([
+  const [commands, count] = await Promise.all([
     listDreamCommands(guildId),
-    countSlashDreamCommands(guildId),
+    countDreamCommands(guildId),
   ]);
   return {
     ok: true,
     commands: commands.map(serializeCommand),
-    slashCount,
-    maxSlash: MAX_SLASH_DREAM_COMMANDS,
+    count,
+    maxCommands: MAX_DREAM_COMMANDS,
   };
 }
 
@@ -133,7 +107,7 @@ export async function createBridgeDreamCommand(
   client: Client,
   configManager: ConfigManager,
   guildId: string,
-  input: { userId: string; name: string; source: string; minLevel?: number },
+  input: { userId: string; name: string; program: unknown },
 ): Promise<{ ok: true; command: BridgeDreamCommand } | { ok: false; error: string; status: number }> {
   const plugin = await assertPluginEnabled(configManager, guildId);
   if (!plugin.ok) return plugin;
@@ -159,25 +133,22 @@ export async function createBridgeDreamCommand(
     return { ok: false, error: `A command named ${name} already exists.`, status: 409 };
   }
 
-  const sourceCheck = validateSource(input.source);
-  if (!sourceCheck.ok) return sourceCheck;
+  const programCheck = validateProgramInput(input.program);
+  if (!programCheck.ok) return programCheck;
 
-  const slashCount = await countSlashDreamCommands(guildId);
-  if (slashCount >= MAX_SLASH_DREAM_COMMANDS) {
+  const count = await countDreamCommands(guildId);
+  if (count >= MAX_DREAM_COMMANDS) {
     return {
       ok: false,
-      error: `This server already has ${MAX_SLASH_DREAM_COMMANDS} slash Dreamcode commands (max ${DREAM_SLASH_CAP}). Remove one first.`,
+      error: `This server already has ${MAX_DREAM_COMMANDS} custom commands (max ${DREAM_COMMAND_CAP}). Remove one first.`,
       status: 400,
     };
   }
 
-  const minLevel = Math.max(0, Math.min(9999, Math.floor(Number(input.minLevel ?? 0) || 0)));
   const created = await createDreamCommand({
     guildId,
     name,
-    source: sourceCheck.source,
-    triggerType: "slash",
-    minLevel,
+    program: programCheck.program,
     createdBy: input.userId,
   });
 
@@ -200,7 +171,7 @@ export async function updateBridgeDreamCommand(
   configManager: ConfigManager,
   guildId: string,
   name: string,
-  input: { source: string; minLevel?: number },
+  input: { program: unknown },
 ): Promise<{ ok: true; command: BridgeDreamCommand } | { ok: false; error: string; status: number }> {
   const plugin = await assertPluginEnabled(configManager, guildId);
   if (!plugin.ok) return plugin;
@@ -218,30 +189,10 @@ export async function updateBridgeDreamCommand(
     };
   }
 
-  const sourceCheck = validateSource(input.source);
-  if (!sourceCheck.ok) return sourceCheck;
+  const programCheck = validateProgramInput(input.program);
+  if (!programCheck.ok) return programCheck;
 
-  const wasSlash = existing.triggerType === "slash";
-  if (!wasSlash) {
-    const slashCount = await countSlashDreamCommands(guildId);
-    if (slashCount >= MAX_SLASH_DREAM_COMMANDS) {
-      return {
-        ok: false,
-        error: `This server already has ${MAX_SLASH_DREAM_COMMANDS} slash Dreamcode commands (max ${DREAM_SLASH_CAP}). Remove one first.`,
-        status: 400,
-      };
-    }
-  }
-
-  const patch: { source: string; triggerType: "slash"; minLevel?: number } = {
-    source: sourceCheck.source,
-    triggerType: "slash",
-  };
-  if (input.minLevel !== undefined) {
-    patch.minLevel = Math.max(0, Math.min(9999, Math.floor(Number(input.minLevel) || 0)));
-  }
-
-  const updated = await updateDreamCommand(guildId, normalized, patch);
+  const updated = await updateDreamCommand(guildId, normalized, { program: programCheck.program });
   if (!updated) {
     return { ok: false, error: `No command named ${normalized}.`, status: 404 };
   }

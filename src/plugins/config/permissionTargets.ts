@@ -24,6 +24,7 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "snowflake", label: "/snowflake", plugin: "utility", permission: "can_snowflake" },
   { key: "rolelist", label: "/rolelist", plugin: "utility", permission: "can_roles" },
   { key: "level", label: "/level", plugin: "utility", permission: "can_level" },
+  { key: "watchdog", label: "/watchdog", plugin: "utility", permission: "can_watchdog" },
   { key: "context", label: "/context", plugin: "utility", permission: "can_context" },
   { key: "source", label: "/source", plugin: "utility", permission: "can_source" },
   { key: "nickname", label: "/nickname", plugin: "utility", permission: "can_nickname" },
@@ -119,9 +120,7 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "alias delete", label: "/alias delete", plugin: "command_aliases", permission: "can_delete" },
   { key: "alias list", label: "/alias list", plugin: "command_aliases", permission: "can_list" },
   { key: "alias run", label: "/alias run", plugin: "command_aliases", permission: "can_run" },
-  { key: "command create", label: "/command create", plugin: "dream_commands", permission: "can_create" },
-  { key: "command edit download", label: "/command edit download", plugin: "dream_commands", permission: "can_edit" },
-  { key: "command edit upload", label: "/command edit upload", plugin: "dream_commands", permission: "can_edit" },
+  { key: "command toggle", label: "/command toggle", plugin: "dream_commands", permission: "can_edit" },
   { key: "command remove", label: "/command remove", plugin: "dream_commands", permission: "can_remove" },
   { key: "command list", label: "/command list", plugin: "dream_commands", permission: "can_list" },
 

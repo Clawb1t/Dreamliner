@@ -61,7 +61,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Custom events](./custom_events.md)
 - [Command aliases](./command_aliases.md)
-- [Dreamcode commands](./dream_commands.md) — custom commands (`d!…`) written in [Dreamcode](../dreamcode/README.md)
+- [Custom commands](./dream_commands.md), built on the dashboard, see [reference](../dreamcode/README.md)
 
 ## Utilities
 

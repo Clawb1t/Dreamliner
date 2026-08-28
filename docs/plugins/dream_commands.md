@@ -1,8 +1,8 @@
-# Dreamcode commands plugin
+# Custom commands plugin
 
-Custom commands written in **Dreamcode**, registered as **guild slash** commands (`/name`).
+Custom slash commands (`/name`), built on the website dashboard. Each command is always exactly one reply, text or embed.
 
-Language docs: [../dreamcode/README.md](../dreamcode/README.md)
+Reference: [../dreamcode/README.md](../dreamcode/README.md)
 
 ## Configuration
 
@@ -13,7 +13,6 @@ plugins:
     overrides:
       - level: ">=50"
         config:
-          can_create: true
           can_edit: true
           can_remove: true
           can_list: true
@@ -21,46 +20,25 @@ plugins:
 
 | Field | Description |
 |-------|-------------|
-| `prefix` | **Deprecated / ignored.** Older configs may still include it. |
+| `can_edit` | Toggle a command on or off with `/command toggle`. |
+| `can_remove` | Delete a command with `/command remove`. |
+| `can_list` | List commands with `/command list`. |
 
-### Who can run a command?
+Commands themselves are created and edited on the dashboard, not gated by a Discord-side permission (creating one still requires Manage Server on the dashboard).
 
-Each command has `min_level`. The invoker’s Dreamliner level must be **≥** that value.
+## Registration
 
-## Trigger type
-
-Declared **in the `.dream` file** with `@slash` (required):
-
-```dream
-@slash
-@slash description "Staff ping"
-@slash noargs
-reply "📢"
-```
-
-| Type | How it runs | Limits |
-|------|-------------|--------|
-| **slash** (`@slash`) | `/name` registered as a **guild** slash command | **Max 10** per server |
-
-Rules:
-
-- Prefix (`@prefix` / `d!…`) is **not supported**.
-- Names cannot collide with built-in Dreamliner commands (`help`, `ban`, `command`, …).
-- Slash commands are synced per guild via Discord’s guild command API (not global). They may take up to a minute to appear after create/remove/edit.
-- Typed options: `@slash arg user target "Who" required` → Discord user option → `arg.target` in the script.
-- See [language.md](../dreamcode/language.md) for `noargs`, `ephemeral`, `description`, and all arg types.
+Every custom command registers as a **guild** slash command, up to **10** per server. Names cannot collide with a built-in Dreamliner command (`help`, `ban`, `command`, …). Slash commands sync per guild via Discord's guild command API and may take up to a minute to appear after create, remove, or edit.
 
 ## Slash commands (management)
 
 | Command | Permission | Description |
 |---------|------------|-------------|
-| `/command create` | `can_create` | Upload a `.dream` file (`@slash` required) |
-| `/command edit download` | `can_edit` | Download source |
-| `/command edit upload` | `can_edit` | Replace source |
-| `/command remove` | `can_remove` | Delete a command |
 | `/command list` | `can_list` | List custom commands |
+| `/command toggle` | `can_edit` | Enable or disable a command |
+| `/command remove` | `can_remove` | Delete a command |
+| `/command info` | none | Points staff to the dashboard's Commands section |
 
 ## Requirements
 
 - Bot must be able to register guild application commands.
-- Migration `0014_disable_prefix_dream_commands` disables any leftover prefix rows.

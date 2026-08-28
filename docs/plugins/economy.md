@@ -56,12 +56,6 @@ Member defaults (`>=0`) can use the consumer commands. Staff (`>=50`) get admin 
 
 Events: `economy_adjust`, `economy_transfer`, `economy_shop`, `economy_trade`, `economy_auction`, `economy_freeze`, `economy_season`, plus `dashboard_economy`.
 
-## Dreamcode
-
-- `economy_balance` — read pocket/bank/frozen
-- `economy_add` / `economy_take` — staff-gated mutations (ledger-backed)
-- `economy_has_item` — inventory check
-
 ## Anti-abuse
 
 - Cooldowns on work/jobs/activity

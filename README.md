@@ -6,7 +6,7 @@ Dreamliner is a Discord moderation and server-operations bot built for communiti
 
 Configure your server with versionable YAML: download a template, edit channels, plugins, and access levels, then upload. Day-to-day work can also run through the web dashboard for live config, logs, stats, and custom commands, without giving up file-based control. Dreamliner does not require Administrator; invite with least privilege and grant only what your staff need.
 
-Core capabilities include infractions and case management, automod and raid tooling, content filters, structured logging, role and onboarding systems, multilingual translation, activity stats, and Dreamcode for custom slash commands. Enable only the plugins your community uses so the bot stays focused and predictable for operators.
+Core capabilities include infractions and case management, automod and raid tooling, content filters, structured logging, role and onboarding systems, multilingual translation, activity stats, and visually built custom slash commands. Enable only the plugins your community uses so the bot stays focused and predictable for operators.
 
 Built for serious Discord operations. Inspired by [Zeppelin](https://github.com/ZeppelinBot/Zeppelin).
 
@@ -27,8 +27,8 @@ Recommended permissions are pre-selected. Dreamliner does **not** require Admini
 - **Config as source of truth:** Guild YAML is portable, reviewable, and easy to back up or hand off between staff.
 - **Least privilege by design:** Level-based access plus per-command `can_*` overrides so senior mods, trial staff, and helpers stay in their lane.
 - **Ops without noise:** Enable only the plugins your community needs; leave the rest off.
-- **Slash-first management:** Staff workflows and custom Dreamcode commands stay in Discord’s command surface.
-- **Dashboard when you want it:** Live config, logs, stats, and Dreamcode editing without abandoning file-based control.
+- **Slash-first management:** Staff workflows and custom commands stay in Discord’s command surface.
+- **Dashboard when you want it:** Live config, logs, stats, and building custom commands without abandoning file-based control.
 
 ---
 
@@ -81,7 +81,7 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | **Companion channels** | Personal voice channels from a hub |
 | **Reminders** | Personal staff reminders |
 | **Custom events / command aliases** | Hook Discord events and short triggers |
-| **Dreamcode** | Custom slash commands with a dedicated language and dashboard editor |
+| **Custom commands** | Slash commands you build on the dashboard: a reply, text or embed |
 
 ### Feedback
 
@@ -114,7 +114,7 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 | [Configuration](docs/configuration.md) | YAML structure, logging, plugins |
 | [Permissions](docs/permissions.md) | Bot permissions, levels, and `can_*` flags |
 | [Plugins](docs/plugins/README.md) | Per-plugin reference |
-| [Dreamcode](docs/dreamcode/README.md) | Custom command language |
+| [Custom commands](docs/dreamcode/README.md) | Reply-based slash commands |
 | [Terms of Service](docs/terms-of-service.md) | Usage terms |
 | [Privacy Policy](docs/privacy-policy.md) | Data handling |
 
@@ -163,7 +163,7 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 - [Translation](docs/plugins/translation.md)
 - [Custom events](docs/plugins/custom_events.md)
 - [Command aliases](docs/plugins/command_aliases.md)
-- [Dreamcode commands](docs/plugins/dream_commands.md)
+- [Custom commands](docs/plugins/dream_commands.md)
 
 </details>
 

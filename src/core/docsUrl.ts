@@ -52,6 +52,11 @@ export function getGuildCasesDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=cases`;
 }
 
+/** Guild dashboard opened on the custom Commands section. */
+export function getGuildCommandsDashboardUrl(guildId: string): string {
+  return `${getGuildDashboardUrl(guildId)}?section=commands`;
+}
+
 export function getGlobalStatsUrl(): string {
   return `${resolveSiteUrl()}/stats`;
 }

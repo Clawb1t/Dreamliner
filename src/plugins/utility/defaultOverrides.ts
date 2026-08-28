@@ -16,6 +16,7 @@ export const utilityDefaultOverrides: ConfigOverride[] = [
       can_snowflake: true,
       can_roles: true,
       can_level: true,
+      can_watchdog: true,
       can_context: true,
       can_source: true,
       can_nickname: true,

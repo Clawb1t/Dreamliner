@@ -63,8 +63,8 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
     description: "Saved tag responses for this server.",
   },
   dream_commands: {
-    label: "Dream commands",
-    description: "Custom Dreamcode slash commands.",
+    label: "Custom commands",
+    description: "Custom slash commands built on the dashboard.",
   },
   guild_log_events: {
     label: "Log events",

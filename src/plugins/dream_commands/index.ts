@@ -19,7 +19,7 @@ export const dreamCommandsPlugin = definePlugin({
         // Ensure application id is available for guild command routes.
         await c.application?.fetch().catch(() => null);
         await syncAllGuildDreamSlashCommands(c);
-        console.log("[dream_commands] Synced guild Dreamcode slash commands.");
+        console.log("[dream_commands] Synced guild custom slash commands.");
       },
     },
     {

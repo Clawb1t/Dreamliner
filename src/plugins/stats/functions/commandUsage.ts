@@ -11,7 +11,7 @@ import {
 
 const MAX_COMMAND_NAME = 64;
 
-/** Normalize a Discord / Dreamcode command name for storage. */
+/** Normalize a Discord / custom command name for storage. */
 export function normalizeCommandName(raw: string): string {
   return raw
     .trim()

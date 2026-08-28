@@ -1,15 +1,9 @@
-import type { ChatInputCommandInteraction, Client, GuildMember, Message } from "discord.js";
+import { EmbedBuilder, type ChatInputCommandInteraction } from "discord.js";
 import type { ConfigManager } from "../../../config/manager.js";
-import type { GuildConfig } from "../../../config/schemas/guild.js";
-import { getMemberLevel } from "../../../core/permissions.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { runDreamcode, type DreamValue } from "../../../dreamcode/index.js";
-import { buildDreamGlobals } from "./context.js";
-import { isReservedCommandName, slashPropsFromSource } from "./guildSlash.js";
-import { createDiscordActionHost } from "./host.js";
-import { resolveSlashArgValues } from "./slashArgs.js";
+import { interpolateTokens, type CommandProgram, type CommandTokenKey } from "./program.js";
+import { isReservedCommandName } from "./guildSlash.js";
 import { getDreamCommand, type DreamCommandRow } from "./store.js";
-import { createSlashTrigger, type DreamTrigger } from "./trigger.js";
 
 const rateBuckets = new Map<string, number>();
 const RATE_MS = 1500;
@@ -27,105 +21,46 @@ export function formatTriggerLabel(row: DreamCommandRow): string {
   return `/${row.name}`;
 }
 
-async function executeDreamCommand(input: {
-  command: DreamCommandRow;
-  member: GuildMember;
-  guildConfig: GuildConfig;
-  argText: string;
-  trigger: DreamTrigger;
-  client: Client;
-  sourceMessage?: Message;
-  namedArgs?: Record<string, DreamValue>;
-}): Promise<{ ok: true } | { ok: false; kind: "level" | "rate" | "error"; message: string }> {
-  const { command, member, guildConfig, argText, trigger, client, sourceMessage, namedArgs } = input;
-  const level = getMemberLevel(member, guildConfig.levels);
-  if (level < command.minLevel) {
-    return {
-      ok: false,
-      kind: "level",
-      message: `You need permission level **${command.minLevel}** or higher to run this command.`,
-    };
-  }
-
-  if (rateLimited(member.guild.id, member.id)) {
-    return {
-      ok: false,
-      kind: "rate",
-      message: "You're using Dreamcode commands too quickly. Try again in a moment.",
-    };
-  }
-
-  let globals;
-  if (sourceMessage) {
-    globals = buildDreamGlobals({
-      message: sourceMessage,
-      member,
-      guildConfig,
-      argText,
-      namedArgs,
-    });
-  } else {
-    // Synthesize a message-like object for slash invocations (arg tokens still parsed).
-    const synthetic = {
-      id: trigger.id,
-      content: trigger.content,
-      channel: trigger.channel,
-      author: member.user,
-      member,
-      guild: member.guild,
-      client,
-      createdAt: trigger.createdAt,
-      pinned: trigger.pinned,
-      url: trigger.url,
-      mentions: {
-        users: { keys: () => [][Symbol.iterator](), get: () => undefined },
-        roles: { keys: () => [][Symbol.iterator]() },
-        channels: { keys: () => [][Symbol.iterator]() },
-        members: { get: () => undefined },
-      },
-    } as unknown as Message;
-    globals = buildDreamGlobals({
-      message: synthetic,
-      member,
-      guildConfig,
-      argText,
-      namedArgs,
-    });
-  }
-
-  globals.trigger = {
-    __type: "message",
-    id: trigger.id,
-    content: trigger.content,
-    channelId: trigger.channel.id,
-    authorId: trigger.author.id,
-    createdAt: trigger.createdAt.getTime(),
-    pinned: trigger.pinned,
-    url: trigger.url,
+function buildTokens(interaction: ChatInputCommandInteraction): Record<CommandTokenKey, string> {
+  return {
+    user: interaction.user.username,
+    mention: `<@${interaction.user.id}>`,
+    server: interaction.guild?.name ?? "",
+    channel: interaction.channel && "toString" in interaction.channel ? interaction.channel.toString() : "",
   };
+}
 
-  const host = createDiscordActionHost({
-    client,
-    guild: member.guild,
-    guildConfig,
-    actor: member,
-    trigger,
-  });
-
-  const result = await runDreamcode(command.source, { globals, host });
-  if (!result.ok) {
-    return {
-      ok: false,
-      kind: "error",
-      message: result.aborted ? result.message : result.error.message,
-    };
+function pickContent(program: CommandProgram): string {
+  if (program.random && program.variants.length > 0) {
+    return program.variants[Math.floor(Math.random() * program.variants.length)]!;
   }
-  return { ok: true };
+  return program.content;
+}
+
+function buildEmbed(program: CommandProgram, tokens: Record<CommandTokenKey, string>): EmbedBuilder {
+  const e = program.embed;
+  const embed = new EmbedBuilder();
+  if (e.title.trim()) embed.setTitle(interpolateTokens(e.title, tokens).slice(0, 256));
+  if (e.titleUrl.trim()) embed.setURL(e.titleUrl);
+  if (e.description.trim()) embed.setDescription(interpolateTokens(e.description, tokens).slice(0, 4096));
+  if (e.color !== null) embed.setColor(e.color);
+  if (e.thumbnailUrl.trim()) embed.setThumbnail(e.thumbnailUrl);
+  if (e.imageUrl.trim()) embed.setImage(e.imageUrl);
+  if (e.authorName.trim()) {
+    embed.setAuthor({
+      name: interpolateTokens(e.authorName, tokens).slice(0, 256),
+      iconURL: e.authorIconUrl.trim() || undefined,
+      url: e.authorUrl.trim() || undefined,
+    });
+  }
+  if (e.footerText.trim()) embed.setFooter({ text: interpolateTokens(e.footerText, tokens).slice(0, 2048) });
+  if (e.timestamp) embed.setTimestamp();
+  return embed;
 }
 
 /**
- * Handle a guild-scoped Dreamcode slash command.
- * Returns true if this interaction was claimed as a dreamcode command.
+ * Handle a guild-scoped custom slash command: always exactly one reply, text or embed.
+ * Returns true if this interaction was claimed as a custom command.
  */
 export async function handleDreamCommandSlash(
   interaction: ChatInputCommandInteraction,
@@ -134,74 +69,38 @@ export async function handleDreamCommandSlash(
   if (!interaction.inGuild() || !interaction.guild || !interaction.guildId) return false;
 
   const command = await getDreamCommand(interaction.guildId, interaction.commandName);
-  if (!command || !command.enabled || command.triggerType !== "slash") return false;
-  // Failsafe: never claim a built-in bot command name as Dreamcode.
+  if (!command || !command.enabled) return false;
+  // Failsafe: never claim a built-in bot command name as a custom command.
   if (isReservedCommandName(command.name)) return false;
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "dream_commands")) {
-    await interaction.reply({ content: "Dreamcode commands are disabled in this server.", ephemeral: true }).catch(() => null);
+    await interaction.reply({ content: "Custom commands are disabled in this server.", ephemeral: true }).catch(() => null);
     return true;
   }
 
-  const member =
-    interaction.member && typeof interaction.member !== "string"
-      ? (interaction.member as GuildMember)
-      : await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
-  if (!member) {
-    await interaction.reply({ content: "Could not resolve your member profile.", ephemeral: true }).catch(() => null);
+  if (rateLimited(interaction.guildId, interaction.user.id)) {
+    await interaction
+      .reply({ content: "You're using custom commands too quickly. Try again in a moment.", ephemeral: true })
+      .catch(() => null);
     return true;
   }
-
-  const slash = slashPropsFromSource(command.source);
-  const namedArgs =
-    slash.args.length > 0
-      ? await resolveSlashArgValues(interaction, slash.args, guildConfig)
-      : undefined;
-  const argText =
-    slash.noargs || slash.args.length > 0
-      ? ""
-      : interaction.options.getString("args")?.trim() ?? "";
 
   try {
-    const trigger = await createSlashTrigger(interaction, command.name, argText, {
-      ephemeral: slash.ephemeral === true,
-    });
-    const outcome = await executeDreamCommand({
-      command,
-      member,
-      guildConfig,
-      argText,
-      trigger,
-      client: interaction.client,
-      namedArgs,
-    });
-
-    if (!outcome.ok) {
-      const text =
-        outcome.kind === "error"
-          ? `Dreamcode error: ${outcome.message.slice(0, 500)}`
-          : outcome.message;
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({ content: text }).catch(async () => {
-          await interaction.followUp({ content: text, ephemeral: true }).catch(() => null);
-        });
-      } else {
-        await interaction.reply({ content: text, ephemeral: true }).catch(() => null);
-      }
-      return true;
+    const tokens = buildTokens(interaction);
+    const program = command.program;
+    if (program.responseType === "embed") {
+      await interaction.reply({ embeds: [buildEmbed(program, tokens)], ephemeral: program.ephemeral });
+    } else {
+      const content = interpolateTokens(pickContent(program), tokens);
+      await interaction.reply({ content, ephemeral: program.ephemeral });
     }
 
     const { trackCommandUsage } = await import("../../stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, command.name);
-
-    // Script never used reply/edit — drop the deferred placeholder.
-    if (!trigger.didReply() && interaction.deferred) {
-      await interaction.deleteReply().catch(() => null);
-    }
   } catch (error) {
     console.error(`[dream_commands] slash /${command.name} error:`, error);
-    const text = "Dreamcode command failed to run.";
+    const text = "Custom command failed to run.";
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: text }).catch(() => null);
     } else {

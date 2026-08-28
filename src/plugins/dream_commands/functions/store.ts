@@ -1,22 +1,19 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { dreamCommands } from "../../../db/schema.js";
-
-export type DreamTriggerType = "prefix" | "slash";
+import type { CommandProgram } from "./program.js";
 
 export type DreamCommandRow = {
   guildId: string;
   name: string;
-  source: string;
-  triggerType: DreamTriggerType;
-  minLevel: number;
+  program: CommandProgram;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
   enabled: boolean;
 };
 
-export const MAX_SLASH_DREAM_COMMANDS = 10;
+export const MAX_DREAM_COMMANDS = 10;
 
 export function normalizeCommandName(name: string): string {
   return name.trim().toLowerCase();
@@ -28,18 +25,11 @@ export function isValidCommandName(name: string): boolean {
   return NAME_RE.test(normalizeCommandName(name));
 }
 
-export function normalizeTriggerType(value: string | null | undefined): DreamTriggerType {
-  // Legacy "prefix" rows may still exist in the DB (disabled); only "slash" is active.
-  return value === "slash" ? "slash" : "prefix";
-}
-
 function mapRow(row: typeof dreamCommands.$inferSelect): DreamCommandRow {
   return {
     guildId: row.guildId,
     name: row.name,
-    source: row.source,
-    triggerType: normalizeTriggerType(row.triggerType),
-    minLevel: row.minLevel,
+    program: JSON.parse(row.program) as CommandProgram,
     createdBy: row.createdBy,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -61,16 +51,16 @@ export async function listDreamCommands(guildId: string): Promise<DreamCommandRo
   return rows.map(mapRow);
 }
 
-export async function listSlashDreamCommands(guildId: string): Promise<DreamCommandRow[]> {
+export async function listEnabledDreamCommands(guildId: string): Promise<DreamCommandRow[]> {
   const rows = await listDreamCommands(guildId);
-  return rows.filter((row) => row.triggerType === "slash" && row.enabled);
+  return rows.filter((row) => row.enabled);
 }
 
-export async function countSlashDreamCommands(guildId: string): Promise<number> {
+export async function countDreamCommands(guildId: string): Promise<number> {
   const row = await getDb()
     .select({ count: sql<number>`count(*)` })
     .from(dreamCommands)
-    .where(and(eq(dreamCommands.guildId, guildId), eq(dreamCommands.triggerType, "slash")))
+    .where(eq(dreamCommands.guildId, guildId))
     .get();
   return Number(row?.count ?? 0);
 }
@@ -78,9 +68,7 @@ export async function countSlashDreamCommands(guildId: string): Promise<number> 
 export async function createDreamCommand(input: {
   guildId: string;
   name: string;
-  source: string;
-  triggerType: DreamTriggerType;
-  minLevel: number;
+  program: CommandProgram;
   createdBy: string;
 }): Promise<DreamCommandRow> {
   const name = normalizeCommandName(input.name);
@@ -90,9 +78,7 @@ export async function createDreamCommand(input: {
     .values({
       guildId: input.guildId,
       name,
-      source: input.source,
-      triggerType: input.triggerType,
-      minLevel: input.minLevel,
+      program: JSON.stringify(input.program),
       createdBy: input.createdBy,
       createdAt: now,
       updatedAt: now,
@@ -103,30 +89,19 @@ export async function createDreamCommand(input: {
   return mapRow(row);
 }
 
-export async function updateDreamCommandSource(
-  guildId: string,
-  name: string,
-  source: string,
-  triggerType?: DreamTriggerType,
-): Promise<DreamCommandRow | null> {
-  return updateDreamCommand(guildId, name, { source, triggerType });
-}
-
 export async function updateDreamCommand(
   guildId: string,
   name: string,
   patch: {
-    source?: string;
-    minLevel?: number;
-    triggerType?: DreamTriggerType;
+    program?: CommandProgram;
+    enabled?: boolean;
   },
 ): Promise<DreamCommandRow | null> {
   const row = await getDb()
     .update(dreamCommands)
     .set({
-      ...(patch.source !== undefined ? { source: patch.source } : {}),
-      ...(patch.minLevel !== undefined ? { minLevel: patch.minLevel } : {}),
-      ...(patch.triggerType !== undefined ? { triggerType: patch.triggerType } : {}),
+      ...(patch.program !== undefined ? { program: JSON.stringify(patch.program) } : {}),
+      ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(dreamCommands.guildId, guildId), eq(dreamCommands.name, normalizeCommandName(name))))

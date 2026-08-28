@@ -555,17 +555,13 @@ export const zCommandAliasesConfig = z.strictObject({
 });
 
 export const zDreamCommandsConfig = z.strictObject({
-  /** @deprecated Ignored. Dreamcode commands are slash-only. Kept so older YAML still parses. */
-  prefix: z
-    .string()
-    .min(1)
-    .max(10)
-    .optional()
-    .describe("Deprecated and ignored. Dreamcode custom commands are slash-only."),
-  can_create: boolPerm("create Dreamcode custom commands"),
-  can_edit: boolPerm("download/upload Dreamcode command source"),
-  can_remove: boolPerm("remove Dreamcode custom commands"),
-  can_list: boolPerm("list Dreamcode custom commands"),
+  /** @deprecated Ignored. Kept so older saved config still parses. */
+  prefix: z.string().min(1).max(10).optional().describe("Deprecated and ignored."),
+  /** @deprecated Ignored. Commands are created on the dashboard, not via a permission gate. */
+  can_create: z.boolean().optional().describe("Deprecated and ignored."),
+  can_edit: boolPerm("toggle custom commands on or off"),
+  can_remove: boolPerm("remove custom commands"),
+  can_list: boolPerm("list custom commands"),
 });
 
 export const zBotCustomisationConfig = z.strictObject({

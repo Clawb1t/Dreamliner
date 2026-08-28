@@ -381,7 +381,7 @@ const GROUP_LABELS: Record<string, string> = {
   companion_channels: "Companion channels",
   custom_events: "Custom events",
   command_aliases: "Aliases",
-  dream_commands: "Dreamcode",
+  dream_commands: "Custom commands",
   stats: "Stats",
   bot_customisation: "Bot customisation",
   reviews: "Reviews",

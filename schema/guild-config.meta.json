@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-27T11:28:10.675Z",
+  "generatedAt": "2026-08-27T23:25:56.534Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -208,7 +208,7 @@
     {
       "id": "custom",
       "label": "Customization",
-      "description": "Custom events, aliases, and Dreamcode commands.",
+      "description": "Custom events, aliases, and custom commands.",
       "plugins": [
         {
           "key": "custom_events",
@@ -222,8 +222,8 @@
         },
         {
           "key": "dream_commands",
-          "name": "Dreamcode commands",
-          "description": "Custom commands written in Dreamcode."
+          "name": "Custom commands",
+          "description": "Custom slash commands built visually on the dashboard."
         }
       ]
     },
@@ -494,8 +494,8 @@
     },
     {
       "key": "dream_commands",
-      "name": "Dreamcode commands",
-      "description": "Custom commands written in Dreamcode.",
+      "name": "Custom commands",
+      "description": "Custom slash commands built visually on the dashboard.",
       "category": "Customization",
       "categoryId": "custom"
     },

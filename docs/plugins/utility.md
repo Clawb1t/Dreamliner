@@ -18,6 +18,7 @@ The Utility plugin provides server management, search, info, message tools, voic
 | `can_snowflake` | `/snowflake` |
 | `can_roles` | `/rolelist` |
 | `can_level` | `/level` |
+| `can_watchdog` | `/watchdog` |
 | `can_context` | `/context` |
 | `can_source` | `/source` |
 | `can_nickname` | `/nickname` |
@@ -130,6 +131,16 @@ List server roles.
 ### `/level`
 
 Show a member's config permission level.
+
+### `/watchdog`
+
+Show a member's Watchdog risk score, tier (Critical/Elevated/Watch/Low), and the full list of
+signals that contributed to it — the same scoring shown on the dashboard's Watchdog page
+(`GuildWatchdogPanel`), so a mod can pull the same read-out without leaving Discord.
+
+| Option | Description |
+|--------|-------------|
+| `member` | Member to check (required) |
 
 ---
 

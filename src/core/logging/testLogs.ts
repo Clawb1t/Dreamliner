@@ -161,9 +161,9 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
   voice_mod: (ctx) => buildVoiceForceMoveLog({ target: ctx.target, mod: ctx.actor, fromChannel: ctx.channel, toChannel: ctx.channel }),
   dm_failed: (ctx) => buildDmFailedLog(ctx.target, "warn"),
   dreamcode_mod: () =>
-    buildGenericServerLog("Dreamcode Mod Log", ["A Dreamcode script logged this test entry."], null, "modDefault"),
+    buildGenericServerLog("Custom Command Mod Log", ["A custom command logged this test entry."], null, "modDefault"),
   dreamcode_server: () =>
-    buildGenericServerLog("Dreamcode Server Log", ["A Dreamcode script logged this test entry."], null, "serverUpdate"),
+    buildGenericServerLog("Custom Command Server Log", ["A custom command logged this test entry."], null, "serverUpdate"),
   passport_verify: (ctx) =>
     buildGenericServerLog(
       "Passport Verify",

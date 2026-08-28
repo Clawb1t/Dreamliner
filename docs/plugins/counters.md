@@ -54,14 +54,10 @@ Saving the dashboard config creates missing counters, updates ones that changed,
 - `members` counters update on join/leave.
 - `messages` counters increment on every message sent in the server.
 - `boosts` counters update when the server's boost count changes.
-- `custom` counters only change when you edit `value` in the dashboard (or a Dreamcode command uses `counter_set`/`counter_add`).
+- `custom` counters only change when you edit `value` in the dashboard.
 - **Message display** updates immediately.
-- **`channel_name`/`voice_name` display** is throttled to `refresh_minutes` — Discord allows at most 2 channel renames per 10 minutes, so the channel name lags behind the real count. A background sweep checks every counter roughly once a minute and renames it once its interval has elapsed and the value has actually changed.
+- **`channel_name`/`voice_name` display** is throttled to `refresh_minutes`. Discord allows at most 2 channel renames per 10 minutes, so the channel name lags behind the real count. A background sweep checks every counter roughly once a minute and renames it once its interval has elapsed and the value has actually changed.
 - On startup, missing counters are created and displays are refreshed.
-
-## Dreamcode
-
-Custom commands can read and adjust any counter with the `counter_get`, `counter_set`, and `counter_add` actions, regardless of its `metric` or `display` — most useful for `custom` counters.
 
 ## Requirements
 

@@ -36,6 +36,7 @@ export const zUtilityConfig = z.strictObject({
   can_snowflake: boolPerm("look up snowflake IDs"),
   can_roles: boolPerm("use role listing utilities"),
   can_level: boolPerm("check permission levels"),
+  can_watchdog: boolPerm("run /watchdog risk checks on a member"),
   can_context: boolPerm("use context utilities"),
   can_source: boolPerm("view message source"),
   can_nickname: boolPerm("change nicknames"),

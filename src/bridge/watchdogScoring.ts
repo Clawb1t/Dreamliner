@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import type { Guild, GuildMember } from "discord.js";
 import { getDb } from "../db/client.js";
 import {
@@ -294,6 +294,68 @@ async function batchGlobalMessageCounts(userIds: string[]): Promise<Map<string, 
 
 const MAX_SCORED_MEMBERS = 3000;
 
+type TrailRow = { channelId: string; startedAt: Date; messageCount: number; snippet: string };
+
+/**
+ * Shared scoring core — combines one member's signals into a `WatchdogUser`.
+ * Used by both `buildWatchdogList` (batched, whole guild, for the dashboard)
+ * and `scoreWatchdogMember` (single user, for `/watchdog`) so the two never
+ * drift apart: same weights, same reasons, same tiers everywhere.
+ */
+function composeWatchdogUser(
+  member: GuildMember,
+  now: number,
+  strikeCount: number,
+  caseInfo: { active: number; total: number },
+  trail: TrailRow[],
+  retentionDays: number,
+  globalCount: number,
+): WatchdogUser {
+  const createdAt = member.user.createdTimestamp;
+  const joinedAt = member.joinedTimestamp ?? null;
+  const contentSkipped = retentionDays <= 0;
+
+  const reasons: (WatchdogReason | null)[] = [
+    scoreAccountAge(createdAt, now),
+    scoreJoinGap(createdAt, joinedAt),
+    scoreAvatar(member),
+    scoreUsername(member.user.username),
+    scoreRoles(member),
+    scoreStrikes(strikeCount),
+    scoreModCases(caseInfo.active, caseInfo.total),
+    scoreGlobalStanding(createdAt, now, globalCount),
+  ];
+
+  if (!contentSkipped) {
+    reasons.push(scoreJoinBurst(joinedAt, trail), scoreDuplicateContent(trail));
+    const { scam, profanity } = scoreKeywordHits(trail);
+    reasons.push(scam, profanity);
+  }
+
+  const finalReasons = reasons.filter((r): r is WatchdogReason => r !== null);
+  const rawScore = finalReasons.reduce((sum, r) => sum + r.points, 0);
+  const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+
+  const messagesInGuild = trail.reduce((sum, row) => sum + row.messageCount, 0);
+
+  return {
+    userId: member.id,
+    username: member.user.username,
+    displayName: member.displayName,
+    avatarUrl: member.user.displayAvatarURL({ size: 128 }),
+    score,
+    tier: tierFor(score),
+    reasons: finalReasons.sort((a, b) => b.points - a.points),
+    accountCreatedAt: new Date(createdAt).toISOString(),
+    joinedAt: joinedAt != null ? new Date(joinedAt).toISOString() : null,
+    strikes: strikeCount,
+    activeModCases: caseInfo.active,
+    totalModCases: caseInfo.total,
+    messagesInGuild,
+    contentSkipped,
+  };
+}
+
 /**
  * Builds the ranked risk list for a guild. Only fetches the full member list
  * when the cache is small (mirrors `buildEntities` in dashboardBridge.ts) —
@@ -319,57 +381,83 @@ export async function buildWatchdogList(guild: Guild): Promise<WatchdogUser[]> {
 
   const now = Date.now();
 
-  const scored: WatchdogUser[] = members.map((member) => {
-    const createdAt = member.user.createdTimestamp;
-    const joinedAt = member.joinedTimestamp ?? null;
-    const trail = trails.get(member.id) ?? [];
-    const strikeCount = strikes.get(member.id) ?? 0;
-    const caseInfo = cases.get(member.id) ?? { active: 0, total: 0 };
-    const retentionDays = retention.get(member.id) ?? DEFAULT_CONTENT_RETENTION_DAYS;
-    const contentSkipped = retentionDays <= 0;
-    const globalCount = globalCounts.get(member.id) ?? 0;
-
-    const reasons: (WatchdogReason | null)[] = [
-      scoreAccountAge(createdAt, now),
-      scoreJoinGap(createdAt, joinedAt),
-      scoreAvatar(member),
-      scoreUsername(member.user.username),
-      scoreRoles(member),
-      scoreStrikes(strikeCount),
-      scoreModCases(caseInfo.active, caseInfo.total),
-      scoreGlobalStanding(createdAt, now, globalCount),
-    ];
-
-    if (!contentSkipped) {
-      reasons.push(scoreJoinBurst(joinedAt, trail), scoreDuplicateContent(trail));
-      const { scam, profanity } = scoreKeywordHits(trail);
-      reasons.push(scam, profanity);
-    }
-
-    const finalReasons = reasons.filter((r): r is WatchdogReason => r !== null);
-    const rawScore = finalReasons.reduce((sum, r) => sum + r.points, 0);
-    const score = Math.max(0, Math.min(100, Math.round(rawScore)));
-
-    const messagesInGuild = trail.reduce((sum, row) => sum + row.messageCount, 0);
-
-    return {
-      userId: member.id,
-      username: member.user.username,
-      displayName: member.displayName,
-      avatarUrl: member.user.displayAvatarURL({ size: 128 }),
-      score,
-      tier: tierFor(score),
-      reasons: finalReasons.sort((a, b) => b.points - a.points),
-      accountCreatedAt: new Date(createdAt).toISOString(),
-      joinedAt: joinedAt != null ? new Date(joinedAt).toISOString() : null,
-      strikes: strikeCount,
-      activeModCases: caseInfo.active,
-      totalModCases: caseInfo.total,
-      messagesInGuild,
-      contentSkipped,
-    };
-  });
+  const scored: WatchdogUser[] = members.map((member) =>
+    composeWatchdogUser(
+      member,
+      now,
+      strikes.get(member.id) ?? 0,
+      cases.get(member.id) ?? { active: 0, total: 0 },
+      trails.get(member.id) ?? [],
+      retention.get(member.id) ?? DEFAULT_CONTENT_RETENTION_DAYS,
+      globalCounts.get(member.id) ?? 0,
+    ),
+  );
 
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, MAX_SCORED_MEMBERS);
+}
+
+/** Same scoring as `buildWatchdogList`, for exactly one member — used by `/watchdog` in Discord. */
+export async function scoreWatchdogMember(member: GuildMember): Promise<WatchdogUser> {
+  const guildId = member.guild.id;
+  const userId = member.id;
+  const since = new Date(Date.now() - 14 * DAY_MS);
+
+  const [strikeRow, caseRows, trailRows, retentionRow, globalRow] = await Promise.all([
+    getDb()
+      .select({ count: modStrikes.count })
+      .from(modStrikes)
+      .where(and(eq(modStrikes.guildId, guildId), eq(modStrikes.userId, userId)))
+      .get(),
+    getDb()
+      .select({ active: modCases.active })
+      .from(modCases)
+      .where(and(eq(modCases.guildId, guildId), eq(modCases.userId, userId)))
+      .all(),
+    getDb()
+      .select({
+        channelId: guildUserTrail.channelId,
+        startedAt: guildUserTrail.startedAt,
+        messageCount: guildUserTrail.messageCount,
+        snippet: guildUserTrail.snippet,
+      })
+      .from(guildUserTrail)
+      .where(
+        and(
+          eq(guildUserTrail.guildId, guildId),
+          eq(guildUserTrail.userId, userId),
+          gte(guildUserTrail.startedAt, since),
+        ),
+      )
+      .all(),
+    getDb()
+      .select({ days: userProfiles.contentRetentionDays })
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId))
+      .get(),
+    getDb()
+      .select({ count: userMessageCounts.count })
+      .from(userMessageCounts)
+      .where(eq(userMessageCounts.userId, userId))
+      .get(),
+  ]);
+
+  const caseInfo = caseRows.reduce(
+    (acc, row) => {
+      acc.total += 1;
+      if (row.active) acc.active += 1;
+      return acc;
+    },
+    { active: 0, total: 0 },
+  );
+
+  return composeWatchdogUser(
+    member,
+    Date.now(),
+    strikeRow?.count ?? 0,
+    caseInfo,
+    trailRows,
+    retentionRow?.days ?? DEFAULT_CONTENT_RETENTION_DAYS,
+    globalRow?.count ?? 0,
+  );
 }

@@ -23,7 +23,6 @@ npm run register-commands    # tsx src/scripts/register-commands.ts — push sla
 npm run db:generate          # drizzle-kit generate — new migration from src/db/schema.ts changes
 npm run db:migrate           # tsx src/scripts/migrate.ts — apply drizzle/migrations/*.sql
 npm run schema:export        # regenerate schema/guild-config.schema.json from the zod config schemas
-npm run dreamcode:export     # regenerate docs/dreamcode/actions.catalog.json from the action catalog
 ```
 
 Run a single test file directly, e.g.:
@@ -105,13 +104,12 @@ stats, dream_commands, economy, passport, reviews/suggestions, dashboard bridge 
 through `npm run db:generate` (writes a new file in `drizzle/migrations/`) then `npm run db:migrate` (also run
 automatically on boot via `runMigrations()` in `src/index.ts`). `src/db/client.ts` exposes `getDb()`.
 
-### Dreamcode (`src/dreamcode/`, `src/plugins/dream_commands/`)
-A small guild-scoped scripting language for user-authored `/slash` commands (max 10/guild), stored in the
-`dream_commands` table. Pipeline: `lexer.ts` → `parser.ts` → `validate.ts` (also used at create-time) →
-`interpret.ts`, executing against `actions.ts` (the allowed action catalog — no eval/filesystem/network). Discord
-hosting glue lives in `src/plugins/dream_commands/functions/host.ts`. `docs/dreamcode/` is the language reference;
-`npm run dreamcode:export` regenerates the machine-readable `actions.catalog.json` the website editor consumes
-from `src/dreamcode/actions.ts` — keep them in sync when adding/changing actions.
+### Custom commands (`src/plugins/dream_commands/`)
+User-authored `/slash` commands (max 10/guild), stored in the `dream_commands` table, built on the website
+dashboard (no scripting, no in-Discord authoring). Each command is always exactly one reply: text or embed,
+optionally a random pick from a list of text variants. Program shape + validation live in
+`src/plugins/dream_commands/functions/program.ts`; reply rendering (token interpolation, embed building, sending)
+is in `functions/run.ts`. `docs/dreamcode/README.md` is the reference doc.
 
 ### Bridge (`src/bridge/`)
 `dashboardBridge.ts` starts a plain `node:http` server (port from `DASHBOARD_BRIDGE_PORT`, default 4080) guarded

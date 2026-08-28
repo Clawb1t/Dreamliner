@@ -59,4 +59,4 @@ Bot accounts are excluded from member and message content logs.
 
 ## Moderation log coverage
 
-Includes case create/update/delete/expire, automod, raid, censor, clean, voice mod actions, failed DMs, and Dreamcode mod logs. Dashboard Logs can open the linked case when `case_id` is present.
+Includes case create/update/delete/expire, automod, raid, censor, clean, voice mod actions, and failed DMs. Dashboard Logs can open the linked case when `case_id` is present.

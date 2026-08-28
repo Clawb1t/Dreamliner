@@ -80,6 +80,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
           "snowflake",
           "rolelist",
           "level",
+          "watchdog",
           "context",
           "source",
           "avatar",
@@ -124,7 +125,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "custom",
     label: "Customization",
-    blurb: "Custom events, aliases, and Dreamcode commands.",
+    blurb: "Custom events, aliases, and custom commands.",
     include: [
       { plugin: "custom_events" },
       { plugin: "command_aliases" },
@@ -317,8 +318,8 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   },
   dream_commands: {
     key: "dream_commands",
-    name: "Dreamcode commands",
-    description: "Custom commands written in Dreamcode.",
+    name: "Custom commands",
+    description: "Custom slash commands built visually on the dashboard.",
   },
   bot_customisation: {
     key: "bot_customisation",
