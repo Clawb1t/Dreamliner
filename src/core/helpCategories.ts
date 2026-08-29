@@ -98,6 +98,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       { plugin: "welcome_message" },
       { plugin: "companion_channels" },
+      { plugin: "tts" },
     ],
   },
   {
@@ -369,6 +370,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Social Notifications",
     description: "Live YouTube upload notifications with fully customisable embeds, built on the dashboard.",
   },
+  tts: {
+    key: "tts",
+    name: "Text-to-speech",
+    description: "Speak text aloud in a voice channel with /tts, powered by OpenAI text-to-speech.",
+  },
 };
 
 /**
@@ -400,6 +406,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   welcome_message: "engage",
   companion_channels: "engage",
   starboard: "engage",
+  tts: "engage",
   tags: "respond",
   autoreplies: "respond",
   autothreads: "respond",

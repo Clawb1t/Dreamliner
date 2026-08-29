@@ -15,6 +15,7 @@ import {
   setLocked,
 } from "./rooms.js";
 import { getOwnedRoom, getRoomByChannel, updateRoom, type CompanionRoomRow } from "./store.js";
+import { setVoiceChannelStatus } from "./voiceStatus.js";
 
 export type CompanionActor = {
   member: GuildMember;
@@ -81,19 +82,8 @@ export function canManageRoom(actor: CompanionActor, room: CompanionRoomRow, fea
   return "Only the room owner can do that.";
 }
 
-type VoiceWithStatus = VoiceBasedChannel & {
-  setStatus?: (status: string | null) => Promise<unknown>;
-};
-
 function asVoice(channel: VoiceBasedChannel): VoiceChannel | null {
   return channel.type === ChannelType.GuildVoice ? (channel as VoiceChannel) : null;
-}
-
-async function setVoiceStatus(channel: VoiceBasedChannel, status: string | null): Promise<boolean> {
-  const voice = channel as VoiceWithStatus;
-  if (typeof voice.setStatus !== "function") return false;
-  await voice.setStatus(status);
-  return true;
 }
 
 export async function setCompanionName(
@@ -145,7 +135,7 @@ export async function setCompanionStatus(
   const resolved = await requireManagedRoom(actor, channel, "status");
   if (isActionResult(resolved)) return resolved;
   const trimmed = status.trim().slice(0, 500);
-  const applied = await setVoiceStatus(resolved.channel, trimmed || null);
+  const applied = await setVoiceChannelStatus(resolved.channel, trimmed || null);
   if (!applied) return fail("Could not set a status on this channel.");
   return ok(trimmed ? `Status set to **${trimmed}**.` : "Cleared the channel status.");
 }

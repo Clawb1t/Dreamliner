@@ -10010,6 +10010,124 @@
           "additionalProperties": false,
           "title": "Companion Channels"
         },
+        "tts": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "can_speak": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use /tts to make the bot join their voice channel and speak text aloud. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Speak",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "voice": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "default": "",
+                  "description": "Default Piper voice id (filename without .onnx). Empty uses PIPER_DEFAULT_VOICE (en_US-lessac-medium unless overridden). Members can override this per-request with the command's voice option, which autocompletes from the installed voices.",
+                  "title": "Voice"
+                },
+                "max_characters": {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 4000,
+                  "default": 300,
+                  "description": "Maximum characters accepted per /tts request.",
+                  "title": "Max Characters"
+                },
+                "cooldown_seconds": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 600,
+                  "default": 0.5,
+                  "description": "Per-member cooldown between /tts uses, in seconds. Accepts fractional values (e.g. 0.5).",
+                  "title": "Cooldown Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Match members by level expression, e.g. \">=50\" or \">100\".",
+                    "title": "Level",
+                    "x-dreamliner": {
+                      "kind": "level",
+                      "setup": "Map a role/user ID to a number, or in overrides use expressions like \">=50\" / \">100\". Higher levels mean more access."
+                    }
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Only apply in this channel ID.",
+                    "title": "Channel"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Only apply in channels under this category ID.",
+                    "title": "Category",
+                    "x-dreamliner": {
+                      "kind": "category",
+                      "setup": "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID."
+                    }
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Only apply to this user ID.",
+                    "title": "User",
+                    "x-dreamliner": {
+                      "kind": "user",
+                      "setup": "Enable Developer Mode in Discord, then right-click the user → Copy User ID."
+                    }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Only apply to members who have this role ID.",
+                    "title": "Role"
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "Config values to merge when this override matches (usually can_* permissions).",
+                    "title": "Config"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Conditional config merges. Use these to grant can_* permissions to mods/admins.",
+              "title": "Overrides"
+            },
+            "replaceDefaultOverrides": {
+              "type": "boolean",
+              "description": "When true, ignore Dreamliner's built-in default level grants for this plugin.",
+              "title": "ReplaceDefaultOverrides"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Tts"
+        },
         "name_history": {
           "type": "object",
           "properties": {

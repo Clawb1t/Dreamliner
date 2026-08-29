@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createBot, registerSlashCommands } from "./bot.js";
 import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
+import { ensurePiperReady } from "./plugins/tts/functions/piperSetup.js";
 
 process.on("unhandledRejection", (reason) => {
   console.error("[dreamliner] Unhandled promise rejection:", reason);
@@ -44,6 +45,20 @@ async function main() {
   }
 
   runMigrations();
+
+  try {
+    // Bounded so a stuck download/network issue can't block the bot from ever coming online.
+    // If it times out, setup keeps running in the background and /tts just isn't ready yet.
+    const timeout = new Promise<{ ok: false; reason: string }>((resolve) =>
+      setTimeout(() => resolve({ ok: false, reason: "Timed out after 5 minutes; continuing to try in the background." }), 5 * 60_000),
+    );
+    const piperReady = await Promise.race([ensurePiperReady(), timeout]);
+    if (!piperReady.ok) {
+      console.warn(`[dreamliner] Piper TTS setup incomplete: ${piperReady.reason}`);
+    }
+  } catch (error) {
+    console.warn("[dreamliner] Piper TTS setup failed:", error);
+  }
 
   const clientId = process.env.DISCORD_CLIENT_ID;
   if (clientId && process.env.REGISTER_COMMANDS_ON_START !== "false") {

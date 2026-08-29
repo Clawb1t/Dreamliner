@@ -40,6 +40,7 @@ import {
   zPostConfig,
   zRemindersConfig,
   zTagsConfig,
+  zTtsConfig,
   zWelcomeMessageConfig,
 } from "../config/schemas/plugins.js";
 
@@ -85,6 +86,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   reviews: zReviewsConfig,
   suggestions: zSuggestionsConfig,
   tickets: zTicketsConfig,
+  tts: zTtsConfig,
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

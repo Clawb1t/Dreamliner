@@ -464,6 +464,10 @@ export {
 
 import { zCompanionChannelsConfig } from "./companion.js";
 
+export { zTtsConfig, type TtsConfig } from "./tts.js";
+
+import { zTtsConfig } from "./tts.js";
+
 export const zNameHistoryConfig = z.strictObject({
   can_view: boolPerm("view name history"),
   can_search: boolPerm("search name history"),
@@ -593,6 +597,7 @@ export const zAutothreadsPluginSection = zPluginSection(zAutothreadsConfig.shape
 export const zRemindersPluginSection = zPluginSection(zRemindersConfig.shape);
 export const zCountersPluginSection = zPluginSection(zCountersConfig.shape);
 export const zCompanionChannelsPluginSection = zPluginSection(zCompanionChannelsConfig.shape);
+export const zTtsPluginSection = zPluginSection(zTtsConfig.shape);
 export const zNameHistoryPluginSection = zPluginSection(zNameHistoryConfig.shape);
 export const zUsernameSaverPluginSection = zPluginSection(zUsernameSaverConfig.shape);
 export const zMemberIdentityPluginSection = zPluginSection(zMemberIdentityConfig.shape);

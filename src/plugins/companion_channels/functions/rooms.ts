@@ -14,6 +14,7 @@ import { renderTemplate } from "../../../core/templates.js";
 import { featureEnabled } from "./config.js";
 import { ensureCompanionInterface, postCompanionInterface } from "./panel.js";
 import { renderCompanionName } from "./names.js";
+import { setVoiceChannelStatus } from "./voiceStatus.js";
 import {
   getOwnedRoom,
   getRoomByChannel,
@@ -118,10 +119,7 @@ export async function applyDefaultAccess(
 async function maybeStatus(channel: VoiceChannel, status: string): Promise<void> {
   const trimmed = status.trim();
   if (!trimmed) return;
-  const voice = channel as VoiceChannel & { setStatus?: (value: string) => Promise<unknown> };
-  if (typeof voice.setStatus === "function") {
-    await voice.setStatus(trimmed.slice(0, 500)).catch(() => null);
-  }
+  await setVoiceChannelStatus(channel, trimmed.slice(0, 500));
 }
 
 async function createLinkedText(opts: {

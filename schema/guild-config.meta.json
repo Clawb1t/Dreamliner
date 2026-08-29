@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-29T00:18:22.243Z",
+  "generatedAt": "2026-08-29T16:11:05.031Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -148,6 +148,11 @@
           "key": "starboard",
           "name": "Starboard",
           "description": "Highlight highly reacted messages."
+        },
+        {
+          "key": "tts",
+          "name": "Text-to-speech",
+          "description": "Speak text aloud in a voice channel with /tts, powered by OpenAI text-to-speech."
         }
       ]
     },
@@ -443,6 +448,13 @@
       "key": "starboard",
       "name": "Starboard",
       "description": "Highlight highly reacted messages.",
+      "category": "Engagement",
+      "categoryId": "engage"
+    },
+    {
+      "key": "tts",
+      "name": "Text-to-speech",
+      "description": "Speak text aloud in a voice channel with /tts, powered by OpenAI text-to-speech.",
       "category": "Engagement",
       "categoryId": "engage"
     },

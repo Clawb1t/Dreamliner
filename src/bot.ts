@@ -103,6 +103,7 @@ import {
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
+import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
 import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
@@ -196,6 +197,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const { handleEconomyAutocomplete } = await import("./plugins/economy/autocomplete.js");
         await handleEconomyAutocomplete(interaction).catch((error) => {
           console.error("Economy autocomplete error:", error);
+        });
+        return;
+      }
+      if (interaction.commandName === "tts") {
+        await handleTtsAutocomplete(interaction).catch((error) => {
+          console.error("TTS autocomplete error:", error);
         });
       }
       return;

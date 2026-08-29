@@ -37,6 +37,7 @@ import { scamProtectDefaultOverrides } from "../plugins/scam_protect/defaultOver
 import { passportDefaultOverrides } from "../plugins/passport/defaultOverrides.js";
 import { economyDefaultOverrides } from "../plugins/economy/defaultOverrides.js";
 import { ticketsDefaultOverrides } from "../plugins/tickets/defaultOverrides.js";
+import { ttsDefaultOverrides } from "../plugins/tts/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { zStarboardBoard, zStarboardConfig, type StarboardBoard, type StarboardConfig } from "../config/schemas/starboard.js";
 import type { GuildMember } from "discord.js";
@@ -80,6 +81,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   reviews: reviewsDefaultOverrides,
   suggestions: suggestionsDefaultOverrides,
   tickets: ticketsDefaultOverrides,
+  tts: ttsDefaultOverrides,
 };
 
 export const pluginsRequiringConfig = new Set(["utility", "infractions"]);

@@ -42,6 +42,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 - [Welcome message](./welcome_message.md)
 - [Companion channels](./companion_channels.md)
 - [Starboard](./starboard.md)
+- [Text-to-speech](./tts.md)
 
 ## Auto responses
 

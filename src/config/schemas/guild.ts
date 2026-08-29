@@ -41,6 +41,7 @@ import {
   zSlowmodePluginSection,
   zStatsPluginSection,
   zTagsPluginSection,
+  zTtsPluginSection,
   zUsernameSaverPluginSection,
   zWelcomeMessagePluginSection,
 } from "./plugins.js";
@@ -237,6 +238,7 @@ export const zGuildConfig = z.strictObject({
       reminders: zRemindersPluginSection.optional(),
       counters: zCountersPluginSection.optional(),
       companion_channels: zCompanionChannelsPluginSection.optional(),
+      tts: zTtsPluginSection.optional(),
       name_history: zNameHistoryPluginSection.optional(),
       username_saver: zUsernameSaverPluginSection.optional(),
       locate_user: zLocateUserPluginSection.optional(),
