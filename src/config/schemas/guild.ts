@@ -11,6 +11,7 @@ import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
 import { zEconomyPluginSection } from "./economy.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
+import { zSocialPluginSection } from "./social.js";
 import {
   zAdminPluginSection,
   zAutomodPluginSection,
@@ -247,6 +248,7 @@ export const zGuildConfig = z.strictObject({
       reviews: zReviewsPluginSection.optional(),
       suggestions: zSuggestionsPluginSection.optional(),
       tickets: zTicketsPluginSection.optional(),
+      social: zSocialPluginSection.optional(),
     })
     .default({}),
 });

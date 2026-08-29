@@ -1,0 +1,21 @@
+CREATE TABLE `social_youtube_watchers` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `guild_id` text NOT NULL,
+  `discord_channel_id` text NOT NULL,
+  `source_channel_id` text NOT NULL,
+  `source_channel_handle` text,
+  `source_channel_name` text NOT NULL,
+  `source_channel_avatar_url` text,
+  `source_channel_url` text NOT NULL,
+  `uploads_playlist_id` text NOT NULL,
+  `message_content` text DEFAULT '' NOT NULL,
+  `mention_role_ids` text DEFAULT '[]' NOT NULL,
+  `embed_config` text NOT NULL,
+  `last_video_id` text,
+  `last_video_published_at` integer,
+  `last_checked_at` integer,
+  `enabled` integer DEFAULT 1 NOT NULL,
+  `created_by` text NOT NULL,
+  `created_at` integer NOT NULL,
+  `updated_at` integer NOT NULL
+);

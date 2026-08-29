@@ -133,6 +133,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     ],
   },
   {
+    id: "social",
+    label: "Social",
+    blurb: "Live notifications when your favorite creators post.",
+    include: [{ plugin: "social" }],
+  },
+  {
     id: "tools",
     label: "Utilities",
     blurb: "Search, voice helpers, and everyday utilities.",
@@ -358,6 +364,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description:
       "Fully customisable server economy: currencies, banks, shops, jobs, pets, crafting, quests, trades, and auctions.",
   },
+  social: {
+    key: "social",
+    name: "Social Notifications",
+    description: "Live YouTube upload notifications with fully customisable embeds, built on the dashboard.",
+  },
 };
 
 /**
@@ -407,6 +418,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   suggestions: "feedback",
   tickets: "support",
   economy: "economy",
+  social: "social",
 };
 
 /** Plugin categories for the website config editor (and schema meta), matching `/help` labels. */

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-28T20:35:11.038Z",
+  "generatedAt": "2026-08-29T00:18:22.243Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -224,6 +224,18 @@
           "key": "dream_commands",
           "name": "Custom commands",
           "description": "Custom slash commands built visually on the dashboard."
+        }
+      ]
+    },
+    {
+      "id": "social",
+      "label": "Social",
+      "description": "Live notifications when your favorite creators post.",
+      "plugins": [
+        {
+          "key": "social",
+          "name": "Social Notifications",
+          "description": "Live YouTube upload notifications with fully customisable embeds, built on the dashboard."
         }
       ]
     },
@@ -510,6 +522,13 @@
       "description": "Custom slash commands built visually on the dashboard.",
       "category": "Customization",
       "categoryId": "custom"
+    },
+    {
+      "key": "social",
+      "name": "Social Notifications",
+      "description": "Live YouTube upload notifications with fully customisable embeds, built on the dashboard.",
+      "category": "Social",
+      "categoryId": "social"
     },
     {
       "key": "utility",

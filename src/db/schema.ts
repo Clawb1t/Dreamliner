@@ -1220,6 +1220,31 @@ export const ticketTranscripts = sqliteTable("ticket_transcripts", {
   payload: text("payload").notNull(),
 });
 
+/** Dashboard-configured YouTube upload watchers ("Social Notifications"). */
+export const socialYoutubeWatchers = sqliteTable("social_youtube_watchers", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  discordChannelId: text("discord_channel_id").notNull(),
+  sourceChannelId: text("source_channel_id").notNull(),
+  sourceChannelHandle: text("source_channel_handle"),
+  sourceChannelName: text("source_channel_name").notNull(),
+  sourceChannelAvatarUrl: text("source_channel_avatar_url"),
+  sourceChannelUrl: text("source_channel_url").notNull(),
+  uploadsPlaylistId: text("uploads_playlist_id").notNull(),
+  messageContent: text("message_content").notNull().default(""),
+  /** JSON string[] of role IDs to ping. */
+  mentionRoleIds: text("mention_role_ids").notNull().default("[]"),
+  /** JSON-serialized SocialEmbedConfig. */
+  embedConfig: text("embed_config").notNull(),
+  lastVideoId: text("last_video_id"),
+  lastVideoPublishedAt: integer("last_video_published_at", { mode: "timestamp" }),
+  lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
 export const ticketBlacklist = sqliteTable(
   "ticket_blacklist",
   {

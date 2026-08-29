@@ -57,6 +57,11 @@ export function getGuildCommandsDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=commands`;
 }
 
+/** Guild dashboard opened on the Social Notifications plugin page. */
+export function getGuildSocialDashboardUrl(guildId: string): string {
+  return `${getGuildDashboardUrl(guildId)}?section=plugin:social`;
+}
+
 export function getGlobalStatsUrl(): string {
   return `${resolveSiteUrl()}/stats`;
 }

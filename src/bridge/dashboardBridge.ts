@@ -1053,6 +1053,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const commandsMatch = /^\/bridge\/guilds\/(\d+)\/commands$/.exec(url.pathname);
+        const socialResolveMatch = /^\/bridge\/guilds\/(\d+)\/social\/resolve$/.exec(url.pathname);
+        const socialWatcherTestMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers\/(\d+)\/test$/.exec(
+          url.pathname,
+        );
+        const socialWatcherOneMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers\/(\d+)$/.exec(url.pathname);
+        const socialWatchersMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers$/.exec(url.pathname);
         const tagOneMatch = /^\/bridge\/guilds\/(\d+)\/tags\/([a-z0-9][a-z0-9_-]{0,63})$/i.exec(
           url.pathname,
         );
@@ -1144,6 +1150,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !entityStatsMatch &&
           !commandOneMatch &&
           !commandsMatch &&
+          !socialResolveMatch &&
+          !socialWatcherTestMatch &&
+          !socialWatcherOneMatch &&
+          !socialWatchersMatch &&
           !tagOneMatch &&
           !tagsMatch &&
           !dbRowMatch &&
@@ -1201,6 +1211,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           entityStatsMatch?.[1] ??
           commandOneMatch?.[1] ??
           commandsMatch?.[1] ??
+          socialResolveMatch?.[1] ??
+          socialWatcherTestMatch?.[1] ??
+          socialWatcherOneMatch?.[1] ??
+          socialWatchersMatch?.[1] ??
           tagOneMatch?.[1] ??
           tagsMatch?.[1] ??
           dbRowMatch?.[1] ??
@@ -3697,6 +3711,206 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               payload: { name: result.command.name },
             });
             sendJson(res, 200, { ok: true, command: result.command });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (socialResolveMatch && req.method === "POST") {
+          let body: { userId?: string; input?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const requesterId = body.userId?.trim();
+          if (!requesterId || typeof body.input !== "string" || !body.input.trim()) {
+            sendJson(res, 400, { error: "userId and input are required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { resolveBridgeSocialSource } = await import("./social.js");
+          const result = await resolveBridgeSocialSource(configManager, guildId, body.input);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { channel: result.channel });
+          return;
+        }
+
+        if (socialWatcherTestMatch) {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { userId?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const requesterId = body.userId?.trim();
+          if (!requesterId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { testSendBridgeSocialWatcher } = await import("./social.js");
+          const result = await testSendBridgeSocialWatcher(
+            client,
+            configManager,
+            guildId,
+            Number(socialWatcherTestMatch[2]),
+          );
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true, sent: result.sent });
+          return;
+        }
+
+        if (socialWatchersMatch || socialWatcherOneMatch) {
+          const userId =
+            req.method === "GET" || req.method === "DELETE"
+              ? url.searchParams.get("userId")?.trim()
+              : undefined;
+
+          if (socialWatchersMatch && req.method === "GET") {
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { listBridgeSocialWatchers } = await import("./social.js");
+            const result = await listBridgeSocialWatchers(configManager, guildId);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              watchers: result.watchers,
+              count: result.count,
+              maxWatchers: result.maxWatchers,
+            });
+            return;
+          }
+
+          if (socialWatchersMatch && req.method === "POST") {
+            let body: { userId?: string } & Record<string, unknown>;
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const requesterId = body.userId?.trim();
+            if (!requesterId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, requesterId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { createBridgeSocialWatcher } = await import("./social.js");
+            const result = await createBridgeSocialWatcher(configManager, guildId, requesterId, body);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_command",
+              title: "Social notification created",
+              summary: `A YouTube notification for **${result.watcher.sourceChannelName}** was created from the dashboard.`,
+              targetId: String(result.watcher.id),
+              payload: { sourceChannelName: result.watcher.sourceChannelName },
+            });
+            sendJson(res, 200, { ok: true, watcher: result.watcher });
+            return;
+          }
+
+          if (socialWatcherOneMatch && req.method === "PATCH") {
+            let body: { userId?: string } & Record<string, unknown>;
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const requesterId = body.userId?.trim();
+            if (!requesterId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, requesterId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { updateBridgeSocialWatcher } = await import("./social.js");
+            const result = await updateBridgeSocialWatcher(
+              configManager,
+              guildId,
+              Number(socialWatcherOneMatch[2]),
+              body,
+            );
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_command",
+              title: "Social notification updated",
+              summary: `A YouTube notification for **${result.watcher.sourceChannelName}** was updated from the dashboard.`,
+              targetId: String(result.watcher.id),
+              payload: { sourceChannelName: result.watcher.sourceChannelName },
+            });
+            sendJson(res, 200, { ok: true, watcher: result.watcher });
+            return;
+          }
+
+          if (socialWatcherOneMatch && req.method === "DELETE") {
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { deleteBridgeSocialWatcher } = await import("./social.js");
+            const result = await deleteBridgeSocialWatcher(
+              configManager,
+              guildId,
+              Number(socialWatcherOneMatch[2]),
+            );
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_command",
+              title: "Social notification deleted",
+              summary: `A YouTube notification for **${result.watcher.sourceChannelName}** was deleted from the dashboard.`,
+              targetId: String(result.watcher.id),
+              payload: { sourceChannelName: result.watcher.sourceChannelName },
+            });
+            sendJson(res, 200, { ok: true, watcher: result.watcher });
             return;
           }
 
