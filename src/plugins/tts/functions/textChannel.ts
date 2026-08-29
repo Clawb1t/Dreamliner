@@ -56,17 +56,18 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
   if (elapsed < config.cooldown_seconds * 1000) return;
 
   const truncated = text.length > config.max_characters ? text.slice(0, config.max_characters) : text;
+  const spokenText = config.announce_speaker ? `${message.member.displayName} said: ${truncated}` : truncated;
 
   const personalVoice = await getUserVoice(message.author.id);
   const voice = personalVoice || config.voice || null;
 
-  const speech = await synthesize(truncated, config, voice);
+  const speech = await synthesize(spokenText, config, voice);
   if ("error" in speech) {
     await message.react("❌").catch(() => {});
     return;
   }
 
-  const spoken = await speakInChannel(voiceChannel, speech.audio, message.member.displayName);
+  const spoken = await speakInChannel(voiceChannel, speech.audio);
   if (!spoken.ok) {
     await message.react("❌").catch(() => {});
     return;

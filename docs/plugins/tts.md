@@ -83,6 +83,7 @@ plugins:
 | `voice` | Server default voice id, used for members who haven't picked one with `/tts voice`. Empty uses `PIPER_DEFAULT_VOICE`. |
 | `max_characters` | Caps how much of a message gets spoken — longer messages are truncated, not rejected. |
 | `cooldown_seconds` | Per-member cooldown between spoken messages, accepts fractional values (e.g. `0.5`). Resets on bot restart. |
+| `announce_speaker` | When on, messages are spoken as "&lt;display name&gt; said: &lt;message&gt;" instead of just the message. Off by default. |
 
 `can_speak` and `can_manage_channel` follow the standard `can_*` permission model — grant them with
 level/role/channel overrides from the dashboard. By default, `can_speak` is `true` for everyone
@@ -98,8 +99,13 @@ level/role/channel overrides from the dashboard. By default, `can_speak` is `tru
   voice actually is (e.g. assigning a name that implies the wrong gender). The style tag is a deterministic
   browsing label (same id always gets the same tag) — this repo has no way to play or analyze audio, so it
   isn't a verified description of how the voice actually sounds.
+- `/tts skip` — requires `can_skip`. Skips the TTS clip currently playing and moves on to the next queued
+  message, if there is one.
 - `/tts channel set <channel>` — requires `can_manage_channel`. Sets the auto-speak text channel.
 - `/tts channel clear` — requires `can_manage_channel`. Turns it off.
+- `/tts blacklist add <member> [reason]` / `remove <member>` / `list` — requires `can_blacklist`. Blocks or
+  unblocks a member from using TTS on this server (both `/tts voice` and having their messages spoken).
+  Also manageable from the web dashboard's TTS plugin page.
 
 ## Behaviour notes
 
@@ -114,7 +120,3 @@ level/role/channel overrides from the dashboard. By default, `can_speak` is `tru
 - URLs, bare media filenames (gifs, images, video clips), and emoji (Discord custom and Unicode) are stripped
   from a message before it's spoken. A message that's *only* one of those (a pasted link, a GIF, a string of
   emoji) is skipped entirely.
-- While something is playing, the voice channel's status shows the display name of whoever's message is
-  being read, so it's easy to tell who's currently speaking. It clears once the queue empties. Updates are
-  throttled to at most one every 10 seconds per channel — if several speakers change within that window, only
-  the most recent one is actually sent, so the status can't fall behind into showing stale/past speakers.

@@ -10096,6 +10096,12 @@
                     "kind": "seconds",
                     "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
                   }
+                },
+                "announce_speaker": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "When enabled, messages are spoken as '<display name> said: <message>' instead of just the message. Off by default.",
+                  "title": "Announce Speaker"
                 }
               },
               "additionalProperties": false,

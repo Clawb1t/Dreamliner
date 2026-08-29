@@ -11,16 +11,13 @@ import {
   type VoiceConnection,
 } from "@discordjs/voice";
 import type { PreparedAudio } from "./synth.js";
-import { scheduleVoiceStatus } from "./channelStatus.js";
-
-type QueuedClip = { audio: PreparedAudio; speakerLabel: string };
 
 type GuildSession = {
   connection: VoiceConnection;
   player: AudioPlayer;
   channel: VoiceBasedChannel;
   channelId: string;
-  queue: QueuedClip[];
+  queue: PreparedAudio[];
   playing: boolean;
   idleTimer: NodeJS.Timeout | null;
 };
@@ -59,15 +56,13 @@ function playNext(guildId: string): void {
   const next = session.queue.shift();
   if (!next) {
     session.playing = false;
-    scheduleVoiceStatus(session.channel, "");
     scheduleIdleDisconnect(guildId, session);
     return;
   }
 
   session.playing = true;
   clearIdleTimer(session);
-  scheduleVoiceStatus(session.channel, next.speakerLabel);
-  const resource = createAudioResource(Readable.from(next.audio.buffer), { inputType: next.audio.inputType });
+  const resource = createAudioResource(Readable.from(next.buffer), { inputType: next.inputType });
   session.player.play(resource);
 }
 
@@ -86,16 +81,11 @@ export function skipCurrent(guildId: string): boolean {
 export type SpeakResult = { ok: true } | { ok: false; reason: "busy_elsewhere" | "join_failed" };
 
 /**
- * Queues `audio` to be spoken in `channel`, attributed to `speakerLabel` (shown as the voice
- * channel's status while it plays — see channelStatus.ts). Joins the channel if Dreamliner isn't
- * already connected there. If Dreamliner is speaking in a different channel in the same guild,
- * the request is rejected rather than interrupting that session.
+ * Queues `audio` to be spoken in `channel`. Joins the channel if Dreamliner isn't already
+ * connected there. If Dreamliner is speaking in a different channel in the same guild, the
+ * request is rejected rather than interrupting that session.
  */
-export async function speakInChannel(
-  channel: VoiceBasedChannel,
-  audio: PreparedAudio,
-  speakerLabel: string,
-): Promise<SpeakResult> {
+export async function speakInChannel(channel: VoiceBasedChannel, audio: PreparedAudio): Promise<SpeakResult> {
   const guildId = channel.guild.id;
   let session = sessions.get(guildId);
 
@@ -142,7 +132,7 @@ export async function speakInChannel(
     connection.on(VoiceConnectionStatus.Disconnected, () => teardown(guildId, created));
   }
 
-  session.queue.push({ audio, speakerLabel });
+  session.queue.push(audio);
   if (!session.playing) playNext(guildId);
   return { ok: true };
 }

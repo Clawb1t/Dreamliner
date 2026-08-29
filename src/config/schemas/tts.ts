@@ -29,6 +29,12 @@ export const zTtsConfig = z.strictObject({
     .max(600)
     .default(0.5)
     .describe("Per-member cooldown between spoken messages, in seconds. Accepts fractional values (e.g. 0.5)."),
+  announce_speaker: z
+    .boolean()
+    .default(false)
+    .describe(
+      "When enabled, messages are spoken as '<display name> said: <message>' instead of just the message. Off by default.",
+    ),
 });
 
 export type TtsConfig = z.infer<typeof zTtsConfig>;

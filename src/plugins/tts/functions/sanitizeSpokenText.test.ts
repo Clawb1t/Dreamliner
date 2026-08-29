@@ -43,6 +43,22 @@ describe("sanitizeSpokenText", () => {
     assert.equal(sanitizeSpokenText("🇬🇧 hello"), "hello");
   });
 
+  it("strips user mentions, including the legacy nickname form", () => {
+    assert.equal(sanitizeSpokenText("<@123456789012345678>"), "");
+    assert.equal(sanitizeSpokenText("hey <@!123456789012345678> how's it going?"), "hey how's it going?");
+  });
+
+  it("strips role, channel, and slash-command mentions", () => {
+    assert.equal(sanitizeSpokenText("ping <@&123456789012345678> now"), "ping now");
+    assert.equal(sanitizeSpokenText("see <#123456789012345678> for info"), "see for info");
+    assert.equal(sanitizeSpokenText("try </ban:123456789012345678> today"), "try today");
+  });
+
+  it("strips @everyone and @here", () => {
+    assert.equal(sanitizeSpokenText("@everyone check this out"), "check this out");
+    assert.equal(sanitizeSpokenText("@here is anyone around?"), "is anyone around?");
+  });
+
   it("leaves plain punctuation and non-emoji symbols alone", () => {
     assert.equal(sanitizeSpokenText("wait... really?! ok :)"), "wait... really?! ok :)");
   });
