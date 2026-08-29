@@ -3,10 +3,14 @@ import { definePlugin } from "../../core/plugin.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
 import { economyDefaultOverrides } from "./defaultOverrides.js";
 import { economyCommands } from "./commands.js";
-import { processEconomySweep } from "./functions/scheduler.js";
-import { tryGrantMessageReward } from "./functions/activity.js";
+import { grantMessageRewards } from "./functions/activity.js";
 import { loadEconomyConfig } from "./functions/config.js";
+import { recordStockActivity, tickStockPrices } from "./functions/stocks.js";
 import type { Message, GuildMember } from "discord.js";
+
+/** Stock prices are checked once a minute against that minute's message activity, see stocks.ts. */
+const STOCK_TICK_INTERVAL_MS = 60_000;
+const STOCK_TICK_INITIAL_DELAY_MS = 15_000;
 
 export const economyPlugin = definePlugin({
   name: "economy",
@@ -14,11 +18,13 @@ export const economyPlugin = definePlugin({
   defaultOverrides: economyDefaultOverrides,
   slashCommands: economyCommands,
   onLoad: async ({ client }) => {
-    setInterval(() => {
-      processEconomySweep(client).catch((err) => {
-        console.error("Economy sweep failed:", err);
+    const tick = () => {
+      tickStockPrices(client).catch((err) => {
+        console.error("Stock price tick failed:", err);
       });
-    }, 60_000);
+    };
+    setTimeout(tick, STOCK_TICK_INITIAL_DELAY_MS);
+    setInterval(tick, STOCK_TICK_INTERVAL_MS);
   },
   events: [
     {
@@ -26,13 +32,12 @@ export const economyPlugin = definePlugin({
       execute: async (_client, message: unknown) => {
         const msg = message as Message;
         if (!msg.guild || msg.author.bot || !msg.member) return;
-        const config = await loadEconomyConfig(msg.guild.id);
-        if (!config?.modules.activity_rewards) return;
         try {
-          tryGrantMessageReward(msg.member as GuildMember, msg, config);
+          const config = await loadEconomyConfig(msg.guild.id);
+          if (!config) return;
+          grantMessageRewards(msg.member as GuildMember, msg, config);
+          recordStockActivity(msg.guild.id, msg.guild.name, msg.guild.iconURL({ size: 64 }));
         } catch (err) {
-          // Anti-farm skips throw EconomyError; ignore expected skips.
-          if (err && typeof err === "object" && "code" in err) return;
           console.error("Economy activity reward failed:", err);
         }
       },

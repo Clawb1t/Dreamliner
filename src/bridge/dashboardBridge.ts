@@ -579,6 +579,68 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const deleteDataMatch = /^\/bridge\/users\/(\d+)\/data$/.exec(url.pathname);
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
+        const stockBalanceMatch = /^\/bridge\/users\/(\d+)\/economy\/balance$/.exec(url.pathname);
+        const stockPortfolioMatch = /^\/bridge\/users\/(\d+)\/stocks$/.exec(url.pathname);
+        const stockBuyMatch = /^\/bridge\/users\/(\d+)\/stocks\/(\d+)\/buy$/.exec(url.pathname);
+        const stockSellMatch = /^\/bridge\/users\/(\d+)\/stocks\/(\d+)\/sell$/.exec(url.pathname);
+
+        if (stockBalanceMatch && req.method === "GET") {
+          const { getUserGlobalBalance } = await import("./webStocks.js");
+          const result = getUserGlobalBalance(stockBalanceMatch[1]!);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true, balance: result.balance });
+          return;
+        }
+
+        if (stockPortfolioMatch && req.method === "GET") {
+          const { getUserPortfolio } = await import("./webStocks.js");
+          const result = getUserPortfolio(stockPortfolioMatch[1]!);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (stockBuyMatch && req.method === "POST") {
+          let body: { amount?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const { buyStockForUser } = await import("./webStocks.js");
+          const result = buyStockForUser(stockBuyMatch[1]!, stockBuyMatch[2]!, Number(body.amount));
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (stockSellMatch && req.method === "POST") {
+          let body: { shares?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const { sellStockForUser } = await import("./webStocks.js");
+          const result = sellStockForUser(stockSellMatch[1]!, stockSellMatch[2]!, Number(body.shares));
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
 
         if (req.method === "GET" && url.pathname === "/bridge/tts/voices") {
           const { listTtsVoicesForWeb } = await import("./webTts.js");
@@ -1089,6 +1151,26 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const payload = await cached(`leaderboard:global:${limit}`, 30_000, () =>
             buildWebGlobalPublicMessagerLeaderboard(client, limit),
           );
+          sendJson(res, 200, payload);
+          return;
+        }
+
+        // Dreamliner Exchange (public — every server with economy enabled is listed).
+        if (req.method === "GET" && url.pathname === "/bridge/stocks") {
+          const { getExchangeOverview } = await import("./webStocks.js");
+          sendJson(res, 200, getExchangeOverview(url.searchParams.get("range")));
+          return;
+        }
+
+        const stockDetailMatch = /^\/bridge\/stocks\/(\d+)$/.exec(url.pathname);
+        if (stockDetailMatch && req.method === "GET") {
+          const { getStockDetail } = await import("./webStocks.js");
+          const result = getStockDetail(stockDetailMatch[1]!, url.searchParams.get("range"));
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          const { ok: _ok, ...payload } = result;
           sendJson(res, 200, payload);
           return;
         }
@@ -3239,7 +3321,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
           };
 
-          // GET /economy — overview
+          // GET /economy — overview (global currency info + this server's settings)
           if (segments.length === 0 && req.method === "GET") {
             const userId = await requireManage(url.searchParams.get("userId"));
             if (!userId) return;
@@ -3256,39 +3338,25 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
 
-          // GET /economy/analytics
-          if (segments[0] === "analytics" && segments.length === 1 && req.method === "GET") {
-            const userId = await requireManage(url.searchParams.get("userId"));
-            if (!userId) return;
-            const days = Number(url.searchParams.get("days") ?? 14) || 14;
-            const result = await econ.getEconomyAnalytics(configManager, guildId, days);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            sendJson(res, 200, { days: result.days, stats: result.stats });
-            return;
-          }
-
-          // POST /economy/actions
-          if (segments[0] === "actions" && segments.length === 1 && req.method === "POST") {
-            const body = await readJsonBody<{ userId?: string; action?: string }>();
+          // POST /economy/settings — update this server's currency name/symbol/rates
+          if (segments[0] === "settings" && segments.length === 1 && req.method === "POST") {
+            const body = await readJsonBody<Record<string, unknown> & { userId?: string }>();
             if (!body) return;
-            const userId = await requireManage(body.userId);
-            if (!userId) return;
-            const action = typeof body.action === "string" ? body.action.trim() : "";
-            const result = await econ.runEconomyAction(configManager, guildId, action);
+            const actorId = await requireManage(body.userId);
+            if (!actorId) return;
+            const { userId: _u, ...patch } = body;
+            const result = await econ.updateEconomySettings(configManager, guildId, actorId, patch);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
             }
-            trackDashboardAction(client, guildId, userId, {
+            trackDashboardAction(client, guildId, actorId, {
               eventType: "dashboard_economy",
-              title: `Economy ${result.action}`,
-              summary: `Economy action \`${result.action}\` ran from the dashboard.`,
-              payload: { action: result.action, result: result.result },
+              title: "Economy settings updated",
+              summary: "Updated the server economy settings from the dashboard.",
+              payload: { server: result.server },
             });
-            sendJson(res, 200, { ok: true, action: result.action, result: result.result });
+            sendJson(res, 200, { ok: true, server: result.server });
             return;
           }
 
@@ -3307,42 +3375,20 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 200, payload);
               return;
             }
-            if (segments.length === 3 && segments[2] === "transactions" && req.method === "GET") {
-              const userId = await requireManage(url.searchParams.get("userId"));
-              if (!userId) return;
-              const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-              const result = await econ.listEconomyTransactions(
-                configManager,
-                guildId,
-                targetUserId,
-                limit,
-              );
-              if (!result.ok) {
-                sendJson(res, result.status, { error: result.error });
-                return;
-              }
-              sendJson(res, 200, { transactions: result.transactions });
-              return;
-            }
             if (segments.length === 3 && segments[2] === "adjust" && req.method === "POST") {
               const body = await readJsonBody<{
                 userId?: string;
-                currencyKey?: string;
+                scope?: "global" | "server";
                 mode?: "add" | "take" | "set";
-                pocketDelta?: number;
-                bankDelta?: number;
-                reason?: string;
+                amount?: number;
               }>();
               if (!body) return;
               const actorId = await requireManage(body.userId);
               if (!actorId) return;
               const result = await econ.adjustEconomyAccount(configManager, guildId, targetUserId, {
-                actorId,
-                currencyKey: body.currencyKey,
-                mode: body.mode,
-                pocketDelta: body.pocketDelta,
-                bankDelta: body.bankDelta,
-                reason: body.reason,
+                scope: body.scope ?? "server",
+                mode: body.mode ?? "add",
+                amount: Number(body.amount ?? 0),
               });
               if (!result.ok) {
                 sendJson(res, result.status, { error: result.error });
@@ -3351,174 +3397,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               trackDashboardAction(client, guildId, actorId, {
                 eventType: "dashboard_economy",
                 title: "Economy balance adjust",
-                summary: `Adjusted balances for <@${targetUserId}> (${result.currencyKey}).`,
+                summary: `Adjusted the ${result.scope} balance for <@${targetUserId}>.`,
                 targetId: targetUserId,
-                payload: {
-                  currencyKey: result.currencyKey,
-                  balances: result.balances,
-                  mode: body.mode ?? "add",
-                },
+                payload: { scope: result.scope, balance: result.balance, mode: body.mode ?? "add" },
               });
-              sendJson(res, 200, {
-                ok: true,
-                currencyKey: result.currencyKey,
-                balances: result.balances,
-              });
+              sendJson(res, 200, { ok: true, scope: result.scope, balance: result.balance });
               return;
-            }
-            if (segments.length === 3 && segments[2] === "freeze" && req.method === "POST") {
-              const body = await readJsonBody<{
-                userId?: string;
-                frozen?: boolean;
-                reason?: string;
-              }>();
-              if (!body) return;
-              const actorId = await requireManage(body.userId);
-              if (!actorId) return;
-              if (typeof body.frozen !== "boolean") {
-                sendJson(res, 400, { error: "frozen must be a boolean" });
-                return;
-              }
-              const result = await econ.freezeEconomyAccount(configManager, guildId, targetUserId, {
-                frozen: body.frozen,
-                reason: body.reason,
-              });
-              if (!result.ok) {
-                sendJson(res, result.status, { error: result.error });
-                return;
-              }
-              trackDashboardAction(client, guildId, actorId, {
-                eventType: "dashboard_economy",
-                title: body.frozen ? "Economy account frozen" : "Economy account unfrozen",
-                summary: `${body.frozen ? "Froze" : "Unfroze"} economy account for <@${targetUserId}>.`,
-                targetId: targetUserId,
-                payload: { frozen: body.frozen },
-              });
-              sendJson(res, 200, { ok: true, profile: result.profile });
-              return;
-            }
-          }
-
-          // Catalog CRUD: /economy/{kind} and /economy/{kind}/:id
-          // Also accept pets as alias for species
-          if (segments[0]) {
-            const kind = econ.parseCatalogKind(segments[0]!);
-            if (kind) {
-              if (segments.length === 1 && req.method === "GET") {
-                const userId = await requireManage(url.searchParams.get("userId"));
-                if (!userId) return;
-                const shopIdRaw = url.searchParams.get("shopId");
-                const shopId = shopIdRaw ? Number(shopIdRaw) : undefined;
-                const result = await econ.listEconomyCatalog(
-                  configManager,
-                  guildId,
-                  kind,
-                  Number.isInteger(shopId) ? shopId : undefined,
-                );
-                if (!result.ok) {
-                  sendJson(res, result.status, { error: result.error });
-                  return;
-                }
-                sendJson(res, 200, { items: result.items });
-                return;
-              }
-
-              if (segments.length === 1 && req.method === "POST") {
-                const body = await readJsonBody<Record<string, unknown>>();
-                if (!body) return;
-                const actorId = await requireManage(
-                  typeof body.userId === "string" ? body.userId : undefined,
-                );
-                if (!actorId) return;
-                const { userId: _u, ...payload } = body;
-                const result = await econ.createEconomyCatalog(
-                  configManager,
-                  guildId,
-                  kind,
-                  payload,
-                );
-                if (!result.ok) {
-                  sendJson(res, result.status, { error: result.error });
-                  return;
-                }
-                trackDashboardAction(client, guildId, actorId, {
-                  eventType: "dashboard_economy",
-                  title: `Economy ${kind} created`,
-                  summary: `Created economy ${kind} from the dashboard.`,
-                  payload: { kind, id: result.item.id, key: result.item.key },
-                });
-                sendJson(res, 200, { ok: true, item: result.item });
-                return;
-              }
-
-              if (segments.length === 2) {
-                const id = econ.parseId(segments[1]!);
-                if (!id) {
-                  sendJson(res, 400, { error: "Invalid id" });
-                  return;
-                }
-
-                if (req.method === "GET") {
-                  const userId = await requireManage(url.searchParams.get("userId"));
-                  if (!userId) return;
-                  const result = await econ.getEconomyCatalogOne(configManager, guildId, kind, id);
-                  if (!result.ok) {
-                    sendJson(res, result.status, { error: result.error });
-                    return;
-                  }
-                  sendJson(res, 200, { item: result.item });
-                  return;
-                }
-
-                if (req.method === "PUT") {
-                  const body = await readJsonBody<Record<string, unknown>>();
-                  if (!body) return;
-                  const actorId = await requireManage(
-                    typeof body.userId === "string" ? body.userId : undefined,
-                  );
-                  if (!actorId) return;
-                  const { userId: _u, ...payload } = body;
-                  const result = await econ.updateEconomyCatalog(
-                    configManager,
-                    guildId,
-                    kind,
-                    id,
-                    payload,
-                  );
-                  if (!result.ok) {
-                    sendJson(res, result.status, { error: result.error });
-                    return;
-                  }
-                  trackDashboardAction(client, guildId, actorId, {
-                    eventType: "dashboard_economy",
-                    title: `Economy ${kind} updated`,
-                    summary: `Updated economy ${kind} #${id} from the dashboard.`,
-                    targetId: String(id),
-                    payload: { kind, id },
-                  });
-                  sendJson(res, 200, { ok: true, item: result.item });
-                  return;
-                }
-
-                if (req.method === "DELETE") {
-                  const userId = await requireManage(url.searchParams.get("userId"));
-                  if (!userId) return;
-                  const result = await econ.deleteEconomyCatalog(configManager, guildId, kind, id);
-                  if (!result.ok) {
-                    sendJson(res, result.status, { error: result.error });
-                    return;
-                  }
-                  trackDashboardAction(client, guildId, userId, {
-                    eventType: "dashboard_economy",
-                    title: `Economy ${kind} deleted`,
-                    summary: `Deleted economy ${kind} #${id} from the dashboard.`,
-                    targetId: String(id),
-                    payload: { kind, id },
-                  });
-                  sendJson(res, 200, { ok: true });
-                  return;
-                }
-              }
             }
           }
 

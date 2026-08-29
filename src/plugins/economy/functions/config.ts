@@ -27,9 +27,3 @@ export async function loadEconomyConfig(guildId: string): Promise<EconomyConfig 
     resolvePluginConfig(guildConfig, "economy", getPluginDefaultOverrides("economy")),
   );
 }
-
-export async function loadEconomyConfigOrThrow(guildId: string): Promise<EconomyConfig> {
-  const config = await loadEconomyConfig(guildId);
-  if (!config) throw new Error("Economy plugin is disabled.");
-  return config;
-}

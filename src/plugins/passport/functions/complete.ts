@@ -36,35 +36,6 @@ export async function completePassportVerification(options: {
     accountCreatedAt: member.user.createdAt,
   });
 
-  // Optional one-time economy bonus when Economy is enabled.
-  try {
-    const { loadEconomyConfig } = await import("../../economy/functions/config.js");
-    const { grantStartingBalance, getPrimaryCurrencyKey, mutateMoney, ensureGuildCurrencies } = await import(
-      "../../economy/functions/money.js"
-    );
-    const eco = await loadEconomyConfig(member.guild.id);
-    if (eco && !alreadyVerified && eco.starting_balance >= 0) {
-      ensureGuildCurrencies(member.guild.id, eco);
-      grantStartingBalance(member.guild.id, member.id, eco);
-      const bonus = Math.max(0, Math.floor(eco.rewards.daily_amount / 2));
-      if (bonus > 0) {
-        mutateMoney(
-          {
-            guildId: member.guild.id,
-            userId: member.id,
-            currencyKey: getPrimaryCurrencyKey(member.guild.id, eco),
-            deltaPocket: bonus,
-            reason: "passport_verify",
-            idempotencyKey: `passport:${member.guild.id}:${member.id}`,
-          },
-          { config: eco, skipPauseCheck: true },
-        );
-      }
-    }
-  } catch {
-    /* economy optional */
-  }
-
   const pending = await getPassportPending(member.guild.id, member.id);
   if (pending && config.ping.delete_on_verify) {
     await deletePassportMessage(member.guild, pending.pingChannelId, pending.pingMessageId);

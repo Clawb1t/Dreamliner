@@ -193,13 +193,6 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         });
         return;
       }
-      if (interaction.commandName === "economy") {
-        const { handleEconomyAutocomplete } = await import("./plugins/economy/autocomplete.js");
-        await handleEconomyAutocomplete(interaction).catch((error) => {
-          console.error("Economy autocomplete error:", error);
-        });
-        return;
-      }
       if (interaction.commandName === "tts") {
         await handleTtsAutocomplete(interaction).catch((error) => {
           console.error("TTS autocomplete error:", error);

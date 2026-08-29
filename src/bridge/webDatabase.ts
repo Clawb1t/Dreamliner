@@ -94,73 +94,13 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
     label: "Bot guild profiles",
     description: "Stored per-server bot bio and related brand state.",
   },
-  economy_currencies: {
-    label: "Economy currencies",
-    description: "Per-guild currency definitions (coins, gems, custom).",
+  economy_global_accounts: {
+    label: "Economy global accounts",
+    description: "Bot-wide coin balances, earned by messages and daily claims.",
   },
-  economy_accounts: {
-    label: "Economy accounts",
-    description: "Member pocket, bank, and frozen balances by currency.",
-  },
-  economy_transactions: {
-    label: "Economy transactions",
-    description: "Ledger of balance mutations and transfers.",
-  },
-  economy_profiles: {
-    label: "Economy profiles",
-    description: "Member economy XP, jobs, freeze state, and privacy.",
-  },
-  economy_items: {
-    label: "Economy items",
-    description: "Catalog items for shops, inventory, and crafting.",
-  },
-  economy_shops: {
-    label: "Economy shops",
-    description: "Shop definitions for the server catalog.",
-  },
-  economy_shop_listings: {
-    label: "Economy shop listings",
-    description: "Priced stock listings inside shops.",
-  },
-  economy_inventory: {
-    label: "Economy inventory",
-    description: "Items owned by members.",
-  },
-  economy_jobs: {
-    label: "Economy jobs",
-    description: "Career jobs members can work.",
-  },
-  economy_pet_species: {
-    label: "Economy pet species",
-    description: "Adoptable pet species definitions.",
-  },
-  economy_pets: {
-    label: "Economy pets",
-    description: "Pets owned by members.",
-  },
-  economy_recipes: {
-    label: "Economy recipes",
-    description: "Crafting recipes and inputs.",
-  },
-  economy_quests: {
-    label: "Economy quests",
-    description: "Quest definitions and rewards.",
-  },
-  economy_achievements: {
-    label: "Economy achievements",
-    description: "Long-term achievement definitions.",
-  },
-  economy_seasons: {
-    label: "Economy seasons",
-    description: "Seasonal events and reward tiers.",
-  },
-  economy_daily_stats: {
-    label: "Economy daily stats",
-    description: "Per-day mint, sink, and market volume analytics.",
-  },
-  economy_guild_state: {
-    label: "Economy guild state",
-    description: "Pause and seed flags for the guild economy.",
+  economy_server_accounts: {
+    label: "Economy server accounts",
+    description: "Per-guild currency balances, earned by messages and daily claims.",
   },
 };
 

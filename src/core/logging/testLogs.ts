@@ -178,29 +178,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       ctx.target.avatarUrl,
       "modSevere",
     ),
-  economy_adjust: (ctx) =>
+  economy_admin_change: (ctx) =>
     buildGenericServerLog(
-      "Economy Adjust",
-      [`Member: <@${ctx.target.id}> (\`${ctx.target.id}\`)`, `By: <@${ctx.actor.id}>`, "Amount: **+500**"],
+      "Economy Settings Change",
+      [`By: <@${ctx.actor.id}>`, "Currency: **Coins**", "Multiplier: **1.5x**"],
       null,
-      "action",
+      "serverUpdate",
     ),
-  economy_transfer: (ctx) =>
-    buildGenericServerLog("Economy Transfer", [`From: <@${ctx.actor.id}>`, `To: <@${ctx.target.id}>`, "Amount: **250**"], null, "action"),
-  economy_shop: (ctx) =>
-    buildGenericServerLog("Economy Shop", [`Member: <@${ctx.target.id}>`, "Item: **Test Item**", "Price: **100**"], null, "action"),
-  economy_trade: (ctx) =>
-    buildGenericServerLog("Economy Trade", [`Between: <@${ctx.actor.id}> and <@${ctx.target.id}>`], null, "action"),
-  economy_auction: (ctx) =>
-    buildGenericServerLog(
-      "Economy Auction",
-      [`Seller: <@${ctx.actor.id}>`, "Item: **Test Item**", "Winning bid: **1,000**"],
-      null,
-      "action",
-    ),
-  economy_freeze: (ctx) =>
-    buildGenericServerLog("Economy Freeze", [`Member: <@${ctx.target.id}>`, `By: <@${ctx.actor.id}>`], null, "modModerate"),
-  economy_season: () => buildGenericServerLog("Economy Season", ["A new economy season started."], null, "serverUpdate"),
 
   ticket_open: (ctx) =>
     buildGenericServerLog("Ticket #1 Opened", [`Opened by: <@${ctx.actor.id}>`, "Category: **Test Category**", `Channel: <#${ctx.channel.id}>`], ctx.actor.avatarUrl, "create"),

@@ -78,4 +78,4 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 ## Economy
 
-- [Economy](./economy.md) — currencies, banks, shops, jobs, pets, crafting, quests, trades, and auctions
+- [Economy](./economy.md) — a global coin economy plus a customisable per-server currency, earned by chatting and daily claims

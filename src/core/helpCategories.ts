@@ -166,7 +166,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "economy",
     label: "Economy",
-    blurb: "Server currency, shops, jobs, pets, crafts, quests, and markets.",
+    blurb: "Global coins and a customisable server currency, earned by chatting and daily claims.",
     include: [{ plugin: "economy" }],
   },
   {
@@ -362,8 +362,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   economy: {
     key: "economy",
     name: "Economy",
-    description:
-      "Fully customisable server economy: currencies, banks, shops, jobs, pets, crafting, quests, trades, and auctions.",
+    description: "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims.",
   },
   social: {
     key: "social",

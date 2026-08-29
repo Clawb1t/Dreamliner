@@ -151,15 +151,9 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "command list", label: "/command list", plugin: "dream_commands", permission: "can_list" },
 
   // Economy
-  { key: "economy balance", label: "/economy account balance", plugin: "economy", permission: "can_balance" },
-  { key: "economy pay", label: "/economy social pay", plugin: "economy", permission: "can_pay" },
-  { key: "economy daily", label: "/economy rewards daily", plugin: "economy", permission: "can_daily" },
-  { key: "economy shop", label: "/economy shop browse", plugin: "economy", permission: "can_shop" },
-  { key: "economy pets", label: "/economy pets list", plugin: "economy", permission: "can_pets" },
-  { key: "economy trade", label: "/economy trade start", plugin: "economy", permission: "can_trade" },
-  { key: "economy market", label: "/economy market browse", plugin: "economy", permission: "can_market" },
-  { key: "economy auction", label: "/economy auction browse", plugin: "economy", permission: "can_auction" },
-  { key: "economy admin", label: "/economy admin adjust", plugin: "economy", permission: "can_admin_adjust" },
+  { key: "economy balance", label: "/balance", plugin: "economy", permission: "can_balance" },
+  { key: "economy daily", label: "/daily", plugin: "economy", permission: "can_daily" },
+  { key: "economy admin", label: "/economy settings", plugin: "economy", permission: "can_admin_manage" },
 ];
 
 const byKey = new Map(PERMISSION_TARGETS.map((target) => [target.key, target]));
