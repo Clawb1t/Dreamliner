@@ -6,6 +6,8 @@ import { baseEmbed } from "../../core/embeds.js";
 import { getAccountVoiceUrl, siteLinkRow } from "../../core/docsUrl.js";
 import { listPiperVoiceOptions } from "./functions/piper.js";
 import { setUserVoice } from "./functions/userVoice.js";
+import { skipCurrent } from "./functions/session.js";
+import { addToTtsBlacklist, isTtsBlacklisted, listTtsBlacklist, removeFromTtsBlacklist } from "./functions/blacklist.js";
 
 /** Suggests voices from the installed Piper voice directory, shown by human-readable label. */
 export async function handleTtsAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
@@ -28,7 +30,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
     plugin: "tts",
     data: new SlashCommandBuilder()
       .setName("tts")
-      .setDescription("Text-to-speech: pick your voice, or set the auto-speak text channel")
+      .setDescription("Text-to-speech: pick your voice, skip a clip, or manage the auto-speak channel")
       .addSubcommand((sub) =>
         sub
           .setName("voice")
@@ -37,6 +39,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
             o.setName("voice").setDescription("Voice to use").setRequired(true).setAutocomplete(true),
           ),
       )
+      .addSubcommand((sub) => sub.setName("skip").setDescription("Skip the TTS clip that's currently playing"))
       .addSubcommandGroup((group) =>
         group
           .setName("channel")
@@ -54,15 +57,42 @@ export const ttsCommands: SlashCommandDefinition[] = [
               ),
           )
           .addSubcommand((sub) => sub.setName("clear").setDescription("Turn off the auto-speak text channel")),
+      )
+      .addSubcommandGroup((group) =>
+        group
+          .setName("blacklist")
+          .setDescription("Block or unblock members from using TTS")
+          .addSubcommand((sub) =>
+            sub
+              .setName("add")
+              .setDescription("Block a member from using TTS")
+              .addUserOption((o) => o.setName("target").setDescription("Member to block").setRequired(true))
+              .addStringOption((o) => o.setName("reason").setDescription("Reason")),
+          )
+          .addSubcommand((sub) =>
+            sub
+              .setName("remove")
+              .setDescription("Unblock a member from using TTS")
+              .addUserOption((o) => o.setName("target").setDescription("Member to unblock").setRequired(true)),
+          )
+          .addSubcommand((sub) => sub.setName("list").setDescription("List members blocked from using TTS")),
       ),
     execute: async (ctx) => {
       const { interaction } = ctx;
+      const guildId = interaction.guildId!;
       const group = interaction.options.getSubcommandGroup(false);
       const sub = interaction.options.getSubcommand(true);
 
       if (!group && sub === "voice") {
         const auth = await requirePluginPermission(ctx, "tts", "can_speak");
         if (!auth) return;
+
+        if (await isTtsBlacklisted(guildId, interaction.user.id)) {
+          await interaction.reply(
+            resultReply("Blocked", "You've been blocked from using TTS on this server.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
+          return;
+        }
 
         const voice = interaction.options.getString("voice", true);
         const available = await listPiperVoiceOptions();
@@ -92,12 +122,28 @@ export const ttsCommands: SlashCommandDefinition[] = [
         return;
       }
 
+      if (!group && sub === "skip") {
+        const auth = await requirePluginPermission(ctx, "tts", "can_skip");
+        if (!auth) return;
+
+        const skipped = skipCurrent(guildId);
+        await interaction.reply(
+          resultReply(
+            skipped ? "Skipped" : "Nothing playing",
+            skipped ? "Moving on to the next queued message, if there is one." : "There's no TTS clip playing right now.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: skipped ? "success" : "warning" }),
+          ),
+        );
+        return;
+      }
+
       if (group === "channel" && sub === "set") {
         const auth = await requirePluginPermission(ctx, "tts", "can_manage_channel");
         if (!auth) return;
 
         const channel = interaction.options.getChannel("channel", true);
-        const result = await ctx.configManager.patchPluginConfig(interaction.guildId!, "tts", { text_channel_id: channel.id }, interaction.user.id);
+        const result = await ctx.configManager.patchPluginConfig(guildId, "tts", { text_channel_id: channel.id }, interaction.user.id);
         if (!result.success) {
           await interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
@@ -118,13 +164,53 @@ export const ttsCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "tts", "can_manage_channel");
         if (!auth) return;
 
-        const result = await ctx.configManager.patchPluginConfig(interaction.guildId!, "tts", { text_channel_id: null }, interaction.user.id);
+        const result = await ctx.configManager.patchPluginConfig(guildId, "tts", { text_channel_id: null }, interaction.user.id);
         if (!result.success) {
           await interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         await interaction.reply(resultReply("Channel cleared", "The auto-speak text channel is turned off.", ctx.ephemeral, slashResultOptions(ctx)));
+        return;
+      }
+
+      if (group === "blacklist" && sub === "add") {
+        const auth = await requirePluginPermission(ctx, "tts", "can_blacklist");
+        if (!auth) return;
+
+        const target = interaction.options.getUser("target", true);
+        const reason = interaction.options.getString("reason");
+        await addToTtsBlacklist(guildId, target.id, reason);
+        await interaction.reply(
+          resultReply("Blocked", `${target.tag} can no longer use TTS on this server.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
+        );
+        return;
+      }
+
+      if (group === "blacklist" && sub === "remove") {
+        const auth = await requirePluginPermission(ctx, "tts", "can_blacklist");
+        if (!auth) return;
+
+        const target = interaction.options.getUser("target", true);
+        await removeFromTtsBlacklist(guildId, target.id);
+        await interaction.reply(
+          resultReply("Unblocked", `${target.tag} can use TTS again.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
+        );
+        return;
+      }
+
+      if (group === "blacklist" && sub === "list") {
+        const auth = await requirePluginPermission(ctx, "tts", "can_blacklist");
+        if (!auth) return;
+
+        const entries = await listTtsBlacklist(guildId);
+        if (entries.length === 0) {
+          await interaction.reply(resultReply("TTS blacklist", "Nobody is blocked from using TTS.", ctx.ephemeral, slashResultOptions(ctx)));
+          return;
+        }
+
+        const lines = entries.map((e) => `<@${e.userId}>${e.reason ? ` (${e.reason})` : ""}`);
+        await interaction.reply(resultReply("TTS blacklist", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)));
       }
     },
   },

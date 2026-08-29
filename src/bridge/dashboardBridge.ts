@@ -1167,6 +1167,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const scamProtectMatch = /^\/bridge\/guilds\/(\d+)\/scam-protect(?:\/(setup|disable))?$/.exec(
           url.pathname,
         );
+        const ttsBlacklistMatch = /^\/bridge\/guilds\/(\d+)\/tts\/blacklist(?:\/([^/]+))?$/.exec(
+          url.pathname,
+        );
         const welcomeAssetMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/assets(?:\/([a-zA-Z0-9_-]+))?$/.exec(
           url.pathname,
         );
@@ -1239,6 +1242,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !ticketOneMatch &&
           !ticketsMatch &&
           !scamProtectMatch &&
+          !ttsBlacklistMatch &&
           !welcomeAssetMatch &&
           !welcomePreviewMatch &&
           !welcomeTestMatch &&
@@ -1300,6 +1304,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           ticketOneMatch?.[1] ??
           ticketsMatch?.[1] ??
           scamProtectMatch?.[1] ??
+          ttsBlacklistMatch?.[1] ??
           welcomeAssetMatch?.[1] ??
           welcomePreviewMatch?.[1] ??
           welcomeTestMatch?.[1] ??
@@ -2196,6 +2201,70 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             });
             const config = await configManager.getEffectiveConfig(guildId);
             sendJson(res, 200, { ok: true, status: result.status, config });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (ttsBlacklistMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { listGuildTtsBlacklist, addGuildTtsBlacklist, removeGuildTtsBlacklist } = await import("./webTts.js");
+
+          if (req.method === "GET") {
+            sendJson(res, 200, { ok: true, blacklist: await listGuildTtsBlacklist(guild) });
+            return;
+          }
+
+          if (req.method === "POST") {
+            let body: { targetId?: string; reason?: string } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            if (!body.targetId) {
+              sendJson(res, 400, { error: "targetId is required" });
+              return;
+            }
+            const blacklist = await addGuildTtsBlacklist(guild, body.targetId, body.reason);
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_tts",
+              title: "TTS blacklist updated",
+              summary: `\`${body.targetId}\` was blocked from using TTS from the dashboard.`,
+              targetId: body.targetId,
+              payload: { action: "blacklist_add", targetId: body.targetId },
+            });
+            sendJson(res, 200, { ok: true, blacklist });
+            return;
+          }
+
+          if (req.method === "DELETE") {
+            const targetId = ttsBlacklistMatch[2];
+            if (!targetId) {
+              sendJson(res, 400, { error: "targetId is required" });
+              return;
+            }
+            const blacklist = await removeGuildTtsBlacklist(guild, targetId);
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_tts",
+              title: "TTS blacklist updated",
+              summary: `\`${targetId}\` was unblocked from using TTS from the dashboard.`,
+              targetId,
+              payload: { action: "blacklist_remove", targetId },
+            });
+            sendJson(res, 200, { ok: true, blacklist });
             return;
           }
 

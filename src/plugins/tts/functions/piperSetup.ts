@@ -59,7 +59,10 @@ function releaseAssetName(): string | null {
   return null;
 }
 
-const DOWNLOAD_TIMEOUT_MS = 120_000;
+// Generous on purpose: voice models are 20-100MB+ and these downloads run in the background,
+// not blocking bot startup, so there's no reason to cut off a slow/throttled host connection
+// (shared panel hosts) before a large file has a real chance to finish.
+const DOWNLOAD_TIMEOUT_MS = 900_000;
 
 /**
  * Downloads to a `.part` sibling and renames into place only once the whole body has been

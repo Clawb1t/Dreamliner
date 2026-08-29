@@ -11,12 +11,16 @@ import {
   type VoiceConnection,
 } from "@discordjs/voice";
 import type { PreparedAudio } from "./synth.js";
+import { scheduleVoiceStatus } from "./channelStatus.js";
+
+type QueuedClip = { audio: PreparedAudio; speakerLabel: string };
 
 type GuildSession = {
   connection: VoiceConnection;
   player: AudioPlayer;
+  channel: VoiceBasedChannel;
   channelId: string;
-  queue: PreparedAudio[];
+  queue: QueuedClip[];
   playing: boolean;
   idleTimer: NodeJS.Timeout | null;
 };
@@ -55,24 +59,43 @@ function playNext(guildId: string): void {
   const next = session.queue.shift();
   if (!next) {
     session.playing = false;
+    scheduleVoiceStatus(session.channel, "");
     scheduleIdleDisconnect(guildId, session);
     return;
   }
 
   session.playing = true;
   clearIdleTimer(session);
-  const resource = createAudioResource(Readable.from(next.buffer), { inputType: next.inputType });
+  scheduleVoiceStatus(session.channel, next.speakerLabel);
+  const resource = createAudioResource(Readable.from(next.audio.buffer), { inputType: next.audio.inputType });
   session.player.play(resource);
+}
+
+/**
+ * Stops whatever's currently playing in this guild and lets the player's own Idle handler
+ * advance to the next queued clip (or go idle if the queue's empty). Returns false if nothing
+ * was playing.
+ */
+export function skipCurrent(guildId: string): boolean {
+  const session = sessions.get(guildId);
+  if (!session || !session.playing) return false;
+  session.player.stop(true);
+  return true;
 }
 
 export type SpeakResult = { ok: true } | { ok: false; reason: "busy_elsewhere" | "join_failed" };
 
 /**
- * Queues `audio` to be spoken in `channel`. Joins the channel if Dreamliner isn't already
- * connected there. If Dreamliner is speaking in a different channel in the same guild, the
- * request is rejected rather than interrupting that session.
+ * Queues `audio` to be spoken in `channel`, attributed to `speakerLabel` (shown as the voice
+ * channel's status while it plays — see channelStatus.ts). Joins the channel if Dreamliner isn't
+ * already connected there. If Dreamliner is speaking in a different channel in the same guild,
+ * the request is rejected rather than interrupting that session.
  */
-export async function speakInChannel(channel: VoiceBasedChannel, audio: PreparedAudio): Promise<SpeakResult> {
+export async function speakInChannel(
+  channel: VoiceBasedChannel,
+  audio: PreparedAudio,
+  speakerLabel: string,
+): Promise<SpeakResult> {
   const guildId = channel.guild.id;
   let session = sessions.get(guildId);
 
@@ -105,6 +128,7 @@ export async function speakInChannel(channel: VoiceBasedChannel, audio: Prepared
     const created: GuildSession = {
       connection,
       player,
+      channel,
       channelId: channel.id,
       queue: [],
       playing: false,
@@ -118,7 +142,7 @@ export async function speakInChannel(channel: VoiceBasedChannel, audio: Prepared
     connection.on(VoiceConnectionStatus.Disconnected, () => teardown(guildId, created));
   }
 
-  session.queue.push(audio);
+  session.queue.push({ audio, speakerLabel });
   if (!session.playing) playNext(guildId);
   return { ok: true };
 }

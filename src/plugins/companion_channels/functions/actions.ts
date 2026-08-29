@@ -15,7 +15,7 @@ import {
   setLocked,
 } from "./rooms.js";
 import { getOwnedRoom, getRoomByChannel, updateRoom, type CompanionRoomRow } from "./store.js";
-import { setVoiceChannelStatus } from "./voiceStatus.js";
+import { setVoiceChannelStatus } from "../../../core/voiceChannelStatus.js";
 
 export type CompanionActor = {
   member: GuildMember;

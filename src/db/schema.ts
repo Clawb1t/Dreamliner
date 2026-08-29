@@ -1262,3 +1262,15 @@ export const ttsUserVoices = sqliteTable("tts_user_voices", {
   userId: text("user_id").primaryKey(),
   voice: text("voice").notNull(),
 });
+
+/** Per-guild block list — a blacklisted user's messages are never spoken and /tts voice is denied. */
+export const ttsBlacklist = sqliteTable(
+  "tts_blacklist",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    reason: text("reason"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);

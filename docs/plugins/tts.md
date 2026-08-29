@@ -111,3 +111,10 @@ level/role/channel overrides from the dashboard. By default, `can_speak` is `tru
 - If Dreamliner is already speaking in a different voice channel in the same server, the message is dropped
   (reacted with ❌) rather than interrupting that session.
 - Bot messages and webhook messages in the TTS channel are never spoken.
+- URLs, bare media filenames (gifs, images, video clips), and emoji (Discord custom and Unicode) are stripped
+  from a message before it's spoken. A message that's *only* one of those (a pasted link, a GIF, a string of
+  emoji) is skipped entirely.
+- While something is playing, the voice channel's status shows the display name of whoever's message is
+  being read, so it's easy to tell who's currently speaking. It clears once the queue empties. Updates are
+  throttled to at most one every 10 seconds per channel — if several speakers change within that window, only
+  the most recent one is actually sent, so the status can't fall behind into showing stale/past speakers.

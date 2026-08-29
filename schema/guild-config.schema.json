@@ -10041,6 +10041,26 @@
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
                 },
+                "can_skip": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to skip the currently playing TTS clip with /tts skip. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Skip",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "can_blacklist": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to block or unblock members from using TTS with /tts blacklist. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Blacklist",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
                 "text_channel_id": {
                   "type": "string",
                   "description": "Text channel where any message from a member in a voice channel is automatically spoken there. Set with /tts channel set. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",

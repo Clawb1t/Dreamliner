@@ -8,6 +8,8 @@ import { ttsDefaultOverrides } from "../defaultOverrides.js";
 import { synthesize } from "./synth.js";
 import { speakInChannel } from "./session.js";
 import { getUserVoice } from "./userVoice.js";
+import { sanitizeSpokenText } from "./sanitizeSpokenText.js";
+import { isTtsBlacklisted } from "./blacklist.js";
 
 /** Per-member cooldown tracker, keyed `${guildId}:${userId}`. Cleared on process restart. */
 const lastUse = new Map<string, number>();
@@ -32,11 +34,16 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
     return;
   }
 
+  if (await isTtsBlacklisted(message.guild.id, message.author.id)) return;
+
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) return;
 
-  const text = message.content.trim();
-  if (!text) return;
+  const rawText = message.content.trim();
+  if (!rawText) return;
+
+  const text = sanitizeSpokenText(rawText);
+  if (!text) return; // e.g. the whole message was just a link or a gif filename
 
   const config = parsePluginConfig(
     zTtsConfig,
@@ -59,7 +66,7 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
     return;
   }
 
-  const spoken = await speakInChannel(voiceChannel, speech.audio);
+  const spoken = await speakInChannel(voiceChannel, speech.audio, message.member.displayName);
   if (!spoken.ok) {
     await message.react("❌").catch(() => {});
     return;

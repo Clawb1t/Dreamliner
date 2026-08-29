@@ -4,6 +4,8 @@ import { boolPerm, channelId } from "../schemaHelp.js";
 export const zTtsConfig = z.strictObject({
   can_speak: boolPerm("have their messages in the TTS text channel (and their own /tts voice picks) spoken aloud"),
   can_manage_channel: boolPerm("set or clear the TTS auto-speak text channel with /tts channel"),
+  can_skip: boolPerm("skip the currently playing TTS clip with /tts skip"),
+  can_blacklist: boolPerm("block or unblock members from using TTS with /tts blacklist"),
   text_channel_id: channelId(
     "Text channel where any message from a member in a voice channel is automatically spoken there. Set with /tts channel set.",
   ),

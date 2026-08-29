@@ -14,7 +14,7 @@ import { renderTemplate } from "../../../core/templates.js";
 import { featureEnabled } from "./config.js";
 import { ensureCompanionInterface, postCompanionInterface } from "./panel.js";
 import { renderCompanionName } from "./names.js";
-import { setVoiceChannelStatus } from "./voiceStatus.js";
+import { setVoiceChannelStatus } from "../../../core/voiceChannelStatus.js";
 import {
   getOwnedRoom,
   getRoomByChannel,

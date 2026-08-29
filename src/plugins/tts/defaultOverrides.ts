@@ -11,6 +11,8 @@ export const ttsDefaultOverrides: ConfigOverride[] = [
     level: ">=50",
     config: {
       can_manage_channel: true,
+      can_skip: true,
+      can_blacklist: true,
     },
   },
 ];

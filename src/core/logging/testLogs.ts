@@ -278,6 +278,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       null,
       "modDefault",
     ),
+  dashboard_tts: (ctx) =>
+    buildGenericServerLog(
+      "TTS Admin",
+      [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Updated the TTS blacklist."],
+      null,
+      "modDefault",
+    ),
 };
 
 export type TestLogResult = {

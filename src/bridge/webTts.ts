@@ -1,8 +1,9 @@
-import type { Client } from "discord.js";
+import type { Client, Guild } from "discord.js";
 import { listPiperVoiceOptions, synthesizeWithPiper } from "../plugins/tts/functions/piper.js";
 import { getUserVoice, setUserVoice } from "../plugins/tts/functions/userVoice.js";
 import { resolveDefaultVoice } from "../plugins/tts/functions/piperSetup.js";
 import { pcmToWav } from "../plugins/tts/functions/wav.js";
+import { addToTtsBlacklist, listTtsBlacklist, removeFromTtsBlacklist } from "../plugins/tts/functions/blacklist.js";
 
 export type TtsVoiceOption = { id: string; label: string; regionCode: string };
 
@@ -65,4 +66,25 @@ export async function synthesizeTtsPreviewForWeb(
 
   lastPreview.set(discordId, Date.now());
   return { wav: pcmToWav(spoken.pcm, spoken.sampleRate, 1) };
+}
+
+export type TtsBlacklistEntryForWeb = { userId: string; reason: string | null; createdAt: string };
+
+function toWebEntry(entry: { userId: string; reason: string | null; createdAt: Date }): TtsBlacklistEntryForWeb {
+  return { userId: entry.userId, reason: entry.reason, createdAt: entry.createdAt.toISOString() };
+}
+
+export async function listGuildTtsBlacklist(guild: Guild): Promise<TtsBlacklistEntryForWeb[]> {
+  const entries = await listTtsBlacklist(guild.id);
+  return entries.map(toWebEntry);
+}
+
+export async function addGuildTtsBlacklist(guild: Guild, userId: string, reason?: string): Promise<TtsBlacklistEntryForWeb[]> {
+  await addToTtsBlacklist(guild.id, userId, reason);
+  return listGuildTtsBlacklist(guild);
+}
+
+export async function removeGuildTtsBlacklist(guild: Guild, userId: string): Promise<TtsBlacklistEntryForWeb[]> {
+  await removeFromTtsBlacklist(guild.id, userId);
+  return listGuildTtsBlacklist(guild);
 }

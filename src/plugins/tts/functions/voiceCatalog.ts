@@ -11,8 +11,35 @@ import { writeVoiceMeta } from "./voiceMeta.js";
  */
 
 const MANIFEST_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main/voices.json";
-const MANIFEST_TIMEOUT_MS = 30_000;
+const MANIFEST_TIMEOUT_MS = 60_000;
 const VOICES_BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main";
+
+// Retries + a short pause between voices: on a slow/shared host connection, a single failed
+// attempt (timeout, transient network blip) shouldn't permanently exclude a voice, and spacing
+// requests out a little is gentler on the CDN than hammering it back-to-back.
+const DOWNLOAD_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 3_000;
+const BETWEEN_VOICES_DELAY_MS = 250;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function downloadWithRetries(url: string, destPath: string, label: string): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+    try {
+      await downloadFile(url, destPath);
+      return;
+    } catch (error) {
+      lastError = error;
+      const reason = error instanceof Error ? error.message : String(error);
+      console.warn(`[tts] Attempt ${attempt}/${DOWNLOAD_ATTEMPTS} failed for ${label}: ${reason}`);
+      if (attempt < DOWNLOAD_ATTEMPTS) await sleep(RETRY_DELAY_MS * attempt);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
 
 type VoiceManifestEntry = {
   key: string;
@@ -27,9 +54,21 @@ type VoiceManifestEntry = {
 type VoiceManifest = Record<string, VoiceManifestEntry>;
 
 async function fetchVoiceManifest(): Promise<VoiceManifest> {
-  const res = await fetch(MANIFEST_URL, { signal: AbortSignal.timeout(MANIFEST_TIMEOUT_MS) });
-  if (!res.ok) throw new Error(`Could not fetch Piper voice manifest (${res.status}).`);
-  return (await res.json()) as VoiceManifest;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(MANIFEST_URL, { signal: AbortSignal.timeout(MANIFEST_TIMEOUT_MS) });
+      if (!res.ok) throw new Error(`Could not fetch Piper voice manifest (${res.status}).`);
+      return (await res.json()) as VoiceManifest;
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `[tts] Manifest fetch attempt ${attempt}/${DOWNLOAD_ATTEMPTS} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      if (attempt < DOWNLOAD_ATTEMPTS) await sleep(RETRY_DELAY_MS * attempt);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 // Prefer the community's recommended sweet spot (medium) and fall back to whatever else
@@ -107,8 +146,8 @@ export async function ensureVoicePackInstalled(voicesDir: string, families: stri
     }
 
     try {
-      await downloadFile(`${VOICES_BASE_URL}/${onnxRel}`, onnxPath);
-      await downloadFile(`${VOICES_BASE_URL}/${jsonRel}`, jsonPath);
+      await downloadWithRetries(`${VOICES_BASE_URL}/${onnxRel}`, onnxPath, `${voice.key} (.onnx)`);
+      await downloadWithRetries(`${VOICES_BASE_URL}/${jsonRel}`, jsonPath, `${voice.key} (.onnx.json)`);
       await writeVoiceMeta(voicesDir, {
         id: voice.key,
         name: voice.name,
@@ -119,9 +158,13 @@ export async function ensureVoicePackInstalled(voicesDir: string, families: stri
         speakers: speakerNamesFor(voice),
       });
       installed.push(voice.key);
+      console.log(`[tts] Installed voice ${installed.length}/${voices.length - skipped}: ${voice.key}`);
     } catch (error) {
       failed.push({ voice: voice.key, reason: error instanceof Error ? error.message : String(error) });
+      console.warn(`[tts] Giving up on ${voice.key} after ${DOWNLOAD_ATTEMPTS} attempts.`);
     }
+
+    await sleep(BETWEEN_VOICES_DELAY_MS);
   }
 
   return { installed, skipped, failed };
