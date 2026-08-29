@@ -3,7 +3,7 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import { hasPluginPermission } from "../../core/permissions.js";
 import { resultEdit, resultReply, embedEdit, embedReply, slashResultOptions } from "../../core/responses.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor } from "../../core/embeds.js";
-import { scamProtectChannelName } from "./constants.js";
+import { scamProtectDefaultChannelName } from "./constants.js";
 import {
   ensureScamProtectChannel,
   getScamProtectConfig,
@@ -116,7 +116,6 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        const setupConfig = getScamProtectConfig(enableResult.data);
         await ctx.interaction.editReply(
           embedEdit(
             setEmbedAuthor(
@@ -130,7 +129,6 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
               )
               .addFields(
                 embedField("Channel name", `\`${channel.name}\``, true),
-                embedField("Prefix", setupConfig.channel_prefix || "_none_", true),
                 embedField("Channel ID", channel.id, true),
               ),
           ),
@@ -160,7 +158,7 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
       }
 
       const config = getScamProtectConfig(ctx.guildConfig);
-      const expectedName = scamProtectChannelName(config.channel_prefix);
+      const expectedName = config.channel_name?.trim() || scamProtectDefaultChannelName();
       const channel = config.channel_id
         ? await guild.channels.fetch(config.channel_id).catch(() => null)
         : null;
@@ -181,7 +179,6 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
               embedField("Enabled", isScamProtectEnabled(ctx.guildConfig) ? "Yes" : "No", true),
               embedField("Channel", channel ? `${channel}` : "Not set", true),
               embedField("Ignore staff", config.ignore_staff ? `Level >= ${config.staff_level}` : "Off", true),
-              embedField("Prefix", config.channel_prefix || "_none_", true),
               embedField("Name", `\`${channel?.name ?? expectedName}\``, true),
             ),
           ctx.ephemeral,

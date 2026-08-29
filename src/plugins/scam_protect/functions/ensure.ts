@@ -12,8 +12,8 @@ import { resolvePluginConfig } from "../../../core/permissions.js";
 import { scamProtectDefaultOverrides } from "../defaultOverrides.js";
 import {
   channelNameHasObfuscation,
-  scamProtectChannelName,
-  scamProtectChannelNameFullwidth,
+  scamProtectDefaultChannelName,
+  scamProtectDefaultChannelNameFullwidth,
 } from "../constants.js";
 import { buildScamProtectWarningPayload } from "./warning.js";
 import { countScamProtectCatches } from "./stats.js";
@@ -83,11 +83,16 @@ export async function refreshScamProtectWarning(guild: Guild): Promise<void> {
   await message.edit(buildScamProtectWarningPayload(caught) as MessageEditOptions).catch(() => null);
 }
 
-async function applyDesiredName(channel: TextChannel, prefix: string): Promise<TextChannel> {
-  const desired = scamProtectChannelName(prefix);
-  if (channel.name !== desired) {
-    await channel.setName(desired).catch(() => null);
+/**
+ * Renames the channel to `desiredName` if it's drifted. `isDefaultName` gates the
+ * lookalike-collapse fallback below — that trick only matters for the auto-generated
+ * obfuscated default; an admin's own custom name is used verbatim, no correction applied.
+ */
+async function applyDesiredName(channel: TextChannel, desiredName: string, isDefaultName: boolean): Promise<TextChannel> {
+  if (channel.name !== desiredName) {
+    await channel.setName(desiredName).catch(() => null);
   }
+  if (!isDefaultName) return channel;
 
   // If Discord collapsed lookalikes to ASCII, fall back to fullwidth Latin.
   const refreshed =
@@ -95,7 +100,7 @@ async function applyDesiredName(channel: TextChannel, prefix: string): Promise<T
   if (refreshed.type !== ChannelType.GuildText) return channel;
 
   if (!channelNameHasObfuscation(refreshed.name)) {
-    const fullwidth = scamProtectChannelNameFullwidth(prefix);
+    const fullwidth = scamProtectDefaultChannelNameFullwidth();
     if (refreshed.name !== fullwidth) {
       await refreshed.setName(fullwidth).catch(() => null);
     }
@@ -106,12 +111,12 @@ async function applyDesiredName(channel: TextChannel, prefix: string): Promise<T
   return finalChannel.type === ChannelType.GuildText ? finalChannel : channel;
 }
 
-async function createHoneypotChannel(guild: Guild, prefix: string): Promise<TextChannel | null> {
+async function createHoneypotChannel(guild: Guild, desiredName: string, isDefaultName: boolean): Promise<TextChannel | null> {
   const me = guild.members.me;
   if (!me?.permissions.has(PermissionFlagsBits.ManageChannels)) return null;
 
   const channel = await guild.channels.create({
-    name: scamProtectChannelName(prefix),
+    name: desiredName,
     type: ChannelType.GuildText,
     reason: "Scam Protect honeypot channel",
     topic: "Do not post here. Messages in this channel trigger an automatic softban.",
@@ -123,7 +128,7 @@ async function createHoneypotChannel(guild: Guild, prefix: string): Promise<Text
     ],
   });
 
-  const named = await applyDesiredName(channel, prefix);
+  const named = await applyDesiredName(channel, desiredName, isDefaultName);
   await named.setPosition(0).catch(() => null);
   return named;
 }
@@ -133,9 +138,14 @@ async function ensureUnlocked(guild: Guild): Promise<TextChannel | null> {
   if (!isScamProtectEnabled(guildConfig)) return null;
 
   const config = getScamProtectConfig(guildConfig);
-  const desiredName = scamProtectChannelName(config.channel_prefix);
+  const customName = config.channel_name?.trim();
+  const isDefaultName = !customName;
+  const desiredName = isDefaultName ? scamProtectDefaultChannelName() : customName!.slice(0, 100);
   let channel: TextChannel | null = null;
 
+  // channel_id is the only source of truth for finding the honeypot again — no name-based
+  // recovery fallback, so a custom name can be anything without risking a mismatch. If the id
+  // doesn't resolve (never set, or the channel was deleted), a fresh one is just created below.
   if (config.channel_id) {
     const existing = await guild.channels.fetch(config.channel_id).catch(() => null);
     if (existing?.isTextBased() && !existing.isDMBased() && existing.type === ChannelType.GuildText) {
@@ -144,22 +154,10 @@ async function ensureUnlocked(guild: Guild): Promise<TextChannel | null> {
   }
 
   if (!channel) {
-    const byName = guild.channels.cache.find(
-      (ch) =>
-        ch.type === ChannelType.GuildText &&
-        (ch.name === desiredName ||
-          ch.name === scamProtectChannelNameFullwidth(config.channel_prefix)),
-    );
-    if (byName && byName.type === ChannelType.GuildText) {
-      channel = byName;
-    }
-  }
-
-  if (!channel) {
-    channel = await createHoneypotChannel(guild, config.channel_prefix);
+    channel = await createHoneypotChannel(guild, desiredName, isDefaultName);
     if (!channel) return null;
   } else {
-    channel = await applyDesiredName(channel, config.channel_prefix);
+    channel = await applyDesiredName(channel, desiredName, isDefaultName);
     if (channel.position > 0) {
       await channel.setPosition(0).catch(() => null);
     }

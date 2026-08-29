@@ -7,3 +7,4 @@ data/
 .DS_Store
 .cursor/plans/
 .claude/
+piper/voices/

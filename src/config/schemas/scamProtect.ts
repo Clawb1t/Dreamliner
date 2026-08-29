@@ -10,12 +10,15 @@ export const zScamProtectConfig = z.strictObject({
     .string()
     .optional()
     .describe("Managed by Dreamliner after setup. Not editable in the dashboard."),
-  channel_prefix: z
+  channel_name: z
     .string()
-    .max(80)
+    .max(100)
     .default("")
     .describe(
-      "Optional text or emoji prepended to the honeypot channel name (for example `🚨` or `trap-`).",
+      "Full name for the honeypot channel. Empty uses an auto-generated name built to look ordinary " +
+        "and evade naive scam-bot channel-name filters. If you set your own, avoid anything that " +
+        "signals 'trap' or 'moderation' (e.g. containing 'scam', 'verify', 'mod'); an obvious name " +
+        "makes it easier for scam/raid bots to recognize and simply avoid this channel.",
     ),
   staff_level: z
     .number()

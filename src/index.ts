@@ -2,7 +2,8 @@ import "dotenv/config";
 import { createBot, registerSlashCommands } from "./bot.js";
 import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
-import { ensurePiperReady } from "./plugins/tts/functions/piperSetup.js";
+import { ensurePiperReady, resolvePiperVoicesDir } from "./plugins/tts/functions/piperSetup.js";
+import { ensureVoicePackInstalled } from "./plugins/tts/functions/voiceCatalog.js";
 
 process.on("unhandledRejection", (reason) => {
   console.error("[dreamliner] Unhandled promise rejection:", reason);
@@ -74,6 +75,27 @@ async function main() {
 
   const { client } = await createBot(configManager);
   await client.login(token);
+
+  if (process.env.PIPER_INSTALL_VOICE_PACK !== "false") {
+    // Fire-and-forget: this can be a large, slow download (dozens of voices per language), so
+    // it runs after the bot is already online instead of blocking startup. /tts's voice
+    // autocomplete just reads whatever's on disk, so voices show up as they finish.
+    const families = (process.env.PIPER_LANGUAGES ?? "en,es,ja")
+      .split(",")
+      .map((f) => f.trim())
+      .filter(Boolean);
+    void ensureVoicePackInstalled(resolvePiperVoicesDir(), families)
+      .then((result) => {
+        console.log(
+          `[tts] Voice pack (${families.join(", ")}): installed ${result.installed.length}, already had ${result.skipped}` +
+            (result.failed.length ? `, failed ${result.failed.length} (${result.failed.map((f) => f.voice).join(", ")})` : "") +
+            ".",
+        );
+      })
+      .catch((error) => {
+        console.warn("[tts] Voice pack install failed:", error);
+      });
+  }
 }
 
 main().catch((err) => {

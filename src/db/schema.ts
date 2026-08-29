@@ -1256,3 +1256,9 @@ export const ticketBlacklist = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.guildId, table.targetId] })],
 );
+
+/** Global per-account voice preference (not per-guild) — set via /tts voice or the website account page. */
+export const ttsUserVoices = sqliteTable("tts_user_voices", {
+  userId: text("user_id").primaryKey(),
+  voice: text("voice").notNull(),
+});

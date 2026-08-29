@@ -2446,12 +2446,12 @@
                     "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
                   }
                 },
-                "channel_prefix": {
+                "channel_name": {
                   "type": "string",
-                  "maxLength": 80,
+                  "maxLength": 100,
                   "default": "",
-                  "description": "Optional text or emoji prepended to the honeypot channel name (for example `🚨` or `trap-`).",
-                  "title": "Channel Prefix"
+                  "description": "Full name for the honeypot channel. Empty uses an auto-generated name built to look ordinary and evade naive scam-bot channel-name filters. If you set your own, avoid anything that signals 'trap' or 'moderation' (e.g. containing 'scam', 'verify', 'mod'); an obvious name makes it easier for scam/raid bots to recognize and simply avoid this channel.",
+                  "title": "Channel Name"
                 },
                 "staff_level": {
                   "type": "integer",
@@ -10024,18 +10024,37 @@
                 "can_speak": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to use /tts to make the bot join their voice channel and speak text aloud. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to have their messages in the TTS text channel (and their own /tts voice picks) spoken aloud. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Speak",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
                   }
                 },
+                "can_manage_channel": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to set or clear the TTS auto-speak text channel with /tts channel. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "title": "Manage Channel",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels."
+                  }
+                },
+                "text_channel_id": {
+                  "type": "string",
+                  "description": "Text channel where any message from a member in a voice channel is automatically spoken there. Set with /tts channel set. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "No-Mic Channel",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
                 "voice": {
                   "type": "string",
                   "maxLength": 100,
                   "default": "",
-                  "description": "Default Piper voice id (filename without .onnx). Empty uses PIPER_DEFAULT_VOICE (en_US-lessac-medium unless overridden). Members can override this per-request with the command's voice option, which autocompletes from the installed voices.",
+                  "description": "Server default Piper voice id (filename without .onnx), used for members who haven't picked one with /tts voice. Empty uses PIPER_DEFAULT_VOICE (en_US-hfc_male-medium unless overridden).",
                   "title": "Voice"
                 },
                 "max_characters": {
@@ -10043,7 +10062,7 @@
                   "minimum": 20,
                   "maximum": 4000,
                   "default": 300,
-                  "description": "Maximum characters accepted per /tts request.",
+                  "description": "Maximum characters spoken per message in the TTS text channel. Longer messages are truncated.",
                   "title": "Max Characters"
                 },
                 "cooldown_seconds": {
@@ -10051,7 +10070,7 @@
                   "minimum": 0,
                   "maximum": 600,
                   "default": 0.5,
-                  "description": "Per-member cooldown between /tts uses, in seconds. Accepts fractional values (e.g. 0.5).",
+                  "description": "Per-member cooldown between spoken messages, in seconds. Accepts fractional values (e.g. 0.5).",
                   "title": "Cooldown Seconds",
                   "x-dreamliner": {
                     "kind": "seconds",

@@ -62,6 +62,11 @@ export function getGuildSocialDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=plugin:social`;
 }
 
+/** Account page's Voice tab — lets a member preview and pick from every installed TTS voice. */
+export function getAccountVoiceUrl(): string {
+  return `${resolveSiteUrl()}/account?tab=voice`;
+}
+
 export function getGlobalStatsUrl(): string {
   return `${resolveSiteUrl()}/stats`;
 }

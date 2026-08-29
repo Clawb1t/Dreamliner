@@ -577,6 +577,65 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const profileMatch = /^\/bridge\/users\/(\d+)\/profile$/.exec(url.pathname);
         const userStatsMatch = /^\/bridge\/users\/(\d+)\/stats$/.exec(url.pathname);
         const deleteDataMatch = /^\/bridge\/users\/(\d+)\/data$/.exec(url.pathname);
+        const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
+        const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
+
+        if (req.method === "GET" && url.pathname === "/bridge/tts/voices") {
+          const { listTtsVoicesForWeb } = await import("./webTts.js");
+          sendJson(res, 200, { ok: true, voices: await listTtsVoicesForWeb() });
+          return;
+        }
+
+        if (ttsVoiceMatch && req.method === "GET") {
+          const { getTtsVoiceForWeb } = await import("./webTts.js");
+          sendJson(res, 200, { ok: true, ...(await getTtsVoiceForWeb(ttsVoiceMatch[1]!)) });
+          return;
+        }
+
+        if (ttsVoiceMatch && req.method === "PUT") {
+          let body: { voice?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (typeof body.voice !== "string" || !body.voice.trim()) {
+            sendJson(res, 400, { error: "voice is required." });
+            return;
+          }
+          const { setTtsVoiceForWeb } = await import("./webTts.js");
+          const result = await setTtsVoiceForWeb(ttsVoiceMatch[1]!, body.voice.trim());
+          if (!result.ok) {
+            sendJson(res, 400, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (ttsPreviewMatch && req.method === "POST") {
+          let body: { voice?: unknown } = {};
+          try {
+            const raw = await readBody(req);
+            if (raw.trim()) body = JSON.parse(raw) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const { synthesizeTtsPreviewForWeb } = await import("./webTts.js");
+          const result = await synthesizeTtsPreviewForWeb(
+            client,
+            ttsPreviewMatch[1]!,
+            typeof body.voice === "string" && body.voice.trim() ? body.voice.trim() : undefined,
+          );
+          if ("error" in result) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendBinary(res, 200, result.wav, "audio/wav");
+          return;
+        }
 
         if (profileMatch && req.method === "GET") {
           const userId = profileMatch[1]!;
@@ -2074,9 +2133,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           if (sub === "setup" && req.method === "POST") {
-            let body: { userId?: string; channelPrefix?: string };
+            let body: { userId?: string; channelName?: string };
             try {
-              body = JSON.parse(await readBody(req)) as { userId?: string; channelPrefix?: string };
+              body = JSON.parse(await readBody(req)) as { userId?: string; channelName?: string };
             } catch {
               sendJson(res, 400, { error: "Invalid JSON body" });
               return;
@@ -2090,7 +2149,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
-            const result = await setupWebScamProtect(guild, configManager, userId, body.channelPrefix);
+            const result = await setupWebScamProtect(guild, configManager, userId, body.channelName);
             if (!result.ok) {
               sendJson(res, 400, { error: result.error });
               return;
@@ -2099,8 +2158,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               eventType: "dashboard_scam_protect",
               title: "Scam protect enabled",
               summary: "Scam protect was set up from the dashboard.",
-              details: body.channelPrefix?.trim()
-                ? [`Channel prefix: \`${body.channelPrefix.trim()}\``]
+              details: body.channelName?.trim()
+                ? [`Channel name: \`${body.channelName.trim()}\``]
                 : [],
             });
             const config = await configManager.getEffectiveConfig(guildId);

@@ -7,4 +7,10 @@ export const ttsDefaultOverrides: ConfigOverride[] = [
       can_speak: true,
     },
   },
+  {
+    level: ">=50",
+    config: {
+      can_manage_channel: true,
+    },
+  },
 ];

@@ -79,7 +79,7 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | **Translation** | On-demand and optional auto-translate for multilingual communities |
 | **Counters** | Live member, message, and custom counters |
 | **Companion channels** | Personal voice channels from a hub |
-| **Text-to-speech** | `/tts` speaks text aloud in your voice channel (OpenAI TTS) |
+| **Text-to-speech** | Auto-speak text channel: messages from members in voice get read aloud (local Piper TTS, per-member voice picker) |
 | **Reminders** | Personal staff reminders |
 | **Custom events / command aliases** | Hook Discord events and short triggers |
 | **Custom commands** | Slash commands you build on the dashboard: a reply, text or embed |

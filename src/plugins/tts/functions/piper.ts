@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { resolvePiperBin, resolvePiperVoicesDir } from "./piperSetup.js";
+import { capitalize, pickDescriptor, readVoiceMeta } from "./voiceMeta.js";
 
 /**
  * Local Piper TTS backend (https://github.com/rhasspy/piper). `piperSetup.ts` installs the
@@ -43,6 +44,47 @@ export async function listPiperVoices(): Promise<string[]> {
   }
 }
 
+export type PiperVoiceOption = { id: string; label: string; regionCode: string };
+
+/**
+ * Same voices as listPiperVoices(), paired with a display label built from Piper's own voice
+ * name plus a short style tag, e.g. "Amy, soft, simple, warm" or "Vctk (p225), calm, steady, low"
+ * for a speaker pulled out of a multi-speaker model. The style tag is a deterministic browsing
+ * label (see voiceMeta.ts), not derived from actually listening to the voice — but the name
+ * itself is always Piper's real name/speaker id, never invented, so it can't misdescribe who a
+ * voice actually is. `regionCode` is a plain ISO region code (e.g. "US", "JP") for callers that
+ * want to render a flag; empty when unknown.
+ *
+ * A voice whose `.onnx.json` doesn't actually load (missing, or corrupt from an interrupted
+ * download) is left out entirely rather than listed as pickable and then failing at synth time.
+ */
+export async function listPiperVoiceOptions(): Promise<PiperVoiceOption[]> {
+  const ids = await listPiperVoices();
+  const dir = voicesDir();
+
+  const options: PiperVoiceOption[] = [];
+  for (const id of ids) {
+    if (!(await loadVoiceMeta(id))) continue;
+
+    const meta = await readVoiceMeta(dir, id);
+    const regionCode = meta?.regionCode ?? "";
+    if (meta?.speakers?.length) {
+      meta.speakers.forEach((speakerLabel, index) => {
+        const optionId = `${id}#${index}`;
+        options.push({
+          id: optionId,
+          label: `${capitalize(meta.name)} (${speakerLabel}), ${pickDescriptor(optionId)}`,
+          regionCode,
+        });
+      });
+    } else {
+      const name = meta?.name ?? id.split("-")[1] ?? id;
+      options.push({ id, label: `${capitalize(name)}, ${pickDescriptor(id)}`, regionCode });
+    }
+  }
+  return options;
+}
+
 async function loadVoiceMeta(voiceId: string): Promise<PiperVoiceMeta | null> {
   const cached = metaCache.get(voiceId);
   if (cached) return cached;
@@ -67,7 +109,14 @@ export type PiperResult = { pcm: Buffer; sampleRate: number } | { error: string 
 export async function synthesizeWithPiper(text: string, voiceId: string): Promise<PiperResult> {
   const dir = voicesDir();
 
-  const safeId = safeVoiceId(voiceId);
+  // Multi-speaker voices are exposed as `<model-id>#<speaker-index>`.
+  const [rawModelId, speakerPart] = voiceId.split("#");
+  const speakerIndex = speakerPart !== undefined ? Number(speakerPart) : undefined;
+  if (speakerPart !== undefined && (!Number.isInteger(speakerIndex) || speakerIndex! < 0)) {
+    return { error: `Invalid Piper voice "${voiceId}".` };
+  }
+
+  const safeId = safeVoiceId(rawModelId);
   if (!safeId) {
     return { error: `Invalid Piper voice "${voiceId}".` };
   }
@@ -80,9 +129,11 @@ export async function synthesizeWithPiper(text: string, voiceId: string): Promis
   }
 
   const modelPath = path.join(dir, `${safeId}.onnx`);
+  const args = ["--model", modelPath, "--output_raw", "--quiet"];
+  if (speakerIndex !== undefined) args.push("--speaker", String(speakerIndex));
 
   return new Promise((resolve) => {
-    const proc = spawn(piperBin(), ["--model", modelPath, "--output_raw", "--quiet"], {
+    const proc = spawn(piperBin(), args, {
       stdio: ["pipe", "pipe", "pipe"],
     });
 

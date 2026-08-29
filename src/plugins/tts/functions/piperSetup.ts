@@ -16,7 +16,7 @@ import { pipeline } from "node:stream/promises";
  */
 
 const DEFAULT_ROOT = path.resolve(process.cwd(), "data", "piper");
-const DEFAULT_VOICE_ID = "en_US-lessac-medium";
+const DEFAULT_VOICE_ID = "en_US-hfc_male-medium";
 
 function piperRoot(): string {
   return path.resolve(process.env.PIPER_ROOT?.trim() || DEFAULT_ROOT);
@@ -39,7 +39,7 @@ export function resolveDefaultVoice(): string {
   return process.env.PIPER_DEFAULT_VOICE?.trim() || DEFAULT_VOICE_ID;
 }
 
-async function fileExists(target: string): Promise<boolean> {
+export async function fileExists(target: string): Promise<boolean> {
   try {
     await stat(target);
     return true;
@@ -61,12 +61,25 @@ function releaseAssetName(): string | null {
 
 const DOWNLOAD_TIMEOUT_MS = 120_000;
 
-async function downloadFile(url: string, destPath: string): Promise<void> {
+/**
+ * Downloads to a `.part` sibling and renames into place only once the whole body has been
+ * written. An interrupted download (network drop, process killed mid-stream) then leaves no
+ * file at `destPath` at all, rather than a truncated one that later code would wrongly treat as
+ * "already installed" and never retry.
+ */
+export async function downloadFile(url: string, destPath: string): Promise<void> {
   const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
   if (!res.ok || !res.body) {
     throw new Error(`Download failed (${res.status}): ${url}`);
   }
-  await pipeline(Readable.fromWeb(res.body as import("node:stream/web").ReadableStream), createWriteStream(destPath));
+  const tmpPath = `${destPath}.part`;
+  try {
+    await pipeline(Readable.fromWeb(res.body as import("node:stream/web").ReadableStream), createWriteStream(tmpPath));
+    await rename(tmpPath, destPath);
+  } catch (error) {
+    await rm(tmpPath, { force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 /** Extracts a .zip or .tar.gz with the system `tar` (bsdtar on Windows, GNU/BSD tar elsewhere). */
@@ -136,7 +149,7 @@ async function installPiperBinary(binPath: string): Promise<void> {
   }
 }
 
-/** `en_US-lessac-medium` -> `en/en_US/lessac/medium` (the piper-voices repo's layout). */
+/** `en_US-hfc_male-medium` -> `en/en_US/hfc_male/medium` (the piper-voices repo's layout). */
 function voiceHuggingFacePath(voiceId: string): string | null {
   const parts = voiceId.split("-");
   if (parts.length !== 3) return null;

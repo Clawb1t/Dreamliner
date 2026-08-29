@@ -1,14 +1,18 @@
 import { z } from "zod";
-import { boolPerm } from "../schemaHelp.js";
+import { boolPerm, channelId } from "../schemaHelp.js";
 
 export const zTtsConfig = z.strictObject({
-  can_speak: boolPerm("use /tts to make the bot join their voice channel and speak text aloud"),
+  can_speak: boolPerm("have their messages in the TTS text channel (and their own /tts voice picks) spoken aloud"),
+  can_manage_channel: boolPerm("set or clear the TTS auto-speak text channel with /tts channel"),
+  text_channel_id: channelId(
+    "Text channel where any message from a member in a voice channel is automatically spoken there. Set with /tts channel set.",
+  ),
   voice: z
     .string()
     .max(100)
     .default("")
     .describe(
-      "Default Piper voice id (filename without .onnx). Empty uses PIPER_DEFAULT_VOICE (en_US-lessac-medium unless overridden). Members can override this per-request with the command's voice option, which autocompletes from the installed voices.",
+      "Server default Piper voice id (filename without .onnx), used for members who haven't picked one with /tts voice. Empty uses PIPER_DEFAULT_VOICE (en_US-hfc_male-medium unless overridden).",
     ),
   max_characters: z
     .number()
@@ -16,13 +20,13 @@ export const zTtsConfig = z.strictObject({
     .min(20)
     .max(4000)
     .default(300)
-    .describe("Maximum characters accepted per /tts request."),
+    .describe("Maximum characters spoken per message in the TTS text channel. Longer messages are truncated."),
   cooldown_seconds: z
     .number()
     .min(0)
     .max(600)
     .default(0.5)
-    .describe("Per-member cooldown between /tts uses, in seconds. Accepts fractional values (e.g. 0.5)."),
+    .describe("Per-member cooldown between spoken messages, in seconds. Accepts fractional values (e.g. 0.5)."),
 });
 
 export type TtsConfig = z.infer<typeof zTtsConfig>;

@@ -73,6 +73,7 @@ type JsonSchemaNode = {
 
 function humanizeKey(key: string): string {
   if (key === "bot_roles") return "Bot Roles";
+  if (key === "text_channel_id") return "No-Mic Channel";
   return key
     .replace(/^can_/, "")
     .replace(/_/g, " ")

@@ -1,17 +1,13 @@
-import { SlashCommandBuilder, type AutocompleteInteraction } from "discord.js";
+import { ChannelType, SlashCommandBuilder, type AutocompleteInteraction } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
-import { resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
-import { zTtsConfig } from "../../config/schemas/tts.js";
-import { parsePluginConfig } from "../../core/pluginSchemas.js";
-import { synthesize } from "./functions/synth.js";
-import { speakInChannel } from "./functions/session.js";
-import { listPiperVoices } from "./functions/piper.js";
+import { resultReply, slashResultOptions } from "../../core/responses.js";
+import { baseEmbed } from "../../core/embeds.js";
+import { getAccountVoiceUrl, siteLinkRow } from "../../core/docsUrl.js";
+import { listPiperVoiceOptions } from "./functions/piper.js";
+import { setUserVoice } from "./functions/userVoice.js";
 
-/** Per-member cooldown tracker, keyed `${guildId}:${userId}`. Cleared on process restart. */
-const lastUse = new Map<string, number>();
-
-/** Suggests voices from the installed Piper voice directory. */
+/** Suggests voices from the installed Piper voice directory, shown by human-readable label. */
 export async function handleTtsAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
   const focused = interaction.options.getFocused(true);
   if (focused.name !== "voice") {
@@ -20,9 +16,11 @@ export async function handleTtsAutocomplete(interaction: AutocompleteInteraction
   }
 
   const query = String(focused.value ?? "").toLowerCase();
-  const options = await listPiperVoices();
-  const matches = options.filter((voice) => voice.toLowerCase().includes(query)).slice(0, 25);
-  await interaction.respond(matches.map((voice) => ({ name: voice, value: voice })));
+  const options = await listPiperVoiceOptions();
+  const matches = options
+    .filter((voice) => voice.id.toLowerCase().includes(query) || voice.label.toLowerCase().includes(query))
+    .slice(0, 25);
+  await interaction.respond(matches.map((voice) => ({ name: voice.label.slice(0, 100), value: voice.id })));
 }
 
 export const ttsCommands: SlashCommandDefinition[] = [
@@ -30,92 +28,104 @@ export const ttsCommands: SlashCommandDefinition[] = [
     plugin: "tts",
     data: new SlashCommandBuilder()
       .setName("tts")
-      .setDescription("Make Dreamliner join your voice channel and speak text aloud")
-      .addStringOption((o) =>
-        o.setName("text").setDescription("Text to speak").setRequired(true).setMaxLength(500),
-      )
-      .addStringOption((o) =>
-        o
+      .setDescription("Text-to-speech: pick your voice, or set the auto-speak text channel")
+      .addSubcommand((sub) =>
+        sub
           .setName("voice")
-          .setDescription("Voice to use (defaults to the server's configured voice)")
-          .setAutocomplete(true),
+          .setDescription("Pick which voice your messages are spoken in")
+          .addStringOption((o) =>
+            o.setName("voice").setDescription("Voice to use").setRequired(true).setAutocomplete(true),
+          ),
+      )
+      .addSubcommandGroup((group) =>
+        group
+          .setName("channel")
+          .setDescription("Configure the auto-speak text channel")
+          .addSubcommand((sub) =>
+            sub
+              .setName("set")
+              .setDescription("Set the channel where messages get spoken into the sender's voice channel")
+              .addChannelOption((o) =>
+                o
+                  .setName("channel")
+                  .setDescription("Text channel to use")
+                  .addChannelTypes(ChannelType.GuildText)
+                  .setRequired(true),
+              ),
+          )
+          .addSubcommand((sub) => sub.setName("clear").setDescription("Turn off the auto-speak text channel")),
       ),
     execute: async (ctx) => {
-      const auth = await requirePluginPermission(ctx, "tts", "can_speak");
-      if (!auth) return;
-
       const { interaction } = ctx;
-      const config = parsePluginConfig(zTtsConfig, auth.pluginConfig);
+      const group = interaction.options.getSubcommandGroup(false);
+      const sub = interaction.options.getSubcommand(true);
 
-      const voiceChannel = auth.member.voice.channel;
-      if (!voiceChannel) {
-        await interaction.reply(
-          resultReply("Join a voice channel", "You need to be in a voice channel to use `/tts`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+      if (!group && sub === "voice") {
+        const auth = await requirePluginPermission(ctx, "tts", "can_speak");
+        if (!auth) return;
+
+        const voice = interaction.options.getString("voice", true);
+        const available = await listPiperVoiceOptions();
+        const match = available.find((v) => v.id === voice);
+        if (!match) {
+          await interaction.reply(
+            resultReply("Unknown voice", `"${voice}" isn't an installed voice. Pick one from the autocomplete list.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+          );
+          return;
+        }
+
+        await setUserVoice(interaction.user.id, voice);
+        const base = resultReply(
+          "Voice set",
+          `Your messages will now be spoken as **${match.label}**.`,
+          ctx.ephemeral,
+          slashResultOptions(ctx, { tone: "success" }),
         );
+        const dashboardEmbed = baseEmbed().setDescription(
+          "Prefer to browse and listen first? The web dashboard lets you preview every installed voice before picking one.",
+        );
+        await interaction.reply({
+          ...base,
+          embeds: [...(base.embeds ?? []), dashboardEmbed],
+          components: [siteLinkRow({ label: "Open voice picker", url: getAccountVoiceUrl() })],
+        });
         return;
       }
 
-      const text = interaction.options.getString("text", true).trim();
-      if (!text) {
-        await interaction.reply(
-          resultReply("Nothing to say", "Give me some text to speak.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
-        );
-        return;
-      }
+      if (group === "channel" && sub === "set") {
+        const auth = await requirePluginPermission(ctx, "tts", "can_manage_channel");
+        if (!auth) return;
 
-      const maxChars = config.max_characters;
-      if (text.length > maxChars) {
+        const channel = interaction.options.getChannel("channel", true);
+        const result = await ctx.configManager.patchPluginConfig(interaction.guildId!, "tts", { text_channel_id: channel.id }, interaction.user.id);
+        if (!result.success) {
+          await interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          return;
+        }
+
         await interaction.reply(
           resultReply(
-            "Too long",
-            `Keep it under **${maxChars}** characters (this one is ${text.length}).`,
+            "Channel set",
+            `Messages sent in <#${channel.id}> from members in a voice channel will now be spoken there automatically.`,
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: "warning" }),
+            slashResultOptions(ctx, { tone: "success" }),
           ),
         );
         return;
       }
 
-      const cooldownSeconds = config.cooldown_seconds;
-      const cooldownKey = `${interaction.guildId}:${interaction.user.id}`;
-      const now = Date.now();
-      const elapsed = now - (lastUse.get(cooldownKey) ?? 0);
-      const remainingMs = cooldownSeconds * 1000 - elapsed;
-      if (remainingMs > 0) {
-        await interaction.reply(
-          resultReply(
-            "Slow down",
-            `Wait **${Math.ceil(remainingMs / 1000)}s** before using \`/tts\` again.`,
-            ctx.ephemeral,
-            slashResultOptions(ctx, { tone: "warning" }),
-          ),
-        );
-        return;
+      if (group === "channel" && sub === "clear") {
+        const auth = await requirePluginPermission(ctx, "tts", "can_manage_channel");
+        if (!auth) return;
+
+        const result = await ctx.configManager.patchPluginConfig(interaction.guildId!, "tts", { text_channel_id: null }, interaction.user.id);
+        if (!result.success) {
+          await interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          return;
+        }
+
+        await interaction.reply(resultReply("Channel cleared", "The auto-speak text channel is turned off.", ctx.ephemeral, slashResultOptions(ctx)));
       }
-
-      await interaction.deferReply({ ephemeral: ctx.ephemeral });
-
-      const requestedVoice = interaction.options.getString("voice");
-      const speech = await synthesize(text, config, requestedVoice);
-      if ("error" in speech) {
-        await interaction.editReply(resultEdit("Text-to-speech failed", speech.error, slashResultOptions(ctx, { tone: "error" })));
-        return;
-      }
-
-      const spoken = await speakInChannel(voiceChannel, speech.audio);
-      if (!spoken.ok) {
-        const message =
-          spoken.reason === "busy_elsewhere"
-            ? "Dreamliner is already speaking in another voice channel in this server. Try again shortly."
-            : "Could not join your voice channel. Check that Dreamliner has permission to connect and speak there.";
-        await interaction.editReply(resultEdit("Could not speak", message, slashResultOptions(ctx, { tone: "error" })));
-        return;
-      }
-
-      lastUse.set(cooldownKey, now);
-      await interaction.editReply(
-        resultEdit("Speaking", `Speaking in ${voiceChannel}: "${text.length > 200 ? `${text.slice(0, 200)}…` : text}"`, slashResultOptions(ctx)),
-      );
     },
   },
 ];

@@ -14,8 +14,10 @@ import {
 export type WebScamProtectStatus = {
   enabled: boolean;
   channelId: string | null;
+  /** The channel's actual current name on Discord, once created. */
   channelName: string | null;
-  channelPrefix: string;
+  /** The configured custom name (empty means "use the auto-generated default"). */
+  configuredChannelName: string;
   warningMessageId: string | null;
   caughtCount: number;
   caughtByDay: ScamProtectDayCount[];
@@ -43,7 +45,7 @@ export async function buildWebScamProtectStatus(
     enabled,
     channelId,
     channelName,
-    channelPrefix: config.channel_prefix ?? "",
+    configuredChannelName: config.channel_name ?? "",
     warningMessageId: config.warning_message_id?.trim() || null,
     caughtCount,
     caughtByDay,
@@ -55,19 +57,19 @@ export async function setupWebScamProtect(
   guild: Guild,
   configManager: ConfigManager,
   userId: string,
-  channelPrefix?: string,
+  channelName?: string,
 ): Promise<{ ok: true; status: WebScamProtectStatus } | { ok: false; error: string }> {
-  const prefix = typeof channelPrefix === "string" ? channelPrefix.trim().slice(0, 80) : undefined;
+  const name = typeof channelName === "string" ? channelName.trim().slice(0, 100) : undefined;
 
-  if (prefix !== undefined) {
+  if (name !== undefined) {
     const patch = await configManager.patchPluginConfig(
       guild.id,
       "scam_protect",
-      { channel_prefix: prefix },
+      { channel_name: name },
       userId,
     );
     if (!patch.success) {
-      return { ok: false, error: patch.errors.join("; ") || "Failed to save channel prefix." };
+      return { ok: false, error: patch.errors.join("; ") || "Failed to save channel name." };
     }
   }
 

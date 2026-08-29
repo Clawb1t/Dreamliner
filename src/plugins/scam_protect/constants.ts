@@ -15,15 +15,17 @@ export const SCAM_PROTECT_CHANNEL_BASE_FULLWIDTH =
 
 export const SCAM_PROTECT_STATS_PREFIX = "dl:scamprotect:stats";
 
-/** Final honeypot channel name: optional dashboard prefix + obfuscated base. */
-export function scamProtectChannelName(prefix = ""): string {
-  const trimmed = prefix.trim();
-  return `${trimmed}${SCAM_PROTECT_CHANNEL_BASE}`.slice(0, 100);
+/**
+ * Default honeypot channel name, used only when a guild hasn't set its own `channel_name`.
+ * Once a guild has a channel_id, that id is the sole source of truth for finding it again —
+ * there's no name-based recovery, so a custom name is free to be anything.
+ */
+export function scamProtectDefaultChannelName(): string {
+  return SCAM_PROTECT_CHANNEL_BASE;
 }
 
-export function scamProtectChannelNameFullwidth(prefix = ""): string {
-  const trimmed = prefix.trim();
-  return `${trimmed}${SCAM_PROTECT_CHANNEL_BASE_FULLWIDTH}`.slice(0, 100);
+export function scamProtectDefaultChannelNameFullwidth(): string {
+  return SCAM_PROTECT_CHANNEL_BASE_FULLWIDTH;
 }
 
 export function channelNameHasObfuscation(name: string): boolean {

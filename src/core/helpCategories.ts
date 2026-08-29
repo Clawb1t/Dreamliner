@@ -373,7 +373,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   tts: {
     key: "tts",
     name: "Text-to-speech",
-    description: "Speak text aloud in a voice channel with /tts, powered by OpenAI text-to-speech.",
+    description: "Speak text aloud in a voice channel with /tts, powered by local Piper text-to-speech.",
   },
 };
 
