@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { resolvePiperBin, resolvePiperVoicesDir } from "./piperSetup.js";
-import { capitalize, pickDescriptor, readVoiceMeta } from "./voiceMeta.js";
+import { capitalize, readVoiceMeta } from "./voiceMeta.js";
 
 /**
  * Local Piper TTS backend (https://github.com/rhasspy/piper). `piperSetup.ts` installs the
@@ -48,12 +48,12 @@ export type PiperVoiceOption = { id: string; label: string; regionCode: string }
 
 /**
  * Same voices as listPiperVoices(), paired with a display label built from Piper's own voice
- * name plus a short style tag, e.g. "Amy, soft, simple, warm" or "Vctk (p225), calm, steady, low"
- * for a speaker pulled out of a multi-speaker model. The style tag is a deterministic browsing
- * label (see voiceMeta.ts), not derived from actually listening to the voice — but the name
- * itself is always Piper's real name/speaker id, never invented, so it can't misdescribe who a
- * voice actually is. `regionCode` is a plain ISO region code (e.g. "US", "JP") for callers that
- * want to render a flag; empty when unknown.
+ * name, e.g. "Amy" or "Aru 3" for a speaker pulled out of a multi-speaker model. The name itself
+ * is always Piper's real name, never invented, so it can't misdescribe who a voice actually is —
+ * but the per-speaker suffix is a plain sequential number rather than the model's raw speaker id
+ * (VCTK's "p225", Aru's "03"), since those codes read as noise, not something a human picking a
+ * voice can tell apart at a glance. `regionCode` is a plain ISO region code (e.g. "US", "JP") for
+ * callers that want to render a flag; empty when unknown.
  *
  * A voice whose `.onnx.json` doesn't actually load (missing, or corrupt from an interrupted
  * download) is left out entirely rather than listed as pickable and then failing at synth time.
@@ -69,17 +69,13 @@ export async function listPiperVoiceOptions(): Promise<PiperVoiceOption[]> {
     const meta = await readVoiceMeta(dir, id);
     const regionCode = meta?.regionCode ?? "";
     if (meta?.speakers?.length) {
-      meta.speakers.forEach((speakerLabel, index) => {
+      meta.speakers.forEach((_speakerLabel, index) => {
         const optionId = `${id}#${index}`;
-        options.push({
-          id: optionId,
-          label: `${capitalize(meta.name)} (${speakerLabel}), ${pickDescriptor(optionId)}`,
-          regionCode,
-        });
+        options.push({ id: optionId, label: `${capitalize(meta.name)} ${index + 1}`, regionCode });
       });
     } else {
       const name = meta?.name ?? id.split("-")[1] ?? id;
-      options.push({ id, label: `${capitalize(name)}, ${pickDescriptor(id)}`, regionCode });
+      options.push({ id, label: capitalize(name), regionCode });
     }
   }
   return options;
