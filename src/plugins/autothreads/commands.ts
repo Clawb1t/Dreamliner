@@ -4,7 +4,7 @@ import { embedReply, resultReply, slashResultOptions } from "../../core/response
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../core/embeds.js";
 import { zAutothreadsConfig, zAutothreadTrigger } from "../../config/schemas/plugins.js";
-import { compileUserRegex } from "../../core/userRegex.js";
+import { validateRegexPatternForSave } from "../../core/regexSafety.js";
 import {
   formatAutothreadRule,
   nextAutothreadRuleId,
@@ -124,16 +124,14 @@ export const autothreadsCommands: SlashCommandDefinition[] = [
           );
           return;
         }
-        if (trigger === "regex" && match && !compileUserRegex(match)) {
-          await ctx.interaction.reply(
-            resultReply(
-              "Invalid regex",
-              "Provide a valid regular expression in match.",
-              ctx.ephemeral,
-              slashResultOptions(ctx, { tone: "error" }),
-            ),
-          );
-          return;
+        if (trigger === "regex" && match) {
+          const validation = await validateRegexPatternForSave(match, "i");
+          if (!validation.ok) {
+            await ctx.interaction.reply(
+              resultReply("Invalid regex", validation.error, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+            );
+            return;
+          }
         }
 
         const archiveRaw = ctx.interaction.options.getInteger("auto_archive") ?? 1440;

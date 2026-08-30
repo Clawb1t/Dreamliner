@@ -3,6 +3,7 @@ import { boolPerm, roleId } from "../schemaHelp.js";
 import { zPluginSection } from "./pluginSection.js";
 import { zAutomodConfig } from "./automod.js";
 import { zWelcomeMessageConfig } from "./welcome.js";
+import { MAX_USER_PATTERN_LENGTH } from "../../core/regexSafety.js";
 
 export {
   AUTOMOD_ACTION_TYPES,
@@ -219,6 +220,7 @@ export const zAutoreactionsConfig = z.strictObject({
           .describe("When to match: every_message, contains, starts_with, exact, or regex."),
         match: z
           .string()
+          .max(MAX_USER_PATTERN_LENGTH)
           .optional()
           .describe(
             "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
@@ -273,6 +275,7 @@ export const zAutorepliesConfig = z.strictObject({
           .describe("When to match: every_message, contains, starts_with, exact, or regex."),
         match: z
           .string()
+          .max(MAX_USER_PATTERN_LENGTH)
           .optional()
           .describe(
             "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
@@ -378,6 +381,7 @@ export const zAutothreadsConfig = z.strictObject({
           .describe("When to match: every_message, contains, starts_with, exact, or regex."),
         match: z
           .string()
+          .max(MAX_USER_PATTERN_LENGTH)
           .optional()
           .describe(
             "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",

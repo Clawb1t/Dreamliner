@@ -7302,6 +7302,7 @@
                       },
                       "match": {
                         "type": "string",
+                        "maxLength": 200,
                         "description": "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
                         "title": "Match"
                       },
@@ -7500,6 +7501,7 @@
                       },
                       "match": {
                         "type": "string",
+                        "maxLength": 200,
                         "description": "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
                         "title": "Match"
                       },
@@ -7985,6 +7987,7 @@
                       },
                       "match": {
                         "type": "string",
+                        "maxLength": 200,
                         "description": "Text used by contains / starts_with / exact / regex. Regex is case-insensitive. Whole word: \\bthread\\b.",
                         "title": "Match"
                       },

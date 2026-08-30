@@ -2,7 +2,7 @@ import { ChannelType, SlashCommandBuilder } from "discord.js";
 import { randomUUID } from "node:crypto";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission, pluginEnabled } from "../../core/pluginCommand.js";
-import { resultReply, slashResultOptions } from "../../core/responses.js";
+import { deferReplyOptions, resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
 import type { AutomodConfig, AutomodFilterEntry } from "../../config/schemas/automod.js";
 import type { GuildConfig } from "../../config/schemas/guild.js";
 import { getModerationLogChannelId } from "../../core/logging/channels.js";
@@ -12,6 +12,7 @@ import { parseAutomodConfig } from "./functions/migrate.js";
 import { applyPresetToConfig } from "./functions/presets.js";
 import { parseFilterEntries } from "./functions/customFilter.js";
 import type { AutomodPresetName } from "../../config/schemas/automod.js";
+import { validateRegexPatternForSave } from "../../core/regexSafety.js";
 
 function formatAutomodStatus(config: AutomodConfig, guildConfig: GuildConfig): string {
   const logChannelId = getModerationLogChannelId(guildConfig, config.log_channel_id);
@@ -213,6 +214,19 @@ export const automodCommands: SlashCommandDefinition[] = [
         if (sub === "add") {
           const pattern = ctx.interaction.options.getString("pattern", true);
           const regex = ctx.interaction.options.getBoolean("regex") ?? false;
+
+          await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+
+          if (regex) {
+            const validation = await validateRegexPatternForSave(pattern, "i");
+            if (!validation.ok) {
+              await ctx.interaction.editReply(
+                resultEdit("Invalid regex", validation.error, slashResultOptions(ctx, { tone: "error" })),
+              );
+              return;
+            }
+          }
+
           const entry: AutomodFilterEntry = { id: randomUUID(), pattern, regex, enabled: true };
           const nextEntries = [...entries, entry];
           const custom = {
@@ -227,11 +241,11 @@ export const automodCommands: SlashCommandDefinition[] = [
             ctx.interaction.user.id,
           );
           if (!result.success) {
-            await ctx.interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+            await ctx.interaction.editReply(resultEdit("Error", result.errors.join("\n"), slashResultOptions(ctx, { tone: "error" })));
             return;
           }
-          await ctx.interaction.reply(
-            resultReply("Filter added", `Added \`${pattern}\`. Custom filter rule enabled.`, ctx.ephemeral, slashResultOptions(ctx)),
+          await ctx.interaction.editReply(
+            resultEdit("Filter added", `Added \`${pattern}\`. Custom filter rule enabled.`, slashResultOptions(ctx)),
           );
           return;
         }

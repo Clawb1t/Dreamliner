@@ -13,7 +13,7 @@ import { zAutoreactionTrigger, zAutoreactionsConfig } from "../../../config/sche
 import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
-import { compileUserRegex } from "../../../core/userRegex.js";
+import { validateRegexPatternForSave } from "../../../core/regexSafety.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import {
   AUTOREACTION_ALL_CHANNELS,
@@ -199,8 +199,9 @@ export async function createAutoreactionRule(
   }
 
   if (input.trigger === "regex" && matchRaw) {
-    if (!compileUserRegex(matchRaw)) {
-      return { ok: false, title: "Invalid regex", message: "Provide a valid regular expression in match text.", tone: "error" };
+    const validation = await validateRegexPatternForSave(matchRaw, "i");
+    if (!validation.ok) {
+      return { ok: false, title: "Invalid regex", message: validation.error, tone: "error" };
     }
   }
 

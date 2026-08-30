@@ -7,6 +7,7 @@ import { migrateAutomodAndCensorInConfig } from "../plugins/automod/functions/mi
 import { migrateWelcomeMessageInConfig } from "./schemas/welcome.js";
 import { migrateCompanionChannelsInConfig } from "./schemas/companion.js";
 import { scrubUnknownPluginConfigKeys } from "../core/pluginSchemas.js";
+import { validateRegexPatternSync } from "../core/regexSafety.js";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -310,6 +311,77 @@ export function validateGuildConfig(
   return { success: true, data: result.data };
 }
 
+/**
+ * Scan the config for all regex patterns and validate them against ReDoS attacks.
+ * Returns error messages for any unsafe patterns found.
+ */
+function validateConfigRegexPatterns(config: GuildConfig): string[] {
+  const errors: string[] = [];
+
+  // Check autoreactions
+  if (config.plugins.autoreactions?.config?.rules) {
+    for (const rule of config.plugins.autoreactions.config.rules) {
+      if (rule && typeof rule === "object" && "trigger" in rule && "match" in rule) {
+        const r = rule as { trigger?: string; match?: string };
+        if (r.trigger === "regex" && r.match) {
+          const validation = validateRegexPatternSync(r.match, "i");
+          if (!validation.ok) {
+            errors.push(`plugins.autoreactions: ${validation.error}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Check autoreplies
+  if (config.plugins.autoreplies?.config?.rules) {
+    for (const rule of config.plugins.autoreplies.config.rules) {
+      if (rule && typeof rule === "object" && "trigger" in rule && "match" in rule) {
+        const r = rule as { trigger?: string; match?: string };
+        if (r.trigger === "regex" && r.match) {
+          const validation = validateRegexPatternSync(r.match, "i");
+          if (!validation.ok) {
+            errors.push(`plugins.autoreplies: ${validation.error}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Check autothreads
+  if (config.plugins.autothreads?.config?.rules) {
+    for (const rule of config.plugins.autothreads.config.rules) {
+      if (rule && typeof rule === "object" && "trigger" in rule && "match" in rule) {
+        const r = rule as { trigger?: string; match?: string };
+        if (r.trigger === "regex" && r.match) {
+          const validation = validateRegexPatternSync(r.match, "i");
+          if (!validation.ok) {
+            errors.push(`plugins.autothreads: ${validation.error}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Check automod custom filters
+  if (config.plugins.automod?.config?.rules?.custom_filter?.settings) {
+    const settings = config.plugins.automod.config.rules.custom_filter.settings as Record<string, unknown>;
+    for (const [key, entry] of Object.entries(settings)) {
+      if (entry && typeof entry === "object" && "pattern" in entry && "regex" in entry) {
+        const e = entry as { pattern?: string; regex?: boolean };
+        if (e.regex && e.pattern) {
+          const validation = validateRegexPatternSync(e.pattern, "i");
+          if (!validation.ok) {
+            errors.push(`plugins.automod custom_filter[${key}]: ${validation.error}`);
+          }
+        }
+      }
+    }
+  }
+
+  return errors;
+}
+
 export function validateMergedConfig(userYaml: string): { success: true; data: GuildConfig; mergedYaml: string } | { success: false; errors: string[] } {
   let parsed: unknown;
   try {
@@ -327,6 +399,12 @@ export function validateMergedConfig(userYaml: string): { success: true; data: G
   const validated = validateGuildConfig(merged, { repair: true });
   if (!validated.success) {
     return validated;
+  }
+
+  // Validate all regex patterns for ReDoS safety
+  const regexErrors = validateConfigRegexPatterns(validated.data);
+  if (regexErrors.length > 0) {
+    return { success: false, errors: regexErrors };
   }
 
   return {

@@ -1,6 +1,6 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { embedReply, resultReply, slashResultOptions } from "../../../core/responses.js";
+import { deferReplyOptions, embedReply, resultEdit, resultReply, slashResultOptions } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
 import {
@@ -10,7 +10,7 @@ import {
   parseEventConfigJson,
   type CustomEventConfig,
 } from "../functions/store.js";
-import { compileUserRegex } from "../../../core/userRegex.js";
+import { MAX_USER_PATTERN_LENGTH, validateRegexPatternForSave } from "../../../core/regexSafety.js";
 import { buildDefaultMessageConfig, formatEventConfig } from "../functions/triggers.js";
 
 export const eventCommands: SlashCommandDefinition[] = [
@@ -68,6 +68,8 @@ export const eventCommands: SlashCommandDefinition[] = [
         const caseSensitive = ctx.interaction.options.getBoolean("case_sensitive") ?? false;
         const configRaw = ctx.interaction.options.getString("config");
 
+        await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+
         let config: CustomEventConfig = {
           ...buildDefaultMessageConfig(match),
           case_sensitive: caseSensitive,
@@ -84,22 +86,33 @@ export const eventCommands: SlashCommandDefinition[] = [
           config.channels = [channel.id];
         }
 
-        if (matchType === "regex") {
-          if (!compileUserRegex(match, { caseInsensitive: !caseSensitive })) {
-            await ctx.interaction.reply(
-              resultReply("Invalid regex", "Provide a valid regular expression in `match`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+        if (configRaw) {
+          try {
+            config = { ...config, ...parseEventConfigJson(configRaw) };
+          } catch {
+            await ctx.interaction.editReply(
+              resultEdit("Event", "Invalid JSON in the config option.", slashResultOptions(ctx, { tone: "error" })),
             );
             return;
           }
         }
 
-        if (configRaw) {
-          try {
-            config = { ...config, ...parseEventConfigJson(configRaw) };
-          } catch {
-            await ctx.interaction.reply(
-              resultReply("Event", "Invalid JSON in the config option.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+        // Validate whatever regex ended up in the final config — `config` (advanced JSON)
+        // can set `regex`/`match` too, bypassing the `match_type=regex` option entirely.
+        if (config.regex && config.match) {
+          if (config.match.length > MAX_USER_PATTERN_LENGTH) {
+            await ctx.interaction.editReply(
+              resultEdit(
+                "Invalid regex",
+                `Pattern is too long (max ${MAX_USER_PATTERN_LENGTH} characters).`,
+                slashResultOptions(ctx, { tone: "error" }),
+              ),
             );
+            return;
+          }
+          const validation = await validateRegexPatternForSave(config.match, config.case_sensitive ? "" : "i");
+          if (!validation.ok) {
+            await ctx.interaction.editReply(resultEdit("Invalid regex", validation.error, slashResultOptions(ctx, { tone: "error" })));
             return;
           }
         }
@@ -112,8 +125,8 @@ export const eventCommands: SlashCommandDefinition[] = [
           response,
         });
 
-        await ctx.interaction.reply(
-          resultReply("Event created", `Saved **${event.name}** (${formatEventConfig(event.config)}).`, ctx.ephemeral, slashResultOptions(ctx)),
+        await ctx.interaction.editReply(
+          resultEdit("Event created", `Saved **${event.name}** (${formatEventConfig(event.config)}).`, slashResultOptions(ctx)),
         );
         return;
       }
