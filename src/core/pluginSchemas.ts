@@ -9,6 +9,7 @@ import { zTicketsConfig } from "../config/schemas/tickets.js";
 import { zScamProtectConfig } from "../config/schemas/scamProtect.js";
 import { zPassportConfig } from "../config/schemas/passport.js";
 import { zEconomyConfig } from "../config/schemas/economy.js";
+import { zAnimeConfig } from "../config/schemas/anime.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import {
   zAdminConfig,
@@ -55,6 +56,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   scam_protect: zScamProtectConfig,
   passport: zPassportConfig,
   economy: zEconomyConfig,
+  anime: zAnimeConfig,
   admin: zAdminConfig,
   persist: zPersistConfig,
   slowmode: zSlowmodeConfig,

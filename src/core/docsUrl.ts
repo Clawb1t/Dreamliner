@@ -71,6 +71,10 @@ export function getGlobalStatsUrl(): string {
   return `${resolveSiteUrl()}/stats`;
 }
 
+export function getGlobalLeaderboardUrl(): string {
+  return `${resolveSiteUrl()}/leaderboard/global`;
+}
+
 /** Public Dreamliner Exchange page — top server stocks, trading. */
 export function getStocksUrl(): string {
   return `${resolveSiteUrl()}/stocks`;
@@ -79,10 +83,6 @@ export function getStocksUrl(): string {
 /** A single server's stock page on the Dreamliner Exchange. */
 export function getGuildStockUrl(guildId: string): string {
   return `${getStocksUrl()}/${guildId}`;
-}
-
-export function getGlobalLeaderboardUrl(): string {
-  return `${resolveSiteUrl()}/leaderboard/global`;
 }
 
 export function getStatusUrl(): string {

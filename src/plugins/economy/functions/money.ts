@@ -79,6 +79,11 @@ export type DailyClaimResult = { amount: number; streak: number; nextAt: Date };
 const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1_000;
 const DAILY_STREAK_GRACE_MS = 48 * 60 * 60 * 1_000;
 
+/** When the daily cooldown following `lastDailyAt` ends, or null if it's never been claimed. */
+export function nextDailyClaimAt(lastDailyAt: Date | null): Date | null {
+  return lastDailyAt ? new Date(lastDailyAt.getTime() + DAILY_COOLDOWN_MS) : null;
+}
+
 export function claimGlobalDaily(userId: string, amount: number): DailyClaimResult | null {
   const account = ensureGlobalAccount(userId);
   const last = account.lastDailyAt;

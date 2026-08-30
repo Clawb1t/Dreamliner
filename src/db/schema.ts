@@ -221,6 +221,8 @@ export const nameHistory = sqliteTable("name_history", {
   oldName: text("old_name").notNull(),
   newName: text("new_name").notNull(),
   changeType: text("change_type").notNull(),
+  /** Who made the change, from the audit log for nicknames; the user themself for usernames. Null if unresolved. */
+  changedBy: text("changed_by"),
   changedAt: integer("changed_at", { mode: "timestamp" }).notNull(),
 });
 
@@ -589,6 +591,10 @@ export const userProfiles = sqliteTable("user_profiles", {
   accentColor: text("accent_color"),
   bio: text("bio"),
   profileVisible: integer("profile_visible", { mode: "boolean" }).notNull().default(true),
+  /** Show the global coin balance pill in the site navbar. Off by default — most visitors don't use the economy. */
+  showNavBalance: integer("show_nav_balance", { mode: "boolean" }).notNull().default(false),
+  /** Show the "Exchange" item in the site navbar's user dropdown. Off by default, same reasoning as above. */
+  showNavExchange: integer("show_nav_exchange", { mode: "boolean" }).notNull().default(false),
   /** Days a user's message *content* (not counts/timestamps) stays retained: 0/1/7/14/30. */
   contentRetentionDays: integer("content_retention_days").notNull().default(30),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
@@ -652,9 +658,7 @@ export const botStatusDaily = sqliteTable("bot_status_daily", {
   pingMax: integer("ping_max", { mode: "number" }).notNull().default(0),
 });
 
-/** Per-guild Dreamliner Aero subscription (platform-managed). Table/column
- *  names stay "one" — renaming a live, in-use table is out of scope for the
- *  Aero rebrand (see rebrand plan). */
+/** Per-guild Dreamliner One subscription (platform-managed). */
 export const guildOneSubscriptions = sqliteTable("guild_one_subscriptions", {
   guildId: text("guild_id").primaryKey(),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
@@ -666,7 +670,7 @@ export const guildOneSubscriptions = sqliteTable("guild_one_subscriptions", {
   revokedAt: integer("revoked_at", { mode: "timestamp" }),
 });
 
-/** Discord guild-SKU entitlements for Dreamliner Aero. */
+/** Discord guild-SKU entitlements for Dreamliner One. */
 export const guildOneEntitlements = sqliteTable("guild_one_entitlements", {
   entitlementId: text("entitlement_id").primaryKey(),
   guildId: text("guild_id").notNull(),
@@ -678,7 +682,7 @@ export const guildOneEntitlements = sqliteTable("guild_one_entitlements", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
-/** Complimentary Aero codes created from the superuser dashboard. */
+/** Complimentary Dreamliner One codes created from the superuser dashboard. */
 export const oneDiscountCodes = sqliteTable("one_discount_codes", {
   code: text("code").primaryKey(),
   label: text("label"),
@@ -831,6 +835,25 @@ export const economyStockTransactions = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [index("economy_stock_tx_user_time").on(table.userId, table.createdAt)],
+);
+
+// --- Anime (nekos.best) --------------------------------------------------------
+// One row per member per saved neko image.
+
+export const animeSavedNekos = sqliteTable(
+  "anime_saved_nekos",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    imageUrl: text("image_url").notNull(),
+    artistName: text("artist_name"),
+    artistHref: text("artist_href"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("anime_saved_nekos_user_time").on(table.userId, table.createdAt),
+    uniqueIndex("anime_saved_nekos_user_image").on(table.userId, table.imageUrl),
+  ],
 );
 
 export const tickets = sqliteTable("tickets", {

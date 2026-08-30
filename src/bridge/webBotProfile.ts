@@ -31,7 +31,7 @@ import {
   type BotAvatarRequest,
   type BotBrandImageKind,
 } from "../plugins/bot_customisation/functions/store.js";
-import { DREAMLINER_AERO_REQUIRED, isDreamlinerAeroActive } from "./dreamlinerAero.js";
+import { DREAMLINER_ONE_REQUIRED, isDreamlinerOneActive } from "./dreamlinerOne.js";
 
 const MAX_NICKNAME_LENGTH = 32;
 const MAX_BIO_LENGTH = 190;
@@ -122,11 +122,11 @@ async function assertPluginEnabled(
   return { ok: true };
 }
 
-async function assertDreamlinerAero(
+async function assertDreamlinerOne(
   guildId: string,
 ): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
-  if (await isDreamlinerAeroActive(guildId)) return { ok: true };
-  return { ok: false, error: DREAMLINER_AERO_REQUIRED, status: 403 };
+  if (await isDreamlinerOneActive(guildId)) return { ok: true };
+  return { ok: false, error: DREAMLINER_ONE_REQUIRED, status: 403 };
 }
 
 function guildMemberAssetUrl(
@@ -355,8 +355,8 @@ export async function submitBridgeBrandImage(
 > {
   const plugin = await assertPluginEnabled(configManager, guild.id);
   if (!plugin.ok) return plugin;
-  const aero = await assertDreamlinerAero(guild.id);
-  if (!aero.ok) return aero;
+  const one = await assertDreamlinerOne(guild.id);
+  if (!one.ok) return one;
 
   const normalized = await normalizeBrandImageBase64(imageBase64, kind);
   if (!normalized.ok) {
@@ -443,8 +443,8 @@ export async function clearBridgeBrandImage(
 ): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
   const plugin = await assertPluginEnabled(configManager, guild.id);
   if (!plugin.ok) return plugin;
-  const aero = await assertDreamlinerAero(guild.id);
-  if (!aero.ok) return aero;
+  const one = await assertDreamlinerOne(guild.id);
+  if (!one.ok) return one;
 
   const member = await guild.members.fetch(userId).catch(() => null);
   const tag = member?.user.tag ?? userId;
@@ -473,8 +473,8 @@ export async function setBridgeBotNickname(
 ): Promise<{ ok: true; nick: string | null } | { ok: false; error: string; status: number }> {
   const plugin = await assertPluginEnabled(configManager, guild.id);
   if (!plugin.ok) return plugin;
-  const aero = await assertDreamlinerAero(guild.id);
-  if (!aero.ok) return aero;
+  const one = await assertDreamlinerOne(guild.id);
+  if (!one.ok) return one;
 
   const me = guild.members.me ?? (await guild.members.fetchMe().catch(() => null));
   if (!me) {
@@ -530,8 +530,8 @@ export async function setBridgeBotBio(
 ): Promise<{ ok: true; bio: string | null } | { ok: false; error: string; status: number }> {
   const plugin = await assertPluginEnabled(configManager, guild.id);
   if (!plugin.ok) return plugin;
-  const aero = await assertDreamlinerAero(guild.id);
-  if (!aero.ok) return aero;
+  const one = await assertDreamlinerOne(guild.id);
+  if (!one.ok) return one;
 
   let next: string | null = null;
   if (bio != null) {
@@ -577,8 +577,8 @@ export async function setBridgeBotDisplayNameStyle(
 > {
   const plugin = await assertPluginEnabled(configManager, guild.id);
   if (!plugin.ok) return plugin;
-  const aero = await assertDreamlinerAero(guild.id);
-  if (!aero.ok) return aero;
+  const one = await assertDreamlinerOne(guild.id);
+  if (!one.ok) return one;
 
   if (style) {
     if (!DISPLAY_NAME_FONT_IDS.has(style.fontId)) {

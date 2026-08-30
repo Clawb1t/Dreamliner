@@ -5,7 +5,7 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, setEmbedAuthor, trimLines } from "../../core/embeds.js";
 import { getGuildSocialDashboardUrl, linkButton } from "../../core/docsUrl.js";
 import { listWatchers, resolveMaxWatchers } from "./functions/store.js";
-import { isDreamlinerAeroActive } from "../../bridge/dreamlinerAero.js";
+import { isDreamlinerOneActive } from "../../bridge/dreamlinerOne.js";
 
 export const socialCommands: SlashCommandDefinition[] = [
   {
@@ -57,7 +57,7 @@ export const socialCommands: SlashCommandDefinition[] = [
           commandHeader(ctx.guildConfig),
         ).setDescription(trimLines(lines.join("\n")));
 
-        const maxWatchers = resolveMaxWatchers(await isDreamlinerAeroActive(guildId));
+        const maxWatchers = resolveMaxWatchers(await isDreamlinerOneActive(guildId));
 
         await ctx.interaction.reply({
           ...embedReply(embed, ctx.ephemeral),

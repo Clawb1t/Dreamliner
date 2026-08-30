@@ -2,10 +2,11 @@
 
 Two independent currencies:
 
-- **Global coins** — bot-wide, fixed name and denominator (`Coins`, `$`), earned everywhere the bot is installed.
-  Sending a message earns **0.15** coins (60s cooldown per member); balances carry across every server.
-- **Server currency** — per-guild, name/denominator/rates fully customisable by that server's managers. Earned the
-  same way (messages, plus `/daily`), scoped to that one server.
+- **Global coins** — bot-wide, fixed name, denominator, and emoji (`Coins`, `$`, <:coin:1543696697685844048>),
+  earned everywhere the bot is installed. Sending a message earns **0.15** coins (60s cooldown per member);
+  balances carry across every server.
+- **Server currency** — per-guild, name/denominator/emoji/rates fully customisable by that server's managers.
+  Earned the same way (messages, plus `/daily`), scoped to that one server.
 
 `/balance` and `/daily` both require picking `global` or `server`. Economy is **off by default** — enable it under
 **Economy** on the dashboard, or set `plugins.economy.enabled: true` in guild YAML.
@@ -17,13 +18,13 @@ Two independent currencies:
 | `/balance <global\|server> [user]` | View a balance |
 | `/daily <global\|server>` | Claim that currency's daily reward |
 | `/economy view` | View this server's currency settings (managers) |
-| `/economy settings` | Change this server's currency name, denominator, multiplier, message reward, message cooldown, and daily amount (managers) |
+| `/economy settings` | Change this server's currency name, denominator, emoji, multiplier, message reward, message cooldown, and daily amount (managers) |
 | `/stock` | Links to the Dreamliner Exchange on the site |
 
 ## Architecture
 
-- **YAML config** (`plugins.economy.config.server`) — currency name/denominator, message reward amount and cooldown,
-  multiplier, daily amount, and enable toggle. Permissions (`can_*`).
+- **YAML config** (`plugins.economy.config.server`) — currency name/denominator/emoji, message reward amount and
+  cooldown, multiplier, daily amount, and enable toggle. Permissions (`can_*`).
 - **SQLite** — `economy_global_accounts` (one row per user, bot-wide) and `economy_server_accounts` (one row per
   guild+user). Both store a decimal `balance`, last message/daily claim timestamps, and a daily streak counter.
 

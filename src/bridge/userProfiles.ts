@@ -27,6 +27,8 @@ export type UserProfile = {
   accentColor: string | null;
   bio: string | null;
   profileVisible: boolean;
+  showNavBalance: boolean;
+  showNavExchange: boolean;
   contentRetentionDays: number;
   updatedAt: string | null;
 };
@@ -62,6 +64,8 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
     accentColor: row?.accentColor ?? null,
     bio: row?.bio ?? null,
     profileVisible: row?.profileVisible ?? true,
+    showNavBalance: row?.showNavBalance ?? false,
+    showNavExchange: row?.showNavExchange ?? false,
     contentRetentionDays: row?.contentRetentionDays ?? DEFAULT_CONTENT_RETENTION_DAYS,
     updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
   };
@@ -95,6 +99,8 @@ export type UpsertUserProfileInput = {
   accentColor?: string | null;
   bio?: string | null;
   profileVisible?: boolean;
+  showNavBalance?: boolean;
+  showNavExchange?: boolean;
   contentRetentionDays?: number;
 };
 
@@ -114,6 +120,12 @@ export async function upsertUserProfileFields(
   if ("bio" in fields) patch.bio = fields.bio ?? null;
   if ("profileVisible" in fields && fields.profileVisible !== undefined) {
     patch.profileVisible = fields.profileVisible;
+  }
+  if ("showNavBalance" in fields && fields.showNavBalance !== undefined) {
+    patch.showNavBalance = fields.showNavBalance;
+  }
+  if ("showNavExchange" in fields && fields.showNavExchange !== undefined) {
+    patch.showNavExchange = fields.showNavExchange;
   }
   if ("contentRetentionDays" in fields && fields.contentRetentionDays !== undefined) {
     patch.contentRetentionDays = fields.contentRetentionDays;

@@ -1,7 +1,7 @@
 import type { Guild } from "discord.js";
 import type { PublicStatsConfig } from "../config/schemas/guild.js";
 import { configManager } from "../config/manager.js";
-import { isDreamlinerAeroActive } from "./dreamlinerAero.js";
+import { isDreamlinerOneActive } from "./dreamlinerOne.js";
 import {
   buildWebServerStats,
   parseWebStatsQuery,
@@ -46,7 +46,7 @@ export function normalizePublicStatsSections(input: unknown): PublicStatsSection
 export async function buildPublicGuildHome(guild: Guild) {
   const [config, oneActive] = await Promise.all([
     configManager.getEffectiveConfig(guild.id),
-    isDreamlinerAeroActive(guild.id),
+    isDreamlinerOneActive(guild.id),
   ]);
   let ownerName: string | null = null;
   let ownerDisplayName: string | null = null;

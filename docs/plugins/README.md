@@ -76,6 +76,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 - [Reviews](./reviews.md) - star ratings and written server feedback
 - [Suggestions](./suggestions.md) - community suggestions with review queue, voting, and statuses
 
-## Economy
+## Fun
 
 - [Economy](./economy.md) — a global coin economy plus a customisable per-server currency, earned by chatting and daily claims
+- [Anime](./anime.md) — random neko images from Nekos.best, with a personal saved collection

@@ -11,11 +11,18 @@ import {
   type StockRange,
 } from "../plugins/economy/functions/stocks.js";
 import { getGlobalBalance } from "../plugins/economy/functions/money.js";
+import { configManager } from "../config/manager.js";
 
 export type BridgeResult<T> = ({ ok: true } & T) | { ok: false; error: string; status: number };
 
 function isValidUserId(id: string): boolean {
   return /^\d{5,32}$/.test(id);
+}
+
+function colorIntToHex(value: number): string {
+  return `#${Math.max(0, Math.min(0xffffff, Math.floor(value)))
+    .toString(16)
+    .padStart(6, "0")}`;
 }
 
 function isValidRange(raw: string | null): StockRange {
@@ -45,27 +52,35 @@ function serializeStock(stock: SerializableStock) {
   };
 }
 
-export function getExchangeOverview(rangeRaw: string | null, topLimit = 10) {
+export async function getExchangeOverview(rangeRaw: string | null, topLimit = 10) {
   const range = isValidRange(rangeRaw);
   const stocks = listStocks();
-  const top = stocks.slice(0, topLimit);
   const series = getExchangeSeries(
-    top.map((s) => s.guildId),
+    stocks.slice(0, topLimit).map((s) => s.guildId),
     range,
+  );
+  // Every listing (not just the top 10) gets its server's own accent — used for the ticker
+  // tape and the listings rows too, not just the chart. The website resolves this further
+  // into the avatar's dominant color where it can; this is just the fallback.
+  const stocksWithAccent = await Promise.all(
+    stocks.map(async (s) => ({
+      ...serializeStock(s),
+      accentColor: colorIntToHex((await configManager.getEffectiveConfig(s.guildId)).server_accent_color),
+    })),
   );
   return {
     ok: true as const,
     range,
-    stocks: stocks.map(serializeStock),
-    top: top.map(serializeStock),
+    stocks: stocksWithAccent,
+    top: stocksWithAccent.slice(0, topLimit),
     series,
   };
 }
 
-export function getStockDetail(guildId: string, rangeRaw: string | null): BridgeResult<{
-  stock: ReturnType<typeof serializeStock>;
+export async function getStockDetail(guildId: string, rangeRaw: string | null): Promise<BridgeResult<{
+  stock: ReturnType<typeof serializeStock> & { accentColor: string };
   history: Array<{ price: number; recordedAt: string }>;
-}> {
+}>> {
   const stocks = listStocks();
   const found = stocks.find((s) => s.guildId === guildId);
   if (!found) return { ok: false, error: "That server isn't listed on the exchange.", status: 404 };
@@ -74,7 +89,12 @@ export function getStockDetail(guildId: string, rangeRaw: string | null): Bridge
     price: row.price,
     recordedAt: toIso(row.recordedAt),
   }));
-  return { ok: true, stock: serializeStock(found), history };
+  const guildConfig = await configManager.getEffectiveConfig(guildId);
+  return {
+    ok: true,
+    stock: { ...serializeStock(found), accentColor: colorIntToHex(guildConfig.server_accent_color) },
+    history,
+  };
 }
 
 export function getUserGlobalBalance(userId: string): BridgeResult<{ balance: number }> {

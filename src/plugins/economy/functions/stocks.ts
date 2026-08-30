@@ -87,12 +87,13 @@ export function ensureStock(guildId: string, guildName: string, guildIcon: strin
 // posting faster than the rest of the exchange right now climbs quickly.
 //
 // Grace: a minute with zero messages never moves the price at all — no drift,
-// no noise. A server going quiet overnight just holds where it was, it
-// doesn't get punished for being asleep; gains from an earlier active
-// stretch stick around instead of bleeding away the moment the channel goes
-// quiet. Investing is meant to be "check in on it a day later", not "watch
-// it every minute or lose everything". A stock only ever loses ground while
-// it's still posting, just more slowly than the rest of the exchange.
+// no noise, for the first stretch of quiet. A server going quiet for a short
+// while just holds where it was, it doesn't get punished for a lull; gains
+// from an earlier active stretch stick around instead of bleeding away the
+// moment the channel goes quiet. Only once a stock has gone truly cold — no
+// messages for a while — does it start slowly drifting down, the way a
+// real illiquid stock does when nobody's trading it. It picks right back up
+// the instant the server posts again.
 
 const MINUTE_MS = 60_000;
 /** How far an especially active minute can push the price up (ratio 4 = 4x the exchange average). */
@@ -100,6 +101,11 @@ const UP_DRIFT_SCALE = 0.035;
 /** Much gentler pull for a minute that's active but slower than the exchange — never a crash. */
 const DOWN_DRIFT_SCALE = 0.01;
 const ACTIVE_NOISE = 0.006;
+/** How long a stock can sit with zero activity before it starts declining. */
+const INACTIVITY_GRACE_MS = 20 * MINUTE_MS;
+/** Gentle per-minute decay once a stock is past the grace period — a stock
+ *  left completely cold loses about half its value over roughly a day. */
+const INACTIVITY_DECAY_RATE = 0.0005;
 /** Old activity buckets are pruned past this so the table doesn't grow forever. */
 const ACTIVITY_RETENTION_MS = 6 * 60 * 60_000;
 
@@ -168,11 +174,22 @@ export async function tickStockPrices(client: Client): Promise<void> {
       const stock = getStock(guildId);
       if (!stock) continue;
 
-      // No activity this minute — grace: hold the price exactly where it is.
-      // Only a heartbeat history point gets written, so quiet hours neither
-      // erode gains nor jitter the chart.
+      // No activity this minute. Within the grace period, hold the price exactly where it
+      // is — only a heartbeat history point gets written, so a short lull neither erodes
+      // gains nor jitters the chart. `updatedAt` is deliberately left untouched here (it's
+      // only ever bumped by an active tick below), so it keeps marking the last real
+      // activity — once it's more than the grace period behind, the stock has gone cold
+      // and starts a slow decay instead of holding flat.
       if (messages === 0) {
-        db.insert(economyStockPriceHistory).values({ guildId, price: stock.price, recordedAt: tickTime }).run();
+        const inactiveMs = tickTime.getTime() - stock.updatedAt.getTime();
+        if (inactiveMs <= INACTIVITY_GRACE_MS) {
+          db.insert(economyStockPriceHistory).values({ guildId, price: stock.price, recordedAt: tickTime }).run();
+          continue;
+        }
+
+        const decayedPrice = round2(Math.max(MIN_PRICE, stock.price * (1 - INACTIVITY_DECAY_RATE)));
+        db.update(economyStocks).set({ price: decayedPrice }).where(eq(economyStocks.guildId, guildId)).run();
+        db.insert(economyStockPriceHistory).values({ guildId, price: decayedPrice, recordedAt: tickTime }).run();
         continue;
       }
 

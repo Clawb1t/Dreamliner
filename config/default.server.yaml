@@ -217,7 +217,7 @@ plugins:
     enabled: true
     replaceDefaultOverrides: false
     config:
-      auto_translate: false # Dreamliner Aero exclusive
+      auto_translate: false # Dreamliner One exclusive
       ignored_channels: []
   starboard:
     enabled: true
@@ -335,6 +335,7 @@ plugins:
         currency_name: Coins
         currency_name_singular: Coin
         currency_denominator: "$"
+        currency_emoji: ""
         message_rewards_enabled: true
         message_amount: 0.1
         message_cooldown_seconds: 60
@@ -351,6 +352,17 @@ plugins:
       - level: ">=50"
         config:
           can_admin_manage: true
+  anime:
+    enabled: true
+    replaceDefaultOverrides: false
+    config:
+      can_neko: false
+      can_saved: false
+    overrides:
+      - level: ">=0"
+        config:
+          can_neko: true
+          can_saved: true
   admin:
     enabled: true
     replaceDefaultOverrides: false

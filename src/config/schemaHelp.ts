@@ -38,7 +38,7 @@ export type DreamlinerFieldMeta = {
     | "color"
     | "category";
   setup?: string;
-  aeroExclusive?: boolean;
+  oneExclusive?: boolean;
 };
 
 export const SETUP_HINTS: Record<NonNullable<DreamlinerFieldMeta["kind"]>, string> = {
@@ -147,7 +147,7 @@ export function enrichJsonSchemaForEditor(schema: JsonSchemaNode, key?: string):
         ...existing,
         kind: existing.kind ?? kind,
         setup: existing.setup ?? (kind ? SETUP_HINTS[kind] : undefined),
-        aeroExclusive: existing.aeroExclusive ?? (key === "auto_translate" ? true : undefined),
+        oneExclusive: existing.oneExclusive ?? (key === "auto_translate" ? true : undefined),
       };
     }
 

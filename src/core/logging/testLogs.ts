@@ -185,7 +185,6 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       null,
       "serverUpdate",
     ),
-
   ticket_open: (ctx) =>
     buildGenericServerLog("Ticket #1 Opened", [`Opened by: <@${ctx.actor.id}>`, "Category: **Test Category**", `Channel: <#${ctx.channel.id}>`], ctx.actor.avatarUrl, "create"),
   ticket_claim: (ctx) =>

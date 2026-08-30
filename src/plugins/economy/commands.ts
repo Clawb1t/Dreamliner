@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, type GuildMember } from "discord.js";
+import { SlashCommandBuilder, type Client, type Guild, type GuildMember } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { deferReplyOptions, embedEdit, embedReply, resultReply, slashResultOptions } from "../../core/responses.js";
@@ -16,8 +16,17 @@ import {
   ensureServerAccount,
   getGlobalBalance,
   getServerBalance,
+  nextDailyClaimAt,
   type DailyClaimResult,
 } from "./functions/money.js";
+
+/** Footer for a balance/daily embed — "Bank of {server}" with the server icon, or "Bank of Dreamliner" with the bot's avatar for the global currency. */
+function bankFooter(which: "global" | "server", guild: Guild, client: Client): { text: string; iconURL?: string } {
+  if (which === "global") {
+    return { text: "Bank of Dreamliner", iconURL: client.user?.displayAvatarURL() };
+  }
+  return { text: `Bank of ${guild.name}`, iconURL: guild.iconURL() ?? undefined };
+}
 
 export const economyCommands: SlashCommandDefinition[] = [
   {
@@ -48,7 +57,7 @@ export const economyCommands: SlashCommandDefinition[] = [
       const embed = baseEmbed()
         .setAuthor({ name: target.displayName, iconURL: target.displayAvatarURL() })
         .setDescription(description)
-        .setFooter({ text: which === "global" ? "Global currency" : "Server currency" });
+        .setFooter(bankFooter(which, i.guild!, ctx.client));
 
       await i.reply(embedReply(embed, ctx.ephemeral));
     },
@@ -82,17 +91,22 @@ export const economyCommands: SlashCommandDefinition[] = [
       let claim: DailyClaimResult | null = null;
       let disabled = false;
       let streak: number;
+      let lastDailyAt: Date | null;
 
       if (which === "global") {
         claim = claimGlobalDaily(userId, GLOBAL_DAILY_AMOUNT);
-        streak = ensureGlobalAccount(userId).dailyStreak;
+        const account = ensureGlobalAccount(userId);
+        streak = account.dailyStreak;
+        lastDailyAt = account.lastDailyAt;
       } else {
         if (config.server.daily_amount > 0) {
           claim = claimServerDaily(guildId, userId, config.server.daily_amount);
         } else {
           disabled = true;
         }
-        streak = ensureServerAccount(guildId, userId).dailyStreak;
+        const account = ensureServerAccount(guildId, userId);
+        streak = account.dailyStreak;
+        lastDailyAt = account.lastDailyAt;
       }
 
       let description: string;
@@ -104,13 +118,15 @@ export const economyCommands: SlashCommandDefinition[] = [
       } else {
         description = `${errorEmoji} Already claimed`;
       }
-      if (claim) description += `  ✧  Next claim ${discordTimestamp(claim.nextAt)}`;
+      const nextAt = claim ? claim.nextAt : nextDailyClaimAt(lastDailyAt);
+      if (nextAt) description += `  ✧  Next claim ${discordTimestamp(nextAt)}`;
 
       const member = i.member as GuildMember | null;
+      const bank = bankFooter(which, i.guild!, ctx.client);
       const embed = baseEmbed()
         .setAuthor({ name: member?.displayName ?? i.user.username, iconURL: i.user.displayAvatarURL() })
         .setDescription(description)
-        .setFooter({ text: `${which === "global" ? "Global currency" : "Server currency"}  ✧  🔥 streak: ${streak}` });
+        .setFooter({ text: `${bank.text}  ✧  🔥 streak: ${streak}`, iconURL: bank.iconURL });
 
       await i.editReply(embedEdit(embed));
     },
@@ -131,6 +147,12 @@ export const economyCommands: SlashCommandDefinition[] = [
           )
           .addStringOption((o) =>
             o.setName("denominator").setDescription("Prefix shown before amounts, e.g. $ in `$0.15`").setMaxLength(8),
+          )
+          .addStringOption((o) =>
+            o
+              .setName("emoji")
+              .setDescription("Emoji shown next to amounts, e.g. 🪙 or <:coin:123>. Empty clears it.")
+              .setMaxLength(64),
           )
           .addNumberOption((o) =>
             o
@@ -167,6 +189,7 @@ export const economyCommands: SlashCommandDefinition[] = [
             "Server economy settings",
             [
               `**Currency:** ${s.currency_name} (\`${s.currency_name_singular}\` singular, \`${s.currency_denominator}\` denominator)`,
+              `**Emoji:** ${s.currency_emoji.trim() || "none"}`,
               `**Multiplier:** **${s.multiplier}x**`,
               `**Message rewards:** ${s.message_rewards_enabled ? "on" : "off"} — **${s.message_amount}** per message, **${s.message_cooldown_seconds}s** cooldown`,
               `**Daily reward:** **${s.daily_amount}**`,
@@ -182,6 +205,7 @@ export const economyCommands: SlashCommandDefinition[] = [
       const name = i.options.getString("name") ?? config.server.currency_name;
       const nameSingular = i.options.getString("name_singular") ?? config.server.currency_name_singular;
       const denominator = i.options.getString("denominator") ?? config.server.currency_denominator;
+      const emoji = i.options.getString("emoji") ?? config.server.currency_emoji;
       const multiplier = i.options.getNumber("multiplier") ?? config.server.multiplier;
       const messageAmount = i.options.getNumber("message_amount") ?? config.server.message_amount;
       const messageCooldown =
@@ -198,6 +222,7 @@ export const economyCommands: SlashCommandDefinition[] = [
             currency_name: name,
             currency_name_singular: nameSingular,
             currency_denominator: denominator,
+            currency_emoji: emoji,
             multiplier,
             message_amount: messageAmount,
             message_cooldown_seconds: messageCooldown,

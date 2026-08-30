@@ -10,6 +10,8 @@ export async function recordNameChange(input: {
   oldName: string;
   newName: string;
   changeType: NameChangeType;
+  /** Who made the change (audit log executor for nicknames; the user themself for usernames). */
+  changedBy?: string | null;
 }): Promise<void> {
   if (input.oldName === input.newName) return;
   const db = getDb();
@@ -19,6 +21,7 @@ export async function recordNameChange(input: {
     oldName: input.oldName,
     newName: input.newName,
     changeType: input.changeType,
+    changedBy: input.changedBy ?? null,
     changedAt: new Date(),
   });
 }
@@ -30,6 +33,7 @@ export type NameHistoryEntry = {
   oldName: string;
   newName: string;
   changeType: string;
+  changedBy: string | null;
   changedAt: Date;
 };
 
@@ -41,6 +45,7 @@ function rowToEntry(row: typeof nameHistory.$inferSelect): NameHistoryEntry {
     oldName: row.oldName,
     newName: row.newName,
     changeType: row.changeType,
+    changedBy: row.changedBy,
     changedAt: row.changedAt,
   };
 }

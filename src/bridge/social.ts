@@ -6,6 +6,7 @@ import {
   buildDefaultSocialEmbedConfig,
   validateSocialEmbedConfig,
   zSocialEmbedConfig,
+  DEFAULT_SOCIAL_MESSAGE_CONTENT,
   type SocialEmbedConfig,
 } from "../config/schemas/social.js";
 import {
@@ -26,7 +27,7 @@ import {
   type SocialWatcherRow,
 } from "../plugins/social/functions/store.js";
 import { sendNotification } from "../plugins/social/functions/notify.js";
-import { isDreamlinerAeroActive } from "./dreamlinerAero.js";
+import { isDreamlinerOneActive } from "./dreamlinerOne.js";
 
 export type BridgeSocialWatcher = {
   id: number;
@@ -102,7 +103,7 @@ export async function listBridgeSocialWatchers(
   const [watchers, count, oneActive] = await Promise.all([
     listWatchers(guildId),
     countWatchers(guildId),
-    isDreamlinerAeroActive(guildId),
+    isDreamlinerOneActive(guildId),
   ]);
   return {
     ok: true,
@@ -149,7 +150,7 @@ export async function createBridgeSocialWatcher(
     return { ok: false, error: "sourceInput and discordChannelId are required.", status: 400 };
   }
 
-  const [count, oneActive] = await Promise.all([countWatchers(guildId), isDreamlinerAeroActive(guildId)]);
+  const [count, oneActive] = await Promise.all([countWatchers(guildId), isDreamlinerOneActive(guildId)]);
   const maxWatchers = resolveMaxWatchers(oneActive);
   if (count >= maxWatchers) {
     return {
@@ -200,7 +201,7 @@ export async function createBridgeSocialWatcher(
     sourceChannelAvatarUrl: channel.avatarUrl,
     sourceChannelUrl: channel.url,
     uploadsPlaylistId: channel.uploadsPlaylistId,
-    messageContent: parsed.data.messageContent ?? "",
+    messageContent: parsed.data.messageContent ?? DEFAULT_SOCIAL_MESSAGE_CONTENT,
     mentionRoleIds: parsed.data.mentionRoleIds ?? [],
     embedConfig,
     lastVideoId: seedVideoId,

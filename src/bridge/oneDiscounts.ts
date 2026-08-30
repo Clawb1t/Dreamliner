@@ -1,9 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { oneDiscountCodes, oneDiscountRedemptions } from "../db/schema.js";
-import { getDreamlinerAeroAdminStatus, upsertDreamlinerAero } from "./dreamlinerAero.js";
+import { getDreamlinerOneAdminStatus, upsertDreamlinerOne } from "./dreamlinerOne.js";
 
-export type AeroDiscountCodeRow = {
+export type OneDiscountCodeRow = {
   code: string;
   label: string | null;
   days: number | null;
@@ -34,7 +34,7 @@ function isCodeActive(
   return true;
 }
 
-function serialize(row: typeof oneDiscountCodes.$inferSelect): AeroDiscountCodeRow {
+function serialize(row: typeof oneDiscountCodes.$inferSelect): OneDiscountCodeRow {
   return {
     code: row.code,
     label: row.label,
@@ -49,7 +49,7 @@ function serialize(row: typeof oneDiscountCodes.$inferSelect): AeroDiscountCodeR
   };
 }
 
-export async function listAeroDiscountCodes(): Promise<AeroDiscountCodeRow[]> {
+export async function listOneDiscountCodes(): Promise<OneDiscountCodeRow[]> {
   const rows = await getDb()
     .select()
     .from(oneDiscountCodes)
@@ -58,14 +58,14 @@ export async function listAeroDiscountCodes(): Promise<AeroDiscountCodeRow[]> {
   return rows.map(serialize);
 }
 
-export async function createAeroDiscountCode(input: {
+export async function createOneDiscountCode(input: {
   code: string;
   actorId: string;
   days: number | null;
   maxRedemptions: number | null;
   expiresAt: Date | null;
   label?: string | null;
-}): Promise<AeroDiscountCodeRow> {
+}): Promise<OneDiscountCodeRow> {
   const code = normalizeCode(input.code);
   if (code.length < 3 || code.length > 24) {
     throw new Error("Code must be 3 to 24 letters, numbers, dashes, or underscores.");
@@ -117,7 +117,7 @@ export async function createAeroDiscountCode(input: {
   return serialize(row);
 }
 
-export async function revokeAeroDiscountCode(codeRaw: string): Promise<AeroDiscountCodeRow | null> {
+export async function revokeOneDiscountCode(codeRaw: string): Promise<OneDiscountCodeRow | null> {
   const code = normalizeCode(codeRaw);
   const existing = await getDb()
     .select()
@@ -139,11 +139,11 @@ export async function revokeAeroDiscountCode(codeRaw: string): Promise<AeroDisco
   return row ? serialize(row) : null;
 }
 
-export async function redeemAeroDiscountCode(input: {
+export async function redeemOneDiscountCode(input: {
   code: string;
   guildId: string;
   actorId: string;
-}): Promise<{ one: Awaited<ReturnType<typeof upsertDreamlinerAero>>; discount: AeroDiscountCodeRow }> {
+}): Promise<{ one: Awaited<ReturnType<typeof upsertDreamlinerOne>>; discount: OneDiscountCodeRow }> {
   const code = normalizeCode(input.code);
   const row = await getDb()
     .select()
@@ -165,9 +165,9 @@ export async function redeemAeroDiscountCode(input: {
     throw new Error("That server already redeemed this code.");
   }
 
-  const current = await getDreamlinerAeroAdminStatus(input.guildId);
+  const current = await getDreamlinerOneAdminStatus(input.guildId);
   if (current.active && current.forever) {
-    throw new Error("That server already has Aero forever.");
+    throw new Error("That server already has Dreamliner One forever.");
   }
 
   let start = Date.now();
@@ -180,7 +180,7 @@ export async function redeemAeroDiscountCode(input: {
     ? `Discount ${row.code}: ${row.label.trim()}`
     : `Discount ${row.code}`;
 
-  const aero = await upsertDreamlinerAero({
+  const one = await upsertDreamlinerOne({
     guildId: input.guildId,
     actorId: input.actorId,
     expiresAt,
@@ -204,7 +204,5 @@ export async function redeemAeroDiscountCode(input: {
     .from(oneDiscountCodes)
     .where(eq(oneDiscountCodes.code, code))
     .get();
-  // Field name stays "one" — the website's bot-bridge client keys off this
-  // unchanged wire protocol field regardless of the Aero rebrand.
-  return { one: aero, discount: updated ? serialize(updated) : serialize({ ...row, redemptionCount: row.redemptionCount + 1 }) };
+  return { one, discount: updated ? serialize(updated) : serialize({ ...row, redemptionCount: row.redemptionCount + 1 }) };
 }

@@ -89,6 +89,7 @@ const PLUGIN_DOCS: Record<string, string> = {
   suggestions: "plugins/suggestions",
   passport: "plugins/passport",
   economy: "plugins/economy",
+  anime: "plugins/anime",
   config: "configuration",
   starboard: "plugins/starboard",
   autorole: "plugins/autorole",

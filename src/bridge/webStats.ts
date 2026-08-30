@@ -172,13 +172,13 @@ function resolveChannels(
 export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25) {
   const capped = Math.min(50, Math.max(5, limit));
   const { configManager } = await import("../config/manager.js");
-  const { isDreamlinerAeroActive } = await import("./dreamlinerAero.js");
+  const { isDreamlinerOneActive } = await import("./dreamlinerOne.js");
   const [top, allTimeTrafficTotal, activeMessagers, guildConfig, oneActive] = await Promise.all([
     getTopMessagers(guild.id, capped),
     getTrackedMessagesTotal(guild.id, 0),
     getActiveMessagerCount(guild.id),
     configManager.getEffectiveConfig(guild.id),
-    isDreamlinerAeroActive(guild.id),
+    isDreamlinerOneActive(guild.id),
   ]);
   const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
   const accentColor = colorIntToHex(guildConfig.server_accent_color);

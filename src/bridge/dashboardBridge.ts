@@ -39,8 +39,8 @@ let server: http.Server | null = null;
 
 async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
   const guilds = [...client.guilds.cache.values()];
-  const { listActiveAeroGuildIds } = await import("./dreamlinerAero.js");
-  const aeroGuildIds = await listActiveAeroGuildIds();
+  const { listActiveOneGuildIds } = await import("./dreamlinerOne.js");
+  const oneGuildIds = await listActiveOneGuildIds();
   return Promise.all(
     guilds.map(async (guild) => {
       let ownerName: string | null = null;
@@ -68,7 +68,7 @@ async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
         ownerDisplayName,
         ownerAvatar,
         memberCount: guild.memberCount,
-        oneActive: aeroGuildIds.has(guild.id),
+        oneActive: oneGuildIds.has(guild.id),
       };
     }),
   );
@@ -265,8 +265,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Platform access required." });
             return;
           }
-          const { listPlatformDreamlinerAero } = await import("./dreamlinerAero.js");
-          sendJson(res, 200, await listPlatformDreamlinerAero(client));
+          const { listPlatformDreamlinerOne } = await import("./dreamlinerOne.js");
+          sendJson(res, 200, await listPlatformDreamlinerOne(client));
           return;
         }
 
@@ -281,8 +281,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Platform access required." });
               return;
             }
-            const { listAeroDiscountCodes } = await import("./oneDiscounts.js");
-            sendJson(res, 200, { discounts: await listAeroDiscountCodes() });
+            const { listOneDiscountCodes } = await import("./oneDiscounts.js");
+            sendJson(res, 200, { discounts: await listOneDiscountCodes() });
             return;
           }
           if (req.method === "POST") {
@@ -338,8 +338,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               }
             }
             try {
-              const { createAeroDiscountCode } = await import("./oneDiscounts.js");
-              const discount = await createAeroDiscountCode({
+              const { createOneDiscountCode } = await import("./oneDiscounts.js");
+              const discount = await createOneDiscountCode({
                 code: typeof body.code === "string" ? body.code : "",
                 actorId: userId,
                 days,
@@ -377,8 +377,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Platform access required." });
             return;
           }
-          const { revokeAeroDiscountCode } = await import("./oneDiscounts.js");
-          const discount = await revokeAeroDiscountCode(decodeURIComponent(discountCodeMatch[1]!));
+          const { revokeOneDiscountCode } = await import("./oneDiscounts.js");
+          const discount = await revokeOneDiscountCode(decodeURIComponent(discountCodeMatch[1]!));
           if (!discount) {
             sendJson(res, 404, { error: "Discount code not found." });
             return;
@@ -414,8 +414,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           try {
-            const { redeemAeroDiscountCode } = await import("./oneDiscounts.js");
-            const result = await redeemAeroDiscountCode({
+            const { redeemOneDiscountCode } = await import("./oneDiscounts.js");
+            const result = await redeemOneDiscountCode({
               code: decodeURIComponent(discountRedeemMatch[1]!),
               guildId,
               actorId: userId,
@@ -499,7 +499,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Platform access required." });
               return;
             }
-            const { parseExpiresAt, upsertDreamlinerAero } = await import("./dreamlinerAero.js");
+            const { parseExpiresAt, upsertDreamlinerOne } = await import("./dreamlinerOne.js");
             if (!("expiresAt" in body)) {
               sendJson(res, 400, { error: "expiresAt is required (ISO string or null for forever)." });
               return;
@@ -511,7 +511,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             const note = typeof body.note === "string" || body.note === null ? body.note : undefined;
             // Response field stays "one" — unchanged wire protocol (see rebrand plan).
-            const one = await upsertDreamlinerAero({
+            const one = await upsertDreamlinerOne({
               guildId,
               actorId: userId,
               expiresAt,
@@ -538,10 +538,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Platform access required." });
               return;
             }
-            const { revokeDreamlinerAero } = await import("./dreamlinerAero.js");
-            const one = await revokeDreamlinerAero(guildId, userId);
+            const { revokeDreamlinerOne } = await import("./dreamlinerOne.js");
+            const one = await revokeDreamlinerOne(guildId, userId);
             if (!one) {
-              sendJson(res, 404, { error: "No Dreamliner Aero subscription for that server." });
+              sendJson(res, 404, { error: "No Dreamliner One subscription for that server." });
               return;
             }
             sendJson(res, 200, { ok: true, one });
@@ -569,8 +569,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
-          const { getDreamlinerAeroPublicStatus } = await import("./dreamlinerAero.js");
-          sendJson(res, 200, await getDreamlinerAeroPublicStatus(guildId));
+          const { getDreamlinerOnePublicStatus } = await import("./dreamlinerOne.js");
+          sendJson(res, 200, await getDreamlinerOnePublicStatus(guildId));
           return;
         }
 
@@ -711,6 +711,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             accentColor?: unknown;
             bio?: unknown;
             profileVisible?: unknown;
+            showNavBalance?: unknown;
+            showNavExchange?: unknown;
             contentRetentionDays?: unknown;
           };
           try {
@@ -731,6 +733,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             accentColor?: string | null;
             bio?: string | null;
             profileVisible?: boolean;
+            showNavBalance?: boolean;
+            showNavExchange?: boolean;
             contentRetentionDays?: number;
           } = {};
 
@@ -756,6 +760,20 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             patch.profileVisible = body.profileVisible;
+          }
+          if ("showNavBalance" in body) {
+            if (typeof body.showNavBalance !== "boolean") {
+              sendJson(res, 400, { error: "showNavBalance must be a boolean." });
+              return;
+            }
+            patch.showNavBalance = body.showNavBalance;
+          }
+          if ("showNavExchange" in body) {
+            if (typeof body.showNavExchange !== "boolean") {
+              sendJson(res, 400, { error: "showNavExchange must be a boolean." });
+              return;
+            }
+            patch.showNavExchange = body.showNavExchange;
           }
           if ("contentRetentionDays" in body) {
             try {
@@ -1158,14 +1176,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Dreamliner Exchange (public — every server with economy enabled is listed).
         if (req.method === "GET" && url.pathname === "/bridge/stocks") {
           const { getExchangeOverview } = await import("./webStocks.js");
-          sendJson(res, 200, getExchangeOverview(url.searchParams.get("range")));
+          sendJson(res, 200, await getExchangeOverview(url.searchParams.get("range")));
           return;
         }
 
         const stockDetailMatch = /^\/bridge\/stocks\/(\d+)$/.exec(url.pathname);
         if (stockDetailMatch && req.method === "GET") {
           const { getStockDetail } = await import("./webStocks.js");
-          const result = getStockDetail(stockDetailMatch[1]!, url.searchParams.get("range"));
+          const result = await getStockDetail(stockDetailMatch[1]!, url.searchParams.get("range"));
           if (!result.ok) {
             sendJson(res, result.status, { error: result.error });
             return;
@@ -1264,6 +1282,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           /^\/bridge\/guilds\/(\d+)\/passport(?:\/(verify|test-ping|panel|diagnostics|practice))?$/.exec(
             url.pathname,
           );
+        const nameHistoryMatch = /^\/bridge\/guilds\/(\d+)\/name-history$/.exec(url.pathname);
         const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
         const botProfileRequestImageMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/requests\/(\d+)\/image$/.exec(
           url.pathname,
@@ -1332,6 +1351,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !rolePanelsTestMatch &&
           !rolePanelsValidateMatch &&
           !passportMatch &&
+          !nameHistoryMatch &&
           !economyMatch &&
           !botProfileRequestImageMatch &&
           !botProfileRequestCancelMatch &&
@@ -1394,6 +1414,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           rolePanelsTestMatch?.[1] ??
           rolePanelsValidateMatch?.[1] ??
           passportMatch?.[1] ??
+          nameHistoryMatch?.[1] ??
           economyMatch?.[1] ??
           botProfileRequestImageMatch?.[1] ??
           botProfileRequestCancelMatch?.[1] ??
@@ -2090,6 +2111,160 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (economyMatch) {
+          const rest = (economyMatch[2] ?? "").replace(/\/+$/, "");
+          const segments = rest ? rest.split("/") : [];
+          const econ = await import("./webEconomy.js");
+
+          const requireManage = async (userId: string | undefined | null): Promise<string | null> => {
+            const id = userId?.trim();
+            if (!id) {
+              sendJson(res, 400, { error: "userId is required" });
+              return null;
+            }
+            if (!(await memberCanManage(guild, id))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return null;
+            }
+            return id;
+          };
+
+          const readJsonBody = async <T extends Record<string, unknown>>(): Promise<T | null> => {
+            try {
+              return JSON.parse(await readBody(req)) as T;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return null;
+            }
+          };
+
+          // GET /economy — overview (global currency info + this server's settings)
+          if (segments.length === 0 && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            const result = await econ.getEconomyOverview(configManager, guildId);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            const { ok: _ok, ...payload } = result;
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...payload,
+            });
+            return;
+          }
+
+          // POST /economy/settings — update this server's currency name/symbol/rates
+          if (segments[0] === "settings" && segments.length === 1 && req.method === "POST") {
+            const body = await readJsonBody<Record<string, unknown> & { userId?: string }>();
+            if (!body) return;
+            const actorId = await requireManage(body.userId);
+            if (!actorId) return;
+            const { userId: _u, ...patch } = body;
+            const result = await econ.updateEconomySettings(configManager, guildId, actorId, patch);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, actorId, {
+              eventType: "dashboard_economy",
+              title: "Economy settings updated",
+              summary: "Updated the server economy settings from the dashboard.",
+              payload: { server: result.server },
+            });
+            sendJson(res, 200, { ok: true, server: result.server });
+            return;
+          }
+
+          // Accounts
+          if (segments[0] === "accounts" && segments[1]) {
+            const targetUserId = segments[1]!;
+            if (segments.length === 2 && req.method === "GET") {
+              const userId = await requireManage(url.searchParams.get("userId"));
+              if (!userId) return;
+              const result = await econ.getEconomyAccount(configManager, guildId, targetUserId);
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              const { ok: _ok, ...payload } = result;
+              sendJson(res, 200, payload);
+              return;
+            }
+            if (segments.length === 3 && segments[2] === "adjust" && req.method === "POST") {
+              const body = await readJsonBody<{
+                userId?: string;
+                scope?: "global" | "server";
+                mode?: "add" | "take" | "set";
+                amount?: number;
+              }>();
+              if (!body) return;
+              const actorId = await requireManage(body.userId);
+              if (!actorId) return;
+              const result = await econ.adjustEconomyAccount(configManager, guildId, targetUserId, {
+                scope: body.scope ?? "server",
+                mode: body.mode ?? "add",
+                amount: Number(body.amount ?? 0),
+              });
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, actorId, {
+                eventType: "dashboard_economy",
+                title: "Economy balance adjust",
+                summary: `Adjusted the ${result.scope} balance for <@${targetUserId}>.`,
+                targetId: targetUserId,
+                payload: { scope: result.scope, balance: result.balance, mode: body.mode ?? "add" },
+              });
+              sendJson(res, 200, { ok: true, scope: result.scope, balance: result.balance });
+              return;
+            }
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (nameHistoryMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { getWebUserNameHistory, searchWebNameHistory, parseWebNameHistoryLimit } =
+            await import("./webNameHistory.js");
+          const limit = parseWebNameHistoryLimit(url);
+          const target = url.searchParams.get("target")?.trim();
+          const q = url.searchParams.get("q");
+
+          if (target) {
+            const result = await getWebUserNameHistory(guild, target, limit);
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              ...result,
+            });
+            return;
+          }
+
+          const result = await searchWebNameHistory(guild, q ?? "", limit);
+          sendJson(res, 200, {
+            guild: { id: guild.id, name: guild.name, icon: guild.icon },
+            ...result,
+          });
           return;
         }
 
@@ -3291,122 +3466,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             ...payload,
           });
-          return;
-        }
-
-        if (economyMatch) {
-          const rest = (economyMatch[2] ?? "").replace(/\/+$/, "");
-          const segments = rest ? rest.split("/") : [];
-          const econ = await import("./webEconomy.js");
-
-          const requireManage = async (userId: string | undefined | null): Promise<string | null> => {
-            const id = userId?.trim();
-            if (!id) {
-              sendJson(res, 400, { error: "userId is required" });
-              return null;
-            }
-            if (!(await memberCanManage(guild, id))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return null;
-            }
-            return id;
-          };
-
-          const readJsonBody = async <T extends Record<string, unknown>>(): Promise<T | null> => {
-            try {
-              return JSON.parse(await readBody(req)) as T;
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return null;
-            }
-          };
-
-          // GET /economy — overview (global currency info + this server's settings)
-          if (segments.length === 0 && req.method === "GET") {
-            const userId = await requireManage(url.searchParams.get("userId"));
-            if (!userId) return;
-            const result = await econ.getEconomyOverview(configManager, guildId);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            const { ok: _ok, ...payload } = result;
-            sendJson(res, 200, {
-              guild: { id: guild.id, name: guild.name, icon: guild.icon },
-              ...payload,
-            });
-            return;
-          }
-
-          // POST /economy/settings — update this server's currency name/symbol/rates
-          if (segments[0] === "settings" && segments.length === 1 && req.method === "POST") {
-            const body = await readJsonBody<Record<string, unknown> & { userId?: string }>();
-            if (!body) return;
-            const actorId = await requireManage(body.userId);
-            if (!actorId) return;
-            const { userId: _u, ...patch } = body;
-            const result = await econ.updateEconomySettings(configManager, guildId, actorId, patch);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, actorId, {
-              eventType: "dashboard_economy",
-              title: "Economy settings updated",
-              summary: "Updated the server economy settings from the dashboard.",
-              payload: { server: result.server },
-            });
-            sendJson(res, 200, { ok: true, server: result.server });
-            return;
-          }
-
-          // Accounts
-          if (segments[0] === "accounts" && segments[1]) {
-            const targetUserId = segments[1]!;
-            if (segments.length === 2 && req.method === "GET") {
-              const userId = await requireManage(url.searchParams.get("userId"));
-              if (!userId) return;
-              const result = await econ.getEconomyAccount(configManager, guildId, targetUserId);
-              if (!result.ok) {
-                sendJson(res, result.status, { error: result.error });
-                return;
-              }
-              const { ok: _ok, ...payload } = result;
-              sendJson(res, 200, payload);
-              return;
-            }
-            if (segments.length === 3 && segments[2] === "adjust" && req.method === "POST") {
-              const body = await readJsonBody<{
-                userId?: string;
-                scope?: "global" | "server";
-                mode?: "add" | "take" | "set";
-                amount?: number;
-              }>();
-              if (!body) return;
-              const actorId = await requireManage(body.userId);
-              if (!actorId) return;
-              const result = await econ.adjustEconomyAccount(configManager, guildId, targetUserId, {
-                scope: body.scope ?? "server",
-                mode: body.mode ?? "add",
-                amount: Number(body.amount ?? 0),
-              });
-              if (!result.ok) {
-                sendJson(res, result.status, { error: result.error });
-                return;
-              }
-              trackDashboardAction(client, guildId, actorId, {
-                eventType: "dashboard_economy",
-                title: "Economy balance adjust",
-                summary: `Adjusted the ${result.scope} balance for <@${targetUserId}>.`,
-                targetId: targetUserId,
-                payload: { scope: result.scope, balance: result.balance, mode: body.mode ?? "add" },
-              });
-              sendJson(res, 200, { ok: true, scope: result.scope, balance: result.balance });
-              return;
-            }
-          }
-
-          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

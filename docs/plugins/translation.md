@@ -27,7 +27,7 @@ plugins:
 
 | Field | Description |
 |-------|-------------|
-| `auto_translate` | Dreamliner Aero exclusive. When `true`, react with the default-language flag on messages that look like another language. Default `false`. |
+| `auto_translate` | Dreamliner One exclusive. When `true`, react with the default-language flag on messages that look like another language. Default `false`. |
 | `ignored_channels` | Channel IDs where auto-translate is skipped. |
 | `can_translate` | Permission to use `/translate` |
 
@@ -48,15 +48,15 @@ overrides:
 
 ## Auto-translate
 
-Auto-translate is a **Dreamliner Aero** exclusive.
+Auto-translate is a **Dreamliner One** exclusive.
 
-1. Subscribe to Dreamliner Aero for the server.
+1. Subscribe to Dreamliner One for the server.
 2. Enable `auto_translate` in the dashboard or YAML.
 3. Members post in any channel except those in `ignored_channels`.
 4. If Dreamliner detects a different language than `default_language`, it adds that language’s flag reaction.
 5. Anyone can press the reaction; Dreamliner posts a silent plain-text translation as the original author (via webhook), with a small “Translated with Dreamliner” footer. The bot needs **Manage Webhooks** in that channel for the author avatar/name; otherwise it falls back to a plain bot reply.
 
-`/translate` stays available without Aero. Auto-translate flag reactions do not run unless Aero is active.
+`/translate` stays available without Dreamliner One. Auto-translate flag reactions do not run unless Dreamliner One is active.
 
 Very short messages (under 4 characters) are skipped for detection noise.
 

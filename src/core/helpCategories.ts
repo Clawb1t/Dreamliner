@@ -158,16 +158,16 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [{ plugin: "reviews" }, { plugin: "suggestions" }],
   },
   {
+    id: "fun",
+    label: "Fun",
+    blurb: "Games and light server extras — a global and server economy, plus anime images.",
+    include: [{ plugin: "economy" }, { plugin: "anime" }],
+  },
+  {
     id: "support",
     label: "Support",
     blurb: "Ticket panels, staff claiming, transcripts, and support automation.",
     include: [{ plugin: "tickets" }],
-  },
-  {
-    id: "economy",
-    label: "Economy",
-    blurb: "Global coins and a customisable server currency, earned by chatting and daily claims.",
-    include: [{ plugin: "economy" }],
   },
   {
     id: "config",
@@ -364,6 +364,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Economy",
     description: "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims.",
   },
+  anime: {
+    key: "anime",
+    name: "Anime",
+    description: "Random neko images from Nekos.best, with a personal saved collection.",
+  },
   social: {
     key: "social",
     name: "Social Notifications",
@@ -423,7 +428,8 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   reviews: "feedback",
   suggestions: "feedback",
   tickets: "support",
-  economy: "economy",
+  economy: "fun",
+  anime: "fun",
   social: "social",
 };
 

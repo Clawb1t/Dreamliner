@@ -1,8 +1,9 @@
-import { Events } from "discord.js";
+import { AuditLogEvent, Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zNameHistoryConfig } from "../../config/schemas/plugins.js";
 import { configManager } from "../../config/manager.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
+import { findAuditExecutor } from "../../core/logging/audit.js";
 import { nameHistoryDefaultOverrides } from "./defaultOverrides.js";
 import { namesCommands } from "./commands/names.js";
 import { recordNameChange } from "./functions/store.js";
@@ -27,12 +28,17 @@ export const nameHistoryPlugin = definePlugin({
         const guildConfig = await configManager.getEffectiveConfig(newM.guild.id);
         if (!pluginEnabled(guildConfig, "name_history")) return;
 
+        const mod = await findAuditExecutor(newM.guild, AuditLogEvent.MemberUpdate, {
+          targetId: newM.id,
+        });
+
         await recordNameChange({
           guildId: newM.guild.id,
           userId: newM.id,
           oldName: oldNick,
           newName: newNick,
           changeType: "nickname",
+          changedBy: mod?.id ?? newM.id,
         }).catch(() => null);
       },
     },
@@ -55,6 +61,7 @@ export const nameHistoryPlugin = definePlugin({
             oldName: oldU.username,
             newName: newU.username,
             changeType: "username",
+            changedBy: newU.id,
           }).catch(() => null);
         }
       },

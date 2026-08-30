@@ -36,6 +36,7 @@ import { suggestionsDefaultOverrides } from "../plugins/suggestions/defaultOverr
 import { scamProtectDefaultOverrides } from "../plugins/scam_protect/defaultOverrides.js";
 import { passportDefaultOverrides } from "../plugins/passport/defaultOverrides.js";
 import { economyDefaultOverrides } from "../plugins/economy/defaultOverrides.js";
+import { animeDefaultOverrides } from "../plugins/anime/defaultOverrides.js";
 import { ticketsDefaultOverrides } from "../plugins/tickets/defaultOverrides.js";
 import { ttsDefaultOverrides } from "../plugins/tts/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
@@ -49,6 +50,7 @@ export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrid
   scam_protect: scamProtectDefaultOverrides,
   passport: passportDefaultOverrides,
   economy: economyDefaultOverrides,
+  anime: animeDefaultOverrides,
   admin: adminDefaultOverrides,
   slowmode: slowmodeDefaultOverrides,
   name_history: nameHistoryDefaultOverrides,

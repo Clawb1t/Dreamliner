@@ -8,7 +8,7 @@ export const zTranslationConfig = z.strictObject({
     .boolean()
     .default(false)
     .describe(
-      "Dreamliner Aero exclusive. When true, react with the server default-language flag on messages that are not in that language. Members can press the reaction for a translation reply.",
+      "Dreamliner One exclusive. When true, react with the server default-language flag on messages that are not in that language. Members can press the reaction for a translation reply.",
     ),
   ignored_channels: z
     .array(z.string())

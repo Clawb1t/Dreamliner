@@ -154,6 +154,10 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "economy balance", label: "/balance", plugin: "economy", permission: "can_balance" },
   { key: "economy daily", label: "/daily", plugin: "economy", permission: "can_daily" },
   { key: "economy admin", label: "/economy settings", plugin: "economy", permission: "can_admin_manage" },
+
+  // Anime
+  { key: "anime neko", label: "/anime neko", plugin: "anime", permission: "can_neko" },
+  { key: "anime saved", label: "/anime saved", plugin: "anime", permission: "can_saved" },
 ];
 
 const byKey = new Map(PERMISSION_TARGETS.map((target) => [target.key, target]));

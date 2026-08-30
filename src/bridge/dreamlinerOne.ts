@@ -8,17 +8,17 @@ import {
   refreshGuildDiscordOne,
 } from "./oneEntitlements.js";
 
-export const DREAMLINER_AERO_REQUIRED =
-  "Custom Branding requires Dreamliner Aero.";
+export const DREAMLINER_ONE_REQUIRED =
+  "Custom Branding requires Dreamliner One.";
 
-export type DreamlinerAeroPublicStatus = {
+export type DreamlinerOnePublicStatus = {
   active: boolean;
   forever: boolean;
   expiresAt: string | null;
   note: string | null;
 };
 
-export type DreamlinerAeroAdminStatus = DreamlinerAeroPublicStatus & {
+export type DreamlinerOneAdminStatus = DreamlinerOnePublicStatus & {
   status: "none" | "active" | "expired" | "revoked";
   grantedBy: string | null;
   grantedAt: string | null;
@@ -33,7 +33,7 @@ function toIso(value: Date | null | undefined): string | null {
   return value ? value.toISOString() : null;
 }
 
-function deriveStatus(row: SubscriptionRow | undefined, now = Date.now()): DreamlinerAeroAdminStatus {
+function deriveStatus(row: SubscriptionRow | undefined, now = Date.now()): DreamlinerOneAdminStatus {
   if (!row) {
     return {
       active: false,
@@ -99,8 +99,8 @@ function deriveStatus(row: SubscriptionRow | undefined, now = Date.now()): Dream
   };
 }
 
-function mergeAeroStatus(
-  manual: DreamlinerAeroAdminStatus,
+function mergeOneStatus(
+  manual: DreamlinerOneAdminStatus,
   entitlement:
     | {
         userId: string | null;
@@ -109,7 +109,7 @@ function mergeAeroStatus(
         updatedAt: Date;
       }
     | undefined,
-): DreamlinerAeroAdminStatus {
+): DreamlinerOneAdminStatus {
   if (!entitlement) return manual;
   return {
     active: true,
@@ -125,7 +125,7 @@ function mergeAeroStatus(
   };
 }
 
-export function toPublicStatus(admin: DreamlinerAeroAdminStatus): DreamlinerAeroPublicStatus {
+export function toPublicStatus(admin: DreamlinerOneAdminStatus): DreamlinerOnePublicStatus {
   return {
     active: admin.active,
     forever: admin.forever,
@@ -134,7 +134,7 @@ export function toPublicStatus(admin: DreamlinerAeroAdminStatus): DreamlinerAero
   };
 }
 
-export async function getDreamlinerAeroRow(guildId: string): Promise<SubscriptionRow | undefined> {
+export async function getDreamlinerOneRow(guildId: string): Promise<SubscriptionRow | undefined> {
   return getDb()
     .select()
     .from(guildOneSubscriptions)
@@ -142,26 +142,26 @@ export async function getDreamlinerAeroRow(guildId: string): Promise<Subscriptio
     .get();
 }
 
-export async function getDreamlinerAeroAdminStatus(guildId: string): Promise<DreamlinerAeroAdminStatus> {
+export async function getDreamlinerOneAdminStatus(guildId: string): Promise<DreamlinerOneAdminStatus> {
   const [row, entitlement] = await Promise.all([
-    getDreamlinerAeroRow(guildId),
+    getDreamlinerOneRow(guildId),
     getActiveDiscordEntitlement(guildId),
   ]);
-  return mergeAeroStatus(deriveStatus(row), entitlement);
+  return mergeOneStatus(deriveStatus(row), entitlement);
 }
 
-export async function getDreamlinerAeroPublicStatus(guildId: string): Promise<DreamlinerAeroPublicStatus> {
-  return toPublicStatus(await getDreamlinerAeroAdminStatus(guildId));
+export async function getDreamlinerOnePublicStatus(guildId: string): Promise<DreamlinerOnePublicStatus> {
+  return toPublicStatus(await getDreamlinerOneAdminStatus(guildId));
 }
 
-export async function isDreamlinerAeroActive(guildId: string): Promise<boolean> {
+export async function isDreamlinerOneActive(guildId: string): Promise<boolean> {
   if (await getActiveDiscordEntitlement(guildId)) return true;
-  const status = deriveStatus(await getDreamlinerAeroRow(guildId));
+  const status = deriveStatus(await getDreamlinerOneRow(guildId));
   if (status.active) return true;
   return refreshGuildDiscordOne(guildId);
 }
 
-export async function listActiveAeroGuildIds(): Promise<Set<string>> {
+export async function listActiveOneGuildIds(): Promise<Set<string>> {
   const ids = new Set<string>();
   for (const row of await listActiveDiscordEntitlements()) {
     ids.add(row.guildId);
@@ -176,13 +176,13 @@ export async function listActiveAeroGuildIds(): Promise<Set<string>> {
   return ids;
 }
 
-export async function listPlatformDreamlinerAero(client: Client): Promise<{
+export async function listPlatformDreamlinerOne(client: Client): Promise<{
   guilds: Array<{
     id: string;
     name: string;
     icon: string | null;
     memberCount: number;
-    one: DreamlinerAeroAdminStatus;
+    one: DreamlinerOneAdminStatus;
   }>;
 }> {
   const rows = await getDb().select().from(guildOneSubscriptions).all();
@@ -198,10 +198,10 @@ export async function listPlatformDreamlinerAero(client: Client): Promise<{
       name: guild.name,
       icon: guild.icon,
       memberCount: guild.memberCount,
-      one: mergeAeroStatus(deriveStatus(byGuild.get(guild.id), now), discordByGuild.get(guild.id)),
+      one: mergeOneStatus(deriveStatus(byGuild.get(guild.id), now), discordByGuild.get(guild.id)),
     }))
     .sort((a, b) => {
-      const rank = (status: DreamlinerAeroAdminStatus["status"]) => {
+      const rank = (status: DreamlinerOneAdminStatus["status"]) => {
         if (status === "active") return 0;
         if (status === "expired") return 1;
         if (status === "revoked") return 2;
@@ -215,16 +215,16 @@ export async function listPlatformDreamlinerAero(client: Client): Promise<{
   return { guilds };
 }
 
-export async function upsertDreamlinerAero(input: {
+export async function upsertDreamlinerOne(input: {
   guildId: string;
   actorId: string;
   expiresAt: Date | null;
   note?: string | null;
-}): Promise<DreamlinerAeroAdminStatus> {
+}): Promise<DreamlinerOneAdminStatus> {
   const now = new Date();
   const note =
     typeof input.note === "string" && input.note.trim() ? input.note.trim().slice(0, 500) : null;
-  const existing = await getDreamlinerAeroRow(input.guildId);
+  const existing = await getDreamlinerOneRow(input.guildId);
 
   if (existing) {
     await getDb()
@@ -250,14 +250,14 @@ export async function upsertDreamlinerAero(input: {
     });
   }
 
-  return getDreamlinerAeroAdminStatus(input.guildId);
+  return getDreamlinerOneAdminStatus(input.guildId);
 }
 
-export async function revokeDreamlinerAero(
+export async function revokeDreamlinerOne(
   guildId: string,
   actorId: string,
-): Promise<DreamlinerAeroAdminStatus | null> {
-  const existing = await getDreamlinerAeroRow(guildId);
+): Promise<DreamlinerOneAdminStatus | null> {
+  const existing = await getDreamlinerOneRow(guildId);
   if (!existing) return null;
 
   const now = new Date();
@@ -270,7 +270,7 @@ export async function revokeDreamlinerAero(
     })
     .where(eq(guildOneSubscriptions.guildId, guildId));
 
-  return getDreamlinerAeroAdminStatus(guildId);
+  return getDreamlinerOneAdminStatus(guildId);
 }
 
 export function parseExpiresAt(raw: unknown): Date | null | undefined {

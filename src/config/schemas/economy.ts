@@ -19,6 +19,14 @@ export const zEconomyServerConfig = z.strictObject({
     .max(8)
     .default("$")
     .describe("Prefix shown in front of server currency amounts, e.g. $ in `$0.15`."),
+  currency_emoji: z
+    .string()
+    .max(64)
+    .default("")
+    .describe(
+      "Optional emoji shown next to server currency amounts. A Unicode emoji or a custom emoji like " +
+        "<:coin:123> or <a:coin:123> for animated. Empty for none.",
+    ),
   message_rewards_enabled: z.boolean().default(true).describe("Pay server currency for sending messages."),
   message_amount: nonNegNumber("Server currency earned per rewarded message.", 0.1, 10_000),
   message_cooldown_seconds: z

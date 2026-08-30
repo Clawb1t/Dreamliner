@@ -28,7 +28,13 @@ export const zSocialButton = z.strictObject({
 });
 
 export const zSocialEmbedConfig = z.strictObject({
-  enabled: z.boolean().default(true).describe("Include a Discord embed with the notification."),
+  enabled: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Include a Discord embed built by Dreamliner. Off by default — the plain message's video link is left for " +
+        "Discord's own link unfurl to expand, which is usually all you need.",
+    ),
   title: z.string().max(256).default("").describe("Embed title. Supports placeholders like {channel_name}."),
   title_url: z.string().max(512).default("").describe("Optional https URL the title links to. Supports placeholders."),
   description: z.string().max(4096).default("").describe("Embed description. Supports placeholders."),
@@ -58,10 +64,10 @@ export function validateSocialEmbedConfig(input: unknown): SocialEmbedConfig {
   return zSocialEmbedConfig.parse(input);
 }
 
-/** Default embed for a newly created YouTube watcher. */
+/** Default embed for a newly created YouTube watcher — off by default, see `enabled`. */
 export function buildDefaultSocialEmbedConfig(): SocialEmbedConfig {
   return zSocialEmbedConfig.parse({
-    enabled: true,
+    enabled: false,
     title: "New upload from {channel_name}!",
     description: "**{video_title}**",
     color: 0xff0000,
@@ -73,3 +79,6 @@ export function buildDefaultSocialEmbedConfig(): SocialEmbedConfig {
     buttons: [{ label: "Watch on YouTube", url: "{video_url}" }],
   });
 }
+
+/** Default plain-text message for a newly created watcher, used when the embed is off. */
+export const DEFAULT_SOCIAL_MESSAGE_CONTENT = "**{channel_name}** has posted {video_url}";
