@@ -7,6 +7,7 @@ import {
   type ButtonInteraction,
 } from "discord.js";
 import { configManager } from "../../../config/manager.js";
+import { resolveEmojiForContent } from "../../../core/emoji.js";
 import { downloadNekoImage, nekoRefToUrl } from "./nekosBest.js";
 import { formatNekoContent, parseNekoCredit } from "./format.js";
 import { listSavedNekos, saveNeko, unsaveNeko, type SavedNeko } from "./store.js";
@@ -109,12 +110,10 @@ export async function handleAnimeSavedNavButtonInteraction(interaction: ButtonIn
   // `interaction.guildId` can only be missing in a DM, which this feature isn't used from in
   // practice — falls back to a plain checkmark rather than requiring guild context here.
   const guildConfig = interaction.guildId ? await configManager.getEffectiveConfig(interaction.guildId) : null;
-  const payload = await buildSavedViewPayload(
-    saved[nextIndex]!,
-    nextIndex,
-    saved.length,
-    guildConfig?.emojis.success ?? "✅",
-  );
+  const successEmoji = guildConfig
+    ? resolveEmojiForContent(guildConfig.emojis.success, interaction.client)
+    : "✅";
+  const payload = await buildSavedViewPayload(saved[nextIndex]!, nextIndex, saved.length, successEmoji);
   await interaction.update(payload).catch(() => null);
   return true;
 }

@@ -2,6 +2,7 @@ import { AttachmentBuilder, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandContext, SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { deferReplyOptions } from "../../core/responses.js";
+import { resolveEmojiForContent } from "../../core/emoji.js";
 import { downloadNekoImage, fetchRandomNeko, nekoUrlToRef, NekosBestError } from "./functions/nekosBest.js";
 import { formatNekoContent } from "./functions/format.js";
 import { buildNekoSaveRow, buildSavedNavRow } from "./functions/buttons.js";
@@ -16,9 +17,10 @@ async function runNeko(ctx: SlashCommandContext): Promise<void> {
     const image = await downloadNekoImage(neko.url);
     const attachment = new AttachmentBuilder(image.buffer, { name: image.filename });
     const row = buildNekoSaveRow(nekoUrlToRef(neko.url));
+    const successEmoji = resolveEmojiForContent(ctx.guildConfig.emojis.success, ctx.client);
 
     await i.editReply({
-      content: formatNekoContent(neko.artistName, neko.artistHref, ctx.guildConfig.emojis.success),
+      content: formatNekoContent(neko.artistName, neko.artistHref, successEmoji),
       files: [attachment],
       components: [row],
     });
@@ -41,9 +43,10 @@ async function runSaved(ctx: SlashCommandContext): Promise<void> {
 
   const neko = saved[0]!;
   const image = await downloadNekoImage(neko.imageUrl).catch(() => null);
+  const successEmoji = resolveEmojiForContent(ctx.guildConfig.emojis.success, ctx.client);
 
   await i.editReply({
-    content: `${formatNekoContent(neko.artistName, neko.artistHref, ctx.guildConfig.emojis.success)}\n-# Saved neko 1/${saved.length}`,
+    content: `${formatNekoContent(neko.artistName, neko.artistHref, successEmoji)}\n-# Saved neko 1/${saved.length}`,
     files: image ? [new AttachmentBuilder(image.buffer, { name: image.filename })] : [],
     components: [buildSavedNavRow(0, saved.length)],
   });
