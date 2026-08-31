@@ -954,6 +954,181 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Plane/airline card catalog admin (platform superusers only) -------------------
+
+        if (url.pathname === "/bridge/platform/plane-cards/images") {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId || !isDashboardSuperuser(requesterId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { listPlaneCardImageFiles } = await import("./planeCards.js");
+          sendJson(res, 200, { ok: true, files: listPlaneCardImageFiles() });
+          return;
+        }
+
+        if (url.pathname === "/bridge/platform/plane-cards/settings") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { getPlaneCardPackSettings } = await import("./planeCards.js");
+            sendJson(res, 200, { ok: true, settings: getPlaneCardPackSettings() });
+            return;
+          }
+          if (req.method === "PUT") {
+            let body: { userId?: string; packPrice?: unknown; packSize?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { updatePlaneCardPackSettings } = await import("./planeCards.js");
+            try {
+              const patch: { packPrice?: number; packSize?: number } = {};
+              if (body.packPrice !== undefined) {
+                const price = Number(body.packPrice);
+                if (!Number.isFinite(price) || price < 0) {
+                  sendJson(res, 400, { error: "packPrice must be a non-negative number." });
+                  return;
+                }
+                patch.packPrice = price;
+              }
+              if (body.packSize !== undefined) {
+                const size = Math.round(Number(body.packSize));
+                if (!Number.isFinite(size) || size < 1 || size > 5) {
+                  sendJson(res, 400, { error: "packSize must be between 1 and 5." });
+                  return;
+                }
+                patch.packSize = size;
+              }
+              const settings = updatePlaneCardPackSettings(patch, actorId);
+              sendJson(res, 200, { ok: true, settings });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to update pack settings.",
+              });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (url.pathname === "/bridge/platform/plane-cards") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listAdminPlaneCards } = await import("./planeCards.js");
+            sendJson(res, 200, { ok: true, cards: listAdminPlaneCards() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: Record<string, unknown> & { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { createAdminPlaneCard } = await import("./planeCards.js");
+            try {
+              const card = createAdminPlaneCard({
+                key: body.key,
+                name: body.name,
+                cardType: body.cardType,
+                subtitle: body.subtitle,
+                rarity: body.rarity,
+                imageKey: body.imageKey,
+                safety: body.safety,
+                speed: body.speed,
+                agility: body.agility,
+                passengerCount: body.passengerCount,
+                reputation: body.reputation,
+                fleetSize: body.fleetSize,
+                destinations: body.destinations,
+                createdBy: actorId,
+              });
+              sendJson(res, 200, { ok: true, card });
+            } catch (error) {
+              sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to create card." });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformPlaneCardMatch = /^\/bridge\/platform\/plane-cards\/(\d+)$/.exec(url.pathname);
+        if (platformPlaneCardMatch && (req.method === "PUT" || req.method === "DELETE")) {
+          let body: Record<string, unknown> & { userId?: string };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const cardId = Number(platformPlaneCardMatch[1]);
+
+          if (req.method === "DELETE") {
+            const { disableAdminPlaneCard } = await import("./planeCards.js");
+            try {
+              const card = disableAdminPlaneCard(cardId);
+              sendJson(res, 200, { ok: true, card });
+            } catch (error) {
+              sendJson(res, 404, { error: error instanceof Error ? error.message : "Card not found." });
+            }
+            return;
+          }
+
+          const { updateAdminPlaneCard } = await import("./planeCards.js");
+          try {
+            const card = updateAdminPlaneCard(cardId, {
+              name: body.name,
+              subtitle: body.subtitle,
+              rarity: body.rarity,
+              imageKey: body.imageKey,
+              enabled: body.enabled,
+              speed: body.speed,
+              agility: body.agility,
+              passengerCount: body.passengerCount,
+              reputation: body.reputation,
+              fleetSize: body.fleetSize,
+              destinations: body.destinations,
+              safety: body.safety,
+            });
+            sendJson(res, 200, { ok: true, card });
+          } catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to update card." });
+          }
+          return;
+        }
+
         const userLookupMatch = /^\/bridge\/users\/(\d+)\/lookup$/.exec(url.pathname);
         if (userLookupMatch && req.method === "GET") {
           const requesterId = url.searchParams.get("userId")?.trim();

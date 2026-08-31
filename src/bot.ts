@@ -888,22 +888,8 @@ async function handleStatsPermissionInteraction(
   );
 }
 
-/**
- * Slash commands registered as a guild command in one specific guild only, never globally —
- * for commands that should be invisible/unusable everywhere else, regardless of
- * defaultMemberPermissions (which only controls who within a guild can see it, not which
- * guilds get it at all).
- */
-const GUILD_ONLY_COMMAND_GUILDS: Record<string, string> = {
-  planesadmin: "1537960888026402868",
-};
-
 export async function registerApplicationCommands(token: string, clientId: string) {
-  const allSlashCommands = availablePlugins.flatMap((p) => p.slashCommands);
-  const globalSlashCommands = allSlashCommands.filter((cmd) => !(cmd.data.name in GUILD_ONLY_COMMAND_GUILDS));
-  const guildOnlyCommands = allSlashCommands.filter((cmd) => cmd.data.name in GUILD_ONLY_COMMAND_GUILDS);
-
-  const slashBody = globalSlashCommands.map((cmd) => cmd.data.toJSON());
+  const slashBody = availablePlugins.flatMap((p) => p.slashCommands.map((cmd) => cmd.data.toJSON()));
   const contextBody = availablePlugins.flatMap((p) =>
     (p.contextMenuCommands ?? []).map((cmd) => cmd.data.toJSON()),
   );
@@ -912,19 +898,6 @@ export async function registerApplicationCommands(token: string, clientId: strin
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationCommands(clientId), { body });
   console.log(`Registered ${slashBody.length} slash commands and ${contextBody.length} context menu commands.`);
-
-  const byGuild = new Map<string, typeof guildOnlyCommands>();
-  for (const cmd of guildOnlyCommands) {
-    const guildId = GUILD_ONLY_COMMAND_GUILDS[cmd.data.name]!;
-    const list = byGuild.get(guildId);
-    if (list) list.push(cmd);
-    else byGuild.set(guildId, [cmd]);
-  }
-  for (const [guildId, cmds] of byGuild) {
-    const guildBody = cmds.map((cmd) => cmd.data.toJSON());
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: guildBody });
-    console.log(`Registered ${guildBody.length} guild-only command(s) (${cmds.map((c) => c.data.name).join(", ")}) in guild ${guildId}.`);
-  }
 }
 
 /** @deprecated Use registerApplicationCommands */

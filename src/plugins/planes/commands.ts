@@ -11,29 +11,21 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { embedReply, resultReply, slashResultOptions } from "../../core/responses.js";
 import { baseEmbed } from "../../core/embeds.js";
-import { isDashboardSuperuser } from "../../bridge/superuser.js";
 import {
   CARD_TYPE_META,
   CARD_TYPES,
-  CatalogError,
   RARITY_META,
   RARITY_ORDER,
-  createPlaneType,
-  disablePlaneType,
   getPlaneTypeByKey,
   isCardType,
   isRarity,
   listPlaneTypes,
-  normalizePlaneKey,
   searchPlaneTypes,
-  updatePlaneType,
-  type Rarity,
 } from "./functions/catalog.js";
 import { getSortedInventory, getOwnedPlaneTypeIds, giveCard, InventoryError } from "./functions/inventory.js";
-import { isValidImageKey, listPlaneImageFiles, planeImageAttachment } from "./functions/images.js";
-import { getPackSettings, setPackSettings } from "./functions/settings.js";
+import { getPackSettings } from "./functions/settings.js";
 import { buildCardReveal, buildInventoryPage } from "./functions/cardDisplay.js";
-import { cardTypeBadge, formatCoinAmount, formatPlainAmount, planeLine, rarityBadge } from "./functions/format.js";
+import { formatCoinAmount, formatPlainAmount, planeLine } from "./functions/format.js";
 import { PLANE_PACK_PREFIX } from "./functions/customIds.js";
 
 const LIST_LIMIT = 25;
@@ -55,18 +47,10 @@ export async function handlePlanesAutocomplete(interaction: AutocompleteInteract
   const query = String(focused.value ?? "");
 
   if (focused.name === "plane") {
-    const isGive = interaction.commandName === "planes" && interaction.options.getSubcommandGroup(false) === "card" && interaction.options.getSubcommand(false) === "give";
-    const enabledOnly = interaction.commandName !== "planesadmin";
+    const isGive = interaction.options.getSubcommandGroup(false) === "card" && interaction.options.getSubcommand(false) === "give";
     const owned = isGive ? getOwnedPlaneTypeIds(interaction.user.id) : undefined;
-    const matches = searchPlaneTypes(query, LIST_LIMIT, { enabledOnly, ownedBy: owned });
+    const matches = searchPlaneTypes(query, LIST_LIMIT, { enabledOnly: true, ownedBy: owned });
     await interaction.respond(matches.map((p) => ({ name: `${p.name} (${p.key})`.slice(0, 100), value: p.key })));
-    return;
-  }
-
-  if (focused.name === "image_key") {
-    const q = query.trim().toLowerCase();
-    const files = listPlaneImageFiles().filter((f) => !q || f.toLowerCase().includes(q));
-    await interaction.respond(files.slice(0, LIST_LIMIT).map((f) => ({ name: f, value: f })));
     return;
   }
 
@@ -253,246 +237,4 @@ export const planesCommands: SlashCommandDefinition[] = [
       }
     },
   },
-  {
-    // Split out from `/planes` entirely (not a subcommand group under it), and registered as a
-    // guild command in one trusted guild only (see GUILD_ONLY_COMMAND_GUILDS in bot.ts) rather
-    // than globally — Discord only supports hiding a whole command via defaultMemberPermissions,
-    // not individual subcommand groups, and registering it nowhere else is a cleaner way to keep
-    // it out of every other server than hiding-then-unhiding it there. Visible to everyone in
-    // that one guild; the execute-time isDashboardSuperuser check below is what actually
-    // enforces "only the bot's developers" for running it.
-    plugin: "planes",
-    data: new SlashCommandBuilder()
-      .setName("planesadmin")
-      .setDescription("Manage the card catalog (bot developers only)")
-      .addSubcommand((s) =>
-        s
-          .setName("add_plane")
-          .setDescription("Add a new plane card")
-          .addStringOption((o) => o.setName("key").setDescription("Unique slug, e.g. boeing-747").setRequired(true).setMaxLength(48))
-          .addStringOption((o) => o.setName("name").setDescription("Display name, e.g. Boeing 747").setRequired(true).setMaxLength(64))
-          .addStringOption((o) => o.setName("rarity").setDescription("Rarity").setRequired(true).addChoices(...rarityChoices()))
-          .addIntegerOption((o) => o.setName("speed").setDescription("Speed (0-100)").setRequired(true).setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("agility").setDescription("Agility (0-100)").setRequired(true).setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("safety").setDescription("Safety (0-100)").setRequired(true).setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("passengers").setDescription("Passenger count").setRequired(true).setMinValue(0).setMaxValue(1_000_000))
-          .addStringOption((o) =>
-            o.setName("image_key").setDescription("Image file name in assets/planes/, e.g. a350.png").setRequired(true).setMaxLength(128).setAutocomplete(true),
-          )
-          .addStringOption((o) => o.setName("manufacturer").setDescription("Manufacturer, e.g. Boeing").setMaxLength(64)),
-      )
-      .addSubcommand((s) =>
-        s
-          .setName("add_airline")
-          .setDescription("Add a new airline card")
-          .addStringOption((o) => o.setName("key").setDescription("Unique slug, e.g. delta-air-lines").setRequired(true).setMaxLength(48))
-          .addStringOption((o) => o.setName("name").setDescription("Display name, e.g. Delta Air Lines").setRequired(true).setMaxLength(64))
-          .addStringOption((o) => o.setName("rarity").setDescription("Rarity").setRequired(true).addChoices(...rarityChoices()))
-          .addIntegerOption((o) => o.setName("reputation").setDescription("Reputation (0-100)").setRequired(true).setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("fleet_size").setDescription("Fleet size (aircraft count)").setRequired(true).setMinValue(0).setMaxValue(1_000_000))
-          .addIntegerOption((o) => o.setName("destinations").setDescription("Number of destinations served").setRequired(true).setMinValue(0).setMaxValue(1_000_000))
-          .addIntegerOption((o) => o.setName("safety").setDescription("Safety (0-100)").setRequired(true).setMinValue(0).setMaxValue(100))
-          .addStringOption((o) =>
-            o.setName("image_key").setDescription("Image file name in assets/planes/, e.g. delta.png").setRequired(true).setMaxLength(128).setAutocomplete(true),
-          )
-          .addStringOption((o) => o.setName("info").setDescription("Extra info, e.g. hub or founded year").setMaxLength(64)),
-      )
-      .addSubcommand((s) =>
-        s
-          .setName("edit")
-          .setDescription("Edit an existing card")
-          .addStringOption((o) => planeOption(o, "plane", "Card to edit"))
-          .addStringOption((o) => o.setName("name").setDescription("Display name").setMaxLength(64))
-          .addStringOption((o) => o.setName("rarity").setDescription("Rarity").addChoices(...rarityChoices()))
-          .addStringOption((o) => o.setName("subtitle").setDescription("Manufacturer (planes) or extra info (airlines)").setMaxLength(64))
-          .addIntegerOption((o) => o.setName("safety").setDescription("Safety (0-100), shared by both card types").setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("speed").setDescription("Speed (0-100), plane cards only").setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("agility").setDescription("Agility (0-100), plane cards only").setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("passengers").setDescription("Passenger count, plane cards only").setMinValue(0).setMaxValue(1_000_000))
-          .addIntegerOption((o) => o.setName("reputation").setDescription("Reputation (0-100), airline cards only").setMinValue(0).setMaxValue(100))
-          .addIntegerOption((o) => o.setName("fleet_size").setDescription("Fleet size, airline cards only").setMinValue(0).setMaxValue(1_000_000))
-          .addIntegerOption((o) => o.setName("destinations").setDescription("Destinations served, airline cards only").setMinValue(0).setMaxValue(1_000_000))
-          .addStringOption((o) =>
-            o.setName("image_key").setDescription("Image file name in assets/planes/, e.g. a350.png").setMaxLength(128).setAutocomplete(true),
-          )
-          .addBooleanOption((o) => o.setName("enabled").setDescription("Whether this card appears in packs/catalog")),
-      )
-      .addSubcommand((s) =>
-        s
-          .setName("remove")
-          .setDescription("Disable a card (keeps history intact)")
-          .addStringOption((o) => planeOption(o, "plane", "Card to disable")),
-      )
-      .addSubcommand((s) =>
-        s
-          .setName("settings")
-          .setDescription("View or change the global pack price/size (bot-wide, not per-server)")
-          .addNumberOption((o) => o.setName("pack_price").setDescription("Global coin cost per pack").setMinValue(0).setMaxValue(1_000_000))
-          .addIntegerOption((o) => o.setName("pack_size").setDescription("Cards revealed per pack (1-5)").setMinValue(1).setMaxValue(5)),
-      ),
-    execute: async (ctx) => {
-      const i = ctx.interaction;
-      const sub = i.options.getSubcommand();
-
-      if (!isDashboardSuperuser(i.user.id)) {
-        await i.reply(resultReply("Permission denied", "This command is limited to the bot's developers.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-        return;
-      }
-
-      if (sub === "add_plane" || sub === "add_airline") {
-        const rarityInput = i.options.getString("rarity", true);
-        if (!isRarity(rarityInput)) {
-          await i.reply(resultReply("Invalid rarity", "Pick a rarity from the list.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        const imageKey = i.options.getString("image_key", true);
-        if (!isValidImageKey(imageKey)) {
-          await i.reply(resultReply("Invalid image key", "Use a plain file name (png/jpg/jpeg/webp/gif), e.g. `a350.png`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        if (!planeImageAttachment(imageKey)) {
-          await i.reply(resultReply("Image not found", `No file named \`${imageKey}\` in \`assets/planes/\`. Drop it there first, then run this again.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        try {
-          const plane =
-            sub === "add_plane"
-              ? createPlaneType({
-                  key: i.options.getString("key", true),
-                  name: i.options.getString("name", true),
-                  cardType: "plane",
-                  subtitle: i.options.getString("manufacturer") ?? "",
-                  rarity: rarityInput,
-                  speed: i.options.getInteger("speed", true),
-                  agility: i.options.getInteger("agility", true),
-                  passengerCount: i.options.getInteger("passengers", true),
-                  safety: i.options.getInteger("safety", true),
-                  imageKey,
-                  createdBy: i.user.id,
-                })
-              : createPlaneType({
-                  key: i.options.getString("key", true),
-                  name: i.options.getString("name", true),
-                  cardType: "airline",
-                  subtitle: i.options.getString("info") ?? "",
-                  rarity: rarityInput,
-                  reputation: i.options.getInteger("reputation", true),
-                  fleetSize: i.options.getInteger("fleet_size", true),
-                  destinations: i.options.getInteger("destinations", true),
-                  safety: i.options.getInteger("safety", true),
-                  imageKey,
-                  createdBy: i.user.id,
-                });
-          await i.reply(resultReply("Card added", `Added **${plane.name}** \`${plane.key}\` (${cardTypeBadge(plane.cardType)} · ${rarityBadge(plane.rarity)}).`, ctx.ephemeral, slashResultOptions(ctx)));
-        } catch (err) {
-          if (err instanceof CatalogError) {
-            await i.reply(resultReply("Couldn't add card", err.message, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-            return;
-          }
-          throw err;
-        }
-        return;
-      }
-
-      if (sub === "edit") {
-        const key = i.options.getString("plane", true);
-        const plane = getPlaneTypeByKey(key);
-        if (!plane) {
-          await i.reply(resultReply("Not found", `No card found for \`${key}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        const rarityInput = i.options.getString("rarity");
-        if (rarityInput && !isRarity(rarityInput)) {
-          await i.reply(resultReply("Invalid rarity", "Pick a rarity from the list.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        const imageKeyInput = i.options.getString("image_key");
-        if (imageKeyInput !== null) {
-          if (!isValidImageKey(imageKeyInput)) {
-            await i.reply(resultReply("Invalid image key", "Use a plain file name (png/jpg/jpeg/webp/gif), e.g. `a350.png`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-            return;
-          }
-          if (!planeImageAttachment(imageKeyInput)) {
-            await i.reply(resultReply("Image not found", `No file named \`${imageKeyInput}\` in \`assets/planes/\`. Drop it there first, then run this again.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-            return;
-          }
-        }
-
-        const speed = i.options.getInteger("speed");
-        const agility = i.options.getInteger("agility");
-        const passengers = i.options.getInteger("passengers");
-        const reputation = i.options.getInteger("reputation");
-        const fleetSize = i.options.getInteger("fleet_size");
-        const destinations = i.options.getInteger("destinations");
-
-        if (plane.cardType === "airline" && (speed !== null || agility !== null || passengers !== null)) {
-          await i.reply(resultReply("Wrong stats for this card", "`speed`/`agility`/`passengers` only apply to plane cards — this is an airline card.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        if (plane.cardType === "plane" && (reputation !== null || fleetSize !== null || destinations !== null)) {
-          await i.reply(resultReply("Wrong stats for this card", "`reputation`/`fleet_size`/`destinations` only apply to airline cards — this is a plane card.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-
-        const updated = updatePlaneType(plane.id, {
-          name: i.options.getString("name") ?? undefined,
-          subtitle: i.options.getString("subtitle") ?? undefined,
-          rarity: rarityInput as Rarity | undefined,
-          safety: i.options.getInteger("safety") ?? undefined,
-          speed: speed ?? undefined,
-          agility: agility ?? undefined,
-          passengerCount: passengers ?? undefined,
-          reputation: reputation ?? undefined,
-          fleetSize: fleetSize ?? undefined,
-          destinations: destinations ?? undefined,
-          imageKey: imageKeyInput ?? undefined,
-          enabled: i.options.getBoolean("enabled") ?? undefined,
-        });
-        await i.reply(resultReply("Card updated", `Updated **${updated.name}** \`${updated.key}\`.`, ctx.ephemeral, slashResultOptions(ctx)));
-        return;
-      }
-
-      if (sub === "remove") {
-        const key = i.options.getString("plane", true);
-        const plane = getPlaneTypeByKey(key);
-        if (!plane) {
-          await i.reply(resultReply("Not found", `No card found for \`${key}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        disablePlaneType(plane.id);
-        await i.reply(resultReply("Card disabled", `**${plane.name}** \`${plane.key}\` no longer appears in packs or catalog listings. Existing cards are unaffected.`, ctx.ephemeral, slashResultOptions(ctx)));
-        return;
-      }
-
-      // sub === "settings"
-      const packPriceInput = i.options.getNumber("pack_price");
-      const packSizeInput = i.options.getInteger("pack_size");
-      if (packPriceInput === null && packSizeInput === null) {
-        const current = getPackSettings();
-        await i.reply(
-          resultReply(
-            "Pack settings",
-            `**Price:** ${formatCoinAmount(current.packPrice)}\n**Size:** ${current.packSize} card${current.packSize === 1 ? "" : "s"} per pack`,
-            ctx.ephemeral,
-            slashResultOptions(ctx),
-          ),
-        );
-        return;
-      }
-      const updated = setPackSettings(
-        { packPrice: packPriceInput ?? undefined, packSize: packSizeInput ?? undefined },
-        i.user.id,
-      );
-      await i.reply(
-        resultReply(
-          "Pack settings updated",
-          `**Price:** ${formatCoinAmount(updated.packPrice)}\n**Size:** ${updated.packSize} card${updated.packSize === 1 ? "" : "s"} per pack`,
-          ctx.ephemeral,
-          slashResultOptions(ctx),
-        ),
-      );
-    },
-  },
 ];
-
-export { normalizePlaneKey };
