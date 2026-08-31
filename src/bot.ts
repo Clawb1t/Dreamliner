@@ -110,6 +110,16 @@ import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
+import { handleStockAutocomplete } from "./plugins/economy/commands.js";
+import {
+  handlePlanesAutocomplete,
+  handlePlaneInventoryButtonInteraction,
+  handlePlanePackButtonInteraction,
+  handlePlaneStatsButtonInteraction,
+  PLANE_INVENTORY_PREFIX,
+  PLANE_PACK_PREFIX,
+  PLANE_STATS_PREFIX,
+} from "./plugins/planes/index.js";
 import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
@@ -203,6 +213,17 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         await handleTtsAutocomplete(interaction).catch((error) => {
           console.error("TTS autocomplete error:", error);
         });
+        return;
+      }
+      if (interaction.commandName === "stock") {
+        await handleStockAutocomplete(interaction).catch((error) => {
+          console.error("Stock autocomplete error:", error);
+        });
+      }
+      if (interaction.commandName === "planes" || interaction.commandName === "planesadmin") {
+        await handlePlanesAutocomplete(interaction).catch((error) => {
+          console.error("Planes autocomplete error:", error);
+        });
       }
       return;
     }
@@ -253,6 +274,18 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(ANIME_SAVED_NAV_PREFIX)) {
         const handled = await handleAnimeSavedNavButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(PLANE_STATS_PREFIX)) {
+        const handled = await handlePlaneStatsButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(PLANE_PACK_PREFIX)) {
+        const handled = await handlePlanePackButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(PLANE_INVENTORY_PREFIX)) {
+        const handled = await handlePlaneInventoryButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {

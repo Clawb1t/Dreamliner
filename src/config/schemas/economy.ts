@@ -50,6 +50,7 @@ export const zEconomyConfig = z.strictObject({
 
   can_balance: boolPerm("view balances"),
   can_daily: boolPerm("claim the daily reward"),
+  can_stock_trade: boolPerm("buy and sell stocks on the Dreamliner Exchange"),
   can_admin_manage: boolPerm("change server economy settings (name, denominator, multiplier, rates)"),
 });
 

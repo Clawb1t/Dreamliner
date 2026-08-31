@@ -29,6 +29,7 @@ export type UserProfile = {
   profileVisible: boolean;
   showNavBalance: boolean;
   showNavExchange: boolean;
+  showTradingCards: boolean;
   contentRetentionDays: number;
   updatedAt: string | null;
 };
@@ -66,6 +67,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
     profileVisible: row?.profileVisible ?? true,
     showNavBalance: row?.showNavBalance ?? false,
     showNavExchange: row?.showNavExchange ?? false,
+    showTradingCards: row?.showTradingCards ?? false,
     contentRetentionDays: row?.contentRetentionDays ?? DEFAULT_CONTENT_RETENTION_DAYS,
     updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
   };
@@ -101,6 +103,7 @@ export type UpsertUserProfileInput = {
   profileVisible?: boolean;
   showNavBalance?: boolean;
   showNavExchange?: boolean;
+  showTradingCards?: boolean;
   contentRetentionDays?: number;
 };
 
@@ -126,6 +129,9 @@ export async function upsertUserProfileFields(
   }
   if ("showNavExchange" in fields && fields.showNavExchange !== undefined) {
     patch.showNavExchange = fields.showNavExchange;
+  }
+  if ("showTradingCards" in fields && fields.showTradingCards !== undefined) {
+    patch.showTradingCards = fields.showTradingCards;
   }
   if ("contentRetentionDays" in fields && fields.contentRetentionDays !== undefined) {
     patch.contentRetentionDays = fields.contentRetentionDays;

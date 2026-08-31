@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-30T19:28:55.070Z",
+  "generatedAt": "2026-08-31T18:33:07.407Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -281,12 +281,17 @@
     {
       "id": "fun",
       "label": "Fun",
-      "description": "Games and light server extras — a global and server economy, plus anime images.",
+      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, plus anime images.",
       "plugins": [
         {
           "key": "economy",
           "name": "Economy",
           "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims."
+        },
+        {
+          "key": "planes",
+          "name": "Trading Cards",
+          "description": "Collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members."
         },
         {
           "key": "anime",
@@ -579,6 +584,13 @@
       "key": "economy",
       "name": "Economy",
       "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims.",
+      "category": "Fun",
+      "categoryId": "fun"
+    },
+    {
+      "key": "planes",
+      "name": "Trading Cards",
+      "description": "Collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
       "category": "Fun",
       "categoryId": "fun"
     },

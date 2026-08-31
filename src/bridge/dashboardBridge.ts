@@ -713,6 +713,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             profileVisible?: unknown;
             showNavBalance?: unknown;
             showNavExchange?: unknown;
+            showTradingCards?: unknown;
             contentRetentionDays?: unknown;
           };
           try {
@@ -735,6 +736,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             profileVisible?: boolean;
             showNavBalance?: boolean;
             showNavExchange?: boolean;
+            showTradingCards?: boolean;
             contentRetentionDays?: number;
           } = {};
 
@@ -774,6 +776,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             patch.showNavExchange = body.showNavExchange;
+          }
+          if ("showTradingCards" in body) {
+            if (typeof body.showTradingCards !== "boolean") {
+              sendJson(res, 400, { error: "showTradingCards must be a boolean." });
+              return;
+            }
+            patch.showTradingCards = body.showTradingCards;
           }
           if ("contentRetentionDays" in body) {
             try {
@@ -893,6 +902,55 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { buildPublicProfileServers } = await import("./userPublicProfile.js");
           const guilds = await buildPublicProfileServers(client, publicProfileServersMatch[1]!);
           sendJson(res, 200, { ok: true, guilds });
+          return;
+        }
+
+        const publicProfileCardsMatch = /^\/bridge\/users\/(\d+)\/public-profile\/cards$/.exec(
+          url.pathname,
+        );
+        if (publicProfileCardsMatch && req.method === "GET") {
+          const { buildPublicProfileCards } = await import("./userPublicProfile.js");
+          const cards = await buildPublicProfileCards(publicProfileCardsMatch[1]!);
+          sendJson(res, 200, { ok: true, ...cards });
+          return;
+        }
+
+        // Public card catalog (not per-user) — used for marketing pages, e.g. the homepage's
+        // decorative card stack, which just wants a handful of real card images to show off.
+        const planeCardCatalogMatch = url.pathname === "/bridge/plane-cards/catalog";
+        if (planeCardCatalogMatch && req.method === "GET") {
+          const { listPublicPlaneCardCatalog } = await import("./planeCards.js");
+          const limitRaw = Number(url.searchParams.get("limit"));
+          const limit = Number.isInteger(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : undefined;
+          const cards = listPublicPlaneCardCatalog({ limit });
+          sendJson(res, 200, { ok: true, cards });
+          return;
+        }
+
+        // Plane/airline trading card art. Not per-guild, not per-user — the same public art
+        // file (assets/planes/<imageKey>) backs every card of that type across the whole bot.
+        const planeCardImageMatch = /^\/bridge\/plane-cards\/image\/([^/]+)$/.exec(url.pathname);
+        if (planeCardImageMatch && req.method === "GET") {
+          const { isValidImageKey, planeImagePath } = await import(
+            "../plugins/planes/functions/images.js"
+          );
+          const imageKey = decodeURIComponent(planeCardImageMatch[1]!);
+          if (!isValidImageKey(imageKey)) {
+            sendJson(res, 400, { error: "Invalid image key." });
+            return;
+          }
+          const path = planeImagePath(imageKey)!;
+          let buf: Buffer;
+          try {
+            buf = await (await import("node:fs/promises")).readFile(path);
+          } catch {
+            sendJson(res, 404, { error: "Image not found." });
+            return;
+          }
+          const ext = imageKey.slice(imageKey.lastIndexOf(".") + 1).toLowerCase();
+          const contentType =
+            ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+          sendBinary(res, 200, buf, contentType);
           return;
         }
 

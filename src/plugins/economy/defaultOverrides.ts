@@ -6,6 +6,7 @@ export const economyDefaultOverrides: ConfigOverride[] = [
     config: {
       can_balance: true,
       can_daily: true,
+      can_stock_trade: true,
     },
   },
   {

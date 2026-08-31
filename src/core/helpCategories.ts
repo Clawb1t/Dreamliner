@@ -160,8 +160,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "fun",
     label: "Fun",
-    blurb: "Games and light server extras — a global and server economy, plus anime images.",
-    include: [{ plugin: "economy" }, { plugin: "anime" }],
+    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, plus anime images.",
+    include: [{ plugin: "economy" }, { plugin: "planes", roots: ["planes"] }, { plugin: "anime" }],
   },
   {
     id: "support",
@@ -369,6 +369,11 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Anime",
     description: "Random neko images from Nekos.best, with a personal saved collection.",
   },
+  planes: {
+    key: "planes",
+    name: "Trading Cards",
+    description: "Collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
+  },
   social: {
     key: "social",
     name: "Social Notifications",
@@ -429,6 +434,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   suggestions: "feedback",
   tickets: "support",
   economy: "fun",
+  planes: "fun",
   anime: "fun",
   social: "social",
 };

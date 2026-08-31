@@ -52,6 +52,25 @@ export function getStock(guildId: string) {
   return getDb().select().from(economyStocks).where(eq(economyStocks.guildId, guildId)).get() ?? null;
 }
 
+export function getStockBySymbol(symbol: string) {
+  return (
+    getDb()
+      .select()
+      .from(economyStocks)
+      .where(eq(economyStocks.symbol, symbol.trim().toUpperCase()))
+      .get() ?? null
+  );
+}
+
+/** Ticker/server-name search for autocomplete, ranked by price. */
+export function searchStocks(query: string, limit = 25) {
+  const db = getDb();
+  const rows = db.select().from(economyStocks).orderBy(desc(economyStocks.price)).all();
+  const q = query.trim().toLowerCase();
+  const filtered = q ? rows.filter((r) => r.symbol.toLowerCase().includes(q) || r.guildName.toLowerCase().includes(q)) : rows;
+  return filtered.slice(0, limit);
+}
+
 /** Create the listing for a guild the first time it's seen (idempotent). */
 export function ensureStock(guildId: string, guildName: string, guildIcon: string | null) {
   const db = getDb();
@@ -94,13 +113,21 @@ export function ensureStock(guildId: string, guildName: string, guildIcon: strin
 // messages for a while — does it start slowly drifting down, the way a
 // real illiquid stock does when nobody's trading it. It picks right back up
 // the instant the server posts again.
+//
+// Mean reversion: every price move is also weighed against the stock's own
+// trailing average over the last few hours. The further a price has run up
+// above that average, the harder it gets pulled back toward it — a quiet
+// spike settles on its own, and a stock that's climbed a long way comes back
+// down noticeably faster than one that's only drifted up a little. This
+// applies whether the stock is actively climbing or just sitting quiet, so
+// an overextended price doesn't get to coast forever during a lull either.
 
 const MINUTE_MS = 60_000;
-/** How far an especially active minute can push the price up (ratio 4 = 4x the exchange average). */
-const UP_DRIFT_SCALE = 0.035;
+/** How far an especially active minute can push the price up (ratio 3 = 3x the exchange average). */
+const UP_DRIFT_SCALE = 0.012;
 /** Much gentler pull for a minute that's active but slower than the exchange — never a crash. */
-const DOWN_DRIFT_SCALE = 0.01;
-const ACTIVE_NOISE = 0.006;
+const DOWN_DRIFT_SCALE = 0.008;
+const ACTIVE_NOISE = 0.004;
 /** How long a stock can sit with zero activity before it starts declining. */
 const INACTIVITY_GRACE_MS = 20 * MINUTE_MS;
 /** Gentle per-minute decay once a stock is past the grace period — a stock
@@ -108,6 +135,14 @@ const INACTIVITY_GRACE_MS = 20 * MINUTE_MS;
 const INACTIVITY_DECAY_RATE = 0.0005;
 /** Old activity buckets are pruned past this so the table doesn't grow forever. */
 const ACTIVITY_RETENTION_MS = 6 * 60 * 60_000;
+/** Trailing window used as a stock's own "home" price for mean reversion. */
+const REVERSION_LOOKBACK_MS = 4 * 60 * MINUTE_MS;
+/** How hard an active tick pulls an overextended price back toward its trailing average. */
+const REVERSION_SCALE = 0.05;
+/** Gentler version of the same pull applied during a quiet tick, so overextension bleeds off even without new activity. */
+const REVERSION_SCALE_PASSIVE = 0.015;
+/** >1 makes the pull grow faster than the overextension itself — the higher a price has run, the quicker it comes back. */
+const REVERSION_EXPONENT = 1.4;
 
 function minuteBucket(d: Date): string {
   return d.toISOString().slice(0, 16); // "2026-08-29T23:17"
@@ -125,6 +160,24 @@ export function recordStockActivity(guildId: string, guildName: string, guildIco
       set: { messages: sql`${economyStockActivityMinutes.messages} + 1` },
     })
     .run();
+}
+
+/** A stock's own trailing average price over `REVERSION_LOOKBACK_MS`, used as its mean-reversion anchor. */
+function trailingAveragePrice(guildId: string, since: Date, fallbackPrice: number): number {
+  const rows = getDb()
+    .select({ price: economyStockPriceHistory.price })
+    .from(economyStockPriceHistory)
+    .where(and(eq(economyStockPriceHistory.guildId, guildId), gte(economyStockPriceHistory.recordedAt, since)))
+    .all();
+  if (rows.length === 0) return fallbackPrice;
+  return rows.reduce((sum, r) => sum + r.price, 0) / rows.length;
+}
+
+/** Downward pull (as a fraction of price) for how far above its own trailing average a price has run. Grows faster than the overextension itself. */
+function reversionPull(price: number, anchor: number, scale: number): number {
+  if (anchor <= 0 || price <= anchor) return 0;
+  const overExtension = price / anchor - 1;
+  return scale * overExtension ** REVERSION_EXPONENT;
 }
 
 function messagesInBucket(guildId: string, bucket: string): number {
@@ -174,16 +227,24 @@ export async function tickStockPrices(client: Client): Promise<void> {
       const stock = getStock(guildId);
       if (!stock) continue;
 
-      // No activity this minute. Within the grace period, hold the price exactly where it
-      // is — only a heartbeat history point gets written, so a short lull neither erodes
-      // gains nor jitters the chart. `updatedAt` is deliberately left untouched here (it's
-      // only ever bumped by an active tick below), so it keeps marking the last real
-      // activity — once it's more than the grace period behind, the stock has gone cold
-      // and starts a slow decay instead of holding flat.
+      const reversionAnchor = trailingAveragePrice(guildId, new Date(tickTime.getTime() - REVERSION_LOOKBACK_MS), stock.price);
+
+      // No activity this minute. Within the grace period, hold the price where it is aside
+      // from a gentle passive pull back toward its own trailing average — a mildly elevated
+      // price just holds flat, but a badly overextended one keeps easing down even through a
+      // quiet lull instead of coasting at the peak. `updatedAt` is deliberately left untouched
+      // here (it's only ever bumped by an active tick below), so it keeps marking the last real
+      // activity — once it's more than the grace period behind, the stock has gone cold and
+      // starts a slow decay instead.
       if (messages === 0) {
         const inactiveMs = tickTime.getTime() - stock.updatedAt.getTime();
         if (inactiveMs <= INACTIVITY_GRACE_MS) {
-          db.insert(economyStockPriceHistory).values({ guildId, price: stock.price, recordedAt: tickTime }).run();
+          const passivePull = reversionPull(stock.price, reversionAnchor, REVERSION_SCALE_PASSIVE);
+          const heldPrice = passivePull > 0 ? round2(Math.max(MIN_PRICE, stock.price * (1 - passivePull))) : stock.price;
+          if (heldPrice !== stock.price) {
+            db.update(economyStocks).set({ price: heldPrice }).where(eq(economyStocks.guildId, guildId)).run();
+          }
+          db.insert(economyStockPriceHistory).values({ guildId, price: heldPrice, recordedAt: tickTime }).run();
           continue;
         }
 
@@ -194,12 +255,13 @@ export async function tickStockPrices(client: Client): Promise<void> {
       }
 
       const others = listed.length > 1 ? (totalMessages - messages) / (listed.length - 1) : 0;
-      const ratio = others > 0 ? Math.min(messages / others, 4) : 1.5;
+      const ratio = others > 0 ? Math.min(messages / others, 3) : 1.5;
       const scale = ratio >= 1 ? UP_DRIFT_SCALE : DOWN_DRIFT_SCALE;
       const drift = (ratio - 1) * scale;
       const noise = (Math.random() - 0.5) * ACTIVE_NOISE;
+      const pull = reversionPull(stock.price, reversionAnchor, REVERSION_SCALE);
 
-      const nextPrice = round2(Math.max(MIN_PRICE, Math.min(MAX_PRICE, stock.price * (1 + drift + noise))));
+      const nextPrice = round2(Math.max(MIN_PRICE, Math.min(MAX_PRICE, stock.price * (1 + drift + noise - pull))));
       db.update(economyStocks)
         .set({ price: nextPrice, activityScore: round2(ratio), updatedAt: tickTime })
         .where(eq(economyStocks.guildId, guildId))
@@ -230,6 +292,13 @@ function changeSince(guildId: string, price: number, since: Date): { changeAmoun
   const changeAmount = round2(price - openPrice);
   const changePct = openPrice > 0 ? round2((changeAmount / openPrice) * 100) : 0;
   return { changeAmount, changePct };
+}
+
+export function getStockWithChange(guildId: string) {
+  const stock = getStock(guildId);
+  if (!stock) return null;
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return { ...stock, ...changeSince(guildId, stock.price, since24h) };
 }
 
 export function listStocks(opts: { limit?: number } = {}) {

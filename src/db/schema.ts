@@ -595,6 +595,8 @@ export const userProfiles = sqliteTable("user_profiles", {
   showNavBalance: integer("show_nav_balance", { mode: "boolean" }).notNull().default(false),
   /** Show the "Exchange" item in the site navbar's user dropdown. Off by default, same reasoning as above. */
   showNavExchange: integer("show_nav_exchange", { mode: "boolean" }).notNull().default(false),
+  /** Show the plane/airline trading card collection on the public profile page. Off by default. */
+  showTradingCards: integer("show_trading_cards", { mode: "boolean" }).notNull().default(false),
   /** Days a user's message *content* (not counts/timestamps) stays retained: 0/1/7/14/30. */
   contentRetentionDays: integer("content_retention_days").notNull().default(30),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
@@ -926,6 +928,76 @@ export const ticketBlacklist = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.guildId, table.targetId] })],
 );
+
+// --- Plane cards (Dreamliner trading cards) -----------------------------------
+// A global catalog of plane "card types" (real aircraft, added by the bot's
+// developers). Users buy packs with global economy coins, opening them adds
+// random cards to a per-user inventory (stacked by quantity, not unique
+// serials), and cards can be given one at a time to another user.
+
+export const planeCardTypes = sqliteTable("plane_card_types", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(),
+  /** plane | airline: which stat fields apply, see catalog.ts CARD_TYPES. */
+  cardType: text("card_type").notNull().default("plane"),
+  /** Free-text subtitle shown in card footers: manufacturer for planes, e.g. hub/founded for airlines. */
+  subtitle: text("subtitle").notNull().default(""),
+  rarity: text("rarity").notNull().default("common"),
+  // Plane-only stats.
+  speed: integer("speed", { mode: "number" }).notNull().default(50),
+  agility: integer("agility", { mode: "number" }).notNull().default(50),
+  passengerCount: integer("passenger_count", { mode: "number" }).notNull().default(0),
+  // Airline-only stats.
+  reputation: integer("reputation", { mode: "number" }).notNull().default(50),
+  fleetSize: integer("fleet_size", { mode: "number" }).notNull().default(0),
+  destinations: integer("destinations", { mode: "number" }).notNull().default(0),
+  // Shared by both card types.
+  safety: integer("safety", { mode: "number" }).notNull().default(50),
+  /** File name of the card art in assets/planes/, e.g. "a350.png"; served as a Discord attachment, not a URL. */
+  imageKey: text("image_key").notNull().default(""),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const planeCardInventory = sqliteTable(
+  "plane_card_inventory",
+  {
+    userId: text("user_id").notNull(),
+    planeTypeId: integer("plane_type_id", { mode: "number" }).notNull(),
+    quantity: integer("quantity", { mode: "number" }).notNull().default(0),
+    firstObtainedAt: integer("first_obtained_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.planeTypeId] })],
+);
+
+/** Log of every pack purchase, mainly for the dashboard/superuser tooling. */
+export const planeCardPackOpenings = sqliteTable(
+  "plane_card_pack_openings",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    guildId: text("guild_id").notNull(),
+    cost: real("cost").notNull(),
+    /** JSON array of plane_card_types ids drawn, in order. */
+    planeTypeIds: text("plane_type_ids").notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("plane_card_pack_openings_user_time").on(table.userId, table.createdAt)],
+);
+
+/** Single-row global pack settings (price/size). Bot-wide, not per-guild: managed only via
+ *  /planesadmin, deliberately not exposed on the per-server dashboard config. */
+export const planeGlobalSettings = sqliteTable("plane_global_settings", {
+  id: text("id").primaryKey().default("global"),
+  packPrice: real("pack_price").notNull().default(10),
+  packSize: integer("pack_size", { mode: "number" }).notNull().default(1),
+  updatedBy: text("updated_by").notNull().default(""),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
 
 /** Global per-account voice preference (not per-guild) — set via /tts voice or the website account page. */
 export const ttsUserVoices = sqliteTable("tts_user_voices", {

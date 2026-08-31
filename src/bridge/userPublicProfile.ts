@@ -8,6 +8,8 @@ import {
   listUserGuildSummaries,
   type UserGuildSummary,
 } from "./userActivity.js";
+import { getSortedInventory } from "../plugins/planes/functions/inventory.js";
+import type { CardType } from "../plugins/planes/functions/catalog.js";
 
 const ACTIVITY_DAYS = 30;
 
@@ -30,6 +32,8 @@ export type PublicProfileIdentity = {
   accentColor: string | null;
   bio: string | null;
   profileVisible: boolean;
+  /** Opt-in: show the plane/airline trading card collection section. Off by default. */
+  showTradingCards: boolean;
   badges: UserBadge[];
 };
 
@@ -62,6 +66,7 @@ export async function buildPublicProfileIdentity(
     accentColor: profile.accentColor,
     bio: profile.bio,
     profileVisible: profile.profileVisible,
+    showTradingCards: profile.showTradingCards,
     badges,
   };
 }
@@ -99,6 +104,63 @@ export async function buildPublicProfileServers(
   return listUserGuildSummaries(client, userId);
 }
 
+export type PublicProfileCard = {
+  key: string;
+  name: string;
+  cardType: CardType;
+  rarity: string;
+  /** Manufacturer for planes, extra info for airlines. */
+  subtitle: string;
+  /** File name in assets/planes/ — fetch the art from GET /bridge/plane-cards/image/:imageKey. */
+  imageKey: string;
+  quantity: number;
+  firstObtainedAt: string;
+  stats: Record<string, number>;
+};
+
+export type PublicProfileCards = {
+  totalUnique: number;
+  totalCards: number;
+  cards: PublicProfileCard[];
+};
+
+function cardStats(plane: {
+  cardType: string;
+  speed: number;
+  agility: number;
+  passengerCount: number;
+  reputation: number;
+  fleetSize: number;
+  destinations: number;
+  safety: number;
+}): Record<string, number> {
+  if (plane.cardType === "airline") {
+    return { reputation: plane.reputation, fleetSize: plane.fleetSize, destinations: plane.destinations, safety: plane.safety };
+  }
+  return { speed: plane.speed, agility: plane.agility, passengerCount: plane.passengerCount, safety: plane.safety };
+}
+
+/** A user's plane/airline trading card collection, rarest-first, for the profile page. */
+export async function buildPublicProfileCards(userId: string): Promise<PublicProfileCards> {
+  const owned = getSortedInventory(userId);
+  const cards: PublicProfileCard[] = owned.map(({ plane, quantity, firstObtainedAt }) => ({
+    key: plane.key,
+    name: plane.name,
+    cardType: plane.cardType as CardType,
+    rarity: plane.rarity,
+    subtitle: plane.subtitle,
+    imageKey: plane.imageKey,
+    quantity,
+    firstObtainedAt: firstObtainedAt.toISOString(),
+    stats: cardStats(plane),
+  }));
+  return {
+    totalUnique: cards.length,
+    totalCards: cards.reduce((sum, c) => sum + c.quantity, 0),
+    cards,
+  };
+}
+
 /** Combined shape, for consumers that want everything in one response (the public JSON API). */
 export type PublicUserProfile = PublicProfileIdentity & {
   stats: { totalMessages: number; globalRank: number | null };
@@ -106,6 +168,7 @@ export type PublicUserProfile = PublicProfileIdentity & {
   daily: Array<{ date: string; messages: number }>;
   activeHoursUtc: number[];
   guilds: UserGuildSummary[];
+  cards: PublicProfileCards;
 };
 
 export async function buildPublicUserProfile(
@@ -115,11 +178,12 @@ export async function buildPublicUserProfile(
   const identity = await buildPublicProfileIdentity(client, userId);
   if (!identity) return null;
 
-  const [stats, daily, activeHoursUtc, guilds] = await Promise.all([
+  const [stats, daily, activeHoursUtc, guilds, cards] = await Promise.all([
     buildPublicProfileStats(userId),
     buildPublicProfileActivity(userId),
     buildPublicProfileHours(userId),
     buildPublicProfileServers(client, userId),
+    buildPublicProfileCards(userId),
   ]);
 
   return {
@@ -129,6 +193,7 @@ export async function buildPublicUserProfile(
     daily,
     activeHoursUtc,
     guilds,
+    cards,
   };
 }
 
