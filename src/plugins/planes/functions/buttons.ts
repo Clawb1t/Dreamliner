@@ -136,7 +136,10 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
 
 function parseInventoryCustomId(customId: string): { viewerId: string; targetUserId: string; index: number } | null {
   const rest = customId.slice(PLANE_INVENTORY_PREFIX.length);
-  const match = /^(\d{17,20}):(\d{17,20}):(\d+)$/.exec(rest);
+  // The trailing "p:"/"n:" marker (see buildInventoryPage) only exists to keep the Back/Next
+  // custom_ids distinct when they'd otherwise collide (a single-card hangar); it carries no
+  // meaning here, only the destination index does.
+  const match = /^(\d{17,20}):(\d{17,20}):[pn]:(\d+)$/.exec(rest);
   if (!match) return null;
   return { viewerId: match[1], targetUserId: match[2], index: Number(match[3]) };
 }

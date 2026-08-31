@@ -39,15 +39,18 @@ export function buildInventoryPage(
   const idBase = `${opts.viewerId}:${opts.targetUserId}`;
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    // "p:"/"n:" markers keep these two IDs distinct even when total === 1, where prevIndex and
+    // nextIndex both wrap around to the same value — Discord rejects a message with two
+    // components sharing a custom_id even if one (or both) is disabled.
     new ButtonBuilder()
-      .setCustomId(`${PLANE_INVENTORY_PREFIX}${idBase}:${prevIndex}`)
+      .setCustomId(`${PLANE_INVENTORY_PREFIX}${idBase}:p:${prevIndex}`)
       .setLabel("Back")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!canScroll),
     new ButtonBuilder().setCustomId(`${PLANE_LABEL_PREFIX}${plane.id}`).setLabel(plane.name).setStyle(ButtonStyle.Primary).setDisabled(true),
     new ButtonBuilder().setCustomId(`${PLANE_STATS_PREFIX}${plane.id}`).setLabel("View Stats").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId(`${PLANE_INVENTORY_PREFIX}${idBase}:${nextIndex}`)
+      .setCustomId(`${PLANE_INVENTORY_PREFIX}${idBase}:n:${nextIndex}`)
       .setLabel("Next")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!canScroll),

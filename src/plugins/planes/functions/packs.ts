@@ -1,7 +1,7 @@
 import { getDb } from "../../../db/client.js";
 import { planeCardPackOpenings } from "../../../db/schema.js";
 import { ensureGlobalAccount, spendGlobal, InsufficientFundsError } from "../../economy/functions/money.js";
-import { RARITY_META, RARITY_ORDER, listPlaneTypes, type PlaneTypeRow, type Rarity } from "./catalog.js";
+import { RARITY_META, listPlaneTypes, type PlaneTypeRow, type Rarity } from "./catalog.js";
 import { addToInventory } from "./inventory.js";
 
 export class PackError extends Error {
@@ -14,30 +14,22 @@ export class PackError extends Error {
   }
 }
 
-/** Picks one enabled plane, weighted by rarity, then uniformly among planes of that rarity. */
+/**
+ * Picks one enabled card, weighted per-card by its rarity (not per-rarity-tier-then-uniform).
+ * This keeps each individual card's odds anchored to its rarity's base weight instead of a
+ * thin tier's total probability mass getting concentrated onto just a couple of cards: a
+ * rarity's overall share of pulls scales with how many live cards actually exist in it right
+ * now, so a legendary tier with 2 cards pulls far less often overall than one with 20, and a
+ * newly-added card in a sparse tier doesn't instantly become common.
+ */
 function drawPlane(catalog: PlaneTypeRow[]): PlaneTypeRow {
-  const byRarity = new Map<Rarity, PlaneTypeRow[]>();
-  for (const plane of catalog) {
-    const rarity = plane.rarity as Rarity;
-    const bucket = byRarity.get(rarity);
-    if (bucket) bucket.push(plane);
-    else byRarity.set(rarity, [plane]);
-  }
-
-  const available = RARITY_ORDER.filter((r) => (byRarity.get(r)?.length ?? 0) > 0);
-  const totalWeight = available.reduce((sum, r) => sum + RARITY_META[r].weight, 0);
+  const totalWeight = catalog.reduce((sum, plane) => sum + RARITY_META[plane.rarity as Rarity].weight, 0);
   let roll = Math.random() * totalWeight;
-  let chosen: Rarity = available[available.length - 1];
-  for (const rarity of available) {
-    roll -= RARITY_META[rarity].weight;
-    if (roll <= 0) {
-      chosen = rarity;
-      break;
-    }
+  for (const plane of catalog) {
+    roll -= RARITY_META[plane.rarity as Rarity].weight;
+    if (roll <= 0) return plane;
   }
-
-  const pool = byRarity.get(chosen)!;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return catalog[catalog.length - 1];
 }
 
 export type PackResult = { cards: PlaneTypeRow[]; cost: number; balance: number };
