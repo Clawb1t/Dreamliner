@@ -254,16 +254,17 @@ export const planesCommands: SlashCommandDefinition[] = [
     },
   },
   {
-    // Split out from `/planes` entirely (not a subcommand group under it) so it can be hidden by
-    // default from every member via defaultMemberPermissions(0n): Discord only supports hiding
-    // a whole command that way, not individual subcommand groups. The execute-time
-    // isDashboardSuperuser check below is what actually enforces "only the bot's developers",
-    // since a guild admin could still grant this command visibility to themselves in Integrations.
+    // Split out from `/planes` entirely (not a subcommand group under it), and registered as a
+    // guild command in one trusted guild only (see GUILD_ONLY_COMMAND_GUILDS in bot.ts) rather
+    // than globally — Discord only supports hiding a whole command via defaultMemberPermissions,
+    // not individual subcommand groups, and registering it nowhere else is a cleaner way to keep
+    // it out of every other server than hiding-then-unhiding it there. Visible to everyone in
+    // that one guild; the execute-time isDashboardSuperuser check below is what actually
+    // enforces "only the bot's developers" for running it.
     plugin: "planes",
     data: new SlashCommandBuilder()
       .setName("planesadmin")
       .setDescription("Manage the card catalog (bot developers only)")
-      .setDefaultMemberPermissions(0n)
       .addSubcommand((s) =>
         s
           .setName("add_plane")
