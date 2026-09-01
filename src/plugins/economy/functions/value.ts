@@ -1,4 +1,4 @@
-import { round2 } from "../../economy/functions/money.js";
+import { round2 } from "./money.js";
 import { RARITY_ORDER, type Rarity } from "./catalog.js";
 
 /**

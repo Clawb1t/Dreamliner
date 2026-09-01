@@ -1,6 +1,6 @@
 import { getDb } from "../../../db/client.js";
 import { planeCardPackOpenings } from "../../../db/schema.js";
-import { ensureGlobalAccount, spendGlobal, InsufficientFundsError } from "../../economy/functions/money.js";
+import { ensureGlobalAccount, spendGlobal, InsufficientFundsError } from "./money.js";
 import { RARITY_META, listPlaneTypes, type PlaneTypeRow, type Rarity } from "./catalog.js";
 import { addToInventory } from "./inventory.js";
 

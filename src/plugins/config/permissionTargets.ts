@@ -139,6 +139,12 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "economy exchange", label: "/exchange", plugin: "economy", permission: "can_exchange" },
   { key: "economy admin", label: "/economy settings", plugin: "economy", permission: "can_admin_manage" },
 
+  // Economy — trading cards (/planes)
+  { key: "planes view", label: "/planes inventory|card view|card list", plugin: "economy", permission: "can_view" },
+  { key: "planes buy_pack", label: "/planes pack buy", plugin: "economy", permission: "can_buy_pack" },
+  { key: "planes give", label: "/planes card give", plugin: "economy", permission: "can_give" },
+  { key: "planes sell", label: "Sell button (pack reveal / hangar)", plugin: "economy", permission: "can_sell" },
+
   // Anime
   { key: "anime neko", label: "/anime neko", plugin: "anime", permission: "can_neko" },
   { key: "anime saved", label: "/anime saved", plugin: "anime", permission: "can_saved" },

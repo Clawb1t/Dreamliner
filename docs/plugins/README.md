@@ -72,5 +72,5 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 ## Fun
 
-- [Economy](./economy.md) — a global coin economy plus a customisable per-server currency, earned by chatting and daily claims
+- [Economy](./economy.md) — a global coin economy plus a customisable per-server currency, earned by chatting and daily claims, plus collectible plane/airline trading cards (`/planes`)
 - [Anime](./anime.md) — random neko images from Nekos.best, with a personal saved collection

@@ -11,9 +11,9 @@ import {
   type CardType,
   type PlaneTypeRow,
   type UpdatePlaneTypeInput,
-} from "../plugins/planes/functions/catalog.js";
-import { isValidImageKey, listPlaneImageFiles, planeImageExists } from "../plugins/planes/functions/images.js";
-import { getPackSettings, setPackSettings, type PackSettings } from "../plugins/planes/functions/settings.js";
+} from "../plugins/economy/functions/catalog.js";
+import { isValidImageKey, listPlaneImageFiles, planeImageExists } from "../plugins/economy/functions/images.js";
+import { getPackSettings, setPackSettings, type PackSettings } from "../plugins/economy/functions/settings.js";
 
 export { CatalogError, CARD_TYPES, isCardType, isRarity };
 export type { CardType, PackSettings };

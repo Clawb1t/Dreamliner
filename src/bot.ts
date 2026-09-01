@@ -121,7 +121,7 @@ import {
   PLANE_PACK_PREFIX,
   PLANE_SELL_PREFIX,
   PLANE_STATS_PREFIX,
-} from "./plugins/planes/index.js";
+} from "./plugins/economy/index.js";
 import { applyBotPresence } from "./core/presence.js";
 import type { BotContext } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";

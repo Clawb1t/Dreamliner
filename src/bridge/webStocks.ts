@@ -10,7 +10,6 @@ import {
   StockError,
   type StockRange,
 } from "../plugins/economy/functions/stocks.js";
-import { getGlobalBalance } from "../plugins/economy/functions/money.js";
 import { configManager } from "../config/manager.js";
 
 export type BridgeResult<T> = ({ ok: true } & T) | { ok: false; error: string; status: number };
@@ -95,12 +94,6 @@ export async function getStockDetail(guildId: string, rangeRaw: string | null): 
     stock: { ...serializeStock(found), accentColor: colorIntToHex(guildConfig.server_accent_color) },
     history,
   };
-}
-
-export function getUserGlobalBalance(userId: string): BridgeResult<{ balance: number }> {
-  const target = userId.trim();
-  if (!isValidUserId(target)) return { ok: false, error: "Invalid userId.", status: 400 };
-  return { ok: true, balance: getGlobalBalance(target) };
 }
 
 export function getUserPortfolio(userId: string) {

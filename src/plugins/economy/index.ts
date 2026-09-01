@@ -8,6 +8,18 @@ import { loadEconomyConfig } from "./functions/config.js";
 import { recordStockActivity, tickStockPrices } from "./functions/stocks.js";
 import type { Message, GuildMember } from "discord.js";
 
+export { handlePlanesAutocomplete } from "./commands.js";
+export {
+  handlePlaneStatsButtonInteraction,
+  PLANE_STATS_PREFIX,
+  handlePlanePackButtonInteraction,
+  PLANE_PACK_PREFIX,
+  handlePlaneInventoryButtonInteraction,
+  PLANE_INVENTORY_PREFIX,
+  handlePlaneSellButtonInteraction,
+  PLANE_SELL_PREFIX,
+} from "./functions/cardButtons.js";
+
 /** Stock prices are checked once a minute against that minute's message activity, see stocks.ts. */
 const STOCK_TICK_INTERVAL_MS = 60_000;
 const STOCK_TICK_INITIAL_DELAY_MS = 15_000;

@@ -551,10 +551,6 @@ export const userProfiles = sqliteTable("user_profiles", {
   accentColor: text("accent_color"),
   bio: text("bio"),
   profileVisible: integer("profile_visible", { mode: "boolean" }).notNull().default(true),
-  /** Show the global coin balance pill in the site navbar. Off by default — most visitors don't use the economy. */
-  showNavBalance: integer("show_nav_balance", { mode: "boolean" }).notNull().default(false),
-  /** Show the "Exchange" item in the site navbar's user dropdown. Off by default, same reasoning as above. */
-  showNavExchange: integer("show_nav_exchange", { mode: "boolean" }).notNull().default(false),
   /** Show the plane/airline trading card collection on the public profile page. Off by default. */
   showTradingCards: integer("show_trading_cards", { mode: "boolean" }).notNull().default(false),
   /** Days a user's message *content* (not counts/timestamps) stays retained: 0/1/7/14/30. */

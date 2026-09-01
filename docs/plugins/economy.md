@@ -24,6 +24,9 @@ Two independent currencies:
 | `/economy settings` | Change this server's currency name, denominator, emoji, and whether message rewards are on (managers) |
 | `/exchange <amount>` | Convert server currency into global coins, at a rate set by this server's own stock price |
 | `/stock` | Links to the Dreamliner Exchange on the site |
+| `/planes inventory [user]` | Browse a hangar (card collection) |
+| `/planes pack buy` | Buy and open a card pack with global coins |
+| `/planes card view\|list\|give` | View a card's stats, list the catalog, or give a card to another member |
 
 ## Architecture
 
@@ -75,10 +78,24 @@ The same `0.1x`–`3x` rate also scales the `/daily` server-currency payout (`ge
 `SERVER_DAILY_BASE_AMOUNT` of 5) — a booming server pays its members a better daily too, not just a better
 exchange. Both are read-only market effects; there is no admin control over either.
 
+## Trading cards (planes and airlines)
+
+`/planes` — collect, open packs, and give collectible plane/airline cards — is part of the economy plugin rather
+than a separate one, since packs are bought with **global coins** (`src/plugins/economy/functions/packs.ts`) and
+sold cards (`can_sell`) credit global coins back. The card catalog and pack price/size are **global** (bot-wide),
+not per-guild — managed only through the dashboard's superuser catalog page (`src/bridge/planeCards.ts`), never
+through `/economy settings` or guild YAML.
+
+- **SQLite** — `plane_card_types` (the catalog), `plane_card_inventory` (who owns what), `plane_card_pack_openings`
+  (a pack-purchase ledger), `plane_global_settings` (pack price/size, one row).
+- Card sell prices scale with rarity (`common`–`legendary`) and are randomised ±20%, capped at legendary's own
+  $100 base — see `functions/value.ts`. Selling removes the card and credits global coins atomically
+  (`functions/inventory.ts`'s `sellCard`).
+
 ## Permissions
 
-Member defaults (`>=0`) can use `/economy balance`, `/economy daily`, and `/exchange`. Managers (`>=50`) get
-`/economy admin`.
+Member defaults (`>=0`) can use `/economy balance`, `/economy daily`, `/exchange`, and all of `/planes`
+(`can_view`, `can_buy_pack`, `can_give`, `can_sell`). Managers (`>=50`) get `/economy admin`.
 
 ## Logging
 

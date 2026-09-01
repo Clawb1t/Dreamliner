@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-01T18:14:07.743Z",
+  "generatedAt": "2026-09-01T18:51:32.830Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -256,12 +256,7 @@
         {
           "key": "economy",
           "name": "Economy",
-          "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims."
-        },
-        {
-          "key": "planes",
-          "name": "Trading Cards",
-          "description": "Collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members."
+          "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims — plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members."
         },
         {
           "key": "anime",
@@ -511,14 +506,7 @@
     {
       "key": "economy",
       "name": "Economy",
-      "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims.",
-      "category": "Fun",
-      "categoryId": "fun"
-    },
-    {
-      "key": "planes",
-      "name": "Trading Cards",
-      "description": "Collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
+      "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims — plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
       "category": "Fun",
       "categoryId": "fun"
     },

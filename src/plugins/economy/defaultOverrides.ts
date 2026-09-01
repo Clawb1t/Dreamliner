@@ -8,6 +8,10 @@ export const economyDefaultOverrides: ConfigOverride[] = [
       can_daily: true,
       can_stock_trade: true,
       can_exchange: true,
+      can_view: true,
+      can_buy_pack: true,
+      can_give: true,
+      can_sell: true,
     },
   },
   {

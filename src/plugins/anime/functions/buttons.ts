@@ -3,29 +3,78 @@ import {
   AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ComponentType,
   MessageFlags,
   type ButtonInteraction,
+  type Message,
 } from "discord.js";
-import { configManager } from "../../../config/manager.js";
-import { resolveEmojiForContent } from "../../../core/emoji.js";
 import { downloadNekoImage, nekoRefToUrl } from "./nekosBest.js";
-import { formatNekoContent, parseNekoCredit } from "./format.js";
+import { formatSavedNekoFooter } from "./format.js";
 import { listSavedNekos, saveNeko, unsaveNeko, type SavedNeko } from "./store.js";
 
 export const ANIME_SAVE_PREFIX = "anime:save:";
 export const ANIME_SAVED_NAV_PREFIX = "anime:savednav:";
+/** Disabled, link-less stand-in for the artist button when a neko has a name but no href. */
+const ANIME_ARTIST_LABEL_PREFIX = "anime:artist:";
+const NEKOS_BEST_URL = "https://nekos.best";
 
-export function buildNekoSaveRow(ref: string): ActionRowBuilder<ButtonBuilder> {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`${ANIME_SAVE_PREFIX}${ref}`)
-      .setLabel("Save")
-      .setStyle(ButtonStyle.Secondary),
-  );
+function nekosBestButton(): ButtonBuilder {
+  return new ButtonBuilder().setLabel("Nekos.best").setStyle(ButtonStyle.Link).setURL(NEKOS_BEST_URL);
 }
 
-export function buildSavedNavRow(index: number, total: number): ActionRowBuilder<ButtonBuilder> {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+/** Credit button for the artist: a real link when there's an href to send members to, otherwise
+ *  an inert labeled button so the name isn't lost. `null` when there's no credit at all. */
+function artistButton(artistName: string | null, artistHref: string | null): ButtonBuilder | null {
+  const href = artistHref?.trim();
+  const name = artistName?.trim();
+  if (href) {
+    return new ButtonBuilder().setLabel((name || "Artist").slice(0, 80)).setStyle(ButtonStyle.Link).setURL(href);
+  }
+  if (name) {
+    return new ButtonBuilder()
+      .setCustomId(`${ANIME_ARTIST_LABEL_PREFIX}0`)
+      .setLabel(name.slice(0, 80))
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true);
+  }
+  return null;
+}
+
+/** Recovers the artist credit straight from a neko message's own button row instead of parsing
+ *  text — the artist button (if any) is whichever credit button isn't the fixed Nekos.best link. */
+function extractArtistFromMessage(message: Message): { artistName: string | null; artistHref: string | null } {
+  const row = message.components[0];
+  if (!row || row.type !== ComponentType.ActionRow) return { artistName: null, artistHref: null };
+  for (const component of row.components) {
+    if (component.type !== ComponentType.Button) continue;
+    if (component.style === ButtonStyle.Link) {
+      if (component.url === NEKOS_BEST_URL) continue;
+      return { artistName: component.label ?? null, artistHref: component.url ?? null };
+    }
+    if (component.customId?.startsWith(ANIME_ARTIST_LABEL_PREFIX)) {
+      return { artistName: component.label ?? null, artistHref: null };
+    }
+  }
+  return { artistName: null, artistHref: null };
+}
+
+/** Row on a fresh `/anime neko` reply: a blurple Save button, the artist credit, and a link to
+ *  Nekos.best. */
+export function buildNekoSaveRow(ref: string, artistName: string | null, artistHref: string | null): ActionRowBuilder<ButtonBuilder> {
+  const buttons = [new ButtonBuilder().setCustomId(`${ANIME_SAVE_PREFIX}${ref}`).setLabel("Save").setStyle(ButtonStyle.Primary)];
+  const artist = artistButton(artistName, artistHref);
+  if (artist) buttons.push(artist);
+  buttons.push(nekosBestButton());
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
+}
+
+export function buildSavedNavRow(
+  index: number,
+  total: number,
+  artistName: string | null,
+  artistHref: string | null,
+): ActionRowBuilder<ButtonBuilder> {
+  const buttons = [
     new ButtonBuilder()
       .setCustomId(`${ANIME_SAVED_NAV_PREFIX}left:${index}`)
       .setLabel("Left")
@@ -40,21 +89,20 @@ export function buildSavedNavRow(index: number, total: number): ActionRowBuilder
       .setLabel("Right")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(index >= total - 1),
-  );
+  ];
+  const artist = artistButton(artistName, artistHref);
+  if (artist) buttons.push(artist);
+  buttons.push(nekosBestButton());
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
 }
 
-async function buildSavedViewPayload(
-  neko: SavedNeko,
-  index: number,
-  total: number,
-  successEmoji: string,
-) {
+async function buildSavedViewPayload(neko: SavedNeko, index: number, total: number) {
   const image = await downloadNekoImage(neko.imageUrl).catch(() => null);
   return {
-    content: `${formatNekoContent(neko.artistName, neko.artistHref, successEmoji)}\n-# Saved neko ${index + 1}/${total}`,
+    content: formatSavedNekoFooter(index, total),
     files: image ? [new AttachmentBuilder(image.buffer, { name: image.filename })] : [],
     attachments: [],
-    components: [buildSavedNavRow(index, total)],
+    components: [buildSavedNavRow(index, total, neko.artistName, neko.artistHref)],
   };
 }
 
@@ -63,7 +111,7 @@ export async function handleAnimeSaveButtonInteraction(interaction: ButtonIntera
   if (!interaction.customId.startsWith(ANIME_SAVE_PREFIX)) return false;
 
   const ref = interaction.customId.slice(ANIME_SAVE_PREFIX.length);
-  const { artistName, artistHref } = parseNekoCredit(interaction.message.content);
+  const { artistName, artistHref } = extractArtistFromMessage(interaction.message);
   const result = await saveNeko(interaction.user.id, {
     imageUrl: nekoRefToUrl(ref),
     artistName,
@@ -107,13 +155,7 @@ export async function handleAnimeSavedNavButtonInteraction(interaction: ButtonIn
   else if (action === "right") nextIndex = currentIndex + 1;
   nextIndex = Math.min(Math.max(nextIndex, 0), saved.length - 1);
 
-  // `interaction.guildId` can only be missing in a DM, which this feature isn't used from in
-  // practice — falls back to a plain checkmark rather than requiring guild context here.
-  const guildConfig = interaction.guildId ? await configManager.getEffectiveConfig(interaction.guildId) : null;
-  const successEmoji = guildConfig
-    ? resolveEmojiForContent(guildConfig.emojis.success, interaction.client)
-    : "✅";
-  const payload = await buildSavedViewPayload(saved[nextIndex]!, nextIndex, saved.length, successEmoji);
+  const payload = await buildSavedViewPayload(saved[nextIndex]!, nextIndex, saved.length);
   await interaction.update(payload).catch(() => null);
   return true;
 }

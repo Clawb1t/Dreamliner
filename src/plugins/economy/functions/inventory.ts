@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { planeCardInventory } from "../../../db/schema.js";
-import { creditGlobal } from "../../economy/functions/money.js";
+import { creditGlobal } from "./money.js";
 import { getPlaneTypesByIds, RARITY_ORDER, type PlaneTypeRow, type Rarity } from "./catalog.js";
 
 function now() {

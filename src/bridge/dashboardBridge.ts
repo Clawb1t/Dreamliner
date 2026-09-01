@@ -579,21 +579,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const deleteDataMatch = /^\/bridge\/users\/(\d+)\/data$/.exec(url.pathname);
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
-        const stockBalanceMatch = /^\/bridge\/users\/(\d+)\/economy\/balance$/.exec(url.pathname);
         const stockPortfolioMatch = /^\/bridge\/users\/(\d+)\/stocks$/.exec(url.pathname);
         const stockBuyMatch = /^\/bridge\/users\/(\d+)\/stocks\/(\d+)\/buy$/.exec(url.pathname);
         const stockSellMatch = /^\/bridge\/users\/(\d+)\/stocks\/(\d+)\/sell$/.exec(url.pathname);
-
-        if (stockBalanceMatch && req.method === "GET") {
-          const { getUserGlobalBalance } = await import("./webStocks.js");
-          const result = getUserGlobalBalance(stockBalanceMatch[1]!);
-          if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
-            return;
-          }
-          sendJson(res, 200, { ok: true, balance: result.balance });
-          return;
-        }
 
         if (stockPortfolioMatch && req.method === "GET") {
           const { getUserPortfolio } = await import("./webStocks.js");
@@ -711,8 +699,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             accentColor?: unknown;
             bio?: unknown;
             profileVisible?: unknown;
-            showNavBalance?: unknown;
-            showNavExchange?: unknown;
             showTradingCards?: unknown;
             contentRetentionDays?: unknown;
           };
@@ -734,8 +720,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             accentColor?: string | null;
             bio?: string | null;
             profileVisible?: boolean;
-            showNavBalance?: boolean;
-            showNavExchange?: boolean;
             showTradingCards?: boolean;
             contentRetentionDays?: number;
           } = {};
@@ -762,20 +746,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             patch.profileVisible = body.profileVisible;
-          }
-          if ("showNavBalance" in body) {
-            if (typeof body.showNavBalance !== "boolean") {
-              sendJson(res, 400, { error: "showNavBalance must be a boolean." });
-              return;
-            }
-            patch.showNavBalance = body.showNavBalance;
-          }
-          if ("showNavExchange" in body) {
-            if (typeof body.showNavExchange !== "boolean") {
-              sendJson(res, 400, { error: "showNavExchange must be a boolean." });
-              return;
-            }
-            patch.showNavExchange = body.showNavExchange;
           }
           if ("showTradingCards" in body) {
             if (typeof body.showTradingCards !== "boolean") {
@@ -932,7 +902,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const planeCardImageMatch = /^\/bridge\/plane-cards\/image\/([^/]+)$/.exec(url.pathname);
         if (planeCardImageMatch && req.method === "GET") {
           const { isValidImageKey, planeImagePath } = await import(
-            "../plugins/planes/functions/images.js"
+            "../plugins/economy/functions/images.js"
           );
           const imageKey = decodeURIComponent(planeCardImageMatch[1]!);
           if (!isValidImageKey(imageKey)) {

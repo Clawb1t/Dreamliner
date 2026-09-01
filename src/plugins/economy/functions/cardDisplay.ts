@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type AttachmentBuilder, type EmbedBuilder } from "discord.js";
 import { baseEmbed } from "../../../core/embeds.js";
-import { formatPlainAmount } from "./format.js";
+import { formatPlainAmount } from "./cardFormat.js";
 import { PLANE_INVENTORY_PREFIX, PLANE_LABEL_PREFIX, PLANE_SELL_PREFIX, PLANE_STATS_PREFIX } from "./customIds.js";
 import { planeImageAttachment } from "./images.js";
 import { rollSellPrice } from "./value.js";

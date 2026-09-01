@@ -1,5 +1,5 @@
 import { CARD_TYPE_META, RARITY_META, type CardType, type PlaneTypeRow, type Rarity } from "./catalog.js";
-import { formatAmount, formatCoinAmount, GLOBAL_CURRENCY_DENOMINATOR } from "../../economy/functions/format.js";
+import { formatAmount, GLOBAL_CURRENCY_DENOMINATOR } from "./format.js";
 
 /** Plain "$10.00", no emoji/backticks: for places that can't render markdown, like button labels. */
 export function formatPlainAmount(amount: number): string {
@@ -48,5 +48,3 @@ export function statsFields(card: PlaneTypeRow) {
     { name: "Passengers", value: formatCount(card.passengerCount), inline: true },
   ];
 }
-
-export { formatCoinAmount };

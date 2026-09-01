@@ -8,8 +8,8 @@ import {
   listUserGuildSummaries,
   type UserGuildSummary,
 } from "./userActivity.js";
-import { getSortedInventory } from "../plugins/planes/functions/inventory.js";
-import type { CardType } from "../plugins/planes/functions/catalog.js";
+import { getSortedInventory } from "../plugins/economy/functions/inventory.js";
+import type { CardType } from "../plugins/economy/functions/catalog.js";
 
 const ACTIVITY_DAYS = 30;
 
