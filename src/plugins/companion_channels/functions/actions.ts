@@ -25,10 +25,32 @@ export type CompanionActor = {
 export type CompanionActionResult = {
   ok: boolean;
   message: string;
+  emoji?: string;
 };
 
-function ok(message: string): CompanionActionResult {
-  return { ok: true, message };
+/** Icons for each distinct companion-channel action's success reply (see app-emojis.txt). */
+const COMPANION_ICON = {
+  rename: "<:icons_updatechannel:1544417815807922246>",
+  limit: "<:icons_people:1544417371215626262>",
+  bitrate: "<:icons_headphone:1544417301321875536>",
+  status: "<:icons_pin:1544417374927716513>",
+  region: "<:icons_globe:1544417296703815710>",
+  nsfw: "<:icons_18:1544418077377171586>",
+  lock: "<:icons_locked:1544417721612247171>",
+  unlock: "<:icons_unlock:1544417749617610852>",
+  ghost: "<:icons_offline:1544417569438433332>",
+  unghost: "<:icons_online:1544417572152283136>",
+  permit: "<:icons_invite:1544417309345710080>",
+  reject: "<:icons_kick2:1544417325405437982>",
+  transfer: "<:icons_transferownership:1544417451780079676>",
+  claim: "<:icons_owner:1544417364307607563>",
+  textLink: "<:icons_createchannel:1544417835932061766>",
+  textUnlink: "<:icons_deletechannel:1544417846832930886>",
+  lfm: "<:icons_friends:1544417709188587571>",
+} as const;
+
+function ok(message: string, emoji?: string): CompanionActionResult {
+  return { ok: true, message, emoji };
 }
 
 function fail(message: string): CompanionActionResult {
@@ -97,7 +119,7 @@ export async function setCompanionName(
   const trimmed = name.trim().slice(0, 100);
   if (!trimmed) return fail("Give the channel a name.");
   await resolved.channel.setName(trimmed);
-  return ok(`Renamed the room to **${trimmed}**.`);
+  return ok(`Renamed the room to **${trimmed}**.`, COMPANION_ICON.rename);
 }
 
 export async function setCompanionLimit(
@@ -112,7 +134,7 @@ export async function setCompanionLimit(
   }
   const value = Math.max(0, Math.min(99, Math.floor(limit)));
   await resolved.channel.setUserLimit(value);
-  return ok(value === 0 ? "Removed the user limit." : `User limit set to **${value}**.`);
+  return ok(value === 0 ? "Removed the user limit." : `User limit set to **${value}**.`, COMPANION_ICON.limit);
 }
 
 export async function setCompanionBitrate(
@@ -124,7 +146,7 @@ export async function setCompanionBitrate(
   if (isActionResult(resolved)) return resolved;
   const value = Math.max(8, Math.min(384, Math.floor(kbps)));
   await resolved.channel.setBitrate(value * 1000);
-  return ok(`Bitrate set to **${value} kbps**.`);
+  return ok(`Bitrate set to **${value} kbps**.`, COMPANION_ICON.bitrate);
 }
 
 export async function setCompanionStatus(
@@ -137,7 +159,7 @@ export async function setCompanionStatus(
   const trimmed = status.trim().slice(0, 500);
   const applied = await setVoiceChannelStatus(resolved.channel, trimmed || null);
   if (!applied) return fail("Could not set a status on this channel.");
-  return ok(trimmed ? `Status set to **${trimmed}**.` : "Cleared the channel status.");
+  return ok(trimmed ? `Status set to **${trimmed}**.` : "Cleared the channel status.", COMPANION_ICON.status);
 }
 
 export async function setCompanionRegion(
@@ -149,7 +171,10 @@ export async function setCompanionRegion(
   if (isActionResult(resolved)) return resolved;
   const value = region.trim().toLowerCase();
   await resolved.channel.setRTCRegion(value && value !== "automatic" ? value : null);
-  return ok(value && value !== "automatic" ? `Region set to **${value}**.` : "Region set to automatic.");
+  return ok(
+    value && value !== "automatic" ? `Region set to **${value}**.` : "Region set to automatic.",
+    COMPANION_ICON.region,
+  );
 }
 
 export async function toggleCompanionNsfw(actor: CompanionActor, channel: VoiceBasedChannel): Promise<CompanionActionResult> {
@@ -157,7 +182,7 @@ export async function toggleCompanionNsfw(actor: CompanionActor, channel: VoiceB
   if (isActionResult(resolved)) return resolved;
   const next = !resolved.channel.nsfw;
   await resolved.channel.setNSFW(next);
-  return ok(next ? "Marked the room as NSFW." : "Removed the NSFW mark.");
+  return ok(next ? "Marked the room as NSFW." : "Removed the NSFW mark.", COMPANION_ICON.nsfw);
 }
 
 export async function lockCompanion(
@@ -169,7 +194,10 @@ export async function lockCompanion(
   if (isActionResult(resolved)) return resolved;
   await setLocked(resolved.channel, locked, resolved.room.ownerId || actor.member.id);
   await updateRoom(actor.member.guild.id, resolved.channel.id, { locked });
-  return ok(locked ? "Locked the room. New people cannot join." : "Unlocked the room.");
+  return ok(
+    locked ? "Locked the room. New people cannot join." : "Unlocked the room.",
+    locked ? COMPANION_ICON.lock : COMPANION_ICON.unlock,
+  );
 }
 
 export async function ghostCompanion(
@@ -181,7 +209,10 @@ export async function ghostCompanion(
   if (isActionResult(resolved)) return resolved;
   await setGhosted(resolved.channel, ghosted, resolved.room.ownerId || actor.member.id);
   await updateRoom(actor.member.guild.id, resolved.channel.id, { ghosted });
-  return ok(ghosted ? "Ghosted the room. It is hidden from the channel list." : "The room is visible again.");
+  return ok(
+    ghosted ? "Ghosted the room. It is hidden from the channel list." : "The room is visible again.",
+    ghosted ? COMPANION_ICON.ghost : COMPANION_ICON.unghost,
+  );
 }
 
 function targetLabel(target: User | Role | GuildMember): string {
@@ -200,7 +231,7 @@ export async function permitTarget(
   await resolved.channel.permissionOverwrites
     .edit(target.id, { Connect: true, ViewChannel: true })
     .catch(() => null);
-  return ok(`Permitted **${targetLabel(target)}** to join.`);
+  return ok(`Permitted **${targetLabel(target)}** to join.`, COMPANION_ICON.permit);
 }
 
 export async function rejectTarget(
@@ -220,7 +251,7 @@ export async function rejectTarget(
     if (member?.voice.channelId === resolved.channel.id) {
       await member.voice.disconnect("Rejected from companion channel").catch(() => null);
     }
-    return ok(`Rejected **${targetLabel(target)}**.`);
+    return ok(`Rejected **${targetLabel(target)}**.`, COMPANION_ICON.reject);
   }
 
   for (const member of resolved.channel.members.values()) {
@@ -228,7 +259,7 @@ export async function rejectTarget(
       await member.voice.disconnect("Rejected from companion channel").catch(() => null);
     }
   }
-  return ok(`Rejected **${target.name}**.`);
+  return ok(`Rejected **${target.name}**.`, COMPANION_ICON.reject);
 }
 
 export async function transferCompanion(
@@ -252,7 +283,7 @@ export async function transferCompanion(
     })
     .catch(() => null);
   await updateRoom(actor.member.guild.id, resolved.channel.id, { ownerId: member.id });
-  return ok(`Ownership transferred to **${member.displayName}**.`);
+  return ok(`Ownership transferred to **${member.displayName}**.`, COMPANION_ICON.transfer);
 }
 
 export async function claimCompanion(actor: CompanionActor, channel: VoiceBasedChannel): Promise<CompanionActionResult> {
@@ -277,7 +308,7 @@ export async function claimCompanion(actor: CompanionActor, channel: VoiceBasedC
     })
     .catch(() => null);
   await updateRoom(actor.member.guild.id, resolved.channel.id, { ownerId: actor.member.id });
-  return ok("You claimed this room.");
+  return ok("You claimed this room.", COMPANION_ICON.claim);
 }
 
 export async function toggleCompanionText(actor: CompanionActor, channel: VoiceBasedChannel): Promise<CompanionActionResult> {
@@ -287,10 +318,10 @@ export async function toggleCompanionText(actor: CompanionActor, channel: VoiceB
   if (!voice) return fail("Text channels can only be linked to a voice room.");
   if (resolved.room.textChannelId) {
     await clearLinkedText(actor.member.guild, resolved.room);
-    return ok("Removed the linked text channel.");
+    return ok("Removed the linked text channel.", COMPANION_ICON.textUnlink);
   }
   const textId = await ensureLinkedText(actor.member, voice, resolved.room, actor.config, resolved.setup);
-  return ok(`Created a linked text channel: <#${textId}>.`);
+  return ok(`Created a linked text channel: <#${textId}>.`, COMPANION_ICON.textLink);
 }
 
 export async function postLookingForMembers(actor: CompanionActor, channel: VoiceBasedChannel): Promise<CompanionActionResult> {
@@ -306,5 +337,5 @@ export async function postLookingForMembers(actor: CompanionActor, channel: Voic
   await lfm.send({
     content: `**${actor.member.displayName}** is looking for members in ${resolved.channel}.${invite ? `\n${invite.url}` : ""}`,
   });
-  return ok("Posted in the Looking for Members channel.");
+  return ok("Posted in the Looking for Members channel.", COMPANION_ICON.lfm);
 }

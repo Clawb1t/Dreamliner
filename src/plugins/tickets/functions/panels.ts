@@ -184,7 +184,7 @@ async function openOrPromptModal(
     return;
   }
   const target = result.ticket.threadId ?? result.ticket.channelId;
-  await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, guildResultOptions(interaction.client, guildConfig, { tone: "success" })));
+  await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
 }
 
 export async function handleTicketButtonInteraction(interaction: ButtonInteraction): Promise<boolean> {
@@ -373,7 +373,7 @@ export async function handleTicketModalSubmit(interaction: ModalSubmitInteractio
       return true;
     }
     const target = result.ticket.threadId ?? result.ticket.channelId;
-    await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, guildResultOptions(interaction.client, guildConfig, { tone: "success" })));
+    await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
     return true;
   }
 

@@ -31,14 +31,19 @@ export const seenCommands: SlashCommandDefinition[] = [
             "Seen",
             `No recorded activity for <@${user.id}> in this server.`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_clock:1544417185336664114>" }),
           ),
         );
         return;
       }
 
       const voiceChannel = member?.voice.channel;
-      const embed = setEmbedAuthor(baseEmbed(), "Seen", ctx.client, commandHeader(ctx.guildConfig)).addFields(
+      const embed = setEmbedAuthor(
+        baseEmbed(),
+        "Seen",
+        ctx.client,
+        commandHeader(ctx.guildConfig, { emoji: "<:icons_clock:1544417185336664114>" }),
+      ).addFields(
         embedField("User", `<@${user.id}>`),
         embedField("Last seen", discordTimestampBoth(lastSeen.at)),
         embedField("Activity", lastSeen.action),

@@ -59,7 +59,11 @@ function buildPluginListEmbed(
       ? trimLines(lines.join("\n"))
       : "_No plugins are configured for this server._";
 
-  return setEmbedAuthor(baseEmbed(), "Plugins", client, { tone: "neutral", emojis })
+  return setEmbedAuthor(baseEmbed(), "Plugins", client, {
+    tone: "neutral",
+    emojis,
+    emoji: "<:icons_apps_dock:1544418201507594250>",
+  })
     .setDescription(description)
     .setFooter({
       text: `Page ${page + 1}/${pageCount} · ${total} plugin${total === 1 ? "" : "s"} · Use /plugin toggle to change status`,

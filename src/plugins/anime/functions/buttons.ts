@@ -120,7 +120,9 @@ export async function handleAnimeSaveButtonInteraction(interaction: ButtonIntera
 
   await interaction
     .reply({
-      content: result.ok ? "Saved! Use `/anime saved` to browse your nekos." : result.error,
+      content: result.ok
+        ? "<:icons_heart:1544417554225700904> Saved! Use `/anime saved` to browse your nekos."
+        : result.error,
       flags: MessageFlags.Ephemeral,
     })
     .catch(() => null);

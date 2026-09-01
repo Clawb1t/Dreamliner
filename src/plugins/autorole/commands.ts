@@ -104,7 +104,7 @@ export const autoroleCommands: SlashCommandDefinition[] = [
             "Autorole removed",
             `Removed <@&${role.id}> from the ${formatAutoroleAudience(audience)} autorole list.`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_off:1544417567777628201>" }),
           ),
         );
         return;
@@ -136,7 +136,12 @@ export const autoroleCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        const embed = setEmbedAuthor(baseEmbed(), "Autoroles", ctx.client, commandHeader(ctx.guildConfig));
+        const embed = setEmbedAuthor(
+          baseEmbed(),
+          "Autoroles",
+          ctx.client,
+          commandHeader(ctx.guildConfig, { emoji: "<:icons_list:1544417562325164173>" }),
+        );
         if (showHumans) {
           embed.addFields(
             embedField(

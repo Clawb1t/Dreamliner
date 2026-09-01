@@ -286,7 +286,10 @@ export async function handleSlowmodeRuleModalSubmit(
   }
 
   await interaction.reply(
-    resultReply("Slowmode rule added", formatSlowmodeRule(created.rule), ephemeral, opts),
+    resultReply("Slowmode rule added", formatSlowmodeRule(created.rule), ephemeral, {
+      ...opts,
+      emoji: "<:icons_new1:1544417349418094642>",
+    }),
   );
   return true;
 }

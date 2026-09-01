@@ -30,7 +30,11 @@ export function buildTicketOpenedEmbed(
   client: Client,
   emojis?: EmojisConfig,
 ): EmbedBuilder {
-  const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number}`, client, { tone: "success", emojis });
+  const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number}`, client, {
+    tone: "success",
+    emojis,
+    emoji: "<:icons_ticket:1544417593191047179>",
+  });
   const template = category?.welcome_message?.trim() || "Thanks for reaching out, {user}! Support will be with you shortly.";
   embed.setDescription(renderTicketTemplate(template, ticket, guild, category));
   embed.addFields(
@@ -47,7 +51,11 @@ export function buildTicketOpenedEmbed(
 }
 
 export function buildTicketClaimedEmbed(ticket: TicketRecord, staffId: string, client: Client, emojis?: EmojisConfig): EmbedBuilder {
-  return setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} claimed`, client, { tone: "neutral", emojis }).setDescription(
+  return setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} claimed`, client, {
+    tone: "neutral",
+    emojis,
+    emoji: "<:icons_hammer:1544417299937763348>",
+  }).setDescription(
     `<@${staffId}> is now handling this ticket.`,
   );
 }
@@ -81,7 +89,11 @@ export function buildTicketClosedEmbed(
   client: Client,
   emojis?: EmojisConfig,
 ): EmbedBuilder {
-  const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} closed`, client, { tone: "error", emojis });
+  const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} closed`, client, {
+    tone: "error",
+    emojis,
+    emoji: "<:icons_archive:1544417474823590008>",
+  });
   embed.addFields(
     embedField("Closed by", `<@${actorId}>`, true),
     embedField("Opened", discordTs(ticket.createdAt), true),

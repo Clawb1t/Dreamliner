@@ -91,7 +91,13 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
       resultEdit(
         parsed.action === "approve" ? "Approved" : "Denied",
         `Suggestion #${result.suggestion.suggestionNumber} was ${parsed.action === "approve" ? "approved" : "denied"}.`,
-        guildResultOptions(interaction.client, guildConfig, { tone: "success" }),
+        guildResultOptions(interaction.client, guildConfig, {
+          tone: "success",
+          emoji:
+            parsed.action === "approve"
+              ? "<:icons_upvote:1544417455689179349>"
+              : "<:icons_downvote:1544417248209404054>",
+        }),
       ),
     );
     return true;

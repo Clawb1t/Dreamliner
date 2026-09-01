@@ -48,7 +48,9 @@ export const searchCommands: SlashCommandDefinition[] = [
       });
 
       if (result.total === 0) {
-        await interaction.editReply(resultEdit("Search", "No results found.", slashResultOptions(ctx)));
+        await interaction.editReply(
+          resultEdit("Search", "No results found.", slashResultOptions(ctx, { emoji: "<:icons_search:1544417406640726168>" })),
+        );
         return;
       }
 
@@ -91,7 +93,9 @@ export const searchCommands: SlashCommandDefinition[] = [
       });
 
       if (result.total === 0) {
-        await ctx.interaction.editReply(resultEdit("Ban search", "No results found.", slashResultOptions(ctx)));
+        await ctx.interaction.editReply(
+          resultEdit("Ban search", "No results found.", slashResultOptions(ctx, { emoji: "<:icons_search:1544417406640726168>" })),
+        );
         return;
       }
 

@@ -77,7 +77,7 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
             "Welcomer updated",
             `Join messages will be sent to <#${channel.id}>. Customize embeds and cards in the dashboard.`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_wave:1544418074172727328>" }),
           ),
         );
         return;
@@ -95,7 +95,12 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
           "Edit embeds, cards, and copy in the Dreamliner dashboard.",
         ];
         await ctx.interaction.reply(
-          resultReply("Welcomer", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Welcomer",
+            lines.join("\n"),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" }),
+          ),
         );
         return;
       }
@@ -112,7 +117,10 @@ export const welcomeMessageCommands: SlashCommandDefinition[] = [
             result.ok ? "Test sent" : "Test failed",
             result.detail,
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: result.ok ? "success" : "warning" }),
+            slashResultOptions(ctx, {
+              tone: result.ok ? "success" : "warning",
+              ...(result.ok ? { emoji: "<:icons_hi:1544417555412811786>" } : {}),
+            }),
           ),
         );
         return;

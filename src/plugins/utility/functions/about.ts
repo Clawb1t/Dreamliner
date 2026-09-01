@@ -5,11 +5,11 @@ import {
   type EmbedBuilder,
 } from "discord.js";
 import { getSiteUrl, linkButton } from "../../../core/docsUrl.js";
-import { baseEmbed, botAvatarURL, trimLines } from "../../../core/embeds.js";
+import { baseEmbed, botAvatarURL, pingQualityEmoji, trimLines } from "../../../core/embeds.js";
 import { BUILD_TIME, BUILD_VERSION } from "../../../generated/version.js";
 
 const startTime = Date.now();
-const BULLET = "<:dotblurple:1542696072843886644>";
+const BULLET = "<:icons_square:1544418208549970101>";
 
 export function buildAboutEmbed(client: Client): EmbedBuilder {
   const guilds = client.guilds.cache.size;
@@ -30,7 +30,7 @@ export function buildAboutEmbed(client: Client): EmbedBuilder {
         ${BULLET} Servers: \`${guilds.toLocaleString()}\`
         ${BULLET} Users: \`${users.toLocaleString()}\` cached
         ${BULLET} Channels: \`${channels.toLocaleString()}\`
-        ${BULLET} Latency: \`${ping}\`ms
+        ${pingQualityEmoji(ping)} Latency: \`${ping}\`ms
         ${BULLET} Version: \`${BUILD_VERSION}\`
         ${BULLET} Last rebooted: <t:${uptimeAt}:R>
         ${BULLET} Node: \`${process.version}\`

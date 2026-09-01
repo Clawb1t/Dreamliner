@@ -19,7 +19,10 @@ export function buildReviewEmbed(options: {
 }) {
   const { review, authorTag, authorAvatar, client } = options;
   const publicAuthor = review.anonymous ? "Anonymous" : authorTag;
-  const embed = setEmbedAuthor(baseEmbed(), "Server review", client, { tone: "neutral" })
+  const embed = setEmbedAuthor(baseEmbed(), "Server review", client, {
+    tone: "neutral",
+    emoji: "<:icons_star:1544417435636080741>",
+  })
     .setDescription(review.content.trim() || "_No comment_")
     .addFields(
       embedField("Rating", `${starsForRating(review.rating)} (${review.rating}/5)`, true),

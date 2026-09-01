@@ -67,7 +67,14 @@ export const tagsCommands: SlashCommandDefinition[] = [
         }
 
         await createTag({ guildId, name, content, createdBy: ctx.interaction.user.id });
-        await ctx.interaction.reply(resultReply("Tag created", `Created tag **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply(
+            "Tag created",
+            `Created tag **${name}**.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_tags:1544418228049158174>" }),
+          ),
+        );
         return;
       }
 
@@ -83,7 +90,14 @@ export const tagsCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        await ctx.interaction.reply(resultReply("Tag updated", `Updated tag **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply(
+            "Tag updated",
+            `Updated tag **${name}**.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_pen:1544417369709871224>" }),
+          ),
+        );
         return;
       }
 
@@ -113,7 +127,9 @@ export const tagsCommands: SlashCommandDefinition[] = [
         }
 
         const names = rows.map((row) => row.name).sort().join(", ");
-        await ctx.interaction.reply(resultReply("Tags", names, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply("Tags", names, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_tags:1544418228049158174>" })),
+        );
         return;
       }
 

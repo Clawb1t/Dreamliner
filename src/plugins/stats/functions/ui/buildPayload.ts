@@ -62,6 +62,12 @@ function scopeTitle(scope: StatsState["scope"], guild: Guild): string {
   return "Channel stats";
 }
 
+function scopeEmoji(scope: StatsState["scope"]): string {
+  if (scope.type === "server") return "<:icons_serverinsight:1544417809109352489>";
+  if (scope.type === "user") return "<:icons_Person:1544417372260278353>";
+  return "<:icons_channel:1544417183734431805>";
+}
+
 async function buildHomeFields(state: StatsState, guild: Guild) {
   const guildId = guild.id;
   const { days } = state;
@@ -360,7 +366,12 @@ export async function buildStatsPayload(
     thumbnailURL = (await guild.members.fetch(state.scope.userId).catch(() => null))?.displayAvatarURL({ size: 128 }) ?? null;
   }
 
-  const embed = setEmbedAuthor(baseEmbed(), scopeTitle(state.scope, guild), client, commandHeader(guildConfig, { thumbnailURL }))
+  const embed = setEmbedAuthor(
+    baseEmbed(),
+    scopeTitle(state.scope, guild),
+    client,
+    commandHeader(guildConfig, { thumbnailURL, emoji: scopeEmoji(state.scope) }),
+  )
     .addFields(fields)
     .setFooter({
       text:

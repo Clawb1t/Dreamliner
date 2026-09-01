@@ -2,13 +2,6 @@
 # Download via /config template, edit, then upload via /config upload.
 # Only include keys you want to override - missing keys inherit these defaults.
 
-emojis:
-  success: "<:blurplecheck:1533947878668763278>"
-  error: "<:redcheck:1533947951481749504>"
-  neutral: "<:greycheck:1533948078615298148>"
-  warning: "<:warning:1533948583995244734>"
-  unchecked: "<:greycheck:1533948078615298148>"
-
 # Map role or user snowflakes to permission levels (higher = more access).
 # `levels: {}` is empty. To add entries, replace with indented keys (no braces):
 # levels:
@@ -25,23 +18,8 @@ moderation_log_channel_id: "1111111111111111111"
 logging:
   # Per-event log toggles. Missing keys default to enabled — only list events you want OFF.
   events: {}
-  # Custom emoji prefixed to every log card title, grouped by category rather than one per
-  # event. Configurable in the dashboard (Server -> Logging Emojis). Leave as-is to use
-  # Dreamliner's own emoji.
-  emojis:
-    action_emoji: "<:dl_action:1540811113711665203>"
-    create_emoji: "<:dl_create:1540811386790346793>"
-    delete_emoji: "<:dl_delete:1540811399993757816>"
-    edit_emoji: "<:dl_edit:1540811455249645668>"
-    emoji_sticker_emoji: "<:dl_emoji:1540811163284144169>"
-    join_emoji: "<:dl_join:1540811526447824976>"
-    leave_emoji: "<:dl_leave:1540811513802133554>"
-    voice_emoji: "<:dl_voice:1540811146380972144>"
-    unban_emoji: "<:dl_unban:1540811470391214111>"
-    server_update_emoji: "<:dl_serverupdate:1540811181290160328>"
-    moderation_default_emoji: "<:dl_moderation_default:1540811132242239651>"
-    moderation_moderate_emoji: "<:dl_moderation_moderate:1540811497184297040>"
-    moderation_severe_emoji: "<:dl_moderation_severe:1540811485079671046>"
+  # `logging.emojis` isn't listed here — the icon prefixed to each log card title is fixed
+  # bot-wide (not per-server configurable). See src/core/logging/emojis.ts.
 
 # When true, command replies are only visible to the user who ran the command.
 ephemeral_responses: false

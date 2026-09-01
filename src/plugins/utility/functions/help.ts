@@ -333,7 +333,11 @@ function buildHomeEmbed(entries: CommandEntry[], client: Client, emojis?: Emojis
     .map((category) => category.label)
     .join(" · ");
 
-  return setEmbedAuthor(baseEmbed(), "Help", client, { tone: "neutral", emojis })
+  return setEmbedAuthor(baseEmbed(), "Help", client, {
+    tone: "neutral",
+    emojis,
+    emoji: "<:icons_book:1544418012700999820>",
+  })
     .setDescription(
       trimLines(`
         Choose a **category** from the menu below to browse commands, or search with \`/help query:ban\`.
@@ -465,7 +469,11 @@ function buildSearchEmbed(
   }
 
   const lines = pageEntries.map(commandLine);
-  return setEmbedAuthor(baseEmbed(), `Search: ${query}`, client, { tone: "neutral", emojis })
+  return setEmbedAuthor(baseEmbed(), `Search: ${query}`, client, {
+    tone: "neutral",
+    emojis,
+    emoji: "<:icons_search:1544417406640726168>",
+  })
     .setDescription(trimLines(`${lines.join("\n")}`))
     .setFooter({ text: `${total} match${total === 1 ? "" : "es"} · Page ${page + 1}/${totalPages}` })
     .toJSON();

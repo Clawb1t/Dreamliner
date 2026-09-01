@@ -60,7 +60,7 @@ export const remindCommand: SlashCommandDefinition = {
         "Reminder set",
         `Reminder **#${reminder.id}** set for <t:${Math.floor(reminder.remindAt.getTime() / 1000)}:R>.`,
         ctx.ephemeral,
-        slashResultOptions(ctx),
+        slashResultOptions(ctx, { emoji: "<:icons_reminder:1544417395475742732>" }),
       ),
     );
   },
@@ -114,7 +114,14 @@ export const remindersCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        await ctx.interaction.reply(resultReply("Reminder cancelled", `Cancelled reminder **#${id}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply(
+            "Reminder cancelled",
+            `Cancelled reminder **#${id}**.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_off:1544417567777628201>" }),
+          ),
+        );
       }
     },
   },

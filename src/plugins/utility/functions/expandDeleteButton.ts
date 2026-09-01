@@ -11,7 +11,7 @@ import { parseComponentEmoji } from "../../../core/emoji.js";
 
 export const EXPAND_DELETE_PREFIX = "utility:expand:del:";
 
-const DELETE_EMOJI = "<:dl_remove:1541487407939981352>";
+const DELETE_EMOJI = "<:icons_delete:1544417209458102292>";
 
 export function expandDeleteCustomId(requesterId: string): string {
   return `${EXPAND_DELETE_PREFIX}${requesterId}`;

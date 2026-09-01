@@ -112,7 +112,7 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
     const result = openPack(interaction.user.id, interaction.guildId, packPrice, packSize);
     const { rows, files } = buildCardRevealBatch(result.cards, interaction.user.id);
     const embed = baseEmbed().setDescription(
-      `Cost ${result.cost > 0 ? formatCoinAmount(result.cost) : "free"} ✧ Balance ${formatCoinAmount(result.balance)}`,
+      `<:icons_gift:1544417552627802212> Cost ${result.cost > 0 ? formatCoinAmount(result.cost) : "free"} ✧ Balance ${formatCoinAmount(result.balance)}`,
     );
     await interaction.update({
       content: "",
@@ -248,7 +248,7 @@ export async function handlePlaneSellButtonInteraction(interaction: ButtonIntera
         "Card sold",
         `Sold **${plane.name}** for ${formatCoinAmount(parsed.price)}.\n**New balance:** ${formatCoinAmount(balance)}`,
         true,
-        guildResultOptions(interaction.client, guildConfig, { tone: "success" }),
+        guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_bank:1544417487326679131>" }),
       ),
     );
   } catch (err) {

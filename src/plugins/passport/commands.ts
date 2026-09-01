@@ -63,7 +63,10 @@ export const passportCommands: SlashCommandDefinition[] = [
             result.ok ? "Panel posted" : "Couldn't post panel",
             result.detail,
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: result.ok ? "success" : "error" }),
+            slashResultOptions(ctx, {
+              tone: result.ok ? "success" : "error",
+              ...(result.ok ? { emoji: "<:icons_announce:1544417473410105378>" } : {}),
+            }),
           ),
         );
         return;
@@ -76,7 +79,10 @@ export const passportCommands: SlashCommandDefinition[] = [
             result.ok ? "Test sent" : "Couldn't send test",
             result.detail,
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: result.ok ? "success" : "error" }),
+            slashResultOptions(ctx, {
+              tone: result.ok ? "success" : "error",
+              ...(result.ok ? { emoji: "<:icons_ping:1544417376328491008>" } : {}),
+            }),
           ),
         );
         return;
@@ -92,7 +98,7 @@ export const passportCommands: SlashCommandDefinition[] = [
           baseEmbed(),
           "Passport status",
           ctx.client,
-          commandHeader(ctx.guildConfig),
+          commandHeader(ctx.guildConfig, { emoji: "<:icons_id:1544417556868104274>" }),
         ).addFields(
           embedField("Member", `${user} \`${user.id}\``, false),
           embedField(
@@ -138,7 +144,10 @@ export const passportCommands: SlashCommandDefinition[] = [
               ? `${member} is now verified.`
               : result.error,
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: result.ok ? "success" : "error" }),
+            slashResultOptions(ctx, {
+              tone: result.ok ? "success" : "error",
+              ...(result.ok ? { emoji: "<:icons_verified:1544417456922304534>" } : {}),
+            }),
           ),
         );
         return;
@@ -152,7 +161,7 @@ export const passportCommands: SlashCommandDefinition[] = [
           "Revoked",
           `${member} is no longer verified.`,
           ctx.ephemeral,
-          slashResultOptions(ctx, { tone: "success" }),
+          slashResultOptions(ctx, { tone: "success", emoji: "<:icons_linkrevoke:1544417799445676062>" }),
         ),
       );
     },

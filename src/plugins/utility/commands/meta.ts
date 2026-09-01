@@ -94,7 +94,14 @@ export const metaCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(resultReply("Reload", "No custom config stored; using defaults.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
         return;
       }
-      await ctx.interaction.reply(resultReply("Reload", "Guild configuration reloaded.", ctx.ephemeral, slashResultOptions(ctx)));
+      await ctx.interaction.reply(
+        resultReply(
+          "Reload",
+          "Guild configuration reloaded.",
+          ctx.ephemeral,
+          slashResultOptions(ctx, { emoji: "<:icons_update:1544417598559752364>" }),
+        ),
+      );
     },
   },
   {
@@ -111,7 +118,7 @@ export const metaCommands: SlashCommandDefinition[] = [
       const url = user.displayAvatarURL({ size: 2048, extension: "png" });
       await ctx.interaction.reply(
         embedReply(
-          setEmbedAuthor(baseEmbed(), "Avatar", ctx.client, commandHeader(ctx.guildConfig))
+          setEmbedAuthor(baseEmbed(), "Avatar", ctx.client, commandHeader(ctx.guildConfig, { emoji: "<:icons_image:1544417559045079181>" }))
             .addFields(embedField("User", `<@${user.id}>`))
             .setImage(url),
           ctx.ephemeral,
@@ -152,7 +159,7 @@ export const metaCommands: SlashCommandDefinition[] = [
 
       await ctx.interaction.reply(
         embedReply(
-          setEmbedAuthor(baseEmbed(), "Time", ctx.client, commandHeader(ctx.guildConfig)).addFields(
+          setEmbedAuthor(baseEmbed(), "Time", ctx.client, commandHeader(ctx.guildConfig, { emoji: "<:icons_clock:1544417185336664114>" })).addFields(
             embedField("Timezone", timezone),
             embedField("Now", formatted),
           ),
@@ -293,7 +300,7 @@ export const metaCommands: SlashCommandDefinition[] = [
               baseEmbed(),
               "Emoji stolen",
               ctx.client,
-              commandHeader(ctx.guildConfig, { tone: "success" }),
+              commandHeader(ctx.guildConfig, { tone: "success", emoji: "<:icons_upload2:1544418267412570193>" }),
             )
               .setDescription(`Added ${created} as \`:${created.name}:\``)
               .setThumbnail(created.imageURL({ size: 128 }))

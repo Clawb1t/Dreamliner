@@ -284,7 +284,10 @@ export async function handleReviewModalSubmit(
       existing ? "Review updated" : "Review submitted",
       `Thanks! Your review (#${review.id}) was ${existing ? "updated" : "saved"}${channel ? ` and posted in <#${channel.id}>` : ""}.`,
       ephemeral,
-      guildResultOptions(interaction.client, guildConfig, { tone: "success" }),
+      guildResultOptions(interaction.client, guildConfig, {
+        tone: "success",
+        emoji: "<:icons_star:1544417435636080741>",
+      }),
     ),
   );
 }

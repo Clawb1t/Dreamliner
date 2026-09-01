@@ -43,6 +43,11 @@ function kindLabel(kind: BotBrandImageKind): string {
   return kind === "banner" ? "Banner" : "Avatar";
 }
 
+/** Avatar = profile photo (camera), banner = the wide art canvas (paint brush). */
+function kindAppliedEmoji(kind: BotBrandImageKind): string {
+  return kind === "banner" ? "<:icons_paintpadbrush:1544417365394071703>" : "<:icons_camera:1544417537180311684>";
+}
+
 async function notifyRequester(
   interaction: ButtonInteraction,
   request: BotAvatarRequest,
@@ -71,7 +76,9 @@ async function notifyRequester(
     {
       client: interaction.client,
       tone: outcome === "approved" ? "success" : outcome === "denied" ? "unchecked" : "error",
-      ...(outcome === "approved" ? { imageURL: brandImageAttachmentUrl(request.kind) } : {}),
+      ...(outcome === "approved"
+        ? { imageURL: brandImageAttachmentUrl(request.kind), emoji: kindAppliedEmoji(request.kind) }
+        : {}),
     },
   );
 
@@ -133,6 +140,7 @@ async function finalizeReviewMessage(
     interaction.client,
     {
       tone: outcome === "approved" ? "success" : outcome === "denied" ? "unchecked" : "error",
+      ...(outcome === "approved" ? { emoji: kindAppliedEmoji(request.kind) } : {}),
     },
   )
     .addFields(

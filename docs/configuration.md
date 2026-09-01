@@ -5,13 +5,6 @@ Dreamliner server configuration is written in YAML. Each server has its own conf
 ## File format
 
 ```yaml
-emojis:
-  success: "<:blurplecheck:1533947878668763278>"
-  error: "<:redcheck:1533947951481749504>"
-  neutral: "<:greycheck:1533948078615298148>"
-  warning: "<:warning:1533948583995244734>"
-  unchecked: "<:greycheck:1533948078615298148>"
-
 levels:
   "ROLE_OR_USER_SNOWFLAKE": 100   # Admin
   "ROLE_OR_USER_SNOWFLAKE": 50    # Mod
@@ -43,26 +36,14 @@ plugins:
 
 ## Emojis
 
-The `emojis` block sets the icons used on command response embed titles:
-
-```yaml
-emojis:
-  success: "<:blurplecheck:1533947878668763278>"
-  error: "<:redcheck:1533947951481749504>"
-  neutral: "<:greycheck:1533948078615298148>"
-  warning: "<:warning:1533948583995244734>"
-  unchecked: "<:greycheck:1533948078615298148>"
-```
-
-* **success** - positive outcomes (saved, updated, reloaded, etc.)
-* **error** - permission denied, invalid input, not found, etc.
-* **neutral** - general information and commands
-* **warning** - soft failures and advisories (not configured, already exists, etc.)
-* **unchecked** - disabled or off states
+The icons used on command response embed titles (success, error, neutral, warning, unchecked) and on log card
+titles (`logging.emojis`) are **fixed bot-wide and not configurable** — every server sees the same set, and
+neither the dashboard nor a `/config upload` can change them. The `emojis`/`logging.emojis` keys are no longer
+part of guild config; an uploaded YAML with either block simply has it ignored (they fail schema validation and
+get repaired away). See `src/core/embeds.ts` (`DEFAULT_EMOJIS`) and `src/core/logging/emojis.ts` (`LOG_EMOJI`) if
+you're maintaining a fork and want to change the defaults in code.
 
 Embed **author** always shows **Dreamliner** with the bot avatar. The **title** shows the emoji plus command title (e.g. success emoji + `Configuration saved`).
-
-Custom Discord emojis use the `<:name:id>` form and must be available to the bot.
 
 ## Response visibility
 

@@ -393,7 +393,12 @@ export async function handleAutoreplyModalSubmit(
   }
 
   await interaction.reply(
-    resultReply("Auto-reply added", formatCreatedAutoreplyRule(created.rule), ephemeral, guildResultOptions(interaction.client, guildConfig)),
+    resultReply(
+      "Auto-reply added",
+      formatCreatedAutoreplyRule(created.rule),
+      ephemeral,
+      guildResultOptions(interaction.client, guildConfig, { emoji: "<:icons_reply:1544417399879770265>" }),
+    ),
   );
   return true;
 }

@@ -21,7 +21,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       .setName("Convert to GIF")
       .setType(ApplicationCommandType.Message),
     execute: async (ctx) => {
-      const { interaction, guildConfig, client } = ctx;
+      const { interaction, client } = ctx;
       await interaction.deferReply();
 
       const imageAttachments = getImageAttachments(interaction.targetMessage.attachments);
@@ -36,9 +36,9 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           toConvert.map((attachment, index) => convertAttachmentToGif(attachment, index)),
         );
 
-        const successEmoji = resolveEmojiForContent(guildConfig.emojis.success, client);
+        const gifEmoji = resolveEmojiForContent("<:icons_gif:1544417549347848232>", client);
         await interaction.editReply({
-          content: `${successEmoji} Hover over the GIF and click the favorite button to add it to your favorites.`,
+          content: `${gifEmoji} Hover over the GIF and click the favorite button to add it to your favorites.`,
           files,
         });
       } catch (error) {

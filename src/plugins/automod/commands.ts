@@ -123,7 +123,12 @@ export const automodCommands: SlashCommandDefinition[] = [
         if (!auth) return;
         const config = parseAutomodConfig(auth.pluginConfig);
         await ctx.interaction.reply(
-          resultReply("Automod status", formatAutomodStatus(config, ctx.guildConfig), ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Automod status",
+            formatAutomodStatus(config, ctx.guildConfig),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" }),
+          ),
         );
         return;
       }
@@ -135,7 +140,12 @@ export const automodCommands: SlashCommandDefinition[] = [
         const message = ctx.interaction.options.getString("message", true);
         const hits = await testAutomodRules(message, config);
         await ctx.interaction.reply(
-          resultReply("Automod test", hits.join("\n"), ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Automod test",
+            hits.join("\n"),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_search:1544417406640726168>" }),
+          ),
         );
         return;
       }
@@ -164,7 +174,7 @@ export const automodCommands: SlashCommandDefinition[] = [
             "Preset applied",
             `Applied **${name}** preset. Turn the Automod plugin **on** in the dashboard if it is still disabled.\n\n${formatAutomodStatus(parseAutomodConfig(result.data.plugins.automod?.config ?? {}), result.data)}`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_magicwand:1544417336168288296>" }),
           ),
         );
         return;
@@ -188,7 +198,12 @@ export const automodCommands: SlashCommandDefinition[] = [
           return;
         }
         await ctx.interaction.reply(
-          resultReply("Rule updated", `**${ruleId}** is now **${enabled ? "enabled" : "disabled"}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Rule updated",
+            `**${ruleId}** is now **${enabled ? "enabled" : "disabled"}**.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_settings:1544417411875479642>" }),
+          ),
         );
         return;
       }
@@ -207,7 +222,14 @@ export const automodCommands: SlashCommandDefinition[] = [
           const lines = entries.slice(0, 25).map(
             (e) => `• \`${e.id.slice(0, 8)}\` ${e.regex ? "(regex) " : ""}**${e.pattern}** ${e.enabled ? "" : "(off)"}`,
           );
-          await ctx.interaction.reply(resultReply("Custom filters", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(
+              "Custom filters",
+              lines.join("\n"),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { emoji: "<:icons_list:1544417562325164173>" }),
+            ),
+          );
           return;
         }
 
@@ -245,7 +267,11 @@ export const automodCommands: SlashCommandDefinition[] = [
             return;
           }
           await ctx.interaction.editReply(
-            resultEdit("Filter added", `Added \`${pattern}\`. Custom filter rule enabled.`, slashResultOptions(ctx)),
+            resultEdit(
+              "Filter added",
+              `Added \`${pattern}\`. Custom filter rule enabled.`,
+              slashResultOptions(ctx, { emoji: "<:icons_text_search:1544418237675077702>" }),
+            ),
           );
           return;
         }
@@ -271,7 +297,14 @@ export const automodCommands: SlashCommandDefinition[] = [
             await ctx.interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
             return;
           }
-          await ctx.interaction.reply(resultReply("Filter removed", `Removed \`${pattern}\`.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(
+              "Filter removed",
+              `Removed \`${pattern}\`.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { emoji: "<:icons_xmarkwhite:1544417463314161735>" }),
+            ),
+          );
           return;
         }
       }
@@ -302,7 +335,11 @@ export const automodCommands: SlashCommandDefinition[] = [
             ignore ? "Channel ignored" : "Channel unignored",
             `<#${channel.id}> ${ignore ? "will be ignored" : "is no longer ignored"} by automod.`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, {
+              emoji: ignore
+                ? "<:icons_text_channel_locked:1544418232608497724>"
+                : "<:icons_text_channel:1544418231307997204>",
+            }),
           ),
         );
         return;
@@ -334,7 +371,9 @@ export const automodCommands: SlashCommandDefinition[] = [
             ignore ? "Role ignored" : "Role unignored",
             `<@&${role.id}> ${ignore ? "will be ignored" : "is no longer ignored"} by automod.`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, {
+              emoji: ignore ? "<:icons_locked:1544417721612247171>" : "<:icons_enable:1544417874351755264>",
+            }),
           ),
         );
       }

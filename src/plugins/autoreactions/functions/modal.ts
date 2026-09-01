@@ -331,7 +331,12 @@ export async function handleAutoreactionModalSubmit(
   }
 
   await interaction.reply(
-    resultReply("Auto-reaction added", formatCreatedRule(created.rule), ephemeral, guildResultOptions(interaction.client, guildConfig)),
+    resultReply(
+      "Auto-reaction added",
+      formatCreatedRule(created.rule),
+      ephemeral,
+      guildResultOptions(interaction.client, guildConfig, { emoji: "<:icons_addreactions:1544417680327704607>" }),
+    ),
   );
   return true;
 }

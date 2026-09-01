@@ -7,11 +7,11 @@ export const EMPTY_EMBED = "\u200b";
 export const PRE_EMBED_PADDING = `${EMPTY_EMBED}\n`;
 
 const DEFAULT_EMOJIS: EmojisConfig = {
-  success: "<:blurplecheck:1533947878668763278>",
-  error: "<:redcheck:1533947951481749504>",
-  neutral: "<:greycheck:1533948078615298148>",
-  warning: "<:warning:1533948583995244734>",
-  unchecked: "<:greycheck:1533948078615298148>",
+  success: "<:icons_Correct:1544417199798886530>",
+  error: "<:icons_Wrong:1544417460638457937>",
+  neutral: "<:icons_generalinfo:1544417795335389254>",
+  warning: "<:icons_exclamation:1544417272376852490>",
+  unchecked: "<:icons_disable:1544417870652379277>",
 };
 
 export type EmbedTone = "success" | "neutral" | "error" | "warning" | "unchecked";
@@ -181,9 +181,16 @@ export function buildResultEmbed(
   return embed;
 }
 
+/** <150ms good, <400ms medium, otherwise bad — used anywhere a live ping/latency number is shown. */
+export function pingQualityEmoji(ms: number): string {
+  if (ms < 150) return "<:icons_goodping:1544417298402644029>";
+  if (ms < 400) return "<:icons_mediumping:1544417338554589244>";
+  return "<:icons_badping:1544417484717686884>";
+}
+
 export function buildPingEmbed(roundtrip: number, ws: number, client: Client, emojis?: EmojisConfig): EmbedBuilder {
   return setEmbedAuthor(baseEmbed(), "Pong!", client, { tone: "success", emojis })
-    .setDescription(`**${ws}ms**`)
+    .setDescription(`${pingQualityEmoji(ws)} **${ws}ms**`)
     .setFooter({ text: `Roundtrip is ${roundtrip}ms` });
 }
 

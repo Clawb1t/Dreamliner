@@ -105,7 +105,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
           { panels: auth.pluginConfig.panels.map((p) => (p.id === panel.id ? { ...p, message_id: messageId } : p)) },
           interaction.user.id,
         );
-        await interaction.editReply(resultEdit("Panel posted", `Posted \`${panel.name || panel.id}\` in <#${panel.channel_id}>.`, slashResultOptions(ctx, { tone: "success" })));
+        await interaction.editReply(resultEdit("Panel posted", `Posted \`${panel.name || panel.id}\` in <#${panel.channel_id}>.`, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_pin:1544417374927716513>" })));
         return;
       }
 
@@ -155,7 +155,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
           return;
         }
         const target = result.ticket.threadId ?? result.ticket.channelId;
-        await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, slashResultOptions(ctx, { tone: "success" })));
+        await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
         return;
       }
 
@@ -165,7 +165,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const target = interaction.options.getUser("target", true);
         const reason = interaction.options.getString("reason");
         await addToBlacklist(guildId, target.id, "user", reason);
-        await interaction.reply(resultReply("Blacklisted", `${target.tag} can no longer open tickets.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })));
+        await interaction.reply(resultReply("Blacklisted", `${target.tag} can no longer open tickets.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ban:1544417486177308742>" })));
         return;
       }
 
@@ -178,10 +178,10 @@ export const ticketCommands: SlashCommandDefinition[] = [
         if (!auth) return;
         if (sub === "claim") {
           await performClaim(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, interaction.user.id);
-          await interaction.reply(resultReply("Ticket claimed", `You are now handling ticket #${ticket.number}.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })));
+          await interaction.reply(resultReply("Ticket claimed", `You are now handling ticket #${ticket.number}.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_hammer:1544417299937763348>" })));
         } else {
           await performUnclaim(ticket);
-          await interaction.reply(resultReply("Ticket unclaimed", `Ticket #${ticket.number} is now unclaimed.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await interaction.reply(resultReply("Ticket unclaimed", `Ticket #${ticket.number} is now unclaimed.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_unlock:1544417749617610852>" })));
         }
         return;
       }
@@ -204,7 +204,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
         }
         await interaction.deferReply({ ephemeral: ctx.ephemeral });
         await performClose(ctx.client, interaction.guild!, ctx.guildConfig, pluginConfig, category, ticket, interaction.user.id, reason);
-        await interaction.editReply(resultEdit("Ticket closed", `Ticket #${ticket.number} has been closed.`, slashResultOptions(ctx, { tone: "success" })));
+        await interaction.editReply(resultEdit("Ticket closed", `Ticket #${ticket.number} has been closed.`, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_archive:1544417474823590008>" })));
         return;
       }
 
@@ -221,7 +221,18 @@ export const ticketCommands: SlashCommandDefinition[] = [
           return;
         }
         await interaction.reply(
-          resultReply(sub === "add" ? "Member added" : "Member removed", `${target.tag} has been ${sub === "add" ? "added to" : "removed from"} this ticket.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
+          resultReply(
+            sub === "add" ? "Member added" : "Member removed",
+            `${target.tag} has been ${sub === "add" ? "added to" : "removed from"} this ticket.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, {
+              tone: "success",
+              emoji:
+                sub === "add"
+                  ? "<:icons_newmembers:1544417355004780769>"
+                  : "<:Icons_rmembers:1544418127364751521>",
+            }),
+          ),
         );
         return;
       }
@@ -233,7 +244,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const ok = await renameTicket(ctx.client, ticket, name);
         await interaction.reply(
           ok
-            ? resultReply("Renamed", `Ticket #${ticket.number} renamed.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" }))
+            ? resultReply("Renamed", `Ticket #${ticket.number} renamed.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_updatechannel:1544417815807922246>" }))
             : resultReply("Failed", "Could not rename this ticket's channel.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
         );
         return;
@@ -244,7 +255,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
         if (!auth) return;
         const level = interaction.options.getString("level", true) as (typeof TICKET_PRIORITIES)[number];
         await setPriority(guildId, ticket.id, level);
-        await interaction.reply(resultReply("Priority updated", `Ticket #${ticket.number} priority set to **${level}**.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })));
+        await interaction.reply(resultReply("Priority updated", `Ticket #${ticket.number} priority set to **${level}**.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_flag:1544417544251772999>" })));
         return;
       }
 
@@ -265,7 +276,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
           resultEdit(
             sent ? "Transcript sent" : "Transcript posted",
             sent ? "Check your DMs for the transcript." : "Could not DM you — posted the transcript to the log channel instead.",
-            slashResultOptions(ctx, { tone: "success" }),
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_folder:1544417545602334791>" }),
           ),
         );
         return;

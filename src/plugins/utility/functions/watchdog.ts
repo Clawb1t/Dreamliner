@@ -41,7 +41,7 @@ export async function buildWatchdogEmbed(
     client,
     commandHeader(guildConfig, {
       thumbnailURL: member.displayAvatarURL({ size: 128 }),
-      emoji: "<:blurplecheck:1533947878668763278>",
+      emoji: "<:icons_user_mod:1544418270030074030>",
     }),
   );
   embed.setColor(TIER_COLOR[result.tier]);

@@ -59,6 +59,11 @@ function kindLabel(kind: BotBrandImageKind): string {
   return kind === "banner" ? "Banner" : "Avatar";
 }
 
+/** Avatar = profile photo (camera), banner = the wide art canvas (paint brush). */
+function kindAppliedEmoji(kind: BotBrandImageKind): string {
+  return kind === "banner" ? "<:icons_paintpadbrush:1544417365394071703>" : "<:icons_camera:1544417537180311684>";
+}
+
 export async function submitBrandImageForReview(options: {
   client: Client;
   guildId: string;
@@ -89,6 +94,7 @@ export async function submitBrandImageForReview(options: {
   const file = brandImageAttachment(options.imagePng, options.kind);
   const embed = setEmbedAuthor(baseEmbed(), `${label} review`, options.client, {
     tone: "warning",
+    emoji: "<:icons_hoursglass:1544417711864549479>",
   })
     .addFields(
       embedField(
@@ -175,6 +181,7 @@ export async function logBrandImageApplied(options: {
   const file = brandImageAttachment(options.imagePng, options.kind);
   const embed = setEmbedAuthor(baseEmbed(), `${label} updated`, options.client, {
     tone: "success",
+    emoji: kindAppliedEmoji(options.kind),
   })
     .addFields(
       embedField(

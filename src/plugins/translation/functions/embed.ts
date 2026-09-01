@@ -79,6 +79,7 @@ export function buildTranslationEmbed(
   return setEmbedAuthor(baseEmbed(), "Translation", client, {
     ...commandHeader(guildConfig),
     tone: "neutral",
+    emoji: "<:icons_translate:1544417978261438614>",
   }).setDescription(options.translated.slice(0, 4096));
 }
 

@@ -1,7 +1,7 @@
 /**
  * Categories every log card's title emoji is chosen from. Guilds can override each category's
  * glyph in `logging.emojis` (dashboard: Server → Logging Emojis); these are the fallback values
- * (Dreamliner's own "dl_*" application emojis) used when a guild hasn't set an override — and the
+ * (Dreamliner's own application emojis) used when a guild hasn't set an override — and the
  * pool a builder picks from via `LogCard.emojiCategory`. No plain unicode emoji is ever used.
  */
 export type LogEmojiCategory =
@@ -53,19 +53,19 @@ export const LOG_EMOJI_CATEGORY_LABELS: Record<LogEmojiCategory, string> = {
 
 /** Default glyph per category — Dreamliner's own application emojis. */
 export const LOG_EMOJI: Record<LogEmojiCategory, string> = {
-  action: "<:dl_action:1540811113711665203>",
-  create: "<:dl_create:1540811386790346793>",
-  delete: "<:dl_delete:1540811399993757816>",
-  edit: "<:dl_edit:1540811455249645668>",
-  emojiSticker: "<:dl_emoji:1540811163284144169>",
-  join: "<:dl_join:1540811526447824976>",
-  leave: "<:dl_leave:1540811513802133554>",
-  voice: "<:dl_voice:1540811146380972144>",
-  unban: "<:dl_unban:1540811470391214111>",
-  serverUpdate: "<:dl_serverupdate:1540811181290160328>",
-  modDefault: "<:dl_moderation_default:1540811132242239651>",
-  modModerate: "<:dl_moderation_moderate:1540811497184297040>",
-  modSevere: "<:dl_moderation_severe:1540811485079671046>",
+  action: "<:icons_slashcmd:1544417581765501059>",
+  create: "<:icons_plus:1544417389872156732>",
+  delete: "<:icons_trash:1544418246705418332>",
+  edit: "<:icons_edit:1544417261115281441>",
+  emojiSticker: "<:icons_createemoji:1544417838511423538>",
+  join: "<:icons_djoin:1544417221902864524>",
+  leave: "<:icons_dleave:1544417225430274058>",
+  voice: "<:icons_voice:1544418279760601158>",
+  unban: "<:icons_unbanmember:1544417814549495899>",
+  serverUpdate: "<:icons_updateserver:1544417824074768584>",
+  modDefault: "<:icons_moderationlow:1544418102001799328>",
+  modModerate: "<:icons_moderationmedium:1544418103494971402>",
+  modSevere: "<:icons_moderationhighest:1544418100663812167>",
 };
 
 /** Resolves a category to the guild's configured override, falling back to the Dreamliner default. */

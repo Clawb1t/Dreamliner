@@ -76,7 +76,7 @@ export const configPlugin = definePlugin({
                 "You can still use `/config download` / `/config upload` if you prefer files.",
               ].join("\n"),
               ephemeral,
-              resultOptions,
+              { ...resultOptions, emoji: "<:icons_link:1544417328597434500>" },
               editorComponents,
             ),
           );
@@ -93,7 +93,7 @@ export const configPlugin = definePlugin({
               buildResultEmbed(
                 "Configuration download",
                 `Your current server configuration is attached.\n\n${EDITOR_HINT}`,
-                resultOptions,
+                { ...resultOptions, emoji: "<:icons_Download:1544417233655042168>" },
               ),
               [file],
               ephemeral,
@@ -118,7 +118,7 @@ export const configPlugin = definePlugin({
                   "Open the dashboard to edit this server live, or customize this template and run `/config upload`.",
                   "If this server already has a config, prefer `/config download` so you edit the live file instead of starting over.",
                 ].join("\n"),
-                resultOptions,
+                { ...resultOptions, emoji: "<:icons_file:1544417274860146808>" },
               ),
               [file],
               ephemeral,
@@ -149,7 +149,7 @@ export const configPlugin = definePlugin({
               "Configuration updated",
               `${note}\n\nNeed more edits? ${EDITOR_HINT}`,
               ephemeral,
-              { ...resultOptions, tone: "success" },
+              { ...resultOptions, tone: "success", emoji: "<:icons_update2:1544417454447534080>" },
               [configEditorLinkRow(guildId)],
             ),
           );
@@ -189,7 +189,7 @@ export const configPlugin = definePlugin({
               "Configuration valid",
               "No errors were found. Run `/config upload` with this file to apply it, or keep editing in the website editor.",
               ephemeral,
-              { ...resultOptions, tone: "success" },
+              { ...resultOptions, tone: "success", emoji: "<:icons_squard_check_blurple:1544418207270576159>" },
               [configEditorLinkRow(guildId)],
             ),
           );
@@ -232,7 +232,7 @@ export const configPlugin = definePlugin({
               "Configuration saved",
               "Your server configuration has been applied.\n\nLater changes: use the dashboard, or `/config download` → edit → `/config upload`.",
               ephemeral,
-              { ...resultOptions, tone: "success" },
+              { ...resultOptions, tone: "success", emoji: "<:icons_upload:1544418265017618522>" },
               [configEditorLinkRow(guildId)],
             ),
           );

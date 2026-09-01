@@ -106,7 +106,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
             Deleted: **${count}** message(s)
             Archive ID: \`${archiveId}\`
           `),
-          slashResultOptions(ctx),
+          slashResultOptions(ctx, { emoji: "<:icons_clean:1544417689320034304>" }),
         ),
       );
     },
@@ -174,7 +174,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
               Archive ID: \`${archiveId}\`
               The full message JSON is attached.
             `),
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_code:1544417539482845235>" }),
           ),
           [file],
           ctx.ephemeral,

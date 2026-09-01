@@ -2,7 +2,7 @@
 
 Two independent currencies:
 
-- **Global coins** — bot-wide, fixed name, denominator, and emoji (`Coins`, `$`, <:coin:1543696697685844048>),
+- **Global coins** — bot-wide, fixed name, denominator, and emoji (`Coins`, `$`, <:icons_coin:1544417186951598130>),
   earned everywhere the bot is installed. Sending a message earns **0.15** coins (60s cooldown per member);
   balances carry across every server.
 - **Server currency** — per-guild, name/denominator/emoji customisable by that server's managers, scoped to that

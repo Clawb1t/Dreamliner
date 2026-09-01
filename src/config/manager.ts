@@ -14,7 +14,7 @@ import {
 } from "./validator.js";
 import type { GuildConfig } from "./schemas/guild.js";
 import type { ConfigOverride } from "../core/types.js";
-import { migrateLegacyEmojis, migrateLegacyEmojisInObject } from "./emojiMigration.js";
+import { migrateLegacyEmojisInGuildConfig, migrateLegacyEmojisInObject } from "./emojiMigration.js";
 
 const cache = new Map<string, GuildConfig>();
 
@@ -131,10 +131,8 @@ export class ConfigManager {
       );
     }
 
-    const migratedEmojis = migrateLegacyEmojis(validated.data.emojis);
-    const data: GuildConfig = migratedEmojis.changed
-      ? { ...validated.data, emojis: migratedEmojis.emojis }
-      : validated.data;
+    const migratedEmojis = migrateLegacyEmojisInGuildConfig(validated.data);
+    const data: GuildConfig = migratedEmojis.data;
 
     cache.set(guildId, data);
 

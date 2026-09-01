@@ -55,7 +55,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
             "Build a custom command",
             "Custom commands are built on the dashboard: a name, a description, and a reply, either a message or an embed. Open the dashboard's Commands section for this server to get started.",
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_cmd:1544418082867384360>" }),
           ),
           components: [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open commands dashboard", url))],
         });
@@ -121,7 +121,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
               ? `**${updated.name}** (\`${formatTriggerLabel(updated)}\`) is live again.`
               : `**${updated.name}** is disabled and no longer registered on this server.`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, updated.enabled ? { emoji: "<:icons_unlock:1544417749617610852>" } : undefined),
           ),
         );
         return;
@@ -165,7 +165,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           baseEmbed(),
           "Custom commands",
           ctx.client,
-          commandHeader(ctx.guildConfig),
+          commandHeader(ctx.guildConfig, { emoji: "<:icons_list:1544417562325164173>" }),
         ).setDescription(trimLines(lines.join("\n")));
 
         await ctx.interaction.reply({

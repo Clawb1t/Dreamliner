@@ -63,7 +63,12 @@ export const rolesCommands: SlashCommandDefinition[] = [
         }
 
         await ctx.interaction.reply(
-          resultReply("Role given", `Gave ${role} to ${user.tag}.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Role given",
+            `Gave ${role} to ${user.tag}.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_createrole:1544417841225146418>" }),
+          ),
         );
         return;
       }
@@ -98,7 +103,12 @@ export const rolesCommands: SlashCommandDefinition[] = [
         }
 
         await ctx.interaction.reply(
-          resultReply("Role removed", `Removed ${role} from ${user.tag}.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Role removed",
+            `Removed ${role} from ${user.tag}.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_deleterole:1544417865346715718>" }),
+          ),
         );
         return;
       }
@@ -125,7 +135,7 @@ export const rolesCommands: SlashCommandDefinition[] = [
             `${user.tag}'s roles`,
             roles.length > 0 ? roles : "No roles.",
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_roles:1544417804994871338>" }),
           ),
         );
       }

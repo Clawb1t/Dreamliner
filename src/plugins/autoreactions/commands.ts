@@ -87,7 +87,12 @@ export const autoreactionsCommands: SlashCommandDefinition[] = [
         }
 
         await ctx.interaction.reply(
-          resultReply("Auto-reaction removed", `Removed rule **#${id}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Auto-reaction removed",
+            `Removed rule **#${id}**.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_deleteemoji:1544417847965524009>" }),
+          ),
         );
         return;
       }

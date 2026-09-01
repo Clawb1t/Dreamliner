@@ -120,6 +120,7 @@ export const manageCommands: SlashCommandDefinition[] = [
           await ctx.interaction.reply(resultReply("Permission denied", "You cannot edit this infraction's reason.", ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
+        const reasonUpdateEmoji = "<:icons_pen:1544417369709871224>";
         await updateInfractionReason(guildId, id, reason);
         const pluginConfig = getInfractionPluginConfig(ctx.guildConfig) as InfractionConfig;
         await sendModerationLog(
@@ -140,7 +141,7 @@ export const manageCommands: SlashCommandDefinition[] = [
             caseLogOverride: pluginConfig.case_log_channel,
           },
         );
-        await ctx.interaction.reply(resultReply("Infraction updated", `Reason for #${id} updated.`, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply("Infraction updated", `Reason for #${id} updated.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: reasonUpdateEmoji })));
         return;
       }
 
@@ -206,7 +207,7 @@ export const manageCommands: SlashCommandDefinition[] = [
             "Infraction updated",
             `Duration for #${id} set to **${durationStr}** (expires ${formatDurationShort(expiresAt.getTime() - Date.now())}).`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_clock:1544417185336664114>" }),
           ),
         );
         return;

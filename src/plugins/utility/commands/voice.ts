@@ -94,7 +94,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
               Channel: **${dest.name}**
             `),
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_mic:1544417343252201552>" }),
           ),
         );
         return;
@@ -140,7 +140,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
               Moved: **${moved}** member(s)
             `),
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_mic:1544417343252201552>" }),
           ),
         );
         return;
@@ -185,7 +185,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
               Disconnected from: **${channelName}**
             `),
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_micmute:1544417344804102224>" }),
           ),
         );
       }
@@ -237,7 +237,7 @@ export const nicknameCommands: SlashCommandDefinition[] = [
               Nickname: **${nick}**
             `),
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_id:1544417556868104274>" }),
           ),
         );
         return;
@@ -262,7 +262,7 @@ export const nicknameCommands: SlashCommandDefinition[] = [
               New nickname: **${name}**
             `),
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_pen:1544417369709871224>" }),
           ),
         );
         return;
@@ -271,7 +271,12 @@ export const nicknameCommands: SlashCommandDefinition[] = [
       if (sub === "reset") {
         await member.setNickname(null);
         await ctx.interaction.reply(
-          resultReply("Nickname", `Reset nickname for **${member.displayName}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Nickname",
+            `Reset nickname for **${member.displayName}**.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_pen:1544417369709871224>" }),
+          ),
         );
       }
     },

@@ -182,7 +182,7 @@ export const companionChannelsCommands: SlashCommandDefinition[] = [
           "Companion",
           result.message,
           ctx.ephemeral,
-          slashResultOptions(ctx, { tone: result.ok ? "success" : "error" }),
+          slashResultOptions(ctx, { tone: result.ok ? "success" : "error", emoji: result.emoji }),
         ),
       );
     },

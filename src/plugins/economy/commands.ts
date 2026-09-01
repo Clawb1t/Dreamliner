@@ -79,7 +79,11 @@ function resolveTradeStock(guild: Guild, symbolInput: string | null): StockRow |
 }
 
 function changeArrow(changeAmount: number): string {
-  return changeAmount > 0 ? "📈" : changeAmount < 0 ? "📉" : "➖";
+  return changeAmount > 0
+    ? "<:icons_uparrow:1544417597527953460>"
+    : changeAmount < 0
+      ? "<:icons_downarrow:1544417541873471488>"
+      : "<:icons_hyphen:1544417304203362406>";
 }
 
 function exchangeLinkRow() {
@@ -200,7 +204,7 @@ export const economyCommands: SlashCommandDefinition[] = [
 
       await i.deferReply(deferReplyOptions(ctx.ephemeral));
 
-      const successEmoji = resolveEmojiForContent(ctx.guildConfig.emojis.success, ctx.client);
+      const successEmoji = "<:icons_calenderdate:1544418081038663701>";
       const errorEmoji = resolveEmojiForContent(ctx.guildConfig.emojis.error, ctx.client);
 
       let claim: DailyClaimResult | null = null;
@@ -339,7 +343,7 @@ export const economyCommands: SlashCommandDefinition[] = [
           "Economy settings updated",
           `**Currency:** ${name}\n**Message rewards:** ${messageRewardsEnabled ? "on" : "off"}`,
           ctx.ephemeral,
-          slashResultOptions(ctx),
+          slashResultOptions(ctx, { tone: "success", emoji: "<:icons_settings:1544417411875479642>" }),
         ),
       );
     },
@@ -369,7 +373,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         const embed = baseEmbed()
           .setAuthor({ name: member?.displayName ?? i.user.username, iconURL: i.user.displayAvatarURL() })
           .setDescription(
-            `Exchanged ${formatServer(result.serverAmount, config.server)} for ${formatGlobal(result.globalAmount)}`,
+            `<:icons_swap:1544418225503084695> Exchanged ${formatServer(result.serverAmount, config.server)} for ${formatGlobal(result.globalAmount)}`,
           )
           .addFields(
             { name: "Exchange rate", value: `\`${formatExchangeRate(rate)}\` (${stock.symbol} @ ${formatCoinAmount(stock.price)})`, inline: false },
@@ -540,7 +544,7 @@ export const economyCommands: SlashCommandDefinition[] = [
                 "Stock purchased",
                 `Bought **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share.\n**New balance:** ${formatCoinAmount(result.balance)}`,
                 ctx.ephemeral,
-                slashResultOptions(ctx, { tone: "success" }),
+                slashResultOptions(ctx, { tone: "success", emoji: "<:icons_creditcard:1544417201686052905>" }),
                 [exchangeLinkRow()],
               ),
             );
@@ -555,7 +559,7 @@ export const economyCommands: SlashCommandDefinition[] = [
               "Stock sold",
               `Sold **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share for ${formatCoinAmount(result.proceeds)}.\n**New balance:** ${formatCoinAmount(result.balance)}`,
               ctx.ephemeral,
-              slashResultOptions(ctx, { tone: "success" }),
+              slashResultOptions(ctx, { tone: "success", emoji: "<:icons_dollar:1544417229603348550>" }),
               [exchangeLinkRow()],
             ),
           );
@@ -731,7 +735,14 @@ export const economyCommands: SlashCommandDefinition[] = [
         }
         try {
           giveCard(i.user.id, target.id, plane.id, 1);
-          await i.reply(resultReply("Card given", `Gave 1x **${plane.name}** to **${target.username}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await i.reply(
+            resultReply(
+              "Card given",
+              `Gave 1x **${plane.name}** to **${target.username}**.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "success", emoji: "<:icons_gift:1544417552627802212>" }),
+            ),
+          );
         } catch (err) {
           if (err instanceof InventoryError) {
             await i.reply(resultReply("Couldn't give card", `You don't own **${plane.name}**.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));

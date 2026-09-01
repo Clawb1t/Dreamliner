@@ -122,7 +122,10 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
               baseEmbed(),
               "Scam Protect ready",
               ctx.client,
-              commandHeader(enableResult.data, { tone: "success" }),
+              commandHeader(enableResult.data, {
+                tone: "success",
+                emoji: "<:icons_unusual_account:1544418255630901341>",
+              }),
             )
               .setDescription(
                 `Honeypot channel is ${channel}. Anyone who posts there (except ignored staff) will be softbanned.`,
@@ -167,7 +170,12 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
 
       await ctx.interaction.reply(
         embedReply(
-          setEmbedAuthor(baseEmbed(), "Scam Protect", ctx.client, commandHeader(ctx.guildConfig))
+          setEmbedAuthor(
+            baseEmbed(),
+            "Scam Protect",
+            ctx.client,
+            commandHeader(ctx.guildConfig, { emoji: "<:icons_fingerprint:1544418020682899537>" }),
+          )
             .setDescription(
               ok
                 ? `Honeypot is active in ${channel}.`

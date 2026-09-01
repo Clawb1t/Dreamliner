@@ -10,8 +10,9 @@
       "properties": {
         "success": {
           "type": "string",
-          "default": "<:blurplecheck:1533947878668763278>",
-          "description": "Emoji prefix for successful command responses.",
+          "const": "<:icons_Correct:1544417199798886530>",
+          "default": "<:icons_Correct:1544417199798886530>",
+          "description": "Emoji prefix for successful command responses. Fixed, not configurable.",
           "title": "Success",
           "x-dreamliner": {
             "kind": "emoji",
@@ -20,8 +21,9 @@
         },
         "error": {
           "type": "string",
-          "default": "<:redcheck:1533947951481749504>",
-          "description": "Emoji prefix for errors and permission denied.",
+          "const": "<:icons_Wrong:1544417460638457937>",
+          "default": "<:icons_Wrong:1544417460638457937>",
+          "description": "Emoji prefix for errors and permission denied. Fixed, not configurable.",
           "title": "Error",
           "x-dreamliner": {
             "kind": "emoji",
@@ -30,8 +32,9 @@
         },
         "neutral": {
           "type": "string",
-          "default": "<:greycheck:1533948078615298148>",
-          "description": "Emoji prefix for general information responses.",
+          "const": "<:icons_generalinfo:1544417795335389254>",
+          "default": "<:icons_generalinfo:1544417795335389254>",
+          "description": "Emoji prefix for general information responses. Fixed, not configurable.",
           "title": "Neutral",
           "x-dreamliner": {
             "kind": "emoji",
@@ -40,8 +43,9 @@
         },
         "warning": {
           "type": "string",
-          "default": "<:warning:1533948583995244734>",
-          "description": "Emoji prefix for soft failures and advisories.",
+          "const": "<:icons_exclamation:1544417272376852490>",
+          "default": "<:icons_exclamation:1544417272376852490>",
+          "description": "Emoji prefix for soft failures and advisories. Fixed, not configurable.",
           "title": "Warning",
           "x-dreamliner": {
             "kind": "emoji",
@@ -50,8 +54,9 @@
         },
         "unchecked": {
           "type": "string",
-          "default": "<:greycheck:1533948078615298148>",
-          "description": "Emoji prefix for disabled or off states.",
+          "const": "<:icons_disable:1544417870652379277>",
+          "default": "<:icons_disable:1544417870652379277>",
+          "description": "Emoji prefix for disabled or off states. Fixed, not configurable.",
           "title": "Unchecked",
           "x-dreamliner": {
             "kind": "emoji",
@@ -125,8 +130,9 @@
           "properties": {
             "action_emoji": {
               "type": "string",
-              "default": "<:dl_action:1540811113711665203>",
-              "description": "Fallback emoji for log events that don't fit any other category (e.g. message pin, DM failed).",
+              "const": "<:icons_slashcmd:1544417581765501059>",
+              "default": "<:icons_slashcmd:1544417581765501059>",
+              "description": "Fallback emoji for log events that don't fit any other category (e.g. message pin, DM failed). Fixed, not configurable.",
               "title": "Action Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -135,8 +141,9 @@
             },
             "create_emoji": {
               "type": "string",
-              "default": "<:dl_create:1540811386790346793>",
-              "description": "Emoji for create events (channels, roles, threads, invites).",
+              "const": "<:icons_plus:1544417389872156732>",
+              "default": "<:icons_plus:1544417389872156732>",
+              "description": "Emoji for create events (channels, roles, threads, invites). Fixed, not configurable.",
               "title": "Create Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -145,8 +152,9 @@
             },
             "delete_emoji": {
               "type": "string",
-              "default": "<:dl_delete:1540811399993757816>",
-              "description": "Emoji for delete events (channels, roles, messages, cases, clean).",
+              "const": "<:icons_trash:1544418246705418332>",
+              "default": "<:icons_trash:1544418246705418332>",
+              "description": "Emoji for delete events (channels, roles, messages, cases, clean). Fixed, not configurable.",
               "title": "Delete Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -155,8 +163,9 @@
             },
             "edit_emoji": {
               "type": "string",
-              "default": "<:dl_edit:1540811455249645668>",
-              "description": "Emoji for edit/update events (messages, channels, roles, nicknames).",
+              "const": "<:icons_edit:1544417261115281441>",
+              "default": "<:icons_edit:1544417261115281441>",
+              "description": "Emoji for edit/update events (messages, channels, roles, nicknames). Fixed, not configurable.",
               "title": "Edit Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -165,8 +174,9 @@
             },
             "emoji_sticker_emoji": {
               "type": "string",
-              "default": "<:dl_emoji:1540811163284144169>",
-              "description": "Emoji for emoji and sticker create/update/delete events.",
+              "const": "<:icons_createemoji:1544417838511423538>",
+              "default": "<:icons_createemoji:1544417838511423538>",
+              "description": "Emoji for emoji and sticker create/update/delete events. Fixed, not configurable.",
               "title": "Emoji Sticker Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -175,8 +185,9 @@
             },
             "join_emoji": {
               "type": "string",
-              "default": "<:dl_join:1540811526447824976>",
-              "description": "Emoji for member and voice join events.",
+              "const": "<:icons_djoin:1544417221902864524>",
+              "default": "<:icons_djoin:1544417221902864524>",
+              "description": "Emoji for member and voice join events. Fixed, not configurable.",
               "title": "Join Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -185,8 +196,9 @@
             },
             "leave_emoji": {
               "type": "string",
-              "default": "<:dl_leave:1540811513802133554>",
-              "description": "Emoji for member and voice leave events.",
+              "const": "<:icons_dleave:1544417225430274058>",
+              "default": "<:icons_dleave:1544417225430274058>",
+              "description": "Emoji for member and voice leave events. Fixed, not configurable.",
               "title": "Leave Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -195,8 +207,9 @@
             },
             "voice_emoji": {
               "type": "string",
-              "default": "<:dl_voice:1540811146380972144>",
-              "description": "Emoji for voice activity that isn't a plain join/leave (move, mute, deafen, stream, video).",
+              "const": "<:icons_voice:1544418279760601158>",
+              "default": "<:icons_voice:1544418279760601158>",
+              "description": "Emoji for voice activity that isn't a plain join/leave (move, mute, deafen, stream, video). Fixed, not configurable.",
               "title": "Voice Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -205,8 +218,9 @@
             },
             "unban_emoji": {
               "type": "string",
-              "default": "<:dl_unban:1540811470391214111>",
-              "description": "Emoji for member unban and case unban events.",
+              "const": "<:icons_unbanmember:1544417814549495899>",
+              "default": "<:icons_unbanmember:1544417814549495899>",
+              "description": "Emoji for member unban and case unban events. Fixed, not configurable.",
               "title": "Unban Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -215,8 +229,9 @@
             },
             "server_update_emoji": {
               "type": "string",
-              "default": "<:dl_serverupdate:1540811181290160328>",
-              "description": "Emoji for server/config-level changes: guild settings, webhooks, dashboard config saves.",
+              "const": "<:icons_updateserver:1544417824074768584>",
+              "default": "<:icons_updateserver:1544417824074768584>",
+              "description": "Emoji for server/config-level changes: guild settings, webhooks, dashboard config saves. Fixed, not configurable.",
               "title": "Server Update Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -225,8 +240,9 @@
             },
             "moderation_default_emoji": {
               "type": "string",
-              "default": "<:dl_moderation_default:1540811132242239651>",
-              "description": "Emoji for non-punitive moderation bookkeeping: notes, case edits, passport checks, dashboard admin actions.",
+              "const": "<:icons_moderationlow:1544418102001799328>",
+              "default": "<:icons_moderationlow:1544418102001799328>",
+              "description": "Emoji for non-punitive moderation bookkeeping: notes, case edits, passport checks, dashboard admin actions. Fixed, not configurable.",
               "title": "Moderation Default Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -235,8 +251,9 @@
             },
             "moderation_moderate_emoji": {
               "type": "string",
-              "default": "<:dl_moderation_moderate:1540811497184297040>",
-              "description": "Emoji for corrective-but-not-account-ending actions: warns, mutes, timeouts, automod, censor.",
+              "const": "<:icons_moderationmedium:1544418103494971402>",
+              "default": "<:icons_moderationmedium:1544418103494971402>",
+              "description": "Emoji for corrective-but-not-account-ending actions: warns, mutes, timeouts, automod, censor. Fixed, not configurable.",
               "title": "Moderation Moderate Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -245,8 +262,9 @@
             },
             "moderation_severe_emoji": {
               "type": "string",
-              "default": "<:dl_moderation_severe:1540811485079671046>",
-              "description": "Emoji for account-ending or emergency actions: kicks, bans, raids, failed-verification kicks.",
+              "const": "<:icons_moderationhighest:1544418100663812167>",
+              "default": "<:icons_moderationhighest:1544418100663812167>",
+              "description": "Emoji for account-ending or emergency actions: kicks, bans, raids, failed-verification kicks. Fixed, not configurable.",
               "title": "Moderation Severe Emoji",
               "x-dreamliner": {
                 "kind": "emoji",
@@ -256,7 +274,7 @@
           },
           "additionalProperties": false,
           "default": {},
-          "description": "Custom emoji per log category, prefixed to every log card title in this server.",
+          "description": "Fixed emoji per log category, prefixed to every log card title. Not configurable.",
           "title": "Emojis",
           "x-dreamliner": {
             "kind": "emoji",

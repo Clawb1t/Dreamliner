@@ -41,64 +41,86 @@ import {
   zWelcomeMessagePluginSection,
 } from "./plugins.js";
 
+// Fixed, not admin-configurable (dashboard/YAML can no longer change these) — every server sees
+// the same icon set. `z.literal(...)` means any other stored/uploaded value simply fails
+// validation and the existing config-repair mechanism resets it back to the one true default, so
+// there's no live "ability to edit" left anywhere (dashboard, /config upload, or a raw PUT).
 export const zEmojisConfig = z.strictObject({
   success: z
-    .string()
-    .default("<:blurplecheck:1533947878668763278>")
-    .describe("Emoji prefix for successful command responses."),
+    .literal("<:icons_Correct:1544417199798886530>")
+    .default("<:icons_Correct:1544417199798886530>")
+    .describe("Emoji prefix for successful command responses. Fixed, not configurable."),
   error: z
-    .string()
-    .default("<:redcheck:1533947951481749504>")
-    .describe("Emoji prefix for errors and permission denied."),
+    .literal("<:icons_Wrong:1544417460638457937>")
+    .default("<:icons_Wrong:1544417460638457937>")
+    .describe("Emoji prefix for errors and permission denied. Fixed, not configurable."),
   neutral: z
-    .string()
-    .default("<:greycheck:1533948078615298148>")
-    .describe("Emoji prefix for general information responses."),
+    .literal("<:icons_generalinfo:1544417795335389254>")
+    .default("<:icons_generalinfo:1544417795335389254>")
+    .describe("Emoji prefix for general information responses. Fixed, not configurable."),
   warning: z
-    .string()
-    .default("<:warning:1533948583995244734>")
-    .describe("Emoji prefix for soft failures and advisories."),
+    .literal("<:icons_exclamation:1544417272376852490>")
+    .default("<:icons_exclamation:1544417272376852490>")
+    .describe("Emoji prefix for soft failures and advisories. Fixed, not configurable."),
   unchecked: z
-    .string()
-    .default("<:greycheck:1533948078615298148>")
-    .describe("Emoji prefix for disabled or off states."),
+    .literal("<:icons_disable:1544417870652379277>")
+    .default("<:icons_disable:1544417870652379277>")
+    .describe("Emoji prefix for disabled or off states. Fixed, not configurable."),
 });
 
 export const zLogEmojisConfig = z.strictObject({
   action_emoji: z
-    .string()
+    .literal(LOG_EMOJI.action)
     .default(LOG_EMOJI.action)
-    .describe("Fallback emoji for log events that don't fit any other category (e.g. message pin, DM failed)."),
-  create_emoji: z.string().default(LOG_EMOJI.create).describe("Emoji for create events (channels, roles, threads, invites)."),
-  delete_emoji: z.string().default(LOG_EMOJI.delete).describe("Emoji for delete events (channels, roles, messages, cases, clean)."),
-  edit_emoji: z.string().default(LOG_EMOJI.edit).describe("Emoji for edit/update events (messages, channels, roles, nicknames)."),
+    .describe("Fallback emoji for log events that don't fit any other category (e.g. message pin, DM failed). Fixed, not configurable."),
+  create_emoji: z
+    .literal(LOG_EMOJI.create)
+    .default(LOG_EMOJI.create)
+    .describe("Emoji for create events (channels, roles, threads, invites). Fixed, not configurable."),
+  delete_emoji: z
+    .literal(LOG_EMOJI.delete)
+    .default(LOG_EMOJI.delete)
+    .describe("Emoji for delete events (channels, roles, messages, cases, clean). Fixed, not configurable."),
+  edit_emoji: z
+    .literal(LOG_EMOJI.edit)
+    .default(LOG_EMOJI.edit)
+    .describe("Emoji for edit/update events (messages, channels, roles, nicknames). Fixed, not configurable."),
   emoji_sticker_emoji: z
-    .string()
+    .literal(LOG_EMOJI.emojiSticker)
     .default(LOG_EMOJI.emojiSticker)
-    .describe("Emoji for emoji and sticker create/update/delete events."),
-  join_emoji: z.string().default(LOG_EMOJI.join).describe("Emoji for member and voice join events."),
-  leave_emoji: z.string().default(LOG_EMOJI.leave).describe("Emoji for member and voice leave events."),
+    .describe("Emoji for emoji and sticker create/update/delete events. Fixed, not configurable."),
+  join_emoji: z
+    .literal(LOG_EMOJI.join)
+    .default(LOG_EMOJI.join)
+    .describe("Emoji for member and voice join events. Fixed, not configurable."),
+  leave_emoji: z
+    .literal(LOG_EMOJI.leave)
+    .default(LOG_EMOJI.leave)
+    .describe("Emoji for member and voice leave events. Fixed, not configurable."),
   voice_emoji: z
-    .string()
+    .literal(LOG_EMOJI.voice)
     .default(LOG_EMOJI.voice)
-    .describe("Emoji for voice activity that isn't a plain join/leave (move, mute, deafen, stream, video)."),
-  unban_emoji: z.string().default(LOG_EMOJI.unban).describe("Emoji for member unban and case unban events."),
+    .describe("Emoji for voice activity that isn't a plain join/leave (move, mute, deafen, stream, video). Fixed, not configurable."),
+  unban_emoji: z
+    .literal(LOG_EMOJI.unban)
+    .default(LOG_EMOJI.unban)
+    .describe("Emoji for member unban and case unban events. Fixed, not configurable."),
   server_update_emoji: z
-    .string()
+    .literal(LOG_EMOJI.serverUpdate)
     .default(LOG_EMOJI.serverUpdate)
-    .describe("Emoji for server/config-level changes: guild settings, webhooks, dashboard config saves."),
+    .describe("Emoji for server/config-level changes: guild settings, webhooks, dashboard config saves. Fixed, not configurable."),
   moderation_default_emoji: z
-    .string()
+    .literal(LOG_EMOJI.modDefault)
     .default(LOG_EMOJI.modDefault)
-    .describe("Emoji for non-punitive moderation bookkeeping: notes, case edits, passport checks, dashboard admin actions."),
+    .describe("Emoji for non-punitive moderation bookkeeping: notes, case edits, passport checks, dashboard admin actions. Fixed, not configurable."),
   moderation_moderate_emoji: z
-    .string()
+    .literal(LOG_EMOJI.modModerate)
     .default(LOG_EMOJI.modModerate)
-    .describe("Emoji for corrective-but-not-account-ending actions: warns, mutes, timeouts, automod, censor."),
+    .describe("Emoji for corrective-but-not-account-ending actions: warns, mutes, timeouts, automod, censor. Fixed, not configurable."),
   moderation_severe_emoji: z
-    .string()
+    .literal(LOG_EMOJI.modSevere)
     .default(LOG_EMOJI.modSevere)
-    .describe("Emoji for account-ending or emergency actions: kicks, bans, raids, failed-verification kicks."),
+    .describe("Emoji for account-ending or emergency actions: kicks, bans, raids, failed-verification kicks. Fixed, not configurable."),
 });
 
 export const zLoggingConfig = z
@@ -111,7 +133,7 @@ export const zLoggingConfig = z
       ),
     emojis: zLogEmojisConfig
       .default({})
-      .describe("Custom emoji per log category, prefixed to every log card title in this server."),
+      .describe("Fixed emoji per log category, prefixed to every log card title. Not configurable."),
   })
   .default({});
 

@@ -254,7 +254,7 @@ export async function handleAutoroleModalSubmit(
       "Autorole added",
       formatCreatedAutoroleEntry(created.roleId, created.delayMs, created.audience, created.delay),
       ephemeral,
-      guildResultOptions(interaction.client, guildConfig),
+      guildResultOptions(interaction.client, guildConfig, { emoji: "<:icons_join:1544417310780166154>" }),
     ),
   );
   return true;

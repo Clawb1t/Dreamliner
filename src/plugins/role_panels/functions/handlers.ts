@@ -143,7 +143,14 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
     if (!already) await enforceSingleSelection(guildMember, panel, roleEntry.role_id);
     const role = interaction.guild!.roles.cache.get(roleEntry.role_id);
     await interaction.reply(
-      resultReply("Role updated", `${already ? "Removed" : "Added"} ${role ?? "role"}.`, true, guildResultOptions(interaction.client, guildConfig)),
+      resultReply(
+        "Role updated",
+        `${already ? "Removed" : "Added"} ${role ?? "role"}.`,
+        true,
+        guildResultOptions(interaction.client, guildConfig, {
+          emoji: already ? "<:icons_off:1544417567777628201>" : "<:icons_on:1544417570818629753>",
+        }),
+      ),
     );
     return true;
   }
@@ -158,7 +165,14 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
 
   const role = interaction.guild!.roles.cache.get(roleEntry.role_id);
   await interaction.reply(
-    resultReply("Role updated", `${result.added ? "Added" : "Removed"} ${role ?? "role"}.`, true, guildResultOptions(interaction.client, guildConfig)),
+    resultReply(
+      "Role updated",
+      `${result.added ? "Added" : "Removed"} ${role ?? "role"}.`,
+      true,
+      guildResultOptions(interaction.client, guildConfig, {
+        emoji: result.added ? "<:icons_on:1544417570818629753>" : "<:icons_off:1544417567777628201>",
+      }),
+    ),
   );
   return true;
 }

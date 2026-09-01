@@ -26,7 +26,7 @@ export const socialCommands: SlashCommandDefinition[] = [
             "Set up social notifications",
             "Social notifications are built on the dashboard: pick a creator (YouTube for now), the channel to post in, and customize the embed with a live preview. Open the dashboard's Social section for this server to get started.",
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_youtube:1544417751022567455>" }),
           ),
           components: [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open social dashboard", url))],
         });
@@ -40,7 +40,12 @@ export const socialCommands: SlashCommandDefinition[] = [
         const rows = await listWatchers(guildId);
         if (!rows.length) {
           await ctx.interaction.reply(
-            resultReply("Social notifications", "No social notifications configured yet.", ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(
+              "Social notifications",
+              "No social notifications configured yet.",
+              ctx.ephemeral,
+              slashResultOptions(ctx, { emoji: "<:icons_youtube:1544417751022567455>" }),
+            ),
           );
           return;
         }
@@ -54,7 +59,7 @@ export const socialCommands: SlashCommandDefinition[] = [
           baseEmbed(),
           "Social notifications",
           ctx.client,
-          commandHeader(ctx.guildConfig),
+          commandHeader(ctx.guildConfig, { emoji: "<:icons_youtube:1544417751022567455>" }),
         ).setDescription(trimLines(lines.join("\n")));
 
         const maxWatchers = resolveMaxWatchers(await isDreamlinerOneActive(guildId));

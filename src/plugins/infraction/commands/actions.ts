@@ -22,6 +22,20 @@ import {
 import { buildActionConfirmDetails } from "../functions/embeds.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
 
+/** Icon per infraction type shown on the "Infraction #N" confirmation embed. */
+const ACTION_EMOJI: Record<string, string> = {
+  warn: "<:icons_warning:1544418156913885194>",
+  note: "<:icons_pen:1544417369709871224>",
+  mute: "<:icons_micmute:1544417344804102224>",
+  tempmute: "<:icons_timeout:1544417449070567455>",
+  unmute: "<:icons_mic:1544417343252201552>",
+  kick: "<:icons_kick:1544417312172671107>",
+  ban: "<:icons_ban:1544417486177308742>",
+  tempban: "<:icons_hoursglass:1544417711864549479>",
+  unban: "<:icons_unlock:1544417749617610852>",
+  softban: "<:icons_clean:1544417689320034304>",
+};
+
 async function finishAction(
   ctx: Parameters<SlashCommandDefinition["execute"]>[0],
   pluginConfig: InfractionConfig,
@@ -77,8 +91,12 @@ async function finishAction(
   }
 
   const details = buildActionConfirmDetails(type, user.tag, user.id, reason, extras);
+  const emoji = ACTION_EMOJI[type];
   await ctx.interaction.reply(
-    embedReply(buildResultEmbed(`Infraction #${record.id}`, details, slashResultOptions(ctx)), ctx.ephemeral),
+    embedReply(
+      buildResultEmbed(`Infraction #${record.id}`, details, slashResultOptions(ctx, emoji ? { emoji } : undefined)),
+      ctx.ephemeral,
+    ),
   );
 }
 

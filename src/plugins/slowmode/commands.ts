@@ -170,7 +170,12 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
           invalidateSlowmodeConfigCache(guildId);
 
           await ctx.interaction.reply(
-            resultReply("Slowmode rule removed", `Removed rule **#${id}**.`, ctx.ephemeral, opts),
+            resultReply(
+              "Slowmode rule removed",
+              `Removed rule **#${id}**.`,
+              ctx.ephemeral,
+              { ...opts, emoji: "<:icons_xmarkwhite:1544417463314161735>" },
+            ),
           );
           return;
         }
@@ -196,7 +201,12 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
           const lines = rules.map((rule) => formatSlowmodeRule(rule));
           await ctx.interaction.reply(
             embedReply(
-              setEmbedAuthor(baseEmbed(), "Individual slowmode rules", ctx.client, commandHeader(ctx.guildConfig)).addFields(
+              setEmbedAuthor(
+                baseEmbed(),
+                "Individual slowmode rules",
+                ctx.client,
+                commandHeader(ctx.guildConfig, { emoji: "<:icons_todolist:1544417596307279952>" }),
+              ).addFields(
                 embedField("Rules", trimLines(lines.join("\n"))),
                 embedField(
                   "Settings",
@@ -262,7 +272,12 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
           `Manage Messages bypass: **${config.allow_manage_messages_bypass ? "on" : "off"}**${hasManage ? " · member has permission" : ""}`,
         ];
 
-        await ctx.interaction.reply(resultReply("Slowmode check", lines.join("\n"), ctx.ephemeral, opts));
+        await ctx.interaction.reply(
+          resultReply("Slowmode check", lines.join("\n"), ctx.ephemeral, {
+            ...opts,
+            emoji: "<:icons_fingerprint:1544418020682899537>",
+          }),
+        );
         return;
       }
 
@@ -293,7 +308,7 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
               ? "Members with **Manage Messages** bypass individual slowmode."
               : "Individual slowmode **cannot be bypassed** by Manage Messages (or anyone).",
             ctx.ephemeral,
-            opts,
+            { ...opts, emoji: "<:icons_control:1544417540673900564>" },
           ),
         );
         return;
@@ -349,7 +364,12 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
           );
         }
 
-        await ctx.interaction.reply(resultReply("Individual slowmode updated", parts.join("\n"), ctx.ephemeral, opts));
+        await ctx.interaction.reply(
+          resultReply("Individual slowmode updated", parts.join("\n"), ctx.ephemeral, {
+            ...opts,
+            emoji: "<:icons_settings:1544417411875479642>",
+          }),
+        );
         return;
       }
 
@@ -413,7 +433,12 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
           `Manage Messages bypass: **${config.allow_manage_messages_bypass ? "on" : "off"}**`,
           `Default individual delay: **${formatSeconds(config.individual_default_seconds)}**`,
         ];
-        await ctx.interaction.reply(resultReply(`Slowmode · <#${channel.id}>`, lines.join("\n"), ctx.ephemeral, opts));
+        await ctx.interaction.reply(
+          resultReply(`Slowmode · <#${channel.id}>`, lines.join("\n"), ctx.ephemeral, {
+            ...opts,
+            emoji: "<:icons_clock:1544417185336664114>",
+          }),
+        );
         return;
       }
 
@@ -442,7 +467,7 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
             "Channel slowmode set",
             `<#${channel.id}> Discord slowmode set to **${formatSeconds(seconds ?? 0)}**.`,
             ctx.ephemeral,
-            opts,
+            { ...opts, emoji: "<:icons_clock:1544417185336664114>" },
           ),
         );
         return;
@@ -453,7 +478,7 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
           "Channel slowmode cleared",
           `<#${channel.id}> Discord slowmode disabled.`,
           ctx.ephemeral,
-          slashResultOptions(ctx, { tone: "unchecked" }),
+          slashResultOptions(ctx, { tone: "unchecked", emoji: "<:icons_off:1544417567777628201>" }),
         ),
       );
     },

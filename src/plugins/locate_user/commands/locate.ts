@@ -20,7 +20,12 @@ export const locateCommands: SlashCommandDefinition[] = [
       const member = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
       if (!member) {
         await ctx.interaction.reply(
-          resultReply("Locate", "That user is not in this server.", ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Locate",
+            "That user is not in this server.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_search:1544417406640726168>" }),
+          ),
         );
         return;
       }
@@ -29,7 +34,12 @@ export const locateCommands: SlashCommandDefinition[] = [
       if (!voiceChannel) {
         await ctx.interaction.reply(
           embedReply(
-            setEmbedAuthor(baseEmbed(), "Locate", ctx.client, commandHeader(ctx.guildConfig)).addFields(
+            setEmbedAuthor(
+              baseEmbed(),
+              "Locate",
+              ctx.client,
+              commandHeader(ctx.guildConfig, { emoji: "<:icons_search:1544417406640726168>" }),
+            ).addFields(
               embedField("User", `<@${user.id}>`),
               embedField("Voice", "Not connected to a voice channel."),
             ),
@@ -49,7 +59,12 @@ export const locateCommands: SlashCommandDefinition[] = [
 
       await ctx.interaction.reply(
         embedReply(
-          setEmbedAuthor(baseEmbed(), "Locate", ctx.client, commandHeader(ctx.guildConfig)).addFields(
+          setEmbedAuthor(
+            baseEmbed(),
+            "Locate",
+            ctx.client,
+            commandHeader(ctx.guildConfig, { emoji: "<:icons_search:1544417406640726168>" }),
+          ).addFields(
             embedField("User", `<@${user.id}>`),
             embedField("Channel", `<#${voiceChannel.id}> (\`${voiceChannel.name}\`)`),
             embedField("Others in channel", trimLines(others)),

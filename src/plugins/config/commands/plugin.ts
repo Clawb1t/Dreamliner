@@ -96,7 +96,12 @@ export const pluginCommand: SlashCommandDefinition = {
         : `**${label}** is now **disabled**. It will not run until you enable it again with \`/plugin toggle\`.`;
 
       await ctx.interaction.reply(
-        resultReply(enable ? "Plugin enabled" : "Plugin disabled", details, ctx.ephemeral, opts),
+        resultReply(
+          enable ? "Plugin enabled" : "Plugin disabled",
+          details,
+          ctx.ephemeral,
+          enable ? { ...opts, emoji: "<:icons_enable:1544417874351755264>" } : opts,
+        ),
       );
     }
   },

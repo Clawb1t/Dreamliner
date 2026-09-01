@@ -3,7 +3,7 @@ import type { EconomyServerConfig } from "../../../config/schemas/economy.js";
 /** Fixed global currency — same across every server. */
 export const GLOBAL_CURRENCY_NAME = "Coins";
 export const GLOBAL_CURRENCY_DENOMINATOR = "$";
-export const GLOBAL_CURRENCY_EMOJI = "<:coin:1543696697685844048>";
+export const GLOBAL_CURRENCY_EMOJI = "<:icons_coin:1544417186951598130>";
 export const GLOBAL_MESSAGE_AMOUNT = 0.15;
 export const GLOBAL_MESSAGE_COOLDOWN_SECONDS = 60;
 export const GLOBAL_DAILY_AMOUNT = 5;

@@ -268,7 +268,10 @@ export async function handleSuggestModalSubmit(
     resultEdit(
       "Suggestion submitted",
       `Suggestion **#${result.suggestion.suggestionNumber}** was ${where}.`,
-      guildResultOptions(interaction.client, guildConfig, { tone: "success" }),
+      guildResultOptions(interaction.client, guildConfig, {
+        tone: "success",
+        emoji: "<:icons_bulb:1544417162050142428>",
+      }),
     ),
   );
 }

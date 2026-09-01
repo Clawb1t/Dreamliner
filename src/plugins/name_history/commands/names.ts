@@ -39,15 +39,24 @@ export const namesCommands: SlashCommandDefinition[] = [
         const entries = await getUserNameHistory(guildId, user.id);
         if (!entries.length) {
           await ctx.interaction.reply(
-            resultReply("Name history", `No recorded name changes for **${user.tag}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(
+              "Name history",
+              `No recorded name changes for **${user.tag}**.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { emoji: "<:icons_aka:1544417681799913482>" }),
+            ),
           );
           return;
         }
         const lines = entries.map(formatEntry);
         await ctx.interaction.reply(
           embedReply(
-            setEmbedAuthor(baseEmbed(), `Name history · ${user.tag}`, ctx.client, commandHeader(ctx.guildConfig))
-              .addFields(embedField("Changes", trimLines(lines.join("\n")))),
+            setEmbedAuthor(
+              baseEmbed(),
+              `Name history · ${user.tag}`,
+              ctx.client,
+              commandHeader(ctx.guildConfig, { emoji: "<:icons_aka:1544417681799913482>" }),
+            ).addFields(embedField("Changes", trimLines(lines.join("\n")))),
             ctx.ephemeral,
           ),
         );
@@ -61,15 +70,24 @@ export const namesCommands: SlashCommandDefinition[] = [
         const entries = await searchNameHistory(guildId, query);
         if (!entries.length) {
           await ctx.interaction.reply(
-            resultReply("Name history", "No matching name changes found.", ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(
+              "Name history",
+              "No matching name changes found.",
+              ctx.ephemeral,
+              slashResultOptions(ctx, { emoji: "<:icons_text_search:1544418237675077702>" }),
+            ),
           );
           return;
         }
         const lines = entries.map(formatEntry);
         await ctx.interaction.reply(
           embedReply(
-            setEmbedAuthor(baseEmbed(), `Name search${query ? `: ${query}` : ""}`, ctx.client, commandHeader(ctx.guildConfig))
-              .addFields(embedField("Results", trimLines(lines.join("\n")))),
+            setEmbedAuthor(
+              baseEmbed(),
+              `Name search${query ? `: ${query}` : ""}`,
+              ctx.client,
+              commandHeader(ctx.guildConfig, { emoji: "<:icons_text_search:1544418237675077702>" }),
+            ).addFields(embedField("Results", trimLines(lines.join("\n")))),
             ctx.ephemeral,
           ),
         );

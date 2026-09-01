@@ -64,7 +64,7 @@ export async function buildUserInfoEmbed(
     baseEmbed(),
     label,
     client,
-    commandHeader(guildConfig, { thumbnailURL: avatarURL }),
+    commandHeader(guildConfig, { thumbnailURL: avatarURL, emoji: "<:icons_user_profile:1544418271355469885>" }),
   );
 
   const accent = memberAccentColor(member);
@@ -236,7 +236,7 @@ export async function buildServerInfoEmbed(guild: Guild, guildConfig: GuildConfi
     baseEmbed(),
     `Server: ${g.name}`,
     client,
-    commandHeader(guildConfig, { thumbnailURL: iconURL }),
+    commandHeader(guildConfig, { thumbnailURL: iconURL, emoji: "<:icons_globe:1544417296703815710>" }),
   );
 
   if (bannerURL) embed.setImage(bannerURL);
@@ -395,7 +395,7 @@ export function buildChannelInfoEmbed(
     baseEmbed(),
     `${typeLabel}: ${"name" in channel ? channel.name : "unknown"}`,
     client,
-    commandHeader(guildConfig),
+    commandHeader(guildConfig, { emoji: "<:icons_channel:1544417183734431805>" }),
   );
 
   let channelName = "name" in channel ? `#${channel.name}` : "unknown";
@@ -470,7 +470,12 @@ export function buildMessageInfoEmbed(
   guildConfig: GuildConfig,
   client: Client,
 ): EmbedBuilder {
-  const embed = setEmbedAuthor(baseEmbed(), `Message: ${message.id}`, client, commandHeader(guildConfig));
+  const embed = setEmbedAuthor(
+    baseEmbed(),
+    `Message: ${message.id}`,
+    client,
+    commandHeader(guildConfig, { emoji: "<:icons_message:1544417564447350804>" }),
+  );
 
   embed.addFields(
     embedField(
@@ -506,7 +511,12 @@ export function buildMessageInfoEmbed(
 }
 
 export function buildInviteInfoEmbed(invite: Invite, guildConfig: GuildConfig, client: Client): EmbedBuilder {
-  const embed = setEmbedAuthor(baseEmbed(), `Invite: ${invite.code}`, client, commandHeader(guildConfig));
+  const embed = setEmbedAuthor(
+    baseEmbed(),
+    `Invite: ${invite.code}`,
+    client,
+    commandHeader(guildConfig, { emoji: "<:icons_invite:1544417309345710080>" }),
+  );
 
   embed.addFields(
     embedField(
@@ -531,7 +541,7 @@ export function buildRoleInfoEmbed(role: Role, guild: Guild, guildConfig: GuildC
     baseEmbed().setColor(role.color || 0x5865f2),
     `Role: ${role.name}`,
     client,
-    commandHeader(guildConfig),
+    commandHeader(guildConfig, { emoji: "<:icons_roles:1544417804994871338>" }),
   );
 
   const perms = role.permissions.has(PermissionFlagsBits.Administrator)
@@ -560,7 +570,12 @@ export function buildRoleInfoEmbed(role: Role, guild: Guild, guildConfig: GuildC
 }
 
 export function buildEmojiInfoEmbed(emoji: GuildEmoji, guildConfig: GuildConfig, client: Client): EmbedBuilder {
-  return setEmbedAuthor(baseEmbed(), `Emoji: ${emoji.name}`, client, commandHeader(guildConfig))
+  return setEmbedAuthor(
+    baseEmbed(),
+    `Emoji: ${emoji.name}`,
+    client,
+    commandHeader(guildConfig, { emoji: "<:icons_updateemoji:1544417817099767897>" }),
+  )
     .addFields(
       embedField(
         "Emoji information",
@@ -581,7 +596,12 @@ export function buildSnowflakeInfoEmbed(
   unknown = false,
 ): EmbedBuilder {
   const decoded = decodeSnowflake(id);
-  const embed = setEmbedAuthor(baseEmbed(), `Snowflake: ${id}`, client, commandHeader(guildConfig));
+  const embed = setEmbedAuthor(
+    baseEmbed(),
+    `Snowflake: ${id}`,
+    client,
+    commandHeader(guildConfig, { emoji: "<:icons_snowflake:1544418147967434752>" }),
+  );
 
   if (unknown) {
     embed.setDescription(
@@ -630,8 +650,12 @@ export function buildRolesListEmbed(
     lines.push(`... and ${sorted.length - 50} more`);
   }
 
-  return setEmbedAuthor(baseEmbed(), `Roles: ${sorted.length} total`, client, commandHeader(guildConfig))
-    .setDescription(codeBlock(lines.join("\n")));
+  return setEmbedAuthor(
+    baseEmbed(),
+    `Roles: ${sorted.length} total`,
+    client,
+    commandHeader(guildConfig, { emoji: "<:icons_list:1544417562325164173>" }),
+  ).setDescription(codeBlock(lines.join("\n")));
 }
 
 export function buildLevelEmbed(member: GuildMember, guildConfig: GuildConfig, client: Client): EmbedBuilder {
@@ -640,7 +664,10 @@ export function buildLevelEmbed(member: GuildMember, guildConfig: GuildConfig, c
     baseEmbed(),
     `User: ${member.user.tag}`,
     client,
-    commandHeader(guildConfig, { thumbnailURL: member.displayAvatarURL({ size: 128 }) }),
+    commandHeader(guildConfig, {
+      thumbnailURL: member.displayAvatarURL({ size: 128 }),
+      emoji: "<:icons_trophy:1544418249721126922>",
+    }),
   );
   const accent = memberAccentColor(member);
   if (accent) embed.setColor(accent);

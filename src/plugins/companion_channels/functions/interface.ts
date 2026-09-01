@@ -83,6 +83,7 @@ async function replyResult(
     client: interaction.client,
     emojis,
     tone: result.ok ? "success" : "error",
+    emoji: result.emoji,
   });
   if (interaction.deferred || interaction.replied) {
     await interaction.followUp(payload).catch(() => null);

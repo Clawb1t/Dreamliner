@@ -109,7 +109,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
           "Voice set",
           `Your messages will now be spoken as **${match.label}**.`,
           ctx.ephemeral,
-          slashResultOptions(ctx, { tone: "success" }),
+          slashResultOptions(ctx, { tone: "success", emoji: "<:icons_mic:1544417343252201552>" }),
         );
         const dashboardEmbed = baseEmbed().setDescription(
           "Prefer to browse and listen first? The web dashboard lets you preview every installed voice before picking one.",
@@ -132,7 +132,10 @@ export const ttsCommands: SlashCommandDefinition[] = [
             skipped ? "Skipped" : "Nothing playing",
             skipped ? "Moving on to the next queued message, if there is one." : "There's no TTS clip playing right now.",
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: skipped ? "success" : "warning" }),
+            slashResultOptions(ctx, {
+              tone: skipped ? "success" : "warning",
+              emoji: skipped ? "<:icons_frontforward:1544417288885637253>" : undefined,
+            }),
           ),
         );
         return;
@@ -154,7 +157,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
             "Channel set",
             `Messages sent in <#${channel.id}> from members in a voice channel will now be spoken there automatically.`,
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: "success" }),
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_speaker:1544417584462565417>" }),
           ),
         );
         return;
@@ -170,7 +173,14 @@ export const ttsCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        await interaction.reply(resultReply("Channel cleared", "The auto-speak text channel is turned off.", ctx.ephemeral, slashResultOptions(ctx)));
+        await interaction.reply(
+          resultReply(
+            "Channel cleared",
+            "The auto-speak text channel is turned off.",
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_speakermute:1544417589592203375>" }),
+          ),
+        );
         return;
       }
 
@@ -182,7 +192,12 @@ export const ttsCommands: SlashCommandDefinition[] = [
         const reason = interaction.options.getString("reason");
         await addToTtsBlacklist(guildId, target.id, reason);
         await interaction.reply(
-          resultReply("Blocked", `${target.tag} can no longer use TTS on this server.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
+          resultReply(
+            "Blocked",
+            `${target.tag} can no longer use TTS on this server.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ban:1544417486177308742>" }),
+          ),
         );
         return;
       }
@@ -194,7 +209,12 @@ export const ttsCommands: SlashCommandDefinition[] = [
         const target = interaction.options.getUser("target", true);
         await removeFromTtsBlacklist(guildId, target.id);
         await interaction.reply(
-          resultReply("Unblocked", `${target.tag} can use TTS again.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
+          resultReply(
+            "Unblocked",
+            `${target.tag} can use TTS again.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_enable:1544417874351755264>" }),
+          ),
         );
         return;
       }

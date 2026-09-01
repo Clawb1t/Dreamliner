@@ -170,7 +170,12 @@ export const permissionsCommand: SlashCommandDefinition = {
           const mention = interaction.guild?.roles.cache.has(id) ? `<@&${id}>` : `<@${id}>`;
           return `• ${mention} — **${level}**`;
         });
-        await interaction.reply(resultReply("Permission levels", lines.join("\n"), ephemeral, opts));
+        await interaction.reply(
+          resultReply("Permission levels", lines.join("\n"), ephemeral, {
+            ...opts,
+            emoji: "<:icons_roles:1544417804994871338>",
+          }),
+        );
         return;
       }
 
@@ -195,7 +200,11 @@ export const permissionsCommand: SlashCommandDefinition = {
           return;
         }
         await interaction.reply(
-          resultReply("Level updated", `Set ${label} to level **${level}**.`, ephemeral, { ...opts, tone: "success" }),
+          resultReply("Level updated", `Set ${label} to level **${level}**.`, ephemeral, {
+            ...opts,
+            tone: "success",
+            emoji: "<:icons_up_arrow:1544418259363700856>",
+          }),
         );
         return;
       }
@@ -213,7 +222,11 @@ export const permissionsCommand: SlashCommandDefinition = {
           return;
         }
         await interaction.reply(
-          resultReply("Level removed", `Cleared the level for ${label}.`, ephemeral, { ...opts, tone: "success" }),
+          resultReply("Level removed", `Cleared the level for ${label}.`, ephemeral, {
+            ...opts,
+            tone: "success",
+            emoji: "<:icons_downarrow:1544417541873471488>",
+          }),
         );
         return;
       }
@@ -236,7 +249,12 @@ export const permissionsCommand: SlashCommandDefinition = {
         grants.length > 0 ? `**Configured grants**\n${grants.join("\n")}` : "**Configured grants**\n• None beyond defaults",
       ].join("\n");
 
-      await interaction.reply(resultReply("Command permissions", body, ephemeral, opts));
+      await interaction.reply(
+        resultReply("Command permissions", body, ephemeral, {
+          ...opts,
+          emoji: "<:icons_id:1544417556868104274>",
+        }),
+      );
       return;
     }
 
@@ -279,7 +297,13 @@ export const permissionsCommand: SlashCommandDefinition = {
           allowed ? "Permission granted" : "Permission updated",
           `${action} ${grantTarget.label} on **${target.label}**.${note}`,
           ephemeral,
-          { ...opts, tone: "success" },
+          {
+            ...opts,
+            tone: "success",
+            emoji: allowed
+              ? "<:icons_unlock:1544417749617610852>"
+              : "<:icons_locked:1544417721612247171>",
+          },
         ),
       );
     }

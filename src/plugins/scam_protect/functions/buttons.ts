@@ -41,7 +41,10 @@ export async function handleScamProtectButtonInteraction(
       "Scam Protect",
       `Dreamliner has softbanned **${count}** ${noun} that posted in this channel.`,
       true,
-      guildResultOptions(interaction.client, guildConfig, { tone: "neutral" }),
+      guildResultOptions(interaction.client, guildConfig, {
+        tone: "neutral",
+        emoji: "<:icons_ban:1544417486177308742>",
+      }),
     ),
   );
   return true;

@@ -303,7 +303,12 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         if (sub === "add") {
           await followSuggestion(suggestion.id, auth.member.id);
           await ctx.interaction.reply(
-            resultReply("Following", `You are now following #${num}.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
+            resultReply(
+              "Following",
+              `You are now following #${num}.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "success", emoji: "<:icons_notify:1544417566708211753>" }),
+            ),
           );
           return;
         }
@@ -356,7 +361,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           baseEmbed(),
           sort === "top" ? "Top suggestions" : "Lowest suggestions",
           ctx.client,
-          commandHeader(ctx.guildConfig),
+          commandHeader(ctx.guildConfig, sort === "top" ? { emoji: "<:icons_trophy:1544418249721126922>" } : undefined),
         );
         embed.setDescription(trimLines(lines.join("\n")).slice(0, 4000));
         await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
@@ -384,7 +389,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           baseEmbed(),
           sub === "queue" ? "Suggestion queue" : "Suggestion search",
           ctx.client,
-          commandHeader(ctx.guildConfig),
+          commandHeader(ctx.guildConfig, sub === "queue" ? { emoji: "<:icons_queue:1544417738410164224>" } : undefined),
         );
         embed.setDescription(trimLines(lines.join("\n")).slice(0, 4000));
         embed.addFields(embedField("Total", String(result.total), true));
@@ -420,7 +425,10 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
             resultEdit(
               result.error ? "Error" : "Approved",
               result.error ?? `Approved #${num}.`,
-              slashResultOptions(ctx, { tone: result.error ? "error" : "success" }),
+              slashResultOptions(ctx, {
+                tone: result.error ? "error" : "success",
+                emoji: result.error ? undefined : "<:icons_upvote:1544417455689179349>",
+              }),
             ),
           );
           return;
@@ -445,7 +453,10 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           resultEdit(
             result.error ? "Error" : "Denied",
             result.error ?? `Denied #${num}.`,
-            slashResultOptions(ctx, { tone: result.error ? "error" : "success" }),
+            slashResultOptions(ctx, {
+              tone: result.error ? "error" : "success",
+              emoji: result.error ? undefined : "<:icons_downvote:1544417248209404054>",
+            }),
           ),
         );
         return;
@@ -477,7 +488,10 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           resultEdit(
             result.error ? "Error" : "Marked",
             result.error ?? `Marked #${num} as **${DISPLAY_STATUS_LABELS[status]}**.`,
-            slashResultOptions(ctx, { tone: result.error ? "error" : "success" }),
+            slashResultOptions(ctx, {
+              tone: result.error ? "error" : "success",
+              emoji: result.error ? undefined : "<:icons_flag:1544417544251772999>",
+            }),
           ),
         );
         return;
@@ -541,7 +555,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
               ok ? "Unblocked" : "Not blocked",
               ok ? `Unblocked <@${user.id}>.` : `<@${user.id}> was not blocked.`,
               ctx.ephemeral,
-              slashResultOptions(ctx),
+              slashResultOptions(ctx, ok ? { emoji: "<:icons_unlock:1544417749617610852>" } : undefined),
             ),
           );
           return;
@@ -570,7 +584,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
             "Blocked",
             `Blocked <@${user.id}> from suggesting${expiresAt ? ` until <t:${Math.floor(expiresAt.getTime() / 1000)}:f>` : ""}.`,
             ctx.ephemeral,
-            slashResultOptions(ctx, { tone: "success" }),
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ban:1544417486177308742>" }),
           ),
         );
         return;
@@ -621,7 +635,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           resultEdit(
             "Mass action complete",
             `${sub === "massapprove" ? "Approved" : "Denied"} **${ok}**, failed **${fail}**.`,
-            slashResultOptions(ctx, { tone: "success" }),
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_repeat:1544417397220311040>" }),
           ),
         );
       }

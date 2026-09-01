@@ -136,7 +136,7 @@ export const statsCommands: SlashCommandDefinition[] = [
       const leaderboardLabel = scope === "global" ? "Global Leaderboard" : "Server Leaderboard";
 
       await ctx.interaction.editReply({
-        content: `<:dreamlinerlogo:1536010087468892161> This is your ${scope} rank. View [${leaderboardLabel}](<${leaderboardUrl}>)`,
+        content: `<:icons_trophy:1544418249721126922> <:dreamlinerlogo:1536010087468892161> This is your ${scope} rank. View [${leaderboardLabel}](<${leaderboardUrl}>)`,
         files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
       });
     },

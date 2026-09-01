@@ -105,7 +105,7 @@ export const selfRoleCommands: SlashCommandDefinition[] = [
           "Self-role panel created",
           `Posted in ${channel} with ${validRoleIds.length} role(s): ${roleList}`,
           ctx.ephemeral,
-          slashResultOptions(ctx),
+          slashResultOptions(ctx, { emoji: "<:icons_apps_dock:1544418201507594250>" }),
         ),
       );
     },

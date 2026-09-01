@@ -57,7 +57,14 @@ export async function handleSelfRoleButtonInteraction(interaction: ButtonInterac
   const role = interaction.guild!.roles.cache.get(parsed.roleId);
   const action = result.added ? "Added" : "Removed";
   await interaction.reply(
-    resultReply("Role updated", `${action} ${role ?? "role"}.`, true, guildResultOptions(interaction.client, guildConfig)),
+    resultReply(
+      "Role updated",
+      `${action} ${role ?? "role"}.`,
+      true,
+      guildResultOptions(interaction.client, guildConfig, {
+        emoji: result.added ? "<:icons_on:1544417570818629753>" : "<:icons_off:1544417567777628201>",
+      }),
+    ),
   );
   return true;
 }
@@ -134,7 +141,12 @@ export async function handleSelfRoleSelectInteraction(interaction: StringSelectM
   if (errors.length > 0) details += `\nErrors: ${errors.join("; ")}`;
 
   await interaction.reply(
-    resultReply("Roles updated", details.trim(), true, guildResultOptions(interaction.client, guildConfig)),
+    resultReply(
+      "Roles updated",
+      details.trim(),
+      true,
+      guildResultOptions(interaction.client, guildConfig, { emoji: "<:icons_swap:1544418225503084695>" }),
+    ),
   );
   return true;
 }

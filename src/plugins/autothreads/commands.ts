@@ -166,7 +166,7 @@ export const autothreadsCommands: SlashCommandDefinition[] = [
             "Auto-thread added",
             `Created rule **#${newRule.id}**. Use the dashboard for embeds, webhooks, and buttons.`,
             ctx.ephemeral,
-            slashResultOptions(ctx),
+            slashResultOptions(ctx, { emoji: "<:icons_createthread:1544417844295368828>" }),
           ),
         );
         return;
@@ -202,7 +202,12 @@ export const autothreadsCommands: SlashCommandDefinition[] = [
         }
 
         await ctx.interaction.reply(
-          resultReply("Auto-thread removed", `Removed rule **#${id}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Auto-thread removed",
+            `Removed rule **#${id}**.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_deletethread:1544417868106698773>" }),
+          ),
         );
         return;
       }

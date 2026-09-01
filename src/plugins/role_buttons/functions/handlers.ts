@@ -97,7 +97,9 @@ export async function handleRoleButtonInteraction(interaction: ButtonInteraction
       "Role updated",
       `${action} ${role ?? "role"}.`,
       true,
-      guildResultOptions(interaction.client, guildConfig),
+      guildResultOptions(interaction.client, guildConfig, {
+        emoji: result.added ? "<:icons_on:1544417570818629753>" : "<:icons_off:1544417567777628201>",
+      }),
     ),
   );
   return true;
