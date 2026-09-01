@@ -3456,42 +3456,6 @@
                       "default": true,
                       "description": "Pay server currency for sending messages.",
                       "title": "Message Rewards Enabled"
-                    },
-                    "message_amount": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 10000,
-                      "default": 0.1,
-                      "description": "Server currency earned per rewarded message.",
-                      "title": "Message Amount"
-                    },
-                    "message_cooldown_seconds": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 86400,
-                      "default": 60,
-                      "description": "Cooldown between message rewards for a member.",
-                      "title": "Message Cooldown Seconds",
-                      "x-dreamliner": {
-                        "kind": "seconds",
-                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
-                      }
-                    },
-                    "multiplier": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 100,
-                      "default": 1,
-                      "description": "Multiplier applied to all server currency earned (message rewards and daily claims).",
-                      "title": "Multiplier"
-                    },
-                    "daily_amount": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1000000,
-                      "default": 5,
-                      "description": "Server currency granted on /daily claim.",
-                      "title": "Daily Amount"
                     }
                   },
                   "additionalProperties": false,
@@ -3541,7 +3505,7 @@
                 "can_admin_manage": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to change server economy settings (name, denominator, multiplier, rates). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
+                  "description": "Allow members to change server economy settings (name, denominator, and whether message rewards are on). Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.",
                   "title": "Admin Manage",
                   "x-dreamliner": {
                     "kind": "permission",

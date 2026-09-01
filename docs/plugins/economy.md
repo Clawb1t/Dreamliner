@@ -5,8 +5,11 @@ Two independent currencies:
 - **Global coins** — bot-wide, fixed name, denominator, and emoji (`Coins`, `$`, <:coin:1543696697685844048>),
   earned everywhere the bot is installed. Sending a message earns **0.15** coins (60s cooldown per member);
   balances carry across every server.
-- **Server currency** — per-guild, name/denominator/emoji/rates fully customisable by that server's managers.
-  Earned the same way (messages, plus `/daily`), scoped to that one server.
+- **Server currency** — per-guild, name/denominator/emoji customisable by that server's managers, scoped to that
+  one server. Earn *rates* are **not** manager-configurable (see below) — messages pay a fixed **0.1** (5s
+  cooldown), and `/daily` scales automatically with that server's own Dreamliner Exchange stock price. This is
+  deliberate: since `/exchange` converts server currency into global coins, a manager-tunable rate would let a
+  server mint unlimited global coins for free.
 
 `/balance` and `/daily` both require picking `global` or `server`. Economy is **off by default** — enable it under
 **Economy** on the dashboard, or set `plugins.economy.enabled: true` in guild YAML.
@@ -17,15 +20,19 @@ Two independent currencies:
 |---|---|
 | `/balance <global\|server> [user]` | View a balance |
 | `/daily <global\|server>` | Claim that currency's daily reward |
-| `/economy view` | View this server's currency settings (managers) |
-| `/economy settings` | Change this server's currency name, denominator, emoji, multiplier, message reward, message cooldown, and daily amount (managers) |
+| `/economy view` | View this server's currency settings, including the current market-rate daily amount (managers) |
+| `/economy settings` | Change this server's currency name, denominator, emoji, and whether message rewards are on (managers) |
 | `/exchange <amount>` | Convert server currency into global coins, at a rate set by this server's own stock price |
 | `/stock` | Links to the Dreamliner Exchange on the site |
 
 ## Architecture
 
-- **YAML config** (`plugins.economy.config.server`) — currency name/denominator/emoji, message reward amount and
-  cooldown, multiplier, daily amount, and enable toggle. Permissions (`can_*`).
+- **YAML config** (`plugins.economy.config.server`) — currency name/denominator/emoji, the message-rewards on/off
+  toggle, and enable toggle. Permissions (`can_*`). Earn rates (message amount/cooldown, daily amount) are fixed
+  bot-wide constants in `functions/format.ts` (`SERVER_MESSAGE_AMOUNT`, `SERVER_MESSAGE_COOLDOWN_SECONDS`,
+  `SERVER_DAILY_BASE_AMOUNT`), not part of guild config — there is no admin override for them, on the dashboard or
+  otherwise. Admins also cannot adjust a member's server-currency balance directly (the dashboard's bridge endpoint
+  for balance adjustment is global-coins-only); server currency only moves through normal play and `/exchange`.
 - **SQLite** — `economy_global_accounts` (one row per user, bot-wide) and `economy_server_accounts` (one row per
   guild+user). Both store a decimal `balance`, last message/daily claim timestamps, and a daily streak counter.
 
@@ -63,6 +70,10 @@ starting price exchanges 1:1, a stock that's run up pays out a bonus, and a stoc
 low stock means a low exchange rate. The rate is clamped to `0.1x`–`3x` so neither a runaway nor a cratered price
 makes the exchange useless. The debit/credit itself (`exchangeServerForGlobal` in `functions/money.ts`) is a single
 atomic transaction — a member's server currency never disappears without the matching global coins landing.
+
+The same `0.1x`–`3x` rate also scales the `/daily` server-currency payout (`getServerDailyAmount`, off a
+`SERVER_DAILY_BASE_AMOUNT` of 5) — a booming server pays its members a better daily too, not just a better
+exchange. Both are read-only market effects; there is no admin control over either.
 
 ## Permissions
 

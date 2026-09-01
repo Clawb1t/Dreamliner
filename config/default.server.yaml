@@ -337,10 +337,6 @@ plugins:
         currency_denominator: "$"
         currency_emoji: ""
         message_rewards_enabled: true
-        message_amount: 0.1
-        message_cooldown_seconds: 60
-        multiplier: 1
-        daily_amount: 5
       can_balance: false
       can_daily: false
       can_admin_manage: false

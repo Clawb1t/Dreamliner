@@ -8,6 +8,15 @@ export const GLOBAL_MESSAGE_AMOUNT = 0.15;
 export const GLOBAL_MESSAGE_COOLDOWN_SECONDS = 60;
 export const GLOBAL_DAILY_AMOUNT = 5;
 
+/**
+ * Fixed server-currency earn rates — same across every server, not admin-configurable (see
+ * economy.ts's schema comment for why). `SERVER_DAILY_BASE_AMOUNT` is only the base: the actual
+ * `/daily` payout scales with that server's stock price, see stocks.ts's `getServerDailyAmount`.
+ */
+export const SERVER_MESSAGE_AMOUNT = 0.1;
+export const SERVER_MESSAGE_COOLDOWN_SECONDS = 5;
+export const SERVER_DAILY_BASE_AMOUNT = 5;
+
 export function formatAmount(amount: number): string {
   return amount.toFixed(2);
 }

@@ -5,8 +5,8 @@ import { getEconomyConfig } from "../plugins/economy/functions/config.js";
 import { GLOBAL_CURRENCY_NAME, GLOBAL_DAILY_AMOUNT, GLOBAL_MESSAGE_AMOUNT } from "../plugins/economy/functions/format.js";
 import { ensureGlobalAccount, ensureServerAccount, round2 } from "../plugins/economy/functions/money.js";
 import { getDb } from "../db/client.js";
-import { economyGlobalAccounts, economyServerAccounts } from "../db/schema.js";
-import { and, eq } from "drizzle-orm";
+import { economyGlobalAccounts } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 
 export type BridgeResult<T> = ({ ok: true } & T) | { ok: false; error: string; status: number };
 
@@ -90,45 +90,35 @@ export async function getEconomyAccount(
   };
 }
 
+/**
+ * Adjusts a member's **global** coin balance only — server admins can no longer adjust a
+ * member's server-currency balance from the dashboard. Server currency now only moves through
+ * normal play (messages, `/daily`) and `/exchange`, which converts it into global coins at a
+ * rate tied to that server's own stock price; an admin override would let a server bypass that
+ * exchange rate entirely and mint global coins for free.
+ */
 export async function adjustEconomyAccount(
   configManager: ConfigManager,
   guildId: string,
   targetUserId: string,
-  input: { scope: "global" | "server"; mode: "add" | "take" | "set"; amount: number },
-): Promise<BridgeResult<{ scope: "global" | "server"; balance: number }>> {
+  input: { mode: "add" | "take" | "set"; amount: number },
+): Promise<BridgeResult<{ balance: number }>> {
   const plugin = await assertPluginEnabled(configManager, guildId);
   if (!plugin.ok) return plugin;
   const target = targetUserId.trim();
   if (!isValidUserId(target)) return { ok: false, error: "Invalid userId.", status: 400 };
   if (!Number.isFinite(input.amount)) return { ok: false, error: "amount must be a number.", status: 400 };
-  if (input.scope !== "global" && input.scope !== "server") {
-    return { ok: false, error: "scope must be global or server.", status: 400 };
-  }
   if (input.mode !== "add" && input.mode !== "take" && input.mode !== "set") {
     return { ok: false, error: "mode must be add, take, or set.", status: 400 };
   }
 
-  const db = getDb();
-  if (input.scope === "global") {
-    const account = ensureGlobalAccount(target);
-    const balance = round2(
-      input.mode === "set" ? input.amount : input.mode === "take" ? account.balance - Math.abs(input.amount) : account.balance + input.amount,
-    );
-    if (balance < 0) return { ok: false, error: "Balance cannot go negative.", status: 400 };
-    db.update(economyGlobalAccounts).set({ balance, updatedAt: new Date() }).where(eq(economyGlobalAccounts.userId, target)).run();
-    return { ok: true, scope: "global", balance };
-  }
-
-  const account = ensureServerAccount(guildId, target);
+  const account = ensureGlobalAccount(target);
   const balance = round2(
     input.mode === "set" ? input.amount : input.mode === "take" ? account.balance - Math.abs(input.amount) : account.balance + input.amount,
   );
   if (balance < 0) return { ok: false, error: "Balance cannot go negative.", status: 400 };
-  db.update(economyServerAccounts)
-    .set({ balance, updatedAt: new Date() })
-    .where(and(eq(economyServerAccounts.guildId, guildId), eq(economyServerAccounts.userId, target)))
-    .run();
-  return { ok: true, scope: "server", balance };
+  getDb().update(economyGlobalAccounts).set({ balance, updatedAt: new Date() }).where(eq(economyGlobalAccounts.userId, target)).run();
+  return { ok: true, balance };
 }
 
 export async function updateEconomySettings(
@@ -140,7 +130,19 @@ export async function updateEconomySettings(
   const plugin = await assertPluginEnabled(configManager, guildId);
   if (!plugin.ok) return plugin;
 
-  const merged = zEconomyConfig.shape.server.parse({ ...plugin.config.server, ...patch });
+  // Whitelisted explicitly (rather than spreading the whole patch) so a stray field from an
+  // older dashboard build — e.g. a since-removed rate like multiplier — is silently ignored
+  // instead of tripping the strict schema below.
+  const { currency_name, currency_name_singular, currency_denominator, currency_emoji, message_rewards_enabled } = patch;
+  const allowedPatch = {
+    ...(currency_name !== undefined && { currency_name }),
+    ...(currency_name_singular !== undefined && { currency_name_singular }),
+    ...(currency_denominator !== undefined && { currency_denominator }),
+    ...(currency_emoji !== undefined && { currency_emoji }),
+    ...(message_rewards_enabled !== undefined && { message_rewards_enabled }),
+  };
+
+  const merged = zEconomyConfig.shape.server.parse({ ...plugin.config.server, ...allowedPatch });
   const result = await configManager.patchPluginConfig(guildId, "economy", { server: merged }, actorId);
   if (!result.success) return { ok: false, error: result.errors.join("\n"), status: 400 };
   return { ok: true, server: merged };

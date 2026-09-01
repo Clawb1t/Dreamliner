@@ -11,6 +11,7 @@ import {
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { ensureGlobalAccount, creditGlobal, spendGlobal, round2, InsufficientFundsError } from "./money.js";
+import { SERVER_DAILY_BASE_AMOUNT } from "./format.js";
 
 export class StockError extends Error {
   constructor(
@@ -298,6 +299,13 @@ export function computeExchangeRate(price: number, basePrice = STARTING_PRICE): 
 export function getExchangeRate(guildId: string): number {
   const stock = getStock(guildId);
   return computeExchangeRate(stock?.price ?? STARTING_PRICE);
+}
+
+/** This server's current `/daily` server-currency payout: the fixed base amount scaled by the
+ *  same stock-price curve as the exchange rate — a booming server pays its members a better
+ *  daily too, a cratered one pays less, same `0.1x`–`3x` bounds as `/exchange`. */
+export function getServerDailyAmount(guildId: string): number {
+  return round2(SERVER_DAILY_BASE_AMOUNT * getExchangeRate(guildId));
 }
 
 function changeSince(guildId: string, price: number, since: Date): { changeAmount: number; changePct: number } {

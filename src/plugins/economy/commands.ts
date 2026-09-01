@@ -10,6 +10,8 @@ import { getStocksUrl, siteLinkRow } from "../../core/docsUrl.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
 import {
   GLOBAL_DAILY_AMOUNT,
+  SERVER_MESSAGE_AMOUNT,
+  SERVER_MESSAGE_COOLDOWN_SECONDS,
   formatCoinAmount,
   formatExchangeRate,
   formatGlobal,
@@ -33,6 +35,7 @@ import {
   ensureStock,
   getExchangeRate,
   getPortfolio,
+  getServerDailyAmount,
   getStockBySymbol,
   getStockWithChange,
   listStocks,
@@ -136,7 +139,6 @@ export const economyCommands: SlashCommandDefinition[] = [
       const errorEmoji = resolveEmojiForContent(ctx.guildConfig.emojis.error, ctx.client);
 
       let claim: DailyClaimResult | null = null;
-      let disabled = false;
       let streak: number;
       let lastDailyAt: Date | null;
 
@@ -146,20 +148,15 @@ export const economyCommands: SlashCommandDefinition[] = [
         streak = account.dailyStreak;
         lastDailyAt = account.lastDailyAt;
       } else {
-        if (config.server.daily_amount > 0) {
-          claim = claimServerDaily(guildId, userId, config.server.daily_amount);
-        } else {
-          disabled = true;
-        }
+        // Scales with this server's own stock price — see stocks.ts's getServerDailyAmount.
+        claim = claimServerDaily(guildId, userId, getServerDailyAmount(guildId));
         const account = ensureServerAccount(guildId, userId);
         streak = account.dailyStreak;
         lastDailyAt = account.lastDailyAt;
       }
 
       let description: string;
-      if (disabled) {
-        description = `${errorEmoji} The server daily reward is disabled.`;
-      } else if (claim) {
+      if (claim) {
         const amount = which === "global" ? formatGlobal(claim.amount) : formatServer(claim.amount, config.server);
         description = `${successEmoji} +${amount}`;
       } else {
@@ -201,24 +198,6 @@ export const economyCommands: SlashCommandDefinition[] = [
               .setDescription("Emoji shown next to amounts, e.g. 🪙 or <:coin:123>. Empty clears it.")
               .setMaxLength(64),
           )
-          .addNumberOption((o) =>
-            o
-              .setName("multiplier")
-              .setDescription("Multiplier applied to all earnings (e.g. 1.5 = +50%)")
-              .setMinValue(0)
-              .setMaxValue(100),
-          )
-          .addNumberOption((o) =>
-            o.setName("message_amount").setDescription("Currency earned per rewarded message").setMinValue(0),
-          )
-          .addIntegerOption((o) =>
-            o
-              .setName("message_cooldown_seconds")
-              .setDescription("Cooldown between message rewards, in seconds")
-              .setMinValue(0)
-              .setMaxValue(86_400),
-          )
-          .addNumberOption((o) => o.setName("daily_amount").setDescription("Currency granted on /daily").setMinValue(0))
           .addBooleanOption((o) => o.setName("message_rewards_enabled").setDescription("Pay currency for sending messages")),
       ),
     execute: async (ctx) => {
@@ -231,15 +210,16 @@ export const economyCommands: SlashCommandDefinition[] = [
 
       if (sub === "view") {
         const s = config.server;
+        const dailyAmount = getServerDailyAmount(guildId);
+        const rate = getExchangeRate(guildId);
         await i.reply(
           resultReply(
             "Server economy settings",
             [
               `**Currency:** ${s.currency_name} (\`${s.currency_name_singular}\` singular, \`${s.currency_denominator}\` denominator)`,
               `**Emoji:** ${s.currency_emoji.trim() || "none"}`,
-              `**Multiplier:** **${s.multiplier}x**`,
-              `**Message rewards:** ${s.message_rewards_enabled ? "on" : "off"} — **${s.message_amount}** per message, **${s.message_cooldown_seconds}s** cooldown`,
-              `**Daily reward:** **${s.daily_amount}**`,
+              `**Message rewards:** ${s.message_rewards_enabled ? "on" : "off"} — fixed **${SERVER_MESSAGE_AMOUNT}** per message, **${SERVER_MESSAGE_COOLDOWN_SECONDS}s** cooldown`,
+              `**Daily reward:** ${formatServer(dailyAmount, s)} (market rate \`${formatExchangeRate(rate)}\`, tracks this server's Dreamliner Exchange stock)`,
             ].join("\n"),
             ctx.ephemeral,
             slashResultOptions(ctx),
@@ -248,16 +228,14 @@ export const economyCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      // sub === "settings"
+      // sub === "settings" — name, denominator, emoji, and the message-rewards on/off toggle are
+      // still admin-configurable. Rates (message amount, cooldown, multiplier, daily amount)
+      // aren't: they're fixed bot-wide, with the daily reward instead scaling automatically with
+      // this server's own stock price — see the schema comment in config/schemas/economy.ts.
       const name = i.options.getString("name") ?? config.server.currency_name;
       const nameSingular = i.options.getString("name_singular") ?? config.server.currency_name_singular;
       const denominator = i.options.getString("denominator") ?? config.server.currency_denominator;
       const emoji = i.options.getString("emoji") ?? config.server.currency_emoji;
-      const multiplier = i.options.getNumber("multiplier") ?? config.server.multiplier;
-      const messageAmount = i.options.getNumber("message_amount") ?? config.server.message_amount;
-      const messageCooldown =
-        i.options.getInteger("message_cooldown_seconds") ?? config.server.message_cooldown_seconds;
-      const dailyAmount = i.options.getNumber("daily_amount") ?? config.server.daily_amount;
       const messageRewardsEnabled =
         i.options.getBoolean("message_rewards_enabled") ?? config.server.message_rewards_enabled;
 
@@ -270,10 +248,6 @@ export const economyCommands: SlashCommandDefinition[] = [
             currency_name_singular: nameSingular,
             currency_denominator: denominator,
             currency_emoji: emoji,
-            multiplier,
-            message_amount: messageAmount,
-            message_cooldown_seconds: messageCooldown,
-            daily_amount: dailyAmount,
             message_rewards_enabled: messageRewardsEnabled,
           },
         },
@@ -289,7 +263,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         ctx.guildConfig,
         {
           title: "Economy settings updated",
-          information: [`**By:** <@${i.user.id}>`, `**Currency:** ${name}`, `**Multiplier:** ${multiplier}x`],
+          information: [`**By:** <@${i.user.id}>`, `**Currency:** ${name}`, `**Message rewards:** ${messageRewardsEnabled ? "on" : "off"}`],
           emojiCategory: "serverUpdate",
         },
         { guildId, eventType: "economy_admin_change", actorId: i.user.id, summary: "Economy settings updated" },
@@ -298,7 +272,7 @@ export const economyCommands: SlashCommandDefinition[] = [
       await i.reply(
         resultReply(
           "Economy settings updated",
-          `**Currency:** ${name}\n**Multiplier:** ${multiplier}x\n**Message reward:** ${messageAmount} (${messageRewardsEnabled ? "on" : "off"})\n**Daily reward:** ${dailyAmount}`,
+          `**Currency:** ${name}\n**Message rewards:** ${messageRewardsEnabled ? "on" : "off"}`,
           ctx.ephemeral,
           slashResultOptions(ctx),
         ),

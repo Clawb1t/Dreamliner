@@ -2428,10 +2428,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 200, payload);
               return;
             }
+            // Global balance only — server admins can no longer adjust a member's server-currency
+            // balance; it now only moves through normal play and /exchange. See webEconomy.ts.
             if (segments.length === 3 && segments[2] === "adjust" && req.method === "POST") {
               const body = await readJsonBody<{
                 userId?: string;
-                scope?: "global" | "server";
                 mode?: "add" | "take" | "set";
                 amount?: number;
               }>();
@@ -2439,7 +2440,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               const actorId = await requireManage(body.userId);
               if (!actorId) return;
               const result = await econ.adjustEconomyAccount(configManager, guildId, targetUserId, {
-                scope: body.scope ?? "server",
                 mode: body.mode ?? "add",
                 amount: Number(body.amount ?? 0),
               });
@@ -2450,11 +2450,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               trackDashboardAction(client, guildId, actorId, {
                 eventType: "dashboard_economy",
                 title: "Economy balance adjust",
-                summary: `Adjusted the ${result.scope} balance for <@${targetUserId}>.`,
+                summary: `Adjusted the global balance for <@${targetUserId}>.`,
                 targetId: targetUserId,
-                payload: { scope: result.scope, balance: result.balance, mode: body.mode ?? "add" },
+                payload: { balance: result.balance, mode: body.mode ?? "add" },
               });
-              sendJson(res, 200, { ok: true, scope: result.scope, balance: result.balance });
+              sendJson(res, 200, { ok: true, balance: result.balance });
               return;
             }
           }
