@@ -19,6 +19,7 @@ Two independent currencies:
 | `/daily <global\|server>` | Claim that currency's daily reward |
 | `/economy view` | View this server's currency settings (managers) |
 | `/economy settings` | Change this server's currency name, denominator, emoji, multiplier, message reward, message cooldown, and daily amount (managers) |
+| `/exchange <amount>` | Convert server currency into global coins, at a rate set by this server's own stock price |
 | `/stock` | Links to the Dreamliner Exchange on the site |
 
 ## Architecture
@@ -54,9 +55,19 @@ Investing is meant to be "put coins in, check back a day later", not "watch it e
   counts, pruned after 6 hours), `economy_stock_holdings` (shares + cost basis per user per guild), and
   `economy_stock_transactions` (a buy/sell ledger).
 
+## Currency exchange
+
+`/exchange <amount>` converts a member's **server currency** balance into **global coins**, at a rate tied to that
+server's own stock price (`computeExchangeRate` in `src/plugins/economy/functions/stocks.ts`): trading at the $10
+starting price exchanges 1:1, a stock that's run up pays out a bonus, and a stock that's cratered pays out less —
+low stock means a low exchange rate. The rate is clamped to `0.1x`–`3x` so neither a runaway nor a cratered price
+makes the exchange useless. The debit/credit itself (`exchangeServerForGlobal` in `functions/money.ts`) is a single
+atomic transaction — a member's server currency never disappears without the matching global coins landing.
+
 ## Permissions
 
-Member defaults (`>=0`) can use `/economy balance` and `/economy daily`. Managers (`>=50`) get `/economy admin`.
+Member defaults (`>=0`) can use `/economy balance`, `/economy daily`, and `/exchange`. Managers (`>=50`) get
+`/economy admin`.
 
 ## Logging
 

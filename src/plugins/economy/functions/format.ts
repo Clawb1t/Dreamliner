@@ -34,3 +34,8 @@ export function formatStockChange(changeAmount: number, changePct: number): stri
   const pctSign = changePct > 0 ? "+" : "";
   return `${sign}$${formatAmount(changeAmount)} (${pctSign}${changePct.toFixed(2)}%)`;
 }
+
+/** A server → global exchange rate, e.g. "1.00x". */
+export function formatExchangeRate(rate: number): string {
+  return `${rate.toFixed(2)}x`;
+}

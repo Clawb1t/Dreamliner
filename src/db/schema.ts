@@ -152,17 +152,6 @@ export const tags = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.name] })],
 );
 
-export const scheduledPosts = sqliteTable("scheduled_posts", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  channelId: text("channel_id").notNull(),
-  content: text("content").notNull(),
-  cronExpr: text("cron_expr"),
-  nextRunAt: integer("next_run_at", { mode: "timestamp" }),
-  createdBy: text("created_by").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-});
-
 export const reminders = sqliteTable("reminders", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   guildId: text("guild_id").notNull(),
@@ -321,27 +310,6 @@ export const autothreadState = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.ruleId, table.channelId] })],
 );
 
-export const customEvents = sqliteTable("custom_events", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  name: text("name").notNull(),
-  triggerType: text("trigger_type").notNull(),
-  config: text("config").notNull(),
-  response: text("response").notNull(),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-});
-
-export const commandAliases = sqliteTable(
-  "command_aliases",
-  {
-    guildId: text("guild_id").notNull(),
-    name: text("name").notNull(),
-    command: text("command").notNull(),
-    options: text("options").notNull().default("{}"),
-  },
-  (table) => [primaryKey({ columns: [table.guildId, table.name] })],
-);
-
 export const counters = sqliteTable(
   "counters",
   {
@@ -375,14 +343,6 @@ export const companionRooms = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.guildId, table.channelId] })],
 );
-
-export const managedRoles = sqliteTable("managed_roles", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  name: text("name").notNull(),
-  template: text("template").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-});
 
 export const dreamCommands = sqliteTable(
   "dream_commands",

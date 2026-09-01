@@ -5,7 +5,6 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 ## Moderation
 
 - [Infractions](./infraction.md)
-- [Admin](./admin.md)
 - [Slowmode](./slowmode.md)
 
 ## Protection
@@ -19,10 +18,8 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 ## Role management
 
 - [Roles](./roles.md)
-- [Role manager](./role_manager.md)
 - [Autorole](./autorole.md)
 - [Member identity](./member_identity.md)
-- [Pingable roles](./pingable_roles.md)
 
 ## Self-serve roles
 
@@ -54,14 +51,11 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 ## Scheduling
 
-- [Post](./post.md)
 - [Reminders](./reminders.md)
 - [Counters](./counters.md)
 
 ## Customization
 
-- [Custom events](./custom_events.md)
-- [Command aliases](./command_aliases.md)
 - [Custom commands](./dream_commands.md), built on the dashboard, see [reference](../dreamcode/README.md)
 
 ## Utilities

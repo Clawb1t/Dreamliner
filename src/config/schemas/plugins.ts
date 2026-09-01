@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { boolPerm, roleId } from "../schemaHelp.js";
+import { boolPerm } from "../schemaHelp.js";
 import { zPluginSection } from "./pluginSection.js";
 import { zAutomodConfig } from "./automod.js";
 import { zWelcomeMessageConfig } from "./welcome.js";
@@ -90,12 +90,6 @@ export {
 
 import { zAutodeleteConfig } from "./autodelete.js";
 
-export const zAdminConfig = z.strictObject({
-  lockdown_role_id: roleId("Role applied during channel lockdown (optional)."),
-  can_lockdown: boolPerm("lock down channels"),
-  can_unlock: boolPerm("unlock channels"),
-});
-
 export const zSlowmodeRuleTarget = z.enum(["user", "role"]);
 
 export const zSlowmodeRule = z.strictObject({
@@ -178,29 +172,12 @@ export const zSelfGrantableRolesConfig = z.strictObject({
     .describe("Maximum roles allowed on one self-grant panel."),
 });
 
-export const zPingableRolesConfig = z.strictObject({
-  can_enable: boolPerm("temporarily make roles mentionable"),
-  can_disable: boolPerm("disable temporary pingable roles"),
-});
-
-export const zRoleManagerConfig = z.strictObject({
-  can_create: boolPerm("create roles from templates"),
-  can_delete: boolPerm("delete role templates"),
-  can_list: boolPerm("list role templates"),
-});
-
 export const zTagsConfig = z.strictObject({
   can_create: boolPerm("create tags"),
   can_edit: boolPerm("edit tags"),
   can_delete: boolPerm("delete tags"),
   can_list: boolPerm("list tags"),
   can_show: boolPerm("show/use tags"),
-});
-
-export const zPostConfig = z.strictObject({
-  can_create: boolPerm("create scheduled posts"),
-  can_list: boolPerm("list scheduled posts"),
-  can_delete: boolPerm("delete scheduled posts"),
 });
 
 export const zAutoreactionTrigger = z.enum(["every_message", "contains", "starts_with", "exact", "regex"]);
@@ -545,23 +522,6 @@ export const zStatsConfig = z.strictObject({
   can_channel: boolPerm("view channel stats"),
 });
 
-export const zCustomEventsConfig = z.strictObject({
-  can_create: boolPerm("create custom event hooks"),
-  can_delete: boolPerm("delete custom event hooks"),
-  can_list: boolPerm("list custom event hooks"),
-});
-
-export const zCommandAliasesConfig = z.strictObject({
-  message_triggers: z
-    .boolean()
-    .default(true)
-    .describe("Allow message-based alias triggers in addition to slash commands."),
-  can_create: boolPerm("create command aliases"),
-  can_delete: boolPerm("delete command aliases"),
-  can_list: boolPerm("list command aliases"),
-  can_run: boolPerm("run command aliases"),
-});
-
 export const zDreamCommandsConfig = z.strictObject({
   /** @deprecated Ignored. Kept so older saved config still parses. */
   prefix: z.string().min(1).max(10).optional().describe("Deprecated and ignored."),
@@ -581,7 +541,6 @@ export const zBotCustomisationConfig = z.strictObject({
 });
 
 export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape);
-export const zAdminPluginSection = zPluginSection(zAdminConfig.shape);
 export const zPersistPluginSection = zPluginSection(zPersistConfig.shape);
 export const zSlowmodePluginSection = zPluginSection(zSlowmodeConfig.shape);
 export const zRolesPluginSection = zPluginSection(zRolesConfig.shape);
@@ -589,11 +548,8 @@ export const zReactionRolesPluginSection = zPluginSection(zReactionRolesConfig.s
 export const zRoleButtonsPluginSection = zPluginSection(zRoleButtonsConfig.shape);
 export const zRolePanelsPluginSection = zPluginSection(zRolePanelsConfig.shape);
 export const zSelfGrantableRolesPluginSection = zPluginSection(zSelfGrantableRolesConfig.shape);
-export const zPingableRolesPluginSection = zPluginSection(zPingableRolesConfig.shape);
-export const zRoleManagerPluginSection = zPluginSection(zRoleManagerConfig.shape);
 export const zWelcomeMessagePluginSection = zPluginSection(zWelcomeMessageConfig.shape);
 export const zTagsPluginSection = zPluginSection(zTagsConfig.shape);
-export const zPostPluginSection = zPluginSection(zPostConfig.shape);
 export const zAutodeletePluginSection = zPluginSection(zAutodeleteConfig.shape);
 export const zAutoreactionsPluginSection = zPluginSection(zAutoreactionsConfig.shape);
 export const zAutorepliesPluginSection = zPluginSection(zAutorepliesConfig.shape);
@@ -607,12 +563,9 @@ export const zUsernameSaverPluginSection = zPluginSection(zUsernameSaverConfig.s
 export const zMemberIdentityPluginSection = zPluginSection(zMemberIdentityConfig.shape);
 export const zLocateUserPluginSection = zPluginSection(zLocateUserConfig.shape);
 export const zStatsPluginSection = zPluginSection(zStatsConfig.shape);
-export const zCustomEventsPluginSection = zPluginSection(zCustomEventsConfig.shape);
-export const zCommandAliasesPluginSection = zPluginSection(zCommandAliasesConfig.shape);
 export const zDreamCommandsPluginSection = zPluginSection(zDreamCommandsConfig.shape);
 export const zBotCustomisationPluginSection = zPluginSection(zBotCustomisationConfig.shape);
 
-export type AdminConfig = z.infer<typeof zAdminConfig>;
 export type SlowmodeConfig = z.infer<typeof zSlowmodeConfig>;
 export type SlowmodeRule = z.infer<typeof zSlowmodeRule>;
 export type SlowmodeRuleTarget = z.infer<typeof zSlowmodeRuleTarget>;
@@ -621,9 +574,6 @@ export type RolesConfig = z.infer<typeof zRolesConfig>;
 export type ReactionRolesConfig = z.infer<typeof zReactionRolesConfig>;
 export type RoleButtonsConfig = z.infer<typeof zRoleButtonsConfig>;
 export type SelfGrantableRolesConfig = z.infer<typeof zSelfGrantableRolesConfig>;
-export type PingableRolesConfig = z.infer<typeof zPingableRolesConfig>;
-export type RoleManagerConfig = z.infer<typeof zRoleManagerConfig>;
 export type DreamCommandsConfig = z.infer<typeof zDreamCommandsConfig>;
 export type BotCustomisationConfig = z.infer<typeof zBotCustomisationConfig>;
-export type CommandAliasesConfig = z.infer<typeof zCommandAliasesConfig>;
 export type MemberIdentityConfig = z.infer<typeof zMemberIdentityConfig>;

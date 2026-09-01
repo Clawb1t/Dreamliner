@@ -4,3 +4,4 @@ export const PLANE_STATS_PREFIX = "dl:planestats:";
 export const PLANE_PACK_PREFIX = "dl:planepack:";
 export const PLANE_LABEL_PREFIX = "dl:planelabel:";
 export const PLANE_INVENTORY_PREFIX = "dl:planeinv:";
+export const PLANE_SELL_PREFIX = "dl:planesell:";

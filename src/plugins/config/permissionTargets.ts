@@ -60,8 +60,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "automod configure", label: "/automod preset", plugin: "automod", permission: "can_configure" },
   { key: "scamprotect setup", label: "/scamprotect setup", plugin: "scam_protect", permission: "can_setup" },
   { key: "scamprotect status", label: "/scamprotect status", plugin: "scam_protect", permission: "can_status" },
-  { key: "lockdown", label: "/lockdown", plugin: "admin", permission: "can_lockdown" },
-  { key: "unlock", label: "/unlock", plugin: "admin", permission: "can_unlock" },
   { key: "slowmode set", label: "/slowmode set", plugin: "slowmode", permission: "can_set" },
   { key: "slowmode clear", label: "/slowmode clear", plugin: "slowmode", permission: "can_clear" },
   { key: "slowmode rule", label: "/slowmode rule", plugin: "slowmode", permission: "can_manage_rules" },
@@ -74,11 +72,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "roles remove", label: "/roles remove", plugin: "roles", permission: "can_remove" },
   { key: "roles list", label: "/roles list", plugin: "roles", permission: "can_list" },
   { key: "selfrole configure", label: "/selfrole configure", plugin: "self_grantable_roles", permission: "can_configure" },
-  { key: "pingrole enable", label: "/pingrole enable", plugin: "pingable_roles", permission: "can_enable" },
-  { key: "pingrole disable", label: "/pingrole disable", plugin: "pingable_roles", permission: "can_disable" },
-  { key: "rolemanage create", label: "/rolemanage create", plugin: "role_manager", permission: "can_create" },
-  { key: "rolemanage delete", label: "/rolemanage delete", plugin: "role_manager", permission: "can_delete" },
-  { key: "rolemanage list", label: "/rolemanage list", plugin: "role_manager", permission: "can_list" },
 
   // Automation
   { key: "welcome set", label: "/welcome set", plugin: "welcome_message", permission: "can_set" },
@@ -89,9 +82,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "tag delete", label: "/tag delete", plugin: "tags", permission: "can_delete" },
   { key: "tag list", label: "/tag list", plugin: "tags", permission: "can_list" },
   { key: "tag show", label: "/tag show", plugin: "tags", permission: "can_show" },
-  { key: "post create", label: "/post create", plugin: "post", permission: "can_create" },
-  { key: "post list", label: "/post list", plugin: "post", permission: "can_list" },
-  { key: "post delete", label: "/post delete", plugin: "post", permission: "can_delete" },
   { key: "autoreaction add", label: "/autoreaction add", plugin: "autoreactions", permission: "can_add" },
   { key: "autoreaction remove", label: "/autoreaction remove", plugin: "autoreactions", permission: "can_remove" },
   { key: "autoreaction list", label: "/autoreaction list", plugin: "autoreactions", permission: "can_list" },
@@ -139,13 +129,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
     plugin: "suggestions",
     permission: "can_manage",
   },
-  { key: "event create", label: "/event create", plugin: "custom_events", permission: "can_create" },
-  { key: "event delete", label: "/event delete", plugin: "custom_events", permission: "can_delete" },
-  { key: "event list", label: "/event list", plugin: "custom_events", permission: "can_list" },
-  { key: "alias create", label: "/alias create", plugin: "command_aliases", permission: "can_create" },
-  { key: "alias delete", label: "/alias delete", plugin: "command_aliases", permission: "can_delete" },
-  { key: "alias list", label: "/alias list", plugin: "command_aliases", permission: "can_list" },
-  { key: "alias run", label: "/alias run", plugin: "command_aliases", permission: "can_run" },
   { key: "command toggle", label: "/command toggle", plugin: "dream_commands", permission: "can_edit" },
   { key: "command remove", label: "/command remove", plugin: "dream_commands", permission: "can_remove" },
   { key: "command list", label: "/command list", plugin: "dream_commands", permission: "can_list" },
@@ -153,6 +136,7 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   // Economy
   { key: "economy balance", label: "/balance", plugin: "economy", permission: "can_balance" },
   { key: "economy daily", label: "/daily", plugin: "economy", permission: "can_daily" },
+  { key: "economy exchange", label: "/exchange", plugin: "economy", permission: "can_exchange" },
   { key: "economy admin", label: "/economy settings", plugin: "economy", permission: "can_admin_manage" },
 
   // Anime

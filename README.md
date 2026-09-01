@@ -54,7 +54,6 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | **Automod** | Duplicate messages, rate limits, raid detection |
 | **Censor** | Word and phrase filters with configurable actions |
 | **Scam Protect** | Top-of-list honeypot channel that softbans posters and deletes their spam |
-| **Admin** | Channel lockdown and unlock |
 | **Slowmode** | Per-channel slowmode control |
 | **Logs** | Structured server and moderation event logging (Discord channels + dashboard retention) |
 
@@ -65,8 +64,6 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | **Roles** | Give, remove, and list roles |
 | **Reaction / button / self-serve roles** | Claim flows that fit large join volume |
 | **Autorole** | Separate human and bot join assignment |
-| **Pingable roles** | Temporary mentionability for announcements |
-| **Role manager** | Templates for consistent role creation |
 | **Welcome message** | Controlled join messaging |
 
 ### Automation and content
@@ -74,14 +71,12 @@ Walkthrough: [Getting started](docs/getting-started.md)
 | Area | Capabilities |
 | --- | --- |
 | **Tags** | Reusable staff and helper responses |
-| **Scheduled posts** | Timed and recurring channel posts |
 | **Autodelete / autoreactions / autoreplies** | Channel hygiene and lightweight automation |
 | **Translation** | On-demand and optional auto-translate for multilingual communities |
 | **Counters** | Live member, message, and custom counters |
 | **Companion channels** | Personal voice channels from a hub |
 | **Text-to-speech** | Auto-speak text channel: messages from members in voice get read aloud (local Piper TTS, per-member voice picker) |
 | **Reminders** | Personal staff reminders |
-| **Custom events / command aliases** | Hook Discord events and short triggers |
 | **Custom commands** | Slash commands you build on the dashboard: a reply, text or embed |
 
 ### Feedback
@@ -128,7 +123,6 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 - [Automod](docs/plugins/automod.md)
 - [Censor](docs/plugins/censor.md)
 - [Scam Protect](docs/plugins/scam_protect.md)
-- [Admin](docs/plugins/admin.md)
 - [Persist](docs/plugins/persist.md)
 - [Slowmode](docs/plugins/slowmode.md)
 - [Logs](docs/plugins/logs.md)
@@ -142,8 +136,6 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 - [Reaction roles](docs/plugins/reaction_roles.md)
 - [Role buttons](docs/plugins/role_buttons.md)
 - [Self-grantable roles](docs/plugins/self_grantable_roles.md)
-- [Pingable roles](docs/plugins/pingable_roles.md)
-- [Role manager](docs/plugins/role_manager.md)
 - [Autorole](docs/plugins/autorole.md)
 - [Member identity](docs/plugins/member_identity.md)
 
@@ -154,7 +146,6 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 
 - [Welcome message](docs/plugins/welcome_message.md)
 - [Tags](docs/plugins/tags.md)
-- [Scheduled posts](docs/plugins/post.md)
 - [Autodelete](docs/plugins/autodelete.md)
 - [Autoreactions](docs/plugins/autoreactions.md)
 - [Autoreplies](docs/plugins/autoreplies.md)
@@ -163,8 +154,6 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 - [Companion channels](docs/plugins/companion_channels.md)
 - [Text-to-speech](docs/plugins/tts.md)
 - [Translation](docs/plugins/translation.md)
-- [Custom events](docs/plugins/custom_events.md)
-- [Command aliases](docs/plugins/command_aliases.md)
 - [Custom commands](docs/plugins/dream_commands.md)
 
 </details>

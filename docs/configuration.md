@@ -184,15 +184,15 @@ Dreamliner is organized into plugins under the `plugins:` key. Each plugin has i
 
 | Category          | Plugins                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------ |
-| Moderation        | infractions, admin, slowmode                                                                     |
+| Moderation        | infractions, slowmode                                                                            |
 | Protection        | automod, scam\_protect, persist, autodelete                                                      |
-| Role management   | roles, role\_manager, autorole, pingable\_roles                                                  |
+| Role management   | roles, autorole                                                                                   |
 | Self-serve roles  | reaction\_roles, role\_buttons, self\_grantable\_roles                                           |
 | Lookups           | locate\_user, name\_history, username\_saver                                                     |
 | Engagement        | welcome\_message, companion\_channels, starboard                                                 |
 | Auto responses    | tags, autoreplies, autoreactions, translation                                                       |
-| Scheduling        | post, reminders, counters                                                                        |
-| Customization     | custom\_events, command\_aliases, dream\_commands                                                |
+| Scheduling        | reminders, counters                                                                               |
+| Customization     | dream\_commands                                                                                   |
 | Utilities         | utility, stats, bot\_customisation, logs                                                         |
 | Feedback          | reviews, suggestions                                                                             |
 

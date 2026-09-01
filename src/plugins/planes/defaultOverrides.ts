@@ -7,6 +7,7 @@ export const planesDefaultOverrides: ConfigOverride[] = [
       can_view: true,
       can_buy_pack: true,
       can_give: true,
+      can_sell: true,
     },
   },
 ];

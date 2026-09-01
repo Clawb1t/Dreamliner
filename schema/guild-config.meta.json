@@ -1,23 +1,18 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-31T20:19:13.657Z",
+  "generatedAt": "2026-09-01T17:35:14.126Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
     {
       "id": "mod",
       "label": "Moderation",
-      "description": "Warns, mutes, bans, lockdown, and cleanup.",
+      "description": "Warns, mutes, bans, and cleanup.",
       "plugins": [
         {
           "key": "infractions",
           "name": "Infractions",
           "description": "Warn, mute, kick, ban, and case management."
-        },
-        {
-          "key": "admin",
-          "name": "Admin",
-          "description": "Channel lockdown and unlock."
         },
         {
           "key": "slowmode",
@@ -61,17 +56,12 @@
     {
       "id": "roles",
       "label": "Role management",
-      "description": "Staff role assign, templates, autorole, identity restore, and pingables.",
+      "description": "Staff role assign, autorole, and identity restore.",
       "plugins": [
         {
           "key": "roles",
           "name": "Roles",
           "description": "Give, remove, and list roles."
-        },
-        {
-          "key": "role_manager",
-          "name": "Role manager",
-          "description": "Role templates."
         },
         {
           "key": "autorole",
@@ -82,11 +72,6 @@
           "key": "member_identity",
           "name": "Member identity",
           "description": "Save nickname, roles, and timeout when members leave, and reapply chosen parts on rejoin."
-        },
-        {
-          "key": "pingable_roles",
-          "name": "Pingable roles",
-          "description": "Temporarily mentionable roles."
         }
       ]
     },
@@ -191,13 +176,8 @@
     {
       "id": "schedule",
       "label": "Scheduling",
-      "description": "Timed posts, reminders, and live counters.",
+      "description": "Reminders and live counters.",
       "plugins": [
-        {
-          "key": "post",
-          "name": "Scheduled posts",
-          "description": "Timed and recurring posts."
-        },
         {
           "key": "reminders",
           "name": "Reminders",
@@ -213,18 +193,8 @@
     {
       "id": "custom",
       "label": "Customization",
-      "description": "Custom events, aliases, and custom commands.",
+      "description": "Custom commands built visually on the dashboard.",
       "plugins": [
-        {
-          "key": "custom_events",
-          "name": "Custom events",
-          "description": "Hook actions to Discord events."
-        },
-        {
-          "key": "command_aliases",
-          "name": "Command aliases",
-          "description": "Shortcuts and message triggers."
-        },
         {
           "key": "dream_commands",
           "name": "Custom commands",
@@ -322,13 +292,6 @@
       "categoryId": "mod"
     },
     {
-      "key": "admin",
-      "name": "Admin",
-      "description": "Channel lockdown and unlock.",
-      "category": "Moderation",
-      "categoryId": "mod"
-    },
-    {
       "key": "slowmode",
       "name": "Slowmode",
       "description": "Per-channel and individual slowmode.",
@@ -378,13 +341,6 @@
       "categoryId": "roles"
     },
     {
-      "key": "role_manager",
-      "name": "Role manager",
-      "description": "Role templates.",
-      "category": "Role management",
-      "categoryId": "roles"
-    },
-    {
       "key": "autorole",
       "name": "Autorole",
       "description": "Auto-assign roles on join for humans and bots.",
@@ -395,13 +351,6 @@
       "key": "member_identity",
       "name": "Member identity",
       "description": "Save nickname, roles, and timeout when members leave, and reapply chosen parts on rejoin.",
-      "category": "Role management",
-      "categoryId": "roles"
-    },
-    {
-      "key": "pingable_roles",
-      "name": "Pingable roles",
-      "description": "Temporarily mentionable roles.",
       "category": "Role management",
       "categoryId": "roles"
     },
@@ -504,13 +453,6 @@
       "categoryId": "respond"
     },
     {
-      "key": "post",
-      "name": "Scheduled posts",
-      "description": "Timed and recurring posts.",
-      "category": "Scheduling",
-      "categoryId": "schedule"
-    },
-    {
       "key": "reminders",
       "name": "Reminders",
       "description": "Personal reminders.",
@@ -523,20 +465,6 @@
       "description": "Live counters.",
       "category": "Scheduling",
       "categoryId": "schedule"
-    },
-    {
-      "key": "custom_events",
-      "name": "Custom events",
-      "description": "Hook actions to Discord events.",
-      "category": "Customization",
-      "categoryId": "custom"
-    },
-    {
-      "key": "command_aliases",
-      "name": "Command aliases",
-      "description": "Shortcuts and message triggers.",
-      "category": "Customization",
-      "categoryId": "custom"
     },
     {
       "key": "dream_commands",

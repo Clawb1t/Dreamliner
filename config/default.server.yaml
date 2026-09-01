@@ -363,17 +363,6 @@ plugins:
         config:
           can_neko: true
           can_saved: true
-  admin:
-    enabled: true
-    replaceDefaultOverrides: false
-    config:
-      can_lockdown: false
-      can_unlock: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_lockdown: true
-          can_unlock: true
   persist:
     enabled: true
     replaceDefaultOverrides: false
@@ -444,30 +433,6 @@ plugins:
       - level: ">=50"
         config:
           can_configure: true
-  pingable_roles:
-    enabled: true
-    replaceDefaultOverrides: false
-    config:
-      can_enable: false
-      can_disable: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_enable: true
-          can_disable: true
-  role_manager:
-    enabled: true
-    replaceDefaultOverrides: false
-    config:
-      can_create: false
-      can_delete: false
-      can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_delete: true
-          can_list: true
   welcome_message:
     enabled: true
     replaceDefaultOverrides: false
@@ -519,19 +484,6 @@ plugins:
           can_delete: true
           can_list: true
           can_show: true
-  post:
-    enabled: true
-    replaceDefaultOverrides: false
-    config:
-      can_create: false
-      can_list: false
-      can_delete: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_list: true
-          can_delete: true
   autodelete:
     enabled: true
     replaceDefaultOverrides: false
@@ -669,39 +621,6 @@ plugins:
           can_server: true
           can_user: true
           can_channel: true
-  custom_events:
-    enabled: true
-    replaceDefaultOverrides: false
-    config:
-      can_create: false
-      can_delete: false
-      can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_list: true
-      - level: ">=100"
-        config:
-          can_delete: true
-  command_aliases:
-    enabled: true
-    replaceDefaultOverrides: false
-    config:
-      message_triggers: true
-      can_create: false
-      can_delete: false
-      can_list: false
-      can_run: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_list: true
-          can_run: true
-      - level: ">=100"
-        config:
-          can_create: true
-          can_delete: true
   dream_commands:
     enabled: true
     replaceDefaultOverrides: false

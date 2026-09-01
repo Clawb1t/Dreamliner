@@ -9,6 +9,7 @@ export const zPlanesConfig = z.strictObject({
   can_view: boolPerm("view the plane card catalog, card details, and inventories"),
   can_buy_pack: boolPerm("buy and open plane card packs"),
   can_give: boolPerm("give a plane card (1 at a time) to another member"),
+  can_sell: boolPerm("sell a plane card for global coins"),
 });
 
 export const zPlanesPluginSection = zPluginSection(zPlanesConfig.shape);

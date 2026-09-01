@@ -279,6 +279,27 @@ export async function tickStockPrices(client: Client): Promise<void> {
 
 export type StockRow = ReturnType<typeof getStock> extends infer T ? NonNullable<T> : never;
 
+// ── Currency exchange ────────────────────────────────────────────────────────
+// Server currency converts to global coins at a rate tied to that server's own
+// stock: trading at its $10 starting price exchanges 1:1, a stock that's run up
+// pays out a bonus, and a stock that's cratered pays out a reduced rate — "low
+// stock means a low exchange rate". Clamped well short of the stock's own price
+// bounds so a single runaway or cratered price can't make the exchange useless.
+
+const EXCHANGE_MIN_RATE = 0.1;
+const EXCHANGE_MAX_RATE = 3;
+
+/** Pure so it's easy to test: rate scales linearly with price relative to `basePrice`, clamped to sane bounds. */
+export function computeExchangeRate(price: number, basePrice = STARTING_PRICE): number {
+  return round2(Math.min(EXCHANGE_MAX_RATE, Math.max(EXCHANGE_MIN_RATE, price / basePrice)));
+}
+
+/** Server currency → global coin exchange rate for a guild, based on its current stock price (unlisted guilds get the base 1x rate). */
+export function getExchangeRate(guildId: string): number {
+  const stock = getStock(guildId);
+  return computeExchangeRate(stock?.price ?? STARTING_PRICE);
+}
+
 function changeSince(guildId: string, price: number, since: Date): { changeAmount: number; changePct: number } {
   const db = getDb();
   const openRow = db

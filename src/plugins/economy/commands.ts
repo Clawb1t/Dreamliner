@@ -8,20 +8,30 @@ import { resolveEmojiForContent } from "../../core/emoji.js";
 import { emitLog } from "../../core/logging/send.js";
 import { getStocksUrl, siteLinkRow } from "../../core/docsUrl.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
-import { GLOBAL_DAILY_AMOUNT, formatCoinAmount, formatGlobal, formatServer, formatStockChange } from "./functions/format.js";
+import {
+  GLOBAL_DAILY_AMOUNT,
+  formatCoinAmount,
+  formatExchangeRate,
+  formatGlobal,
+  formatServer,
+  formatStockChange,
+} from "./functions/format.js";
 import {
   claimGlobalDaily,
   claimServerDaily,
   ensureGlobalAccount,
   ensureServerAccount,
+  exchangeServerForGlobal,
   getGlobalBalance,
   getServerBalance,
+  InsufficientFundsError,
   nextDailyClaimAt,
   type DailyClaimResult,
 } from "./functions/money.js";
 import {
   buyStock,
   ensureStock,
+  getExchangeRate,
   getPortfolio,
   getStockBySymbol,
   getStockWithChange,
@@ -293,6 +303,56 @@ export const economyCommands: SlashCommandDefinition[] = [
           slashResultOptions(ctx),
         ),
       );
+    },
+  },
+  {
+    plugin: "economy",
+    data: new SlashCommandBuilder()
+      .setName("exchange")
+      .setDescription("Exchange this server's currency for global coins, at a rate set by the server's stock price")
+      .addNumberOption((o) =>
+        o.setName("amount").setDescription("Amount of server currency to exchange").setRequired(true).setMinValue(0.01),
+      ),
+    execute: async (ctx) => {
+      const auth = await requirePluginPermission(ctx, "economy", "can_exchange");
+      if (!auth) return;
+      const config = zEconomyConfig.parse(auth.pluginConfig);
+      const i = ctx.interaction;
+      const guild = i.guild!;
+      const amount = i.options.getNumber("amount", true);
+
+      const stock = ensureStock(guild.id, guild.name, guild.iconURL({ size: 64 }));
+      const rate = getExchangeRate(guild.id);
+
+      try {
+        const result = exchangeServerForGlobal(guild.id, i.user.id, amount, rate);
+        const member = i.member as GuildMember | null;
+        const embed = baseEmbed()
+          .setAuthor({ name: member?.displayName ?? i.user.username, iconURL: i.user.displayAvatarURL() })
+          .setDescription(
+            `Exchanged ${formatServer(result.serverAmount, config.server)} for ${formatGlobal(result.globalAmount)}`,
+          )
+          .addFields(
+            { name: "Exchange rate", value: `\`${formatExchangeRate(rate)}\` (${stock.symbol} @ ${formatCoinAmount(stock.price)})`, inline: false },
+            { name: `New ${config.server.currency_name} balance`, value: formatServer(result.serverBalance, config.server), inline: true },
+            { name: "New global balance", value: formatGlobal(result.globalBalance), inline: true },
+          )
+          .setFooter({ text: "Dreamliner Exchange" });
+        await i.reply({ ...embedReply(embed, ctx.ephemeral), components: [exchangeLinkRow()] });
+      } catch (err) {
+        if (err instanceof InsufficientFundsError) {
+          await i.reply(
+            resultReply(
+              "Insufficient funds",
+              `You don't have **${formatServer(amount, config.server)}** to exchange.`,
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
+        throw err;
+      }
     },
   },
   {

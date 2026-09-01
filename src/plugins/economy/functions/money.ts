@@ -149,6 +149,39 @@ export function markServerMessageClaimed(guildId: string, userId: string) {
     .run();
 }
 
+export type ExchangeResult = {
+  serverAmount: number;
+  globalAmount: number;
+  rate: number;
+  serverBalance: number;
+  globalBalance: number;
+};
+
+/** Guarded server → global conversion at `rate` — debits server balance and credits global balance atomically, or throws InsufficientFundsError. */
+export function exchangeServerForGlobal(guildId: string, userId: string, serverAmount: number, rate: number): ExchangeResult {
+  if (!(serverAmount > 0)) throw new Error("amount must be positive");
+  if (!(rate > 0)) throw new Error("rate must be positive");
+  const db = getDb();
+  const account = ensureServerAccount(guildId, userId);
+  if (account.balance < serverAmount) throw new InsufficientFundsError();
+
+  const globalAmount = round2(serverAmount * rate);
+  const timestamp = now();
+  return db.transaction((tx) => {
+    const serverBalance = round2(account.balance - serverAmount);
+    tx.update(economyServerAccounts)
+      .set({ balance: serverBalance, updatedAt: timestamp })
+      .where(and(eq(economyServerAccounts.guildId, guildId), eq(economyServerAccounts.userId, userId)))
+      .run();
+
+    const globalAccount = ensureGlobalAccount(userId);
+    const globalBalance = round2(globalAccount.balance + globalAmount);
+    tx.update(economyGlobalAccounts).set({ balance: globalBalance, updatedAt: timestamp }).where(eq(economyGlobalAccounts.userId, userId)).run();
+
+    return { serverAmount, globalAmount, rate, serverBalance, globalBalance };
+  });
+}
+
 export function claimServerDaily(guildId: string, userId: string, amount: number): DailyClaimResult | null {
   const account = ensureServerAccount(guildId, userId);
   const last = account.lastDailyAt;

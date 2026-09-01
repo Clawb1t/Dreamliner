@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { planeCardInventory } from "../../../db/schema.js";
+import { creditGlobal } from "../../economy/functions/money.js";
 import { getPlaneTypesByIds, RARITY_ORDER, type PlaneTypeRow, type Rarity } from "./catalog.js";
 
 function now() {
@@ -97,5 +98,15 @@ export function giveCard(fromUserId: string, toUserId: string, planeTypeId: numb
   getDb().transaction(() => {
     removeFromInventory(fromUserId, planeTypeId, quantity);
     addToInventory(toUserId, planeTypeId, quantity);
+  });
+}
+
+/** Sells one copy of a card for `amount` global coins, atomically — removes it from the seller's
+ *  inventory and credits the coins. Returns the new global balance. Throws InventoryError if the
+ *  seller no longer owns a copy. */
+export function sellCard(userId: string, planeTypeId: number, amount: number): number {
+  return getDb().transaction(() => {
+    removeFromInventory(userId, planeTypeId, 1);
+    return creditGlobal(userId, amount);
   });
 }

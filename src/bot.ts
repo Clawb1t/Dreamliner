@@ -115,9 +115,11 @@ import {
   handlePlanesAutocomplete,
   handlePlaneInventoryButtonInteraction,
   handlePlanePackButtonInteraction,
+  handlePlaneSellButtonInteraction,
   handlePlaneStatsButtonInteraction,
   PLANE_INVENTORY_PREFIX,
   PLANE_PACK_PREFIX,
+  PLANE_SELL_PREFIX,
   PLANE_STATS_PREFIX,
 } from "./plugins/planes/index.js";
 import { applyBotPresence } from "./core/presence.js";
@@ -286,6 +288,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(PLANE_INVENTORY_PREFIX)) {
         const handled = await handlePlaneInventoryButtonInteraction(interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(PLANE_SELL_PREFIX)) {
+        const handled = await handlePlaneSellButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {

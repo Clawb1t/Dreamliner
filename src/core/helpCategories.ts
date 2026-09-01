@@ -21,10 +21,9 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "mod",
     label: "Moderation",
-    blurb: "Warns, mutes, bans, lockdown, and cleanup.",
+    blurb: "Warns, mutes, bans, and cleanup.",
     include: [
       { plugin: "infractions" },
-      { plugin: "admin" },
       { plugin: "slowmode" },
       { plugin: "utility", roots: ["clean", "bansearch"] },
     ],
@@ -44,12 +43,10 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "roles",
     label: "Role management",
-    blurb: "Staff role assign, templates, autorole, identity restore, and pingables.",
+    blurb: "Staff role assign, autorole, and identity restore.",
     include: [
       { plugin: "roles" },
-      { plugin: "role_manager" },
       { plugin: "autorole" },
-      { plugin: "pingable_roles" },
     ],
   },
   {
@@ -116,9 +113,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "schedule",
     label: "Scheduling",
-    blurb: "Timed posts, reminders, and live counters.",
+    blurb: "Reminders and live counters.",
     include: [
-      { plugin: "post" },
       { plugin: "reminders" },
       { plugin: "counters" },
     ],
@@ -126,10 +122,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "custom",
     label: "Customization",
-    blurb: "Custom events, aliases, and custom commands.",
+    blurb: "Custom commands built visually on the dashboard.",
     include: [
-      { plugin: "custom_events" },
-      { plugin: "command_aliases" },
       { plugin: "dream_commands" },
     ],
   },
@@ -216,7 +210,6 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Passport",
     description: "Web-gated member verification with Discord login and a human check.",
   },
-  admin: { key: "admin", name: "Admin", description: "Channel lockdown and unlock." },
   persist: { key: "persist", name: "Persist", description: "Dashboard sticky messages that stay at the bottom of a channel." },
   slowmode: {
     key: "slowmode",
@@ -244,16 +237,6 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Self grantable roles",
     description: "Self-serve role panels.",
   },
-  pingable_roles: {
-    key: "pingable_roles",
-    name: "Pingable roles",
-    description: "Temporarily mentionable roles.",
-  },
-  role_manager: {
-    key: "role_manager",
-    name: "Role manager",
-    description: "Role templates.",
-  },
   autorole: {
     key: "autorole",
     name: "Autorole",
@@ -270,7 +253,6 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description: "Join, leave, and DM welcomes with embeds and image cards.",
   },
   tags: { key: "tags", name: "Tags", description: "Reusable text snippets." },
-  post: { key: "post", name: "Scheduled posts", description: "Timed and recurring posts." },
   autodelete: {
     key: "autodelete",
     name: "Autodelete",
@@ -319,16 +301,6 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description: "Find where a member is, and when they were last seen.",
   },
   stats: { key: "stats", name: "Stats", description: "Server, user, and channel stats." },
-  custom_events: {
-    key: "custom_events",
-    name: "Custom events",
-    description: "Hook actions to Discord events.",
-  },
-  command_aliases: {
-    key: "command_aliases",
-    name: "Command aliases",
-    description: "Shortcuts and message triggers.",
-  },
   dream_commands: {
     key: "dream_commands",
     name: "Custom commands",
@@ -393,7 +365,6 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
  */
 const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   infractions: "mod",
-  admin: "mod",
   slowmode: "mod",
   automod: "protect",
   scam_protect: "protect",
@@ -401,10 +372,8 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   persist: "protect",
   autodelete: "protect",
   roles: "roles",
-  role_manager: "roles",
   autorole: "roles",
   member_identity: "roles",
-  pingable_roles: "roles",
   reaction_roles: "self_roles",
   role_buttons: "self_roles",
   role_panels: "self_roles",
@@ -421,11 +390,8 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   autothreads: "respond",
   autoreactions: "respond",
   translation: "respond",
-  post: "schedule",
   reminders: "schedule",
   counters: "schedule",
-  custom_events: "custom",
-  command_aliases: "custom",
   dream_commands: "custom",
   utility: "tools",
   stats: "tools",
