@@ -138,7 +138,7 @@ export function buyStockForUser(
   userId: string,
   guildId: string,
   coins: number,
-): BridgeResult<{ shares: number; price: number; balance: number }> {
+): BridgeResult<{ shares: number; price: number; marketPrice: number; balance: number }> {
   const target = userId.trim();
   if (!isValidUserId(target)) return { ok: false, error: "Invalid userId.", status: 400 };
   if (!Number.isFinite(coins) || coins <= 0) return { ok: false, error: "amount must be a positive number.", status: 400 };
@@ -154,7 +154,7 @@ export function sellStockForUser(
   userId: string,
   guildId: string,
   shares: number,
-): BridgeResult<{ shares: number; price: number; proceeds: number; balance: number }> {
+): BridgeResult<{ shares: number; price: number; marketPrice: number; proceeds: number; balance: number }> {
   const target = userId.trim();
   if (!isValidUserId(target)) return { ok: false, error: "Invalid userId.", status: 400 };
   if (!Number.isFinite(shares) || shares <= 0) return { ok: false, error: "shares must be a positive number.", status: 400 };

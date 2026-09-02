@@ -387,6 +387,107 @@ export function getExchangeSeries(guildIds: string[], range: StockRange = "24h")
     .map(([t, point]) => ({ recordedAt: new Date(t).toISOString(), ...point }));
 }
 
+// ── Candles & RSI ─────────────────────────────────────────────────────────────
+// Mirrors the website's own chartMath.ts (buildCandles / RSI) so the chart image
+// attached to /stock view and the RSI reading in its embed line up with what
+// members see on the exchange site — the two are separate codebases with no
+// shared package between them, so the math is intentionally kept this simple
+// and duplicated rather than reached for across repos.
+
+export type StockCandle = {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  startTime: string;
+  endTime: string;
+};
+
+/** Buckets a price-history series into up to `target` OHLC candles. */
+export function buildStockCandles(history: { price: number; recordedAt: Date }[], target = 40): StockCandle[] {
+  if (history.length === 0) return [];
+  const bucketSize = Math.max(1, Math.ceil(history.length / target));
+  const candles: StockCandle[] = [];
+  for (let i = 0; i < history.length; i += bucketSize) {
+    const chunk = history.slice(i, i + bucketSize);
+    const prices = chunk.map((p) => p.price);
+    candles.push({
+      open: prices[0]!,
+      close: prices[prices.length - 1]!,
+      high: Math.max(...prices),
+      low: Math.min(...prices),
+      startTime: chunk[0]!.recordedAt.toISOString(),
+      endTime: chunk[chunk.length - 1]!.recordedAt.toISOString(),
+    });
+  }
+  return candles;
+}
+
+/**
+ * Wilder's RSI (the standard 14-period formula) over a series of closing prices, 0-100: above 70
+ * reads as overbought (run up fast, due for a pullback), below 30 as oversold (dropped fast, due
+ * for a bounce). Returns null when there isn't yet enough history to seed a full period.
+ */
+export function computeRSI(closes: number[], period = 14): number | null {
+  if (closes.length < period + 1) return null;
+  let avgGain = 0;
+  let avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const change = closes[i]! - closes[i - 1]!;
+    if (change >= 0) avgGain += change;
+    else avgLoss -= change;
+  }
+  avgGain /= period;
+  avgLoss /= period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const change = closes[i]! - closes[i - 1]!;
+    avgGain = (avgGain * (period - 1) + Math.max(change, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-change, 0)) / period;
+  }
+  if (avgLoss === 0) return avgGain === 0 ? 50 : 100;
+  const rs = avgGain / avgLoss;
+  return round2(100 - 100 / (1 + rs));
+}
+
+export type RSIReading = "overbought" | "oversold" | "neutral";
+
+/** Standard 70/30 overbought/oversold thresholds. */
+export function classifyRSI(rsi: number): RSIReading {
+  if (rsi >= 70) return "overbought";
+  if (rsi <= 30) return "oversold";
+  return "neutral";
+}
+
+// ── Trade market impact ──────────────────────────────────────────────────────
+// Buying and selling actually moves the price now, the way a real (if simplified)
+// order book would: a buy pushes the price up, a sell pushes it down, sized
+// against the stock's own price as a stand-in for market depth — a $100 trade
+// barely nudges a stock already at $5,000, but meaningfully moves one still at
+// $2, the same way a bigger market cap absorbs the same trade more easily.
+// Impact grows with the square root of trade size rather than linearly (real
+// order-book impact isn't linear either), so splitting a big order into several
+// smaller ones costs about the same as one large one, while MAX_TRADE_IMPACT
+// keeps any single trade — however huge — from spiking or crashing the price
+// outright. The moved price is persisted immediately as a fresh history point
+// (same as a minute activity tick), so the chart and RSI reflect a trade right
+// away instead of waiting for the next tick; the same mean-reversion pull in
+// tickStockPrices applies to it afterward regardless of what caused the move.
+
+/** A trade worth this many multiples of the stock's own price counts as one full "depth unit" — pricier stocks read as deeper, harder-to-move markets. */
+const LIQUIDITY_DEPTH_MULT = 500;
+/** Price-move fraction from a trade exactly one depth unit in size. */
+const TRADE_IMPACT_SCALE = 0.06;
+/** Hard per-trade cap so a single huge order can't spike or crash the price outright. */
+const MAX_TRADE_IMPACT = 0.15;
+
+/** Fractional price move (always positive; callers apply the direction) for a trade worth `coinsValue` against a stock currently at `price`. */
+export function computeTradeImpact(price: number, coinsValue: number): number {
+  if (!(price > 0) || !(coinsValue > 0)) return 0;
+  const depth = price * LIQUIDITY_DEPTH_MULT;
+  const raw = TRADE_IMPACT_SCALE * Math.sqrt(coinsValue / depth);
+  return Math.min(MAX_TRADE_IMPACT, raw);
+}
+
 // ── Holdings & trading ───────────────────────────────────────────────────────
 
 export function getHolding(userId: string, guildId: string) {
@@ -458,7 +559,19 @@ export function buyStock(userId: string, guildId: string, coins: number) {
       tx.insert(economyStockTransactions)
         .values({ userId, guildId, type: "buy", shares, price: stock.price, amount: coins, createdAt: timestamp })
         .run();
-      return { shares, price: stock.price, balance: ensureGlobalAccount(userId).balance };
+
+      // Buying pushes the price up — see the "Trade market impact" section above.
+      let marketPrice = stock.price;
+      const impact = computeTradeImpact(stock.price, coins);
+      if (impact > 0) {
+        marketPrice = round2(Math.max(MIN_PRICE, Math.min(MAX_PRICE, stock.price * (1 + impact))));
+        if (marketPrice !== stock.price) {
+          tx.update(economyStocks).set({ price: marketPrice, updatedAt: timestamp }).where(eq(economyStocks.guildId, guildId)).run();
+          tx.insert(economyStockPriceHistory).values({ guildId, price: marketPrice, recordedAt: timestamp }).run();
+        }
+      }
+
+      return { shares, price: stock.price, marketPrice, balance: ensureGlobalAccount(userId).balance };
     });
   } catch (err) {
     if (err instanceof InsufficientFundsError) throw new StockError(err.message, "insufficient");
@@ -495,6 +608,18 @@ export function sellStock(userId: string, guildId: string, shares: number) {
       .values({ userId, guildId, type: "sell", shares, price: stock.price, amount: proceeds, createdAt: timestamp })
       .run();
     creditGlobal(userId, proceeds);
-    return { shares, price: stock.price, proceeds, balance: ensureGlobalAccount(userId).balance };
+
+    // Selling pushes the price down — mirrors the buy-side impact in buyStock above.
+    let marketPrice = stock.price;
+    const impact = computeTradeImpact(stock.price, proceeds);
+    if (impact > 0) {
+      marketPrice = round2(Math.max(MIN_PRICE, Math.min(MAX_PRICE, stock.price * (1 - impact))));
+      if (marketPrice !== stock.price) {
+        tx.update(economyStocks).set({ price: marketPrice, updatedAt: timestamp }).where(eq(economyStocks.guildId, guildId)).run();
+        tx.insert(economyStockPriceHistory).values({ guildId, price: marketPrice, recordedAt: timestamp }).run();
+      }
+    }
+
+    return { shares, price: stock.price, marketPrice, proceeds, balance: ensureGlobalAccount(userId).balance };
   });
 }

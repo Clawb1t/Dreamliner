@@ -17,7 +17,6 @@ import { discordTimestamp } from "../../core/datetime.js";
 import { baseEmbed } from "../../core/embeds.js";
 import { resolveEmojiForContent } from "../../core/emoji.js";
 import { emitLog } from "../../core/logging/send.js";
-import { getStocksUrl, siteLinkRow } from "../../core/docsUrl.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
 import {
   GLOBAL_DAILY_AMOUNT,
@@ -28,6 +27,7 @@ import {
   formatGlobal,
   formatServer,
   formatStockChange,
+  stockChangeArrow,
 } from "./functions/format.js";
 import {
   claimGlobalDaily,
@@ -48,13 +48,13 @@ import {
   getPortfolio,
   getServerDailyAmount,
   getStockBySymbol,
-  getStockWithChange,
   listStocks,
   searchStocks,
   sellStock,
   StockError,
   type StockRow,
 } from "./functions/stocks.js";
+import { buildStockViewReply, exchangeLinkRow } from "./functions/stockView.js";
 import {
   CARD_TYPE_META,
   CARD_TYPES,
@@ -76,18 +76,6 @@ import { PLANE_PACK_PREFIX } from "./functions/customIds.js";
 function resolveTradeStock(guild: Guild, symbolInput: string | null): StockRow | null {
   if (symbolInput) return getStockBySymbol(symbolInput);
   return ensureStock(guild.id, guild.name, guild.iconURL({ size: 64 }));
-}
-
-function changeArrow(changeAmount: number): string {
-  return changeAmount > 0
-    ? "<:icons_uparrow:1544417597527953460>"
-    : changeAmount < 0
-      ? "<:icons_downarrow:1544417541873471488>"
-      : "<:icons_hyphen:1544417304203362406>";
-}
-
-function exchangeLinkRow() {
-  return siteLinkRow({ label: "Dreamliner Exchange", url: getStocksUrl() });
 }
 
 /** Autocomplete for the "symbol" option shared by /stock view and /stock trade buy|sell. */
@@ -465,21 +453,7 @@ export const economyCommands: SlashCommandDefinition[] = [
           );
           return;
         }
-        const withChange = getStockWithChange(stock.guildId)!;
-        const embed = baseEmbed()
-          .setAuthor({ name: `${stock.symbol} - ${stock.guildName}`, iconURL: stock.guildIcon ?? undefined })
-          .setThumbnail(stock.guildIcon)
-          .addFields(
-            { name: "Price", value: formatCoinAmount(withChange.price), inline: true },
-            {
-              name: "24h change",
-              value: `${changeArrow(withChange.changeAmount)} ${formatStockChange(withChange.changeAmount, withChange.changePct)}`,
-              inline: true,
-            },
-            { name: "Activity", value: `${withChange.activityScore}x exchange avg`, inline: true },
-          )
-          .setFooter({ text: "Dreamliner Exchange" });
-        await i.reply({ ...embedReply(embed, ctx.ephemeral), components: [exchangeLinkRow()] });
+        await i.reply(await buildStockViewReply(stock, "24h", ctx.ephemeral));
         return;
       }
 
@@ -491,7 +465,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         const stocks = listStocks({ limit });
         const lines = stocks.map(
           (s, idx) =>
-            `**${idx + 1}.** \`${s.symbol}\` ${s.guildName} - ${formatCoinAmount(s.price)}  ${changeArrow(s.changeAmount)} ${formatStockChange(s.changeAmount, s.changePct)}`,
+            `**${idx + 1}.** \`${s.symbol}\` ${s.guildName} - ${formatCoinAmount(s.price)}  ${stockChangeArrow(s.changeAmount)} ${formatStockChange(s.changeAmount, s.changePct)}`,
         );
         const embed = baseEmbed()
           .setAuthor({ name: "Dreamliner Exchange - Top stocks", iconURL: ctx.client.user?.displayAvatarURL() })
@@ -508,7 +482,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         const target = i.options.getUser("user") ?? i.user;
         const portfolio = getPortfolio(target.id);
         const lines = portfolio.positions.map(
-          (p) => `\`${p.stock.symbol}\` **${p.shares}** shares - ${formatCoinAmount(p.marketValue)}  ${changeArrow(p.pl)} ${formatStockChange(p.pl, p.plPct)}`,
+          (p) => `\`${p.stock.symbol}\` **${p.shares}** shares - ${formatCoinAmount(p.marketValue)}  ${stockChangeArrow(p.pl)} ${formatStockChange(p.pl, p.plPct)}`,
         );
         const embed = baseEmbed()
           .setAuthor({ name: `${target.username}'s portfolio`, iconURL: target.displayAvatarURL() })
@@ -539,10 +513,14 @@ export const economyCommands: SlashCommandDefinition[] = [
           if (sub === "buy") {
             const amount = i.options.getNumber("amount", true);
             const result = buyStock(i.user.id, stock.guildId, amount);
+            const impactNote =
+              result.marketPrice > result.price
+                ? `\n${stockChangeArrow(1)} Your buy pushed the price up to ${formatCoinAmount(result.marketPrice)}.`
+                : "";
             await i.reply(
               resultReply(
                 "Stock purchased",
-                `Bought **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share.\n**New balance:** ${formatCoinAmount(result.balance)}`,
+                `Bought **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share.\n**New balance:** ${formatCoinAmount(result.balance)}${impactNote}`,
                 ctx.ephemeral,
                 slashResultOptions(ctx, { tone: "success", emoji: "<:icons_creditcard:1544417201686052905>" }),
                 [exchangeLinkRow()],
@@ -554,10 +532,14 @@ export const economyCommands: SlashCommandDefinition[] = [
           // sub === "sell"
           const shares = i.options.getNumber("shares", true);
           const result = sellStock(i.user.id, stock.guildId, shares);
+          const impactNote =
+            result.marketPrice < result.price
+              ? `\n${stockChangeArrow(-1)} Your sell pushed the price down to ${formatCoinAmount(result.marketPrice)}.`
+              : "";
           await i.reply(
             resultReply(
               "Stock sold",
-              `Sold **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share for ${formatCoinAmount(result.proceeds)}.\n**New balance:** ${formatCoinAmount(result.balance)}`,
+              `Sold **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share for ${formatCoinAmount(result.proceeds)}.\n**New balance:** ${formatCoinAmount(result.balance)}${impactNote}`,
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "success", emoji: "<:icons_dollar:1544417229603348550>" }),
               [exchangeLinkRow()],

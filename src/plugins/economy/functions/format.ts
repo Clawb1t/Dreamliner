@@ -48,3 +48,12 @@ export function formatStockChange(changeAmount: number, changePct: number): stri
 export function formatExchangeRate(rate: number): string {
   return `${rate.toFixed(2)}x`;
 }
+
+/** Up/down/flat custom emoji for a signed change amount — shared by every stock-related embed. */
+export function stockChangeArrow(changeAmount: number): string {
+  return changeAmount > 0
+    ? "<:icons_uparrow:1544417597527953460>"
+    : changeAmount < 0
+      ? "<:icons_downarrow:1544417541873471488>"
+      : "<:icons_hyphen:1544417304203362406>";
+}

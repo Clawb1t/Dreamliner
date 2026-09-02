@@ -111,6 +111,7 @@ import { handlePermissionsAutocomplete } from "./plugins/config/commands/permiss
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
 import { handleStockAutocomplete } from "./plugins/economy/commands.js";
+import { handleStockRangeSelectInteraction, STOCK_VIEW_RANGE_PREFIX } from "./plugins/economy/functions/stockView.js";
 import {
   handlePlanesAutocomplete,
   handlePlaneInventoryButtonInteraction,
@@ -330,6 +331,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
         const handled = await handleStatsSelectInteraction(configManager, interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(`${STOCK_VIEW_RANGE_PREFIX}:`)) {
+        const handled = await handleStockRangeSelectInteraction(interaction);
         if (handled) return;
       }
       const companionSelect = await handleCompanionSelectInteraction(interaction);
