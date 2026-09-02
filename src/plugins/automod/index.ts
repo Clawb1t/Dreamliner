@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zAutomodConfig } from "../../config/schemas/automod.js";
-import { automodDefaultOverrides } from "./defaultOverrides.js";
 import { automodCommands } from "./commands.js";
 import {
   handleAutomodMemberAdd,
@@ -12,7 +11,6 @@ import {
 export const automodPlugin = definePlugin({
   name: "automod",
   configSchema: zAutomodConfig,
-  defaultOverrides: automodDefaultOverrides,
   slashCommands: automodCommands,
   events: [
     {

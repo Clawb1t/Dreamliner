@@ -1,14 +1,12 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zRolePanelsConfig } from "../../config/schemas/plugins.js";
-import { rolePanelsDefaultOverrides } from "./defaultOverrides.js";
 import { handleRolePanelReaction } from "./functions/handlers.js";
 import { handleRolePanelsReady, syncGuildRolePanels } from "./functions/sync.js";
 
 export const rolePanelsPlugin = definePlugin({
   name: "role_panels",
   configSchema: zRolePanelsConfig,
-  defaultOverrides: rolePanelsDefaultOverrides,
   slashCommands: [],
   onLoad: async ({ client, configManager }) => {
     configManager.onSave((guildId, config) => {
@@ -51,4 +49,4 @@ export const rolePanelsPlugin = definePlugin({
 });
 
 export { handleRolePanelButtonInteraction } from "./functions/handlers.js";
-export { ROLE_PANEL_PREFIX } from "./defaultOverrides.js";
+export { ROLE_PANEL_PREFIX } from "./customIds.js";

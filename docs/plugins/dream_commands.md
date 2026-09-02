@@ -10,12 +10,6 @@ Reference: [../dreamcode/README.md](../dreamcode/README.md)
 plugins:
   dream_commands:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_edit: true
-          can_remove: true
-          can_list: true
 ```
 
 | Field | Description |
@@ -23,6 +17,9 @@ plugins:
 | `can_edit` | Toggle a command on or off with `/command toggle`. |
 | `can_remove` | Delete a command with `/command remove`. |
 | `can_list` | List commands with `/command list`. |
+
+Grant `can_edit`, `can_remove`, and `can_list` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 Commands themselves are created and edited on the dashboard, not gated by a Discord-side permission (creating one still requires Manage Server on the dashboard).
 

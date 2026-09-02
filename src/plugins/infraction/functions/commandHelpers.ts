@@ -21,13 +21,13 @@ export async function requireInfractionPermission(
   }
 
   const guildMember = member as GuildMember;
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const pluginConfig = getInfractionPluginConfig(guildConfig, guildMember, interaction.channelId, categoryId) as InfractionConfig;
 
-  if (!canUseInfractions(guildConfig, permission, guildMember, interaction.channelId, categoryId)) {
+  if (!(await canUseInfractions(interaction.guildId, guildConfig, permission, guildMember))) {
     await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
+
+  const pluginConfig = (await getInfractionPluginConfig(interaction.guildId, guildConfig, guildMember)) as InfractionConfig;
 
   return { member: guildMember, pluginConfig };
 }

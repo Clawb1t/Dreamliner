@@ -34,14 +34,10 @@ plugins:
           target_id: "MEMBER_ROLE_ID"
           seconds: 6
           channels: ["*"]
-    overrides:
-      - level: ">=50"
-        config:
-          can_set: true
-          can_clear: true
-          can_manage_rules: true
-          can_configure: true
 ```
+
+Grant `can_set`, `can_clear`, `can_manage_rules`, and `can_configure` to a Dreamliner Role on the dashboard's
+**Roles** page (or `/permissions role grant`) — see [permissions.md](../permissions.md).
 
 | Field | Description |
 |-------|-------------|

@@ -10,15 +10,14 @@ plugins:
     enabled: true
     config:
       max_roles_per_panel: 10
-    overrides:
-      - level: ">=50"
-        config:
-          can_configure: true
 ```
 
 | Field | Description |
 |-------|-------------|
 | `max_roles_per_panel` | Maximum roles on a single panel (1–25) |
+
+Grant `can_configure` to a Dreamliner Role on the dashboard's **Roles** page (or `/permissions role grant`) —
+see [permissions.md](../permissions.md).
 
 ## Commands
 

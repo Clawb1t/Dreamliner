@@ -1,10 +1,9 @@
 import type { Message } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
 import { zTtsConfig } from "../../../config/schemas/tts.js";
-import { ttsDefaultOverrides } from "../defaultOverrides.js";
 import { synthesize } from "./synth.js";
 import { speakInChannel } from "./session.js";
 import { getUserVoice } from "./userVoice.js";
@@ -28,9 +27,7 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
   const textChannelId = typeof rawConfig?.text_channel_id === "string" ? rawConfig.text_channel_id : "";
   if (!textChannelId || message.channel.id !== textChannelId) return;
 
-  const categoryId = message.channel.isTextBased() && "parentId" in message.channel ? message.channel.parentId : null;
-
-  if (!hasPluginPermission(guildConfig, "tts", "can_speak", message.member, message.channel.id, categoryId, ttsDefaultOverrides)) {
+  if (!(await hasPermission(message.guild.id, "tts", "can_speak", message.member, guildConfig))) {
     return;
   }
 
@@ -47,7 +44,7 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
 
   const config = parsePluginConfig(
     zTtsConfig,
-    resolvePluginConfig(guildConfig, "tts", ttsDefaultOverrides, message.member, message.channel.id, categoryId),
+    await resolveEffectivePluginConfig(message.guild.id, "tts", message.member, guildConfig),
   );
 
   const cooldownKey = `${message.guild.id}:${message.author.id}`;

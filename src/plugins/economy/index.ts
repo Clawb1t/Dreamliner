@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
-import { economyDefaultOverrides } from "./defaultOverrides.js";
 import { economyCommands } from "./commands.js";
 import { grantMessageRewards } from "./functions/activity.js";
 import { loadEconomyConfig } from "./functions/config.js";
@@ -27,7 +26,6 @@ const STOCK_TICK_INITIAL_DELAY_MS = 15_000;
 export const economyPlugin = definePlugin({
   name: "economy",
   configSchema: zEconomyConfig,
-  defaultOverrides: economyDefaultOverrides,
   slashCommands: economyCommands,
   onLoad: async ({ client }) => {
     const tick = () => {

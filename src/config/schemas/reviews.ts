@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { boolPerm, channelId } from "../schemaHelp.js";
-import { zPluginOverride } from "./pluginSection.js";
 
 const snowflakeList = (description: string) =>
   z.array(z.string()).default([]).describe(description);
@@ -52,11 +51,6 @@ export const zReviewsConfig = z.strictObject({
 export const zReviewsPluginSection = z.strictObject({
   enabled: z.boolean().optional().describe("Turn reviews on or off for this server."),
   config: zReviewsConfig.partial().optional(),
-  overrides: z.array(zPluginOverride).optional(),
-  replaceDefaultOverrides: z
-    .boolean()
-    .optional()
-    .describe("When true, ignore Dreamliner's built-in default level grants for this plugin."),
 });
 
 export type ReviewsConfig = z.infer<typeof zReviewsConfig>;

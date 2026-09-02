@@ -68,13 +68,6 @@ plugins:
       voice: en_US-hfc_male-medium
       max_characters: 300
       cooldown_seconds: 0.5
-    overrides:
-      - level: ">=0"
-        config:
-          can_speak: true
-      - level: ">=50"
-        config:
-          can_manage_channel: true
 ```
 
 | Field | Description |
@@ -85,9 +78,10 @@ plugins:
 | `cooldown_seconds` | Per-member cooldown between spoken messages, accepts fractional values (e.g. `0.5`). Resets on bot restart. |
 | `announce_speaker` | When on, messages are spoken as "&lt;display name&gt; said: &lt;message&gt;" instead of just the message. Off by default. |
 
-`can_speak` and `can_manage_channel` follow the standard `can_*` permission model — grant them with
-level/role/channel overrides from the dashboard. By default, `can_speak` is `true` for everyone
-(`level >= 0`) and `can_manage_channel` is `true` at `level >= 50`.
+Grant `can_speak`, `can_skip`, `can_manage_channel`, and `can_blacklist` to a Dreamliner Role on the dashboard's
+**Roles** page (or `/permissions role grant`) — see [permissions.md](../permissions.md). For example, grant
+`can_speak` on the built-in **Member** role to open TTS to everyone, and `can_manage_channel`/`can_blacklist`
+on **Moderator**.
 
 ## Commands
 

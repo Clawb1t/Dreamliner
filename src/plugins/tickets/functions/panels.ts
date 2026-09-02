@@ -16,12 +16,11 @@ import { configManager } from "../../../config/manager.js";
 import { zTicketsConfig, type TicketCategory, type TicketPanel, type TicketsConfig } from "../../../config/schemas/tickets.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { guildResultOptions, resultEdit, resultReply } from "../../../core/responses.js";
 import { renderTemplate } from "../../../core/templates.js";
 import { buildEmbed } from "../../persist/functions/messageBuilder.js";
-import { ticketsDefaultOverrides } from "../defaultOverrides.js";
 import {
   TICKET_PREFIX,
   parseTicketCustomId,
@@ -119,9 +118,9 @@ export async function postPanel(client: Client, _guildId: string, panel: TicketP
   return message?.id ?? null;
 }
 
-async function resolveTicketsConfig(guildConfig: import("../../../config/schemas/guild.js").GuildConfig, member: GuildMember, channelId: string): Promise<TicketsConfig> {
+async function resolveTicketsConfig(guildConfig: import("../../../config/schemas/guild.js").GuildConfig, member: GuildMember, _channelId: string): Promise<TicketsConfig> {
   return zTicketsConfig.parse(
-    resolvePluginConfig(guildConfig, "tickets", ticketsDefaultOverrides, member, channelId, null),
+    await resolveEffectivePluginConfig(member.guild.id, "tickets", member, guildConfig),
   );
 }
 
@@ -218,7 +217,7 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       return true;
     }
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
-    if (!hasPluginPermission(guildConfig, "tickets", "can_claim", member, interaction.channelId ?? "", null, ticketsDefaultOverrides)) {
+    if (!(await hasPermission(interaction.guildId!, "tickets", "can_claim", member, guildConfig))) {
       await interaction.reply(resultReply("Permission denied", "You cannot claim tickets.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
@@ -245,8 +244,8 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
     const panel = config.panels.find((p) => p.id === ticket.panelId);
     const category = panel?.categories.find((c) => c.id === ticket.categoryId);
     const isOpener = ticket.openerId === member.id;
-    const isStaff = hasPluginPermission(guildConfig, "tickets", "can_close_others", member, interaction.channelId ?? "", null, ticketsDefaultOverrides);
-    const canCloseOwn = isOpener && hasPluginPermission(guildConfig, "tickets", "can_close", member, interaction.channelId ?? "", null, ticketsDefaultOverrides);
+    const isStaff = await hasPermission(interaction.guildId!, "tickets", "can_close_others", member, guildConfig);
+    const canCloseOwn = isOpener && (await hasPermission(interaction.guildId!, "tickets", "can_close", member, guildConfig));
     const allowed = canCloseTicket(category?.close_permission ?? "either", canCloseOwn, isStaff);
     if (!allowed) {
       await interaction.reply(resultReply("Permission denied", "You cannot close this ticket.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
@@ -306,7 +305,7 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       await interaction.reply(resultReply("Not closed", "Close this ticket before deleting its channel.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
-    if (!hasPluginPermission(guildConfig, "tickets", "can_delete", member, interaction.channelId ?? "", null, ticketsDefaultOverrides)) {
+    if (!(await hasPermission(interaction.guildId!, "tickets", "can_delete", member, guildConfig))) {
       await interaction.reply(resultReply("Permission denied", "You cannot delete tickets.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }

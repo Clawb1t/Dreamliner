@@ -7,7 +7,7 @@ import { requireUtilityPermission, ManageMessages, requireDiscordPerm } from "..
 import { collectMessagesForClean, serializeMessages, archiveMessages, archiveSingleMessage } from "../functions/clean.js";
 import { buildCleanLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
-import { getInfractionPluginConfig } from "../../../core/guildHelpers.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { createInfraction, postCaseLog } from "../../infraction/functions/infractions.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
 import { buildContextNavPayload, fetchMessageAtOffset } from "../functions/contextNav.js";
@@ -95,7 +95,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
           reason: `Deleted ${count} messages (archive ${archiveId})`,
           active: false,
         });
-        const pluginConfig = getInfractionPluginConfig(ctx.guildConfig) as InfractionConfig;
+        const pluginConfig = getPluginSettings(ctx.guildConfig, "infractions") as InfractionConfig;
         await postCaseLog(ctx.client, ctx.guildConfig, pluginConfig, record, user, ctx.interaction.user);
       }
 

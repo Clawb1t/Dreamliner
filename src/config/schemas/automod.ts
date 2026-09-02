@@ -164,15 +164,6 @@ export const zAutomodConfig = z.strictObject({
     .array(z.string())
     .default([])
     .describe("Roles that bypass automod (mods/admins usually)."),
-  ignore_above_level: z
-    .number()
-    .int()
-    .min(0)
-    .nullable()
-    .default(null)
-    .describe(
-      "Members at this permission level or higher are ignored by automod. Leave empty to disable.",
-    ),
   log_channel_id: channelId("Optional channel for automod hits. Falls back to moderation logs if empty."),
   dm_users: z
     .boolean()

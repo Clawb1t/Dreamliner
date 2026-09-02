@@ -16,7 +16,7 @@ export const zAutodeleteRule = z.strictObject({
 
 export const zAutodeleteConfig = z.strictObject({
   can_manage: boolPerm("manage autodelete rules").describe(
-    "Vestigial — dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency.",
+    "Vestigial. Dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency.",
   ),
   rules: z.array(zAutodeleteRule).default([]).describe("Channels with auto-delete enabled."),
 });

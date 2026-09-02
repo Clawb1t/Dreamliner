@@ -1,0 +1,1213 @@
+[
+  {
+    "plugin": "anime",
+    "pluginName": "Anime",
+    "pluginDescription": "Random neko images from Nekos.best, with a personal saved collection.",
+    "entries": [
+      {
+        "plugin": "anime",
+        "permission": "can_neko",
+        "grantKey": "anime.can_neko",
+        "title": "Neko",
+        "description": "Allow members to fetch a random neko image with /anime neko."
+      },
+      {
+        "plugin": "anime",
+        "permission": "can_saved",
+        "grantKey": "anime.can_saved",
+        "title": "Saved",
+        "description": "Allow members to browse saved neko images with /anime saved."
+      }
+    ]
+  },
+  {
+    "plugin": "autodelete",
+    "pluginName": "Autodelete",
+    "pluginDescription": "Dashboard-managed auto-clear: messages in a channel are deleted after a delay you set.",
+    "entries": [
+      {
+        "plugin": "autodelete",
+        "permission": "can_manage",
+        "grantKey": "autodelete.can_manage",
+        "title": "Manage",
+        "description": "Vestigial. Dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency."
+      }
+    ]
+  },
+  {
+    "plugin": "automod",
+    "pluginName": "Automod",
+    "pluginDescription": "Content filters, spam detection, and escalation ladders.",
+    "entries": [
+      {
+        "plugin": "automod",
+        "permission": "can_configure",
+        "grantKey": "automod.can_configure",
+        "title": "Configure",
+        "description": "Allow members to configure automod settings in Discord."
+      },
+      {
+        "plugin": "automod",
+        "permission": "can_status",
+        "grantKey": "automod.can_status",
+        "title": "Status",
+        "description": "Allow members to check automod status."
+      },
+      {
+        "plugin": "automod",
+        "permission": "can_test",
+        "grantKey": "automod.can_test",
+        "title": "Test",
+        "description": "Allow members to run automod tests."
+      }
+    ]
+  },
+  {
+    "plugin": "autoreactions",
+    "pluginName": "Autoreactions",
+    "pluginDescription": "Auto-react to matching messages.",
+    "entries": [
+      {
+        "plugin": "autoreactions",
+        "permission": "can_add",
+        "grantKey": "autoreactions.can_add",
+        "title": "Add",
+        "description": "Allow members to add autoreaction rules."
+      },
+      {
+        "plugin": "autoreactions",
+        "permission": "can_list",
+        "grantKey": "autoreactions.can_list",
+        "title": "List",
+        "description": "Allow members to list autoreaction rules."
+      },
+      {
+        "plugin": "autoreactions",
+        "permission": "can_remove",
+        "grantKey": "autoreactions.can_remove",
+        "title": "Remove",
+        "description": "Allow members to remove autoreaction rules."
+      }
+    ]
+  },
+  {
+    "plugin": "autoreplies",
+    "pluginName": "Autoreplies",
+    "pluginDescription": "Auto-reply to matching messages.",
+    "entries": [
+      {
+        "plugin": "autoreplies",
+        "permission": "can_add",
+        "grantKey": "autoreplies.can_add",
+        "title": "Add",
+        "description": "Allow members to add autoreply rules."
+      },
+      {
+        "plugin": "autoreplies",
+        "permission": "can_list",
+        "grantKey": "autoreplies.can_list",
+        "title": "List",
+        "description": "Allow members to list autoreply rules."
+      },
+      {
+        "plugin": "autoreplies",
+        "permission": "can_remove",
+        "grantKey": "autoreplies.can_remove",
+        "title": "Remove",
+        "description": "Allow members to remove autoreply rules."
+      }
+    ]
+  },
+  {
+    "plugin": "autorole",
+    "pluginName": "Autorole",
+    "pluginDescription": "Auto-assign roles on join for humans and bots.",
+    "entries": [
+      {
+        "plugin": "autorole",
+        "permission": "can_add",
+        "grantKey": "autorole.can_add",
+        "title": "Add",
+        "description": "Allow members to add autorole entries."
+      },
+      {
+        "plugin": "autorole",
+        "permission": "can_list",
+        "grantKey": "autorole.can_list",
+        "title": "List",
+        "description": "Allow members to list autorole entries."
+      },
+      {
+        "plugin": "autorole",
+        "permission": "can_remove",
+        "grantKey": "autorole.can_remove",
+        "title": "Remove",
+        "description": "Allow members to remove autorole entries."
+      }
+    ]
+  },
+  {
+    "plugin": "autothreads",
+    "pluginName": "Autothreads",
+    "pluginDescription": "Start a thread on matching messages.",
+    "entries": [
+      {
+        "plugin": "autothreads",
+        "permission": "can_add",
+        "grantKey": "autothreads.can_add",
+        "title": "Add",
+        "description": "Allow members to add autothread rules."
+      },
+      {
+        "plugin": "autothreads",
+        "permission": "can_list",
+        "grantKey": "autothreads.can_list",
+        "title": "List",
+        "description": "Allow members to list autothread rules."
+      },
+      {
+        "plugin": "autothreads",
+        "permission": "can_remove",
+        "grantKey": "autothreads.can_remove",
+        "title": "Remove",
+        "description": "Allow members to remove autothread rules."
+      }
+    ]
+  },
+  {
+    "plugin": "bot_customisation",
+    "pluginName": "Custom Branding",
+    "pluginDescription": "Per-server bot avatar, banner, nickname, and bio.",
+    "entries": [
+      {
+        "plugin": "bot_customisation",
+        "permission": "can_avatar",
+        "grantKey": "bot_customisation.can_avatar",
+        "title": "Avatar",
+        "description": "Allow members to submit or clear Dreamliner's per-server avatar (dashboard)."
+      },
+      {
+        "plugin": "bot_customisation",
+        "permission": "can_banner",
+        "grantKey": "bot_customisation.can_banner",
+        "title": "Banner",
+        "description": "Allow members to submit or clear Dreamliner's per-server banner (dashboard)."
+      },
+      {
+        "plugin": "bot_customisation",
+        "permission": "can_bio",
+        "grantKey": "bot_customisation.can_bio",
+        "title": "Bio",
+        "description": "Allow members to set or clear Dreamliner's server bio (dashboard)."
+      },
+      {
+        "plugin": "bot_customisation",
+        "permission": "can_display_name",
+        "grantKey": "bot_customisation.can_display_name",
+        "title": "Display Name",
+        "description": "Allow members to set or clear Dreamliner's display name font, effect, and colors (dashboard)."
+      },
+      {
+        "plugin": "bot_customisation",
+        "permission": "can_nickname",
+        "grantKey": "bot_customisation.can_nickname",
+        "title": "Nickname",
+        "description": "Allow members to set or clear Dreamliner's server nickname (dashboard)."
+      }
+    ]
+  },
+  {
+    "plugin": "dream_commands",
+    "pluginName": "Custom commands",
+    "pluginDescription": "Custom slash commands built visually on the dashboard.",
+    "entries": [
+      {
+        "plugin": "dream_commands",
+        "permission": "can_create",
+        "grantKey": "dream_commands.can_create",
+        "title": "Create",
+        "description": "Deprecated and ignored."
+      },
+      {
+        "plugin": "dream_commands",
+        "permission": "can_edit",
+        "grantKey": "dream_commands.can_edit",
+        "title": "Edit",
+        "description": "Allow members to toggle custom commands on or off."
+      },
+      {
+        "plugin": "dream_commands",
+        "permission": "can_list",
+        "grantKey": "dream_commands.can_list",
+        "title": "List",
+        "description": "Allow members to list custom commands."
+      },
+      {
+        "plugin": "dream_commands",
+        "permission": "can_remove",
+        "grantKey": "dream_commands.can_remove",
+        "title": "Remove",
+        "description": "Allow members to remove custom commands."
+      }
+    ]
+  },
+  {
+    "plugin": "economy",
+    "pluginName": "Economy",
+    "pluginDescription": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims, plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
+    "entries": [
+      {
+        "plugin": "economy",
+        "permission": "can_admin_manage",
+        "grantKey": "economy.can_admin_manage",
+        "title": "Admin Manage",
+        "description": "Allow members to change server economy settings (name, denominator, and whether message rewards are on)."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_balance",
+        "grantKey": "economy.can_balance",
+        "title": "Balance",
+        "description": "Allow members to view balances."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_buy_pack",
+        "grantKey": "economy.can_buy_pack",
+        "title": "Buy Pack",
+        "description": "Allow members to buy and open plane card packs."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_daily",
+        "grantKey": "economy.can_daily",
+        "title": "Daily",
+        "description": "Allow members to claim the daily reward."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_exchange",
+        "grantKey": "economy.can_exchange",
+        "title": "Exchange",
+        "description": "Allow members to exchange server currency for global coins."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_give",
+        "grantKey": "economy.can_give",
+        "title": "Give",
+        "description": "Allow members to give a plane card (1 at a time) to another member."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_sell",
+        "grantKey": "economy.can_sell",
+        "title": "Sell",
+        "description": "Allow members to sell a plane card for global coins."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_stock_trade",
+        "grantKey": "economy.can_stock_trade",
+        "title": "Stock Trade",
+        "description": "Allow members to buy and sell stocks on the Dreamliner Exchange."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_view",
+        "grantKey": "economy.can_view",
+        "title": "View",
+        "description": "Allow members to view the plane card catalog, card details, and inventories."
+      }
+    ]
+  },
+  {
+    "plugin": "infractions",
+    "pluginName": "Infractions",
+    "pluginDescription": "Warn, mute, kick, ban, and case management.",
+    "entries": [
+      {
+        "plugin": "infractions",
+        "permission": "can_ban",
+        "grantKey": "infractions.can_ban",
+        "title": "Ban",
+        "description": "Allow members to ban members."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_delete",
+        "grantKey": "infractions.can_delete",
+        "title": "Delete",
+        "description": "Allow members to delete cases."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_edit_duration",
+        "grantKey": "infractions.can_edit_duration",
+        "title": "Edit Duration",
+        "description": "Allow members to edit timed punishment durations."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_edit_reason",
+        "grantKey": "infractions.can_edit_reason",
+        "title": "Edit Reason",
+        "description": "Allow members to edit case reasons."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_kick",
+        "grantKey": "infractions.can_kick",
+        "title": "Kick",
+        "description": "Allow members to kick members."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_mute",
+        "grantKey": "infractions.can_mute",
+        "title": "Mute",
+        "description": "Allow members to mute members."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_note",
+        "grantKey": "infractions.can_note",
+        "title": "Note",
+        "description": "Allow members to add notes to members."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_softban",
+        "grantKey": "infractions.can_softban",
+        "title": "Softban",
+        "description": "Allow members to softban members."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_unban",
+        "grantKey": "infractions.can_unban",
+        "title": "Unban",
+        "description": "Allow members to unban members."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_view",
+        "grantKey": "infractions.can_view",
+        "title": "View",
+        "description": "Allow members to view cases / infraction history."
+      },
+      {
+        "plugin": "infractions",
+        "permission": "can_warn",
+        "grantKey": "infractions.can_warn",
+        "title": "Warn",
+        "description": "Allow members to warn members."
+      }
+    ]
+  },
+  {
+    "plugin": "locate_user",
+    "pluginName": "Locate user",
+    "pluginDescription": "Find where a member is, and when they were last seen.",
+    "entries": [
+      {
+        "plugin": "locate_user",
+        "permission": "can_locate",
+        "grantKey": "locate_user.can_locate",
+        "title": "Locate",
+        "description": "Allow members to locate where a member currently is."
+      },
+      {
+        "plugin": "locate_user",
+        "permission": "can_seen",
+        "grantKey": "locate_user.can_seen",
+        "title": "Seen",
+        "description": "Allow members to see when a member was last active."
+      }
+    ]
+  },
+  {
+    "plugin": "name_history",
+    "pluginName": "Name history",
+    "pluginDescription": "Track nickname and username changes.",
+    "entries": [
+      {
+        "plugin": "name_history",
+        "permission": "can_search",
+        "grantKey": "name_history.can_search",
+        "title": "Search",
+        "description": "Allow members to search name history."
+      },
+      {
+        "plugin": "name_history",
+        "permission": "can_view",
+        "grantKey": "name_history.can_view",
+        "title": "View",
+        "description": "Allow members to view name history."
+      }
+    ]
+  },
+  {
+    "plugin": "passport",
+    "pluginName": "Passport",
+    "pluginDescription": "Web-gated member verification with Discord login and a human check.",
+    "entries": [
+      {
+        "plugin": "passport",
+        "permission": "can_force",
+        "grantKey": "passport.can_force",
+        "title": "Force",
+        "description": "Allow members to force-verify a member."
+      },
+      {
+        "plugin": "passport",
+        "permission": "can_panel",
+        "grantKey": "passport.can_panel",
+        "title": "Panel",
+        "description": "Allow members to post a persistent Passport panel."
+      },
+      {
+        "plugin": "passport",
+        "permission": "can_revoke",
+        "grantKey": "passport.can_revoke",
+        "title": "Revoke",
+        "description": "Allow members to revoke a member's verification."
+      },
+      {
+        "plugin": "passport",
+        "permission": "can_test",
+        "grantKey": "passport.can_test",
+        "title": "Test",
+        "description": "Allow members to send a test Passport ping."
+      }
+    ]
+  },
+  {
+    "plugin": "reaction_roles",
+    "pluginName": "Reaction roles",
+    "pluginDescription": "React to claim a role.",
+    "entries": [
+      {
+        "plugin": "reaction_roles",
+        "permission": "can_create",
+        "grantKey": "reaction_roles.can_create",
+        "title": "Create",
+        "description": "Allow members to create reaction-role menus."
+      },
+      {
+        "plugin": "reaction_roles",
+        "permission": "can_delete",
+        "grantKey": "reaction_roles.can_delete",
+        "title": "Delete",
+        "description": "Allow members to delete reaction-role menus."
+      }
+    ]
+  },
+  {
+    "plugin": "reminders",
+    "pluginName": "Reminders",
+    "pluginDescription": "Personal reminders.",
+    "entries": [
+      {
+        "plugin": "reminders",
+        "permission": "can_cancel",
+        "grantKey": "reminders.can_cancel",
+        "title": "Cancel",
+        "description": "Allow members to cancel reminders."
+      },
+      {
+        "plugin": "reminders",
+        "permission": "can_create",
+        "grantKey": "reminders.can_create",
+        "title": "Create",
+        "description": "Allow members to create reminders."
+      },
+      {
+        "plugin": "reminders",
+        "permission": "can_list",
+        "grantKey": "reminders.can_list",
+        "title": "List",
+        "description": "Allow members to list reminders."
+      }
+    ]
+  },
+  {
+    "plugin": "reviews",
+    "pluginName": "Reviews",
+    "pluginDescription": "Collect star ratings and written feedback about your server.",
+    "entries": [
+      {
+        "plugin": "reviews",
+        "permission": "can_delete",
+        "grantKey": "reviews.can_delete",
+        "title": "Delete",
+        "description": "Allow members to delete reviews."
+      },
+      {
+        "plugin": "reviews",
+        "permission": "can_list",
+        "grantKey": "reviews.can_list",
+        "title": "List",
+        "description": "Allow members to list reviews."
+      },
+      {
+        "plugin": "reviews",
+        "permission": "can_manage",
+        "grantKey": "reviews.can_manage",
+        "title": "Manage",
+        "description": "Allow members to manage reviews (staff)."
+      },
+      {
+        "plugin": "reviews",
+        "permission": "can_review",
+        "grantKey": "reviews.can_review",
+        "title": "Review",
+        "description": "Allow members to submit a server review."
+      }
+    ]
+  },
+  {
+    "plugin": "role_buttons",
+    "pluginName": "Role buttons",
+    "pluginDescription": "Button-based role assignment.",
+    "entries": [
+      {
+        "plugin": "role_buttons",
+        "permission": "can_create",
+        "grantKey": "role_buttons.can_create",
+        "title": "Create",
+        "description": "Allow members to create button role panels."
+      },
+      {
+        "plugin": "role_buttons",
+        "permission": "can_delete",
+        "grantKey": "role_buttons.can_delete",
+        "title": "Delete",
+        "description": "Allow members to delete button role panels."
+      }
+    ]
+  },
+  {
+    "plugin": "role_panels",
+    "pluginName": "Role panels",
+    "pluginDescription": "Dashboard-managed reaction/button role panels, with full embed customisation and a live preview.",
+    "entries": [
+      {
+        "plugin": "role_panels",
+        "permission": "can_manage",
+        "grantKey": "role_panels.can_manage",
+        "title": "Manage",
+        "description": "Vestigial. Dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency."
+      }
+    ]
+  },
+  {
+    "plugin": "roles",
+    "pluginName": "Roles",
+    "pluginDescription": "Give, remove, and list roles.",
+    "entries": [
+      {
+        "plugin": "roles",
+        "permission": "can_give",
+        "grantKey": "roles.can_give",
+        "title": "Give",
+        "description": "Allow members to give roles with /role."
+      },
+      {
+        "plugin": "roles",
+        "permission": "can_list",
+        "grantKey": "roles.can_list",
+        "title": "List",
+        "description": "Allow members to list roles."
+      },
+      {
+        "plugin": "roles",
+        "permission": "can_remove",
+        "grantKey": "roles.can_remove",
+        "title": "Remove",
+        "description": "Allow members to remove roles with /role."
+      }
+    ]
+  },
+  {
+    "plugin": "scam_protect",
+    "pluginName": "Scam Protect",
+    "pluginDescription": "Honeypot channel that softbans anyone who posts in it.",
+    "entries": [
+      {
+        "plugin": "scam_protect",
+        "permission": "can_setup",
+        "grantKey": "scam_protect.can_setup",
+        "title": "Setup",
+        "description": "Allow members to create or repair the Scam Protect honeypot channel."
+      },
+      {
+        "plugin": "scam_protect",
+        "permission": "can_status",
+        "grantKey": "scam_protect.can_status",
+        "title": "Status",
+        "description": "Allow members to view Scam Protect status."
+      }
+    ]
+  },
+  {
+    "plugin": "self_grantable_roles",
+    "pluginName": "Self grantable roles",
+    "pluginDescription": "Self-serve role panels.",
+    "entries": [
+      {
+        "plugin": "self_grantable_roles",
+        "permission": "can_configure",
+        "grantKey": "self_grantable_roles.can_configure",
+        "title": "Configure",
+        "description": "Allow members to configure self-serve role panels."
+      }
+    ]
+  },
+  {
+    "plugin": "slowmode",
+    "pluginName": "Slowmode",
+    "pluginDescription": "Per-channel and individual slowmode.",
+    "entries": [
+      {
+        "plugin": "slowmode",
+        "permission": "can_clear",
+        "grantKey": "slowmode.can_clear",
+        "title": "Clear",
+        "description": "Allow members to clear slowmode."
+      },
+      {
+        "plugin": "slowmode",
+        "permission": "can_configure",
+        "grantKey": "slowmode.can_configure",
+        "title": "Configure",
+        "description": "Allow members to configure slowmode settings."
+      },
+      {
+        "plugin": "slowmode",
+        "permission": "can_manage_rules",
+        "grantKey": "slowmode.can_manage_rules",
+        "title": "Manage Rules",
+        "description": "Allow members to manage individual slowmode rules."
+      },
+      {
+        "plugin": "slowmode",
+        "permission": "can_set",
+        "grantKey": "slowmode.can_set",
+        "title": "Set",
+        "description": "Allow members to set channel slowmode."
+      }
+    ]
+  },
+  {
+    "plugin": "stats",
+    "pluginName": "Stats",
+    "pluginDescription": "Server, user, and channel stats.",
+    "entries": [
+      {
+        "plugin": "stats",
+        "permission": "can_channel",
+        "grantKey": "stats.can_channel",
+        "title": "Channel",
+        "description": "Allow members to view channel stats."
+      },
+      {
+        "plugin": "stats",
+        "permission": "can_server",
+        "grantKey": "stats.can_server",
+        "title": "Server",
+        "description": "Allow members to view server stats."
+      },
+      {
+        "plugin": "stats",
+        "permission": "can_user",
+        "grantKey": "stats.can_user",
+        "title": "User",
+        "description": "Allow members to view user stats."
+      }
+    ]
+  },
+  {
+    "plugin": "suggestions",
+    "pluginName": "Suggestions",
+    "pluginDescription": "Community suggestions with staff review, voting, and statuses.",
+    "entries": [
+      {
+        "plugin": "suggestions",
+        "permission": "can_approve",
+        "grantKey": "suggestions.can_approve",
+        "title": "Approve",
+        "description": "Allow members to approve suggestions."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_block",
+        "grantKey": "suggestions.can_block",
+        "title": "Block",
+        "description": "Allow members to block users from suggesting."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_delete",
+        "grantKey": "suggestions.can_delete",
+        "title": "Delete",
+        "description": "Allow members to delete suggestions."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_deny",
+        "grantKey": "suggestions.can_deny",
+        "title": "Deny",
+        "description": "Allow members to deny suggestions."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_follow",
+        "grantKey": "suggestions.can_follow",
+        "title": "Follow",
+        "description": "Allow members to follow suggestions for updates."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_info",
+        "grantKey": "suggestions.can_info",
+        "title": "Info",
+        "description": "Allow members to view suggestion info."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_manage",
+        "grantKey": "suggestions.can_manage",
+        "title": "Manage",
+        "description": "Allow members to manage the suggestion queue and mass actions."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_mark",
+        "grantKey": "suggestions.can_mark",
+        "title": "Mark",
+        "description": "Allow members to mark suggestion status."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_suggest",
+        "grantKey": "suggestions.can_suggest",
+        "title": "Suggest",
+        "description": "Allow members to submit suggestions."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_top",
+        "grantKey": "suggestions.can_top",
+        "title": "Top",
+        "description": "Allow members to view top suggestions."
+      },
+      {
+        "plugin": "suggestions",
+        "permission": "can_vote",
+        "grantKey": "suggestions.can_vote",
+        "title": "Vote",
+        "description": "Allow members to vote on suggestions."
+      }
+    ]
+  },
+  {
+    "plugin": "tags",
+    "pluginName": "Tags",
+    "pluginDescription": "Reusable text snippets.",
+    "entries": [
+      {
+        "plugin": "tags",
+        "permission": "can_create",
+        "grantKey": "tags.can_create",
+        "title": "Create",
+        "description": "Allow members to create tags."
+      },
+      {
+        "plugin": "tags",
+        "permission": "can_delete",
+        "grantKey": "tags.can_delete",
+        "title": "Delete",
+        "description": "Allow members to delete tags."
+      },
+      {
+        "plugin": "tags",
+        "permission": "can_edit",
+        "grantKey": "tags.can_edit",
+        "title": "Edit",
+        "description": "Allow members to edit tags."
+      },
+      {
+        "plugin": "tags",
+        "permission": "can_list",
+        "grantKey": "tags.can_list",
+        "title": "List",
+        "description": "Allow members to list tags."
+      },
+      {
+        "plugin": "tags",
+        "permission": "can_show",
+        "grantKey": "tags.can_show",
+        "title": "Show",
+        "description": "Allow members to show/use tags."
+      }
+    ]
+  },
+  {
+    "plugin": "tts",
+    "pluginName": "Text-to-speech",
+    "pluginDescription": "Speak text aloud in a voice channel with /tts, powered by local Piper text-to-speech.",
+    "entries": [
+      {
+        "plugin": "tts",
+        "permission": "can_blacklist",
+        "grantKey": "tts.can_blacklist",
+        "title": "Blacklist",
+        "description": "Allow members to block or unblock members from using TTS with /tts blacklist."
+      },
+      {
+        "plugin": "tts",
+        "permission": "can_manage_channel",
+        "grantKey": "tts.can_manage_channel",
+        "title": "Manage Channel",
+        "description": "Allow members to set or clear the TTS auto-speak text channel with /tts channel."
+      },
+      {
+        "plugin": "tts",
+        "permission": "can_skip",
+        "grantKey": "tts.can_skip",
+        "title": "Skip",
+        "description": "Allow members to skip the currently playing TTS clip with /tts skip."
+      },
+      {
+        "plugin": "tts",
+        "permission": "can_speak",
+        "grantKey": "tts.can_speak",
+        "title": "Speak",
+        "description": "Allow members to have their messages in the TTS text channel (and their own /tts voice picks) spoken aloud."
+      }
+    ]
+  },
+  {
+    "plugin": "tickets",
+    "pluginName": "Tickets",
+    "pluginDescription": "Support ticket panels, categories, staff claiming, and transcripts.",
+    "entries": [
+      {
+        "plugin": "tickets",
+        "permission": "can_add_remove_members",
+        "grantKey": "tickets.can_add_remove_members",
+        "title": "Add Remove Members",
+        "description": "Allow members to add or remove members from a ticket."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_blacklist",
+        "grantKey": "tickets.can_blacklist",
+        "title": "Blacklist",
+        "description": "Allow members to blacklist members or roles from opening tickets."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_claim",
+        "grantKey": "tickets.can_claim",
+        "title": "Claim",
+        "description": "Allow members to claim tickets."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_close",
+        "grantKey": "tickets.can_close",
+        "title": "Close",
+        "description": "Allow members to close their own tickets."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_close_others",
+        "grantKey": "tickets.can_close_others",
+        "title": "Close Others",
+        "description": "Allow members to close tickets opened by other members."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_delete",
+        "grantKey": "tickets.can_delete",
+        "title": "Delete",
+        "description": "Allow members to permanently delete tickets."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_manage_panels",
+        "grantKey": "tickets.can_manage_panels",
+        "title": "Manage Panels",
+        "description": "Allow members to post, repost, and edit ticket panels."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_reopen",
+        "grantKey": "tickets.can_reopen",
+        "title": "Reopen",
+        "description": "Allow members to reopen closed tickets."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_view_all",
+        "grantKey": "tickets.can_view_all",
+        "title": "View All",
+        "description": "Allow members to view any ticket, not just ones they're part of."
+      }
+    ]
+  },
+  {
+    "plugin": "translation",
+    "pluginName": "Translation",
+    "pluginDescription": "Translate messages and auto-flag non-default languages.",
+    "entries": [
+      {
+        "plugin": "translation",
+        "permission": "can_translate",
+        "grantKey": "translation.can_translate",
+        "title": "Translate",
+        "description": "Allow members to use /translate."
+      }
+    ]
+  },
+  {
+    "plugin": "utility",
+    "pluginName": "Utility",
+    "pluginDescription": "Search, info, clean, voice tools, and more.",
+    "entries": [
+      {
+        "plugin": "utility",
+        "permission": "can_about",
+        "grantKey": "utility.can_about",
+        "title": "About",
+        "description": "Allow members to use /about."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_avatar",
+        "grantKey": "utility.can_avatar",
+        "title": "Avatar",
+        "description": "Allow members to use avatar commands."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_channelinfo",
+        "grantKey": "utility.can_channelinfo",
+        "title": "Channelinfo",
+        "description": "Allow members to use channel info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_clean",
+        "grantKey": "utility.can_clean",
+        "title": "Clean",
+        "description": "Allow members to use /clean."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_context",
+        "grantKey": "utility.can_context",
+        "title": "Context",
+        "description": "Allow members to use context utilities."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_convert_gif",
+        "grantKey": "utility.can_convert_gif",
+        "title": "Convert Gif",
+        "description": "Allow members to use the Convert to GIF message context command."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_create_quote",
+        "grantKey": "utility.can_create_quote",
+        "title": "Create Quote",
+        "description": "Allow members to use the Create Quote message context command."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_emojiinfo",
+        "grantKey": "utility.can_emojiinfo",
+        "title": "Emojiinfo",
+        "description": "Allow members to use emoji info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_help",
+        "grantKey": "utility.can_help",
+        "title": "Help",
+        "description": "Allow members to use /help."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_info",
+        "grantKey": "utility.can_info",
+        "title": "Info",
+        "description": "Allow members to use generic /info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_inviteinfo",
+        "grantKey": "utility.can_inviteinfo",
+        "title": "Inviteinfo",
+        "description": "Allow members to use invite info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_jumbo",
+        "grantKey": "utility.can_jumbo",
+        "title": "Jumbo",
+        "description": "Allow members to use /jumbo."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_level",
+        "grantKey": "utility.can_level",
+        "title": "Level",
+        "description": "Allow members to check permission levels."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_messageinfo",
+        "grantKey": "utility.can_messageinfo",
+        "title": "Messageinfo",
+        "description": "Allow members to use message info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_nickname",
+        "grantKey": "utility.can_nickname",
+        "title": "Nickname",
+        "description": "Allow members to change nicknames."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_ping",
+        "grantKey": "utility.can_ping",
+        "title": "Ping",
+        "description": "Allow members to use ping utilities."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_reload_guild",
+        "grantKey": "utility.can_reload_guild",
+        "title": "Reload Guild",
+        "description": "Allow members to reload the guild config from the database."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_roleinfo",
+        "grantKey": "utility.can_roleinfo",
+        "title": "Roleinfo",
+        "description": "Allow members to use role info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_roles",
+        "grantKey": "utility.can_roles",
+        "title": "Roles",
+        "description": "Allow members to use role listing utilities."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_search",
+        "grantKey": "utility.can_search",
+        "title": "Search",
+        "description": "Allow members to use /search."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_server",
+        "grantKey": "utility.can_server",
+        "title": "Server",
+        "description": "Allow members to use server info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_snowflake",
+        "grantKey": "utility.can_snowflake",
+        "title": "Snowflake",
+        "description": "Allow members to look up snowflake IDs."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_source",
+        "grantKey": "utility.can_source",
+        "title": "Source",
+        "description": "Allow members to view message source."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_stealemoji",
+        "grantKey": "utility.can_stealemoji",
+        "title": "Stealemoji",
+        "description": "Allow members to use /stealemoji to copy custom emojis into this server."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_time",
+        "grantKey": "utility.can_time",
+        "title": "Time",
+        "description": "Allow members to use time utilities."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_userinfo",
+        "grantKey": "utility.can_userinfo",
+        "title": "Userinfo",
+        "description": "Allow members to use user info commands."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_vckick",
+        "grantKey": "utility.can_vckick",
+        "title": "Vckick",
+        "description": "Allow members to disconnect members from voice."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_vcmove",
+        "grantKey": "utility.can_vcmove",
+        "title": "Vcmove",
+        "description": "Allow members to move members in voice."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_watchdog",
+        "grantKey": "utility.can_watchdog",
+        "title": "Watchdog",
+        "description": "Allow members to run /watchdog risk checks on a member."
+      }
+    ]
+  },
+  {
+    "plugin": "welcome_message",
+    "pluginName": "Welcomer",
+    "pluginDescription": "Join, leave, and DM welcomes with embeds and image cards.",
+    "entries": [
+      {
+        "plugin": "welcome_message",
+        "permission": "can_disable",
+        "grantKey": "welcome_message.can_disable",
+        "title": "Disable",
+        "description": "Allow members to disable welcomer messages."
+      },
+      {
+        "plugin": "welcome_message",
+        "permission": "can_set",
+        "grantKey": "welcome_message.can_set",
+        "title": "Set",
+        "description": "Allow members to configure the welcomer."
+      },
+      {
+        "plugin": "welcome_message",
+        "permission": "can_test",
+        "grantKey": "welcome_message.can_test",
+        "title": "Test",
+        "description": "Allow members to test welcomer messages."
+      }
+    ]
+  }
+]

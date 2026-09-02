@@ -8,7 +8,7 @@ import {
 import type { AutomodConfig, AutomodLadderAction, AutomodRuleConfig } from "../../../config/schemas/automod.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
-import { getInfractionPluginConfig } from "../../../core/guildHelpers.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { buildAutomodLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
 import {
@@ -94,7 +94,7 @@ export async function applyAutomodHit(options: {
     await message.delete().catch(() => null);
   }
 
-  const infractionConfig = getInfractionPluginConfig(guildConfig) as InfractionConfig;
+  const infractionConfig = getPluginSettings(guildConfig, "infractions") as InfractionConfig;
   const modId = client.user!.id;
   const actionLabels: string[] = [];
 

@@ -7,8 +7,7 @@ import {
 } from "discord.js";
 import type { ConfigManager } from "../../../config/manager.js";
 import { zSuggestionsConfig } from "../../../config/schemas/suggestions.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
 import { checkFeedbackEligibility } from "../../feedback/eligibility.js";
@@ -63,23 +62,16 @@ export async function handleSuggestModalSubmit(
   }
 
   const member = interaction.member as import("discord.js").GuildMember;
-  const categoryId =
-    interaction.channel?.isTextBased() && "parentId" in interaction.channel
-      ? interaction.channel.parentId
-      : null;
-  const defaults = getPluginDefaultOverrides("suggestions");
   const ephemeral = resolveEphemeral(guildConfig);
 
   if (
-    !hasPluginPermission(
-      guildConfig,
+    !(await hasPermission(
+      interaction.guildId!,
       "suggestions",
       "can_suggest",
       member,
-      interaction.channelId ?? "",
-      categoryId,
-      defaults,
-    )
+      guildConfig,
+    ))
   ) {
     await interaction.reply(
       resultReply(
@@ -93,14 +85,7 @@ export async function handleSuggestModalSubmit(
   }
 
   const config = zSuggestionsConfig.parse(
-    resolvePluginConfig(
-      guildConfig,
-      "suggestions",
-      defaults,
-      member,
-      interaction.channelId ?? "",
-      categoryId,
-    ),
+    await resolveEffectivePluginConfig(interaction.guildId!, "suggestions", member, guildConfig),
   );
 
   if (anonymous && !config.anonymous) {

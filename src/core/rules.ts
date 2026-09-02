@@ -1,6 +1,5 @@
 import type { GuildMember, Message } from "discord.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
-import { getMemberLevel } from "./permissions.js";
 import { userRegexMatches } from "./userRegex.js";
 
 export type RuleContext = {
@@ -14,8 +13,10 @@ export type ChannelRuleFilter = {
   categories?: string[];
   ignored_channels?: string[];
   ignored_categories?: string[];
-  min_level?: number;
-  max_level?: number;
+  /** Only trigger for members holding at least one of these Discord roles. */
+  roles?: string[];
+  /** Never trigger for members holding any of these Discord roles. */
+  ignored_roles?: string[];
 };
 
 export function messageMatchesChannelRule(ctx: RuleContext, filter: ChannelRuleFilter): boolean {
@@ -30,11 +31,10 @@ export function messageMatchesChannelRule(ctx: RuleContext, filter: ChannelRuleF
   if (filter.channels?.length && !filter.channels.includes(channelId)) return false;
   if (filter.categories?.length && (!categoryId || !filter.categories.includes(categoryId))) return false;
 
-  if (filter.min_level !== undefined || filter.max_level !== undefined) {
+  if (filter.roles?.length || filter.ignored_roles?.length) {
     if (!ctx.member) return false;
-    const level = getMemberLevel(ctx.member, ctx.guildConfig.levels);
-    if (filter.min_level !== undefined && level < filter.min_level) return false;
-    if (filter.max_level !== undefined && level > filter.max_level) return false;
+    if (filter.ignored_roles?.some((id) => ctx.member!.roles.cache.has(id))) return false;
+    if (filter.roles?.length && !filter.roles.some((id) => ctx.member!.roles.cache.has(id))) return false;
   }
 
   return true;

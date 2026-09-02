@@ -1487,6 +1487,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           );
         const nameHistoryMatch = /^\/bridge\/guilds\/(\d+)\/name-history$/.exec(url.pathname);
         const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
+        const permissionRolesMatch =
+          /^\/bridge\/guilds\/(\d+)\/permission-roles(?:\/(\d+)(?:\/(targets|grants))?)?$/.exec(url.pathname);
+        const permissionCatalogMatch = /^\/bridge\/guilds\/(\d+)\/permission-catalog$/.exec(url.pathname);
         const botProfileRequestImageMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/requests\/(\d+)\/image$/.exec(
           url.pathname,
         );
@@ -1556,6 +1559,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !passportMatch &&
           !nameHistoryMatch &&
           !economyMatch &&
+          !permissionRolesMatch &&
+          !permissionCatalogMatch &&
           !botProfileRequestImageMatch &&
           !botProfileRequestCancelMatch &&
           !botProfileMediaMatch &&
@@ -1619,6 +1624,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           passportMatch?.[1] ??
           nameHistoryMatch?.[1] ??
           economyMatch?.[1] ??
+          permissionRolesMatch?.[1] ??
+          permissionCatalogMatch?.[1] ??
           botProfileRequestImageMatch?.[1] ??
           botProfileRequestCancelMatch?.[1] ??
           botProfileMediaMatch?.[1] ??
@@ -2427,6 +2434,165 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 200, { ok: true, balance: result.balance });
               return;
             }
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (permissionCatalogMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { getPermissionCatalogForWeb } = await import("./webPermissionRoles.js");
+          sendJson(res, 200, await getPermissionCatalogForWeb());
+          return;
+        }
+
+        if (permissionRolesMatch) {
+          const roleIdRaw = permissionRolesMatch[2];
+          const subresource = permissionRolesMatch[3]; // "targets" | "grants" | undefined
+          const roles = await import("./webPermissionRoles.js");
+
+          const requireManage = async (userId: string | undefined | null): Promise<string | null> => {
+            const id = userId?.trim();
+            if (!id) {
+              sendJson(res, 400, { error: "userId is required" });
+              return null;
+            }
+            if (!(await memberCanManage(guild, id))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return null;
+            }
+            return id;
+          };
+
+          const readJsonBody = async <T extends Record<string, unknown>>(): Promise<T | null> => {
+            try {
+              return JSON.parse(await readBody(req)) as T;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return null;
+            }
+          };
+
+          const sendResult = (result: { ok: true; [k: string]: unknown } | { ok: false; status: number; error: string }) => {
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, result);
+          };
+
+          // GET /permission-roles — list
+          if (!roleIdRaw && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            sendResult(await roles.listPermissionRoles(guildId));
+            return;
+          }
+
+          // POST /permission-roles — create
+          if (!roleIdRaw && req.method === "POST") {
+            const body = await readJsonBody<{ userId?: string; name?: string }>();
+            if (!body) return;
+            const actorId = await requireManage(body.userId);
+            if (!actorId) return;
+            const result = await roles.createPermissionRole(guildId, actorId, String(body.name ?? ""));
+            if (result.ok) {
+              trackDashboardAction(client, guildId, actorId, {
+                eventType: "dashboard_permission_role",
+                title: "Dreamliner Role created",
+                summary: `Created the "${result.role.name}" role.`,
+              });
+            }
+            sendResult(result);
+            return;
+          }
+
+          if (roleIdRaw && !subresource) {
+            const roleId = Number(roleIdRaw);
+
+            // GET /permission-roles/:id — detail
+            if (req.method === "GET") {
+              const userId = await requireManage(url.searchParams.get("userId"));
+              if (!userId) return;
+              sendResult(await roles.getPermissionRole(guildId, roleId));
+              return;
+            }
+
+            // PATCH /permission-roles/:id — rename
+            if (req.method === "PATCH") {
+              const body = await readJsonBody<{ userId?: string; name?: string }>();
+              if (!body) return;
+              const actorId = await requireManage(body.userId);
+              if (!actorId) return;
+              const result = await roles.renamePermissionRole(guildId, roleId, actorId, String(body.name ?? ""));
+              if (result.ok) {
+                trackDashboardAction(client, guildId, actorId, {
+                  eventType: "dashboard_permission_role",
+                  title: "Dreamliner Role renamed",
+                  summary: `Renamed a role to "${result.role.name}".`,
+                });
+              }
+              sendResult(result);
+              return;
+            }
+
+            // DELETE /permission-roles/:id
+            if (req.method === "DELETE") {
+              const userId = await requireManage(url.searchParams.get("userId"));
+              if (!userId) return;
+              const result = await roles.deletePermissionRole(guildId, roleId, userId);
+              if (result.ok) {
+                trackDashboardAction(client, guildId, userId, {
+                  eventType: "dashboard_permission_role",
+                  title: "Dreamliner Role deleted",
+                  summary: `Deleted role #${roleId}.`,
+                });
+              }
+              sendResult(result);
+              return;
+            }
+          }
+
+          // PUT /permission-roles/:id/targets — full replace
+          if (roleIdRaw && subresource === "targets" && req.method === "PUT") {
+            const roleId = Number(roleIdRaw);
+            const body = await readJsonBody<{ userId?: string; targets?: unknown }>();
+            if (!body) return;
+            const actorId = await requireManage(body.userId);
+            if (!actorId) return;
+            const result = await roles.setPermissionRoleTargets(guildId, roleId, actorId, body.targets);
+            if (result.ok) {
+              trackDashboardAction(client, guildId, actorId, {
+                eventType: "dashboard_permission_role",
+                title: "Dreamliner Role targets updated",
+                summary: `Updated assigned targets for "${result.role.name}".`,
+              });
+            }
+            sendResult(result);
+            return;
+          }
+
+          // PATCH /permission-roles/:id/grants — toggle one grant
+          if (roleIdRaw && subresource === "grants" && req.method === "PATCH") {
+            const roleId = Number(roleIdRaw);
+            const body = await readJsonBody<{ userId?: string; grantKey?: unknown; granted?: unknown }>();
+            if (!body) return;
+            const actorId = await requireManage(body.userId);
+            if (!actorId) return;
+            const result = await roles.setPermissionRoleGrant(guildId, roleId, actorId, body.grantKey, body.granted);
+            if (result.ok) {
+              trackDashboardAction(client, guildId, actorId, {
+                eventType: "dashboard_permission_role",
+                title: "Dreamliner Role permission updated",
+                summary: `Updated a permission grant on "${result.role.name}".`,
+              });
+            }
+            sendResult(result);
+            return;
           }
 
           sendJson(res, 405, { error: "Method not allowed" });

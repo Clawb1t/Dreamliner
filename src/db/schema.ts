@@ -9,6 +9,54 @@ export const guildConfigs = sqliteTable("guild_configs", {
   updatedBy: text("updated_by"),
 });
 
+// --- Permission roles ----------------------------------------------------------
+// Replaces the old level+override permission model: named, Discord-role-style
+// permission groups. A member's effective grants are the OR of every role they
+// belong to — either targeted directly, or via one of their Discord roles. Kept
+// as structured tables (not folded into guild_configs' YAML blob) so a role has a
+// stable id to "click into", and so a permission check / toggle-grid write is an
+// indexed row lookup instead of parse-then-scan JSON on every gated command.
+
+export const guildPermissionRoles = sqliteTable(
+  "guild_permission_roles",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    name: text("name").notNull(),
+    color: integer("color", { mode: "number" }),
+    // "member" | "moderator" | "admin" for the three built-in roles, null for a custom role.
+    builtIn: text("built_in"),
+    position: integer("position", { mode: "number" }).notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("guild_permission_roles_guild").on(table.guildId)],
+);
+
+/** Discord roles/users assigned into a permission role — its "members", same idea as Discord's own role membership. */
+export const guildPermissionRoleTargets = sqliteTable(
+  "guild_permission_role_targets",
+  {
+    roleId: integer("role_id", { mode: "number" }).notNull(),
+    targetType: text("target_type").notNull(), // "role" | "user"
+    targetId: text("target_id").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.roleId, table.targetType, table.targetId] }),
+    index("guild_permission_role_targets_role").on(table.roleId),
+  ],
+);
+
+/** One row per granted `<plugin>.<permission>` flag on a role. */
+export const guildPermissionRoleGrants = sqliteTable(
+  "guild_permission_role_grants",
+  {
+    roleId: integer("role_id", { mode: "number" }).notNull(),
+    grantKey: text("grant_key").notNull(), // "<plugin>.<permission>", e.g. "infractions.can_ban"
+  },
+  (table) => [primaryKey({ columns: [table.roleId, table.grantKey] })],
+);
+
 export const messageArchives = sqliteTable("message_archives", {
   id: text("id").primaryKey(),
   guildId: text("guild_id").notNull(),

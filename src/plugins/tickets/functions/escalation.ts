@@ -1,15 +1,14 @@
 import type { Client, Guild } from "discord.js";
 import { configManager } from "../../../config/manager.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import { zTicketsConfig, type TicketCategory, type TicketEscalationStep, type TicketsConfig } from "../../../config/schemas/tickets.js";
-import { ticketsDefaultOverrides } from "../defaultOverrides.js";
 import { listOpenTickets, setEscalationStep, setPriority, type TicketRecord } from "./tickets.js";
 import { performClose } from "./actions.js";
 
 async function getTicketsConfigForGuild(guildId: string): Promise<TicketsConfig> {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
-  return zTicketsConfig.parse(resolvePluginConfig(guildConfig, "tickets", ticketsDefaultOverrides));
+  return zTicketsConfig.parse(getPluginSettings(guildConfig, "tickets"));
 }
 
 async function applyEscalationStep(

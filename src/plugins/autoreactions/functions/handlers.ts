@@ -1,9 +1,8 @@
 import type { Message } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zAutoreactionsConfig } from "../../../config/schemas/plugins.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { messagePassesFilters, normalizeAutoreactionRules, AUTOREACTION_ALL_CHANNELS } from "./rules.js";
 import { shouldTriggerByCadence } from "./state.js";
 
@@ -14,7 +13,7 @@ export async function handleAutoreactionMessage(message: Message): Promise<void>
   if (!pluginEnabled(guildConfig, "autoreactions")) return;
 
   const pluginConfig = zAutoreactionsConfig.parse(
-    resolvePluginConfig(guildConfig, "autoreactions", getPluginDefaultOverrides("autoreactions")),
+    getPluginSettings(guildConfig, "autoreactions"),
   );
 
   const rules = normalizeAutoreactionRules(pluginConfig.rules).filter(

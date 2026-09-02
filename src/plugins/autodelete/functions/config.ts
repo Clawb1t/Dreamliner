@@ -5,10 +5,10 @@ import {
 } from "../../../config/schemas/autodelete.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 
 export function loadAutodeleteConfig(guildConfig: GuildConfig): AutodeleteConfig {
-  return parsePluginConfig(zAutodeleteConfig, resolvePluginConfig(guildConfig, "autodelete"));
+  return parsePluginConfig(zAutodeleteConfig, getPluginSettings(guildConfig, "autodelete"));
 }
 
 /** Last matching enabled rule wins when two rules share a channel. */

@@ -8,8 +8,7 @@ import {
 } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zScamProtectConfig, type ScamProtectConfig } from "../../../config/schemas/scamProtect.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
-import { scamProtectDefaultOverrides } from "../defaultOverrides.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import {
   channelNameHasObfuscation,
   scamProtectDefaultChannelName,
@@ -30,7 +29,7 @@ export function getScamProtectConfig(
   guildConfig: Awaited<ReturnType<typeof configManager.getEffectiveConfig>>,
 ): ScamProtectConfig {
   return zScamProtectConfig.parse(
-    resolvePluginConfig(guildConfig, "scam_protect", scamProtectDefaultOverrides),
+    getPluginSettings(guildConfig, "scam_protect"),
   );
 }
 

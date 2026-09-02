@@ -14,11 +14,6 @@ Assign roles when members react to a message. Optionally remove the role when th
 plugins:
   reaction_roles:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_delete: true
 ```
 
 The `can_create`/`can_delete` flags no longer gate anything (there's no command left to gate) —

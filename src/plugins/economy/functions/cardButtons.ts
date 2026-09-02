@@ -1,8 +1,7 @@
 import { MessageFlags, type ButtonInteraction } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { baseEmbed } from "../../../core/embeds.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission } from "../../../core/permissions.js";
+import { hasPermission } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
 import { getPlaneTypeById } from "./catalog.js";
@@ -36,9 +35,7 @@ export async function handlePlaneStatsButtonInteraction(interaction: ButtonInter
 
   const member = interaction.member;
   if (member && typeof member !== "string") {
-    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-    const defaults = getPluginDefaultOverrides("economy");
-    if (!hasPluginPermission(guildConfig, "economy", "can_view", member as import("discord.js").GuildMember, interaction.channelId ?? "", categoryId, defaults)) {
+    if (!(await hasPermission(interaction.guildId, "economy", "can_view", member as import("discord.js").GuildMember, guildConfig))) {
       await interaction.reply(resultReply("Permission denied", "You do not have permission to view plane cards.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
@@ -94,9 +91,7 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
 
   const member = interaction.member;
   if (member && typeof member !== "string") {
-    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-    const defaults = getPluginDefaultOverrides("economy");
-    if (!hasPluginPermission(guildConfig, "economy", "can_buy_pack", member as import("discord.js").GuildMember, interaction.channelId ?? "", categoryId, defaults)) {
+    if (!(await hasPermission(interaction.guildId, "economy", "can_buy_pack", member as import("discord.js").GuildMember, guildConfig))) {
       await interaction.update({ content: "You do not have permission to buy packs.", embeds: [], components: [] });
       return true;
     }
@@ -168,9 +163,7 @@ export async function handlePlaneInventoryButtonInteraction(interaction: ButtonI
 
   const member = interaction.member;
   if (member && typeof member !== "string") {
-    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-    const defaults = getPluginDefaultOverrides("economy");
-    if (!hasPluginPermission(guildConfig, "economy", "can_view", member as import("discord.js").GuildMember, interaction.channelId ?? "", categoryId, defaults)) {
+    if (!(await hasPermission(interaction.guildId, "economy", "can_view", member as import("discord.js").GuildMember, guildConfig))) {
       await interaction.update({ content: "You do not have permission to view plane cards.", embeds: [], components: [] });
       return true;
     }
@@ -227,9 +220,7 @@ export async function handlePlaneSellButtonInteraction(interaction: ButtonIntera
 
   const member = interaction.member;
   if (member && typeof member !== "string") {
-    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-    const defaults = getPluginDefaultOverrides("economy");
-    if (!hasPluginPermission(guildConfig, "economy", "can_sell", member as import("discord.js").GuildMember, interaction.channelId ?? "", categoryId, defaults)) {
+    if (!(await hasPermission(interaction.guildId, "economy", "can_sell", member as import("discord.js").GuildMember, guildConfig))) {
       await interaction.reply(resultReply("Permission denied", "You do not have permission to sell plane cards.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }

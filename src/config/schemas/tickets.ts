@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { boolPerm, channelId, roleId } from "../schemaHelp.js";
-import { zPluginOverride } from "./pluginSection.js";
 import { zPersistEmbedConfig } from "./persist.js";
 
 /** Discord modal text inputs max out at 5 per modal. */
@@ -232,11 +231,6 @@ export type TicketsConfig = z.infer<typeof zTicketsConfig>;
 export const zTicketsPluginSection = z.strictObject({
   enabled: z.boolean().optional().describe("Turn tickets on or off for this server."),
   config: zTicketsConfig.partial().optional(),
-  overrides: z.array(zPluginOverride).optional(),
-  replaceDefaultOverrides: z
-    .boolean()
-    .optional()
-    .describe("When true, ignore Dreamliner's built-in default level grants for this plugin."),
 });
 
 export type TicketsPluginSection = z.infer<typeof zTicketsPluginSection>;

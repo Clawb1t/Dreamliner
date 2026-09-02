@@ -5,10 +5,6 @@ Dreamliner server configuration is written in YAML. Each server has its own conf
 ## File format
 
 ```yaml
-levels:
-  "ROLE_OR_USER_SNOWFLAKE": 100   # Admin
-  "ROLE_OR_USER_SNOWFLAKE": 50    # Mod
-
 # Server events: joins, leaves, edits, deletes, voice activity, role/nickname changes
 server_log_channel_id: "1111111111111111111"
 
@@ -27,12 +23,10 @@ plugins:
       jumbo_size: 128
       autojoin_threads: true
       info_on_single_result: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_search: true
-          can_clean: true
 ```
+
+`can_*` permission flags (like `can_search`, `can_clean` above) are no longer set in YAML — grant them to a
+Dreamliner Role instead. See [Permissions](permissions.md).
 
 ## Emojis
 
@@ -59,23 +53,15 @@ When `false` (default), command replies are **public** in the channel. Set to `t
 admin_bypass: true
 ```
 
-When `true` (the default, no configuration required), anyone with Discord's **Administrator** permission — or the server owner — can use any bot command, regardless of `levels`/`can_*` overrides. This is what lets a freshly-invited bot work for admins immediately. Toggle it from the dashboard's server settings page, or set `admin_bypass: false` here to require explicit `levels`/overrides even for admins.
+When `true` (the default, no configuration required), anyone with Discord's **Administrator** permission — or the server owner — can use any bot command, regardless of Dreamliner Role assignment. This is what lets a freshly-invited bot work for admins immediately. Toggle it from the dashboard's server settings page, or set `admin_bypass: false` here to require explicit Dreamliner Role grants even for admins.
 
-## Permission levels
+## Dreamliner Roles
 
-The template ships with an empty map: `levels: {}`.
+Permissions are managed with **Dreamliner Roles** — named permission groups (built-in **Member**, **Moderator**, **Admin**, plus any custom roles you create), each with assigned Discord roles/users and a flat set of granted `can_*` flags. They live in the database, not in this YAML — there is no `levels` field and no `can_*` grant here anymore.
 
-Replace that with indented role/user ID entries (do **not** keep the `{}` braces when adding IDs):
+A member's effective permission for a flag is the **OR** of every Dreamliner Role they belong to.
 
-```yaml
-levels:
-  "ROLE_OR_USER_SNOWFLAKE": 100   # Admin
-  "ROLE_OR_USER_SNOWFLAKE": 50    # Mod
-```
-
-A member's level is the **highest** level from their roles and their user ID. Overrides use level syntax like `">=50"` to grant plugin permissions to mods without listing every user.
-
-Server owners and anyone with Discord's own **Administrator** or **Manage Server** permission always reach level **100** (the built-in admin tier), even with an empty `levels: {}` map — so a freshly-invited bot isn't locked out of every command before you've mapped any roles.
+Manage Dreamliner Roles from the dashboard's **Roles** page, or with `/permissions role ...` in Discord.
 
 For a complete setup guide with examples, see [Permissions setup](permissions.md).
 
@@ -106,20 +92,8 @@ Each plugin is configured under `plugins.<name>`:
 | ------------------------- | --------------------------------------------------------------- |
 | `enabled`                 | Set `false` to disable (utility is enabled when section exists) |
 | `config`                  | Direct config values                                            |
-| `overrides`               | Context-specific overrides                                      |
-| `replaceDefaultOverrides` | If `true`, ignore built-in default overrides                    |
 
-### Override criteria
-
-| Key        | Matches                                 |
-| ---------- | --------------------------------------- |
-| `level`    | Member level (`">=50"`, `">100"`, etc.) |
-| `channel`  | Specific channel ID                     |
-| `category` | Category channel ID                     |
-| `user`     | Specific user ID                        |
-| `role`     | Members who have this role ID           |
-
-For everyday grants (user / role / everyone) and level assignment, prefer `/permissions` instead of editing YAML. See [Permissions](permissions.md).
+`can_*` permission flags are never set here — grant them to a Dreamliner Role on the dashboard's **Roles** page, or with `/permissions role grant`. There is no more `overrides`/`replaceDefaultOverrides` field, and no more channel/category-scoped grants. See [Permissions](permissions.md).
 
 ## Merge behavior
 
@@ -136,7 +110,7 @@ See also: [Autorole](plugins/autorole.md), [Member identity](plugins/member_iden
 | `/config upload`   | Validate and save a config file                                 |
 | `/config validate` | Dry-run validation                                              |
 | `/config update`   | Apply new Dreamliner defaults while keeping your customizations |
-| `/permissions ...` | Grant commands / set levels without re-uploading YAML           |
+| `/permissions role ...` | Manage Dreamliner Roles without re-uploading YAML           |
 | `/plugin toggle`   | Enable or disable a plugin (`plugin` + `state`: Enable / Disable) |
 | `/plugin list`     | Show which plugins are enabled or disabled                      |
 
@@ -161,7 +135,7 @@ Admins with `can_reload_guild` can run `/reload` to re-read the config from the 
 
 ## Plugin index
 
-Dreamliner is organized into plugins under the `plugins:` key. Each plugin has its own `config`, optional `overrides`, and `enabled` flag.
+Dreamliner is organized into plugins under the `plugins:` key. Each plugin has its own `config` and `enabled` flag.
 
 | Category          | Plugins                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------ |

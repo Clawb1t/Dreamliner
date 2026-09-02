@@ -11,8 +11,7 @@ import {
 } from "discord.js";
 import type { ConfigManager } from "../../../config/manager.js";
 import { zSlowmodeConfig, type SlowmodeRuleTarget } from "../../../config/schemas/plugins.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import {
@@ -206,14 +205,10 @@ export async function handleSlowmodeRuleModalSubmit(
   }
 
   const guildMember = member as import("discord.js").GuildMember;
-  const channelId = interaction.channelId ?? "";
-  const categoryId =
-    interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const defaults = getPluginDefaultOverrides("slowmode");
   const ephemeral = resolveEphemeral(guildConfig);
   const opts = guildResultOptions(interaction.client, guildConfig);
 
-  if (!hasPluginPermission(guildConfig, "slowmode", "can_manage_rules", guildMember, channelId, categoryId, defaults)) {
+  if (!(await hasPermission(interaction.guildId, "slowmode", "can_manage_rules", guildMember, guildConfig))) {
     await interaction.reply(
       resultReply("Permission denied", "You do not have permission to manage slowmode rules.", ephemeral, {
         ...opts,
@@ -270,7 +265,7 @@ export async function handleSlowmodeRuleModalSubmit(
   const channels = interaction.fields.getSelectedChannels(FIELD.channel) ?? null;
   const targetChannelId = channels?.first()?.id;
 
-  const pluginConfig = resolvePluginConfig(guildConfig, "slowmode", defaults, guildMember, channelId, categoryId);
+  const pluginConfig = await resolveEffectivePluginConfig(interaction.guildId, "slowmode", guildMember, guildConfig);
   const created = await createSlowmodeRule(configManager, interaction.guildId, interaction.user.id, pluginConfig, {
     target: targetType,
     targetId,

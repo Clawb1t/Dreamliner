@@ -1,11 +1,11 @@
 import { zPersistConfig, type PersistConfig, type PersistSticky } from "../../../config/schemas/persist.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { stickyHasContent } from "./messageBuilder.js";
 
 export function loadPersistConfig(guildConfig: GuildConfig): PersistConfig {
-  return parsePluginConfig(zPersistConfig, resolvePluginConfig(guildConfig, "persist"));
+  return parsePluginConfig(zPersistConfig, getPluginSettings(guildConfig, "persist"));
 }
 
 /** Last matching enabled entry wins when two stickies share a channel. */

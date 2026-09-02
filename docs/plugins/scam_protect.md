@@ -21,8 +21,7 @@ plugins:
       channel_id: ""
       warning_message_id: ""
       channel_prefix: ""
-      staff_level: 50
-      ignore_staff: true
+      ignored_roles: []
 ```
 
 | Field | Description |
@@ -31,8 +30,7 @@ plugins:
 | `channel_id` | Honeypot channel ID (set by setup / auto-create) |
 | `warning_message_id` | Warning message ID |
 | `channel_prefix` | Optional prefix prepended to the channel name (emoji allowed, e.g. `🚨`) |
-| `staff_level` | Level at or above which posters are ignored when `ignore_staff` is true |
-| `ignore_staff` | Ignore staff-level members, Ban Members, Administrators, and the owner |
+| `ignored_roles` | Members with any of these roles are ignored, in addition to Ban Members, Administrators, and the owner |
 
 ## Commands
 
@@ -41,7 +39,8 @@ plugins:
 | `/scamprotect setup` | `can_setup` | Enable the plugin and create or repair the honeypot |
 | `/scamprotect status` | `can_status` | Show whether the honeypot is active |
 
-Default grants: level **50+** for both.
+Grant `can_setup` and `can_status` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Requirements
 

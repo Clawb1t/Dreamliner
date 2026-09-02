@@ -5,8 +5,8 @@ import {
   StringSelectMenuBuilder,
   type Guild,
 } from "discord.js";
-import type { SelfRolePanelConfig } from "../defaultOverrides.js";
-import { selfRoleButtonCustomId, selfRoleSelectCustomId } from "../defaultOverrides.js";
+import type { SelfRolePanelConfig } from "../customIds.js";
+import { selfRoleButtonCustomId, selfRoleSelectCustomId } from "../customIds.js";
 
 export function buildSelfRoleComponents(guild: Guild, messageId: string, config: SelfRolePanelConfig) {
   if (config.style === "select") {

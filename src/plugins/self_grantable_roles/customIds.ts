@@ -1,14 +1,3 @@
-import type { ConfigOverride } from "../../core/types.js";
-
-export const selfGrantableRolesDefaultOverrides: ConfigOverride[] = [
-  {
-    level: ">=50",
-    config: {
-      can_configure: true,
-    },
-  },
-];
-
 export const SELF_ROLE_PREFIX = "dl:selfrole:";
 
 export type SelfRolePanelConfig = {

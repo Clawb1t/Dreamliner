@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { boolPerm } from "../schemaHelp.js";
-import { zPluginOverride } from "./pluginSection.js";
 import { LANGUAGE_CODES } from "../../core/languages.js";
 
 export const zTranslationConfig = z.strictObject({
@@ -20,11 +19,6 @@ export const zTranslationConfig = z.strictObject({
 export const zTranslationPluginSection = z.strictObject({
   enabled: z.boolean().optional().describe("Turn the translation plugin on or off for this server."),
   config: zTranslationConfig.partial().optional(),
-  overrides: z.array(zPluginOverride).optional(),
-  replaceDefaultOverrides: z
-    .boolean()
-    .optional()
-    .describe("When true, ignore Dreamliner's built-in default level grants for this plugin."),
 });
 
 export const zDefaultLanguage = z

@@ -5,9 +5,7 @@ export function boolPerm(action: string) {
   return z
     .boolean()
     .default(false)
-    .describe(
-      `Allow members to ${action}. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.`,
-    );
+    .describe(`Allow members to ${action}.`);
 }
 
 export function channelId(help: string) {
@@ -32,7 +30,6 @@ export type DreamlinerFieldMeta = {
     | "snowflake"
     | "ms"
     | "seconds"
-    | "level"
     | "emoji"
     | "permission"
     | "color"
@@ -50,11 +47,8 @@ export const SETUP_HINTS: Record<NonNullable<DreamlinerFieldMeta["kind"]>, strin
     "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID.",
   ms: "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour.",
   seconds: "Enter seconds. 60 = 1 minute · 3,600 = 1 hour.",
-  level:
-    'Map a role/user ID to a number, or in overrides use expressions like ">=50" / ">100". Higher levels mean more access.',
   emoji: 'Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis.',
-  permission:
-    "These are base permissions. For most servers, leave them false here and grant them under Overrides for your mod/admin levels.",
+  permission: "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly.",
   color: "Pick a color for embeds. Stored as a decimal integer (0–16777215).",
   category: "Enable Developer Mode in Discord, then right-click the category → Copy Channel ID.",
 };
@@ -71,7 +65,7 @@ type JsonSchemaNode = {
   [key: string]: unknown;
 };
 
-function humanizeKey(key: string): string {
+export function humanizeKey(key: string): string {
   if (key === "bot_roles") return "Bot Roles";
   if (key === "text_channel_id") return "No-Mic Channel";
   return key
@@ -115,9 +109,6 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
     return "category";
   }
   if (key === "user" || key.endsWith("_user_id")) return "user";
-  if (key === "levels" || key === "level" || key === "ignore_above_level" || key === "staff_level") {
-    return "level";
-  }
   if (key.endsWith("_ms") || key === "delay_ms") return "ms";
   if (key.endsWith("_seconds") || key === "seconds") return "seconds";
   if (key.includes("emoji") || key === "success" || key === "error" || key === "neutral" || key === "warning" || key === "unchecked") {
@@ -128,9 +119,9 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
   return undefined;
 }
 
-function defaultPermissionDescription(key: string): string {
+export function defaultPermissionDescription(key: string): string {
   const feature = humanizeKey(key);
-  return `Allow members to use ${feature}. Prefer granting this with Overrides (for example level >= 50) instead of enabling it for everyone.`;
+  return `Allow members to use ${feature}. Grant this to a Dreamliner Role instead of enabling it here directly.`;
 }
 
 /** Walk JSON Schema and attach titles, fallback help, and setup hints for the website editor. */

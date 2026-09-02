@@ -14,12 +14,11 @@ import { loadPlugins } from "./core/pluginLoader.js";
 import { availablePlugins } from "./plugins/availablePlugins.js";
 import { resultReply, guildResultOptions } from "./core/responses.js";
 import {
-  getPluginDefaultOverrides,
   getUtilityPluginConfig,
   getInfractionPluginConfig,
   pluginsRequiringConfig,
 } from "./core/guildHelpers.js";
-import { hasPluginPermission } from "./core/permissions.js";
+import { hasPermission } from "./core/permissionRoles.js";
 import { pluginEnabled } from "./core/pluginCommand.js";
 import {
   configEditorWithSupportRow,
@@ -133,6 +132,16 @@ const pluginConfigGetters: Record<string, typeof getUtilityPluginConfig> = {
   utility: getUtilityPluginConfig,
   infractions: getInfractionPluginConfig,
 };
+
+async function resolveDispatchPluginConfig(
+  pluginName: string,
+  guildId: string,
+  guildConfig: import("./config/schemas/guild.js").GuildConfig,
+  member: import("discord.js").GuildMember | undefined,
+): Promise<Record<string, unknown>> {
+  const getter = pluginConfigGetters[pluginName];
+  return getter ? getter(guildId, guildConfig, member) : {};
+}
 
 export async function createBot(configManager: ConfigManager): Promise<{ client: Client; ctx: BotContext }> {
   const client = new Client({
@@ -555,20 +564,8 @@ async function handleContextMenuCommand(
     const member = interaction.member;
     if (!member || typeof member === "string") return;
     const guildMember = member as import("discord.js").GuildMember;
-    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
 
-    const defaultOverrides = getPluginDefaultOverrides(command.plugin);
-    if (
-      !hasPluginPermission(
-        guildConfig,
-        command.plugin,
-        command.permission,
-        guildMember,
-        interaction.channelId,
-        categoryId,
-        defaultOverrides,
-      )
-    ) {
+    if (!(await hasPermission(interaction.guildId!, command.plugin, command.permission, guildMember, guildConfig))) {
       await interaction.reply(
         resultReply(
           "Permission denied",
@@ -597,11 +594,9 @@ async function handleContextMenuCommand(
     }
   }
 
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
   const member = interaction.member;
   const guildMember = member && typeof member !== "string" ? (member as import("discord.js").GuildMember) : undefined;
-  const getter = pluginConfigGetters[command.plugin];
-  const pluginConfig = getter ? getter(guildConfig, guildMember, interaction.channelId, categoryId) : {};
+  const pluginConfig = await resolveDispatchPluginConfig(command.plugin, interaction.guildId!, guildConfig, guildMember);
 
   try {
     await command.execute({
@@ -699,20 +694,8 @@ async function handleSlashCommand(
     const member = interaction.member;
     if (!member || typeof member === "string") return;
     const guildMember = member as import("discord.js").GuildMember;
-    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
 
-    const defaultOverrides = getPluginDefaultOverrides(command.plugin);
-    if (
-      !hasPluginPermission(
-        guildConfig,
-        command.plugin,
-        command.permission,
-        guildMember,
-        interaction.channelId,
-        categoryId,
-        defaultOverrides,
-      )
-    ) {
+    if (!(await hasPermission(interaction.guildId!, command.plugin, command.permission, guildMember, guildConfig))) {
       await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return;
     }
@@ -727,11 +710,9 @@ async function handleSlashCommand(
     }
   }
 
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
   const member = interaction.member;
   const guildMember = member && typeof member !== "string" ? (member as import("discord.js").GuildMember) : undefined;
-  const getter = pluginConfigGetters[command.plugin];
-  const pluginConfig = getter ? getter(guildConfig, guildMember, interaction.channelId, categoryId) : {};
+  const pluginConfig = await resolveDispatchPluginConfig(command.plugin, interaction.guildId!, guildConfig, guildMember);
 
   try {
     await command.execute({
@@ -791,9 +772,8 @@ async function handleHelpInteraction(
   if (!member || typeof member === "string") return;
 
   const guildMember = member as import("discord.js").GuildMember;
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
 
-  if (!canUseUtility(guildConfig, "can_help", guildMember, interaction.channelId, categoryId)) {
+  if (!(await canUseUtility(interaction.guildId, guildConfig, "can_help", guildMember))) {
     await interaction.reply(
       resultReply("Permission denied", "You do not have permission to use help.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
@@ -882,20 +862,9 @@ async function handleStatsPermissionInteraction(
   const member = interaction.member;
   if (!member || typeof member === "string") return true;
   const guildMember = member as import("discord.js").GuildMember;
-  const categoryId =
-    interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const defaultOverrides = getPluginDefaultOverrides("stats");
 
   return handleStatsInteraction(interaction, guildConfig, (permission) =>
-    hasPluginPermission(
-      guildConfig,
-      "stats",
-      permission,
-      guildMember,
-      interaction.channelId,
-      categoryId,
-      defaultOverrides,
-    ),
+    hasPermission(interaction.guildId!, "stats", permission, guildMember, guildConfig),
   );
 }
 

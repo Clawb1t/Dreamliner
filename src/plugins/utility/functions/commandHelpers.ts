@@ -21,13 +21,13 @@ export async function requireUtilityPermission(
   }
 
   const guildMember = member as GuildMember;
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const pluginConfig = getUtilityPluginConfig(guildConfig, guildMember, interaction.channelId, categoryId);
 
-  if (!canUseUtility(guildConfig, permission, guildMember, interaction.channelId, categoryId)) {
+  if (!(await canUseUtility(interaction.guildId, guildConfig, permission, guildMember))) {
     await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
+
+  const pluginConfig = await getUtilityPluginConfig(interaction.guildId, guildConfig, guildMember);
 
   return { member: guildMember, pluginConfig };
 }

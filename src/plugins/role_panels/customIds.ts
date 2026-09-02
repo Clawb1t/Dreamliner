@@ -1,14 +1,3 @@
-import type { ConfigOverride } from "../../core/types.js";
-
-export const rolePanelsDefaultOverrides: ConfigOverride[] = [
-  {
-    level: ">=50",
-    config: {
-      can_manage: true,
-    },
-  },
-];
-
 export const ROLE_PANEL_PREFIX = "dl:rolepanel:";
 
 export function rolePanelButtonCustomId(panelId: string, roleId: string): string {

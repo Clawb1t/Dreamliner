@@ -1,11 +1,5 @@
 import type { ZodType } from "zod";
-import type {
-  ConfigOverride,
-  ContextMenuCommandDefinition,
-  DreamlinerPlugin,
-  EventHandler,
-  SlashCommandDefinition,
-} from "./types.js";
+import type { ContextMenuCommandDefinition, DreamlinerPlugin, EventHandler, SlashCommandDefinition } from "./types.js";
 
 export function definePlugin(plugin: DreamlinerPlugin): DreamlinerPlugin {
   return plugin;
@@ -23,4 +17,4 @@ export function collectEvents(plugins: DreamlinerPlugin[]): EventHandler[] {
   return plugins.flatMap((p) => p.events ?? []);
 }
 
-export type { DreamlinerPlugin, SlashCommandDefinition, ContextMenuCommandDefinition, ConfigOverride, ZodType };
+export type { DreamlinerPlugin, SlashCommandDefinition, ContextMenuCommandDefinition, ZodType };

@@ -10,16 +10,14 @@ plugins:
     enabled: true
     config:
       default_delay_seconds: 60
-    overrides:
-      - level: ">=50"
-        config:
-          can_set: true
-          can_clear: true
 ```
 
 | Field | Description |
 |-------|-------------|
 | `default_delay_seconds` | Default delete delay when not specified on `/autodelete set` |
+
+Grant `can_set` and `can_clear` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Commands
 

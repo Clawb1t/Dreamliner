@@ -1,110 +1,44 @@
+import type { GuildMember } from "discord.js";
 import { configManager } from "../config/manager.js";
-import { hasPluginPermission, resolvePluginConfig } from "../core/permissions.js";
-import { utilityDefaultOverrides } from "../plugins/utility/defaultOverrides.js";
-import { infractionDefaultOverrides } from "../plugins/infraction/defaultOverrides.js";
-import { rolesDefaultOverrides } from "../plugins/roles/defaultOverrides.js";
-import { reactionRolesDefaultOverrides } from "../plugins/reaction_roles/defaultOverrides.js";
-import { rolePanelsDefaultOverrides } from "../plugins/role_panels/defaultOverrides.js";
-import { roleButtonsDefaultOverrides } from "../plugins/role_buttons/defaultOverrides.js";
-import { selfGrantableRolesDefaultOverrides } from "../plugins/self_grantable_roles/defaultOverrides.js";
-import { nameHistoryDefaultOverrides } from "../plugins/name_history/defaultOverrides.js";
-import { locateUserDefaultOverrides } from "../plugins/locate_user/defaultOverrides.js";
-import { statsDefaultOverrides } from "../plugins/stats/defaultOverrides.js";
-import { automodDefaultOverrides } from "../plugins/automod/defaultOverrides.js";
-import { slowmodeDefaultOverrides } from "../plugins/slowmode/defaultOverrides.js";
-import { welcomeMessageDefaultOverrides } from "../plugins/welcome_message/defaultOverrides.js";
-import { tagsDefaultOverrides } from "../plugins/tags/defaultOverrides.js";
-import { autodeleteDefaultOverrides } from "../plugins/autodelete/defaultOverrides.js";
-import { autoreactionsDefaultOverrides } from "../plugins/autoreactions/defaultOverrides.js";
-import { autorepliesDefaultOverrides } from "../plugins/autoreplies/defaultOverrides.js";
-import { autothreadsDefaultOverrides } from "../plugins/autothreads/defaultOverrides.js";
-import { autoroleDefaultOverrides } from "../plugins/autorole/defaultOverrides.js";
-import { translationDefaultOverrides } from "../plugins/translation/defaultOverrides.js";
-import { remindersDefaultOverrides } from "../plugins/reminders/defaultOverrides.js";
+import { getPluginSettings, hasPermission, resolveEffectivePluginConfig } from "./permissionRoles.js";
 import { zTranslationConfig, type TranslationConfig } from "../config/schemas/translation.js";
 import { parsePluginConfig } from "./pluginSchemas.js";
-import { dreamCommandsDefaultOverrides } from "../plugins/dream_commands/defaultOverrides.js";
-import { botCustomisationDefaultOverrides } from "../plugins/bot_customisation/defaultOverrides.js";
-import { reviewsDefaultOverrides } from "../plugins/reviews/defaultOverrides.js";
-import { suggestionsDefaultOverrides } from "../plugins/suggestions/defaultOverrides.js";
-import { scamProtectDefaultOverrides } from "../plugins/scam_protect/defaultOverrides.js";
-import { passportDefaultOverrides } from "../plugins/passport/defaultOverrides.js";
-import { economyDefaultOverrides } from "../plugins/economy/defaultOverrides.js";
-import { animeDefaultOverrides } from "../plugins/anime/defaultOverrides.js";
-import { ticketsDefaultOverrides } from "../plugins/tickets/defaultOverrides.js";
-import { ttsDefaultOverrides } from "../plugins/tts/defaultOverrides.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { zStarboardBoard, zStarboardConfig, type StarboardBoard, type StarboardConfig } from "../config/schemas/starboard.js";
-import type { GuildMember } from "discord.js";
-
-export const pluginDefaultOverrides: Record<string, typeof utilityDefaultOverrides> = {
-  utility: utilityDefaultOverrides,
-  infractions: infractionDefaultOverrides,
-  automod: automodDefaultOverrides,
-  scam_protect: scamProtectDefaultOverrides,
-  passport: passportDefaultOverrides,
-  economy: economyDefaultOverrides,
-  anime: animeDefaultOverrides,
-  slowmode: slowmodeDefaultOverrides,
-  name_history: nameHistoryDefaultOverrides,
-  locate_user: locateUserDefaultOverrides,
-  stats: statsDefaultOverrides,
-  roles: rolesDefaultOverrides,
-  reaction_roles: reactionRolesDefaultOverrides,
-  role_panels: rolePanelsDefaultOverrides,
-  role_buttons: roleButtonsDefaultOverrides,
-  self_grantable_roles: selfGrantableRolesDefaultOverrides,
-  welcome_message: welcomeMessageDefaultOverrides,
-  tags: tagsDefaultOverrides,
-  autodelete: autodeleteDefaultOverrides,
-  autoreactions: autoreactionsDefaultOverrides,
-  autoreplies: autorepliesDefaultOverrides,
-  autothreads: autothreadsDefaultOverrides,
-  autorole: autoroleDefaultOverrides,
-  translation: translationDefaultOverrides,
-  reminders: remindersDefaultOverrides,
-  counters: [],
-  companion_channels: [],
-  member_identity: [],
-  dream_commands: dreamCommandsDefaultOverrides,
-  bot_customisation: botCustomisationDefaultOverrides,
-  reviews: reviewsDefaultOverrides,
-  suggestions: suggestionsDefaultOverrides,
-  tickets: ticketsDefaultOverrides,
-  tts: ttsDefaultOverrides,
-};
 
 export const pluginsRequiringConfig = new Set(["utility", "infractions"]);
 
-export function getPluginDefaultOverrides(pluginName: string) {
-  return pluginDefaultOverrides[pluginName] ?? [];
-}
-
-export function getUtilityPluginConfig(
+/** With a member, resolves permission-aware config (can_* flags included, via Dreamliner Roles). Without one, settings only — used by event handlers and bot-driven actions that have no member to check roles for. */
+export async function getUtilityPluginConfig(
+  guildId: string,
   guildConfig: GuildConfig,
   member?: GuildMember,
-  channelId?: string,
-  categoryId?: string | null,
-) {
-  return resolvePluginConfig(guildConfig, "utility", utilityDefaultOverrides, member, channelId, categoryId);
+): Promise<Record<string, unknown>> {
+  return member ? resolveEffectivePluginConfig(guildId, "utility", member, guildConfig) : getPluginSettings(guildConfig, "utility");
 }
 
-export function getInfractionPluginConfig(
+export async function getInfractionPluginConfig(
+  guildId: string,
   guildConfig: GuildConfig,
   member?: GuildMember,
-  channelId?: string,
-  categoryId?: string | null,
-) {
-  return resolvePluginConfig(guildConfig, "infractions", infractionDefaultOverrides, member, channelId, categoryId);
+): Promise<Record<string, unknown>> {
+  return member ? resolveEffectivePluginConfig(guildId, "infractions", member, guildConfig) : getPluginSettings(guildConfig, "infractions");
 }
 
-export function getAutorolePluginConfig(guildConfig: GuildConfig) {
-  return resolvePluginConfig(guildConfig, "autorole", autoroleDefaultOverrides);
+export async function getTicketsPluginConfig(
+  guildId: string,
+  guildConfig: GuildConfig,
+  member?: GuildMember,
+): Promise<Record<string, unknown>> {
+  return member ? resolveEffectivePluginConfig(guildId, "tickets", member, guildConfig) : getPluginSettings(guildConfig, "tickets");
+}
+
+export function getAutorolePluginConfig(guildConfig: GuildConfig): Record<string, unknown> {
+  return getPluginSettings(guildConfig, "autorole");
 }
 
 export function getTranslationPluginConfig(guildConfig: GuildConfig): TranslationConfig {
-  const resolved = resolvePluginConfig(guildConfig, "translation", translationDefaultOverrides);
-  return parsePluginConfig(zTranslationConfig, resolved);
+  return parsePluginConfig(zTranslationConfig, getPluginSettings(guildConfig, "translation"));
 }
 
 export function getStarboardPluginConfig(guildConfig: GuildConfig): StarboardConfig {
@@ -125,51 +59,16 @@ export function getStarboardPluginConfig(guildConfig: GuildConfig): StarboardCon
   });
 }
 
-export function canUseUtility(
-  guildConfig: GuildConfig,
-  permission: string,
-  member: GuildMember,
-  channelId: string,
-  categoryId?: string | null,
-): boolean {
-  return hasPluginPermission(guildConfig, "utility", permission, member, channelId, categoryId, utilityDefaultOverrides);
+export async function canUseUtility(guildId: string, guildConfig: GuildConfig, permission: string, member: GuildMember): Promise<boolean> {
+  return hasPermission(guildId, "utility", permission, member, guildConfig);
 }
 
-export function canUseInfractions(
-  guildConfig: GuildConfig,
-  permission: string,
-  member: GuildMember,
-  channelId: string,
-  categoryId?: string | null,
-): boolean {
-  return hasPluginPermission(
-    guildConfig,
-    "infractions",
-    permission,
-    member,
-    channelId,
-    categoryId,
-    infractionDefaultOverrides,
-  );
+export async function canUseInfractions(guildId: string, guildConfig: GuildConfig, permission: string, member: GuildMember): Promise<boolean> {
+  return hasPermission(guildId, "infractions", permission, member, guildConfig);
 }
 
-export function getTicketsPluginConfig(
-  guildConfig: GuildConfig,
-  member?: GuildMember,
-  channelId?: string,
-  categoryId?: string | null,
-) {
-  return resolvePluginConfig(guildConfig, "tickets", ticketsDefaultOverrides, member, channelId, categoryId);
-}
-
-export function canUseTickets(
-  guildConfig: GuildConfig,
-  permission: string,
-  member: GuildMember,
-  channelId: string,
-  categoryId?: string | null,
-): boolean {
-  return hasPluginPermission(guildConfig, "tickets", permission, member, channelId, categoryId, ticketsDefaultOverrides);
+export async function canUseTickets(guildId: string, guildConfig: GuildConfig, permission: string, member: GuildMember): Promise<boolean> {
+  return hasPermission(guildId, "tickets", permission, member, guildConfig);
 }
 
 export async function ensureGuildConfigured(guildId: string): Promise<boolean> {

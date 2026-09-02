@@ -1,9 +1,8 @@
 import type { Client } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zTicketsConfig } from "../../../config/schemas/tickets.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { ticketsDefaultOverrides } from "../defaultOverrides.js";
 import { performClose } from "./actions.js";
 import { getExpiredInactiveTickets } from "./tickets.js";
 
@@ -22,7 +21,7 @@ export async function processInactiveTickets(client: Client): Promise<void> {
       const guildConfig = await configManager.getEffectiveConfig(ticket.guildId);
       if (!pluginEnabled(guildConfig, "tickets")) continue;
 
-      const config = zTicketsConfig.parse(resolvePluginConfig(guildConfig, "tickets", ticketsDefaultOverrides));
+      const config = zTicketsConfig.parse(getPluginSettings(guildConfig, "tickets"));
       const panel = config.panels.find((p) => p.id === ticket.panelId);
       const category = panel?.categories.find((c) => c.id === ticket.categoryId);
       if (!category || !category.auto_close_hours || category.auto_close_hours <= 0) continue;

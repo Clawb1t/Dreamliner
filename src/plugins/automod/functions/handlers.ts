@@ -1,11 +1,9 @@
 import type { GuildMember, Message } from "discord.js";
 import type { AutomodConfig, AutomodRuleConfig } from "../../../config/schemas/automod.js";
-import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { configManager } from "../../../config/manager.js";
-import { getMemberLevel, resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { buildRaidDetectedLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
-import { automodDefaultOverrides } from "../defaultOverrides.js";
 import { applyAutomodHit } from "./actions.js";
 import {
   buildMessageContext,
@@ -15,20 +13,10 @@ import {
 import { mergeCensorDbRulesIntoConfig, parseAutomodConfig } from "./migrate.js";
 import { countAutomodHits, recordAutomodHit } from "./strikes.js";
 
-function isIgnored(
-  member: GuildMember | null,
-  config: AutomodConfig,
-  guildConfig: GuildConfig,
-  channelId?: string,
-): boolean {
+function isIgnored(member: GuildMember | null, config: AutomodConfig, channelId?: string): boolean {
   if (channelId && config.ignored_channels.includes(channelId)) return true;
   if (!member) return false;
-  if (config.ignored_roles.some((roleId) => member.roles.cache.has(roleId))) return true;
-  if (config.ignore_above_level != null) {
-    const level = getMemberLevel(member, guildConfig.levels);
-    if (level >= config.ignore_above_level) return true;
-  }
-  return false;
+  return config.ignored_roles.some((roleId) => member.roles.cache.has(roleId));
 }
 
 function isRuleIgnored(
@@ -44,14 +32,13 @@ function isRuleIgnored(
 async function loadAutomodConfig(
   guildId: string,
   member?: GuildMember | null,
-  channelId?: string,
 ): Promise<{ guildConfig: Awaited<ReturnType<typeof configManager.getEffectiveConfig>>; config: AutomodConfig } | null> {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
   // Automod defaults to off; require an explicit enabled: true.
   if (guildConfig.plugins.automod?.enabled !== true) return null;
 
   let config = parseAutomodConfig(
-    resolvePluginConfig(guildConfig, "automod", automodDefaultOverrides, member ?? undefined, channelId),
+    member ? await resolveEffectivePluginConfig(guildId, "automod", member, guildConfig) : getPluginSettings(guildConfig, "automod"),
   );
   config = await mergeCensorDbRulesIntoConfig(guildId, config);
   return { guildConfig, config };
@@ -60,11 +47,11 @@ async function loadAutomodConfig(
 export async function handleAutomodMessage(message: Message): Promise<void> {
   if (!message.guild || message.author.bot) return;
 
-  const loaded = await loadAutomodConfig(message.guild.id, message.member, message.channel.id);
+  const loaded = await loadAutomodConfig(message.guild.id, message.member);
   if (!loaded) return;
   const { guildConfig, config } = loaded;
 
-  if (isIgnored(message.member, config, guildConfig, message.channel.id)) return;
+  if (isIgnored(message.member, config, message.channel.id)) return;
 
   const ctx = buildMessageContext(message, config);
   const hit = await runMessageDetectors(ctx);
@@ -120,7 +107,7 @@ export async function handleAutomodMemberAdd(member: GuildMember): Promise<void>
   if (!loaded) return;
   const { guildConfig, config } = loaded;
 
-  if (isIgnored(member, config, guildConfig)) return;
+  if (isIgnored(member, config)) return;
 
   const hit = await runJoinDetectors({ kind: "join", member, config });
   if (!hit) return;

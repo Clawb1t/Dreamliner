@@ -45,7 +45,7 @@ export async function buildStatsUpdate(
 export async function handleStatsInteraction(
   interaction: ButtonInteraction | StringSelectMenuInteraction,
   guildConfig: GuildConfig,
-  hasPermission: (permission: "can_server" | "can_user" | "can_channel") => boolean,
+  hasPermission: (permission: "can_server" | "can_user" | "can_channel") => Promise<boolean>,
 ): Promise<boolean> {
   if (!interaction.customId.startsWith(`${STATS_PREFIX}:`)) return false;
   if (!interaction.inGuild() || !interaction.guild) return true;
@@ -54,7 +54,7 @@ export async function handleStatsInteraction(
   if (!parsed) return true;
 
   const required = permissionForScope(parsed.state.scope);
-  if (!hasPermission(required)) {
+  if (!(await hasPermission(required))) {
     await interaction.reply(
       resultReply(
         "Permission denied",

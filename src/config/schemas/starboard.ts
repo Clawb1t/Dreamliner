@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { zPluginOverride } from "./pluginSection.js";
 
 const snowflakeList = (description: string) =>
   z.array(z.string()).default([]).describe(description);
@@ -91,11 +90,6 @@ export const zStarboardConfig = z.strictObject({
 export const zStarboardPluginSection = z.strictObject({
   enabled: z.boolean().optional().describe("Turn starboard on or off for this server."),
   config: zStarboardConfig.partial().optional(),
-  overrides: z.array(zPluginOverride).optional(),
-  replaceDefaultOverrides: z
-    .boolean()
-    .optional()
-    .describe("When true, ignore Dreamliner's built-in default level grants for this plugin."),
 });
 
 export type StarboardBoard = z.infer<typeof zStarboardBoard>;

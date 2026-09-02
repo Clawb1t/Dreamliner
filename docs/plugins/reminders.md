@@ -8,13 +8,10 @@ Set personal reminders that Dreamliner delivers in the channel where they were c
 plugins:
   reminders:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_list: true
-          can_cancel: true
 ```
+
+Grant `can_create`, `can_list`, and `can_cancel` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Commands
 

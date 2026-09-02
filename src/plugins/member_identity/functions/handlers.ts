@@ -6,7 +6,7 @@ import {
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { getMemberIdentity, upsertMemberIdentity, type MemberIdentitySnapshot } from "./store.js";
 
 const RESTORE_REASON = "Dreamliner member identity";
@@ -30,8 +30,8 @@ function snapshotFromMember(member: GuildMember) {
   };
 }
 
-export function getMemberIdentityConfig(guildConfig: Parameters<typeof resolvePluginConfig>[0]): MemberIdentityConfig {
-  return parsePluginConfig(zMemberIdentityConfig, resolvePluginConfig(guildConfig, "member_identity"));
+export function getMemberIdentityConfig(guildConfig: Parameters<typeof getPluginSettings>[0]): MemberIdentityConfig {
+  return parsePluginConfig(zMemberIdentityConfig, getPluginSettings(guildConfig, "member_identity"));
 }
 
 export async function saveMemberIdentity(

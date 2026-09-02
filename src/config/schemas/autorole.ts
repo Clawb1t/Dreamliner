@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { boolPerm } from "../schemaHelp.js";
-import { zPluginOverride } from "./pluginSection.js";
 
 const roleListDescription =
   "Use a role ID string, or an object with role + delay_ms (or delay).";
@@ -33,11 +32,6 @@ export const zAutoroleConfig = z.strictObject({
 export const zAutorolePluginSection = z.strictObject({
   enabled: z.boolean().optional().describe("Turn autorole on or off for this server."),
   config: zAutoroleConfig.partial().optional(),
-  overrides: z.array(zPluginOverride).optional(),
-  replaceDefaultOverrides: z
-    .boolean()
-    .optional()
-    .describe("When true, ignore Dreamliner's built-in default level grants for this plugin."),
 });
 
 export type AutoroleConfig = z.infer<typeof zAutoroleConfig>;

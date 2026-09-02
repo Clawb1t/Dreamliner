@@ -10,8 +10,7 @@ import {
 } from "discord.js";
 import type { ConfigManager } from "../../../config/manager.js";
 import { zAutoreactionTrigger, zAutoreactionsConfig } from "../../../config/schemas/plugins.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { validateRegexPatternForSave } from "../../../core/regexSafety.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
@@ -264,12 +263,9 @@ export async function handleAutoreactionModalSubmit(
   }
 
   const guildMember = member as import("discord.js").GuildMember;
-  const channelId = interaction.channelId ?? "";
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const defaults = getPluginDefaultOverrides("autoreactions");
   const ephemeral = resolveEphemeral(guildConfig);
 
-  if (!hasPluginPermission(guildConfig, "autoreactions", "can_add", guildMember, channelId, categoryId, defaults)) {
+  if (!(await hasPermission(interaction.guildId, "autoreactions", "can_add", guildMember, guildConfig))) {
     await interaction.reply(
       resultReply("Permission denied", "You do not have permission to add auto-reactions.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
@@ -314,7 +310,7 @@ export async function handleAutoreactionModalSubmit(
     extras = [];
   }
 
-  const pluginConfig = resolvePluginConfig(guildConfig, "autoreactions", defaults, guildMember, channelId, categoryId);
+  const pluginConfig = await resolveEffectivePluginConfig(interaction.guildId, "autoreactions", guildMember, guildConfig);
   const created = await createAutoreactionRule(configManager, interaction.guildId, interaction.user.id, pluginConfig, {
     emoji,
     trigger: parsedTrigger.data,

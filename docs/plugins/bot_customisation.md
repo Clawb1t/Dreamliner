@@ -10,17 +10,12 @@ Managed from the **web dashboard** (Brand / bot customisation page). Uses Discor
 plugins:
   bot_customisation:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_avatar: true
-          can_banner: true
-          can_nickname: true
-          can_bio: true
-          can_display_name: true
 ```
 
-Dashboard access still requires **Manage Server** (or server owner / platform superuser). Plugin permission flags document which brand fields that level may manage.
+Grant `can_avatar`, `can_banner`, `can_nickname`, `can_bio`, and `can_display_name` to a Dreamliner Role on the
+dashboard's **Roles** page (or `/permissions role grant`) — see [permissions.md](../permissions.md).
+
+Dashboard access still requires **Manage Server** (or server owner / platform superuser). Plugin permission flags document which brand fields a given Dreamliner Role may manage.
 
 ## Dashboard features
 

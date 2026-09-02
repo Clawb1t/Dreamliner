@@ -1,11 +1,11 @@
 import { zCountersConfig, type CounterEntry, type CountersConfig } from "../../../config/schemas/counters.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { normalizeCounterName } from "./store.js";
 
 export function loadCountersConfig(guildConfig: GuildConfig): CountersConfig {
-  return parsePluginConfig(zCountersConfig, resolvePluginConfig(guildConfig, "counters"));
+  return parsePluginConfig(zCountersConfig, getPluginSettings(guildConfig, "counters"));
 }
 
 /** Enabled counters with a channel set, keyed by normalized name. Last enabled entry

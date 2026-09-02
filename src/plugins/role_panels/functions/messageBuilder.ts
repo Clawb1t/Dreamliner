@@ -12,7 +12,7 @@ import type { RolePanel, RolePanelRole } from "../../../config/schemas/rolePanel
 import { buildEmbed } from "../../persist/functions/messageBuilder.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { renderTemplate, type TemplateContext } from "../../../core/templates.js";
-import { rolePanelButtonCustomId } from "../defaultOverrides.js";
+import { rolePanelButtonCustomId } from "../customIds.js";
 
 export type RolePanelBuildContext = {
   client: Client;

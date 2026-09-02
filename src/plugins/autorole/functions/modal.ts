@@ -10,8 +10,7 @@ import {
 import type { AutoroleAudience } from "../../../config/schemas/autorole.js";
 import type { ConfigManager } from "../../../config/manager.js";
 import { zAutoroleConfig } from "../../../config/schemas/autorole.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import {
@@ -197,12 +196,9 @@ export async function handleAutoroleModalSubmit(
   }
 
   const guildMember = member as import("discord.js").GuildMember;
-  const channelId = interaction.channelId ?? "";
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const defaults = getPluginDefaultOverrides("autorole");
   const ephemeral = resolveEphemeral(guildConfig);
 
-  if (!hasPluginPermission(guildConfig, "autorole", "can_add", guildMember, channelId, categoryId, defaults)) {
+  if (!(await hasPermission(interaction.guildId, "autorole", "can_add", guildMember, guildConfig))) {
     await interaction.reply(
       resultReply(
         "Permission denied",
@@ -232,7 +228,7 @@ export async function handleAutoroleModalSubmit(
     delayInput = "";
   }
 
-  const pluginConfig = resolvePluginConfig(guildConfig, "autorole", defaults, guildMember, channelId, categoryId);
+  const pluginConfig = await resolveEffectivePluginConfig(interaction.guildId, "autorole", guildMember, guildConfig);
   const created = await createAutoroleEntry(
     configManager,
     interaction.guild,

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { boolPerm } from "../schemaHelp.js";
-import { zPluginOverride } from "./pluginSection.js";
 
 export const zUtilityConfig = z.strictObject({
   jumbo_size: z
@@ -60,11 +59,6 @@ export type UtilityConfig = z.infer<typeof zUtilityConfig>;
 export const zUtilityPluginSection = z.strictObject({
   enabled: z.boolean().optional().describe("Turn the utility plugin on or off for this server."),
   config: zUtilityConfig.partial().optional(),
-  overrides: z.array(zPluginOverride).optional(),
-  replaceDefaultOverrides: z
-    .boolean()
-    .optional()
-    .describe("When true, ignore Dreamliner's built-in default level grants for this plugin."),
 });
 
 export type UtilityPluginSection = z.infer<typeof zUtilityPluginSection>;

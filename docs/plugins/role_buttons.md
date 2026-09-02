@@ -13,11 +13,6 @@ Toggle roles with button components on a message.
 plugins:
   role_buttons:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_delete: true
 ```
 
 The `can_create`/`can_delete` flags no longer gate anything (there's no command left to gate) —

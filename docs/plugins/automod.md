@@ -24,7 +24,6 @@ Changes in the Automod UI are not live until you press **Save**.
 | --- | --- |
 | **Ignored channels** | Automod never runs in these channels (snowflake picker). |
 | **Ignored roles** | Members with any of these roles bypass Automod. |
-| **Ignore above level** | Members at this permission level or higher are ignored. Leave blank to disable. Uses the guild **Levels** map. |
 | **Log channel** | Optional channel for Automod hit logs. Falls back to the server moderation log channel. |
 | **DM members on warn** | Default for warn DMs when a rule does not set its own notify toggle. |
 
@@ -145,7 +144,7 @@ Custom filter entries are preserved when you re-apply a preset.
 
 ## Discord commands
 
-- `/automod status` — overview (includes ignore above level)
+- `/automod status` — overview (includes ignored roles)
 - `/automod test` — dry-run sample text against content rules (uses **saved** config)
 - `/automod preset` — apply Light / Standard / Strict
 - `/automod toggle` — enable/disable a rule
@@ -156,7 +155,7 @@ Dashboard **Test a message** also uses the last saved bot config.
 
 ## How hits become cases
 
-1. A detector matches (unless the channel/role/level is ignored).  
+1. A detector matches (unless the channel or role is ignored).  
 2. A hit is stored in `automod_hits`.  
 3. Recent hits in the rule’s window become a **score** (`hits × points`).  
 4. The matching ladder step’s **actions** run (can be several at once).  
@@ -167,7 +166,8 @@ Case metadata includes `source: "automod"`, `ruleId`, `hitCount`, `points`, and 
 
 ## Permissions
 
-Base `can_*` flags (prefer granting via Overrides / levels):
+Base `can_*` flags — grant them to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`), see [permissions.md](../permissions.md):
 
 - `can_status` — check Automod status  
 - `can_test` — run Automod tests  

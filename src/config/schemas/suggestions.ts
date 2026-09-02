@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { boolPerm, channelId } from "../schemaHelp.js";
-import { zPluginOverride } from "./pluginSection.js";
 
 const snowflakeList = (description: string) =>
   z.array(z.string()).default([]).describe(description);
@@ -129,11 +128,6 @@ export const zSuggestionsConfig = z.strictObject({
 export const zSuggestionsPluginSection = z.strictObject({
   enabled: z.boolean().optional().describe("Turn suggestions on or off for this server."),
   config: zSuggestionsConfig.partial().optional(),
-  overrides: z.array(zPluginOverride).optional(),
-  replaceDefaultOverrides: z
-    .boolean()
-    .optional()
-    .describe("When true, ignore Dreamliner's built-in default level grants for this plugin."),
 });
 
 export type SuggestionsConfig = z.infer<typeof zSuggestionsConfig>;

@@ -1,10 +1,8 @@
 import type { GuildBan, GuildMember, User } from "discord.js";
-import { getMemberLevel } from "../../../core/permissions.js";
 import { userRegexMatches } from "../../../core/userRegex.js";
-import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { codeBlock } from "../../../core/embeds.js";
 
-export type SearchSort = "name" | "joined" | "created" | "level";
+export type SearchSort = "name" | "joined" | "created" | "role";
 
 export type SearchOptions = {
   query: string;
@@ -43,7 +41,7 @@ function memberMatches(member: GuildMember, opts: SearchOptions): boolean {
   return names.some((n) => matchQuery(n, opts.query, opts.caseSensitive ?? false, opts.regex ?? false));
 }
 
-function sortMembers(members: GuildMember[], sort: SearchSort, guildConfig: GuildConfig): GuildMember[] {
+function sortMembers(members: GuildMember[], sort: SearchSort): GuildMember[] {
   const sorted = [...members];
   switch (sort) {
     case "joined":
@@ -52,11 +50,8 @@ function sortMembers(members: GuildMember[], sort: SearchSort, guildConfig: Guil
     case "created":
       sorted.sort((a, b) => a.user.createdTimestamp - b.user.createdTimestamp);
       break;
-    case "level":
-      sorted.sort(
-        (a, b) =>
-          getMemberLevel(b, guildConfig.levels) - getMemberLevel(a, guildConfig.levels),
-      );
+    case "role":
+      sorted.sort((a, b) => b.roles.highest.position - a.roles.highest.position);
       break;
     case "name":
     default:
@@ -67,7 +62,6 @@ function sortMembers(members: GuildMember[], sort: SearchSort, guildConfig: Guil
 
 export async function searchMembers(
   guild: import("discord.js").Guild,
-  guildConfig: GuildConfig,
   opts: SearchOptions,
 ): Promise<SearchResult> {
   const pageSize = opts.pageSize ?? 15;
@@ -91,7 +85,7 @@ export async function searchMembers(
 
   members = members.filter((m) => memberMatches(m, opts));
 
-  members = sortMembers(members, opts.sort ?? "name", guildConfig);
+  members = sortMembers(members, opts.sort ?? "name");
 
   const total = members.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

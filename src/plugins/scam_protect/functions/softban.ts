@@ -1,7 +1,7 @@
 import { PermissionFlagsBits, type Guild, type User } from "discord.js";
 import type { Client } from "discord.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
-import { getInfractionPluginConfig } from "../../../core/guildHelpers.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { createInfraction, postCaseLog } from "../../infraction/functions/infractions.js";
 import { formatReason } from "../../infraction/functions/moderation.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
@@ -29,7 +29,7 @@ export async function softbanForScamProtect(options: {
     }
   }
 
-  const pluginConfig = getInfractionPluginConfig(guildConfig) as InfractionConfig;
+  const pluginConfig = getPluginSettings(guildConfig, "infractions") as InfractionConfig;
   const deleteDays = Math.min(7, Math.max(0, pluginConfig.softban_delete_message_days ?? 7));
   const reason = formatReason(
     options.reason ?? "Scam Protect: posted in the honeypot channel",

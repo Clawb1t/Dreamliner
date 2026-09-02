@@ -29,7 +29,6 @@ plugins:
 |-------|-------------|
 | `auto_translate` | Dreamliner One exclusive. When `true`, react with the default-language flag on messages that look like another language. Default `false`. |
 | `ignored_channels` | Channel IDs where auto-translate is skipped. |
-| `can_translate` | Permission to use `/translate` |
 
 ## Commands
 
@@ -37,14 +36,8 @@ plugins:
 |---------|------------|-------------|
 | `/translate` | `can_translate` | Translate `text` or a `message_id` (raw ID in this channel, or a Discord message link). Optional `language` (autocomplete); otherwise uses the server default. |
 
-Default permission grants (level **50+**):
-
-```yaml
-overrides:
-  - level: ">=50"
-    config:
-      can_translate: true
-```
+Grant `can_translate` to a Dreamliner Role on the dashboard's **Roles** page (or `/permissions role grant`) —
+see [permissions.md](../permissions.md).
 
 ## Auto-translate
 

@@ -8,12 +8,10 @@ Look up past usernames and nicknames stored by Dreamliner.
 plugins:
   name_history:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_view: true
-          can_search: true
 ```
+
+Grant `can_view` and `can_search` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Commands
 

@@ -7,8 +7,7 @@ import {
 } from "discord.js";
 import type { ConfigManager } from "../../../config/manager.js";
 import { zReviewsConfig } from "../../../config/schemas/reviews.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { checkFeedbackEligibility } from "../../feedback/eligibility.js";
@@ -133,23 +132,16 @@ export async function handleReviewModalSubmit(
   }
 
   const member = interaction.member as import("discord.js").GuildMember;
-  const categoryId =
-    interaction.channel?.isTextBased() && "parentId" in interaction.channel
-      ? interaction.channel.parentId
-      : null;
-  const defaults = getPluginDefaultOverrides("reviews");
   const ephemeral = resolveEphemeral(guildConfig);
 
   if (
-    !hasPluginPermission(
-      guildConfig,
+    !(await hasPermission(
+      interaction.guildId!,
       "reviews",
       "can_review",
       member,
-      interaction.channelId ?? "",
-      categoryId,
-      defaults,
-    )
+      guildConfig,
+    ))
   ) {
     await interaction.reply(
       resultReply("Permission denied", "You do not have permission to submit reviews.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
@@ -158,7 +150,7 @@ export async function handleReviewModalSubmit(
   }
 
   const pluginConfig = zReviewsConfig.parse(
-    resolvePluginConfig(guildConfig, "reviews", defaults, member, interaction.channelId ?? "", categoryId),
+    await resolveEffectivePluginConfig(interaction.guildId!, "reviews", member, guildConfig),
   );
 
   const existing = await getActiveReviewByUser(interaction.guildId!, member.id);

@@ -12,7 +12,7 @@ import type { RolePanel } from "../../../config/schemas/rolePanels.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { emojiKeysMatch } from "../../../core/emoji.js";
 import { parseMessageLink } from "../../../core/messageLink.js";
-import { ROLE_PANEL_PREFIX } from "../defaultOverrides.js";
+import { ROLE_PANEL_PREFIX } from "../customIds.js";
 import {
   buildRolePanelButtonRows,
   buildRolePanelPayload,

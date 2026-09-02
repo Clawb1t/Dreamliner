@@ -1,13 +1,3 @@
-# Default server configuration for Dreamliner.
-# Download via /config template, edit, then upload via /config upload.
-# Only include keys you want to override - missing keys inherit these defaults.
-
-# Map role or user snowflakes to permission levels (higher = more access).
-# `levels: {}` is empty. To add entries, replace with indented keys (no braces):
-# levels:
-#   "ROLE_OR_USER_ID": 100
-#   "ROLE_OR_USER_ID": 50
-levels: {}
 
 # Server events: joins, leaves, edits, deletes, voice activity, role/nickname changes
 server_log_channel_id: "1111111111111111111"
@@ -21,7 +11,7 @@ logging:
   # `logging.emojis` isn't listed here — the icon prefixed to each log card title is fixed
   # bot-wide (not per-server configurable). See src/core/logging/emojis.ts.
 
-# When true, command replies are only visible to the user who ran the command.
+  # When true, command replies are only visible to the user who ran the command.
 ephemeral_responses: false
 
 # When true (default), anyone with Discord's Administrator permission (or the server owner) can
@@ -52,7 +42,6 @@ default_language: en
 plugins:
   utility:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       jumbo_size: 128
       autojoin_threads: true
@@ -86,46 +75,10 @@ plugins:
       can_time: false
       can_convert_gif: false
       can_create_quote: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_search: true
-          can_clean: true
-          can_userinfo: true
-          can_server: true
-          can_channelinfo: true
-          can_messageinfo: true
-          can_inviteinfo: true
-          can_roleinfo: true
-          can_emojiinfo: true
-          can_snowflake: true
-          can_roles: true
-          can_level: true
-          can_context: true
-          can_source: true
-          can_nickname: true
-          can_vcmove: true
-          can_vckick: true
-          can_help: true
-          can_avatar: true
-          can_jumbo: true
-          can_stealemoji: true
-          can_info: true
-          can_time: true
-          can_convert_gif: true
-          can_create_quote: true
-      - level: ">=100"
-        config:
-          can_reload_guild: true
-          can_ping: true
-          can_about: true
   infractions:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       case_log_channel: "1111111111111111111"
-      reason_edit_level: 100
-      duration_edit_level: 100
       ban_delete_message_days: 0
       softban_delete_message_days: 7
       notify:
@@ -154,25 +107,8 @@ plugins:
       can_edit_reason: false
       can_edit_duration: false
       can_delete: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_warn: true
-          can_note: true
-          can_mute: true
-          can_kick: true
-          can_view: true
-          can_edit_reason: true
-          can_edit_duration: true
-      - level: ">=100"
-        config:
-          can_ban: true
-          can_unban: true
-          can_softban: true
-          can_delete: true
   autorole:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       roles:
         - role: "1111111111111111111"
@@ -180,7 +116,6 @@ plugins:
       bot_roles: []
   member_identity:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       save_on_leave: true
       save_on_update: true
@@ -193,13 +128,11 @@ plugins:
       delay_ms: 0
   translation:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       auto_translate: false # Dreamliner One exclusive
       ignored_channels: []
   starboard:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       ignored_channels: []
       ignored_roles: []
@@ -219,7 +152,6 @@ plugins:
             - "⭐"
   automod:
     enabled: false
-    replaceDefaultOverrides: false
     config:
       presets_applied: null
       ignored_channels: []
@@ -230,31 +162,17 @@ plugins:
       can_status: false
       can_test: false
       can_configure: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_status: true
-          can_test: true
-          can_configure: true
   scam_protect:
     enabled: false
-    replaceDefaultOverrides: false
     config:
       channel_id: ""
       warning_message_id: ""
       channel_name: ""
-      staff_level: 50
-      ignore_staff: true
       can_setup: false
       can_status: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_setup: true
-          can_status: true
+      ignored_roles: []
   passport:
     enabled: false
-    replaceDefaultOverrides: false
     config:
       channel_id: ""
       unverified_role_id: ""
@@ -265,7 +183,10 @@ plugins:
       ping:
         enabled: true
         ping_style: mention
-        content: "Hey {user}, welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server."
+        content: "Hey {user}, welcome to **{guild}**.
+
+
+          Tap **Verify** to unlock the rest of the server."
         button_label: "Verify"
         also_dm: false
         delete_on_verify: true
@@ -274,7 +195,10 @@ plugins:
         embed:
           enabled: false
       panel:
-        content: "Welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server."
+        content: "Welcome to **{guild}**.
+
+
+          Tap **Verify** to unlock the rest of the server."
         button_label: "Verify"
         embed:
           enabled: false
@@ -298,16 +222,8 @@ plugins:
       can_force: false
       can_revoke: false
       can_test: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_panel: true
-          can_force: true
-          can_revoke: true
-          can_test: true
   economy:
     enabled: false
-    replaceDefaultOverrides: false
     config:
       server:
         currency_name: Coins
@@ -318,33 +234,17 @@ plugins:
       can_balance: false
       can_daily: false
       can_admin_manage: false
-    overrides:
-      - level: ">=0"
-        config:
-          can_balance: true
-          can_daily: true
-      - level: ">=50"
-        config:
-          can_admin_manage: true
   anime:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_neko: false
       can_saved: false
-    overrides:
-      - level: ">=0"
-        config:
-          can_neko: true
-          can_saved: true
   persist:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       messages: []
   slowmode:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       default_seconds: 5
       individual_enabled: true
@@ -355,61 +255,29 @@ plugins:
       can_clear: false
       can_manage_rules: false
       can_configure: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_set: true
-          can_clear: true
-          can_manage_rules: true
-          can_configure: true
   roles:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_give: false
       can_remove: false
       can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_give: true
-          can_remove: true
-          can_list: true
   reaction_roles:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_create: false
       can_delete: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_delete: true
   role_buttons:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_create: false
       can_delete: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_delete: true
   self_grantable_roles:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       max_roles_per_panel: 10
       can_configure: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_configure: true
   welcome_message:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       join:
         enabled: true
@@ -435,97 +303,51 @@ plugins:
       can_set: false
       can_test: false
       can_disable: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_set: true
-          can_test: true
-          can_disable: true
   tags:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_create: false
       can_edit: false
       can_delete: false
       can_list: false
       can_show: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_edit: true
-          can_delete: true
-          can_list: true
-          can_show: true
   autodelete:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       rules: []
   autoreactions:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       rules: []
       can_add: false
       can_remove: false
       can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_add: true
-          can_remove: true
-          can_list: true
   autoreplies:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       rules: []
       can_add: false
       can_remove: false
       can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_add: true
-          can_remove: true
-          can_list: true
   autothreads:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       rules: []
       can_add: false
       can_remove: false
       can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_add: true
-          can_remove: true
-          can_list: true
   reminders:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_create: false
       can_list: false
       can_cancel: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_list: true
-          can_cancel: true
   counters:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       counters: []
   companion_channels:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       setups: []
       features:
@@ -557,63 +379,34 @@ plugins:
       member_role_id: ""
   name_history:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_view: false
       can_search: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_view: true
-          can_search: true
   username_saver:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       enabled: true
   locate_user:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_locate: false
       can_seen: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_locate: true
-          can_seen: true
   stats:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       can_server: false
       can_user: false
       can_channel: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_server: true
-          can_user: true
-          can_channel: true
   dream_commands:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       prefix: "d!"
       can_create: false
       can_edit: false
       can_remove: false
       can_list: false
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_edit: true
-          can_remove: true
-          can_list: true
   reviews:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       review_channel_id: "1111111111111111111"
       min_messages: 50
@@ -634,18 +427,8 @@ plugins:
       can_list: false
       can_delete: false
       can_manage: false
-    overrides:
-      - level: ">=0"
-        config:
-          can_review: true
-      - level: ">=50"
-        config:
-          can_list: true
-          can_delete: true
-          can_manage: true
   suggestions:
     enabled: true
-    replaceDefaultOverrides: false
     config:
       mode: review
       suggestions_channel_id: "1111111111111111111"
@@ -696,26 +479,9 @@ plugins:
       can_delete: false
       can_block: false
       can_manage: false
-    overrides:
-      - level: ">=0"
-        config:
-          can_suggest: true
-          can_vote: true
-          can_follow: true
-          can_info: true
-          can_top: true
-      - level: ">=50"
-        config:
-          can_approve: true
-          can_deny: true
-          can_mark: true
-          can_delete: true
-          can_block: true
-          can_manage: true
 
   tickets:
     enabled: false
-    replaceDefaultOverrides: false
     config:
       staff_role_ids: []
       log_channel_id: ""
@@ -734,21 +500,3 @@ plugins:
       can_view_all: false
       can_delete: false
       can_blacklist: false
-    overrides:
-      - level: ">=25"
-        config:
-          can_claim: true
-          can_close: true
-          can_reopen: true
-          can_add_remove_members: true
-      - level: ">=50"
-        config:
-          can_close_others: true
-      - level: ">=75"
-        config:
-          can_manage_panels: true
-          can_view_all: true
-          can_blacklist: true
-      - level: ">=100"
-        config:
-          can_delete: true

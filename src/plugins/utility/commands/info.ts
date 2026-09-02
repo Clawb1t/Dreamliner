@@ -255,14 +255,14 @@ export const infoCommands: SlashCommandDefinition[] = [
     permission: "can_level",
     data: new SlashCommandBuilder()
       .setName("level")
-      .setDescription("Show a member's permission level")
+      .setDescription("Show a member's Dreamliner Roles")
       .addUserOption((o) => o.setName("member").setDescription("Member")),
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_level");
       if (!auth) return;
       const user = ctx.interaction.options.getUser("member") ?? ctx.interaction.user;
       const member = await ctx.interaction.guild!.members.fetch(user.id);
-      await ctx.interaction.reply(embedReply(buildLevelEmbed(member, ctx.guildConfig, ctx.client), ctx.ephemeral));
+      await ctx.interaction.reply(embedReply(await buildLevelEmbed(ctx.interaction.guildId!, member, ctx.guildConfig, ctx.client), ctx.ephemeral));
     },
   },
   {

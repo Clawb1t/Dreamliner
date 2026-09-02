@@ -22,7 +22,7 @@ import {
   type Client,
 } from "discord.js";
 import { decodeSnowflake } from "../../../core/datetime.js";
-import { getMemberLevel } from "../../../core/permissions.js";
+import { getMemberPermissionRoles, hasAdminBypass } from "../../../core/permissionRoles.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { countUserInfractions, countUserInfractionsGlobal } from "../../infraction/functions/infractions.js";
 import { getGlobalMessageCount, getGuildMessageCount } from "./messageCounts.js";
@@ -129,13 +129,14 @@ export async function buildUserInfoEmbed(
     const roles = [...member.roles.cache.values()]
       .filter((r) => r.id !== member.guild.id)
       .sort((a, b) => b.position - a.position);
+    const permissionRoles = await getMemberPermissionRoles(guildId, member);
 
     embed.addFields(
       embedField(
         "Member information",
         trimLines(`
           ${user.bot ? "Added" : "Joined"}: **${member.joinedAt ? discordTs(member.joinedAt) : "unknown"}**
-          Level: **${getMemberLevel(member, guildConfig.levels)}**
+          Dreamliner Roles: **${permissionRoles.map((r) => r.name).join(", ") || "none"}**
           ${roles.length > 0 ? `Roles: ${trimRoles(roles)}` : ""}
         `),
       ),
@@ -658,8 +659,9 @@ export function buildRolesListEmbed(
   ).setDescription(codeBlock(lines.join("\n")));
 }
 
-export function buildLevelEmbed(member: GuildMember, guildConfig: GuildConfig, client: Client): EmbedBuilder {
-  const level = getMemberLevel(member, guildConfig.levels);
+export async function buildLevelEmbed(guildId: string, member: GuildMember, guildConfig: GuildConfig, client: Client): Promise<EmbedBuilder> {
+  const roles = await getMemberPermissionRoles(guildId, member);
+  const bypass = hasAdminBypass(member, guildConfig);
   const embed = setEmbedAuthor(
     baseEmbed(),
     `User: ${member.user.tag}`,
@@ -673,10 +675,11 @@ export function buildLevelEmbed(member: GuildMember, guildConfig: GuildConfig, c
   if (accent) embed.setColor(accent);
   embed.addFields(
     embedField(
-      "Permission level",
+      "Dreamliner Roles",
       trimLines(`
         Member: <@!${member.id}>
-        Level: **${level}**
+        Roles: **${roles.map((r) => r.name).join(", ") || "none"}**
+        ${bypass ? "Admin bypass: **on** (full access regardless of role assignment)" : ""}
       `),
     ),
   );

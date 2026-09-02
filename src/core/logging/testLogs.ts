@@ -268,6 +268,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       null,
       "modDefault",
     ),
+  dashboard_permission_role: (ctx) =>
+    buildGenericServerLog(
+      "Dreamliner Role Change",
+      [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Changed a Dreamliner Role."],
+      null,
+      "serverUpdate",
+    ),
 };
 
 export type TestLogResult = {

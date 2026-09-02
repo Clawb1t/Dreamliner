@@ -10,12 +10,10 @@ import {
   updateInfractionReason,
 } from "../functions/infractions.js";
 import { buildInfractionEmbed, buildInfractionListEmbed } from "../functions/embeds.js";
-import { canEditInfractionDuration, canEditInfractionReason } from "../functions/moderation.js";
 import { parseDuration, formatDurationShort } from "../functions/duration.js";
 import type { InfractionType, InfractionConfig } from "../../../config/schemas/infraction.js";
 import { buildCaseDeleteLog, buildCaseUpdateLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
-import { getInfractionPluginConfig } from "../../../core/guildHelpers.js";
 
 export const manageCommands: SlashCommandDefinition[] = [
   {
@@ -116,13 +114,9 @@ export const manageCommands: SlashCommandDefinition[] = [
           await ctx.interaction.reply(resultReply("Infraction", `No infraction #${id} found.`, ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
-        if (!canEditInfractionReason(ctx.guildConfig, auth.pluginConfig, auth.member, record.modId)) {
-          await ctx.interaction.reply(resultReply("Permission denied", "You cannot edit this infraction's reason.", ctx.ephemeral, slashResultOptions(ctx)));
-          return;
-        }
         const reasonUpdateEmoji = "<:icons_pen:1544417369709871224>";
         await updateInfractionReason(guildId, id, reason);
-        const pluginConfig = getInfractionPluginConfig(ctx.guildConfig) as InfractionConfig;
+        const pluginConfig = auth.pluginConfig as InfractionConfig;
         await sendModerationLog(
           ctx.client,
           ctx.guildConfig,
@@ -161,17 +155,12 @@ export const manageCommands: SlashCommandDefinition[] = [
           await ctx.interaction.reply(resultReply("Infraction", `No infraction #${id} found.`, ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
-        if (!canEditInfractionDuration(ctx.guildConfig, auth.pluginConfig, auth.member, record.modId)) {
-          await ctx.interaction.reply(resultReply("Permission denied", "You cannot edit this infraction's duration.", ctx.ephemeral, slashResultOptions(ctx)));
-          return;
-        }
-
         let newType: InfractionType | undefined;
         if (record.type === "mute") newType = "tempmute";
         if (record.type === "ban") newType = "tempban";
 
         const expiresAt = await updateInfractionDuration(guildId, id, durationMs, newType);
-        const pluginConfig = getInfractionPluginConfig(ctx.guildConfig) as InfractionConfig;
+        const pluginConfig = auth.pluginConfig as InfractionConfig;
 
         if (record.type === "mute" || record.type === "tempmute" || newType === "tempmute") {
           const { applyTimeout, clampTimeoutMs, DISCORD_TIMEOUT_MAX_MS } = await import("../functions/infractions.js");
@@ -223,7 +212,7 @@ export const manageCommands: SlashCommandDefinition[] = [
           return;
         }
         await deleteInfraction(guildId, id);
-        const pluginConfig = getInfractionPluginConfig(ctx.guildConfig) as InfractionConfig;
+        const pluginConfig = auth.pluginConfig as InfractionConfig;
         await sendModerationLog(
           ctx.client,
           ctx.guildConfig,

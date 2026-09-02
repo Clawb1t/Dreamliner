@@ -1,9 +1,8 @@
 import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resultEdit, resultReply, slashResultOptions } from "../../../core/responses.js";
-import { hasPluginPermission } from "../../../core/permissions.js";
+import { hasPermission } from "../../../core/permissionRoles.js";
 import { getTicketsPluginConfig } from "../../../core/guildHelpers.js";
-import { ticketsDefaultOverrides } from "../defaultOverrides.js";
 import { requireTicketChannel, requireTicketPermission } from "../functions/commandHelpers.js";
 import {
   addToBlacklist,
@@ -111,7 +110,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
 
       if (sub === "new") {
         const guildConfig = ctx.guildConfig;
-        const pluginConfig = getTicketsPluginConfig(guildConfig) as TicketsConfig;
+        const pluginConfig = (await getTicketsPluginConfig(guildId, guildConfig)) as TicketsConfig;
         const pairs = pluginConfig.panels
           .filter((p) => p.enabled)
           .flatMap((panel) => panel.categories.map((category) => ({ panel, category })));
@@ -187,12 +186,12 @@ export const ticketCommands: SlashCommandDefinition[] = [
       }
 
       if (sub === "close") {
-        const pluginConfig = getTicketsPluginConfig(ctx.guildConfig, interaction.member as import("discord.js").GuildMember, interaction.channelId) as TicketsConfig;
+        const pluginConfig = (await getTicketsPluginConfig(guildId, ctx.guildConfig, interaction.member as import("discord.js").GuildMember)) as TicketsConfig;
         const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
         const category = panel?.categories.find((c) => c.id === ticket.categoryId);
         const isOpener = ticket.openerId === interaction.user.id;
-        const isStaff = hasPluginPermission(ctx.guildConfig, "tickets", "can_close_others", interaction.member as import("discord.js").GuildMember, interaction.channelId, null, ticketsDefaultOverrides);
-        const canCloseOwn = isOpener && hasPluginPermission(ctx.guildConfig, "tickets", "can_close", interaction.member as import("discord.js").GuildMember, interaction.channelId, null, ticketsDefaultOverrides);
+        const isStaff = await hasPermission(guildId, "tickets", "can_close_others", interaction.member as import("discord.js").GuildMember, ctx.guildConfig);
+        const canCloseOwn = isOpener && (await hasPermission(guildId, "tickets", "can_close", interaction.member as import("discord.js").GuildMember, ctx.guildConfig));
         if (!canCloseTicket(category?.close_permission ?? "either", canCloseOwn, isStaff)) {
           await interaction.reply(resultReply("Permission denied", "You cannot close this ticket.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
@@ -268,7 +267,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
         }
         const sent = await dmTranscript(interaction.user, ticket, latest.id);
         if (!sent) {
-          const pluginConfig = getTicketsPluginConfig(ctx.guildConfig) as TicketsConfig;
+          const pluginConfig = (await getTicketsPluginConfig(guildId, ctx.guildConfig)) as TicketsConfig;
           const channelId = pluginConfig.default_transcript_channel_id;
           if (channelId) await postTranscriptLog(ctx.client, channelId, ticket, latest.id);
         }

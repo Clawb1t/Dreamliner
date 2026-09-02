@@ -1,8 +1,7 @@
 import type { Guild } from "discord.js";
 import { configManager } from "../config/manager.js";
 import { zSuggestionsConfig, type SuggestionDisplayStatus } from "../config/schemas/suggestions.js";
-import { suggestionsDefaultOverrides } from "../plugins/suggestions/defaultOverrides.js";
-import { resolvePluginConfig } from "../core/permissions.js";
+import { getPluginSettings } from "../core/permissionRoles.js";
 import {
   getSuggestionById,
   getSuggestionByNumber,
@@ -118,7 +117,7 @@ async function toWebSuggestion(guild: Guild, suggestion: Suggestion): Promise<We
 async function getSuggestionsConfig(guildId: string) {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
   return zSuggestionsConfig.parse(
-    resolvePluginConfig(guildConfig, "suggestions", suggestionsDefaultOverrides),
+    getPluginSettings(guildConfig, "suggestions"),
   );
 }
 

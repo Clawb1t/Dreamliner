@@ -39,13 +39,10 @@ plugins:
         enabled: false
         label: "Wave"
         emoji: "👋"
-    overrides:
-      - level: ">=50"
-        config:
-          can_set: true
-          can_test: true
-          can_disable: true
 ```
+
+Grant `can_set`, `can_test`, and `can_disable` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 | Section | Description |
 |---------|-------------|

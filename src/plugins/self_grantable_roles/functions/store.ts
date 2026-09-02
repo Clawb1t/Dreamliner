@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { selfRolePanels } from "../../../db/schema.js";
-import type { SelfRolePanelConfig } from "../defaultOverrides.js";
+import type { SelfRolePanelConfig } from "../customIds.js";
 
 export type SelfRolePanel = {
   guildId: string;

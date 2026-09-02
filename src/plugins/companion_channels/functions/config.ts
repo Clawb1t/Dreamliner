@@ -5,14 +5,14 @@ import {
   type CompanionSetup,
 } from "../../../config/schemas/companion.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
 
 export function loadCompanionConfig(guildConfig: GuildConfig): CompanionChannelsConfig {
   // Overrides are untyped records, so leftover hub-command keys can still be merged in.
   return parsePluginConfig(
     zCompanionChannelsConfig,
-    resolvePluginConfig(guildConfig, "companion_channels"),
+    getPluginSettings(guildConfig, "companion_channels"),
   );
 }
 

@@ -1,9 +1,7 @@
 import type { GuildMember } from "discord.js";
 import type { SlashCommandContext } from "./types.js";
-import { hasPluginPermission } from "./permissions.js";
-import { getPluginDefaultOverrides } from "./guildHelpers.js";
+import { hasPermission, resolveEffectivePluginConfig } from "./permissionRoles.js";
 import { resultReply, slashResultOptions } from "./responses.js";
-import { resolvePluginConfig } from "./permissions.js";
 
 export async function requirePluginPermission(
   ctx: SlashCommandContext,
@@ -35,15 +33,13 @@ export async function requirePluginPermission(
   }
 
   const guildMember = member as GuildMember;
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const defaultOverrides = getPluginDefaultOverrides(pluginName);
 
-  if (!hasPluginPermission(guildConfig, pluginName, permission, guildMember, interaction.channelId, categoryId, defaultOverrides)) {
+  if (!(await hasPermission(interaction.guildId, pluginName, permission, guildMember, guildConfig))) {
     await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ephemeral, slashResultOptions(ctx, { tone: "error" })));
     return null;
   }
 
-  const pluginConfig = resolvePluginConfig(guildConfig, pluginName, defaultOverrides, guildMember, interaction.channelId, categoryId);
+  const pluginConfig = await resolveEffectivePluginConfig(interaction.guildId, pluginName, guildMember, guildConfig);
   return { member: guildMember, pluginConfig };
 }
 

@@ -50,16 +50,8 @@ Set `enabled: false` on the plugin section to turn autorole off without removing
 
 Changes from commands are saved to your server config (same YAML section as manual edits). Use `/config download` to export the updated config.
 
-Default permission grants (level **50+**):
-
-```yaml
-overrides:
-  - level: ">=50"
-    config:
-      can_add: true
-      can_remove: true
-      can_list: true
-```
+Grant `can_add`, `can_remove`, and `can_list` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Requirements
 

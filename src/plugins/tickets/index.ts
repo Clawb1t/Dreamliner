@@ -1,9 +1,8 @@
 import { Events, type GuildMember } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { configManager } from "../../config/manager.js";
-import { resolvePluginConfig } from "../../core/permissions.js";
+import { getPluginSettings } from "../../core/permissionRoles.js";
 import { zTicketsConfig, type TicketCategory, type TicketsConfig } from "../../config/schemas/tickets.js";
-import { ticketsDefaultOverrides } from "./defaultOverrides.js";
 import { ticketCommands } from "./commands/ticket.js";
 import { processInactiveTickets } from "./functions/autoclose.js";
 import { processTicketEscalations } from "./functions/escalation.js";
@@ -21,7 +20,6 @@ function staffRoleIdsFor(category: TicketCategory | undefined, pluginConfig: Tic
 export const ticketsPlugin = definePlugin({
   name: "tickets",
   configSchema: zTicketsConfig,
-  defaultOverrides: ticketsDefaultOverrides,
   slashCommands: ticketCommands,
   onLoad: async ({ client }) => {
     setInterval(() => {
@@ -47,7 +45,7 @@ export const ticketsPlugin = definePlugin({
 
         const guildConfig = await configManager.getEffectiveConfig(msg.guild.id).catch(() => null);
         if (!guildConfig) return;
-        const pluginConfig = zTicketsConfig.parse(resolvePluginConfig(guildConfig, "tickets", ticketsDefaultOverrides));
+        const pluginConfig = zTicketsConfig.parse(getPluginSettings(guildConfig, "tickets"));
         const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
         const category = panel?.categories.find((c) => c.id === ticket.categoryId);
         const staffRoleIds = staffRoleIdsFor(category, pluginConfig);

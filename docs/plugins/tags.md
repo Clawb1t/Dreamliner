@@ -8,15 +8,10 @@ Store reusable text snippets that staff can post with slash commands or manage f
 plugins:
   tags:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_create: true
-          can_edit: true
-          can_delete: true
-          can_list: true
-          can_show: true
 ```
+
+Grant `can_create`, `can_edit`, `can_delete`, `can_list`, and `can_show` to a Dreamliner Role on the dashboard's
+**Roles** page (or `/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Dashboard
 

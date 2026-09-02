@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zUtilityConfig } from "../../config/schemas/utility.js";
-import { utilityDefaultOverrides } from "./defaultOverrides.js";
 import { searchCommands } from "./commands/search.js";
 import { infoCommands } from "./commands/info.js";
 import { moderationCommands } from "./commands/moderation.js";
@@ -9,7 +8,7 @@ import { voiceCommands, nicknameCommands } from "./commands/voice.js";
 import { metaCommands } from "./commands/meta.js";
 import { contextMenuCommands } from "./commands/contextMenu.js";
 import { configManager } from "../../config/manager.js";
-import { getUtilityPluginConfig } from "../../core/guildHelpers.js";
+import { getPluginSettings } from "../../core/permissionRoles.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
 import { recordUserMessage } from "./functions/messageCounts.js";
 import { handleExpandMessageLinks } from "./functions/expandMessageLinks.js";
@@ -19,7 +18,6 @@ import { sweepExpiredMessageContent } from "../../core/contentRetentionSweep.js"
 export const utilityPlugin = definePlugin({
   name: "utility",
   configSchema: zUtilityConfig,
-  defaultOverrides: utilityDefaultOverrides,
   slashCommands: [
     ...searchCommands,
     ...infoCommands,
@@ -46,7 +44,7 @@ export const utilityPlugin = definePlugin({
         if (!pluginEnabled(guildConfig, "utility")) return;
         await recordUserMessage(msg.guild.id, msg.author.id).catch(() => null);
 
-        const pluginConfig = getUtilityPluginConfig(guildConfig);
+        const pluginConfig = getPluginSettings(guildConfig, "utility");
         if (pluginConfig.expand_message_links !== false) {
           await handleExpandMessageLinks(msg).catch(() => null);
         }
@@ -59,7 +57,7 @@ export const utilityPlugin = definePlugin({
         if (!t.guild) return;
         const guildConfig = await configManager.getEffectiveConfig(t.guild.id);
         if (!pluginEnabled(guildConfig, "utility")) return;
-        const pluginConfig = getUtilityPluginConfig(guildConfig);
+        const pluginConfig = getPluginSettings(guildConfig, "utility");
         if (pluginConfig.autojoin_threads === false) return;
         if (t.joinable && !t.joined) {
           await t.join().catch(() => null);
@@ -74,7 +72,7 @@ export const utilityPlugin = definePlugin({
           if (!thread.guild) continue;
           const guildConfig = await configManager.getEffectiveConfig(thread.guild.id);
           if (!pluginEnabled(guildConfig, "utility")) continue;
-          const pluginConfig = getUtilityPluginConfig(guildConfig);
+          const pluginConfig = getPluginSettings(guildConfig, "utility");
           if (pluginConfig.autojoin_threads === false) continue;
           if (thread.joinable && !thread.joined) {
             await thread.join().catch(() => null);

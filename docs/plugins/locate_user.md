@@ -8,12 +8,10 @@ Find which voice channel a member is currently in, and when they were last seen 
 plugins:
   locate_user:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_locate: true
-          can_seen: true
 ```
+
+Grant `can_locate` and `can_seen` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Commands
 

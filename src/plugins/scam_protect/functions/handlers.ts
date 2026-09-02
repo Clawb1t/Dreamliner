@@ -1,6 +1,5 @@
 import { PermissionFlagsBits, type Channel, type Client, type Message } from "discord.js";
 import { configManager } from "../../../config/manager.js";
-import { getMemberLevel } from "../../../core/permissions.js";
 import {
   ensureScamProtectChannel,
   ensureScamProtectForClient,
@@ -26,10 +25,7 @@ export async function handleScamProtectMessage(message: Message): Promise<void> 
     if (message.guild.ownerId === message.author.id) return;
     if (message.member.permissions.has(PermissionFlagsBits.Administrator)) return;
     if (message.member.permissions.has(PermissionFlagsBits.BanMembers)) return;
-    if (config.ignore_staff) {
-      const level = getMemberLevel(message.member, guildConfig.levels);
-      if (level >= config.staff_level) return;
-    }
+    if (config.ignored_roles.some((id) => message.member!.roles.cache.has(id))) return;
   }
 
   const key = `${message.guild.id}:${message.author.id}`;

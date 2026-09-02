@@ -4,14 +4,12 @@ import { zNameHistoryConfig } from "../../config/schemas/plugins.js";
 import { configManager } from "../../config/manager.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
 import { findAuditExecutor } from "../../core/logging/audit.js";
-import { nameHistoryDefaultOverrides } from "./defaultOverrides.js";
 import { namesCommands } from "./commands/names.js";
 import { recordNameChange } from "./functions/store.js";
 
 export const nameHistoryPlugin = definePlugin({
   name: "name_history",
   configSchema: zNameHistoryConfig,
-  defaultOverrides: nameHistoryDefaultOverrides,
   slashCommands: namesCommands,
   events: [
     {

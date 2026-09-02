@@ -8,13 +8,10 @@ Give, remove, and list roles on members from slash commands.
 plugins:
   roles:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_give: true
-          can_remove: true
-          can_list: true
 ```
+
+Grant `can_give`, `can_remove`, and `can_list` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Commands
 

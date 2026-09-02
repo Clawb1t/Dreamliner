@@ -3,7 +3,6 @@ import { definePlugin } from "../../core/plugin.js";
 import { zStatsConfig } from "../../config/schemas/plugins.js";
 import { configManager } from "../../config/manager.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
-import { statsDefaultOverrides } from "./defaultOverrides.js";
 import { statsCommands } from "./commands/stats.js";
 import { incrementDailyStat, recordMessageActivity } from "./functions/daily.js";
 
@@ -15,7 +14,6 @@ async function statsActive(guildId: string): Promise<boolean> {
 export const statsPlugin = definePlugin({
   name: "stats",
   configSchema: zStatsConfig,
-  defaultOverrides: statsDefaultOverrides,
   slashCommands: statsCommands,
   events: [
     {

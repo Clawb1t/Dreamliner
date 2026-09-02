@@ -1,52 +1,28 @@
-import {
-  SlashCommandBuilder,
-  SlashCommandSubcommandBuilder,
-  type AutocompleteInteraction,
-  type ChatInputCommandInteraction,
-} from "discord.js";
-import type { SlashCommandDefinition, ConfigOverride } from "../../../core/types.js";
+import { SlashCommandBuilder, type AutocompleteInteraction, type ChatInputCommandInteraction } from "discord.js";
+import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resultReply, slashResultOptions } from "../../../core/responses.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import type { GuildConfig } from "../../../config/schemas/guild.js";
-import {
-  autocompletePermissionTargets,
-  findPermissionTarget,
-  type PermissionTarget,
-} from "../permissionTargets.js";
+import { findPermissionCatalogEntry, getPermissionCatalog, grantKeyFor } from "../../../core/permissionCatalog.js";
+import { permissionRoleManager, type PermissionRoleDetail } from "../../../config/permissionRoleManager.js";
+import { autocompletePermissionTargets, findPermissionTarget, type PermissionTarget } from "../permissionTargets.js";
 
-function withTargetOptions(sub: SlashCommandSubcommandBuilder): SlashCommandSubcommandBuilder {
-  return sub
-    .addStringOption((o) =>
-      o.setName("command").setDescription("Command to change access for").setRequired(true).setAutocomplete(true),
-    )
-    .addUserOption((o) => o.setName("user").setDescription("Grant or revoke for this user"))
-    .addRoleOption((o) => o.setName("role").setDescription("Grant or revoke for this role"))
-    .addBooleanOption((o) => o.setName("everyone").setDescription("Grant or revoke for everyone in the server"));
+// Discord-side surface for Dreamliner Roles — a lighter-weight secondary surface to the
+// dashboard's Roles page (the grouped permission-toggle grid), useful for admins who'd rather
+// script/CLI their way through role setup than click through a web UI. See docs/permissions.md.
+
+function roleLabel(role: { name: string; builtIn: string | null }): string {
+  return role.builtIn ? `${role.name} (built-in)` : role.name;
 }
 
-function resolveGrantTarget(interaction: ChatInputCommandInteraction):
-  | { ok: true; everyone?: boolean; user?: string; role?: string; label: string }
-  | { ok: false; error: string } {
-  const user = interaction.options.getUser("user");
-  const role = interaction.options.getRole("role");
-  const everyone = interaction.options.getBoolean("everyone") === true;
-
-  const selected = [everyone, Boolean(user), Boolean(role)].filter(Boolean).length;
-  if (selected === 0) {
-    return { ok: false, error: "Choose one of: `user`, `role`, or `everyone`." };
-  }
-  if (selected > 1) {
-    return { ok: false, error: "Choose only one of: `user`, `role`, or `everyone`." };
-  }
-  if (everyone) return { ok: true, everyone: true, label: "everyone" };
-  if (user) return { ok: true, user: user.id, label: `<@${user.id}>` };
-  if (role) {
-    if (interaction.guild && role.id === interaction.guild.id) {
-      return { ok: false, error: "Use `everyone: True` instead of the @everyone role." };
-    }
-    return { ok: true, role: role.id, label: `<@&${role.id}>` };
-  }
-  return { ok: false, error: "Choose one of: `user`, `role`, or `everyone`." };
+async function resolveRoleOption(
+  interaction: ChatInputCommandInteraction,
+  guildId: string,
+): Promise<PermissionRoleDetail | { error: string }> {
+  const raw = interaction.options.getString("role", true);
+  const roleId = Number(raw);
+  if (!Number.isInteger(roleId)) return { error: "Pick a role from the autocomplete list." };
+  const role = await permissionRoleManager.getRole(guildId, roleId);
+  if (!role) return { error: "That Dreamliner Role no longer exists." };
+  return role;
 }
 
 function resolveCommandTarget(interaction: ChatInputCommandInteraction): PermissionTarget | null {
@@ -54,54 +30,44 @@ function resolveCommandTarget(interaction: ChatInputCommandInteraction): Permiss
   return findPermissionTarget(raw) ?? null;
 }
 
-function describeDefaultAccess(target: PermissionTarget): string {
-  const defaults = getPluginDefaultOverrides(target.plugin);
-  const levels: string[] = [];
-  for (const override of defaults) {
-    if (override.level && override.config[target.permission] === true) {
-      levels.push(override.level);
+function resolveDiscordTarget(
+  interaction: ChatInputCommandInteraction,
+): { ok: true; type: "role" | "user"; id: string; label: string } | { ok: false; error: string } {
+  const discordRole = interaction.options.getRole("discord_role");
+  const discordUser = interaction.options.getUser("discord_user");
+  const selected = [Boolean(discordRole), Boolean(discordUser)].filter(Boolean).length;
+  if (selected !== 1) return { ok: false, error: "Choose exactly one of `discord_role` or `discord_user`." };
+  if (discordRole) {
+    if (interaction.guild && discordRole.id === interaction.guild.id) {
+      return { ok: false, error: "The @everyone role can't be assigned — every member already belongs to the Member role." };
     }
+    return { ok: true, type: "role", id: discordRole.id, label: `<@&${discordRole.id}>` };
   }
-  if (levels.length === 0) return "No default level grant.";
-  return `Default: granted at level ${levels.join(" or ")}.`;
-}
-
-function collectCustomGrants(guildConfig: GuildConfig, target: PermissionTarget): string[] {
-  const section = guildConfig.plugins[target.plugin as keyof typeof guildConfig.plugins] as
-    | { config?: Record<string, unknown>; overrides?: ConfigOverride[] }
-    | undefined;
-  const lines: string[] = [];
-
-  if (section?.config?.[target.permission] === true) {
-    lines.push("• Everyone (base config)");
-  }
-
-  for (const override of section?.overrides ?? []) {
-    if (override.config[target.permission] !== true) continue;
-    // Level-only overrides usually come from defaults; /permissions allow writes user/role grants.
-    if (override.user) lines.push(`• User <@${override.user}>`);
-    else if (override.role) lines.push(`• Role <@&${override.role}>`);
-    else if (override.level && (override.channel || override.category)) {
-      const extras = [
-        override.channel ? `channel <#${override.channel}>` : null,
-        override.category ? `category ${override.category}` : null,
-      ].filter(Boolean);
-      lines.push(`• Level ${override.level} (${extras.join(", ")})`);
-    }
-  }
-
-  return lines;
+  return { ok: true, type: "user", id: discordUser!.id, label: `<@${discordUser!.id}>` };
 }
 
 export async function handlePermissionsAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
   const focused = interaction.options.getFocused(true);
-  if (focused.name !== "command") {
-    await interaction.respond([]);
+
+  if (focused.name === "command") {
+    const matches = autocompletePermissionTargets(focused.value);
+    await interaction.respond(matches.map((target) => ({ name: target.label, value: target.key })));
     return;
   }
 
-  const matches = autocompletePermissionTargets(focused.value);
-  await interaction.respond(matches.map((target) => ({ name: target.label, value: target.key })));
+  if (focused.name === "role") {
+    if (!interaction.guildId) {
+      await interaction.respond([]);
+      return;
+    }
+    const roles = await permissionRoleManager.listRoles(interaction.guildId);
+    const query = String(focused.value ?? "").trim().toLowerCase();
+    const matches = roles.filter((r) => !query || r.name.toLowerCase().includes(query)).slice(0, 25);
+    await interaction.respond(matches.map((r) => ({ name: roleLabel(r), value: String(r.id) })));
+    return;
+  }
+
+  await interaction.respond([]);
 }
 
 export const permissionsCommand: SlashCommandDefinition = {
@@ -109,203 +75,214 @@ export const permissionsCommand: SlashCommandDefinition = {
   manageServer: true,
   data: new SlashCommandBuilder()
     .setName("permissions")
-    .setDescription("Manage who can use Dreamliner commands")
-    .addSubcommand((sub) => withTargetOptions(sub.setName("allow").setDescription("Allow a user, role, or everyone to use a command")))
-    .addSubcommand((sub) => withTargetOptions(sub.setName("deny").setDescription("Remove a user, role, or everyone grant for a command")))
-    .addSubcommand((sub) =>
-      sub
-        .setName("show")
-        .setDescription("Show who can use a command")
-        .addStringOption((o) =>
-          o.setName("command").setDescription("Command to inspect").setRequired(true).setAutocomplete(true),
-        ),
-    )
+    .setDescription("Manage Dreamliner Roles — who can use which commands")
     .addSubcommandGroup((group) =>
       group
-        .setName("level")
-        .setDescription("Manage permission levels for roles and users")
+        .setName("role")
+        .setDescription("Create, assign, and grant permissions to Dreamliner Roles")
         .addSubcommand((sub) =>
           sub
-            .setName("set")
-            .setDescription("Set a role or user's permission level (50 = mod, 100 = admin by default)")
-            .addIntegerOption((o) =>
-              o.setName("level").setDescription("Permission level").setRequired(true).setMinValue(0).setMaxValue(9999),
+            .setName("create")
+            .setDescription("Create a new Dreamliner Role")
+            .addStringOption((o) => o.setName("name").setDescription("Role name").setRequired(true).setMaxLength(100)),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("delete")
+            .setDescription("Delete a custom Dreamliner Role")
+            .addStringOption((o) => o.setName("role").setDescription("Role to delete").setRequired(true).setAutocomplete(true)),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("rename")
+            .setDescription("Rename a Dreamliner Role")
+            .addStringOption((o) => o.setName("role").setDescription("Role to rename").setRequired(true).setAutocomplete(true))
+            .addStringOption((o) => o.setName("new_name").setDescription("New name").setRequired(true).setMaxLength(100)),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("assign")
+            .setDescription("Assign a Discord role or member into a Dreamliner Role")
+            .addStringOption((o) => o.setName("role").setDescription("Dreamliner Role").setRequired(true).setAutocomplete(true))
+            .addRoleOption((o) => o.setName("discord_role").setDescription("Discord role to assign"))
+            .addUserOption((o) => o.setName("discord_user").setDescription("Member to assign")),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("unassign")
+            .setDescription("Remove a Discord role or member from a Dreamliner Role")
+            .addStringOption((o) => o.setName("role").setDescription("Dreamliner Role").setRequired(true).setAutocomplete(true))
+            .addRoleOption((o) => o.setName("discord_role").setDescription("Discord role to remove"))
+            .addUserOption((o) => o.setName("discord_user").setDescription("Member to remove")),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("grant")
+            .setDescription("Grant or revoke a command's permission on a Dreamliner Role")
+            .addStringOption((o) => o.setName("role").setDescription("Dreamliner Role").setRequired(true).setAutocomplete(true))
+            .addStringOption((o) =>
+              o.setName("command").setDescription("Command to grant/revoke").setRequired(true).setAutocomplete(true),
             )
-            .addUserOption((o) => o.setName("user").setDescription("User to assign a level"))
-            .addRoleOption((o) => o.setName("role").setDescription("Role to assign a level")),
+            .addBooleanOption((o) => o.setName("allow").setDescription("Grant (true) or revoke (false)").setRequired(true)),
         )
+        .addSubcommand((sub) => sub.setName("list").setDescription("List this server's Dreamliner Roles"))
         .addSubcommand((sub) =>
           sub
-            .setName("remove")
-            .setDescription("Remove a role or user's permission level")
-            .addUserOption((o) => o.setName("user").setDescription("User to clear"))
-            .addRoleOption((o) => o.setName("role").setDescription("Role to clear")),
-        )
-        .addSubcommand((sub) => sub.setName("list").setDescription("List configured permission levels")),
+            .setName("view")
+            .setDescription("View a Dreamliner Role's assigned targets and granted permissions")
+            .addStringOption((o) => o.setName("role").setDescription("Dreamliner Role").setRequired(true).setAutocomplete(true)),
+        ),
     ),
   execute: async (ctx) => {
-    const { interaction, guildConfig, configManager, ephemeral } = ctx;
-    const group = interaction.options.getSubcommandGroup(false);
+    const { interaction, ephemeral } = ctx;
     const sub = interaction.options.getSubcommand();
     const guildId = interaction.guildId!;
     const opts = slashResultOptions(ctx);
 
-    if (group === "level") {
-      if (sub === "list") {
-        const entries = Object.entries(guildConfig.levels);
-        if (entries.length === 0) {
-          await interaction.reply(
-            resultReply(
-              "Permission levels",
-              "No levels configured yet. Use `/permissions level set` to assign a role or user a level.",
-              ephemeral,
-              opts,
-            ),
-          );
-          return;
-        }
-
-        const sorted = entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-        const lines = sorted.map(([id, level]) => {
-          const mention = interaction.guild?.roles.cache.has(id) ? `<@&${id}>` : `<@${id}>`;
-          return `• ${mention} — **${level}**`;
-        });
-        await interaction.reply(
-          resultReply("Permission levels", lines.join("\n"), ephemeral, {
-            ...opts,
-            emoji: "<:icons_roles:1544417804994871338>",
-          }),
-        );
+    if (sub === "create") {
+      const name = interaction.options.getString("name", true).trim();
+      if (!name) {
+        await interaction.reply(resultReply("Invalid name", "Give the role a name.", ephemeral, { ...opts, tone: "error" }));
         return;
       }
-
-      const user = interaction.options.getUser("user");
-      const role = interaction.options.getRole("role");
-      const selected = [Boolean(user), Boolean(role)].filter(Boolean).length;
-      if (selected !== 1) {
-        await interaction.reply(
-          resultReply("Invalid target", "Choose exactly one of `user` or `role`.", ephemeral, { ...opts, tone: "error" }),
-        );
-        return;
-      }
-
-      const targetId = user?.id ?? role!.id;
-      const label = user ? `<@${user.id}>` : `<@&${role!.id}>`;
-
-      if (sub === "set") {
-        const level = interaction.options.getInteger("level", true);
-        const result = await configManager.patchLevels(guildId, { [targetId]: level }, interaction.user.id);
-        if (!result.success) {
-          await interaction.reply(resultReply("Could not update level", result.errors.join("\n"), ephemeral, { ...opts, tone: "error" }));
-          return;
-        }
-        await interaction.reply(
-          resultReply("Level updated", `Set ${label} to level **${level}**.`, ephemeral, {
-            ...opts,
-            tone: "success",
-            emoji: "<:icons_up_arrow:1544418259363700856>",
-          }),
-        );
-        return;
-      }
-
-      if (sub === "remove") {
-        if (!(targetId in guildConfig.levels)) {
-          await interaction.reply(
-            resultReply("Not found", `${label} does not have a configured level.`, ephemeral, { ...opts, tone: "warning" }),
-          );
-          return;
-        }
-        const result = await configManager.patchLevels(guildId, { [targetId]: null }, interaction.user.id);
-        if (!result.success) {
-          await interaction.reply(resultReply("Could not update level", result.errors.join("\n"), ephemeral, { ...opts, tone: "error" }));
-          return;
-        }
-        await interaction.reply(
-          resultReply("Level removed", `Cleared the level for ${label}.`, ephemeral, {
-            ...opts,
-            tone: "success",
-            emoji: "<:icons_downarrow:1544417541873471488>",
-          }),
-        );
-        return;
-      }
-    }
-
-    if (sub === "show") {
-      const target = resolveCommandTarget(interaction);
-      if (!target) {
-        await interaction.reply(
-          resultReply("Unknown command", "Pick a command from the autocomplete list.", ephemeral, { ...opts, tone: "error" }),
-        );
-        return;
-      }
-
-      const grants = collectCustomGrants(guildConfig, target);
-      const body = [
-        `**${target.label}** (\`${target.permission}\` in \`${target.plugin}\`)`,
-        describeDefaultAccess(target),
-        "",
-        grants.length > 0 ? `**Configured grants**\n${grants.join("\n")}` : "**Configured grants**\n• None beyond defaults",
-      ].join("\n");
-
+      const role = await permissionRoleManager.createRole(guildId, name, interaction.user.id);
       await interaction.reply(
-        resultReply("Command permissions", body, ephemeral, {
+        resultReply("Role created", `Created **${role.name}**. Assign Discord roles/members and grant permissions next.`, ephemeral, {
           ...opts,
-          emoji: "<:icons_id:1544417556868104274>",
+          tone: "success",
+          emoji: "<:icons_roles:1544417804994871338>",
         }),
       );
       return;
     }
 
-    if (sub === "allow" || sub === "deny") {
-      const target = resolveCommandTarget(interaction);
-      if (!target) {
-        await interaction.reply(
-          resultReply("Unknown command", "Pick a command from the autocomplete list.", ephemeral, { ...opts, tone: "error" }),
-        );
-        return;
-      }
-
-      const grantTarget = resolveGrantTarget(interaction);
-      if (!grantTarget.ok) {
-        await interaction.reply(resultReply("Invalid target", grantTarget.error, ephemeral, { ...opts, tone: "error" }));
-        return;
-      }
-
-      const allowed = sub === "allow";
-      const result = await configManager.setPermissionGrant(
-        guildId,
-        target.plugin,
-        target.permission,
-        { everyone: grantTarget.everyone, user: grantTarget.user, role: grantTarget.role },
-        allowed,
-        interaction.user.id,
+    if (sub === "list") {
+      const roles = await permissionRoleManager.listRoles(guildId);
+      const lines = roles.map(
+        (r) => `• **${roleLabel(r)}** — ${r.targetCount} target${r.targetCount === 1 ? "" : "s"}, ${r.grantCount} permission${r.grantCount === 1 ? "" : "s"}`,
       );
+      await interaction.reply(
+        resultReply("Dreamliner Roles", lines.join("\n") || "No roles yet.", ephemeral, {
+          ...opts,
+          emoji: "<:icons_roles:1544417804994871338>",
+        }),
+      );
+      return;
+    }
 
+    // Every remaining subcommand takes a `role` option.
+    const role = await resolveRoleOption(interaction, guildId);
+    if ("error" in role) {
+      await interaction.reply(resultReply("Not found", role.error, ephemeral, { ...opts, tone: "error" }));
+      return;
+    }
+
+    if (sub === "view") {
+      const targetLines = role.targets.map((t) => (t.type === "role" ? `• Role <@&${t.id}>` : `• Member <@${t.id}>`));
+      const grantLines = role.grants
+        .map((key) => findPermissionCatalogEntry(key)?.title ?? key)
+        .sort((a, b) => a.localeCompare(b))
+        .map((title) => `• ${title}`);
+      const body = [
+        `**${roleLabel(role)}**`,
+        "",
+        role.builtIn === "member"
+          ? "**Applies to:** everyone (implicit — no targets to assign)"
+          : `**Assigned targets**\n${targetLines.join("\n") || "• None yet — this role grants nothing until you assign a Discord role or member."}`,
+        "",
+        `**Granted permissions**\n${grantLines.join("\n") || "• None yet."}`,
+      ].join("\n");
+      await interaction.reply(resultReply("Role details", body, ephemeral, { ...opts, emoji: "<:icons_id:1544417556868104274>" }));
+      return;
+    }
+
+    if (sub === "delete") {
+      const result = await permissionRoleManager.deleteRole(guildId, role.id, interaction.user.id);
       if (!result.success) {
+        await interaction.reply(resultReply("Could not delete role", result.error, ephemeral, { ...opts, tone: "error" }));
+        return;
+      }
+      await interaction.reply(
+        resultReply("Role deleted", `Deleted **${role.name}**.`, ephemeral, { ...opts, tone: "success", emoji: "<:icons_locked:1544417721612247171>" }),
+      );
+      return;
+    }
+
+    if (sub === "rename") {
+      const newName = interaction.options.getString("new_name", true).trim();
+      if (!newName) {
+        await interaction.reply(resultReply("Invalid name", "Give the role a name.", ephemeral, { ...opts, tone: "error" }));
+        return;
+      }
+      const result = await permissionRoleManager.renameRole(guildId, role.id, newName, interaction.user.id);
+      if (!result.success) {
+        await interaction.reply(resultReply("Could not rename role", result.error, ephemeral, { ...opts, tone: "error" }));
+        return;
+      }
+      await interaction.reply(
+        resultReply("Role renamed", `**${role.name}** is now **${result.data.name}**.`, ephemeral, { ...opts, tone: "success" }),
+      );
+      return;
+    }
+
+    if (sub === "assign" || sub === "unassign") {
+      if (role.builtIn === "member") {
         await interaction.reply(
-          resultReply("Could not update permissions", result.errors.join("\n"), ephemeral, { ...opts, tone: "error" }),
+          resultReply("Can't assign targets", "The Member role applies to everyone automatically — it has nothing to assign.", ephemeral, { ...opts, tone: "error" }),
         );
         return;
       }
+      const discordTarget = resolveDiscordTarget(interaction);
+      if (!discordTarget.ok) {
+        await interaction.reply(resultReply("Invalid target", discordTarget.error, ephemeral, { ...opts, tone: "error" }));
+        return;
+      }
 
-      const action = allowed ? "Allowed" : "Removed access for";
-      const note = grantTarget.everyone && !allowed ? " Level and role/user grants still apply." : "";
+      const nextTargets =
+        sub === "assign"
+          ? [...role.targets, { type: discordTarget.type, id: discordTarget.id }]
+          : role.targets.filter((t) => !(t.type === discordTarget.type && t.id === discordTarget.id));
+
+      const result = await permissionRoleManager.setTargets(guildId, role.id, nextTargets, interaction.user.id);
+      if (!result.success) {
+        await interaction.reply(resultReply("Could not update role", result.error, ephemeral, { ...opts, tone: "error" }));
+        return;
+      }
       await interaction.reply(
         resultReply(
-          allowed ? "Permission granted" : "Permission updated",
-          `${action} ${grantTarget.label} on **${target.label}**.${note}`,
+          sub === "assign" ? "Assigned" : "Unassigned",
+          `${discordTarget.label} ${sub === "assign" ? "assigned to" : "removed from"} **${role.name}**.`,
           ephemeral,
-          {
-            ...opts,
-            tone: "success",
-            emoji: allowed
-              ? "<:icons_unlock:1544417749617610852>"
-              : "<:icons_locked:1544417721612247171>",
-          },
+          { ...opts, tone: "success", emoji: sub === "assign" ? "<:icons_unlock:1544417749617610852>" : "<:icons_locked:1544417721612247171>" },
+        ),
+      );
+      return;
+    }
+
+    if (sub === "grant") {
+      const target = resolveCommandTarget(interaction);
+      if (!target) {
+        await interaction.reply(resultReply("Unknown command", "Pick a command from the autocomplete list.", ephemeral, { ...opts, tone: "error" }));
+        return;
+      }
+      const allow = interaction.options.getBoolean("allow", true);
+      const grantKey = grantKeyFor(target.plugin, target.permission);
+      const result = await permissionRoleManager.setGrant(guildId, role.id, grantKey, allow, interaction.user.id);
+      if (!result.success) {
+        await interaction.reply(resultReply("Could not update role", result.error, ephemeral, { ...opts, tone: "error" }));
+        return;
+      }
+      await interaction.reply(
+        resultReply(
+          allow ? "Permission granted" : "Permission revoked",
+          `${allow ? "Granted" : "Revoked"} **${target.label}** on **${role.name}**.`,
+          ephemeral,
+          { ...opts, tone: "success", emoji: allow ? "<:icons_unlock:1544417749617610852>" : "<:icons_locked:1544417721612247171>" },
         ),
       );
     }
   },
 };
+
+// getPermissionCatalog is re-exported for anything (e.g. tests) that wants the full catalog without going through the bridge.
+export { getPermissionCatalog };

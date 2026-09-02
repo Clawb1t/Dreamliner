@@ -27,7 +27,7 @@ export const searchCommands: SlashCommandDefinition[] = [
             { name: "Name", value: "name" },
             { name: "Joined", value: "joined" },
             { name: "Created", value: "created" },
-            { name: "Level", value: "level" },
+            { name: "Role", value: "role" },
           ),
       ),
     execute: async (ctx) => {
@@ -36,7 +36,7 @@ export const searchCommands: SlashCommandDefinition[] = [
       const { interaction, guildConfig } = ctx;
       await interaction.deferReply(deferReplyOptions(ctx.ephemeral));
 
-      const result = await searchMembers(interaction.guild!, guildConfig, {
+      const result = await searchMembers(interaction.guild!, {
         query: interaction.options.getString("query") ?? "",
         page: interaction.options.getInteger("page") ?? 1,
         inVoice: interaction.options.getBoolean("in_voice") ?? false,
@@ -44,7 +44,7 @@ export const searchCommands: SlashCommandDefinition[] = [
         caseSensitive: interaction.options.getBoolean("case_sensitive") ?? false,
         regex: interaction.options.getBoolean("regex") ?? false,
         idsOnly: interaction.options.getBoolean("ids_only") ?? false,
-        sort: (interaction.options.getString("sort") as "name" | "joined" | "created" | "level") ?? "name",
+        sort: (interaction.options.getString("sort") as "name" | "joined" | "created" | "role") ?? "name",
       });
 
       if (result.total === 0) {

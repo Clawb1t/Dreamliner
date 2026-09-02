@@ -1,8 +1,7 @@
 import type { ButtonInteraction, GuildMember } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zSuggestionsConfig } from "../../../config/schemas/suggestions.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
 import { parseSuggestCustomId, SUGGEST_PREFIX } from "../constants.js";
@@ -26,35 +25,21 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
   }
 
   const member = interaction.member as GuildMember;
-  const categoryId =
-    interaction.channel?.isTextBased() && "parentId" in interaction.channel
-      ? interaction.channel.parentId
-      : null;
-  const defaults = getPluginDefaultOverrides("suggestions");
   const config = zSuggestionsConfig.parse(
-    resolvePluginConfig(
-      guildConfig,
-      "suggestions",
-      defaults,
-      member,
-      interaction.channelId ?? "",
-      categoryId,
-    ),
+    await resolveEffectivePluginConfig(interaction.guildId!, "suggestions", member, guildConfig),
   );
   const ephemeral = resolveEphemeral(guildConfig);
 
   if (parsed.kind === "queue") {
     const permission = parsed.action === "approve" ? "can_approve" : "can_deny";
     if (
-      !hasPluginPermission(
-        guildConfig,
+      !(await hasPermission(
+        interaction.guildId!,
         "suggestions",
         permission,
         member,
-        interaction.channelId ?? "",
-        categoryId,
-        defaults,
-      )
+        guildConfig,
+      ))
     ) {
       await interaction.reply(
         resultReply("Permission denied", "You cannot manage the suggestion queue.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
@@ -117,15 +102,13 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
   }
 
   if (
-    !hasPluginPermission(
-      guildConfig,
+    !(await hasPermission(
+      interaction.guildId!,
       "suggestions",
       "can_vote",
       member,
-      interaction.channelId ?? "",
-      categoryId,
-      defaults,
-    )
+      guildConfig,
+    ))
   ) {
     await interaction.reply(
       resultReply("Permission denied", "You cannot vote on suggestions.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),

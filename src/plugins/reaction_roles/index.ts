@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zReactionRolesConfig } from "../../config/schemas/plugins.js";
-import { reactionRolesDefaultOverrides } from "./defaultOverrides.js";
 import { handleReactionRole } from "./functions/handlers.js";
 
 /**
@@ -12,7 +11,6 @@ import { handleReactionRole } from "./functions/handlers.js";
 export const reactionRolesPlugin = definePlugin({
   name: "reaction_roles",
   configSchema: zReactionRolesConfig,
-  defaultOverrides: reactionRolesDefaultOverrides,
   slashCommands: [],
   events: [
     {

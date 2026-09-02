@@ -53,19 +53,9 @@ Set `enabled: false` on the plugin section to turn reviews off without removing 
 | `/review delete` | `can_delete` | Soft-delete a review by ID |
 | `/review stats` | `can_list` | Show average rating and total count |
 
-Default permission grants:
-
-```yaml
-overrides:
-  - level: ">=0"
-    config:
-      can_review: true
-  - level: ">=50"
-    config:
-      can_list: true
-      can_delete: true
-      can_manage: true
-```
+Grant `can_review` to a Dreamliner Role on the dashboard's **Roles** page (or `/permissions role grant`) — the
+built-in **Member** role is a good place for it. Grant `can_list`, `can_delete`, and `can_manage` to your
+**Moderator**/**Admin** roles. See [permissions.md](../permissions.md).
 
 ## Behavior
 

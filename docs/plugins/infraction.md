@@ -37,8 +37,6 @@ plugins:
       case_log_channel: "1234567890123456789"  # Optional; falls back to moderation_log_channel_id
       ban_delete_message_days: 0
       softban_delete_message_days: 7
-      reason_edit_level: 100
-      duration_edit_level: 100
       notify:
         warn:
           dm: true
@@ -60,13 +58,13 @@ plugins:
             duration_ms: 1800000  # 30m
           - after: 5
             type: ban
-    overrides:
-      - level: ">=50"
-        config:
-          can_warn: true
-          can_mute: true
-          can_view: true
 ```
+
+Grant `can_warn`, `can_note`, `can_mute`, `can_kick`, `can_ban`, `can_unban`, `can_softban`, `can_view`,
+`can_edit_reason`, `can_edit_duration`, and `can_delete` to a Dreamliner Role on the dashboard's **Roles** page
+(or `/permissions role grant`) — see [permissions.md](../permissions.md). Editing another moderator's case only
+requires the same `can_edit_reason`/`can_edit_duration` permission as editing your own — there's no separate
+elevated threshold.
 
 ## Auto-escalation
 

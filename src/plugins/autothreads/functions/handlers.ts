@@ -1,9 +1,8 @@
 import { ChannelType, type GuildMember, type Message, type TextChannel, type ThreadAutoArchiveDuration } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zAutothreadsConfig } from "../../../config/schemas/plugins.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { renderTemplate } from "../../../core/templates.js";
 import { buildPersistPayload } from "../../persist/functions/messageBuilder.js";
 import { getAutothreadWebhook } from "../../persist/functions/webhook.js";
@@ -43,7 +42,7 @@ export async function handleAutothreadMessage(message: Message): Promise<void> {
   if (!pluginEnabled(guildConfig, "autothreads")) return;
 
   const pluginConfig = zAutothreadsConfig.parse(
-    resolvePluginConfig(guildConfig, "autothreads", getPluginDefaultOverrides("autothreads")),
+    getPluginSettings(guildConfig, "autothreads"),
   );
 
   const rules = normalizeAutothreadRules(pluginConfig.rules).filter(

@@ -56,7 +56,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
         const user = ctx.interaction.options.getUser("member", true);
         const channel = ctx.interaction.options.getChannel("channel", true);
         const member = await ctx.interaction.guild!.members.fetch(user.id);
-        if (!canActOn(auth.member, member, ctx.guildConfig)) {
+        if (!canActOn(auth.member, member)) {
           await ctx.interaction.reply(resultReply("Voice move", "You cannot act on this member.", ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
@@ -109,7 +109,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
         }
         let moved = 0;
         for (const [, member] of fromCh.members) {
-          if (canActOn(auth.member, member, ctx.guildConfig)) {
+          if (canActOn(auth.member, member)) {
             markForcedVoiceAction(ctx.interaction.guildId!, member.id);
             await member.voice.setChannel(toCh.id).catch(() => null);
             moved++;
@@ -149,7 +149,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
       if (sub === "disconnect") {
         const user = ctx.interaction.options.getUser("member", true);
         const member = await ctx.interaction.guild!.members.fetch(user.id);
-        if (!canActOn(auth.member, member, ctx.guildConfig)) {
+        if (!canActOn(auth.member, member)) {
           await ctx.interaction.reply(resultReply("Voice disconnect", "You cannot act on this member.", ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
@@ -245,7 +245,7 @@ export const nicknameCommands: SlashCommandDefinition[] = [
 
       if (user.id !== ctx.interaction.user.id) {
         if (!(await requireDiscordPerm(ctx.interaction, ManageNicknames, "Manage Nicknames", ctx.ephemeral, ctx.guildConfig))) return;
-        if (!canActOn(auth.member, member, ctx.guildConfig)) {
+        if (!canActOn(auth.member, member)) {
           await ctx.interaction.reply(resultReply("Nickname", "You cannot act on this member.", ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }

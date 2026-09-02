@@ -13,15 +13,6 @@ import type { ConfigManager } from "../config/manager.js";
 
 export type EmojiKind = "success" | "error" | "neutral";
 
-export type ConfigOverride = {
-  level?: string;
-  channel?: string;
-  category?: string;
-  user?: string;
-  role?: string;
-  config: Record<string, unknown>;
-};
-
 export type SlashCommandContext = {
   interaction: ChatInputCommandInteraction;
   guildConfig: GuildConfig;
@@ -73,7 +64,6 @@ export type EventHandler = {
 export type DreamlinerPlugin = {
   name: string;
   configSchema?: ZodType;
-  defaultOverrides?: ConfigOverride[];
   dependencies?: string[];
   slashCommands: SlashCommandDefinition[];
   contextMenuCommands?: ContextMenuCommandDefinition[];
@@ -84,17 +74,6 @@ export type DreamlinerPlugin = {
 export type PluginLoadContext = {
   client: Client;
   configManager: ConfigManager;
-};
-
-export type PluginData = {
-  guildConfig: GuildConfig;
-  pluginConfig: Record<string, unknown>;
-  getMatchingConfig: (opts: {
-    member: GuildMember;
-    channelId: string;
-    categoryId?: string | null;
-  }) => Record<string, unknown>;
-  hasPermission: (permission: string, member: GuildMember, channelId: string) => boolean;
 };
 
 export type ButtonHandler = (

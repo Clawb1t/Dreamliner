@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zInfractionConfig } from "../../config/schemas/infraction.js";
-import { infractionDefaultOverrides } from "./defaultOverrides.js";
 import { actionCommands } from "./commands/actions.js";
 import { manageCommands } from "./commands/manage.js";
 import { processExpiredInfractions } from "./functions/infractions.js";
@@ -9,7 +8,6 @@ import { processExpiredInfractions } from "./functions/infractions.js";
 export const infractionPlugin = definePlugin({
   name: "infractions",
   configSchema: zInfractionConfig,
-  defaultOverrides: infractionDefaultOverrides,
   slashCommands: [...actionCommands, ...manageCommands],
   onLoad: async ({ client }) => {
     setInterval(() => {

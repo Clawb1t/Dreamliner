@@ -6,7 +6,7 @@ import { safeAddRole, safeRemoveRole, safeToggleRole } from "../../../core/roles
 import {
   parseSelfRoleButtonCustomId,
   parseSelfRoleSelectCustomId,
-} from "../defaultOverrides.js";
+} from "../customIds.js";
 import { getSelfRolePanel } from "./store.js";
 
 function roleAllowed(panel: Awaited<ReturnType<typeof getSelfRolePanel>>, roleId: string): boolean {

@@ -1,7 +1,4 @@
 import type { Guild, GuildMember, User } from "discord.js";
-import type { InfractionConfig } from "../../../config/schemas/infraction.js";
-import { getMemberLevel } from "../../../core/permissions.js";
-import type { GuildConfig } from "../../../config/schemas/guild.js";
 
 export function canModerateTarget(
   actor: GuildMember,
@@ -24,28 +21,6 @@ export function canModerateTarget(
     return "I cannot moderate that member (role hierarchy).";
   }
   return null;
-}
-
-export function canEditInfractionReason(
-  guildConfig: GuildConfig,
-  pluginConfig: InfractionConfig,
-  actor: GuildMember,
-  infractionModId: string,
-): boolean {
-  if (actor.id === infractionModId) return true;
-  const level = getMemberLevel(actor, guildConfig.levels);
-  return level >= pluginConfig.reason_edit_level;
-}
-
-export function canEditInfractionDuration(
-  guildConfig: GuildConfig,
-  pluginConfig: InfractionConfig,
-  actor: GuildMember,
-  infractionModId: string,
-): boolean {
-  if (actor.id === infractionModId) return true;
-  const level = getMemberLevel(actor, guildConfig.levels);
-  return level >= pluginConfig.duration_edit_level;
 }
 
 export function formatReason(reason: string | null | undefined): string {

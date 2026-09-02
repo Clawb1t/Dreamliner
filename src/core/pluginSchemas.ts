@@ -105,7 +105,7 @@ export function stripUnknownPluginKeys(pluginName: string, config: Record<string
 
 /**
  * Parse a resolved plugin config without throwing.
- * Unknown keys should already be stripped by resolvePluginConfig.
+ * Unknown keys should already be stripped by resolveEffectivePluginConfig.
  * If remaining values are invalid, fall back to schema defaults.
  */
 export function parsePluginConfig<S extends ZodTypeAny>(schema: S, value: unknown): z.output<S> {

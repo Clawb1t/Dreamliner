@@ -159,7 +159,8 @@ plugins:
 | `/passport revoke <user>` | `can_revoke` | Undo a member's verification and re-apply the gate |
 | `/passport status <user>` | `can_test` | Show a member's pending / verified state |
 
-Default grants: level **50+** for all four permissions.
+Grant `can_panel`, `can_test`, `can_force`, and `can_revoke` to a Dreamliner Role on the dashboard's **Roles**
+page (or `/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Requirements
 

@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { getEditorPluginCategories } from "../core/helpCategories.js";
+import { getPermissionCatalog } from "../core/permissionCatalog.js";
 import { loadDefaultConfigRaw } from "./default.js";
 import { enrichJsonSchemaForEditor } from "./schemaHelp.js";
 import { zGuildConfig } from "./schemas/guild.js";
@@ -91,4 +92,7 @@ export function exportGuildConfigSchema(): void {
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, "guild-config.schema.json"), `${JSON.stringify(schema, null, 2)}\n`);
   writeFileSync(join(outDir, "guild-config.meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
+  // Dreamliner Roles' permission grant grid — every can_* flag across every plugin, grouped by
+  // plugin. Kept in sync with the schemas automatically, same mechanism as the two files above.
+  writeFileSync(join(outDir, "permission-catalog.json"), `${JSON.stringify(getPermissionCatalog(), null, 2)}\n`);
 }

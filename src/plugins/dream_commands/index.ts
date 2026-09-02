@@ -1,14 +1,12 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zDreamCommandsConfig } from "../../config/schemas/plugins.js";
-import { dreamCommandsDefaultOverrides } from "./defaultOverrides.js";
 import { dreamCommandManageCommands } from "./commands/manage.js";
 import { syncAllGuildDreamSlashCommands, syncGuildDreamSlashCommands } from "./functions/guildSlash.js";
 
 export const dreamCommandsPlugin = definePlugin({
   name: "dream_commands",
   configSchema: zDreamCommandsConfig,
-  defaultOverrides: dreamCommandsDefaultOverrides,
   slashCommands: dreamCommandManageCommands,
   events: [
     {

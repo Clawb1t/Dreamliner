@@ -10,8 +10,7 @@ import {
 } from "discord.js";
 import type { ConfigManager } from "../../../config/manager.js";
 import { zAutorepliesConfig, zAutoreplyTrigger } from "../../../config/schemas/plugins.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission, resolvePluginConfig } from "../../../core/permissions.js";
+import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { validateRegexPatternForSave } from "../../../core/regexSafety.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
@@ -312,12 +311,9 @@ export async function handleAutoreplyModalSubmit(
   }
 
   const guildMember = member as import("discord.js").GuildMember;
-  const channelId = interaction.channelId ?? "";
-  const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-  const defaults = getPluginDefaultOverrides("autoreplies");
   const ephemeral = resolveEphemeral(guildConfig);
 
-  if (!hasPluginPermission(guildConfig, "autoreplies", "can_add", guildMember, channelId, categoryId, defaults)) {
+  if (!(await hasPermission(interaction.guildId, "autoreplies", "can_add", guildMember, guildConfig))) {
     await interaction.reply(
       resultReply("Permission denied", "You do not have permission to add auto-replies.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
@@ -375,7 +371,7 @@ export async function handleAutoreplyModalSubmit(
     extras = [];
   }
 
-  const pluginConfig = resolvePluginConfig(guildConfig, "autoreplies", defaults, guildMember, channelId, categoryId);
+  const pluginConfig = await resolveEffectivePluginConfig(interaction.guildId, "autoreplies", guildMember, guildConfig);
   const created = await createAutoreplyRule(configManager, interaction.guildId, interaction.user.id, pluginConfig, {
     response,
     replyToMessage: sendAs === "reply",

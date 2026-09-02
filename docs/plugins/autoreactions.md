@@ -26,13 +26,10 @@ plugins:
           emoji: "📎"
           trigger: every_message
           attachments_only: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_add: true
-          can_remove: true
-          can_list: true
 ```
+
+Grant `can_add`, `can_remove`, and `can_list` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 | Field | Description |
 |-------|-------------|

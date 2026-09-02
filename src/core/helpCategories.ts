@@ -184,7 +184,8 @@ export type EditorPluginCategory = {
   plugins: EditorPluginMeta[];
 };
 
-const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
+/** Display name/description per plugin — also used by the permission catalog to group Dreamliner Role grants by plugin. */
+export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   utility: {
     key: "utility",
     name: "Utility",
@@ -335,7 +336,7 @@ const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     key: "economy",
     name: "Economy",
     description:
-      "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims — plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
+      "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims, plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
   },
   anime: {
     key: "anime",

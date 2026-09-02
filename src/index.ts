@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createBot, registerSlashCommands } from "./bot.js";
 import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
+import { runPermissionRoleMigration } from "./scripts/migratePermissionRoles.js";
 import { ensurePiperReady, resolvePiperVoicesDir } from "./plugins/tts/functions/piperSetup.js";
 import { ensureVoicePackInstalled } from "./plugins/tts/functions/voiceCatalog.js";
 
@@ -46,6 +47,15 @@ async function main() {
   }
 
   runMigrations();
+
+  try {
+    // Seeds Dreamliner Roles for every guild and best-effort migrates old levels/overrides data.
+    // Must run before createBot()/client.login() below — see migratePermissionRoles.ts's header
+    // comment for why the ordering is load-bearing.
+    runPermissionRoleMigration();
+  } catch (error) {
+    console.error("[dreamliner] Permission role migration failed:", error);
+  }
 
   try {
     // Bounded so a stuck download/network issue can't block the bot from ever coming online.

@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zPassportConfig } from "../../config/schemas/passport.js";
-import { passportDefaultOverrides } from "./defaultOverrides.js";
 import { passportCommands } from "./commands.js";
 import { handlePassportMemberAdd, handlePassportMemberRemove } from "./functions/handlers.js";
 import { processExpiredPassports } from "./functions/timeout.js";
@@ -9,7 +8,6 @@ import { processExpiredPassports } from "./functions/timeout.js";
 export const passportPlugin = definePlugin({
   name: "passport",
   configSchema: zPassportConfig,
-  defaultOverrides: passportDefaultOverrides,
   slashCommands: passportCommands,
   onLoad: async ({ client }) => {
     setInterval(() => {

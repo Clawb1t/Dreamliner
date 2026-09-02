@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zWelcomeMessageConfig } from "../../config/schemas/welcome.js";
-import { welcomeMessageDefaultOverrides } from "./defaultOverrides.js";
 import { welcomeMessageCommands } from "./commands.js";
 import { handleWelcomeMemberAdd, handleWelcomeMemberRemove } from "./functions/handlers.js";
 import { handleWelcomeFirstMessage } from "./functions/firstMessageReact.js";
@@ -9,7 +8,6 @@ import { handleWelcomeFirstMessage } from "./functions/firstMessageReact.js";
 export const welcomeMessagePlugin = definePlugin({
   name: "welcome_message",
   configSchema: zWelcomeMessageConfig,
-  defaultOverrides: welcomeMessageDefaultOverrides,
   slashCommands: welcomeMessageCommands,
   events: [
     {

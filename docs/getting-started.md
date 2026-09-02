@@ -1,6 +1,6 @@
 # Getting started
 
-Dreamliner uses a **download → edit → upload** workflow for server configuration. After the first upload, you can also manage levels and command access in Discord with `/permissions` (no re-upload needed).
+Dreamliner uses a **download → edit → upload** workflow for server configuration. After the first upload, you can also manage Dreamliner Roles and command access in Discord with `/permissions role ...` (no re-upload needed).
 
 ## 1. Invite the bot
 
@@ -27,13 +27,13 @@ A server administrator runs:
 /config template
 ```
 
-This sends `dreamliner-template.yaml` - the default configuration maintained by the bot operator. It includes emoji settings, permission levels, and utility plugin defaults.
+This sends `dreamliner-template.yaml` - the default configuration maintained by the bot operator. It includes emoji settings and utility plugin defaults.
 
 ## 3. Edit the configuration
 
 Open the YAML file in any text editor. Common first steps:
 
-1. Set `levels` - map your mod/admin role or user IDs to numeric levels (e.g. `50` for mods, `100` for admins).
+1. Set up Dreamliner Roles - assign your mod/admin Discord roles or users to the built-in **Moderator**/**Admin** roles (dashboard **Roles** page, or `/permissions role assign`).
 2. Adjust `emojis` if you want custom success/error/neutral/warning/unchecked prefixes.
 3. Enable and configure plugins under `plugins` - see [plugin documentation](/broken/pages/ScBf0pRjbQl3XDFHSAMa#plugins) for categories:
    * **Moderation** - infractions, lockdown, slowmode
@@ -47,7 +47,7 @@ Open the YAML file in any text editor. Common first steps:
    * **Customization** - custom events, aliases, custom commands
    * **Utilities** - utility commands, stats, bot customisation, logs
    * **Feedback** - reviews and suggestions
-4. Tweak `plugins.utility` permissions and overrides.
+4. Grant `plugins.utility`'s `can_*` permissions to your Dreamliner Roles.
 
 See [Permissions setup](permissions.md) for a full walkthrough and examples. See [Configuration](configuration.md) for the full YAML format.
 
@@ -73,7 +73,7 @@ This returns the effective configuration currently stored for your server.
 
 ## 6. Use utility commands
 
-Once a configuration is uploaded, moderators can use commands like `/search`, `/user`, `/clean`, and `/help`. Permission is controlled by your YAML config, not just Discord roles.
+Once a configuration is uploaded, moderators can use commands like `/search`, `/user`, `/clean`, and `/help`. Permission is controlled by Dreamliner Roles, not just Discord roles.
 
 ## Troubleshooting
 

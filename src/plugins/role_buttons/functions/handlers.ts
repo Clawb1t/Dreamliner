@@ -8,7 +8,7 @@ import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { safeToggleRole } from "../../../core/roles.js";
-import { parseRoleButtonCustomId, roleButtonCustomId } from "../defaultOverrides.js";
+import { parseRoleButtonCustomId, roleButtonCustomId } from "../customIds.js";
 import { getRoleButtonPanel, listRoleButtonsForMessage } from "./store.js";
 
 function parseButtonStyle(style: string) {

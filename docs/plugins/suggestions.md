@@ -130,26 +130,10 @@ Set `enabled: false` on the plugin section to turn suggestions off without remov
 | `/suggestion search` | `can_info` | Search by text, number, status, or author |
 | `/suggestion block` / `unblock` / `blocklist` | `can_block` | Block users from suggesting (optional duration) |
 
-Default permission grants:
-
-```yaml
-overrides:
-  - level: ">=0"
-    config:
-      can_suggest: true
-      can_vote: true
-      can_follow: true
-      can_info: true
-      can_top: true
-  - level: ">=50"
-    config:
-      can_approve: true
-      can_deny: true
-      can_mark: true
-      can_delete: true
-      can_block: true
-      can_manage: true
-```
+Grant `can_suggest`, `can_vote`, `can_follow`, `can_info`, and `can_top` to a Dreamliner Role on the dashboard's
+**Roles** page (or `/permissions role grant`) to open member-facing commands — the built-in **Member** role is
+a good place for these. Grant `can_approve`, `can_deny`, `can_mark`, `can_delete`, `can_block`, and `can_manage`
+to your **Moderator**/**Admin** roles for the staff commands. See [permissions.md](../permissions.md).
 
 ## Voting
 

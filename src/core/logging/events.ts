@@ -79,6 +79,7 @@ export const LOG_EVENT_TYPES = [
   "dashboard_economy",
   "dashboard_ticket",
   "dashboard_tts",
+  "dashboard_permission_role",
 ] as const;
 
 export type LogEventType = (typeof LOG_EVENT_TYPES)[number];
@@ -160,6 +161,7 @@ export const LOG_EVENT_META: Record<
   dashboard_economy: { label: "Economy change", category: "server", group: "Dashboard" },
   dashboard_ticket: { label: "Ticket admin", category: "moderation", group: "Dashboard" },
   dashboard_tts: { label: "TTS admin", category: "moderation", group: "Dashboard" },
+  dashboard_permission_role: { label: "Dreamliner Role change", category: "server", group: "Dashboard" },
 };
 
 export function isLogEventType(value: string): value is LogEventType {

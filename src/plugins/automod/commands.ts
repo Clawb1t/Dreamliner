@@ -24,7 +24,6 @@ function formatAutomodStatus(config: AutomodConfig, guildConfig: GuildConfig): s
     `**Active rules:** ${activeRules.join(", ") || "none"}`,
     `**Ignored channels:** ${config.ignored_channels.map((id) => `<#${id}>`).join(", ") || "none"}`,
     `**Ignored roles:** ${config.ignored_roles.map((id) => `<@&${id}>`).join(", ") || "none"}`,
-    `**Ignore above level:** ${config.ignore_above_level == null ? "off" : config.ignore_above_level}`,
     `**DM users:** ${config.dm_users ? "yes" : "no"}`,
     `**Custom filters:** ${parseFilterEntries(config.rules.custom_filter?.settings ?? {}).length}`,
     `**Log channel:** ${logChannelId ? `<#${logChannelId}>` : "none (set moderation_log_channel_id)"}`,

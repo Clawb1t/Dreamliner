@@ -11,8 +11,7 @@ import {
 import { configManager } from "../../../config/manager.js";
 import { baseEmbed } from "../../../core/embeds.js";
 import { getStocksUrl, siteLinkRow } from "../../../core/docsUrl.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
-import { hasPluginPermission } from "../../../core/permissions.js";
+import { hasPermission } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { guildResultOptions, resultReply } from "../../../core/responses.js";
 import { formatCoinAmount, formatStockChange, stockChangeArrow } from "./format.js";
@@ -151,19 +150,7 @@ export async function handleStockRangeSelectInteraction(interaction: StringSelec
 
   const member = interaction.member;
   if (member && typeof member !== "string") {
-    const categoryId = interaction.channel?.isTextBased() && "parentId" in interaction.channel ? interaction.channel.parentId : null;
-    const defaults = getPluginDefaultOverrides("economy");
-    if (
-      !hasPluginPermission(
-        guildConfig,
-        "economy",
-        "can_balance",
-        member as GuildMember,
-        interaction.channelId ?? "",
-        categoryId,
-        defaults,
-      )
-    ) {
+    if (!(await hasPermission(interaction.guildId, "economy", "can_balance", member as GuildMember, guildConfig))) {
       await interaction.reply(
         resultReply(
           "Permission denied",

@@ -1,6 +1,6 @@
 import { ChannelType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
-import { hasPluginPermission } from "../../core/permissions.js";
+import { hasPermission } from "../../core/permissionRoles.js";
 import { resultEdit, resultReply, embedEdit, embedReply, slashResultOptions } from "../../core/responses.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor } from "../../core/embeds.js";
 import { scamProtectDefaultChannelName } from "./constants.js";
@@ -9,7 +9,6 @@ import {
   getScamProtectConfig,
   isScamProtectEnabled,
 } from "./functions/ensure.js";
-import { scamProtectDefaultOverrides } from "./defaultOverrides.js";
 
 export const scamProtectCommands: SlashCommandDefinition[] = [
   {
@@ -34,20 +33,13 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const categoryId =
-        ctx.interaction.channel?.isTextBased() && "parentId" in ctx.interaction.channel
-          ? ctx.interaction.channel.parentId
-          : null;
-
       if (sub === "setup") {
-        const allowed = hasPluginPermission(
-          ctx.guildConfig,
+        const allowed = await hasPermission(
+          guild.id,
           "scam_protect",
           "can_setup",
           member as import("discord.js").GuildMember,
-          ctx.interaction.channelId,
-          categoryId,
-          scamProtectDefaultOverrides,
+          ctx.guildConfig,
         );
         if (!allowed) {
           await ctx.interaction.reply(
@@ -139,14 +131,12 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const allowed = hasPluginPermission(
-        ctx.guildConfig,
+      const allowed = await hasPermission(
+        guild.id,
         "scam_protect",
         "can_status",
         member as import("discord.js").GuildMember,
-        ctx.interaction.channelId,
-        categoryId,
-        scamProtectDefaultOverrides,
+        ctx.guildConfig,
       );
       if (!allowed) {
         await ctx.interaction.reply(
@@ -186,7 +176,7 @@ export const scamProtectCommands: SlashCommandDefinition[] = [
             .addFields(
               embedField("Enabled", isScamProtectEnabled(ctx.guildConfig) ? "Yes" : "No", true),
               embedField("Channel", channel ? `${channel}` : "Not set", true),
-              embedField("Ignore staff", config.ignore_staff ? `Level >= ${config.staff_level}` : "Off", true),
+              embedField("Ignored roles", config.ignored_roles.length ? `${config.ignored_roles.length}` : "None", true),
               embedField("Name", `\`${channel?.name ?? expectedName}\``, true),
             ),
           ctx.ephemeral,

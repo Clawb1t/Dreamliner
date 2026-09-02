@@ -8,13 +8,10 @@ Browse detailed activity statistics through an interactive dashboard — similar
 plugins:
   stats:
     enabled: true
-    overrides:
-      - level: ">=50"
-        config:
-          can_server: true
-          can_user: true
-          can_channel: true
 ```
+
+Grant `can_server`, `can_user`, and `can_channel` to a Dreamliner Role on the dashboard's **Roles** page (or
+`/permissions role grant`) — see [permissions.md](../permissions.md).
 
 ## Commands
 

@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zScamProtectConfig } from "../../config/schemas/scamProtect.js";
-import { scamProtectDefaultOverrides } from "./defaultOverrides.js";
 import { scamProtectCommands } from "./commands.js";
 import {
   handleScamProtectChannelDelete,
@@ -12,7 +11,6 @@ import {
 export const scamProtectPlugin = definePlugin({
   name: "scam_protect",
   configSchema: zScamProtectConfig,
-  defaultOverrides: scamProtectDefaultOverrides,
   slashCommands: scamProtectCommands,
   events: [
     {

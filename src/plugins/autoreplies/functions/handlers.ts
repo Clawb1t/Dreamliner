@@ -1,9 +1,8 @@
 import type { GuildMember, Message, TextChannel } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { zAutorepliesConfig } from "../../../config/schemas/plugins.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { buildPersistPayload } from "../../persist/functions/messageBuilder.js";
 import { getAutoreplyWebhook } from "../../persist/functions/webhook.js";
 import {
@@ -24,7 +23,7 @@ export async function handleAutoreplyMessage(message: Message): Promise<void> {
   if (!pluginEnabled(guildConfig, "autoreplies")) return;
 
   const pluginConfig = zAutorepliesConfig.parse(
-    resolvePluginConfig(guildConfig, "autoreplies", getPluginDefaultOverrides("autoreplies")),
+    getPluginSettings(guildConfig, "autoreplies"),
   );
 
   const rules = normalizeAutoreplyRules(pluginConfig.rules).filter(

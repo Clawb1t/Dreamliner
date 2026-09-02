@@ -5,7 +5,7 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { emojiKeysMatch } from "../../../core/emoji.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { safeAddRole, safeRemoveRole, safeToggleRole } from "../../../core/roles.js";
-import { parseRolePanelButtonCustomId } from "../defaultOverrides.js";
+import { parseRolePanelButtonCustomId } from "../customIds.js";
 import { findRolePanelMessageByDiscordMessage } from "./store.js";
 
 function loadPanels(guildConfig: Awaited<ReturnType<typeof configManager.getEffectiveConfig>>): RolePanel[] {

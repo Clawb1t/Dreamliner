@@ -1,8 +1,7 @@
 import type { Guild } from "discord.js";
 import { configManager } from "../config/manager.js";
 import { zTicketsConfig, type TicketsConfig } from "../config/schemas/tickets.js";
-import { ticketsDefaultOverrides } from "../plugins/tickets/defaultOverrides.js";
-import { resolvePluginConfig } from "../core/permissions.js";
+import { getPluginSettings } from "../core/permissionRoles.js";
 import {
   getTicket,
   getTicketStats,
@@ -143,7 +142,7 @@ async function toWebTicket(
 
 async function getTicketsConfig(guildId: string): Promise<TicketsConfig> {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
-  return zTicketsConfig.parse(resolvePluginConfig(guildConfig, "tickets", ticketsDefaultOverrides));
+  return zTicketsConfig.parse(getPluginSettings(guildConfig, "tickets"));
 }
 
 export async function listGuildTickets(guild: Guild, query: WebTicketsQuery) {

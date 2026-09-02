@@ -130,7 +130,7 @@ List server roles.
 
 ### `/level`
 
-Show a member's config permission level.
+List the Dreamliner Roles a member belongs to.
 
 ### `/watchdog`
 

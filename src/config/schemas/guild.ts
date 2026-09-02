@@ -184,10 +184,6 @@ export const zPublicStatsConfig = z
 
 export const zGuildConfig = z.strictObject({
   emojis: zEmojisConfig.default({}).describe("Response embed title emoji prefixes."),
-  levels: z
-    .record(z.coerce.number())
-    .default({})
-    .describe("Map role or user snowflake IDs to permission levels (higher = more access)."),
   /** @deprecated Use moderation_log_channel_id */
   log_channel_id: z
     .string()
@@ -210,7 +206,7 @@ export const zGuildConfig = z.strictObject({
     .boolean()
     .default(true)
     .describe(
-      "When true (default), anyone with Discord's Administrator permission (or the server owner) can use any bot command, regardless of levels/overrides — no configuration required. Disable to require explicit levels/overrides for admins too.",
+      "When true (default), anyone with Discord's Administrator permission (or the server owner) can use any bot command, regardless of Dreamliner Role assignment — no configuration required. Disable to require explicit role assignment for admins too.",
     ),
   server_accent_color: serverAccentColor,
   leaderboard_override_user_accents: z
@@ -272,12 +268,3 @@ export type EmojisConfig = z.infer<typeof zEmojisConfig>;
 export type LogEmojisConfig = z.infer<typeof zLogEmojisConfig>;
 export type LoggingConfig = z.infer<typeof zLoggingConfig>;
 export type PublicStatsConfig = z.infer<typeof zPublicStatsConfig>;
-
-export type PluginOverride = {
-  level?: string;
-  channel?: string;
-  category?: string;
-  user?: string;
-  role?: string;
-  config: Record<string, unknown>;
-};

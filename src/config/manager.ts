@@ -13,22 +13,11 @@ import {
   validateMergedConfig,
 } from "./validator.js";
 import type { GuildConfig } from "./schemas/guild.js";
-import type { ConfigOverride } from "../core/types.js";
 import { migrateLegacyEmojisInGuildConfig, migrateLegacyEmojisInObject } from "./emojiMigration.js";
 
 const cache = new Map<string, GuildConfig>();
 
 type SaveResult = { success: true; data: GuildConfig } | { success: false; errors: string[] };
-
-function isPermissionOverrideMatch(
-  override: ConfigOverride,
-  target: { user?: string; role?: string },
-): boolean {
-  if (override.level || override.channel || override.category) return false;
-  if (target.user) return override.user === target.user && !override.role;
-  if (target.role) return override.role === target.role && !override.user;
-  return false;
-}
 
 type ConfigSaveListener = (guildId: string, config: GuildConfig) => void;
 
@@ -467,91 +456,6 @@ export class ConfigManager {
     return this.saveUserOverrides(guildId, userOverrides, updatedBy);
   }
 
-  async patchLevels(
-    guildId: string,
-    levelPatch: Record<string, number | null>,
-    updatedBy: string,
-  ): Promise<SaveResult> {
-    const loaded = await this.loadUserOverrides(guildId);
-    if (!loaded.success) return loaded;
-
-    const userOverrides = loaded.data;
-    const levels = { ...((userOverrides.levels ?? {}) as Record<string, number>) };
-
-    for (const [id, value] of Object.entries(levelPatch)) {
-      if (value === null) {
-        delete levels[id];
-      } else {
-        levels[id] = value;
-      }
-    }
-
-    userOverrides.levels = levels;
-    return this.saveUserOverrides(guildId, userOverrides, updatedBy);
-  }
-
-  async setPermissionGrant(
-    guildId: string,
-    pluginName: string,
-    permission: string,
-    target: { everyone?: boolean; user?: string; role?: string },
-    allowed: boolean,
-    updatedBy: string,
-  ): Promise<SaveResult> {
-    const loaded = await this.loadUserOverrides(guildId);
-    if (!loaded.success) return loaded;
-
-    const userOverrides = loaded.data;
-    const plugins = { ...((userOverrides.plugins ?? {}) as Record<string, unknown>) };
-    const section = { ...((plugins[pluginName] ?? {}) as Record<string, unknown>) };
-    const config = { ...((section.config ?? {}) as Record<string, unknown>) };
-    let overrides = [...((section.overrides as ConfigOverride[] | undefined) ?? [])];
-
-    if (target.everyone) {
-      if (allowed) {
-        config[permission] = true;
-      } else {
-        delete config[permission];
-      }
-    } else {
-      const matchIndex = overrides.findIndex((override) => isPermissionOverrideMatch(override, target));
-      if (allowed) {
-        if (matchIndex >= 0) {
-          overrides[matchIndex] = {
-            ...overrides[matchIndex],
-            config: { ...overrides[matchIndex].config, [permission]: true },
-          };
-        } else {
-          const next: ConfigOverride = {
-            config: { [permission]: true },
-          };
-          if (target.user) next.user = target.user;
-          if (target.role) next.role = target.role;
-          overrides.push(next);
-        }
-      } else if (matchIndex >= 0) {
-        const existing = overrides[matchIndex];
-        const nextConfig = { ...existing.config };
-        delete nextConfig[permission];
-        if (Object.keys(nextConfig).length === 0) {
-          overrides = overrides.filter((_, index) => index !== matchIndex);
-        } else {
-          overrides[matchIndex] = { ...existing, config: nextConfig };
-        }
-      }
-    }
-
-    const nextSection: Record<string, unknown> = { ...section, config };
-    if (overrides.length > 0) {
-      nextSection.overrides = overrides;
-    } else {
-      delete nextSection.overrides;
-    }
-
-    plugins[pluginName] = nextSection;
-    userOverrides.plugins = plugins;
-    return this.saveUserOverrides(guildId, userOverrides, updatedBy);
-  }
 }
 
 export const configManager = new ConfigManager();

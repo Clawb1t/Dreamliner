@@ -4,7 +4,7 @@ import { zPersistEmbedConfig } from "../config/schemas/persist.js";
 import { zRolePanel } from "../config/schemas/rolePanels.js";
 import { renderTemplate } from "../core/templates.js";
 import { parseMessageLink } from "../core/messageLink.js";
-import { ROLE_PANEL_PREFIX } from "../plugins/role_panels/defaultOverrides.js";
+import { ROLE_PANEL_PREFIX } from "../plugins/role_panels/customIds.js";
 import { buildEmbed } from "../plugins/persist/functions/messageBuilder.js";
 import { buildRolePanelButtonRows } from "../plugins/role_panels/functions/messageBuilder.js";
 

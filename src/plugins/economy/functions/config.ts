@@ -1,16 +1,14 @@
 import { zEconomyConfig, type EconomyConfig } from "../../../config/schemas/economy.js";
 import { configManager } from "../../../config/manager.js";
-import { getPluginDefaultOverrides } from "../../../core/guildHelpers.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { resolvePluginConfig } from "../../../core/permissions.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
-import { economyDefaultOverrides } from "../defaultOverrides.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 
 export function getEconomyConfig(guildConfig: GuildConfig): EconomyConfig {
   return parsePluginConfig(
     zEconomyConfig,
-    resolvePluginConfig(guildConfig, "economy", economyDefaultOverrides),
+    getPluginSettings(guildConfig, "economy"),
   );
 }
 
@@ -24,6 +22,6 @@ export async function loadEconomyConfig(guildId: string): Promise<EconomyConfig 
   if (!pluginEnabled(guildConfig, "economy")) return null;
   return parsePluginConfig(
     zEconomyConfig,
-    resolvePluginConfig(guildConfig, "economy", getPluginDefaultOverrides("economy")),
+    getPluginSettings(guildConfig, "economy"),
   );
 }
