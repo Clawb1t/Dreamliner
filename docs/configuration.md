@@ -1,6 +1,8 @@
 # Configuration
 
-Dreamliner server configuration is written in YAML. Each server has its own config stored in the database after upload.
+Dreamliner server configuration is edited entirely from the **web dashboard** and stored as YAML in the database
+under the hood — there is no in-Discord upload/download workflow anymore. The YAML shape below documents that
+underlying format (and what a fork's `config/default.server.yaml` looks like), not something you write by hand.
 
 ## File format
 
@@ -32,7 +34,7 @@ Dreamliner Role instead. See [Permissions](permissions.md).
 
 The icons used on command response embed titles (success, error, neutral, warning, unchecked) and on log card
 titles (`logging.emojis`) are **fixed bot-wide and not configurable** — every server sees the same set, and
-neither the dashboard nor a `/config upload` can change them. The `emojis`/`logging.emojis` keys are no longer
+the dashboard cannot change them. The `emojis`/`logging.emojis` keys are no longer
 part of guild config; an uploaded YAML with either block simply has it ignored (they fail schema validation and
 get repaired away). See `src/core/embeds.ts` (`DEFAULT_EMOJIS`) and `src/core/logging/emojis.ts` (`LOG_EMOJI`) if
 you're maintaining a fork and want to change the defaults in code.
@@ -97,37 +99,28 @@ Each plugin is configured under `plugins.<name>`:
 
 ## Merge behavior
 
-On upload, your YAML is **deep-merged** with `config/default.server.yaml`. You only need to include keys you want to change.
+Whatever you save on the dashboard is **deep-merged** with `config/default.server.yaml` — you only ever customize the fields you touch, and new Dreamliner defaults apply automatically to anything you haven't.
 
 See also: [Autorole](plugins/autorole.md), [Member identity](plugins/member_identity.md), [Translation](plugins/translation.md), [Logs](plugins/logs.md), [Starboard](plugins/starboard.md).
 
 ## Config commands
 
-| Command            | Description                                                     |
-| ------------------ | --------------------------------------------------------------- |
-| `/config template` | Default template from bot operator                              |
-| `/config download` | Current effective config for this server                        |
-| `/config upload`   | Validate and save a config file                                 |
-| `/config validate` | Dry-run validation                                              |
-| `/config update`   | Apply new Dreamliner defaults while keeping your customizations |
-| `/permissions role ...` | Manage Dreamliner Roles without re-uploading YAML           |
-| `/plugin toggle`   | Enable or disable a plugin (`plugin` + `state`: Enable / Disable) |
-| `/plugin list`     | Show which plugins are enabled or disabled                      |
+| Command                 | Description                                                       |
+| ------------------------ | ------------------------------------------------------------------ |
+| `/config`               | Posts a link to open this server's dashboard                       |
+| `/permissions role ...` | Manage Dreamliner Roles without leaving Discord                    |
+| `/plugin toggle`        | Enable or disable a plugin (`plugin` + `state`: Enable / Disable)  |
+| `/plugin list`          | Show which plugins are enabled or disabled                         |
 
 ### Workflow
 
-1. Run `/config template` (new server) or `/config download` (existing server).
-2. Edit the YAML file locally, or use the website **config editor** (loads the schema from this repo).
-3. Run `/config validate` to check for errors (optional).
-4. Run `/config upload` to apply.
+1. Run `/config` (or open the dashboard link from the join message) and sign in with Discord.
+2. Pick this server, edit plugins and fields (channels/roles/members have search autocomplete).
+3. Click **Save** — Dreamliner applies the config immediately, no restart or re-upload needed.
 
-Machine-readable schema for the editor is generated with `npm run schema:export` into `schema/guild-config.schema.json` (also run during `prebuild`).
-
-### `/config update`
-
-When Dreamliner ships new default settings, run `/config update` to pick up changes you did not customize. Your overrides are preserved using the raw YAML from your last upload.
-
-If your config was saved before this feature existed, the bot uses diff detection against the stored defaults snapshot. Re-uploading via `/config upload` improves future updates.
+A new server already has a working default config the moment Dreamliner joins, so every command works
+immediately; the dashboard is only for customizing it. Machine-readable schema for the editor is generated with
+`npm run schema:export` into `schema/guild-config.schema.json` (also run during `prebuild`).
 
 ## Reloading
 
@@ -151,4 +144,4 @@ Dreamliner is organized into plugins under the `plugins:` key. Each plugin has i
 | Utilities         | utility, stats, bot\_customisation, logs                                                         |
 | Feedback          | reviews, suggestions                                                                             |
 
-See [Documentation index](/broken/pages/ScBf0pRjbQl3XDFHSAMa) for setup guides per plugin. The default template (`/config template`) includes all configurable fields.
+See [Documentation index](/broken/pages/ScBf0pRjbQl3XDFHSAMa) for setup guides per plugin. The dashboard exposes every configurable field for every plugin.

@@ -48,7 +48,7 @@ Set `enabled: false` on the plugin section to turn autorole off without removing
 | `/autorole remove` | `can_remove` | Remove a role from the humans or bots list (`for`) |
 | `/autorole list` | `can_list` | List configured autoroles (`for`: both, humans, or bots) |
 
-Changes from commands are saved to your server config (same YAML section as manual edits). Use `/config download` to export the updated config.
+Changes from these commands are saved to your server config (same section shown on the dashboard) and reflected there immediately.
 
 Grant `can_add`, `can_remove`, and `can_list` to a Dreamliner Role on the dashboard's **Roles** page (or
 `/permissions role grant`) — see [permissions.md](../permissions.md).

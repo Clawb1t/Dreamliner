@@ -1,6 +1,8 @@
 # Getting started
 
-Dreamliner uses a **download → edit → upload** workflow for server configuration. After the first upload, you can also manage Dreamliner Roles and command access in Discord with `/permissions role ...` (no re-upload needed).
+Dreamliner is configured entirely from the **web dashboard** — there is no download/upload YAML workflow. You can
+also manage Dreamliner Roles and command access in Discord with `/permissions role ...` without ever opening the
+dashboard.
 
 ## 1. Invite the bot
 
@@ -19,23 +21,23 @@ At minimum you will need:
 
 The bot also needs standard read/send message permissions in channels where commands are used.
 
-## 2. Download the template
+As soon as Dreamliner joins, it provisions a working default config for the server — every command works
+immediately, before anyone touches the dashboard.
+
+## 2. Open the dashboard
 
 A server administrator runs:
 
 ```
-/config template
+/config
 ```
 
-This sends `dreamliner-template.yaml` - the default configuration maintained by the bot operator. It includes emoji settings and utility plugin defaults.
+This posts a link to this server's dashboard. Open it and sign in with Discord — this server is already selected.
 
-## 3. Edit the configuration
-
-Open the YAML file in any text editor. Common first steps:
+## 3. Configure
 
 1. Set up Dreamliner Roles - assign your mod/admin Discord roles or users to the built-in **Moderator**/**Admin** roles (dashboard **Roles** page, or `/permissions role assign`).
-2. Adjust `emojis` if you want custom success/error/neutral/warning/unchecked prefixes.
-3. Enable and configure plugins under `plugins` - see [plugin documentation](/broken/pages/ScBf0pRjbQl3XDFHSAMa#plugins) for categories:
+2. Enable and configure plugins - see [plugin documentation](/broken/pages/ScBf0pRjbQl3XDFHSAMa#plugins) for categories:
    * **Moderation** - infractions, lockdown, slowmode
    * **Protection** - automod, scam protect, persist, autodelete
    * **Role management** - staff role assign, templates, autorole, pingables
@@ -47,39 +49,18 @@ Open the YAML file in any text editor. Common first steps:
    * **Customization** - custom events, aliases, custom commands
    * **Utilities** - utility commands, stats, bot customisation, logs
    * **Feedback** - reviews and suggestions
-4. Grant `plugins.utility`'s `can_*` permissions to your Dreamliner Roles.
+3. Grant `plugins.utility`'s `can_*` permissions to your Dreamliner Roles.
+4. Click **Save**. Dreamliner applies the config immediately - no restart, no re-upload.
 
-See [Permissions setup](permissions.md) for a full walkthrough and examples. See [Configuration](configuration.md) for the full YAML format.
+See [Permissions setup](permissions.md) for a full walkthrough and examples. See [Configuration](configuration.md) for the underlying config format.
 
-## 4. Upload your configuration
+## 4. Use utility commands
 
-```
-/config upload file:<your-edited.yaml>
-```
-
-Dreamliner validates the file, merges it with defaults, saves it to the database, and applies it immediately.
-
-Use `/config validate` to check a file without saving.
-
-## 5. Download your current config
-
-To edit an existing setup:
-
-```
-/config download
-```
-
-This returns the effective configuration currently stored for your server.
-
-## 6. Use utility commands
-
-Once a configuration is uploaded, moderators can use commands like `/search`, `/user`, `/clean`, and `/help`. Permission is controlled by Dreamliner Roles, not just Discord roles.
+Moderators can use commands like `/search`, `/user`, `/clean`, and `/help` right away. Permission is controlled by Dreamliner Roles, not just Discord roles.
 
 ## Troubleshooting
 
 | Problem                      | Solution                                                |
-| ---------------------------- | ------------------------------------------------------- |
-| "No configuration yet"       | Run `/config template` → edit → `/config upload`        |
+| ----------------------------- | ------------------------------------------------------- |
 | "You do not have permission" | See [Permissions setup](permissions.md#troubleshooting) |
-| Upload validation errors     | Run `/config validate` to see specific field errors     |
 | Commands not appearing       | Ask the bot operator to run `pnpm register-commands`    |

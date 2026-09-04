@@ -90,11 +90,13 @@ Two independent layers (see `docs/permissions.md`):
   stripped rather than rejecting the whole config).
 - `config/manager.ts` (`ConfigManager`, singleton `configManager`) is the only way plugins read/write guild
   config: `getGuildConfig`/`getEffectiveConfig` (cached, falls back to defaults if a guild has no stored/valid
-  config), `saveGuildConfig` (full YAML upload), and granular patch helpers (`patchPluginConfig`,
-  `setPluginEnabled`, `patchLevels`, `setPermissionGrant`) used by `/permissions`, `/plugin toggle`, etc. Two YAML
-  copies are stored per guild: the full merged snapshot (`configYaml`) and just the user's overrides
-  (`userConfigYaml`), so `/config update` can re-merge overrides onto new defaults without clobbering
-  customization.
+  config), `saveGuildConfig` (full YAML replace — called by the dashboard bridge, and once by `bot.ts`'s
+  `GuildCreate` handler to auto-provision a default config so a brand-new guild's commands work immediately), and
+  granular patch helpers (`patchPluginConfig`, `setPluginEnabled`, `patchLevels`, `setPermissionGrant`) used by
+  `/permissions`, `/plugin toggle`, etc. Two YAML copies are stored per guild: the full merged snapshot
+  (`configYaml`) and just the user's overrides (`userConfigYaml`), so future default changes can be re-merged onto
+  overrides without clobbering customization. There is no in-Discord config upload/download anymore — `/config`
+  just links to the dashboard.
 - `npm run schema:export` (also run in `prebuild`) writes `schema/guild-config.schema.json` from the zod schemas
   for the external website's config editor to consume — keep plugin config schemas in sync if you change them.
 

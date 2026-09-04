@@ -105,7 +105,6 @@ Set `enabled: false` on the plugin section to turn starboard off without removin
 ## Setup
 
 1. Create a `#starboard` channel in Discord.
-2. Run `/config download` or `/config template`.
+2. Open the dashboard with `/config`.
 3. Set `plugins.starboard.config.boards.main.channel_id` to your starboard channel ID.
-4. Set `stars_required` to your preferred minimum (e.g. `3`).
-5. Upload with `/config upload`.
+4. Set `stars_required` to your preferred minimum (e.g. `3`), then Save.

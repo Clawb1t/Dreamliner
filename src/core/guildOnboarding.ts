@@ -95,9 +95,9 @@ export async function buildGuildOnboardingPayload(
   const statsDashUrl = getGuildStatsDashboardUrl(guildId);
   const publicLb = publicLeaderboardUrl(guildId);
 
-  const [statsServer, configEditor, about] = await Promise.all([
+  const [statsServer, configCommand, about] = await Promise.all([
     commandMention(client, "stats", "server"),
-    commandMention(client, "config", "editor"),
+    commandMention(client, "config"),
     commandMention(client, "about"),
   ]);
 
@@ -112,7 +112,7 @@ export async function buildGuildOnboardingPayload(
     "## Dashboard first",
     "Open the **server dashboard** (button below), sign in with Discord, pick this server, then configure plugins and save. Changes apply immediately.",
     "",
-    `Prefer Discord? Start with ${configEditor}, or ${about} for website and docs.`,
+    `Prefer Discord? Start with ${configCommand}, or ${about} for website and docs.`,
   ].join("\n");
 
   const statsSection = [

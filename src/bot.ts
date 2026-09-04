@@ -197,6 +197,19 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   client.on(Events.GuildCreate, async (guild) => {
     const stored = await configManager.getGuildConfig(guild.id);
     if (stored) return;
+
+    // Provision a default config immediately so every command works out of the
+    // box; the guild can still customize (and overwrite this) via the dashboard
+    // or /config later. Without this, pluginsRequiringConfig gates commands
+    // like /warn until someone explicitly saves a config.
+    const provisioned = await configManager.saveGuildConfig(guild.id, "", "system:auto-onboard");
+    if (!provisioned.success) {
+      console.error(
+        `[dreamliner] Failed to provision default config for guild ${guild.id}:`,
+        provisioned.errors,
+      );
+    }
+
     const { sendGuildOnboardingMessage } = await import("./core/guildOnboarding.js");
     await sendGuildOnboardingMessage(client, guild);
   });
@@ -550,7 +563,7 @@ async function handleContextMenuCommand(
       await interaction.reply(
         resultReply(
           "Configuration required",
-          "This server has no configuration yet. Open the dashboard (or run `/config editor`) to set up Dreamliner, then save. You can also use `/config template` + `/config upload` if you prefer YAML files.",
+          "This server has no configuration yet. Open the dashboard (or run `/config`) to set up Dreamliner, then save.",
           true,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
           [configEditorWithSupportRow(interaction.guildId!)],
@@ -680,7 +693,7 @@ async function handleSlashCommand(
       await interaction.reply(
         resultReply(
           "Configuration required",
-          "This server has no configuration yet. Open the dashboard (or run `/config editor`) to set up Dreamliner, then save. You can also use `/config template` + `/config upload` if you prefer YAML files.",
+          "This server has no configuration yet. Open the dashboard (or run `/config`) to set up Dreamliner, then save.",
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
           [configEditorWithSupportRow(interaction.guildId!)],

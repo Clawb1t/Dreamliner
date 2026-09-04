@@ -1,10 +1,10 @@
 # Dreamliner
 
-Moderation and ops for large Discord communities: YAML config, staff permissions, logging, automod, and a web dashboard.
+Moderation and ops for large Discord communities: web-dashboard config, staff permissions, logging, automod, and stats.
 
 Dreamliner is a Discord moderation and server-operations bot built for communities that outgrow one-size-fits-all tools. It is designed for staff teams that need clear permission boundaries, auditable configuration, and features that stay reliable as membership and moderation load grow.
 
-Configure your server with versionable YAML: download a template, edit channels, plugins, and access levels, then upload. Day-to-day work can also run through the web dashboard for live config, logs, stats, and custom commands, without giving up file-based control. Dreamliner does not require Administrator; invite with least privilege and grant only what your staff need.
+Configure your server entirely from the web dashboard: channels, plugins, and access levels, saved live with no restart. A new server gets a working default config the moment Dreamliner joins, so every command works immediately — the dashboard is only for customizing it. Dreamliner does not require Administrator; invite with least privilege and grant only what your staff need.
 
 Core capabilities include infractions and case management, automod and raid tooling, content filters, structured logging, role and onboarding systems, multilingual translation, activity stats, and visually built custom slash commands. Enable only the plugins your community uses so the bot stays focused and predictable for operators.
 
@@ -24,21 +24,20 @@ Recommended permissions are pre-selected. Dreamliner does **not** require Admini
 
 ## Why operators choose it
 
-- **Config as source of truth:** Guild YAML is portable, reviewable, and easy to back up or hand off between staff.
-- **Least privilege by design:** Level-based access plus per-command `can_*` overrides so senior mods, trial staff, and helpers stay in their lane.
+- **Works on invite:** A default config is provisioned the instant Dreamliner joins — no setup step blocks day-one use.
+- **Least privilege by design:** Dreamliner Roles plus per-command `can_*` grants so senior mods, trial staff, and helpers stay in their lane.
 - **Ops without noise:** Enable only the plugins your community needs; leave the rest off.
 - **Slash-first management:** Staff workflows and custom commands stay in Discord’s command surface.
-- **Dashboard when you want it:** Live config, logs, stats, and building custom commands without abandoning file-based control.
+- **Dashboard-first config:** Live config, logs, stats, and building custom commands, all from one web dashboard.
 
 ---
 
 ## Quick start
 
 1. Invite Dreamliner with the link above.
-2. Run `/config template` (requires **Manage Server**).
-3. Edit the YAML: channels, plugins, and permission levels (levels can also be adjusted later with `/permissions`).
-4. Run `/config upload` with your file.
-5. Use `/permissions` for incremental access changes and `/help` for command discovery.
+2. Run `/config` (requires **Manage Server**) to get a link to this server's dashboard.
+3. Sign in with Discord, then edit channels, plugins, and Dreamliner Roles. Click **Save** — changes apply immediately.
+4. Use `/permissions` for incremental access changes in Discord, and `/help` for command discovery.
 
 Walkthrough: [Getting started](docs/getting-started.md)
 

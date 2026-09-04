@@ -18,7 +18,7 @@ When inviting Dreamliner, grant at least these **bot permissions**:
 | View Channels          | See channels and run commands                             |
 | Send Messages          | Reply to slash commands                                   |
 | Embed Links            | Link previews in some outputs                              |
-| Attach Files           | `/config download`, `/source`, `/avatar`                   |
+| Attach Files           | `/source`, `/avatar`                                       |
 | Read Message History   | `/message`, `/context`, `/clean`, `/source`                |
 | Manage Messages        | `/clean` bulk delete                                        |
 | Ban Members            | `/bansearch`, `/ban`, `/unban`, `/softban`                  |
@@ -41,15 +41,13 @@ If commands fail in specific channels, check channel permission overwrites for t
 
 ***
 
-## Step 2: Upload a server configuration
+## Step 2: Open the dashboard
 
-Utility commands are disabled until a server admin uploads a config:
+A default config is provisioned automatically the moment Dreamliner joins, so every command already works. To
+customize it:
 
-1. `/config template`
-2. Edit the YAML file
-3. `/config upload`
-
-Only members with Discord **Manage Server** can use `/config` commands.
+1. Run `/config` (requires Discord **Manage Server**) for a link to this server's dashboard.
+2. Sign in with Discord, edit plugins/fields, then **Save** — it applies immediately.
 
 ***
 
@@ -184,10 +182,9 @@ Voice, moderation, and nickname commands also use Discord's own **role hierarchy
 
 | Action                                                                 | Requirement                                                                       |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Upload / download / validate config                                     | Discord **Manage Server**                                                          |
+| Edit server config on the dashboard                                     | Discord **Manage Server**                                                          |
 | Create/rename/delete Dreamliner Roles, assign targets, grant commands   | Discord **Manage Server** (dashboard **Roles** page or `/permissions role ...`)      |
 | Hot-reload config (`/reload`)                                            | `can_reload_guild` granted via a Dreamliner Role the member belongs to               |
-| Edit full YAML                                                           | `/config download` → edit → `/config upload`                                        |
 
 ### In-Discord permission editor
 
@@ -208,7 +205,7 @@ Use `/permissions role ...` (requires **Manage Server**) instead of the dashboar
 
 `role` and `command` options support autocomplete. Changes are saved immediately (same store the dashboard's Roles page uses).
 
-`/config download` → edit → `/config upload` still covers everything else in the config, but `can_*` grants are not among them anymore — always use Dreamliner Roles for those.
+The dashboard still covers everything else in the config, but `can_*` grants are not among them anymore — always use Dreamliner Roles for those.
 
 ***
 
@@ -216,9 +213,8 @@ Use `/permissions role ...` (requires **Manage Server**) instead of the dashboar
 
 | Symptom                               | Likely cause                                                | Fix                                                                          |
 | --------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| "No configuration yet"                | No YAML uploaded                                              | `/config template` → edit → `/config upload`                                 |
 | "You do not have permission"          | No Dreamliner Role the member belongs to grants that flag     | Assign them to a role that has it, or grant it on their existing role         |
-| "You need Manage Server"              | User lacks Discord perm                                        | Grant Manage Server or have an admin upload config                            |
+| "You need Manage Server"              | User lacks Discord perm                                        | Grant Manage Server or have an admin configure it on the dashboard            |
 | "You need Manage Messages"            | `can_clean` ok but Discord perm missing                        | Add Manage Messages to mod role                                               |
 | Command works for admins but not mods | Mod's Discord role/user isn't assigned to a Dreamliner Role with that flag | Assign it on the dashboard **Roles** page or `/permissions role assign` + `role grant` |
 | Bot does not respond in a channel     | Channel overwrite                                              | Allow bot View Channel + Send Messages                                        |

@@ -28,7 +28,7 @@ export type DashboardAuditInput = {
   changes?: string[];
   targetId?: string | null;
   payload?: Record<string, unknown>;
-  /** Defaults to web dashboard. Use discord for `/config upload` etc. */
+  /** Defaults to web dashboard. "discord" is for actions taken via Discord commands. */
   source?: "dashboard" | "discord";
 };
 

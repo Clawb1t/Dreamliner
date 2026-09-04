@@ -3,11 +3,10 @@ import YAML from "yaml";
 
 import { getDb } from "../db/client.js";
 import { guildConfigs } from "../db/schema.js";
-import { clearDefaultConfigCache, loadDefaultConfig, loadDefaultConfigRaw } from "./default.js";
+import { loadDefaultConfig, loadDefaultConfigRaw } from "./default.js";
 import {
   computeUserOverrides,
   deepMerge,
-  mergeConfigWithDefaults,
   parseYamlConfig,
   validateGuildConfig,
   validateMergedConfig,
@@ -250,74 +249,6 @@ export class ConfigManager {
     return { success: true, data: result.data };
   }
 
-  async updateGuildConfigFromDefaults(
-    guildId: string,
-    updatedBy: string,
-  ): Promise<
-    | { success: true; data: GuildConfig; usedLegacyDiff: boolean }
-    | { success: false; errors: string[]; noConfig?: boolean }
-  > {
-    clearDefaultConfigCache();
-    const db = getDb();
-    const row = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).get();
-    if (!row) {
-      return { success: false, errors: ["No configuration stored for this server. Use `/config upload` first."], noConfig: true };
-    }
-
-    let userOverrides: Record<string, unknown>;
-    let usedLegacyDiff = false;
-
-    if (row.userConfigYaml) {
-      try {
-        userOverrides = (parseYamlConfig(row.userConfigYaml) ?? {}) as Record<string, unknown>;
-      } catch (e) {
-        return { success: false, errors: [`Invalid stored user config: ${e instanceof Error ? e.message : String(e)}`] };
-      }
-    } else if (row.defaultsSnapshotYaml) {
-      try {
-        const stored = YAML.parse(row.configYaml) as Record<string, unknown>;
-        const oldDefaults = YAML.parse(row.defaultsSnapshotYaml) as Record<string, unknown>;
-        userOverrides = computeUserOverrides(stored, oldDefaults);
-        usedLegacyDiff = true;
-      } catch (e) {
-        return { success: false, errors: [`Failed to compute overrides: ${e instanceof Error ? e.message : String(e)}`] };
-      }
-    } else {
-      try {
-        const stored = YAML.parse(row.configYaml) as Record<string, unknown>;
-        const oldDefaults = loadDefaultConfig() as unknown as Record<string, unknown>;
-        userOverrides = computeUserOverrides(stored, oldDefaults);
-        usedLegacyDiff = true;
-      } catch (e) {
-        return { success: false, errors: [`Failed to compute overrides: ${e instanceof Error ? e.message : String(e)}`] };
-      }
-    }
-
-    const result = mergeConfigWithDefaults(userOverrides);
-    if (!result.success) {
-      return result;
-    }
-
-    const defaultsSnapshotYaml = loadDefaultConfigRaw();
-    const userConfigYaml = YAML.stringify(userOverrides);
-
-    await db
-      .update(guildConfigs)
-      .set({
-        configYaml: result.mergedYaml,
-        userConfigYaml,
-        defaultsSnapshotYaml,
-        updatedAt: new Date(),
-        updatedBy,
-      })
-      .where(eq(guildConfigs.guildId, guildId));
-
-    cache.set(guildId, result.data);
-    this.guildsWithoutStoredConfig.delete(guildId);
-    this.notifySave(guildId, result.data);
-    return { success: true, data: result.data, usedLegacyDiff };
-  }
-
   async reloadGuild(guildId: string): Promise<GuildConfig | null> {
     cache.delete(guildId);
     return this.getGuildConfig(guildId);
@@ -329,11 +260,6 @@ export class ConfigManager {
     } else {
       cache.clear();
     }
-  }
-
-  getTemplateYaml(): string {
-    clearDefaultConfigCache();
-    return loadDefaultConfigRaw();
   }
 
   async getDownloadYaml(guildId: string): Promise<string> {
@@ -348,12 +274,6 @@ export class ConfigManager {
       return row.configYaml;
     }
     return YAML.stringify(loadDefaultConfig());
-  }
-
-  async validateOnly(userYaml: string): Promise<{ success: true } | { success: false; errors: string[] }> {
-    const result = validateMergedConfig(userYaml);
-    if (!result.success) return result;
-    return { success: true };
   }
 
   mergePreview(userYaml: string): GuildConfig {

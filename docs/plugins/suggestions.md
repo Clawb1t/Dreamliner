@@ -155,7 +155,7 @@ Marking **implemented** can move the post to `archive_channel_id` and optionally
 
 ## Dashboard
 
-**Feedback → Suggestions** shows Queue / Approved / Denied with approve, deny, mark, and delete actions. Plugin YAML lives under **Feedback → Suggestions** in the config editor.
+**Feedback → Suggestions** shows Queue / Approved / Denied with approve, deny, mark, and delete actions. Plugin settings live under **Feedback → Suggestions** on the dashboard.
 
 ## Requirements
 
@@ -166,7 +166,6 @@ Marking **implemented** can move the post to `archive_channel_id` and optionally
 ## Setup
 
 1. Create `#suggestions` and, for review mode, `#suggestion-review` channels.
-2. Run `/config download` or `/config template`.
-3. Set `mode`, channel IDs, and eligibility fields under `plugins.suggestions.config`.
-4. Upload with `/config upload`, or save from the dashboard.
-5. Members use `/suggest`. Staff triage in Discord or on the dashboard.
+2. Open the dashboard with `/config`.
+3. Set `mode`, channel IDs, and eligibility fields under `plugins.suggestions.config`, then Save.
+4. Members use `/suggest`. Staff triage in Discord or on the dashboard.

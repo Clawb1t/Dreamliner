@@ -68,7 +68,7 @@ built-in **Member** role is a good place for it. Grant `can_list`, `can_delete`,
 ## Dashboard
 
 - **Feedback → Reviews** (data): browse ratings, comments, and authors.
-- **Feedback → Reviews** (plugin settings): edit the YAML fields above in the config editor.
+- **Feedback → Reviews** (plugin settings): edit the fields above from the dashboard.
 
 ## Requirements
 
@@ -78,7 +78,6 @@ built-in **Member** role is a good place for it. Grant `can_list`, `can_delete`,
 ## Setup
 
 1. Create a `#reviews` channel (optional) and copy its ID.
-2. Run `/config download` or `/config template`.
-3. Set `plugins.reviews.config.review_channel_id` and adjust eligibility fields as needed.
-4. Upload with `/config upload`, or save from the dashboard config editor.
-5. Members use `/review submit`; staff use `/review list`, `/review delete`, and `/review stats`.
+2. Open the dashboard with `/config`.
+3. Set `plugins.reviews.config.review_channel_id` and adjust eligibility fields as needed, then Save.
+4. Members use `/review submit`; staff use `/review list`, `/review delete`, and `/review stats`.
