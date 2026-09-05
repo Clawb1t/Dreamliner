@@ -175,6 +175,27 @@
     ]
   },
   {
+    "plugin": "booster_roles",
+    "pluginName": "Booster Roles",
+    "pluginDescription": "Reward server boosters with different roles based on how long they've been boosting.",
+    "entries": [
+      {
+        "plugin": "booster_roles",
+        "permission": "can_recheck",
+        "grantKey": "booster_roles.can_recheck",
+        "title": "Recheck",
+        "description": "Allow members to manually recheck their own boost duration against the tiers with /booster recheck."
+      },
+      {
+        "plugin": "booster_roles",
+        "permission": "can_view",
+        "grantKey": "booster_roles.can_view",
+        "title": "View",
+        "description": "Allow members to view the server's booster role tiers with /booster roles."
+      }
+    ]
+  },
+  {
     "plugin": "bot_customisation",
     "pluginName": "Custom Branding",
     "pluginDescription": "Per-server bot avatar, banner, nickname, and bio.",

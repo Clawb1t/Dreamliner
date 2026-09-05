@@ -90,6 +90,15 @@ export {
 
 import { zAutodeleteConfig } from "./autodelete.js";
 
+export {
+  zBoosterRolesConfig,
+  zBoosterRoleTier,
+  type BoosterRolesConfig,
+  type BoosterRoleTier,
+} from "./boosterRoles.js";
+
+import { zBoosterRolesConfig } from "./boosterRoles.js";
+
 export const zSlowmodeRuleTarget = z.enum(["user", "role"]);
 
 export const zSlowmodeRule = z.strictObject({
@@ -551,6 +560,7 @@ export const zSelfGrantableRolesPluginSection = zPluginSection(zSelfGrantableRol
 export const zWelcomeMessagePluginSection = zPluginSection(zWelcomeMessageConfig.shape);
 export const zTagsPluginSection = zPluginSection(zTagsConfig.shape);
 export const zAutodeletePluginSection = zPluginSection(zAutodeleteConfig.shape);
+export const zBoosterRolesPluginSection = zPluginSection(zBoosterRolesConfig.shape);
 export const zAutoreactionsPluginSection = zPluginSection(zAutoreactionsConfig.shape);
 export const zAutorepliesPluginSection = zPluginSection(zAutorepliesConfig.shape);
 export const zAutothreadsPluginSection = zPluginSection(zAutothreadsConfig.shape);

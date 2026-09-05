@@ -64,6 +64,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 - [Stats](./stats.md)
 - [Bot customisation](./bot_customisation.md) — Custom Branding on the dashboard (avatar, banner, nickname, bio)
 - [Logs](./logs.md)
+- [Booster Roles](./booster_roles.md) — dashboard-managed roles by boost duration
 
 ## Feedback
 

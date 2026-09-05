@@ -47,6 +47,15 @@ function pathLabel(path: (string | number)[]): string {
   return path.map(String).join(".");
 }
 
+/** Nearest array-index ancestor of `path` (its own array indices are numbers; object keys are
+ * always strings), i.e. the path to whichever array *item* contains the failing leaf. */
+function nearestArrayItemPath(path: (string | number)[]): (string | number)[] | null {
+  for (let i = path.length - 1; i >= 0; i--) {
+    if (typeof path[i] === "number") return path.slice(0, i + 1);
+  }
+  return null;
+}
+
 function issueRepairs(issue: ZodIssue): { path: (string | number)[]; label: string }[] {
   if (issue.code === ZodIssueCode.unrecognized_keys) {
     return issue.keys.map((key) => ({
@@ -130,9 +139,27 @@ export function repairGuildConfig(raw: unknown): {
     for (const issue of parsed.error.issues) {
       for (const target of issueRepairs(issue)) {
         if (!target.path.length) continue;
-        if (seen.has(`${target.label}#${issue.code}`)) continue;
+        const key = `${target.label}#${issue.code}`;
+        if (seen.has(key)) {
+          // We already deleted this exact leaf once and the very same issue came right back —
+          // its own zod default is itself invalid (e.g. a required label re-defaulting to ""),
+          // so deleting just the leaf can never converge no matter how many times we retry it.
+          // Escalate to dropping the whole array item that contains it (the panel, the category,
+          // the escalation step, ...): that always makes progress, unlike falling straight
+          // through to resetting the entire containing plugin section below, which would also
+          // take out every unrelated sibling item along with the one that's actually broken.
+          const arrayItemPath = nearestArrayItemPath(target.path);
+          if (!arrayItemPath || arrayItemPath.length >= target.path.length) continue;
+          const itemKey = `${pathLabel(arrayItemPath)}#item-removed`;
+          if (seen.has(itemKey)) continue;
+          if (!deletePath(value, arrayItemPath)) continue;
+          seen.add(itemKey);
+          repairs.push(`${pathLabel(arrayItemPath)} (removed — could not otherwise be fixed)`);
+          changed = true;
+          continue;
+        }
         if (!deletePath(value, target.path)) continue;
-        seen.add(`${target.label}#${issue.code}`);
+        seen.add(key);
         repairs.push(target.label);
         changed = true;
       }

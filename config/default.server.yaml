@@ -315,6 +315,13 @@ plugins:
     enabled: true
     config:
       rules: []
+  booster_roles:
+    enabled: true
+    config:
+      stacking: false
+      tiers: []
+      can_view: false
+      can_recheck: false
   autoreactions:
     enabled: true
     config:

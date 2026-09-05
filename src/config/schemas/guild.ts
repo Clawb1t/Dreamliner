@@ -16,6 +16,7 @@ import { zSocialPluginSection } from "./social.js";
 import {
   zAutomodPluginSection,
   zAutodeletePluginSection,
+  zBoosterRolesPluginSection,
   zAutoreactionsPluginSection,
   zAutorepliesPluginSection,
   zAutothreadsPluginSection,
@@ -242,6 +243,7 @@ export const zGuildConfig = z.strictObject({
       welcome_message: zWelcomeMessagePluginSection.optional(),
       tags: zTagsPluginSection.optional(),
       autodelete: zAutodeletePluginSection.optional(),
+      booster_roles: zBoosterRolesPluginSection.optional(),
       autoreactions: zAutoreactionsPluginSection.optional(),
       autoreplies: zAutorepliesPluginSection.optional(),
       autothreads: zAutothreadsPluginSection.optional(),

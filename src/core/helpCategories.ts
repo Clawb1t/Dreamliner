@@ -143,6 +143,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         roots: ["search", "voice", "nickname", "jumbo", "stealemoji", "ping", "about", "help", "reload", "vote"],
       },
       { plugin: "stats" },
+      { plugin: "booster_roles" },
     ],
   },
   {
@@ -353,6 +354,11 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Text-to-speech",
     description: "Speak text aloud in a voice channel with /tts, powered by local Piper text-to-speech.",
   },
+  booster_roles: {
+    key: "booster_roles",
+    name: "Booster Roles",
+    description: "Reward server boosters with different roles based on how long they've been boosting.",
+  },
 };
 
 /**
@@ -392,6 +398,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   dream_commands: "custom",
   utility: "tools",
   stats: "tools",
+  booster_roles: "tools",
   bot_customisation: "tools",
   reviews: "feedback",
   suggestions: "feedback",

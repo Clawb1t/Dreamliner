@@ -60,4 +60,52 @@ describe("repairGuildConfig", () => {
       assert.equal(result.data.plugins.starboard?.config?.boards?.main?.channel_id, "123");
     }
   });
+
+  it("drops only the one invalid ticket panel, not every panel in the section", () => {
+    // The category's blank label only fails a superRefine custom issue, not a plain zod-level
+    // constraint — so deleting just the invalid leaf re-defaults right back to the same invalid
+    // value ("" for label) instead of fixing anything, which then cascades into a second issue
+    // (an empty categories array fails its own min(1)). Regression test for that getting
+    // misdiagnosed as "no progress" and escalating to a full plugins.tickets reset, which used to
+    // wipe every other panel along with the one that was actually broken.
+    const goodCategory = {
+      id: "11111111-1111-4111-8111-111111111111",
+      label: "Support",
+      category_channel_id: "999",
+    };
+    const brokenCategory = {
+      id: "22222222-2222-4222-8222-222222222222",
+      label: "", // fails the "give this category a label" superRefine check
+      category_channel_id: "999",
+    };
+    const result = repairGuildConfig({
+      plugins: {
+        tickets: {
+          config: {
+            panels: [
+              {
+                id: "33333333-3333-4333-8333-333333333333",
+                channel_id: "111",
+                categories: [goodCategory],
+              },
+              {
+                id: "44444444-4444-4444-8444-444444444444",
+                channel_id: "222",
+                categories: [brokenCategory],
+              },
+            ],
+          },
+        },
+      },
+    });
+    assert.equal(result.success, true);
+    if (result.success) {
+      const panels = result.data.plugins.tickets?.config?.panels ?? [];
+      // The good panel survives untouched...
+      assert.ok(panels.some((p) => p.id === "33333333-3333-4333-8333-333333333333"));
+      // ...and only the one panel that couldn't be fixed (its only category was unfixably
+      // invalid, leaving it with none) was dropped — not the whole tickets section.
+      assert.ok(!panels.some((p) => p.id === "44444444-4444-4444-8444-444444444444"));
+    }
+  });
 });

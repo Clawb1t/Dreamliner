@@ -22,6 +22,7 @@ import { selfGrantableRolesPlugin } from "../plugins/self_grantable_roles/index.
 import { welcomeMessagePlugin } from "../plugins/welcome_message/index.js";
 import { tagsPlugin } from "../plugins/tags/index.js";
 import { autodeletePlugin } from "../plugins/autodelete/index.js";
+import { boosterRolesPlugin } from "../plugins/booster_roles/index.js";
 import { autoreactionsPlugin } from "../plugins/autoreactions/index.js";
 import { autorepliesPlugin } from "../plugins/autoreplies/index.js";
 import { autothreadsPlugin } from "../plugins/autothreads/index.js";
@@ -69,6 +70,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   welcomeMessagePlugin,
   tagsPlugin,
   autodeletePlugin,
+  boosterRolesPlugin,
   autoreactionsPlugin,
   autorepliesPlugin,
   autothreadsPlugin,

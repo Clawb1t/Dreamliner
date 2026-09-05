@@ -5622,6 +5622,101 @@
           "additionalProperties": false,
           "title": "Autodelete"
         },
+        "booster_roles": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "stacking": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "If true, boosters keep every tier role they've earned. If false (default), only the highest tier a booster currently qualifies for is kept — lower tier roles are removed as they move up.",
+                  "title": "Stacking"
+                },
+                "tiers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Turn this tier on or off without deleting it.",
+                        "title": "Enabled"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Optional label shown in the dashboard and /booster roles.",
+                        "title": "Name"
+                      },
+                      "role_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Role granted once a booster reaches this tier's duration.",
+                        "title": "Role Id",
+                        "x-dreamliner": {
+                          "kind": "snowflake",
+                          "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                        }
+                      },
+                      "duration_days": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3650,
+                        "default": 0,
+                        "description": "Continuous boosting days required to earn this tier (0 = immediately on boosting).",
+                        "title": "Duration Days"
+                      }
+                    },
+                    "required": [
+                      "role_id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "default": [],
+                  "description": "Boost-duration tiers, one role each.",
+                  "title": "Tiers"
+                },
+                "can_view": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view the server's booster role tiers with /booster roles.",
+                  "title": "View",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_recheck": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manually recheck their own boost duration against the tiers with /booster recheck.",
+                  "title": "Recheck",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Booster Roles",
+          "x-dreamliner": {
+            "kind": "role",
+            "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+          }
+        },
         "autoreactions": {
           "type": "object",
           "properties": {

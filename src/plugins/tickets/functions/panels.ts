@@ -68,13 +68,25 @@ export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js
   const components: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = [];
   const enabledCategories = panel.categories;
 
+  // The schema only requires a non-empty label via a zod superRefine (see config/schemas/
+  // tickets.ts), which — unlike a plain minLength — doesn't make it into the exported JSON
+  // Schema the dashboard's client-side validation runs against, so the dashboard doesn't
+  // actually stop you from saving a category with a blank label (e.g. right after "Add
+  // category", before you've filled it in). Discord's own button/select-menu builders require
+  // a 1-100 character label and throw synchronously otherwise, which — with no label here to
+  // fall back to — would take down the *entire* panel's post, including its other, valid
+  // categories. Falling back to a placeholder keeps a half-configured category from doing that.
+  function categoryLabel(category: TicketCategory, maxLength: number): string {
+    return category.label.trim().slice(0, maxLength) || "Category";
+  }
+
   if (panel.style === "select") {
     const select = new StringSelectMenuBuilder()
       .setCustomId(ticketOpenSelectId(panel.id))
       .setPlaceholder("Select a ticket category...")
       .addOptions(
         enabledCategories.slice(0, 25).map((category) => {
-          const option = { label: category.label.slice(0, 100), value: category.id, description: category.description.slice(0, 100) || undefined };
+          const option = { label: categoryLabel(category, 100), value: category.id, description: category.description.slice(0, 100) || undefined };
           const emoji = parseComponentEmoji(category.emoji);
           return emoji ? { ...option, emoji } : option;
         }),
@@ -89,7 +101,7 @@ export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js
       }
       const button = new ButtonBuilder()
         .setCustomId(ticketOpenButtonId(panel.id, category.id))
-        .setLabel(category.label.slice(0, 80))
+        .setLabel(categoryLabel(category, 80))
         .setStyle(parseButtonStyle(category.button_style));
       const emoji = parseComponentEmoji(category.emoji);
       if (emoji) button.setEmoji(emoji);
@@ -107,14 +119,29 @@ export async function postPanel(client: Client, _guildId: string, panel: TicketP
   const channel = await client.channels.fetch(panel.channel_id).catch(() => null);
   if (!channel?.isTextBased() || !("send" in channel)) return null;
   const guild = "guild" in channel ? (channel.guild as import("discord.js").Guild) : undefined;
-  const built = buildPanelMessage(panel, guild);
+  let built: BuiltPanelMessage;
+  try {
+    // discord.js's component builders (setLabel, addOptions, etc.) validate synchronously and
+    // throw on bad input — a malformed category (or embed) would otherwise crash out of this
+    // function entirely instead of failing gracefully like everything else here does.
+    built = buildPanelMessage(panel, guild);
+  } catch (error) {
+    console.error(`[tickets] Failed to build panel ${panel.id}'s message:`, error);
+    return null;
+  }
   const message = await channel
     .send({
       ...(built.content ? { content: built.content } : {}),
       embeds: built.embeds,
       components: built.components,
     })
-    .catch(() => null);
+    .catch((error) => {
+      // Swallowed everywhere this return value is used (dashboard/slash command both just show a
+      // generic "could not post" message) — log it here so the real Discord API rejection reason
+      // (bad button/select-menu payload, missing permissions, etc.) is visible in the bot's console.
+      console.error(`[tickets] Failed to post panel ${panel.id} to channel ${panel.channel_id}:`, error);
+      return null;
+    });
   return message?.id ?? null;
 }
 

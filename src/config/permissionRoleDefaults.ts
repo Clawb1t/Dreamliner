@@ -17,6 +17,9 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // anime
     "anime.can_neko",
     "anime.can_saved",
+    // booster_roles
+    "booster_roles.can_view",
+    "booster_roles.can_recheck",
     // economy
     "economy.can_balance",
     "economy.can_buy_pack",
