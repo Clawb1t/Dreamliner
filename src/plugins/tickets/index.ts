@@ -54,7 +54,7 @@ export const ticketsPlugin = definePlugin({
         const isStaff = Boolean(member && staffRoleIds.some((id) => member.roles.cache.has(id)));
 
         if (isStaff) {
-          await touchStaffReply(msg.guild.id, msg.channel.id).catch(() => null);
+          await touchStaffReply(msg.guild.id, msg.channel.id, msg.author.id).catch(() => null);
         } else {
           await touchActivity(msg.guild.id, msg.channel.id).catch(() => null);
         }

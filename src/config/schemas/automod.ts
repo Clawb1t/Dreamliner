@@ -21,6 +21,7 @@ export const AUTOMOD_RULE_IDS = [
   "links",
   "excessive_caps",
   "zalgo",
+  "image_scan",
   "raid",
 ] as const;
 
@@ -150,6 +151,27 @@ export const zAutomodMigrations = z.strictObject({
   censor_db_v1: z.boolean().optional(),
 });
 
+export const zAutomodNativeConfig = z.strictObject({
+  enabled: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Mirror supported rules into Discord's own native AutoMod so they also run server-side (blocks the message before it even sends, and keeps working during a bot outage). Also what makes Dreamliner eligible for Discord's 'Uses AutoMod' application badge.",
+    ),
+  alert_channel_id: channelId("Channel Discord itself posts native AutoMod alert messages to (separate from Dreamliner's own moderation log)."),
+  spam_detection: z
+    .boolean()
+    .default(true)
+    .describe("Also create Discord's built-in machine-learned spam-message rule."),
+  timeout_seconds: z
+    .number()
+    .int()
+    .min(0)
+    .max(2_419_200)
+    .default(0)
+    .describe("Native timeout applied alongside blocking (0 disables; max 28 days). Not available on the spam rule."),
+});
+
 export const zAutomodConfig = z.strictObject({
   presets_applied: z
     .enum(AUTOMOD_PRESETS)
@@ -174,6 +196,7 @@ export const zAutomodConfig = z.strictObject({
     .default({})
     .describe("Per-rule configuration keyed by rule id."),
   migrations: zAutomodMigrations.default({}).describe("Internal one-time migration flags."),
+  native: zAutomodNativeConfig.default({}).describe("Discord native AutoMod sync settings."),
   can_status: boolPerm("check automod status"),
   can_test: boolPerm("run automod tests"),
   can_configure: boolPerm("configure automod settings in Discord"),
@@ -183,4 +206,5 @@ export type AutomodLadderAction = z.infer<typeof zAutomodLadderAction>;
 export type AutomodLadderStep = z.infer<typeof zAutomodLadderStep>;
 export type AutomodFilterEntry = z.infer<typeof zAutomodFilterEntry>;
 export type AutomodRuleConfig = z.infer<typeof zAutomodRuleConfig>;
+export type AutomodNativeConfig = z.infer<typeof zAutomodNativeConfig>;
 export type AutomodConfig = z.infer<typeof zAutomodConfig>;

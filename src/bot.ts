@@ -156,6 +156,8 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       GatewayIntentBits.GuildWebhooks,
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.MessageContent,
+      GatewayIntentBits.AutoModerationConfiguration,
+      GatewayIntentBits.AutoModerationExecution,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
   });
@@ -174,6 +176,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     void import("./bridge/oneEntitlements.js").then(({ startDreamlinerOneEntitlements }) =>
       startDreamlinerOneEntitlements(c).catch((error) => {
         console.error("[dreamliner-one] Failed to start entitlement sync.", error);
+      }),
+    );
+    // Self-heals native AutoMod drift (a rule someone deleted/edited by hand in Discord's
+    // own settings) for every guild that opted in, without staff needing to remember to
+    // hit "Sync now" on the dashboard after a restart.
+    void import("./plugins/automod/functions/nativeSync.js").then(({ resyncAllNativeAutomod }) =>
+      resyncAllNativeAutomod(c).catch((error) => {
+        console.error("[automod] Native AutoMod boot resync failed.", error);
       }),
     );
   });

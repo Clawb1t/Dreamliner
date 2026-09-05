@@ -343,6 +343,34 @@
     ]
   },
   {
+    "plugin": "impersonation",
+    "pluginName": "Impersonation Detection",
+    "pluginDescription": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry.",
+    "entries": [
+      {
+        "plugin": "impersonation",
+        "permission": "can_configure",
+        "grantKey": "impersonation.can_configure",
+        "title": "Configure",
+        "description": "Allow members to configure Impersonation Detection settings in Discord."
+      },
+      {
+        "plugin": "impersonation",
+        "permission": "can_manage_watchlist",
+        "grantKey": "impersonation.can_manage_watchlist",
+        "title": "Manage Watchlist",
+        "description": "Allow members to manage the Impersonation Detection watchlist."
+      },
+      {
+        "plugin": "impersonation",
+        "permission": "can_status",
+        "grantKey": "impersonation.can_status",
+        "title": "Status",
+        "description": "Allow members to check Impersonation Detection status."
+      }
+    ]
+  },
+  {
     "plugin": "infractions",
     "pluginName": "Infractions",
     "pluginDescription": "Warn, mute, kick, ban, and case management.",
@@ -923,6 +951,13 @@
       },
       {
         "plugin": "tickets",
+        "permission": "can_assign",
+        "grantKey": "tickets.can_assign",
+        "title": "Assign",
+        "description": "Allow members to assign or unassign another member to a ticket."
+      },
+      {
+        "plugin": "tickets",
         "permission": "can_blacklist",
         "grantKey": "tickets.can_blacklist",
         "title": "Blacklist",
@@ -972,10 +1007,24 @@
       },
       {
         "plugin": "tickets",
+        "permission": "can_set_status",
+        "grantKey": "tickets.can_set_status",
+        "title": "Set Status",
+        "description": "Allow members to change a ticket's status (Awaiting Response, On Hold, etc.)."
+      },
+      {
+        "plugin": "tickets",
         "permission": "can_view_all",
         "grantKey": "tickets.can_view_all",
         "title": "View All",
         "description": "Allow members to view any ticket, not just ones they're part of."
+      },
+      {
+        "plugin": "tickets",
+        "permission": "can_view_stats",
+        "grantKey": "tickets.can_view_stats",
+        "title": "View Stats",
+        "description": "Allow members to view ticket handler performance stats."
       }
     ]
   },

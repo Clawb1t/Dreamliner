@@ -16,6 +16,7 @@ import {
   buildEmojiLog,
   buildGenericServerLog,
   buildGuildUpdateLog,
+  buildImpersonationLog,
   buildInviteCreateLog,
   buildInviteDeleteLog,
   buildMemberBanLog,
@@ -155,6 +156,17 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
   case_delete: (ctx) => buildCaseDeleteLog(999999, ctx.actor, TEST_REASON),
   case_expire: (ctx) => buildMuteExpiredLog(ctx.target),
   automod: (ctx) => buildAutomodLog({ user: ctx.target, channel: ctx.channel, reason: "Spam detected", action: "Delete + Warn", content: "buy cheap discord nitro at bit.ly/totally-real" }),
+  impersonation: (ctx) =>
+    buildImpersonationLog({
+      subject: ctx.target,
+      matchedLabel: "Moderator",
+      matchedUserId: ctx.actor.id,
+      matchedAvatarUrl: ctx.actor.avatarUrl,
+      trigger: "avatar",
+      nameSimilarity: 91,
+      avatarDistance: 3,
+      autoAction: null,
+    }),
   raid: (ctx) => buildRaidDetectedLog({ user: ctx.target, joinCount: 8, windowMs: 30_000, recentJoiners: [ctx.target, ctx.actor] }),
   censor: (ctx) => buildCensorLog({ user: ctx.target, channel: ctx.channel, pattern: "badword", action: "Delete" }),
   clean: (ctx) => buildCleanLog({ mod: ctx.actor, channel: ctx.channel, count: 25, targets: [ctx.target] }),
@@ -189,6 +201,20 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
     buildGenericServerLog("Ticket #1 Opened", [`Opened by: <@${ctx.actor.id}>`, "Category: **Test Category**", `Channel: <#${ctx.channel.id}>`], ctx.actor.avatarUrl, "create"),
   ticket_claim: (ctx) =>
     buildGenericServerLog("Ticket #1 Claimed", [`Claimed by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`], ctx.actor.avatarUrl, "action"),
+  ticket_assign: (ctx) =>
+    buildGenericServerLog(
+      "Ticket #1 Assigned",
+      [`Assigned to: <@${ctx.target.id}>`, `By: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`],
+      ctx.target.avatarUrl,
+      "action",
+    ),
+  ticket_status: (ctx) =>
+    buildGenericServerLog(
+      "Ticket #1 Status Changed",
+      ["Status: **Awaiting Response**", `Changed by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`],
+      ctx.actor.avatarUrl,
+      "action",
+    ),
   ticket_close: (ctx) =>
     buildGenericServerLog("Ticket #1 Closed", [`Closed by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`, `Reason: ${TEST_REASON}`], ctx.actor.avatarUrl, "delete"),
 
@@ -219,6 +245,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
     buildGenericServerLog(
       "Automod Update",
       [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Updated automod rules."],
+      null,
+      "serverUpdate",
+    ),
+  dashboard_impersonation: (ctx) =>
+    buildGenericServerLog(
+      "Impersonation Detection Update",
+      [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Updated Impersonation Detection settings."],
       null,
       "serverUpdate",
     ),

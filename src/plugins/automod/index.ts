@@ -7,6 +7,7 @@ import {
   handleAutomodMessage,
   handleAutomodMessageUpdate,
 } from "./functions/handlers.js";
+import { handleNativeAutomodExecution } from "./functions/nativeSync.js";
 
 export const automodPlugin = definePlugin({
   name: "automod",
@@ -32,6 +33,12 @@ export const automodPlugin = definePlugin({
       name: Events.GuildMemberAdd,
       execute: async (_client, member: unknown) => {
         await handleAutomodMemberAdd(member as import("discord.js").GuildMember);
+      },
+    },
+    {
+      name: Events.AutoModerationActionExecution,
+      execute: async (_client, execution: unknown) => {
+        await handleNativeAutomodExecution(execution as import("discord.js").AutoModerationActionExecution);
       },
     },
   ],

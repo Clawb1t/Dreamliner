@@ -8,7 +8,7 @@ import {
 import { PROFANITY_WORDS } from "./functions/packs/profanity.js";
 import { SLUR_WORDS } from "./functions/packs/slurs.js";
 
-export type AutomodRuleGroup = "content" | "spam" | "mentions_links" | "presentation" | "raid";
+export type AutomodRuleGroup = "content" | "spam" | "mentions_links" | "presentation" | "images" | "raid";
 
 export type AutomodRuleMeta = {
   id: AutomodRuleId;
@@ -153,6 +153,14 @@ export const AUTOMOD_RULE_META: AutomodRuleMeta[] = [
     event: "message",
   },
   {
+    id: "image_scan",
+    name: "Image scanning",
+    description:
+      "Checks image attachments against a shared blocklist of known scam-image fingerprints (fake giveaways, gift-card/crypto scam templates, etc.). Catches reposts of the same picture, even lightly cropped or recompressed.",
+    group: "images",
+    event: "message",
+  },
+  {
     id: "raid",
     name: "Raid detection",
     description: "Burst of member joins that looks like a raid.",
@@ -166,6 +174,7 @@ export const AUTOMOD_GROUP_LABELS: Record<AutomodRuleGroup, string> = {
   spam: "Spam & noise",
   mentions_links: "Mentions & links",
   presentation: "Presentation",
+  images: "Image scanning",
   raid: "Join protection",
 };
 

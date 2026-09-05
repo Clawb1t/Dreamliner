@@ -120,11 +120,19 @@ export async function removeMemberOverwrite(guild: Guild, ticket: TicketRecord, 
  * Closes off a ticket's container without destroying it (archive+lock a thread, or just leave the
  * channel in place) so staff can still read history before/after the transcript step. Hard deletion
  * only happens via the explicit delete action in functions/tickets.ts's deleteTicket + channel.delete.
+ *
+ * Also strips the opener and everyone added via /ticket add from the container, leaving only staff
+ * (who see it through their support role, not a per-user overwrite) with access.
  */
 export async function archiveContainer(guild: Guild, ticket: TicketRecord): Promise<void> {
+  const nonStaffIds = [ticket.openerId, ...ticket.memberIds];
+
   if (ticket.threadId) {
     const thread = await guild.channels.fetch(ticket.threadId).catch(() => null);
     if (thread?.isThread()) {
+      for (const userId of nonStaffIds) {
+        await (thread as ThreadChannel).members.remove(userId).catch(() => null);
+      }
       await (thread as ThreadChannel).setArchived(true).catch(() => null);
       await (thread as ThreadChannel).setLocked(true).catch(() => null);
     }
@@ -132,7 +140,35 @@ export async function archiveContainer(guild: Guild, ticket: TicketRecord): Prom
   }
   const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
   if (channel && "permissionOverwrites" in channel) {
-    await (channel as TextChannel).permissionOverwrites.edit(ticket.openerId, { SendMessages: false }).catch(() => null);
+    for (const userId of nonStaffIds) {
+      await (channel as TextChannel).permissionOverwrites.delete(userId).catch(() => null);
+    }
+  }
+}
+
+/** Undoes archiveContainer: unlocks/unarchives the thread (or leaves the channel alone) and
+ * re-grants the opener and everyone in memberIds the access closing the ticket revoked. */
+export async function restoreContainerAccess(guild: Guild, ticket: TicketRecord): Promise<void> {
+  const nonStaffIds = [ticket.openerId, ...ticket.memberIds];
+
+  if (ticket.threadId) {
+    const thread = await guild.channels.fetch(ticket.threadId).catch(() => null);
+    if (thread?.isThread()) {
+      await (thread as ThreadChannel).setLocked(false).catch(() => null);
+      await (thread as ThreadChannel).setArchived(false).catch(() => null);
+      for (const userId of nonStaffIds) {
+        await (thread as ThreadChannel).members.add(userId).catch(() => null);
+      }
+    }
+    return;
+  }
+  const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+  if (channel && "permissionOverwrites" in channel) {
+    for (const userId of nonStaffIds) {
+      await (channel as TextChannel)
+        .permissionOverwrites.edit(userId, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true })
+        .catch(() => null);
+    }
   }
 }
 

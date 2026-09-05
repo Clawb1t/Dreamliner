@@ -13,6 +13,7 @@ import { applyPresetToConfig } from "./functions/presets.js";
 import { parseFilterEntries } from "./functions/customFilter.js";
 import type { AutomodPresetName } from "../../config/schemas/automod.js";
 import { validateRegexPatternForSave } from "../../core/regexSafety.js";
+import { getNativeAutomodStatus, syncNativeAutomodRules } from "./functions/nativeSync.js";
 
 function formatAutomodStatus(config: AutomodConfig, guildConfig: GuildConfig): string {
   const logChannelId = getModerationLogChannelId(guildConfig, config.log_channel_id);
@@ -111,6 +112,17 @@ export const automodCommands: SlashCommandDefinition[] = [
           .setDescription("Ignore or un-ignore a role for automod")
           .addRoleOption((o) => o.setName("role").setDescription("Role").setRequired(true))
           .addBooleanOption((o) => o.setName("ignore").setDescription("True to ignore, false to stop ignoring").setRequired(true)),
+      )
+      .addSubcommandGroup((group) =>
+        group
+          .setName("native")
+          .setDescription("Discord's own native AutoMod (required for the AutoMod app badge)")
+          .addSubcommand((sub) =>
+            sub.setName("status").setDescription("Show which native AutoMod rules Dreamliner has synced"),
+          )
+          .addSubcommand((sub) =>
+            sub.setName("sync").setDescription("Force a resync of native AutoMod rules now"),
+          ),
       ),
     execute: async (ctx) => {
       const group = ctx.interaction.options.getSubcommandGroup(false);
@@ -303,6 +315,47 @@ export const automodCommands: SlashCommandDefinition[] = [
               ctx.ephemeral,
               slashResultOptions(ctx, { emoji: "<:icons_xmarkwhite:1544417463314161735>" }),
             ),
+          );
+          return;
+        }
+      }
+
+      if (group === "native") {
+        const auth = await requirePluginPermission(ctx, "automod", "can_configure");
+        if (!auth) return;
+
+        if (sub === "status") {
+          await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+          const status = await getNativeAutomodStatus(ctx.interaction.client, guildId);
+          const lines = [
+            `**Enabled:** ${status.enabled ? "yes" : "no"}`,
+            `**Supported:** ${status.supported ? "yes" : "no — grant Dreamliner Manage Server (re-invite the bot)"}`,
+            status.error ? `**Error:** ${status.error}` : "",
+            status.rules.length
+              ? status.rules.map((r) => `• \`${r.key}\` — ${r.name} (${r.triggerType})`).join("\n")
+              : "No native rules synced yet.",
+          ].filter(Boolean);
+          await ctx.interaction.editReply(
+            resultEdit("Native AutoMod status", lines.join("\n"), slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" })),
+          );
+          return;
+        }
+
+        if (sub === "sync") {
+          await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+          const result = await syncNativeAutomodRules(ctx.interaction.client, guildId);
+          if (!result.ok) {
+            await ctx.interaction.editReply(
+              resultEdit("Sync failed", result.error ?? "Unknown error.", slashResultOptions(ctx, { tone: "error" })),
+            );
+            return;
+          }
+          const failed = result.rules.filter((r) => !r.synced);
+          const summary = result.enabled
+            ? `Synced ${result.rules.length - failed.length}/${result.rules.length} native rule(s).${failed.length ? ` Failed: ${failed.map((r) => r.key).join(", ")}` : ""}`
+            : "Native sync is off — no rules created. Enable it on the dashboard's Automod page first.";
+          await ctx.interaction.editReply(
+            resultEdit("Native AutoMod synced", summary, slashResultOptions(ctx, { emoji: "<:icons_magicwand:1544417336168288296>" })),
           );
           return;
         }

@@ -184,7 +184,9 @@ export async function testAutomodRules(sample: string, config: AutomodConfig): P
     const rule = config.rules[ruleId];
     if (!rule?.enabled) continue;
     // Skip pure rate detectors in dry-run unless content-based
-    if (["spam", "duplicate", "copypasta", "sticker_gif_spam", "attachment_spam"].includes(ruleId)) {
+    if (
+      ["spam", "duplicate", "copypasta", "sticker_gif_spam", "attachment_spam", "image_scan"].includes(ruleId)
+    ) {
       continue;
     }
     const hit = await DETECTORS[ruleId](ctx, rule);

@@ -1,3 +1,4 @@
+import type { Client } from "discord.js";
 import {
   zAutomodConfig,
   type AutomodConfig,
@@ -11,11 +12,17 @@ import {
   parseAutomodConfig,
 } from "../plugins/automod/functions/migrate.js";
 import { applyPresetToConfig, defaultAutomodRules } from "../plugins/automod/functions/presets.js";
+import {
+  getNativeAutomodStatus,
+  syncNativeAutomodRules,
+  type NativeSyncResult,
+} from "../plugins/automod/functions/nativeSync.js";
 
 export type WebAutomodPayload = {
   enabled: boolean;
   config: AutomodConfig;
   catalog: ReturnType<typeof getAutomodCatalog>;
+  native?: Omit<NativeSyncResult, "ok"> & { ok: boolean };
 };
 
 function withFullRules(config: AutomodConfig): AutomodConfig {
@@ -25,7 +32,7 @@ function withFullRules(config: AutomodConfig): AutomodConfig {
   };
 }
 
-export async function getWebAutomodState(guildId: string): Promise<WebAutomodPayload> {
+export async function getWebAutomodState(client: Client, guildId: string): Promise<WebAutomodPayload> {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
   let config = parseAutomodConfig(guildConfig.plugins.automod?.config ?? {});
   const before = JSON.stringify(config.migrations);
@@ -46,14 +53,27 @@ export async function getWebAutomodState(guildId: string): Promise<WebAutomodPay
       .catch(() => null);
   }
 
+  const native = await getNativeAutomodStatus(client, guildId).catch(
+    (error): Awaited<ReturnType<typeof getNativeAutomodStatus>> => ({
+      ok: false,
+      supported: false,
+      enabled: config.native.enabled,
+      error: error instanceof Error ? error.message : "Failed to read native AutoMod status.",
+      rules: [],
+      syncedAt: new Date().toISOString(),
+    }),
+  );
+
   return {
     enabled: guildConfig.plugins.automod?.enabled === true,
     config: withFullRules(config),
     catalog: getAutomodCatalog(),
+    native,
   };
 }
 
 export async function saveWebAutomod(
+  client: Client,
   guildId: string,
   userId: string,
   input: { enabled?: boolean; config?: unknown },
@@ -73,16 +93,22 @@ export async function saveWebAutomod(
     }
   }
 
-  return getWebAutomodState(guildId);
+  // Best-effort: reflect the just-saved config into native Discord AutoMod immediately,
+  // rather than waiting for the next boot resync. Failures surface via the `native` field
+  // in the returned state, not as a save error — the Dreamliner-side config always saves.
+  await syncNativeAutomodRules(client, guildId).catch(() => null);
+
+  return getWebAutomodState(client, guildId);
 }
 
 export async function applyWebAutomodPreset(
+  client: Client,
   guildId: string,
   userId: string,
   preset: AutomodPresetName,
   options: { enablePlugin?: boolean; preview?: boolean } = {},
 ): Promise<WebAutomodPayload> {
-  const current = await getWebAutomodState(guildId);
+  const current = await getWebAutomodState(client, guildId);
   const next = applyPresetToConfig(current.config, preset);
   if (options.preview) {
     return {
@@ -91,13 +117,18 @@ export async function applyWebAutomodPreset(
       catalog: current.catalog,
     };
   }
-  return saveWebAutomod(guildId, userId, {
+  return saveWebAutomod(client, guildId, userId, {
     enabled: options.enablePlugin === false ? current.enabled : true,
     config: next,
   });
 }
 
-export async function testWebAutomod(guildId: string, sample: string): Promise<{ lines: string[] }> {
-  const state = await getWebAutomodState(guildId);
+export async function testWebAutomod(client: Client, guildId: string, sample: string): Promise<{ lines: string[] }> {
+  const state = await getWebAutomodState(client, guildId);
   return { lines: await testAutomodRules(sample, state.config) };
+}
+
+export async function syncWebAutomodNative(client: Client, guildId: string): Promise<WebAutomodPayload> {
+  await syncNativeAutomodRules(client, guildId);
+  return getWebAutomodState(client, guildId);
 }

@@ -16,9 +16,9 @@ Built for serious Discord operations. Inspired by [Zeppelin](https://github.com/
 
 ## Invite
 
-[Add Dreamliner to your server](https://discord.com/oauth2/authorize?client_id=1524053555114151946&permissions=1101543107670&scope=bot%20applications.commands)
+[Add Dreamliner to your server](https://discord.com/oauth2/authorize?client_id=1524053555114151946&permissions=1101543107702&scope=bot%20applications.commands)
 
-Recommended permissions are pre-selected. Dreamliner does **not** require Administrator. See [Permissions](docs/permissions.md) for the full breakdown.
+Recommended permissions are pre-selected — this now includes **Manage Server**, needed for Dreamliner to sync native Discord AutoMod rules (see [Native AutoMod](#native-discord-automod) below). Servers that invited Dreamliner before this was added should re-invite/re-authorize to grant it, or native sync stays off with a clear error until they do. Dreamliner does **not** require Administrator. See [Permissions](docs/permissions.md) for the full breakdown.
 
 ---
 
@@ -40,6 +40,14 @@ Recommended permissions are pre-selected. Dreamliner does **not** require Admini
 4. Use `/permissions` for incremental access changes in Discord, and `/help` for command discovery.
 
 Walkthrough: [Getting started](docs/getting-started.md)
+
+---
+
+## Native Discord AutoMod
+
+Dreamliner's automod is its own detector/ladder system, but it can also mirror the rules Discord's native AutoMod is capable of enforcing — profanity/slur presets, custom keyword & regex filters, invite links, and mass-mention spam — directly into the server's built-in AutoMod. Those rules then run at Discord's edge (blocking a message before it even sends, and still enforcing during a bot outage), on top of whatever Dreamliner's own detectors add for cases Discord can't express natively (caps, zalgo, copypasta, nuanced spam heuristics, and so on).
+
+Turn it on from the dashboard's Automod page (or `/automod native sync`). It requires the bot to have **Manage Server** — re-invite with the link above if you added Dreamliner before this existed. This is also what makes Dreamliner eligible for Discord's **"Uses AutoMod"** application badge.
 
 ---
 

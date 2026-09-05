@@ -162,6 +162,25 @@ plugins:
       can_status: false
       can_test: false
       can_configure: false
+  impersonation:
+    enabled: false
+    config:
+      ignored_roles: []
+      protected_roles: []
+      compare_scope: protected_only
+      check_on_join: true
+      check_username: true
+      check_display_name: true
+      check_nickname: true
+      check_avatar: true
+      name_similarity_threshold: 82
+      avatar_max_distance: 8
+      notify_staff: true
+      dm_flagged_member: false
+      auto_action: none
+      can_status: false
+      can_configure: false
+      can_manage_watchlist: false
   scam_protect:
     enabled: false
     config:

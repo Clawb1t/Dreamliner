@@ -2,6 +2,7 @@ import { z } from "zod";
 import { boolPerm } from "../schemaHelp.js";
 import { zPluginSection } from "./pluginSection.js";
 import { zAutomodConfig } from "./automod.js";
+import { zImpersonationConfig } from "./impersonation.js";
 import { zWelcomeMessageConfig } from "./welcome.js";
 import { MAX_USER_PATTERN_LENGTH } from "../../core/regexSafety.js";
 
@@ -550,6 +551,7 @@ export const zBotCustomisationConfig = z.strictObject({
 });
 
 export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape);
+export const zImpersonationPluginSection = zPluginSection(zImpersonationConfig.shape);
 export const zPersistPluginSection = zPluginSection(zPersistConfig.shape);
 export const zSlowmodePluginSection = zPluginSection(zSlowmodeConfig.shape);
 export const zRolesPluginSection = zPluginSection(zRolesConfig.shape);

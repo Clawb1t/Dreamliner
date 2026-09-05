@@ -15,6 +15,7 @@ import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import { zSocialPluginSection } from "./social.js";
 import {
   zAutomodPluginSection,
+  zImpersonationPluginSection,
   zAutodeletePluginSection,
   zBoosterRolesPluginSection,
   zAutoreactionsPluginSection,
@@ -229,6 +230,7 @@ export const zGuildConfig = z.strictObject({
       translation: zTranslationPluginSection.optional(),
       starboard: zStarboardPluginSection.optional(),
       automod: zAutomodPluginSection.optional(),
+      impersonation: zImpersonationPluginSection.optional(),
       scam_protect: zScamProtectPluginSection.optional(),
       passport: zPassportPluginSection.optional(),
       economy: zEconomyPluginSection.optional(),

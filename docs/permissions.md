@@ -29,7 +29,7 @@ When inviting Dreamliner, grant at least these **bot permissions**:
 | Manage Expressions     | `/stealemoji` (bot needs this too)                           |
 | Manage Webhooks        | Message link expand and auto-translate author avatars        |
 | Manage Channels        | Scam Protect honeypot channel create / position               |
-| Manage Server          | `/config` and `/permissions` (checked on the **user**, not the bot) |
+| Manage Server          | `/config` and `/permissions` (checked on the **user**, not the bot) · also needed **on the bot** to sync native Discord AutoMod rules (`/automod native sync`) |
 
 **Recommended:** use the `applications.commands` scope so slash commands appear.
 

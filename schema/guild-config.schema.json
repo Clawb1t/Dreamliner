@@ -1925,6 +1925,48 @@
                   "description": "Internal one-time migration flags.",
                   "title": "Migrations"
                 },
+                "native": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Mirror supported rules into Discord's own native AutoMod so they also run server-side (blocks the message before it even sends, and keeps working during a bot outage). Also what makes Dreamliner eligible for Discord's 'Uses AutoMod' application badge.",
+                      "title": "Enabled"
+                    },
+                    "alert_channel_id": {
+                      "type": "string",
+                      "description": "Channel Discord itself posts native AutoMod alert messages to (separate from Dreamliner's own moderation log). Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Alert Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "spam_detection": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Also create Discord's built-in machine-learned spam-message rule.",
+                      "title": "Spam Detection"
+                    },
+                    "timeout_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2419200,
+                      "default": 0,
+                      "description": "Native timeout applied alongside blocking (0 disables; max 28 days). Not available on the spam rule.",
+                      "title": "Timeout Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Discord native AutoMod sync settings.",
+                  "title": "Native"
+                },
                 "can_status": {
                   "type": "boolean",
                   "default": false,
@@ -1962,6 +2004,180 @@
           },
           "additionalProperties": false,
           "title": "Automod"
+        },
+        "impersonation": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "ignored_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Members with any of these roles are never flagged as impersonators (e.g. a bot-tag role).",
+                  "title": "Ignored Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "protected_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Anyone whose name or avatar closely matches a current holder of one of these roles gets flagged — the easiest way to protect staff without hand-picking every mod.",
+                  "title": "Protected Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "compare_scope": {
+                  "type": "string",
+                  "enum": [
+                    "protected_only",
+                    "everyone"
+                  ],
+                  "default": "protected_only",
+                  "description": "Who counts as a protected identity to compare against. 'protected_only' checks against Protected roles + the watchlist (fast, low noise, recommended). 'everyone' also compares every member against every other member — thorough, but slow and noisier on large servers.",
+                  "title": "Compare Scope"
+                },
+                "check_on_join": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Check a member's identity the moment they join.",
+                  "title": "Check On Join"
+                },
+                "check_username": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Check when someone changes their Discord username.",
+                  "title": "Check Username"
+                },
+                "check_display_name": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Check when someone changes their global display name.",
+                  "title": "Check Display Name"
+                },
+                "check_nickname": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Check when someone changes their nickname in this server.",
+                  "title": "Check Nickname"
+                },
+                "check_avatar": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Check when someone changes their avatar (server or global).",
+                  "title": "Check Avatar"
+                },
+                "name_similarity_threshold": {
+                  "type": "integer",
+                  "minimum": 50,
+                  "maximum": 100,
+                  "default": 82,
+                  "description": "How similar a name has to be (0-100%) to count as a match. Lower catches more, but risks false positives.",
+                  "title": "Name Similarity Threshold"
+                },
+                "avatar_max_distance": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 64,
+                  "default": 8,
+                  "description": "How close an avatar's fingerprint must be (0 = identical, 64 = unrelated) to count as a match.",
+                  "title": "Avatar Max Distance"
+                },
+                "log_channel_id": {
+                  "type": "string",
+                  "description": "Channel Impersonation Detection posts alerts to. Falls back to the server moderation log channel if empty. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "notify_staff": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Post an alert to the log channel when a likely impersonation is detected.",
+                  "title": "Notify Staff"
+                },
+                "dm_flagged_member": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "DM the flagged member letting them know their profile was flagged (off by default — often not worth tipping them off).",
+                  "title": "Dm Flagged Member"
+                },
+                "auto_action": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "timeout",
+                    "kick",
+                    "ban"
+                  ],
+                  "default": "none",
+                  "description": "Automatic action to take against a flagged member. Leave as 'none' to just alert staff and decide by hand.",
+                  "title": "Auto Action"
+                },
+                "auto_action_duration_ms": {
+                  "type": "integer",
+                  "minimum": 60000,
+                  "description": "Timeout duration when auto_action is 'timeout'.",
+                  "title": "Auto Action Duration Ms",
+                  "x-dreamliner": {
+                    "kind": "ms",
+                    "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                  }
+                },
+                "can_status": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to check Impersonation Detection status.",
+                  "title": "Status",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_configure": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to configure Impersonation Detection settings in Discord.",
+                  "title": "Configure",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage_watchlist": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manage the Impersonation Detection watchlist.",
+                  "title": "Manage Watchlist",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Impersonation"
         },
         "scam_protect": {
           "type": "object",
@@ -8880,6 +9096,36 @@
                   "default": false,
                   "description": "Allow members to blacklist members or roles from opening tickets.",
                   "title": "Blacklist",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_assign": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to assign or unassign another member to a ticket.",
+                  "title": "Assign",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_set_status": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to change a ticket's status (Awaiting Response, On Hold, etc.).",
+                  "title": "Set Status",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_view_stats": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view ticket handler performance stats.",
+                  "title": "View Stats",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."

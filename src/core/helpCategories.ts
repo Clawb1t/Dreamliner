@@ -34,6 +34,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     blurb: "Filters, scam traps, sticky messages, and auto-clear.",
     include: [
       { plugin: "automod" },
+      { plugin: "impersonation" },
       { plugin: "scam_protect" },
       { plugin: "passport" },
       { plugin: "persist" },
@@ -201,6 +202,11 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     key: "automod",
     name: "Automod",
     description: "Content filters, spam detection, and escalation ladders.",
+  },
+  impersonation: {
+    key: "impersonation",
+    name: "Impersonation Detection",
+    description: "Flags members whose name or avatar closely matches a protected role holder or watchlist entry.",
   },
   scam_protect: {
     key: "scam_protect",
@@ -370,6 +376,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   infractions: "mod",
   slowmode: "mod",
   automod: "protect",
+  impersonation: "protect",
   scam_protect: "protect",
   passport: "protect",
   persist: "protect",

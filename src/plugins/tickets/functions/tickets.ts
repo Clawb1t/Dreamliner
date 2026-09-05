@@ -1,7 +1,7 @@
 import { and, desc, eq, like } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { tickets } from "../../../db/schema.js";
-import type { TicketPriority } from "../../../config/schemas/tickets.js";
+import type { TicketPriority, TicketStatus } from "../../../config/schemas/tickets.js";
 
 export type TicketFormAnswer = { questionId: string; label: string; answer: string };
 
@@ -31,6 +31,12 @@ export type TicketRecord = {
   lastStaffReplyAt: Date | null;
   /** Index of the highest escalation step fired since the last staff reply. -1 means none fired yet. */
   escalationStep: number;
+  /** Work-in-progress status independent of open/closed. Null (or "open") = no special status. */
+  subStatus: Exclude<TicketStatus, "open"> | null;
+  /** First time any staff member replied, ever — set once. Powers the response-time stat. */
+  firstStaffReplyAt: Date | null;
+  /** Who sent that first staff reply. */
+  firstResponderId: string | null;
 };
 
 function rowToRecord(row: typeof tickets.$inferSelect): TicketRecord {
@@ -70,6 +76,9 @@ function rowToRecord(row: typeof tickets.$inferSelect): TicketRecord {
     ratingComment: row.ratingComment ?? null,
     lastStaffReplyAt: row.lastStaffReplyAt ?? null,
     escalationStep: row.escalationStep ?? -1,
+    subStatus: (row.subStatus as Exclude<TicketStatus, "open"> | null) ?? null,
+    firstStaffReplyAt: row.firstStaffReplyAt ?? null,
+    firstResponderId: row.firstResponderId ?? null,
   };
 }
 
@@ -236,6 +245,93 @@ export async function getTicketStats(guildId: string): Promise<TicketStats> {
   return { openCount, closedCount, avgResolutionMs, topClaimers };
 }
 
+export type TicketHandlerStat = {
+  staffId: string;
+  /** Tickets currently assigned to them and still open (their present workload). */
+  activeAssigned: number;
+  /** Tickets they closed, ever (in the window, if one was given). */
+  ticketsClosed: number;
+  /** Average time from a ticket's creation to that staff member closing it. */
+  avgResolutionMs: number | null;
+  /** Tickets where they sent the very first staff reply. */
+  ticketsResponded: number;
+  /** Average time from a ticket's creation to that staff member's first reply on it. */
+  avgFirstResponseMs: number | null;
+};
+
+export type TicketHandlerStatsSummary = {
+  handlers: TicketHandlerStat[];
+  /** Guild-wide averages across every ticket in scope, regardless of handler. */
+  overall: { avgResolutionMs: number | null; avgFirstResponseMs: number | null; ticketsClosed: number; ticketsResponded: number };
+};
+
+function average(values: number[]): number | null {
+  return values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : null;
+}
+
+/** Per-handler performance breakdown backing `/ticket stats`: current workload, resolution
+ * time (attributed to whoever actually closed a ticket), and first-response time (attributed
+ * to whoever sent the first staff reply) — two different people can own those two numbers for
+ * the same ticket, which is deliberate: closing it isn't the same job as answering it first. */
+export async function getTicketHandlerStats(
+  guildId: string,
+  opts: { sinceMs?: number; staffId?: string } = {},
+): Promise<TicketHandlerStatsSummary> {
+  const db = getDb();
+  const rows = await db.select().from(tickets).where(eq(tickets.guildId, guildId));
+  let records = rows.map(rowToRecord);
+  if (opts.sinceMs) records = records.filter((r) => r.createdAt.getTime() >= opts.sinceMs!);
+
+  type Acc = { activeAssigned: number; resolutionMs: number[]; responseMs: number[] };
+  const byStaff = new Map<string, Acc>();
+  const ensure = (id: string): Acc => {
+    let acc = byStaff.get(id);
+    if (!acc) {
+      acc = { activeAssigned: 0, resolutionMs: [], responseMs: [] };
+      byStaff.set(id, acc);
+    }
+    return acc;
+  };
+
+  const overallResolutionMs: number[] = [];
+  const overallResponseMs: number[] = [];
+
+  for (const record of records) {
+    if (record.claimedBy && record.status === "open") ensure(record.claimedBy).activeAssigned += 1;
+    if (record.closedBy && record.closedAt) {
+      const ms = record.closedAt.getTime() - record.createdAt.getTime();
+      ensure(record.closedBy).resolutionMs.push(ms);
+      overallResolutionMs.push(ms);
+    }
+    if (record.firstResponderId && record.firstStaffReplyAt) {
+      const ms = record.firstStaffReplyAt.getTime() - record.createdAt.getTime();
+      ensure(record.firstResponderId).responseMs.push(ms);
+      overallResponseMs.push(ms);
+    }
+  }
+
+  let handlers = [...byStaff.entries()].map(([staffId, acc]) => ({
+    staffId,
+    activeAssigned: acc.activeAssigned,
+    ticketsClosed: acc.resolutionMs.length,
+    avgResolutionMs: average(acc.resolutionMs),
+    ticketsResponded: acc.responseMs.length,
+    avgFirstResponseMs: average(acc.responseMs),
+  }));
+  if (opts.staffId) handlers = handlers.filter((h) => h.staffId === opts.staffId);
+  handlers.sort((a, b) => b.ticketsClosed - a.ticketsClosed || b.ticketsResponded - a.ticketsResponded);
+
+  return {
+    handlers,
+    overall: {
+      avgResolutionMs: average(overallResolutionMs),
+      avgFirstResponseMs: average(overallResponseMs),
+      ticketsClosed: overallResolutionMs.length,
+      ticketsResponded: overallResponseMs.length,
+    },
+  };
+}
+
 export async function listOpenTickets(limit = 500): Promise<TicketRecord[]> {
   const db = getDb();
   const rows = await db.select().from(tickets).where(eq(tickets.status, "open")).limit(limit);
@@ -267,7 +363,7 @@ export async function closeTicket(
   const closedAt = new Date();
   await db
     .update(tickets)
-    .set({ status: "closed", closedAt, closedBy: actorId, closeReason: reason ?? null })
+    .set({ status: "closed", closedAt, closedBy: actorId, closeReason: reason ?? null, subStatus: null })
     .where(and(eq(tickets.guildId, guildId), eq(tickets.id, id)));
   return closedAt;
 }
@@ -338,16 +434,33 @@ export async function touchActivity(guildId: string, channelId: string): Promise
 /**
  * Records a staff reply: bumps both activity and last-staff-reply timestamps, and re-arms the
  * escalation ladder (resets escalationStep to -1) so it can fire again if staff goes quiet again.
+ * The very first staff reply a ticket ever gets is also stamped as `firstStaffReplyAt`/
+ * `firstResponderId` (never overwritten again) — that pair is what the response-time stat in
+ * `/ticket stats` is built from.
  */
-export async function touchStaffReply(guildId: string, channelId: string): Promise<void> {
+export async function touchStaffReply(guildId: string, channelId: string, staffId: string): Promise<void> {
   const db = getDb();
   const ticket = await getTicketByChannel(guildId, channelId);
   if (!ticket || ticket.status !== "open") return;
   const now = new Date();
   await db
     .update(tickets)
-    .set({ lastActivityAt: now, lastStaffReplyAt: now, escalationStep: -1 })
+    .set({
+      lastActivityAt: now,
+      lastStaffReplyAt: now,
+      escalationStep: -1,
+      ...(ticket.firstStaffReplyAt ? {} : { firstStaffReplyAt: now, firstResponderId: staffId }),
+    })
     .where(and(eq(tickets.guildId, guildId), eq(tickets.id, ticket.id)));
+}
+
+export async function setSubStatus(
+  guildId: string,
+  id: number,
+  subStatus: Exclude<TicketStatus, "open"> | null,
+): Promise<void> {
+  const db = getDb();
+  await db.update(tickets).set({ subStatus }).where(and(eq(tickets.guildId, guildId), eq(tickets.id, id)));
 }
 
 export async function setEscalationStep(guildId: string, id: number, step: number): Promise<void> {

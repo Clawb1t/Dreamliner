@@ -12,6 +12,7 @@ import {
   type Detector,
 } from "./types.js";
 import { matchWordPack } from "./wordMatch.js";
+import { detectImageScan } from "./imageScan.js";
 
 const MESSAGE_RULE_ORDER: AutomodRuleId[] = [
   "slurs",
@@ -33,6 +34,9 @@ const MESSAGE_RULE_ORDER: AutomodRuleId[] = [
   "repeated_chars",
   "excessive_caps",
   "zalgo",
+  // Last: the only check that downloads anything, and only ever does anything on
+  // messages with image attachments in the first place.
+  "image_scan",
 ];
 
 function asMessage(ctx: Parameters<Detector>[0]): AutomodMessageContext | null {
@@ -288,6 +292,7 @@ const DETECTORS: Record<AutomodRuleId, Detector> = {
   links: detectLinks,
   excessive_caps: detectExcessiveCaps,
   zalgo: detectZalgo,
+  image_scan: detectImageScan,
   raid: detectRaid,
 };
 

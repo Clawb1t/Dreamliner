@@ -7,11 +7,29 @@ import { requireTicketChannel, requireTicketPermission } from "../functions/comm
 import {
   addToBlacklist,
 } from "../functions/blacklist.js";
-import { canCloseTicket, createTicketForMember, performAddMember, performClaim, performClose, performRemoveMember, performUnclaim } from "../functions/actions.js";
-import { renameTicket, setPriority } from "../functions/tickets.js";
+import {
+  canCloseTicket,
+  createTicketForMember,
+  performAddMember,
+  performAssign,
+  performClaim,
+  performClose,
+  performRemoveMember,
+  performSetStatus,
+  performUnassign,
+  performUnclaim,
+} from "../functions/actions.js";
+import { getTicketHandlerStats, renameTicket, setPriority, type TicketHandlerStat } from "../functions/tickets.js";
 import { dmTranscript, getLatestTranscriptForTicket, postTranscriptLog } from "../functions/transcripts.js";
 import { postPanel } from "../functions/panels.js";
-import { TICKET_PRIORITIES, type TicketsConfig } from "../../../config/schemas/tickets.js";
+import { formatDurationShort } from "../../infraction/functions/duration.js";
+import {
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+  TICKET_STATUS_LABELS,
+  type TicketStatus,
+  type TicketsConfig,
+} from "../../../config/schemas/tickets.js";
 
 export const ticketCommands: SlashCommandDefinition[] = [
   {
@@ -28,6 +46,37 @@ export const ticketCommands: SlashCommandDefinition[] = [
       )
       .addSubcommand((sub) => sub.setName("claim").setDescription("Claim the ticket in this channel"))
       .addSubcommand((sub) => sub.setName("unclaim").setDescription("Unclaim the ticket in this channel"))
+      .addSubcommand((sub) =>
+        sub
+          .setName("assign")
+          .setDescription("Assign the ticket in this channel to another member")
+          .addUserOption((o) => o.setName("user").setDescription("Member to assign").setRequired(true)),
+      )
+      .addSubcommand((sub) => sub.setName("unassign").setDescription("Unassign the ticket in this channel"))
+      .addSubcommandGroup((group) =>
+        group
+          .setName("status")
+          .setDescription("Change this ticket's status")
+          .addSubcommand((sub) =>
+            sub
+              .setName("set")
+              .setDescription("Set this ticket's status")
+              .addStringOption((o) =>
+                o
+                  .setName("status")
+                  .setDescription("New status")
+                  .setRequired(true)
+                  .addChoices(...TICKET_STATUSES.map((s) => ({ name: TICKET_STATUS_LABELS[s], value: s }))),
+              ),
+          ),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("stats")
+          .setDescription("Ticket handler performance stats")
+          .addUserOption((o) => o.setName("member").setDescription("Only show this member's stats"))
+          .addIntegerOption((o) => o.setName("days").setDescription("Only include tickets opened in the last N days").setMinValue(1)),
+      )
       .addSubcommand((sub) =>
         sub
           .setName("add")
@@ -168,6 +217,53 @@ export const ticketCommands: SlashCommandDefinition[] = [
         return;
       }
 
+      if (sub === "stats" && !group) {
+        const auth = await requireTicketPermission(ctx, "can_view_stats");
+        if (!auth) return;
+        const memberOpt = interaction.options.getUser("member");
+        const days = interaction.options.getInteger("days");
+        await interaction.deferReply({ ephemeral: ctx.ephemeral });
+        const summary = await getTicketHandlerStats(guildId, {
+          sinceMs: days ? Date.now() - days * 86_400_000 : undefined,
+          staffId: memberOpt?.id,
+        });
+
+        const fmt = (ms: number | null) => (ms == null ? "n/a" : formatDurationShort(ms));
+        const windowLabel = days ? `last ${days} day${days === 1 ? "" : "s"}` : "all time";
+
+        if (memberOpt) {
+          const stat = summary.handlers[0] as TicketHandlerStat | undefined;
+          if (!stat) {
+            await interaction.editReply(resultEdit("No data", `No ticket activity for ${memberOpt.tag} (${windowLabel}).`, slashResultOptions(ctx, { tone: "warning" })));
+            return;
+          }
+          const lines = [
+            `**Active assigned:** ${stat.activeAssigned}`,
+            `**Closed:** ${stat.ticketsClosed} (avg resolution ${fmt(stat.avgResolutionMs)})`,
+            `**First responses:** ${stat.ticketsResponded} (avg response time ${fmt(stat.avgFirstResponseMs)})`,
+          ];
+          await interaction.editReply(
+            resultEdit(`Ticket stats: ${memberOpt.tag} (${windowLabel})`, lines.join("\n"), slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" })),
+          );
+          return;
+        }
+
+        const top = summary.handlers.slice(0, 10);
+        const lines = [
+          `**Overall (${windowLabel}):** ${summary.overall.ticketsClosed} closed, avg resolution ${fmt(summary.overall.avgResolutionMs)} · ${summary.overall.ticketsResponded} first responses, avg response time ${fmt(summary.overall.avgFirstResponseMs)}`,
+          "",
+          top.length ? "**By handler:**" : "No handler activity yet.",
+          ...top.map(
+            (h, i) =>
+              `${i + 1}. <@${h.staffId}>: ${h.ticketsClosed} closed (avg ${fmt(h.avgResolutionMs)}), ${h.ticketsResponded} first responses (avg ${fmt(h.avgFirstResponseMs)}), ${h.activeAssigned} active`,
+          ),
+        ];
+        await interaction.editReply(
+          resultEdit("Ticket handler stats", lines.join("\n"), slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" })),
+        );
+        return;
+      }
+
       // Every remaining subcommand acts on the ticket tied to the current channel.
       const ticket = await requireTicketChannel(ctx);
       if (!ticket) return;
@@ -182,6 +278,33 @@ export const ticketCommands: SlashCommandDefinition[] = [
           await performUnclaim(ticket);
           await interaction.reply(resultReply("Ticket unclaimed", `Ticket #${ticket.number} is now unclaimed.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_unlock:1544417749617610852>" })));
         }
+        return;
+      }
+
+      if (sub === "assign" || sub === "unassign") {
+        const auth = await requireTicketPermission(ctx, "can_assign");
+        if (!auth) return;
+        if (sub === "assign") {
+          const target = interaction.options.getUser("user", true);
+          await performAssign(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, target.id, interaction.user.id);
+          await interaction.reply(
+            resultReply("Ticket assigned", `${target.tag} is now handling ticket #${ticket.number}.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_hammer:1544417299937763348>" })),
+          );
+        } else {
+          await performUnassign(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, interaction.user.id);
+          await interaction.reply(resultReply("Ticket unassigned", `Ticket #${ticket.number} is now unassigned.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_unlock:1544417749617610852>" })));
+        }
+        return;
+      }
+
+      if (group === "status" && sub === "set") {
+        const auth = await requireTicketPermission(ctx, "can_set_status");
+        if (!auth) return;
+        const status = interaction.options.getString("status", true) as TicketStatus;
+        await performSetStatus(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, status, interaction.user.id);
+        await interaction.reply(
+          resultReply("Status updated", `Ticket #${ticket.number} is now **${TICKET_STATUS_LABELS[status]}**.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_flag:1544417544251772999>" })),
+        );
         return;
       }
 

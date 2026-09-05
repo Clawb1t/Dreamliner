@@ -126,6 +126,30 @@ In addition to server defaults, a rule can ignore specific channels and roles.
 | Excessive caps | High % of capital letters |
 | Zalgo / obfuscation | Abuse of combining marks |
 
+### Image scanning
+
+| Rule | Description |
+| --- | --- |
+| Image scanning | Checks image attachments against a shared blocklist of known scam-image fingerprints |
+
+**What it checks, for each image attachment (max 3 per message, 8MB each):** a 64-bit
+perceptual fingerprint (pHash) of the image is compared against a shared, platform-wide
+blocklist of known scam images (fake celebrity/streamer giveaways, Nitro/gift-card generator
+templates, etc.). This is image *similarity*, not the text in it, so it catches the same picture
+reposted even after it's been recompressed, lightly cropped, or re-watermarked. The **pHash
+max distance** setting controls how close a match needs to be (0 = exact fingerprint only;
+higher = more lenient, more false positives).
+
+This only runs on messages that actually have image attachments, so it costs nothing on
+ordinary text messages. It only looks at uploaded attachments, not link previews/embeds.
+
+**The pHash blocklist is global, not per-guild.** It's one shared list every server's Image
+Scanning rule matches against, managed only from the platform dashboard by a superuser. See
+[Managing the scam-image blocklist](#managing-the-scam-image-blocklist) below, which also
+covers the **Test an image** tool for checking a match without posting in Discord.
+
+Off by default. Enable it explicitly per rule the same as any other.
+
 ### Join protection
 
 | Rule | Description |
@@ -150,8 +174,43 @@ Custom filter entries are preserved when you re-apply a preset.
 - `/automod toggle` — enable/disable a rule
 - `/automod filters list|add|remove` — manage custom filter entries
 - `/automod ignore-channel` / `ignore-role` — server-wide bypasses
+- `/automod native status` — show which rules are synced into Discord's own native AutoMod
+- `/automod native sync` — force a resync now (also happens automatically on Save and at boot)
 
-Dashboard **Test a message** also uses the last saved bot config.
+Dashboard **Test a message** also uses the last saved bot config. Image Scanning is skipped by
+**Test a message** and `/automod test`: both work on sample text, and Image Scanning matches
+on the image itself. Use the **Test an image** tool on the Scam Images page instead (see below).
+
+## Managing the scam-image blocklist
+
+The Image Scanning rule's pHash blocklist is shared across every server and can only be
+managed by a platform superuser, from **the dashboard → Scam Images** (`/dashboard/scam-images`,
+not part of any per-guild dashboard). There is no Discord command for it. The page has its
+own instructions, summarized here:
+
+1. Open **Scam Images** on the platform dashboard (superuser only).
+2. **Add an entry** either by:
+   - Uploading the scam image file directly, or
+   - Pasting a direct image URL, or
+   - Pasting a raw 16-character hex pHash if you already computed one elsewhere.
+   Add a short **label** (e.g. "Fake MrBeast $500 giveaway template") so the automod hit log
+   is readable later.
+3. The server computes (or accepts) the perceptual hash and adds it to the shared list.
+   Every guild with Image Scanning enabled starts matching against it immediately (subject
+   to the ~2 minute in-memory cache each bot process keeps).
+4. **Remove** an entry from the same page once it's stale or was added by mistake.
+
+Add the *original* scam image, not a screenshot-of-a-screenshot. Extra recompression/cropping
+widens the fingerprint's distance from future reposts and can push real matches past the
+configured **pHash max distance** threshold.
+
+### Test an image
+
+The same page has a **Test an image** tool: upload a file or paste a URL and it runs the
+exact same hash-and-compare pipeline the live automod rule uses, then shows you the computed
+pHash and the distance to every blocklist entry, closest first, without posting anything in
+Discord or needing to check bot logs. Use it to confirm an entry you just added actually
+matches a repost, or to sanity-check a suspicious image before deciding whether to block it.
 
 ## How hits become cases
 

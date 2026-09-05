@@ -1,137 +1,210 @@
 # Privacy Policy
 
-**Last updated:** 14 August 2026
+**Last updated:** 5 September 2026
 
-This Privacy Policy explains how **Dreamliner** ("we," "us," or the "Service") collects, uses, stores, and shares information when you invite the bot to a Discord server or use its features.
+This Privacy Policy explains, in detail, how **Dreamliner** ("we," "us," "our," or the "Service") collects, uses, stores, discloses, and protects information in connection with the Dreamliner Discord bot, the Dreamliner dashboard and website (**dreamliner.site**), and any related features (collectively, the "Service").
 
-Dreamliner is a Discord bot. Discord is a separate service operated by Discord Inc. Their [Privacy Policy](https://discord.com/privacy) and [Terms](https://discord.com/terms) also apply.
+Dreamliner operates on and through Discord, a separate platform operated by Discord Inc. ("Discord"). Discord's own [Privacy Policy](https://discord.com/privacy) and [Terms of Service](https://discord.com/terms) govern your relationship with Discord and apply independently of this Policy. We do not control, and are not responsible for, Discord's own data practices.
 
-By using Dreamliner, you agree to this Policy and our [Terms of Service](terms-of-service.md).
-
----
-
-## 1. Who this applies to
-
-This Policy covers:
-
-- **Server owners and administrators** who invite Dreamliner or upload configuration
-- **Moderators and members** in servers where Dreamliner is used
-- Anyone who interacts with Dreamliner commands or features in those servers
-
-If you are a server admin, you are responsible for informing your community that Dreamliner is present and may process member data according to this Policy and your server’s own rules.
+By inviting Dreamliner to a server, using its commands or dashboard, visiting dreamliner.site, or otherwise interacting with the Service, you acknowledge that you have read and understood this Policy. If you do not agree with this Policy, do not use the Service. This Policy is incorporated into, and should be read together with, our [Terms of Service](terms-of-service.md).
 
 ---
 
-## 2. Data controller
+## 1. Scope and who this applies to
 
-For the **hosted** Dreamliner bot instance described in our public invite and README, the Dreamliner operators act as the data controller for data stored to operate the Service for your server.
+This Policy applies to:
 
-Discord remains the controller of data on Discord’s platform (messages in channels, account profiles, etc.).
+- **Server owners and administrators** who invite Dreamliner, configure it, subscribe to Dreamliner One, or manage its dashboard for a server
+- **Moderators and staff** who are granted elevated permissions inside Dreamliner
+- **Members** of any server where Dreamliner is present, whether or not they ever run a command
+- **Visitors** to dreamliner.site, including anyone completing a Passport verification, viewing public stats pages, or browsing documentation
+- Anyone who otherwise interacts with Dreamliner's commands, buttons, forms, or automated features
+
+**If you administer a server, you are solely responsible** for making your community aware that Dreamliner is present, for informing them (where required by law) that their data may be processed as described here, and for configuring the Service consistently with your own community's rules and any legal obligations that apply to you as a server operator.
+
+---
+
+## 2. Data controller and our role
+
+For the **hosted, public** instance of Dreamliner referenced in our invite link, README, and dreamliner.site, the Dreamliner operators act as the data controller (or "business"/"processor," depending on your jurisdiction's terminology) for data stored to operate the Service.
+
+Discord independently controls data that lives on Discord's own platform and infrastructure (message storage at rest on Discord's servers, account profiles, Discord's own moderation and Trust & Safety systems, Discord's own AutoMod when Dreamliner syncs into it, and Discord's payment/billing systems for any monetized feature). We do not control, audit, or take responsibility for how Discord itself stores or processes that data.
+
+Where we act only on instructions from a server's administrators (for example, storing configuration you upload, or running automated rules you defined), we may act as a processor/service provider for that data on the administrators' behalf, with the administrators acting as the controller for their own community's data-handling decisions.
 
 ---
 
 ## 3. Information we collect
 
-### 3.1 From Discord (automatically)
+### 3.1 From Discord, automatically, as part of normal operation
 
-When Dreamliner is in your server and has the required intents and permissions, it may process:
+When Dreamliner is added to your server and granted the relevant intents and permissions, it may receive and process the following categories of data through Discord's API and gateway:
 
 | Category | Examples |
 |----------|----------|
-| **Server identifiers** | Guild ID, channel IDs, role IDs, message IDs |
-| **User identifiers** | Discord user IDs, roles a member has |
-| **Profile / display data** | Usernames, nicknames, and related display fields needed for name history, member identity restore, logs, and embeds |
-| **Message data** | Message content, attachments metadata/URLs, embeds, and edit/delete context (when Message Content intent and logging/moderation features apply) |
-| **Voice data** | Voice channel membership for voice tools, companion channels, and related logs |
-| **Reactions** | Emoji reactions for reaction roles and starboard |
-| **Moderation events** | Bans, kicks, mutes, and similar Discord events the bot is configured to handle |
-| **Interactions** | Slash command usage, button/select menu interactions, and command options you provide |
+| **Server identifiers** | Guild ID, channel IDs, category IDs, role IDs, message IDs, emoji/sticker IDs, webhook IDs |
+| **User identifiers** | Discord user IDs, usernames, global display names, per-server nicknames, avatar and banner hashes/URLs, roles a member holds, join/leave timestamps, timeout state |
+| **Message data** | Message content, attachment metadata and URLs (and, for Automod's Image Scanning rule, a one-way fingerprint of attached images; see 3.4), embed content, reactions, edit history, and delete events, wherever Message Content intent and a relevant feature (logging, automod, clean, tags, custom commands, etc.) is enabled and applicable |
+| **Voice data** | Voice channel membership, mute/deafen/stream/video state, and related timestamps, for voice tools, companion channels, and voice logging |
+| **Moderation and administrative events** | Bans, kicks, timeouts, role changes, channel/role/server updates, invite creation/deletion, and other Discord audit-log-visible events the bot is configured to observe or act on |
+| **Interaction data** | Slash command names and the option values you supply, button/select-menu/modal submissions, and autocomplete queries |
+| **Image and avatar fingerprints** | A one-way, non-reversible perceptual hash computed from message image attachments (Automod's Image Scanning rule) and from member avatars (Impersonation Detection); see 3.4 |
+| **Identity change events** | Username, global display name, server nickname, and avatar changes, when Impersonation Detection is enabled |
 
-Dreamliner uses Discord’s **Message Content** privileged intent. That means the bot can receive message text in guild channels where it can see messages, not only slash-command input.
-
-Dreamliner does **not** request Direct Message intents and does **not** listen for incoming DMs as a command interface. It may **send** outbound DMs (for example, moderation notices) when configured.
+Dreamliner uses Discord's **Message Content** privileged intent, meaning it can receive the text of messages sent in channels it can see, not only text supplied through slash commands. Dreamliner does **not** request or use Direct Message intents and does not treat incoming DMs as a command interface. Dreamliner may **send** outbound DMs (for example, moderation notices, warning/ban notifications, ticket updates, an Impersonation Detection alert, or a Passport reminder) where a feature is configured to do so and Discord permits the message to be delivered.
 
 ### 3.2 Configuration and staff-provided content
 
-When administrators use `/config` and related commands, we store:
+When administrators use the dashboard, `/config`, or related commands, we store:
 
-- Uploaded and effective YAML configuration (levels, plugin settings, channel/role IDs, templates, patterns)
-- The Discord user ID of the person who last updated the config
-- Plugin content such as tags, scheduled post text, welcome templates, censor rules, reminders, sticky ("persist") message content, custom events, and command aliases
+- The server's effective and (where applicable) user-supplied configuration (permission levels, Dreamliner Roles and their `can_*` grants, plugin settings, channel/role IDs, message templates, filter patterns, and similar settings)
+- The Discord user ID of whoever last updated a given piece of configuration, for accountability and troubleshooting
+- Content staff author or upload through plugin features: custom tags, scheduled/automated post text, welcome message templates, custom filter words/phrases/regular expressions, reminders, sticky ("persist") message content, custom slash commands built with Dreamcode, ticket panel text, suggestion/review categories, and similar content
 
-### 3.3 Data we create or derive
+### 3.3 Data we create or derive while operating the Service
 
-Depending on enabled plugins, we may store:
+Depending on which plugins a server has enabled, we may create and store:
 
-- **Moderation cases** (type, reason, moderator/target IDs, timestamps, expiry, metadata)
-- **Automod strike counts**
-- **Message log cache** for edit/delete logging (author ID, username, channel name, content)
-- **Message archives** from tools like `/clean` or `/source` (author tags, content, attachment URLs)
-- **Aggregate stats** (message counts, joins/leaves; typically without full message bodies)
-- **Username and nickname history**
-- **Member identity snapshots** (per-server nickname, role IDs, and optional timeout expiry used to restore chosen fields on rejoin)
-- **Starboard** post references and star counts
-- **Role panel** mappings and related message/role IDs
-- **Companion channel** hub and ownership state
-- **Counter** values and channel bindings
+- **Moderation cases** (type, reason, moderator and target IDs, timestamps, expiry, and structured metadata about how the case was created)
+- **Automod strike counts and hit history**
+- **Message log cache** used for edit/delete logging (author ID, username, channel name, and message content, time-limited; see section 7)
+- **Message archives** produced by tools like `/clean` or `/source` (author tags, message content, and attachment URLs, kept until an operator deletes them)
+- **Aggregate activity statistics** (message counts, join/leave counts, voice minutes, and similar counters), typically without retaining full message bodies
+- **Username and nickname change history**
+- **Member identity snapshots** (a per-server nickname, role IDs, and any active timeout expiry, kept so those specific fields can be restored if a member is re-added after a false-positive kick/ban or a raid cleanup)
+- **Starboard** message references and star/reaction counts
+- **Role panel** message-to-role mappings
+- **Companion voice channel** hub and per-channel ownership state
+- **Counter** values and the channels they are bound to
+- **Ticket** transcripts, category configuration, and claim/close history, where the Tickets plugin is enabled
+- **Suggestion and review** submissions, votes, statuses, and moderator responses
+- **Economy** balances, transaction history, and collectible card inventories, where the Economy plugin is enabled
+- **Saved image collections** a member builds through the Anime plugin
+- **Custom voice preferences** (a chosen TTS voice) tied to a Discord user ID, where TTS is used
+- **Image and avatar fingerprints** (16-character perceptual hashes, see 3.4), never the underlying image
+- **Impersonation Detection watchlist entries** (a label, optionally a real member's Discord user ID kept live-synced, or a manual name and/or avatar fingerprint for a persona with no real account)
+- **Impersonation Detection alerts** (the flagged member's ID/username, which protected identity or watchlist entry it resembled, a name-similarity score and/or avatar fingerprint distance, what triggered the check, any automatic action taken, and staff resolution status)
+- **Identity change history** (prior and new username/display name/nickname values, and avatar fingerprints, with timestamps) when Impersonation Detection is enabled, independent of whether a change ever matched anything
+- **Native Discord AutoMod sync state**: when enabled, Automod mirrors certain rules (keyword/preset filters, mention-spam limits) into Discord's own AutoMod system for your server. Discord's own systems then also process and enforce on messages under Discord's own, separate moderation pipeline. See [Discord's Privacy Policy](https://discord.com/privacy) for how Discord handles that.
 
-### 3.4 What we do not intentionally collect
+### 3.4 Image and avatar fingerprinting
 
-- Payment or billing information (the hosted bot is free)
+Automod's **Image Scanning** rule and **Impersonation Detection** never store the images they check. When one of these features looks at an image attachment or an avatar, the bot:
+
+1. Downloads the image from Discord's own CDN into memory,
+2. Computes a 64-bit perceptual hash (a short fingerprint, e.g. `0080808000000000`, not reversible back into a picture),
+3. Compares that fingerprint to others (a blocklist for Image Scanning, or a protected member/watchlist entry for Impersonation Detection),
+4. Discards the downloaded image immediately. Only the resulting fingerprint is ever written to our database.
+
+**Image Scanning's blocklist is shared across every server**, not scoped to the server that added an entry. It is a single, platform-wide list of known-scam-image fingerprints (and the label a Dreamliner operator gave each one) maintained only by Dreamliner operators. Server administrators cannot add to it. See also section 6.
+
+Impersonation Detection's watchlist and identity comparisons are scoped to the individual server that configured them.
+
+### 3.5 The Dreamliner dashboard and website (dreamliner.site)
+
+When you sign in to the dashboard, we use Discord's OAuth2 login flow to receive your Discord user ID, username, avatar, and the list of servers you belong to (so we can show you servers you can manage). We do not request or receive your Discord password, email address, or payment methods through this flow.
+
+The dashboard uses a session cookie to keep you signed in. This is functionally necessary for the dashboard to work and is not used for cross-site advertising tracking.
+
+Like essentially any web server, dreamliner.site's infrastructure incidentally logs standard request metadata (IP address, user agent, timestamps, and requested paths) for security, abuse prevention, and troubleshooting. These operational logs are not used to build advertising profiles.
+
+### 3.6 Passport (member verification)
+
+Where a server enables the Passport plugin, a joining member is directed to a public Passport page on dreamliner.site. Completing it involves:
+
+- Signing in with Discord (the same OAuth2 flow described in 3.5), so we can confirm which Discord account is verifying
+- Completing an in-house, self-hosted image captcha (no third-party captcha widget, and nothing loaded from another domain for this step)
+- Standard web request metadata (see 3.5), including an IP address, associated with that verification attempt for anti-abuse purposes
+
+The result (pass/fail, and which roles were subsequently granted) is sent back to the bot and logged as a `passport_verify` or `passport_kick` event as described in section 3.3.
+
+### 3.7 Dreamliner One (premium subscriptions) and payments
+
+Dreamliner One is a **per-server subscription** sold and billed entirely through **Discord's own monetization system** (a Discord "SKU"). **We do not process, receive, or store your payment card number, billing address, or any other payment instrument.** Discord is the payment processor and merchant of record for these subscriptions; Discord's own Privacy Policy and billing terms govern that transaction. We only receive a subscription **status** (active/inactive, and which server it applies to) from Discord's API, which we use to enable or disable premium-gated features for that server.
+
+Billing questions, invoices, refunds, and payment disputes must be directed to Discord, not to us; see section 10 of the [Terms of Service](terms-of-service.md).
+
+### 3.8 Custom bot branding submissions (human review)
+
+Where a Dreamliner One server submits a custom bot avatar, banner, or display name style through the Custom Branding feature, the submitted image is queued and **reviewed by a human Dreamliner operator** before it is applied, to screen for NSFW content, hateful or extremist imagery, impersonation of real people or brands, and other policy violations. Submitted images are retained for as long as necessary to complete that review and to keep a record of what was approved or rejected, and may be viewed by Dreamliner operators performing that review.
+
+### 3.9 Third-party services our features call out to
+
+A small number of features send limited, feature-specific data to third-party APIs in order to work. We do not send your full message history, full member list, or unrelated personal data to any of these services, only what a given request needs:
+
+| Feature | Third party | What is sent |
+|---|---|---|
+| **Translation** (`/translate`, auto-translate) | Google Translate (via an unofficial public API wrapper) | The specific text you asked to translate, or a message flagged for auto-translate; no Discord user ID or other identifying metadata is included in the translation request itself |
+| **Social Notifications** (YouTube uploads) | YouTube Data API v3 (Google) | The creator handle/channel URL your server configured, so we can poll for new public uploads; we do not send viewer or member data to YouTube |
+| **Anime** (`/anime neko`) | Nekos.best (a public, third-party anime-image API) | An anonymous image request; no Discord identifiers are sent |
+| **Text-to-speech** (`/tts`) | None. Voice synthesis runs locally on our own infrastructure via the open-source Piper engine. Message text used for speech is **not** sent to any third-party voice/AI provider. | N/A |
+
+Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications.
+
+### 3.10 What we do not intentionally collect
+
+- Full payment or billing information (see 3.7; Discord alone handles this)
 - Precise GPS/location data
 - Government ID documents
-- Analytics from third-party marketing/ad SDKs in the bot codebase
+- Biometric identifiers (image and avatar "fingerprints," described in 3.4, are simple perceptual hashes for similarity matching, not biometric identification, and are not derived from or usable to identify a person's face or body)
+- Analytics from third-party marketing/advertising SDKs embedded in the bot or dashboard codebase
 
-Operational process logs (for example, errors in our hosting environment) may incidentally include technical details needed to fix outages. They are not used to profile members.
+Operational process logs (for example, application errors in our hosting environment) may incidentally include technical details needed to diagnose outages. They are not used to profile members.
 
 ---
 
 ## 4. How we use information
 
-We use the information above to:
+We use the information described above to:
 
-- Provide moderation, logging, roles, automation, stats, and other configured features
-- Enforce permission levels and `can_*` flags from your config
-- Send command replies, embeds, and optional moderation DMs
-- Maintain case history, name history, and archives your staff rely on
-- Keep the Service secure, reliable, and compliant with Discord’s developer policies
-- Improve documentation and support when you contact us about an issue
+- Provide moderation, logging, automation, role management, verification, engagement, and other features you or your administrators enable
+- Enforce Dreamliner Roles, permission levels, and `can_*` flags configured for your server
+- Detect, log, and (where configured) automatically act on rule violations, scam content, and impersonation attempts
+- Send command replies, embeds, DMs, and website pages requested by your interactions
+- Maintain moderation case history, identity history, and archives your staff rely on for ongoing server operations
+- Process and administer Dreamliner One subscriptions (limited to subscription status; see 3.7)
+- Operate, secure, debug, and improve the Service, including diagnosing outages and abuse
+- Communicate with you about the Service, including changes to these policies, where appropriate
+- Comply with legal obligations and enforce our [Terms of Service](terms-of-service.md)
 
-We do **not** sell personal data. We do **not** use member message content for advertising.
+**We do not sell personal data.** We do not use member message content for advertising, and we do not build cross-service advertising profiles from Service data.
 
 ---
 
-## 5. Legal bases (where applicable)
+## 5. Legal bases for processing (where applicable, e.g. GDPR/UK GDPR)
 
-Where laws such as the GDPR apply, we process data based on:
+Where laws such as the EU/UK GDPR apply, we rely on one or more of the following legal bases:
 
-- **Legitimate interests** in operating a moderation bot for servers that invited us
-- **Contractual necessity** to provide features administrators configured
-- **Consent** where Discord or local law requires it for certain privileged data processing (administrators enabling Message Content-dependent features act within Discord’s framework for their server)
-- **Legal obligation** when we must retain or disclose data required by law
+- **Legitimate interests** in operating, securing, and improving a moderation and community-management bot for servers that invited it, including detecting abuse, scams, and impersonation
+- **Contractual necessity** to provide the specific features an administrator has configured and to administer a Dreamliner One subscription
+- **Consent**, where Discord's own framework or local law requires it for certain privileged data processing (for example, an administrator's decision to enable Message Content–dependent features, or a member's choice to use a feature that sends data to a third party under 3.9)
+- **Legal obligation**, where we must retain, disclose, or delete data as required by applicable law or a valid legal process
 
 ---
 
 ## 6. Sharing and disclosure
 
-We may share information with:
+We may share information with the following categories of recipients, and for the reasons stated:
 
 | Recipient | Why |
 |-----------|-----|
-| **Discord** | All bot traffic goes through Discord’s API; channel logs you configure are posted into Discord channels you choose |
-| **Hosting / infrastructure providers** | To run the bot process and database |
-| **Your server staff** | Via commands, embeds, and log channels they can access |
-| **Authorities** | If required by law, valid legal process, or to protect safety and rights |
+| **Discord** | All bot traffic and dashboard sign-in flows go through Discord's API; channel logs you configure are posted into Discord channels you choose; Discord alone processes Dreamliner One billing |
+| **Every server running Automod's Image Scanning rule** | The scam-image fingerprint blocklist (see 3.4) is a single platform-wide list, not scoped to one server; adding an entry makes that fingerprint (never the image itself) checked against in every server with the rule enabled |
+| **Third-party APIs described in 3.9** | Only the specific, feature-scoped data described there (translation text, a configured YouTube channel handle, or an anonymous image request), and only when that specific feature is used |
+| **Hosting and infrastructure providers** | To run the bot process, database, and website that make up the Service |
+| **Your own server staff** | Via commands, embeds, dashboard access, and log channels they are permitted to view |
+| **Successors** | If the Service, or substantially all of its assets, is transferred (for example, through a merger, acquisition, or sale), information may be transferred as part of that transaction, subject to this Policy or a materially similar one |
+| **Authorities** | Where required by law, valid legal process, or a good-faith belief that disclosure is necessary to protect the rights, property, or safety of Dreamliner, our users, Discord, or the public |
 
-We do not sell or rent personal information to data brokers.
+We do not sell or rent personal information to data brokers, and we do not disclose personal information to third parties for their own independent marketing purposes.
 
-Content posted to Discord log channels is retained according to Discord and your channel settings, outside our database retention rules.
+Content posted to Discord log channels or archived by tools such as `/clean`/`/source` is, once posted to Discord, also subject to Discord's own retention and access rules for that channel, independent of our own database retention practices described below.
 
 ---
 
 ## 7. Retention
 
-Retention depends on the feature and whether administrators delete data or remove the bot.
+Retention depends on the feature involved and on whether administrators or members actively delete data or remove the bot. As a general policy, we keep data only for as long as it serves the purpose it was collected for, subject to the following:
 
 | Data | Typical retention |
 |------|-------------------|
@@ -142,70 +215,99 @@ Retention depends on the feature and whether administrators delete data or remov
 | **Name / username history** | Kept while the related plugins remain in use and records are not cleared |
 | **Member identity snapshots** | Kept while Member Identity is in use (latest snapshot per member per server) until overwritten or deleted |
 | **Stats & counters** | Kept as aggregate history until cleared or removed |
-| **Tags, reminders, panels, stickies, aliases, etc.** | Until removed by commands or operators |
+| **Tags, reminders, panels, stickies, aliases, tickets, suggestions, reviews, economy records, etc.** | Until removed by commands or operators |
+| **Image Scanning blocklist fingerprints** | Platform-wide, not per-server; kept until removed by a Dreamliner operator |
+| **Impersonation Detection watchlist, alerts, and identity history** | Kept while the plugin remains enabled for that server and records are not cleared by staff/operators |
+| **Passport verification/session data** | Kept only as long as needed to complete verification and for a limited anti-abuse window afterward |
+| **Custom branding submissions under human review** | Kept for as long as needed to review, apply, or reject the submission, and to retain a record of that decision |
+| **Dreamliner One subscription status** | Mirrors Discord's own subscription record; we do not separately retain historical billing data of our own |
 
-We may retain limited records longer if needed for security investigations, dispute resolution, or legal compliance.
+We may retain limited records for a longer period where necessary for security investigations, dispute resolution, or legal compliance, even if that exceeds the typical periods above.
 
-Removing Dreamliner from a Discord server stops new collection for that server but does **not** automatically erase all historical database records. Contact us to request deletion (see below).
+Removing Dreamliner from a Discord server stops new collection for that server but does **not** automatically erase all historical database records for that server. Contact us to request deletion (see section 15).
 
 ---
 
 ## 8. Storage and security
 
-Data for the hosted Service is stored in our operating environment (including a database used by the bot). We take reasonable technical and organizational measures appropriate to a free Discord bot service, but no system is perfectly secure.
+Data for the Service is stored in our operating environment, including a database used by the bot process and the dashboard's own infrastructure. We take technical and organizational measures we consider reasonable and appropriate for a free, community-operated Discord bot, including restricting production access, using a shared-secret-authenticated bridge between the bot and the dashboard, and applying least-privilege patterns in our own code.
 
-You should:
+**No system is perfectly secure, and we cannot and do not guarantee that unauthorized access, disclosure, alteration, or destruction of data will never occur.** You use the Service, and provide any information to it, at your own risk. You should independently:
 
-- Limit who has high Dreamliner levels and Discord **Manage Server**
-- Avoid putting secrets in YAML beyond necessary IDs and settings
-- Use private log channels for sensitive moderation content
+- Limit who has high Dreamliner Roles/levels and Discord's own **Manage Server**/**Administrator** permissions
+- Avoid putting secrets or sensitive personal data in configuration, custom commands, tags, or logs beyond what is necessary
+- Use private, restricted-access log channels for sensitive moderation content
+- Promptly report any suspected security issue to us (see section 15)
 
 ---
 
-## 9. International transfers
+## 9. International data transfers
 
-We and our infrastructure providers may process data in countries other than where you or your members live. Where required, we rely on appropriate safeguards for such transfers.
+Dreamliner, its infrastructure providers, and the third parties described in section 3.9 may process data in countries other than the one you or your members reside in, including the United States and other jurisdictions where our infrastructure or those third parties operate. Where applicable law requires a specific transfer mechanism (such as the EU Standard Contractual Clauses), we rely on appropriate safeguards for such transfers to the extent required.
+
+By using the Service, you acknowledge and consent to this international processing of information as described in this Policy.
 
 ---
 
 ## 10. Your rights and choices
 
-Depending on your location, you may have rights to access, correct, delete, restrict, or object to certain processing, and to lodge a complaint with a supervisory authority.
+Depending on your location, you may have rights to access, correct, delete, restrict, port, or object to certain processing of your personal data, and to withdraw consent or lodge a complaint with a supervisory or consumer-protection authority.
 
 **Practical options for Discord users:**
 
-- Ask your **server administrators** to change Dreamliner settings, disable logging plugins, or remove the bot
-- Use Discord’s own privacy tools and request flows for data Discord holds
-- Contact the Dreamliner operators for deletion or access requests related to data we store in our database (we may need to verify you and coordinate with server ownership)
+- Ask your **server administrators** to change Dreamliner's settings for your server, disable specific plugins (including logging, Automod, or Impersonation Detection), remove specific records, or remove the bot entirely
+- Use Discord's own privacy tools and request flows for data Discord itself holds (message content on Discord's servers, your Discord account profile, etc.)
+- Contact the Dreamliner operators (section 15) for deletion or access requests concerning data we store ourselves. We may need to verify your identity and, where the data belongs to a server rather than to you individually, coordinate with that server's ownership before acting
 
-We may decline requests that are unlawful, excessively repetitive, or that would interfere with the rights of others (for example, wiping another person’s moderation case without proper authority).
-
----
-
-## 11. Children’s privacy
-
-Dreamliner is intended for Discord servers that already follow Discord’s age requirements. We do not knowingly target children under 13 (or the minimum age in your country). If you believe a minor’s data was collected improperly through Dreamliner, contact us and we will take appropriate steps.
+We may decline or limit requests that are unlawful, manifestly unfounded or excessive, technically infeasible, or that would unreasonably interfere with the rights of others (for example, a request to erase another member's moderation case history without proper authority over that server, or a request that would compromise an active investigation into abuse).
 
 ---
 
-## 12. Automated decision-making
+## 11. Children's privacy
 
-Automod, censor, and similar features can automatically delete messages, apply strikes, or take other actions based on rules your administrators configure. These are server-configured enforcement tools, not credit scoring or similar profiling. Administrators control those rules.
-
----
-
-## 13. Changes to this Policy
-
-We may update this Privacy Policy from time to time. The "Last updated" date will change when we do. Continued use of Dreamliner after changes become effective constitutes acceptance of the revised Policy, except where applicable law requires additional notice or consent.
+Dreamliner is intended for use on Discord servers that already comply with Discord's own minimum age requirements. **The Service is not directed at children, and we do not knowingly collect personal information from anyone under the age required by Discord's Terms of Service or applicable local law (generally 13, and higher in some jurisdictions).** If you believe a minor's data was collected through Dreamliner in violation of this section, contact us using the details in section 15 and we will investigate and take appropriate action, which may include deleting the data in question.
 
 ---
 
-## 14. Contact
+## 12. Automated decision-making and profiling
 
-For privacy questions or data requests related to Dreamliner, open an issue on the [Dreamliner repository](https://github.com/Clawb1t/Dreamliner) or contact the operators through any support channel linked from the bot.
+Automod, Impersonation Detection, censor-style filters, and similar features can automatically delete messages, apply strikes, time out, kick, or ban a member, or take other configured enforcement action, based entirely on rules a server's own administrators chose to configure. This includes:
+
+- Automod's **Image Scanning** rule (comparing an image's fingerprint to the blocklist described in 3.4)
+- **Impersonation Detection** (comparing a member's name and/or avatar to a protected role holder or watchlist entry)
+
+Both can be configured to act automatically (timeout, kick, or ban) without a staff member reviewing the match first, if an administrator chooses that setting. **These are server-configured enforcement tools, not credit-scoring, employment-screening, or similarly regulated automated decision-making, and they do not evaluate anything about a person beyond the specific, narrow signal each feature is designed to compare (message content against configured filters; an image's or avatar's fingerprint against a blocklist or protected identity).** Administrators control whether automatic action is used at all, and can switch any of these features to a staff-reviewed alert queue instead of an automatic action.
+
+Where administrators enable **native Discord AutoMod sync**, certain rules are additionally mirrored into Discord's own AutoMod system, which independently processes and enforces on messages under Discord's own, separate moderation pipeline; see [Discord's Privacy Policy](https://discord.com/privacy) for how Discord handles that layer.
+
+Given the nature of automated content matching, **false positives and false negatives are possible and expected**; no automated feature described in this Policy is guaranteed to be perfectly accurate. See also section 8 ("Automated moderation and detection features") of our [Terms of Service](terms-of-service.md).
+
+---
+
+## 13. Do Not Track and similar signals
+
+Because the dashboard does not engage in third-party behavioral advertising tracking, it does not currently respond differently to browser "Do Not Track" signals or the Global Privacy Control. If our practices change such that this becomes relevant, we will update this Policy.
+
+---
+
+## 14. Changes to this Policy
+
+We may update this Privacy Policy at any time, in our sole discretion, to reflect changes in the Service, our practices, or legal requirements. The "Last updated" date at the top will change when we do. Where a change is material, we will make reasonable efforts to provide notice (for example, through the documentation site, a changelog, or an announcement channel), but **your continued use of the Service after a change becomes effective constitutes your acceptance of the revised Policy**, except where applicable law requires additional notice or affirmative consent, in which case we will seek that consent as required.
+
+---
+
+## 15. Contact and data requests
+
+For privacy questions, security reports, or data access/deletion requests related to Dreamliner, open an issue on the [Dreamliner repository](https://github.com/Clawb1t/Dreamliner) or contact the operators through any support channel linked from the bot or from dreamliner.site.
+
+We will make reasonable efforts to respond to legitimate requests within a reasonable time, but this Policy does not create a specific guaranteed response time, except where required by applicable law.
 
 Related documents:
 
 - [Terms of Service](terms-of-service.md)
 - [Logs plugin](plugins/logs.md)
+- [Automod plugin](plugins/automod.md) (Image Scanning, native Discord AutoMod sync)
+- [Impersonation Detection plugin](plugins/impersonation.md)
+- [Passport plugin](plugins/passport.md)
+- [Translation plugin](plugins/translation.md)
 - [Getting started](getting-started.md)

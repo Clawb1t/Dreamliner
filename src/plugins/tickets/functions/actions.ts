@@ -7,8 +7,15 @@ import {
   type GuildMember,
 } from "discord.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
-import type { TicketCategory, TicketPanel, TicketsConfig } from "../../../config/schemas/tickets.js";
-import { buildTicketClaimLog, buildTicketCloseLog, buildTicketOpenLog } from "../../../core/logging/format.js";
+import type { TicketCategory, TicketPanel, TicketsConfig, TicketStatus } from "../../../config/schemas/tickets.js";
+import { TICKET_STATUS_LABELS } from "../../../config/schemas/tickets.js";
+import {
+  buildTicketAssignLog,
+  buildTicketClaimLog,
+  buildTicketCloseLog,
+  buildTicketOpenLog,
+  buildTicketStatusLog,
+} from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
 import { ticketClaimId, ticketCloseId, ticketDeleteId, ticketUnclaimId } from "../constants.js";
 import { isBlacklisted } from "./blacklist.js";
@@ -23,6 +30,7 @@ import {
   createTicket,
   nextTicketNumber,
   removeMember,
+  setSubStatus,
   touchActivity,
   unclaimTicket,
   type TicketFormAnswer,
@@ -166,6 +174,100 @@ export async function performClaim(
 
 export async function performUnclaim(ticket: TicketRecord): Promise<void> {
   await unclaimTicket(ticket.guildId, ticket.id);
+}
+
+/** Assigns a ticket to a specific staff member on someone else's behalf (as opposed to
+ * `/ticket claim`, which is always self-assignment). Uses the same `claimedBy` field —
+ * assignment and claiming are the same underlying concept, just who initiated it differs. */
+export async function performAssign(
+  client: Client,
+  guildConfig: GuildConfig,
+  pluginConfig: TicketsConfig,
+  ticket: TicketRecord,
+  assigneeId: string,
+  actorId: string,
+): Promise<void> {
+  await claimTicket(ticket.guildId, ticket.id, assigneeId);
+  await sendModerationLog(
+    client,
+    guildConfig,
+    buildTicketAssignLog({
+      ticketNumber: ticket.number,
+      assignee: { id: assigneeId },
+      actor: { id: actorId },
+      channel: { id: ticket.channelId },
+      assigned: true,
+    }),
+    {
+      guildId: ticket.guildId,
+      eventType: "ticket_assign",
+      actorId,
+      targetId: assigneeId,
+      channelId: ticket.channelId,
+      caseLogOverride: pluginConfig.log_channel_id,
+    },
+  );
+}
+
+export async function performUnassign(
+  client: Client,
+  guildConfig: GuildConfig,
+  pluginConfig: TicketsConfig,
+  ticket: TicketRecord,
+  actorId: string,
+): Promise<void> {
+  const previousAssignee = ticket.claimedBy;
+  await unclaimTicket(ticket.guildId, ticket.id);
+  if (!previousAssignee) return;
+  await sendModerationLog(
+    client,
+    guildConfig,
+    buildTicketAssignLog({
+      ticketNumber: ticket.number,
+      assignee: { id: previousAssignee },
+      actor: { id: actorId },
+      channel: { id: ticket.channelId },
+      assigned: false,
+    }),
+    {
+      guildId: ticket.guildId,
+      eventType: "ticket_assign",
+      actorId,
+      targetId: previousAssignee,
+      channelId: ticket.channelId,
+      caseLogOverride: pluginConfig.log_channel_id,
+    },
+  );
+}
+
+/** Sets a ticket's work-in-progress status (Awaiting Response, On Hold, ...), independent of
+ * open/closed. Passing "open" clears it back to no special status. */
+export async function performSetStatus(
+  client: Client,
+  guildConfig: GuildConfig,
+  pluginConfig: TicketsConfig,
+  ticket: TicketRecord,
+  status: TicketStatus,
+  actorId: string,
+): Promise<void> {
+  await setSubStatus(ticket.guildId, ticket.id, status === "open" ? null : status);
+  await sendModerationLog(
+    client,
+    guildConfig,
+    buildTicketStatusLog({
+      ticketNumber: ticket.number,
+      status: TICKET_STATUS_LABELS[status],
+      actor: { id: actorId },
+      channel: { id: ticket.channelId },
+    }),
+    {
+      guildId: ticket.guildId,
+      eventType: "ticket_status",
+      actorId,
+      channelId: ticket.channelId,
+      caseLogOverride: pluginConfig.log_channel_id,
+    },
+  );
 }
 
 export async function performClose(

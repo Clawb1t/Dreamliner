@@ -1344,6 +1344,113 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Automod image_scan blocklist admin (platform superusers only) -----------------
+
+        if (url.pathname === "/bridge/platform/scam-image-hashes") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listWebScamImageHashes } = await import("./webScamImages.js");
+            sendJson(res, 200, { ok: true, hashes: await listWebScamImageHashes() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: {
+              userId?: string;
+              label?: unknown;
+              imageBase64?: unknown;
+              imageUrl?: unknown;
+              phash?: unknown;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { addWebScamImageHash, ScamImageHashError } = await import("./webScamImages.js");
+            try {
+              const hash = await addWebScamImageHash({
+                userId: actorId,
+                label: typeof body.label === "string" ? body.label : "",
+                imageBase64: typeof body.imageBase64 === "string" ? body.imageBase64 : undefined,
+                imageUrl: typeof body.imageUrl === "string" ? body.imageUrl : undefined,
+                phash: typeof body.phash === "string" ? body.phash : undefined,
+              });
+              sendJson(res, 200, { ok: true, hash });
+            } catch (error) {
+              sendJson(res, error instanceof ScamImageHashError ? 400 : 502, {
+                error: error instanceof Error ? error.message : "Failed to add hash.",
+              });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (url.pathname === "/bridge/platform/scam-image-hashes/test" && req.method === "POST") {
+          let body: { userId?: string; imageBase64?: unknown; imageUrl?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { testWebScamImageHash, ScamImageHashError } = await import("./webScamImages.js");
+          try {
+            const result = await testWebScamImageHash({
+              imageBase64: typeof body.imageBase64 === "string" ? body.imageBase64 : undefined,
+              imageUrl: typeof body.imageUrl === "string" ? body.imageUrl : undefined,
+            });
+            sendJson(res, 200, { ok: true, ...result });
+          } catch (error) {
+            sendJson(res, error instanceof ScamImageHashError ? 400 : 502, {
+              error: error instanceof Error ? error.message : "Failed to test image.",
+            });
+          }
+          return;
+        }
+
+        const platformScamImageHashMatch = /^\/bridge\/platform\/scam-image-hashes\/([\w-]+)$/.exec(
+          url.pathname,
+        );
+        if (platformScamImageHashMatch && req.method === "DELETE") {
+          let body: { userId?: string };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { removeWebScamImageHash } = await import("./webScamImages.js");
+          const ok = await removeWebScamImageHash(platformScamImageHashMatch[1]!);
+          if (!ok) {
+            sendJson(res, 404, { error: "Hash not found." });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
         // Live editor schema from this bot process (keeps prod dashboard in sync).
         if (req.method === "GET" && url.pathname === "/bridge/config-editor") {
           const { buildGuildConfigEditorArtifacts } = await import(
@@ -1455,7 +1562,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const suggestionsMatch = /^\/bridge\/guilds\/(\d+)\/suggestions$/.exec(url.pathname);
         const ticketActionMatch =
-          /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)\/(close|claim|unclaim|reopen|add|remove|rename)$/.exec(
+          /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)\/(close|claim|unclaim|assign|unassign|status|reopen|add|remove|rename)$/.exec(
             url.pathname,
           );
         const ticketPanelPublishMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/panels\/([0-9a-fA-F-]{36})\/publish$/.exec(
@@ -1505,7 +1612,17 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const automodTestMatch = /^\/bridge\/guilds\/(\d+)\/automod\/test$/.exec(url.pathname);
+        const automodNativeSyncMatch = /^\/bridge\/guilds\/(\d+)\/automod\/native-sync$/.exec(url.pathname);
         const automodMatch = /^\/bridge\/guilds\/(\d+)\/automod$/.exec(url.pathname);
+        const impersonationTestMatch = /^\/bridge\/guilds\/(\d+)\/impersonation\/test$/.exec(url.pathname);
+        const impersonationHistoryMatch = /^\/bridge\/guilds\/(\d+)\/impersonation\/history\/(\d+)$/.exec(
+          url.pathname,
+        );
+        const impersonationAlertsMatch =
+          /^\/bridge\/guilds\/(\d+)\/impersonation\/alerts(?:\/([\w-]+)\/(resolve|dismiss))?$/.exec(url.pathname);
+        const impersonationWatchlistMatch =
+          /^\/bridge\/guilds\/(\d+)\/impersonation\/watchlist(?:\/([\w-]+))?$/.exec(url.pathname);
+        const impersonationMatch = /^\/bridge\/guilds\/(\d+)\/impersonation$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
@@ -1567,7 +1684,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !botProfileActionMatch &&
           !automodPresetMatch &&
           !automodTestMatch &&
+          !automodNativeSyncMatch &&
           !automodMatch &&
+          !impersonationTestMatch &&
+          !impersonationHistoryMatch &&
+          !impersonationAlertsMatch &&
+          !impersonationWatchlistMatch &&
+          !impersonationMatch &&
           !guildMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
@@ -1632,7 +1755,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           botProfileActionMatch?.[1] ??
           automodPresetMatch?.[1] ??
           automodTestMatch?.[1] ??
+          automodNativeSyncMatch?.[1] ??
           automodMatch?.[1] ??
+          impersonationTestMatch?.[1] ??
+          impersonationHistoryMatch?.[1] ??
+          impersonationAlertsMatch?.[1] ??
+          impersonationWatchlistMatch?.[1] ??
+          impersonationMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
@@ -1641,11 +1770,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (automodMatch || automodTestMatch || automodPresetMatch) {
+        if (automodMatch || automodTestMatch || automodPresetMatch || automodNativeSyncMatch) {
           const {
             applyWebAutomodPreset,
             getWebAutomodState,
             saveWebAutomod,
+            syncWebAutomodNative,
             testWebAutomod,
           } = await import("./webAutomod.js");
 
@@ -1659,7 +1789,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
-            sendJson(res, 200, await getWebAutomodState(guildId));
+            sendJson(res, 200, await getWebAutomodState(client, guildId));
             return;
           }
 
@@ -1685,7 +1815,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             try {
-              const saved = await saveWebAutomod(guildId, userId, body);
+              const saved = await saveWebAutomod(client, guildId, userId, body);
               trackDashboardAction(client, guildId, userId, {
                 eventType: "dashboard_automod",
                 title: "Automod updated",
@@ -1720,7 +1850,40 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
-            sendJson(res, 200, await testWebAutomod(guildId, body.sample));
+            sendJson(res, 200, await testWebAutomod(client, guildId, body.sample));
+            return;
+          }
+
+          if (automodNativeSyncMatch && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const synced = await syncWebAutomodNative(client, guildId);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_automod",
+                title: "Native AutoMod synced",
+                summary: "Native Discord AutoMod rules were resynced from the dashboard.",
+              });
+              sendJson(res, 200, synced);
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to sync native AutoMod",
+              });
+            }
             return;
           }
 
@@ -1747,7 +1910,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             try {
-              const applied = await applyWebAutomodPreset(guildId, userId, preset, {
+              const applied = await applyWebAutomodPreset(client, guildId, userId, preset, {
                 enablePlugin: body.enable !== false,
                 preview: body.preview === true,
               });
@@ -1764,6 +1927,261 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, {
                 error: error instanceof Error ? error.message : "Failed to apply preset",
               });
+            }
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (
+          impersonationMatch ||
+          impersonationWatchlistMatch ||
+          impersonationAlertsMatch ||
+          impersonationHistoryMatch ||
+          impersonationTestMatch
+        ) {
+          const {
+            addWebWatchlistEntry,
+            getWebIdentityHistory,
+            getWebImpersonationState,
+            ImpersonationWatchlistError,
+            listWebAlerts,
+            listWebWatchlist,
+            removeWebWatchlistEntry,
+            resolveWebAlert,
+            saveWebImpersonation,
+            testWebImpersonation,
+          } = await import("./webImpersonation.js");
+
+          if (impersonationMatch && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await getWebImpersonationState(guildId));
+            return;
+          }
+
+          if (impersonationMatch && req.method === "PUT") {
+            let body: { userId?: string; enabled?: boolean; config?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const saved = await saveWebImpersonation(guildId, userId, body);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_impersonation",
+                title: "Impersonation Detection updated",
+                summary: "Impersonation Detection settings were saved from the dashboard.",
+                details: [typeof body.enabled === "boolean" ? `Enabled: ${body.enabled ? "yes" : "no"}` : ""],
+              });
+              sendJson(res, 200, saved);
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to save Impersonation Detection",
+              });
+            }
+            return;
+          }
+
+          if (impersonationWatchlistMatch && !impersonationWatchlistMatch[2] && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, entries: await listWebWatchlist(guildId) });
+            return;
+          }
+
+          if (impersonationWatchlistMatch && !impersonationWatchlistMatch[2] && req.method === "POST") {
+            let body: {
+              userId?: string;
+              label?: unknown;
+              targetUserId?: unknown;
+              name?: unknown;
+              imageBase64?: unknown;
+              imageUrl?: unknown;
+              phash?: unknown;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const entry = await addWebWatchlistEntry({
+                guildId,
+                userId,
+                label: typeof body.label === "string" ? body.label : "",
+                targetUserId: typeof body.targetUserId === "string" ? body.targetUserId : undefined,
+                name: typeof body.name === "string" ? body.name : undefined,
+                imageBase64: typeof body.imageBase64 === "string" ? body.imageBase64 : undefined,
+                imageUrl: typeof body.imageUrl === "string" ? body.imageUrl : undefined,
+                phash: typeof body.phash === "string" ? body.phash : undefined,
+              });
+              sendJson(res, 200, { ok: true, entry });
+            } catch (error) {
+              sendJson(res, error instanceof ImpersonationWatchlistError ? 400 : 502, {
+                error: error instanceof Error ? error.message : "Failed to add watchlist entry",
+              });
+            }
+            return;
+          }
+
+          if (impersonationWatchlistMatch && impersonationWatchlistMatch[2] && req.method === "DELETE") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const ok = await removeWebWatchlistEntry(guildId, impersonationWatchlistMatch[2]!);
+            if (!ok) {
+              sendJson(res, 404, { error: "Watchlist entry not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          if (impersonationAlertsMatch && !impersonationAlertsMatch[2] && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const status = url.searchParams.get("status");
+            sendJson(res, 200, {
+              ok: true,
+              alerts: await listWebAlerts(guildId, {
+                status: status === "open" || status === "resolved" || status === "dismissed" ? status : undefined,
+              }),
+            });
+            return;
+          }
+
+          if (impersonationAlertsMatch && impersonationAlertsMatch[2] && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const status = impersonationAlertsMatch[3] === "resolve" ? "resolved" : "dismissed";
+            const alert = await resolveWebAlert(guildId, impersonationAlertsMatch[2]!, status, userId);
+            if (!alert) {
+              sendJson(res, 404, { error: "Alert not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, alert });
+            return;
+          }
+
+          if (impersonationHistoryMatch && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, entries: await getWebIdentityHistory(guildId, impersonationHistoryMatch[2]!) });
+            return;
+          }
+
+          if (impersonationTestMatch && req.method === "POST") {
+            let body: {
+              userId?: string;
+              targetUserId?: unknown;
+              name?: unknown;
+              imageBase64?: unknown;
+              imageUrl?: unknown;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const result = await testWebImpersonation(client, guildId, {
+                targetUserId: typeof body.targetUserId === "string" ? body.targetUserId : undefined,
+                name: typeof body.name === "string" ? body.name : undefined,
+                imageBase64: typeof body.imageBase64 === "string" ? body.imageBase64 : undefined,
+                imageUrl: typeof body.imageUrl === "string" ? body.imageUrl : undefined,
+              });
+              sendJson(res, 200, { ok: true, ...result });
+            } catch (error) {
+              sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to test." });
             }
             return;
           }
@@ -3601,7 +4019,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 405, { error: "Method not allowed" });
               return;
             }
-            const stats = await getGuildTicketStats(guild);
+            const daysParam = Number(url.searchParams.get("days"));
+            const stats = await getGuildTicketStats(guild, { sinceDays: Number.isFinite(daysParam) && daysParam > 0 ? daysParam : undefined });
             sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, stats });
             return;
           }
@@ -3682,7 +4101,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 405, { error: "Method not allowed" });
               return;
             }
-            let body: { reason?: string; userId?: string; name?: string } = {};
+            let body: { reason?: string; userId?: string; name?: string; status?: string } = {};
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
@@ -3709,7 +4128,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const result = await performTicketAction(
               guild,
               ticketId,
-              action as "close" | "claim" | "unclaim" | "reopen" | "add" | "remove",
+              action as "close" | "claim" | "unclaim" | "assign" | "unassign" | "status" | "reopen" | "add" | "remove",
               userId,
               body,
             );
@@ -3717,10 +4136,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, { error: result.error });
               return;
             }
+            const actionSummary =
+              action === "status"
+                ? `set to \`${body.status}\``
+                : `${action}${action.endsWith("e") ? "d" : "ed"}`;
             trackDashboardAction(client, guildId, userId, {
               eventType: "dashboard_ticket",
               title: `Ticket ${action}`,
-              summary: `Ticket \`#${ticketId}\` was ${action}ed from the dashboard.`,
+              summary: `Ticket \`#${ticketId}\` was ${actionSummary} from the dashboard.`,
               targetId: String(ticketId),
               payload: { ticketId, action },
             });

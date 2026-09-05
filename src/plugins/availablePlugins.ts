@@ -8,6 +8,7 @@ import { translationPlugin } from "../plugins/translation/index.js";
 import { starboardPlugin } from "../plugins/starboard/index.js";
 import { logsPlugin } from "../plugins/logs/index.js";
 import { automodPlugin } from "../plugins/automod/index.js";
+import { impersonationPlugin } from "../plugins/impersonation/index.js";
 import { persistPlugin } from "../plugins/persist/index.js";
 import { slowmodePlugin } from "../plugins/slowmode/index.js";
 import { nameHistoryPlugin } from "../plugins/name_history/index.js";
@@ -52,6 +53,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   starboardPlugin,
   logsPlugin,
   automodPlugin,
+  impersonationPlugin,
   scamProtectPlugin,
   passportPlugin,
   economyPlugin,

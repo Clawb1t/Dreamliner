@@ -4,18 +4,24 @@ import { zTicketsConfig, type TicketsConfig } from "../config/schemas/tickets.js
 import { getPluginSettings } from "../core/permissionRoles.js";
 import {
   getTicket,
+  getTicketHandlerStats,
   getTicketStats,
   queryTickets,
   renameTicket,
+  type TicketHandlerStatsSummary,
   type TicketQueryFilters,
   type TicketRecord,
 } from "../plugins/tickets/functions/tickets.js";
+import { TICKET_STATUSES, TICKET_STATUS_LABELS, type TicketStatus } from "../config/schemas/tickets.js";
 import { addToBlacklist, listBlacklist, removeFromBlacklist } from "../plugins/tickets/functions/blacklist.js";
 import {
   performAddMember,
+  performAssign,
   performClaim,
   performClose,
   performRemoveMember,
+  performSetStatus,
+  performUnassign,
   performUnclaim,
 } from "../plugins/tickets/functions/actions.js";
 import { getLatestTranscriptForTicket } from "../plugins/tickets/functions/transcripts.js";
@@ -41,6 +47,9 @@ export type WebTicket = {
   threadId: string | null;
   mode: string;
   status: string;
+  /** Work-in-progress status independent of open/closed (e.g. "awaiting_response"). Null = no special status. */
+  subStatus: string | null;
+  subStatusLabel: string | null;
   priority: string;
   opener: WebPerson;
   claimedBy: WebPerson | null;
@@ -55,6 +64,9 @@ export type WebTicket = {
   ratingComment: string | null;
   /** Last time a support-role member replied. Null if staff never has — the SLA clock runs from createdAt instead. */
   lastStaffReplyAt: string | null;
+  /** First time any staff member ever replied. Powers the response-time stat. */
+  firstStaffReplyAt: string | null;
+  firstResponder: WebPerson | null;
   /** Index of the highest escalation step already fired since the last staff reply. -1 = none yet. */
   escalationStep: number;
   transcript?: { id: string; messages: unknown[] } | null;
@@ -101,10 +113,11 @@ async function toWebTicket(
   includeTranscript: boolean,
   pluginConfig: TicketsConfig,
 ): Promise<WebTicket> {
-  const [opener, claimedBy, closedBy, transcript] = await Promise.all([
+  const [opener, claimedBy, closedBy, firstResponder, transcript] = await Promise.all([
     resolvePerson(guild, ticket.openerId),
     resolvePerson(guild, ticket.claimedBy),
     resolvePerson(guild, ticket.closedBy),
+    resolvePerson(guild, ticket.firstResponderId),
     includeTranscript && ticket.status === "closed" ? getLatestTranscriptForTicket(guild.id, ticket.id) : Promise.resolve(null),
   ]);
 
@@ -122,6 +135,8 @@ async function toWebTicket(
     threadId: ticket.threadId,
     mode: ticket.mode,
     status: ticket.status,
+    subStatus: ticket.subStatus,
+    subStatusLabel: ticket.subStatus ? TICKET_STATUS_LABELS[ticket.subStatus] : null,
     priority: ticket.priority,
     opener: opener ?? { id: ticket.openerId, name: ticket.openerId, username: null, avatar: null },
     claimedBy,
@@ -135,6 +150,8 @@ async function toWebTicket(
     ratingScore: ticket.ratingScore,
     ratingComment: ticket.ratingComment,
     lastStaffReplyAt: toIso(ticket.lastStaffReplyAt),
+    firstStaffReplyAt: toIso(ticket.firstStaffReplyAt),
+    firstResponder,
     escalationStep: ticket.escalationStep,
     ...(includeTranscript ? { transcript } : {}),
   };
@@ -164,7 +181,32 @@ export async function getGuildTicket(guild: Guild, ticketId: number): Promise<We
   return toWebTicket(guild, ticket, true, pluginConfig);
 }
 
-export async function getGuildTicketStats(guild: Guild) {
+export type WebTicketHandlerStat = {
+  staff: WebPerson;
+  activeAssigned: number;
+  ticketsClosed: number;
+  avgResolutionMs: number | null;
+  ticketsResponded: number;
+  avgFirstResponseMs: number | null;
+};
+
+async function resolveHandlerStats(guild: Guild, summary: TicketHandlerStatsSummary): Promise<WebTicketHandlerStat[]> {
+  return Promise.all(
+    summary.handlers.map(async (h) => ({
+      staff: (await resolvePerson(guild, h.staffId)) ?? { id: h.staffId, name: h.staffId, username: null, avatar: null },
+      activeAssigned: h.activeAssigned,
+      ticketsClosed: h.ticketsClosed,
+      avgResolutionMs: h.avgResolutionMs,
+      ticketsResponded: h.ticketsResponded,
+      avgFirstResponseMs: h.avgFirstResponseMs,
+    })),
+  );
+}
+
+/** Mirrors what `/ticket stats` shows in Discord, so the dashboard's ticket list can surface
+ * the same time-tracking numbers (resolution/response time, per-handler breakdown) without
+ * anyone needing to run the command. */
+export async function getGuildTicketStats(guild: Guild, opts: { sinceDays?: number } = {}) {
   const stats = await getTicketStats(guild.id);
   const topClaimers = await Promise.all(
     stats.topClaimers.map(async (entry) => ({
@@ -172,17 +214,23 @@ export async function getGuildTicketStats(guild: Guild) {
       count: entry.count,
     })),
   );
-  return { ...stats, topClaimers };
+  const handlerSummary = await getTicketHandlerStats(guild.id, {
+    sinceMs: opts.sinceDays ? Date.now() - opts.sinceDays * 86_400_000 : undefined,
+  });
+  const handlers = await resolveHandlerStats(guild, handlerSummary);
+  return { ...stats, topClaimers, overall: handlerSummary.overall, handlers };
 }
 
-export type TicketAction = "close" | "claim" | "unclaim" | "reopen" | "add" | "remove";
+export const TICKET_STATUS_OPTIONS = TICKET_STATUSES.map((value) => ({ value, label: TICKET_STATUS_LABELS[value] }));
+
+export type TicketAction = "close" | "claim" | "unclaim" | "assign" | "unassign" | "status" | "reopen" | "add" | "remove";
 
 export async function performTicketAction(
   guild: Guild,
   ticketId: number,
   action: TicketAction,
   actorId: string,
-  body: { reason?: string; userId?: string },
+  body: { reason?: string; userId?: string; status?: string },
 ): Promise<{ ticket: WebTicket } | { error: string }> {
   const ticket = await getTicket(guild.id, ticketId);
   if (!ticket) return { error: "Ticket not found" };
@@ -196,12 +244,24 @@ export async function performTicketAction(
     await performClaim(guild.client, guildConfig, pluginConfig, ticket, actorId);
   } else if (action === "unclaim") {
     await performUnclaim(ticket);
+  } else if (action === "assign") {
+    if (!body.userId) return { error: "userId is required" };
+    await performAssign(guild.client, guildConfig, pluginConfig, ticket, body.userId, actorId);
+  } else if (action === "unassign") {
+    await performUnassign(guild.client, guildConfig, pluginConfig, ticket, actorId);
+  } else if (action === "status") {
+    if (!body.status || !(TICKET_STATUSES as readonly string[]).includes(body.status)) {
+      return { error: `status must be one of: ${TICKET_STATUSES.join(", ")}` };
+    }
+    await performSetStatus(guild.client, guildConfig, pluginConfig, ticket, body.status as TicketStatus, actorId);
   } else if (action === "close") {
     if (ticket.status === "closed") return { error: "Ticket is already closed" };
     await performClose(guild.client, guild, guildConfig, pluginConfig, category, ticket, actorId, body.reason ?? null);
   } else if (action === "reopen") {
     const { reopenTicket } = await import("../plugins/tickets/functions/tickets.js");
+    const { restoreContainerAccess } = await import("../plugins/tickets/functions/channels.js");
     await reopenTicket(guild.id, ticketId);
+    await restoreContainerAccess(guild, ticket);
   } else if (action === "add" || action === "remove") {
     if (!body.userId) return { error: "userId is required" };
     const updated =

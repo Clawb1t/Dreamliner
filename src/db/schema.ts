@@ -886,6 +886,12 @@ export const tickets = sqliteTable("tickets", {
   ratingComment: text("rating_comment"),
   lastStaffReplyAt: integer("last_staff_reply_at", { mode: "timestamp" }),
   escalationStep: integer("escalation_step", { mode: "number" }).notNull().default(-1),
+  /** Work-in-progress status shown alongside open/closed (e.g. "awaiting_response"). Null = no special status. */
+  subStatus: text("sub_status"),
+  /** First time any staff member replied — set once, never overwritten. Powers the response-time stat. */
+  firstStaffReplyAt: integer("first_staff_reply_at", { mode: "timestamp" }),
+  /** Who sent that first staff reply — the response-time stat is attributed to them specifically. */
+  firstResponderId: text("first_responder_id"),
 });
 
 export const ticketTranscripts = sqliteTable("ticket_transcripts", {
@@ -1019,4 +1025,80 @@ export const ttsBlacklist = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+/** Global (not per-guild) perceptual-hash blocklist for the Image Scanning automod rule.
+ *  Platform superuser-managed only (dashboard's /dashboard/scam-images page) — every guild
+ *  with the rule enabled matches against this same shared list. `phash` is a 64-bit dHash
+ *  as 16 hex chars; see src/plugins/automod/functions/imageHash.ts. */
+export const scamImageHashes = sqliteTable("scam_image_hashes", {
+  id: text("id").primaryKey(),
+  phash: text("phash").notNull(),
+  label: text("label").notNull().default(""),
+  addedBy: text("added_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// --- Impersonation Detection ------------------------------------------------------
+// Lives in the Automod hub. Tracks identity changes (username/display name/nickname/
+// avatar) per member and flags anyone whose identity closely matches a protected role
+// holder or a manually pinned watchlist entry. See src/plugins/impersonation/.
+
+/** Append-only identity change log — also powers the "has this person changed their name
+ *  or avatar before, and to what" history view, independent of any impersonation match. */
+export const impersonationHistory = sqliteTable(
+  "impersonation_history",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    field: text("field").notNull(), // "username" | "display_name" | "nickname" | "avatar" | "joined"
+    oldValue: text("old_value"),
+    newValue: text("new_value"),
+    /** For field "avatar": dHash (16 hex chars) of old/new, stored in old_value/new_value instead of a URL. */
+    changedAt: integer("changed_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("impersonation_history_guild_user").on(table.guildId, table.userId, table.changedAt)],
+);
+
+/** Manually pinned identities staff want protected beyond whatever roles are configured
+ *  (e.g. the server owner's personal alt, a well-known partner/streamer with no server role). */
+export const impersonationWatchlist = sqliteTable("impersonation_watchlist", {
+  id: text("id").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  label: text("label").notNull(),
+  /** Optional: keep this entry's name/avatar live-synced to a real member instead of a frozen snapshot. */
+  targetUserId: text("target_user_id"),
+  name: text("name").notNull().default(""),
+  avatarHash: text("avatar_hash"),
+  addedBy: text("added_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+/** One row per detected likely-impersonation event, surfaced on the dashboard's alerts feed. */
+export const impersonationAlerts = sqliteTable(
+  "impersonation_alerts",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    subjectUserId: text("subject_user_id").notNull(),
+    subjectUsername: text("subject_username").notNull(),
+    subjectAvatarUrl: text("subject_avatar_url"),
+    /** What was matched: a live member (matchedUserId) or a watchlist entry (matchedWatchlistId), never both. */
+    matchedUserId: text("matched_user_id"),
+    matchedWatchlistId: text("matched_watchlist_id"),
+    matchedLabel: text("matched_label").notNull(),
+    matchedAvatarUrl: text("matched_avatar_url"),
+    trigger: text("trigger").notNull(), // "join" | "username" | "display_name" | "nickname" | "avatar"
+    nameSimilarity: integer("name_similarity", { mode: "number" }),
+    avatarDistance: integer("avatar_distance", { mode: "number" }),
+    autoAction: text("auto_action"), // "timeout" | "kick" | "ban" | null
+    status: text("status").notNull().default("open"), // "open" | "resolved" | "dismissed"
+    resolvedBy: text("resolved_by"),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("impersonation_alerts_guild_status_created").on(table.guildId, table.status, table.createdAt),
+  ],
 );

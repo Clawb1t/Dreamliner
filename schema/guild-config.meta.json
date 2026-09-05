@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-05T09:32:03.909Z",
+  "generatedAt": "2026-09-05T20:17:54.813Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -30,6 +30,11 @@
           "key": "automod",
           "name": "Automod",
           "description": "Content filters, spam detection, and escalation ladders."
+        },
+        {
+          "key": "impersonation",
+          "name": "Impersonation Detection",
+          "description": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry."
         },
         {
           "key": "scam_protect",
@@ -302,6 +307,13 @@
       "key": "automod",
       "name": "Automod",
       "description": "Content filters, spam detection, and escalation ladders.",
+      "category": "Protection",
+      "categoryId": "protect"
+    },
+    {
+      "key": "impersonation",
+      "name": "Impersonation Detection",
+      "description": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry.",
       "category": "Protection",
       "categoryId": "protect"
     },

@@ -495,6 +495,33 @@ export function buildAutomodLog(input: {
   );
 }
 
+export function buildImpersonationLog(input: {
+  subject: LogRef;
+  matchedLabel: string;
+  matchedUserId?: string | null;
+  matchedAvatarUrl?: string | null;
+  trigger: string;
+  nameSimilarity?: number | null;
+  avatarDistance?: number | null;
+  autoAction?: string | null;
+}): LogCard {
+  const lines = [
+    `Time: ${logTimestamp()}`,
+    ...userLines(input.subject, "Flagged member"),
+    `Trigger: ${bold(input.trigger)}`,
+    input.matchedUserId
+      ? `Looks like: ${bold(input.matchedLabel)} (${userMention(input.matchedUserId)})`
+      : `Looks like: ${bold(input.matchedLabel)}`,
+    input.nameSimilarity != null ? `Name similarity: ${bold(`${input.nameSimilarity}%`)}` : "",
+    input.avatarDistance != null ? `Avatar fingerprint distance: ${bold(String(input.avatarDistance))}` : "",
+    input.autoAction ? `Auto action: ${bold(input.autoAction)}` : "",
+  ];
+  return card("Impersonation Detection", lines, {
+    avatarUrl: input.subject.avatarUrl,
+    emojiCategory: "modModerate",
+  });
+}
+
 export function buildCensorLog(input: {
   user: LogRef;
   channel: LogRef;
@@ -904,6 +931,39 @@ export function buildTicketClaimLog(input: {
     `Ticket #${input.ticketNumber} Claimed`,
     [`Time: ${logTimestamp()}`, userLine(input.staff, "Claimed by"), channelLine(input.channel)],
     { avatarUrl: input.staff.avatarUrl, emojiCategory: "action" },
+  );
+}
+
+export function buildTicketAssignLog(input: {
+  ticketNumber: number;
+  assignee: LogRef;
+  actor: LogRef;
+  channel: LogRef;
+  /** Null for an unassign (assignee is who was removed, not who it's newly assigned to). */
+  assigned: boolean;
+}): LogCard {
+  return card(
+    input.assigned ? `Ticket #${input.ticketNumber} Assigned` : `Ticket #${input.ticketNumber} Unassigned`,
+    [
+      `Time: ${logTimestamp()}`,
+      input.assigned ? userLine(input.assignee, "Assigned to") : userLine(input.assignee, "Removed from"),
+      userLine(input.actor, "By"),
+      channelLine(input.channel),
+    ],
+    { avatarUrl: input.assignee.avatarUrl, emojiCategory: "action" },
+  );
+}
+
+export function buildTicketStatusLog(input: {
+  ticketNumber: number;
+  status: string;
+  actor: LogRef;
+  channel: LogRef;
+}): LogCard {
+  return card(
+    `Ticket #${input.ticketNumber} Status Changed`,
+    [`Time: ${logTimestamp()}`, `Status: ${bold(input.status)}`, userLine(input.actor, "Changed by"), channelLine(input.channel)],
+    { avatarUrl: input.actor.avatarUrl, emojiCategory: "action" },
   );
 }
 
