@@ -16,6 +16,7 @@ import { zSocialPluginSection } from "./social.js";
 import {
   zAutomodPluginSection,
   zImpersonationPluginSection,
+  zRaidMeshPluginSection,
   zAutodeletePluginSection,
   zBoosterRolesPluginSection,
   zAutoreactionsPluginSection,
@@ -221,6 +222,12 @@ export const zGuildConfig = z.strictObject({
     "Which Stats tabs are visible on the public /server/:id/stats page. The messagers leaderboard page is always public.",
   ),
   default_language: zDefaultLanguage,
+  content_retention_days: z
+    .union([z.literal(1), z.literal(7), z.literal(14), z.literal(30)])
+    .default(30)
+    .describe(
+      "How long message content (not counts or timestamps) stays retained: 1, 7, 14, or 30 days. Evidence mode captures and the moderation edit/delete log are kept 42 days regardless.",
+    ),
   plugins: z
     .strictObject({
       utility: zUtilityPluginSection.optional(),
@@ -231,6 +238,7 @@ export const zGuildConfig = z.strictObject({
       starboard: zStarboardPluginSection.optional(),
       automod: zAutomodPluginSection.optional(),
       impersonation: zImpersonationPluginSection.optional(),
+      raid_mesh: zRaidMeshPluginSection.optional(),
       scam_protect: zScamProtectPluginSection.optional(),
       passport: zPassportPluginSection.optional(),
       economy: zEconomyPluginSection.optional(),

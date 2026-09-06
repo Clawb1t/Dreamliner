@@ -561,6 +561,49 @@ export function buildRaidDetectedLog(input: {
   );
 }
 
+export function buildGlobalWatchdogHitLog(input: {
+  user: LogRef;
+  reason: string;
+  evidenceUrl?: string | null;
+  action: "alert" | "kick" | "ban";
+}): LogCard {
+  const actionLabel = { alert: "Alert only", kick: "Kicked", ban: "Banned" }[input.action];
+  return card(
+    "Global Watchdog Hit",
+    [
+      `Time: ${logTimestamp()}`,
+      ...userLines(input.user),
+      `Action: ${bold(actionLabel)}`,
+      `Reason: ${input.reason}`,
+      input.evidenceUrl ? `Evidence: ${input.evidenceUrl}` : null,
+    ].filter((line): line is string => Boolean(line)),
+    { avatarUrl: input.user.avatarUrl, emojiCategory: "modSevere" },
+  );
+}
+
+export function buildRaidMeshAlertLog(input: {
+  sourceGuildName: string;
+  joinCount: number;
+  windowMs: number;
+  joiners: Array<{ id: string; username: string }>;
+}): LogCard {
+  return card(
+    "Raid Defense Mesh Alert",
+    [
+      `Time: ${logTimestamp()}`,
+      `Source server: ${bold(input.sourceGuildName)}`,
+      `Threshold: ${bold(String(input.joinCount))} joins / ${Math.round(input.windowMs / 1000)}s`,
+      input.joiners.length
+        ? `Accounts involved (${input.joiners.length}):\n${input.joiners
+            .map((j) => `${userMention(j.id)} \`${j.username}\` (\`${j.id}\`)`)
+            .join("\n")}`
+        : null,
+      "A linked server detected a raid burst matching these accounts. Consider watching for them here too.",
+    ].filter((line): line is string => Boolean(line)),
+    { emojiCategory: "modSevere" },
+  );
+}
+
 export function buildMemberKickLog(input: {
   user: LogRef;
   mod?: LogRef | null;

@@ -4,7 +4,6 @@ import { compileUserRegex } from "../../../core/userRegex.js";
 import { getDb } from "../../../db/client.js";
 import { messageArchives } from "../../../db/schema.js";
 import type { ArchivedMessage } from "../../../core/types.js";
-import { getContentRetentionDays, REDACTED_CONTENT_PLACEHOLDER } from "../../../core/contentRetention.js";
 
 export type CleanFilters = {
   userId?: string;
@@ -62,26 +61,16 @@ export function serializeMessages(messages: Message[]): ArchivedMessage[] {
   }));
 }
 
-/** Redacts content for any author who currently has 0-day content retention. */
-async function redactForRetention(messages: ArchivedMessage[]): Promise<ArchivedMessage[]> {
-  return Promise.all(
-    messages.map(async (message) => {
-      const retentionDays = await getContentRetentionDays(message.authorId);
-      if (retentionDays > 0) return message;
-      return { ...message, content: REDACTED_CONTENT_PLACEHOLDER };
-    }),
-  );
-}
-
 export async function archiveMessages(guildId: string, messages: ArchivedMessage[]): Promise<string> {
   const id = randomUUID();
   const db = getDb();
-  const redacted = await redactForRetention(messages);
+  // Content is stored as-is here; `sweepMessageArchives` redacts it once it ages past
+  // this guild's content-retention setting.
   await db.insert(messageArchives).values({
     id,
     guildId,
     createdAt: new Date(),
-    payload: JSON.stringify(redacted),
+    payload: JSON.stringify(messages),
   });
   return id;
 }

@@ -1,17 +1,16 @@
 import { and, eq, gte, inArray } from "drizzle-orm";
-import type { Guild, GuildMember } from "discord.js";
+import type { Client, Guild, GuildMember } from "discord.js";
 import { getDb } from "../db/client.js";
 import {
   guildUserTrail,
   modCases,
   modStrikes,
   userMessageCounts,
-  userProfiles,
 } from "../db/schema.js";
 import { matchWordPack } from "../plugins/automod/functions/detectors/wordMatch.js";
 import { PROFANITY_WORDS } from "../plugins/automod/functions/packs/profanity.js";
 import { SLUR_WORDS } from "../plugins/automod/functions/packs/slurs.js";
-import { DEFAULT_CONTENT_RETENTION_DAYS } from "../core/contentRetention.js";
+import { getGuildContentRetentionDays } from "../core/contentRetention.js";
 
 /**
  * Watchdog: a per-guild risk-scoring view over members, built from signals
@@ -272,16 +271,6 @@ async function batchUserTrail(
   return map;
 }
 
-async function batchContentRetention(userIds: string[]): Promise<Map<string, number>> {
-  if (userIds.length === 0) return new Map();
-  const rows = await getDb()
-    .select({ userId: userProfiles.userId, days: userProfiles.contentRetentionDays })
-    .from(userProfiles)
-    .where(inArray(userProfiles.userId, userIds))
-    .all();
-  return new Map(rows.map((row) => [row.userId, row.days]));
-}
-
 async function batchGlobalMessageCounts(userIds: string[]): Promise<Map<string, number>> {
   if (userIds.length === 0) return new Map();
   const rows = await getDb()
@@ -371,11 +360,11 @@ export async function buildWatchdogList(guild: Guild): Promise<WatchdogUser[]> {
   const members = [...guild.members.cache.values()].filter((m) => !m.user.bot);
   const userIds = members.map((m) => m.id);
 
-  const [strikes, cases, trails, retention, globalCounts] = await Promise.all([
+  const [strikes, cases, trails, retentionDays, globalCounts] = await Promise.all([
     batchModStrikes(guild.id),
     batchModCases(guild.id),
     batchUserTrail(guild.id),
-    batchContentRetention(userIds),
+    getGuildContentRetentionDays(guild.id),
     batchGlobalMessageCounts(userIds),
   ]);
 
@@ -388,7 +377,7 @@ export async function buildWatchdogList(guild: Guild): Promise<WatchdogUser[]> {
       strikes.get(member.id) ?? 0,
       cases.get(member.id) ?? { active: 0, total: 0 },
       trails.get(member.id) ?? [],
-      retention.get(member.id) ?? DEFAULT_CONTENT_RETENTION_DAYS,
+      retentionDays,
       globalCounts.get(member.id) ?? 0,
     ),
   );
@@ -403,7 +392,7 @@ export async function scoreWatchdogMember(member: GuildMember): Promise<Watchdog
   const userId = member.id;
   const since = new Date(Date.now() - 14 * DAY_MS);
 
-  const [strikeRow, caseRows, trailRows, retentionRow, globalRow] = await Promise.all([
+  const [strikeRow, caseRows, trailRows, retentionDays, globalRow] = await Promise.all([
     getDb()
       .select({ count: modStrikes.count })
       .from(modStrikes)
@@ -430,11 +419,7 @@ export async function scoreWatchdogMember(member: GuildMember): Promise<Watchdog
         ),
       )
       .all(),
-    getDb()
-      .select({ days: userProfiles.contentRetentionDays })
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, userId))
-      .get(),
+    getGuildContentRetentionDays(guildId),
     getDb()
       .select({ count: userMessageCounts.count })
       .from(userMessageCounts)
@@ -457,7 +442,68 @@ export async function scoreWatchdogMember(member: GuildMember): Promise<Watchdog
     strikeRow?.count ?? 0,
     caseInfo,
     trailRows,
-    retentionRow?.days ?? DEFAULT_CONTENT_RETENTION_DAYS,
+    retentionDays,
     globalRow?.count ?? 0,
   );
+}
+
+export type GlobalWatchdogScanUser = WatchdogUser & {
+  /** Every server this user scored in during the scan (top scorers per server only), highest
+   * score first. Not every server they're a member of. */
+  guilds: Array<{ id: string; name: string; score: number }>;
+};
+
+export type GlobalWatchdogScanResult = {
+  users: GlobalWatchdogScanUser[];
+  guildsScanned: number;
+  scannedAt: string;
+};
+
+/** Only each server's own top scorers are folded into the global merge, bounding memory/output
+ * size without needing a per-server score cutoff (a server with nobody notable just contributes
+ * nothing). */
+const GLOBAL_SCAN_PER_GUILD_TOP = 25;
+const GLOBAL_SCAN_RESULT_LIMIT = 200;
+const GLOBAL_SCAN_CONCURRENCY = 5;
+
+/**
+ * A platform-wide version of `buildWatchdogList`: runs the same per-server heuristic scoring
+ * across every server the bot is in, then merges by user (keeping their single highest-scoring
+ * appearance, plus every server they showed up notably in) so a superuser can spot cross-server
+ * bad actors worth adding to the Global Watchdog list. Explicit, on-demand action, not run
+ * automatically, since it re-scores every cached member of every guild.
+ */
+export async function buildGlobalWatchdogScan(client: Client): Promise<GlobalWatchdogScanResult> {
+  const guilds = [...client.guilds.cache.values()];
+  const merged = new Map<string, GlobalWatchdogScanUser>();
+
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    while (cursor < guilds.length) {
+      const guild = guilds[cursor++]!;
+      const scored = await buildWatchdogList(guild).catch(() => []);
+      for (const user of scored.slice(0, GLOBAL_SCAN_PER_GUILD_TOP)) {
+        const guildEntry = { id: guild.id, name: guild.name, score: user.score };
+        const existing = merged.get(user.userId);
+        if (!existing) {
+          merged.set(user.userId, { ...user, guilds: [guildEntry] });
+        } else if (user.score > existing.score) {
+          merged.set(user.userId, { ...user, guilds: [...existing.guilds, guildEntry] });
+        } else {
+          existing.guilds.push(guildEntry);
+        }
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(GLOBAL_SCAN_CONCURRENCY, guilds.length) }, () => worker()),
+  );
+
+  const users = [...merged.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, GLOBAL_SCAN_RESULT_LIMIT)
+    .map((user) => ({ ...user, guilds: user.guilds.sort((a, b) => b.score - a.score) }));
+
+  return { users, guildsScanned: guilds.length, scannedAt: new Date().toISOString() };
 }

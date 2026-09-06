@@ -17,7 +17,6 @@ import {
   userProfiles,
   welcomeJoinMessages,
 } from "../db/schema.js";
-import { DEFAULT_CONTENT_RETENTION_DAYS } from "../core/contentRetention.js";
 
 const ACCENT_RE = /^#[0-9a-fA-F]{6}$/;
 const BIO_MAX_LENGTH = 280;
@@ -28,7 +27,8 @@ export type UserProfile = {
   bio: string | null;
   profileVisible: boolean;
   showTradingCards: boolean;
-  contentRetentionDays: number;
+  /** Hide the "As seen in these servers" section on the public profile page. */
+  hideServersSection: boolean;
   updatedAt: string | null;
 };
 
@@ -64,7 +64,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
     bio: row?.bio ?? null,
     profileVisible: row?.profileVisible ?? true,
     showTradingCards: row?.showTradingCards ?? false,
-    contentRetentionDays: row?.contentRetentionDays ?? DEFAULT_CONTENT_RETENTION_DAYS,
+    hideServersSection: row?.hideServersSection ?? false,
     updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
   };
 }
@@ -98,7 +98,7 @@ export type UpsertUserProfileInput = {
   bio?: string | null;
   profileVisible?: boolean;
   showTradingCards?: boolean;
-  contentRetentionDays?: number;
+  hideServersSection?: boolean;
 };
 
 export async function upsertUserProfileFields(
@@ -121,8 +121,8 @@ export async function upsertUserProfileFields(
   if ("showTradingCards" in fields && fields.showTradingCards !== undefined) {
     patch.showTradingCards = fields.showTradingCards;
   }
-  if ("contentRetentionDays" in fields && fields.contentRetentionDays !== undefined) {
-    patch.contentRetentionDays = fields.contentRetentionDays;
+  if ("hideServersSection" in fields && fields.hideServersSection !== undefined) {
+    patch.hideServersSection = fields.hideServersSection;
   }
 
   if (existing) {
@@ -131,11 +131,6 @@ export async function upsertUserProfileFields(
     await getDb()
       .insert(userProfiles)
       .values({ userId, ...patch });
-  }
-
-  if ("contentRetentionDays" in fields) {
-    const { invalidateContentRetentionCache } = await import("../core/contentRetention.js");
-    invalidateContentRetentionCache(userId);
   }
 
   return getUserProfile(userId);
@@ -372,12 +367,12 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       {
         label: "Moderation message log",
         description:
-          "The edit/delete audit trail staff use to investigate reports is retained for 42 days regardless of your content retention setting.",
+          "The edit/delete audit trail staff use to investigate reports is retained for 42 days regardless of the server's content retention setting.",
       },
       {
         label: "Message content retention",
         description:
-          "Your chosen content retention window (Account → Message retention) governs archives and activity-tracker snippets — this deletion doesn't change that setting.",
+          "How long message content is kept is now a per-server setting (Server → Data retention), not a personal one. This deletion doesn't change it.",
       },
     ],
   };

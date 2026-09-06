@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-05T20:17:54.813Z",
+  "generatedAt": "2026-09-06T19:36:57.118Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -35,6 +35,11 @@
           "key": "impersonation",
           "name": "Impersonation Detection",
           "description": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry."
+        },
+        {
+          "key": "raid_mesh",
+          "name": "Raid Defense Mesh",
+          "description": "Link with other servers to share raid alerts, naming the accounts involved, when either side's raid detector trips."
         },
         {
           "key": "scam_protect",
@@ -314,6 +319,13 @@
       "key": "impersonation",
       "name": "Impersonation Detection",
       "description": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry.",
+      "category": "Protection",
+      "categoryId": "protect"
+    },
+    {
+      "key": "raid_mesh",
+      "name": "Raid Defense Mesh",
+      "description": "Link with other servers to share raid alerts, naming the accounts involved, when either side's raid detector trips.",
       "category": "Protection",
       "categoryId": "protect"
     },

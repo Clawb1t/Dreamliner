@@ -403,6 +403,18 @@
       "description": "Server default language used by /translate and auto-translate.",
       "title": "Default Language"
     },
+    "content_retention_days": {
+      "type": "number",
+      "enum": [
+        1,
+        7,
+        14,
+        30
+      ],
+      "default": 30,
+      "description": "How long message content (not counts or timestamps) stays retained: 1, 7, 14, or 30 days. Evidence mode captures and the moderation edit/delete log are kept 42 days regardless.",
+      "title": "Content Retention Days"
+    },
     "plugins": {
       "type": "object",
       "properties": {
@@ -442,6 +454,18 @@
                   "default": true,
                   "description": "When a search returns exactly one result, show the full info view automatically.",
                   "title": "Info On Single Result"
+                },
+                "global_watchdog_action": {
+                  "type": "string",
+                  "enum": [
+                    "off",
+                    "alert",
+                    "kick",
+                    "ban"
+                  ],
+                  "default": "off",
+                  "description": "What to do when a member on Dreamliner's platform-wide Global Watchdog list (confirmed bad actors, added by platform superusers) joins this server: off, alert staff in the mod log, kick, or ban. Off by default.",
+                  "title": "Global Watchdog Action"
                 },
                 "can_search": {
                   "type": "boolean",
@@ -1069,6 +1093,12 @@
                   "description": "Automatic escalation ladder for repeat offenders, applied after each qualifying infraction.",
                   "title": "Escalation"
                 },
+                "evidence_capture_enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Automatically snapshot a member's 20 most recent messages whenever a moderation case (warn, mute, kick, ban, etc.) is created against them.",
+                  "title": "Evidence Capture Enabled"
+                },
                 "can_warn": {
                   "type": "boolean",
                   "default": false,
@@ -1174,6 +1204,16 @@
                   "default": false,
                   "description": "Allow members to delete cases.",
                   "title": "Delete",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_evidence": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manually capture evidence with /evidence add.",
+                  "title": "Evidence",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
@@ -2178,6 +2218,34 @@
           },
           "additionalProperties": false,
           "title": "Impersonation"
+        },
+        "raid_mesh": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "alert_channel_id": {
+                  "type": "string",
+                  "description": "Where incoming Raid Defense Mesh alerts from linked servers are posted. Defaults to the moderation log channel when unset. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Alert Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "title": "Raid Mesh"
         },
         "scam_protect": {
           "type": "object",

@@ -405,6 +405,13 @@
       },
       {
         "plugin": "infractions",
+        "permission": "can_evidence",
+        "grantKey": "infractions.can_evidence",
+        "title": "Evidence",
+        "description": "Allow members to manually capture evidence with /evidence add."
+      },
+      {
+        "plugin": "infractions",
         "permission": "can_kick",
         "grantKey": "infractions.can_kick",
         "title": "Kick",

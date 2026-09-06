@@ -263,8 +263,30 @@ const detectZalgo: Detector = (ctx, rule) => {
   return { ruleId: "zalgo", reason: "Zalgo / obfuscated text", detail: `${marks} combining marks` };
 };
 
+/** Recent joiners per guild, kept only long enough to hand off to the Raid Defense Mesh
+ * broadcast when `detectRaid` actually trips, not a general member tracker. */
+export type RaidJoinRecord = { id: string; username: string; joinedAt: number };
+const raidJoinLog = new Map<string, RaidJoinRecord[]>();
+const RAID_JOIN_LOG_MAX_AGE_MS = 5 * 60_000;
+
+function recordRaidJoin(guildId: string, member: import("discord.js").GuildMember): void {
+  const now = Date.now();
+  const list = (raidJoinLog.get(guildId) ?? []).filter((r) => now - r.joinedAt < RAID_JOIN_LOG_MAX_AGE_MS);
+  list.push({ id: member.id, username: member.user.username, joinedAt: now });
+  raidJoinLog.set(guildId, list);
+}
+
+/** The accounts that joined `guildId` within the last `windowMs`, newest first. */
+export function getRecentRaidJoiners(guildId: string, windowMs: number): RaidJoinRecord[] {
+  const now = Date.now();
+  return (raidJoinLog.get(guildId) ?? [])
+    .filter((r) => now - r.joinedAt < windowMs)
+    .sort((a, b) => b.joinedAt - a.joinedAt);
+}
+
 const detectRaid: Detector = (ctx, rule) => {
   if (ctx.kind !== "join") return null;
+  recordRaidJoin(ctx.member.guild.id, ctx.member);
   const count = Math.max(2, Math.round(numSetting(rule, "join_count", 10) * sensitivityMultiplier(rule)));
   const windowMs = numSetting(rule, "join_window_ms", 30_000);
   const key = `${ctx.member.guild.id}:raid`;

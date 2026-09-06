@@ -9,6 +9,7 @@ import { starboardPlugin } from "../plugins/starboard/index.js";
 import { logsPlugin } from "../plugins/logs/index.js";
 import { automodPlugin } from "../plugins/automod/index.js";
 import { impersonationPlugin } from "../plugins/impersonation/index.js";
+import { raidMeshPlugin } from "../plugins/raid_mesh/index.js";
 import { persistPlugin } from "../plugins/persist/index.js";
 import { slowmodePlugin } from "../plugins/slowmode/index.js";
 import { nameHistoryPlugin } from "../plugins/name_history/index.js";
@@ -54,6 +55,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   logsPlugin,
   automodPlugin,
   impersonationPlugin,
+  raidMeshPlugin,
   scamProtectPlugin,
   passportPlugin,
   economyPlugin,

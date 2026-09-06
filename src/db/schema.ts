@@ -75,7 +75,60 @@ export const modCases = sqliteTable("mod_cases", {
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   metadata: text("metadata"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  /** Whether this case has a public, shareable document page at /case/:shareToken. */
+  public: integer("public", { mode: "boolean" }).notNull().default(false),
+  shareToken: text("share_token").unique(),
+  /** Editable public-facing summary shown on the shared page, separate from the internal `reason`. */
+  publicNote: text("public_note"),
+  publishedAt: integer("published_at", { mode: "timestamp" }),
 });
+
+/** One capture batch of a member's recent message content, taken either automatically when a
+ * moderation case is created against them, or manually via `/evidence add`. Kept 42 days
+ * regardless of the server's `content_retention_days` config setting. */
+export const evidenceMessages = sqliteTable(
+  "evidence_messages",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    /** Groups every row captured in one /warn, /ban, or /evidence add into a single card. */
+    captureId: text("capture_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    messageId: text("message_id").notNull(),
+    authorName: text("author_name").notNull(),
+    content: text("content").notNull().default(""),
+    sentAt: integer("sent_at", { mode: "timestamp" }).notNull(),
+    capturedAt: integer("captured_at", { mode: "timestamp" }).notNull(),
+    capturedBy: text("captured_by"),
+    /** "case" = auto-captured when a moderation case was created; "manual" = /evidence add. */
+    source: text("source").notNull(),
+    caseId: integer("case_id", { mode: "number" }),
+  },
+  (table) => [
+    index("evidence_messages_guild_user").on(table.guildId, table.userId),
+    index("evidence_messages_case").on(table.caseId),
+    index("evidence_messages_capture").on(table.captureId),
+  ],
+);
+
+/** Screenshots and other files a mod attaches to a case from the dashboard. Stored on disk under
+ * data/guild-assets/<guildId>/cases/<caseId>/, this row holds the metadata. */
+export const caseEvidenceFiles = sqliteTable(
+  "case_evidence_files",
+  {
+    id: text("id").primaryKey(),
+    caseId: integer("case_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    fileName: text("file_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    byteSize: integer("byte_size", { mode: "number" }).notNull(),
+    caption: text("caption"),
+    uploadedBy: text("uploaded_by").notNull(),
+    uploadedAt: integer("uploaded_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("case_evidence_files_case").on(table.caseId)],
+);
 
 export const guildMessageCounts = sqliteTable(
   "guild_message_counts",
@@ -601,8 +654,8 @@ export const userProfiles = sqliteTable("user_profiles", {
   profileVisible: integer("profile_visible", { mode: "boolean" }).notNull().default(true),
   /** Show the plane/airline trading card collection on the public profile page. Off by default. */
   showTradingCards: integer("show_trading_cards", { mode: "boolean" }).notNull().default(false),
-  /** Days a user's message *content* (not counts/timestamps) stays retained: 0/1/7/14/30. */
-  contentRetentionDays: integer("content_retention_days").notNull().default(30),
+  /** Hide the "As seen in these servers" section on the public profile page. Off by default. */
+  hideServersSection: integer("hide_servers_section", { mode: "boolean" }).notNull().default(false),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
@@ -1037,6 +1090,43 @@ export const scamImageHashes = sqliteTable("scam_image_hashes", {
   label: text("label").notNull().default(""),
   addedBy: text("added_by").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// --- Global Watchdog ---------------------------------------------------------------
+// Platform-wide, superuser-curated watchlist of confirmed bad actors (raid operators,
+// scammers, etc.) — same "small superuser-curated platform table" shape as
+// scamImageHashes/badgeDefinitions above. Never populated automatically; each server
+// opts in independently via its own `global_watchdog_action` config field and decides
+// what happens (alert/kick/ban) when a listed user joins. See src/bridge/globalWatchdog.ts.
+export const globalWatchdogEntries = sqliteTable("global_watchdog_entries", {
+  userId: text("user_id").primaryKey(),
+  reason: text("reason").notNull(),
+  evidenceUrl: text("evidence_url"),
+  addedBy: text("added_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// --- Raid Defense Mesh -------------------------------------------------------------
+// Opt-in pairing between servers: when one side's existing raid-burst detector trips,
+// the other gets an alert naming the accounts involved. Only ever reacts to an already
+// -detected raid; never ambient tracking. See src/plugins/raid_mesh/.
+export const raidMeshLinks = sqliteTable(
+  "raid_mesh_links",
+  {
+    guildId: text("guild_id").notNull(),
+    linkedGuildId: text("linked_guild_id").notNull(),
+    linkedAt: integer("linked_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.linkedGuildId] })],
+);
+
+/** Single-use, short-lived invite codes used to establish a raid_mesh_links pair. */
+export const raidMeshInvites = sqliteTable("raid_mesh_invites", {
+  code: text("code").primaryKey(),
+  guildId: text("guild_id").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
 
 // --- Impersonation Detection ------------------------------------------------------

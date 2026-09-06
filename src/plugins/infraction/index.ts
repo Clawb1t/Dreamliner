@@ -3,18 +3,25 @@ import { definePlugin } from "../../core/plugin.js";
 import { zInfractionConfig } from "../../config/schemas/infraction.js";
 import { actionCommands } from "./commands/actions.js";
 import { manageCommands } from "./commands/manage.js";
+import { evidenceCommands } from "./commands/evidence.js";
 import { processExpiredInfractions } from "./functions/infractions.js";
+import { sweepExpiredEvidence } from "../../core/evidence.js";
 
 export const infractionPlugin = definePlugin({
   name: "infractions",
   configSchema: zInfractionConfig,
-  slashCommands: [...actionCommands, ...manageCommands],
+  slashCommands: [...actionCommands, ...manageCommands, ...evidenceCommands],
   onLoad: async ({ client }) => {
     setInterval(() => {
       processExpiredInfractions(client).catch((err) => {
         console.error("Infraction expiration sweep failed:", err);
       });
     }, 60_000);
+    setInterval(() => {
+      sweepExpiredEvidence().catch((err) => {
+        console.error("Evidence retention sweep failed:", err);
+      });
+    }, 60 * 60_000);
   },
   events: [
     {

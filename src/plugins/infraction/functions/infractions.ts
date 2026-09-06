@@ -65,7 +65,41 @@ export async function createInfraction(input: {
     })
     .returning()
     .get();
+
+  void captureEvidenceOnCase(input.guildId, input.userId, row.id, input.modId).catch((err) =>
+    console.error("Evidence capture error:", err),
+  );
+
   return rowToRecord(row);
+}
+
+/** Snapshots the target's 20 most recent messages whenever a moderation case is created
+ * against them (warn, mute, kick, ban, etc.). Every case-creating command goes through
+ * `createInfraction`, so this is the one place that needs to know about it. Gated by the
+ * server's `evidence_capture_enabled` setting; never breaks the calling command on failure. */
+async function captureEvidenceOnCase(
+  guildId: string,
+  userId: string,
+  caseId: number,
+  modId: string,
+): Promise<void> {
+  if (!userId || userId === "0") return;
+
+  const { configManager } = await import("../../../config/manager.js");
+  const { getPluginSettings } = await import("../../../core/permissionRoles.js");
+  const guildConfig = await configManager.getEffectiveConfig(guildId);
+  const settings = getPluginSettings(guildConfig, "infractions") as InfractionConfig;
+  if (settings.evidence_capture_enabled === false) return;
+
+  const { captureEvidence } = await import("../../../core/evidence.js");
+  await captureEvidence({
+    guildId,
+    userId,
+    limit: 20,
+    capturedBy: modId,
+    source: "case",
+    caseId,
+  });
 }
 
 export async function getInfraction(guildId: string, id: number): Promise<InfractionRecord | null> {

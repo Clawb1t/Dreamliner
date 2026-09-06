@@ -23,6 +23,12 @@ export const zUtilityConfig = z.strictObject({
     .boolean()
     .default(true)
     .describe("When a search returns exactly one result, show the full info view automatically."),
+  global_watchdog_action: z
+    .enum(["off", "alert", "kick", "ban"])
+    .default("off")
+    .describe(
+      "What to do when a member on Dreamliner's platform-wide Global Watchdog list (confirmed bad actors, added by platform superusers) joins this server: off, alert staff in the mod log, kick, or ban. Off by default.",
+    ),
   can_search: boolPerm("use /search"),
   can_clean: boolPerm("use /clean"),
   can_userinfo: boolPerm("use user info commands"),

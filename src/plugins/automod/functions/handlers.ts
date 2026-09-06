@@ -7,6 +7,7 @@ import { sendModerationLog } from "../../../core/logging/send.js";
 import { applyAutomodHit } from "./actions.js";
 import {
   buildMessageContext,
+  getRecentRaidJoiners,
   runJoinDetectors,
   runMessageDetectors,
 } from "./detectors/index.js";
@@ -128,6 +129,9 @@ export async function handleAutomodMemberAdd(member: GuildMember): Promise<void>
     windowMs: rule.strike_window_ms,
   });
 
+  const joinCount = Number(hit.detail?.match(/^(\d+)/)?.[1] ?? hitCount);
+  const windowMs = Number(rule.settings.join_window_ms ?? 30_000);
+
   // Always emit classic raid log card for visibility
   await sendModerationLog(
     member.client,
@@ -138,8 +142,8 @@ export async function handleAutomodMemberAdd(member: GuildMember): Promise<void>
         name: member.user.username,
         avatarUrl: member.user.displayAvatarURL({ size: 128 }),
       },
-      joinCount: Number(hit.detail?.match(/^(\d+)/)?.[1] ?? hitCount),
-      windowMs: Number(rule.settings.join_window_ms ?? 30_000),
+      joinCount,
+      windowMs,
     }),
     {
       guildId: member.guild.id,
@@ -149,6 +153,17 @@ export async function handleAutomodMemberAdd(member: GuildMember): Promise<void>
       caseLogOverride: config.log_channel_id,
     },
   );
+
+  try {
+    const { broadcastRaidAlert } = await import("../../raid_mesh/functions/mesh.js");
+    await broadcastRaidAlert(member.client, member.guild.id, {
+      joinCount,
+      windowMs,
+      joiners: getRecentRaidJoiners(member.guild.id, windowMs),
+    });
+  } catch (err) {
+    console.error("Raid Defense Mesh broadcast failed:", err);
+  }
 
   await applyAutomodHit({
     client: member.client,

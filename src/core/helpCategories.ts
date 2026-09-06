@@ -35,6 +35,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       { plugin: "automod" },
       { plugin: "impersonation" },
+      { plugin: "raid_mesh" },
       { plugin: "scam_protect" },
       { plugin: "passport" },
       { plugin: "persist" },
@@ -208,6 +209,11 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Impersonation Detection",
     description: "Flags members whose name or avatar closely matches a protected role holder or watchlist entry.",
   },
+  raid_mesh: {
+    key: "raid_mesh",
+    name: "Raid Defense Mesh",
+    description: "Link with other servers to share raid alerts, naming the accounts involved, when either side's raid detector trips.",
+  },
   scam_protect: {
     key: "scam_protect",
     name: "Scam Protect",
@@ -377,6 +383,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   slowmode: "mod",
   automod: "protect",
   impersonation: "protect",
+  raid_mesh: "protect",
   scam_protect: "protect",
   passport: "protect",
   persist: "protect",

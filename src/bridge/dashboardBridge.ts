@@ -577,6 +577,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const profileMatch = /^\/bridge\/users\/(\d+)\/profile$/.exec(url.pathname);
         const userStatsMatch = /^\/bridge\/users\/(\d+)\/stats$/.exec(url.pathname);
         const deleteDataMatch = /^\/bridge\/users\/(\d+)\/data$/.exec(url.pathname);
+        const dataExportMatch = /^\/bridge\/users\/(\d+)\/data\/export$/.exec(url.pathname);
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const stockPortfolioMatch = /^\/bridge\/users\/(\d+)\/stocks$/.exec(url.pathname);
@@ -700,7 +701,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             bio?: unknown;
             profileVisible?: unknown;
             showTradingCards?: unknown;
-            contentRetentionDays?: unknown;
+            hideServersSection?: unknown;
           };
           try {
             body = JSON.parse(await readBody(req)) as typeof body;
@@ -714,14 +715,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             normalizeBio,
             upsertUserProfileFields,
           } = await import("./userProfiles.js");
-          const { normalizeContentRetentionDays } = await import("../core/contentRetention.js");
 
           const patch: {
             accentColor?: string | null;
             bio?: string | null;
             profileVisible?: boolean;
             showTradingCards?: boolean;
-            contentRetentionDays?: number;
+            hideServersSection?: boolean;
           } = {};
 
           if ("accentColor" in body) {
@@ -754,20 +754,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             patch.showTradingCards = body.showTradingCards;
           }
-          if ("contentRetentionDays" in body) {
-            try {
-              const days = normalizeContentRetentionDays(body.contentRetentionDays);
-              if (days === undefined) {
-                sendJson(res, 400, { error: "contentRetentionDays is required." });
-                return;
-              }
-              patch.contentRetentionDays = days;
-            } catch (error) {
-              sendJson(res, 400, {
-                error: error instanceof Error ? error.message : "Invalid contentRetentionDays.",
-              });
+          if ("hideServersSection" in body) {
+            if (typeof body.hideServersSection !== "boolean") {
+              sendJson(res, 400, { error: "hideServersSection must be a boolean." });
               return;
             }
+            patch.hideServersSection = body.hideServersSection;
           }
 
           if (Object.keys(patch).length === 0) {
@@ -793,6 +785,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           sendJson(res, 200, {
             ok: true,
             inventory: await previewUserPersonalData(deleteDataMatch[1]!),
+          });
+          return;
+        }
+
+        if (dataExportMatch && req.method === "GET") {
+          const { exportUserPersonalData } = await import("./userDataExport.js");
+          sendJson(res, 200, {
+            ok: true,
+            export: await exportUserPersonalData(dataExportMatch[1]!),
           });
           return;
         }
@@ -1344,6 +1345,87 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Global Watchdog: platform-wide, superuser-curated bad-actor list --------------
+
+        if (url.pathname === "/bridge/platform/global-watchdog") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listGlobalWatchdogEntries } = await import("./globalWatchdog.js");
+            sendJson(res, 200, { ok: true, entries: await listGlobalWatchdogEntries() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: { userId?: string; targetUserId?: unknown; reason?: unknown; evidenceUrl?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const targetUserId = typeof body.targetUserId === "string" ? body.targetUserId.trim() : "";
+            const reason = typeof body.reason === "string" ? body.reason : "";
+            const evidenceUrl =
+              typeof body.evidenceUrl === "string" && body.evidenceUrl.trim() ? body.evidenceUrl.trim() : null;
+            try {
+              const { addGlobalWatchdogEntry } = await import("./globalWatchdog.js");
+              const entry = await addGlobalWatchdogEntry({
+                userId: targetUserId,
+                reason,
+                evidenceUrl,
+                addedBy: actorId,
+              });
+              sendJson(res, 200, { ok: true, entry });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to add entry.",
+              });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const globalWatchdogEntryMatch = /^\/bridge\/platform\/global-watchdog\/(\d{17,20})$/.exec(
+          url.pathname,
+        );
+        if (globalWatchdogEntryMatch && req.method === "DELETE") {
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId || !isDashboardSuperuser(requesterId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { removeGlobalWatchdogEntry } = await import("./globalWatchdog.js");
+          await removeGlobalWatchdogEntry(globalWatchdogEntryMatch[1]!);
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (url.pathname === "/bridge/platform/global-watchdog/scan") {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId || !isDashboardSuperuser(requesterId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { buildGlobalWatchdogScan } = await import("./watchdogScoring.js");
+          const result = await buildGlobalWatchdogScan(client);
+          sendJson(res, 200, { ok: true, ...result });
+          return;
+        }
+
         // --- Automod image_scan blocklist admin (platform superusers only) -----------------
 
         if (url.pathname === "/bridge/platform/scam-image-hashes") {
@@ -1503,6 +1585,37 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Public case share pages, looked up by share token, not scoped to a guild path
+        // segment (the caller doesn't know the guild id, only the link they were given).
+        const publicCaseFileMatch = /^\/bridge\/public\/cases\/([\w-]+)\/files\/([\w-]+)$/.exec(
+          url.pathname,
+        );
+        const publicCaseMatch = publicCaseFileMatch
+          ? null
+          : /^\/bridge\/public\/cases\/([\w-]+)$/.exec(url.pathname);
+
+        if (publicCaseMatch && req.method === "GET") {
+          const { getPublicCase } = await import("./webModeration.js");
+          const detail = await getPublicCase(client, publicCaseMatch[1]!);
+          if (!detail) {
+            sendJson(res, 404, { error: "Case not found" });
+            return;
+          }
+          sendJson(res, 200, { ok: true, case: detail });
+          return;
+        }
+
+        if (publicCaseFileMatch && req.method === "GET") {
+          const { getPublicCaseFile } = await import("./webModeration.js");
+          const file = await getPublicCaseFile(publicCaseFileMatch[1]!, publicCaseFileMatch[2]!);
+          if (!file) {
+            sendJson(res, 404, { error: "File not found" });
+            return;
+          }
+          sendBinary(res, 200, file.buffer, file.mimeType);
+          return;
+        }
+
         const publicLeaderboardMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
         const publicGuildMatch = /^\/bridge\/guilds\/(\d+)\/public$/.exec(url.pathname);
@@ -1542,6 +1655,28 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const modCasesMatch = /^\/bridge\/guilds\/(\d+)\/moderation\/cases$/.exec(url.pathname);
+        const casePublishMatch =
+          /^\/bridge\/guilds\/(\d+)\/moderation\/cases\/(\d+)\/(publish|unpublish)$/.exec(
+            url.pathname,
+          );
+        const caseEvidenceFileMatch =
+          /^\/bridge\/guilds\/(\d+)\/moderation\/cases\/(\d+)\/evidence\/([\w-]+)$/.exec(
+            url.pathname,
+          );
+        const caseEvidenceMatch = caseEvidenceFileMatch
+          ? null
+          : /^\/bridge\/guilds\/(\d+)\/moderation\/cases\/(\d+)\/evidence$/.exec(url.pathname);
+        const evidenceUserMatch =
+          /^\/bridge\/guilds\/(\d+)\/moderation\/evidence\/(\d+)$/.exec(url.pathname);
+        const evidenceMatch = evidenceUserMatch
+          ? null
+          : /^\/bridge\/guilds\/(\d+)\/moderation\/evidence$/.exec(url.pathname);
+        const raidMeshInviteMatch = /^\/bridge\/guilds\/(\d+)\/raid-mesh\/invite$/.exec(url.pathname);
+        const raidMeshRedeemMatch = /^\/bridge\/guilds\/(\d+)\/raid-mesh\/redeem$/.exec(url.pathname);
+        const raidMeshLinkMatch = /^\/bridge\/guilds\/(\d+)\/raid-mesh\/links\/(\d+)$/.exec(url.pathname);
+        const raidMeshLinksMatch = raidMeshLinkMatch
+          ? null
+          : /^\/bridge\/guilds\/(\d+)\/raid-mesh\/links$/.exec(url.pathname);
         const logStatsMatch = /^\/bridge\/guilds\/(\d+)\/logs\/stats$/.exec(url.pathname);
         const logTestMatch = /^\/bridge\/guilds\/(\d+)\/logs\/test$/.exec(url.pathname);
         const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
@@ -1647,6 +1782,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !dbTablesMatch &&
           !modCaseMatch &&
           !modCasesMatch &&
+          !casePublishMatch &&
+          !caseEvidenceFileMatch &&
+          !caseEvidenceMatch &&
+          !evidenceUserMatch &&
+          !evidenceMatch &&
+          !raidMeshInviteMatch &&
+          !raidMeshRedeemMatch &&
+          !raidMeshLinkMatch &&
+          !raidMeshLinksMatch &&
           !logStatsMatch &&
           !logTestMatch &&
           !logOneMatch &&
@@ -1718,6 +1862,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           dbTablesMatch?.[1] ??
           modCaseMatch?.[1] ??
           modCasesMatch?.[1] ??
+          casePublishMatch?.[1] ??
+          caseEvidenceFileMatch?.[1] ??
+          caseEvidenceMatch?.[1] ??
+          evidenceUserMatch?.[1] ??
+          evidenceMatch?.[1] ??
+          raidMeshInviteMatch?.[1] ??
+          raidMeshRedeemMatch?.[1] ??
+          raidMeshLinkMatch?.[1] ??
+          raidMeshLinksMatch?.[1] ??
           logStatsMatch?.[1] ??
           logTestMatch?.[1] ??
           logOneMatch?.[1] ??
@@ -3425,6 +3578,259 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (evidenceMatch || evidenceUserMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { parseWebEvidenceQuery, listWebEvidence } = await import("./webEvidence.js");
+
+          if (evidenceUserMatch) {
+            const targetUserId = evidenceUserMatch[2]!;
+            const result = await listWebEvidence(guild, { ...parseWebEvidenceQuery(url), userId: targetUserId });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+            return;
+          }
+
+          const result = await listWebEvidence(guild, parseWebEvidenceQuery(url));
+          sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+          return;
+        }
+
+        if (raidMeshInviteMatch) {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { userId?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { createInvite } = await import("../plugins/raid_mesh/functions/mesh.js");
+          const invite = await createInvite(guild.id, userId);
+          sendJson(res, 200, { ok: true, ...invite });
+          return;
+        }
+
+        if (raidMeshRedeemMatch) {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { userId?: unknown; code?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const code = typeof body.code === "string" ? body.code.trim() : "";
+          if (!code) {
+            sendJson(res, 400, { error: "code is required" });
+            return;
+          }
+          const { redeemInvite } = await import("../plugins/raid_mesh/functions/mesh.js");
+          const result = await redeemInvite(code, guild.id);
+          if (!result.ok) {
+            sendJson(res, 400, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (raidMeshLinksMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { getLinkedGuilds } = await import("../plugins/raid_mesh/functions/mesh.js");
+          const links = await getLinkedGuilds(client, guild.id);
+          sendJson(res, 200, { ok: true, links });
+          return;
+        }
+
+        if (raidMeshLinkMatch) {
+          if (req.method !== "DELETE") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { unlink } = await import("../plugins/raid_mesh/functions/mesh.js");
+          await unlink(guild.id, raidMeshLinkMatch[2]!);
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (casePublishMatch) {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { userId?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const caseId = Number(casePublishMatch[2]);
+          const action = casePublishMatch[3] as "publish" | "unpublish";
+          const { publishWebModCase, unpublishWebModCase, getWebModCase } = await import(
+            "./webModeration.js"
+          );
+          const ok =
+            action === "publish"
+              ? await publishWebModCase(guild.id, caseId)
+              : await unpublishWebModCase(guild.id, caseId);
+          if (!ok) {
+            sendJson(res, 404, { error: "Case not found" });
+            return;
+          }
+          const detail = await getWebModCase(guild, caseId);
+          sendJson(res, 200, { ok: true, case: detail });
+          return;
+        }
+
+        if (caseEvidenceMatch || caseEvidenceFileMatch) {
+          const userId =
+            req.method === "DELETE"
+              ? url.searchParams.get("userId")?.trim()
+              : undefined;
+          const caseId = Number((caseEvidenceMatch ?? caseEvidenceFileMatch)![2]);
+
+          if (caseEvidenceMatch && req.method === "POST") {
+            let body: { userId?: unknown; imageBase64?: unknown; caption?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const uploaderId = typeof body.userId === "string" ? body.userId.trim() : "";
+            if (!uploaderId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, uploaderId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            if (typeof body.imageBase64 !== "string" || !body.imageBase64.trim()) {
+              sendJson(res, 400, { error: "imageBase64 is required" });
+              return;
+            }
+            const { uploadCaseEvidenceFile } = await import("./webModeration.js");
+            try {
+              const file = await uploadCaseEvidenceFile(guild.id, caseId, uploaderId, {
+                imageBase64: body.imageBase64,
+                caption: typeof body.caption === "string" ? body.caption.slice(0, 200) : null,
+              });
+              sendJson(res, 200, { ok: true, file });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to upload evidence",
+              });
+            }
+            return;
+          }
+
+          if (caseEvidenceFileMatch && req.method === "GET") {
+            const readerId = url.searchParams.get("userId")?.trim();
+            if (!readerId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, readerId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { getWebCaseEvidenceFile } = await import("./webModeration.js");
+            const file = await getWebCaseEvidenceFile(guild.id, caseId, caseEvidenceFileMatch[3]!);
+            if (!file) {
+              sendJson(res, 404, { error: "File not found" });
+              return;
+            }
+            sendBinary(res, 200, file.buffer, file.mimeType);
+            return;
+          }
+
+          if (caseEvidenceFileMatch && req.method === "DELETE") {
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const { deleteCaseEvidenceFile } = await import("./webModeration.js");
+            await deleteCaseEvidenceFile(guild.id, caseId, caseEvidenceFileMatch[3]!);
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
         if (customChartsMatch || customChartOneMatch) {
           const {
             listCustomCharts,
@@ -3565,24 +3971,21 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (modCasesMatch || modCaseMatch) {
-          if (req.method !== "GET") {
-            sendJson(res, 405, { error: "Method not allowed" });
-            return;
-          }
-          const userId = url.searchParams.get("userId")?.trim();
-          if (!userId) {
+          const userId =
+            req.method === "GET" ? url.searchParams.get("userId")?.trim() : undefined;
+          if (req.method === "GET" && !userId) {
             sendJson(res, 400, { error: "userId is required" });
             return;
           }
-          if (!(await memberCanManage(guild, userId))) {
+          if (req.method === "GET" && !(await memberCanManage(guild, userId!))) {
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
 
-          const { parseWebModCasesQuery, listWebModCases, getWebModCase } =
+          const { parseWebModCasesQuery, listWebModCases, getWebModCase, updateWebModCase } =
             await import("./webModeration.js");
 
-          if (modCasesMatch) {
+          if (modCasesMatch && req.method === "GET") {
             const query = parseWebModCasesQuery(url);
             const result = await listWebModCases(guild, query);
             sendJson(res, 200, {
@@ -3592,20 +3995,81 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
 
-          const caseId = Number(modCaseMatch![2]);
-          if (!Number.isFinite(caseId) || caseId <= 0) {
-            sendJson(res, 400, { error: "Invalid case id" });
+          if (modCaseMatch && req.method === "GET") {
+            const caseId = Number(modCaseMatch[2]);
+            if (!Number.isFinite(caseId) || caseId <= 0) {
+              sendJson(res, 400, { error: "Invalid case id" });
+              return;
+            }
+            const detail = await getWebModCase(guild, caseId);
+            if (!detail) {
+              sendJson(res, 404, { error: "Case not found" });
+              return;
+            }
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              case: detail,
+            });
             return;
           }
-          const detail = await getWebModCase(guild, caseId);
-          if (!detail) {
-            sendJson(res, 404, { error: "Case not found" });
+
+          if (modCaseMatch && req.method === "PATCH") {
+            let body: {
+              userId?: unknown;
+              reason?: unknown;
+              active?: unknown;
+              expiresAt?: unknown;
+              publicNote?: unknown;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const editorId = typeof body.userId === "string" ? body.userId.trim() : "";
+            if (!editorId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, editorId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const caseId = Number(modCaseMatch[2]);
+            if (!Number.isFinite(caseId) || caseId <= 0) {
+              sendJson(res, 400, { error: "Invalid case id" });
+              return;
+            }
+            const detail = await updateWebModCase(guild, caseId, {
+              reason: typeof body.reason === "string" ? body.reason : undefined,
+              active: typeof body.active === "boolean" ? body.active : undefined,
+              expiresAt:
+                body.expiresAt === null
+                  ? null
+                  : typeof body.expiresAt === "string"
+                    ? new Date(body.expiresAt)
+                    : undefined,
+              publicNote: typeof body.publicNote === "string" ? body.publicNote.slice(0, 1000) : undefined,
+            });
+            if (!detail) {
+              sendJson(res, 404, { error: "Case not found" });
+              return;
+            }
+            trackDashboardAction(client, guild.id, editorId, {
+              eventType: "dashboard_config",
+              title: `Case #${caseId} updated`,
+              summary: "A moderation case was edited from the dashboard.",
+              payload: { caseId },
+            });
+            sendJson(res, 200, {
+              guild: { id: guild.id, name: guild.name, icon: guild.icon },
+              case: detail,
+            });
             return;
           }
-          sendJson(res, 200, {
-            guild: { id: guild.id, name: guild.name, icon: guild.icon },
-            case: detail,
-          });
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

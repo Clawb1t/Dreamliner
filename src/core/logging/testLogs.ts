@@ -15,6 +15,7 @@ import {
   buildDmFailedLog,
   buildEmojiLog,
   buildGenericServerLog,
+  buildGlobalWatchdogHitLog,
   buildGuildUpdateLog,
   buildImpersonationLog,
   buildInviteCreateLog,
@@ -31,6 +32,7 @@ import {
   buildMuteExpiredLog,
   buildNicknameChangeLog,
   buildRaidDetectedLog,
+  buildRaidMeshAlertLog,
   buildRoleChangeLog,
   buildRoleCreateLog,
   buildRoleDeleteLog,
@@ -168,6 +170,18 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       autoAction: null,
     }),
   raid: (ctx) => buildRaidDetectedLog({ user: ctx.target, joinCount: 8, windowMs: 30_000, recentJoiners: [ctx.target, ctx.actor] }),
+  raid_mesh: (ctx) =>
+    buildRaidMeshAlertLog({
+      sourceGuildName: "Example Partner Server",
+      joinCount: 8,
+      windowMs: 30_000,
+      joiners: [
+        { id: ctx.target.id, username: ctx.target.name ?? ctx.target.id },
+        { id: ctx.actor.id, username: ctx.actor.name ?? ctx.actor.id },
+      ],
+    }),
+  global_watchdog: (ctx) =>
+    buildGlobalWatchdogHitLog({ user: ctx.target, reason: "Confirmed raid-bot operator", evidenceUrl: null, action: "alert" }),
   censor: (ctx) => buildCensorLog({ user: ctx.target, channel: ctx.channel, pattern: "badword", action: "Delete" }),
   clean: (ctx) => buildCleanLog({ mod: ctx.actor, channel: ctx.channel, count: 25, targets: [ctx.target] }),
   voice_mod: (ctx) => buildVoiceForceMoveLog({ target: ctx.target, mod: ctx.actor, fromChannel: ctx.channel, toChannel: ctx.channel }),

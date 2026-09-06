@@ -48,7 +48,12 @@ export type UserGuildSummary = {
   messages: number;
 };
 
-/** Servers this user has messaged in that the bot is currently also in, most active first. */
+/**
+ * Servers this user has messaged in, shown on the public profile's "As seen in these servers"
+ * section. A server is only included when the bot is still in it, the user is still a member of
+ * it, and that server has chosen to make its activity stats public (`public_stats.activity`),
+ * otherwise this would leak someone's server membership without either side having opted in.
+ */
 export async function listUserGuildSummaries(
   client: Client,
   userId: string,
@@ -60,10 +65,19 @@ export async function listUserGuildSummaries(
     .where(eq(guildMessageCounts.userId, userId))
     .all();
 
+  const { configManager } = await import("../config/manager.js");
+
   const summaries: UserGuildSummary[] = [];
   for (const row of rows) {
     const guild = client.guilds.cache.get(row.guildId);
     if (!guild) continue;
+
+    const member = guild.members.cache.get(userId) ?? (await guild.members.fetch(userId).catch(() => null));
+    if (!member) continue;
+
+    const config = await configManager.getEffectiveConfig(guild.id);
+    if (!config.public_stats?.activity) continue;
+
     summaries.push({
       id: row.guildId,
       name: guild.name,

@@ -101,6 +101,8 @@ export async function buildPublicProfileServers(
   client: Client,
   userId: string,
 ): Promise<UserGuildSummary[]> {
+  const profile = await getUserProfile(userId);
+  if (profile.hideServersSection) return [];
   return listUserGuildSummaries(client, userId);
 }
 

@@ -209,9 +209,11 @@ Retention depends on the feature involved and on whether administrators or membe
 | Data | Typical retention |
 |------|-------------------|
 | **Message log cache** (`log_messages`) | About **42 days**, then pruned in the course of ordinary operation |
+| **Message content** (activity-tracker snippets, clean/source archives) | Server-configurable: **1, 7, 14, or 30 days**, set by that server's administrators (Server → Data retention); message counts, timestamps, and ranks are unaffected and always kept |
+| **Evidence mode captures** (`/evidence add`, or auto-captured when a moderation case is created) | **42 days** from capture, regardless of the server's content retention setting |
 | **Guild configuration** | Until overwritten, deleted by operators, or the server is removed from our systems |
 | **Moderation cases & strikes** | Kept until deleted by authorized commands/operators; expired actions may remain as inactive history |
-| **Clean/source archives** | Kept until deleted by operators (no automatic short TTL) |
+| **Clean/source archives** | Kept until deleted by operators (no automatic short TTL); message *content* inside them is redacted per the server's content retention setting above |
 | **Name / username history** | Kept while the related plugins remain in use and records are not cleared |
 | **Member identity snapshots** | Kept while Member Identity is in use (latest snapshot per member per server) until overwritten or deleted |
 | **Stats & counters** | Kept as aggregate history until cleared or removed |
@@ -221,6 +223,7 @@ Retention depends on the feature involved and on whether administrators or membe
 | **Passport verification/session data** | Kept only as long as needed to complete verification and for a limited anti-abuse window afterward |
 | **Custom branding submissions under human review** | Kept for as long as needed to review, apply, or reject the submission, and to retain a record of that decision |
 | **Dreamliner One subscription status** | Mirrors Discord's own subscription record; we do not separately retain historical billing data of our own |
+| **Publicly shared moderation cases** | A moderation case a server's staff explicitly marks public gets a shareable link showing that case's details, evidence, and any uploaded screenshots to anyone with the link, until staff unpublish it |
 
 We may retain limited records for a longer period where necessary for security investigations, dispute resolution, or legal compliance, even if that exceeds the typical periods above.
 

@@ -120,6 +120,12 @@ export const zInfractionConfig = z.strictObject({
   require_reason: zRequireReason,
   default_duration: zDefaultDuration,
   escalation: zEscalation,
+  evidence_capture_enabled: z
+    .boolean()
+    .default(true)
+    .describe(
+      "Automatically snapshot a member's 20 most recent messages whenever a moderation case (warn, mute, kick, ban, etc.) is created against them.",
+    ),
   can_warn: boolPerm("warn members"),
   can_note: boolPerm("add notes to members"),
   can_mute: boolPerm("mute members"),
@@ -131,6 +137,7 @@ export const zInfractionConfig = z.strictObject({
   can_edit_reason: boolPerm("edit case reasons"),
   can_edit_duration: boolPerm("edit timed punishment durations"),
   can_delete: boolPerm("delete cases"),
+  can_evidence: boolPerm("manually capture evidence with /evidence add"),
 });
 
 export type InfractionConfig = z.infer<typeof zInfractionConfig>;

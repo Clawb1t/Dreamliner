@@ -1,14 +1,34 @@
+import { randomBytes } from "node:crypto";
 import { and, count, desc, eq, like, or, sql, type SQL } from "drizzle-orm";
-import type { Guild } from "discord.js";
+import type { Client, Guild } from "discord.js";
 import { getDb } from "../db/client.js";
-import { modCases } from "../db/schema.js";
+import { caseEvidenceFiles, modCases } from "../db/schema.js";
 import { INFRACTION_TYPES } from "../config/schemas/infraction.js";
+import { listEvidenceForCase, type EvidenceCapture } from "../core/evidence.js";
+import {
+  decodeImageUpload,
+  deleteAllCaseEvidenceFiles,
+  deleteCaseEvidenceFileFromDisk,
+  mimeTypeForFileName,
+  readCaseEvidenceFile,
+  saveCaseEvidenceFile,
+} from "../plugins/infraction/functions/evidenceAssets.js";
 
 export type WebPerson = {
   id: string;
   name: string;
   username: string | null;
   avatar: string | null;
+};
+
+export type WebCaseEvidenceFile = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  byteSize: number;
+  caption: string | null;
+  uploadedBy: string;
+  uploadedAt: string;
 };
 
 export type WebModCase = {
@@ -21,6 +41,12 @@ export type WebModCase = {
   user: WebPerson;
   mod: WebPerson;
   metadata?: Record<string, unknown> | null;
+  public?: boolean;
+  shareToken?: string | null;
+  publicNote?: string | null;
+  publishedAt?: string | null;
+  evidenceCaptures?: EvidenceCapture[];
+  evidenceFiles?: WebCaseEvidenceFile[];
 };
 
 const CASE_TYPES = [...INFRACTION_TYPES, "clean"] as const;
@@ -183,6 +209,11 @@ export async function getWebModCase(guild: Guild, caseId: number) {
     resolvePerson(guild, row.modId),
   ]);
 
+  const [evidenceCaptures, evidenceFileRows] = await Promise.all([
+    listEvidenceForCase(guild, caseId),
+    db.select().from(caseEvidenceFiles).where(eq(caseEvidenceFiles.caseId, caseId)).all(),
+  ]);
+
   const detail: WebModCase = {
     id: row.id,
     type: row.type,
@@ -193,7 +224,253 @@ export async function getWebModCase(guild: Guild, caseId: number) {
     user,
     mod,
     metadata: parseMetadata(row.metadata),
+    public: row.public,
+    shareToken: row.shareToken,
+    publicNote: row.publicNote,
+    publishedAt: toIso(row.publishedAt),
+    evidenceCaptures,
+    evidenceFiles: evidenceFileRows.map((file) => ({
+      id: file.id,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      byteSize: file.byteSize,
+      caption: file.caption,
+      uploadedBy: file.uploadedBy,
+      uploadedAt: toIso(file.uploadedAt) ?? new Date(0).toISOString(),
+    })),
   };
 
   return detail;
+}
+
+export type UpdateWebModCaseInput = {
+  reason?: string;
+  active?: boolean;
+  expiresAt?: Date | null;
+  publicNote?: string;
+};
+
+export async function updateWebModCase(
+  guild: Guild,
+  caseId: number,
+  patch: UpdateWebModCaseInput,
+): Promise<WebModCase | null> {
+  const db = getDb();
+  const existing = await db
+    .select({ id: modCases.id })
+    .from(modCases)
+    .where(and(eq(modCases.guildId, guild.id), eq(modCases.id, caseId)))
+    .get();
+  if (!existing) return null;
+
+  const set: Partial<typeof modCases.$inferInsert> = {};
+  if (patch.reason !== undefined) set.reason = patch.reason;
+  if (patch.active !== undefined) set.active = patch.active;
+  if (patch.expiresAt !== undefined) set.expiresAt = patch.expiresAt;
+  if (patch.publicNote !== undefined) set.publicNote = patch.publicNote;
+
+  if (Object.keys(set).length > 0) {
+    await db.update(modCases).set(set).where(eq(modCases.id, caseId));
+  }
+  return getWebModCase(guild, caseId);
+}
+
+/** Generates a fresh share token and marks the case public. Returns false if the case
+ * doesn't exist. */
+export async function publishWebModCase(guildId: string, caseId: number): Promise<boolean> {
+  const db = getDb();
+  const existing = await db
+    .select({ id: modCases.id })
+    .from(modCases)
+    .where(and(eq(modCases.guildId, guildId), eq(modCases.id, caseId)))
+    .get();
+  if (!existing) return false;
+
+  const shareToken = randomBytes(16).toString("hex");
+  await db
+    .update(modCases)
+    .set({ public: true, shareToken, publishedAt: new Date() })
+    .where(eq(modCases.id, caseId));
+  return true;
+}
+
+/** Un-publishes a case and invalidates its share link (a later re-publish gets a fresh token). */
+export async function unpublishWebModCase(guildId: string, caseId: number): Promise<boolean> {
+  const db = getDb();
+  const existing = await db
+    .select({ id: modCases.id })
+    .from(modCases)
+    .where(and(eq(modCases.guildId, guildId), eq(modCases.id, caseId)))
+    .get();
+  if (!existing) return false;
+
+  await db
+    .update(modCases)
+    .set({ public: false, shareToken: null, publishedAt: null })
+    .where(eq(modCases.id, caseId));
+  return true;
+}
+
+export async function uploadCaseEvidenceFile(
+  guildId: string,
+  caseId: number,
+  uploadedBy: string,
+  input: { imageBase64: string; caption?: string | null },
+): Promise<WebCaseEvidenceFile> {
+  const db = getDb();
+  const existing = await db
+    .select({ id: modCases.id })
+    .from(modCases)
+    .where(and(eq(modCases.guildId, guildId), eq(modCases.id, caseId)))
+    .get();
+  if (!existing) throw new Error("Case not found");
+
+  const upload = decodeImageUpload(input.imageBase64);
+  const { fileId, fileName } = saveCaseEvidenceFile(guildId, caseId, upload);
+  const uploadedAt = new Date();
+
+  await db.insert(caseEvidenceFiles).values({
+    id: fileId,
+    caseId,
+    guildId,
+    fileName,
+    mimeType: upload.mimeType,
+    byteSize: upload.buffer.length,
+    caption: input.caption ?? null,
+    uploadedBy,
+    uploadedAt,
+  });
+
+  return {
+    id: fileId,
+    fileName,
+    mimeType: upload.mimeType,
+    byteSize: upload.buffer.length,
+    caption: input.caption ?? null,
+    uploadedBy,
+    uploadedAt: uploadedAt.toISOString(),
+  };
+}
+
+export async function deleteCaseEvidenceFile(guildId: string, caseId: number, fileId: string): Promise<void> {
+  const db = getDb();
+  const row = await db
+    .select()
+    .from(caseEvidenceFiles)
+    .where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.caseId, caseId)))
+    .get();
+  if (!row) return;
+  deleteCaseEvidenceFileFromDisk(row.fileName, guildId, caseId);
+  await db.delete(caseEvidenceFiles).where(eq(caseEvidenceFiles.id, fileId));
+}
+
+/** Deletes every uploaded screenshot for a case. Call this when the case itself is deleted. */
+export async function deleteCaseEvidenceFilesForCase(guildId: string, caseId: number): Promise<void> {
+  const db = getDb();
+  await db.delete(caseEvidenceFiles).where(eq(caseEvidenceFiles.caseId, caseId));
+  deleteAllCaseEvidenceFiles(guildId, caseId);
+}
+
+/** Authenticated read of an uploaded screenshot (dashboard case view). */
+export async function getWebCaseEvidenceFile(
+  guildId: string,
+  caseId: number,
+  fileId: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  const db = getDb();
+  const row = await db
+    .select()
+    .from(caseEvidenceFiles)
+    .where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.caseId, caseId)))
+    .get();
+  if (!row) return null;
+  const buffer = readCaseEvidenceFile(row.fileName, guildId, caseId);
+  if (!buffer) return null;
+  return { buffer, mimeType: row.mimeType };
+}
+
+export type PublicCaseDetail = {
+  guild: { id: string; name: string; icon: string | null };
+  case: {
+    id: number;
+    type: string;
+    createdAt: string;
+    reason: string | null;
+    publicNote: string | null;
+    target: WebPerson;
+    mod: WebPerson;
+    evidenceCaptures: EvidenceCapture[];
+    evidenceFiles: Array<Omit<WebCaseEvidenceFile, "uploadedBy">>;
+  };
+};
+
+/** Looked up by share token across every guild, the caller only has the link, not the
+ * guild id. Returns null unless the case exists and is currently public. */
+export async function getPublicCase(client: Client, token: string): Promise<PublicCaseDetail | null> {
+  const db = getDb();
+  const row = await db
+    .select()
+    .from(modCases)
+    .where(and(eq(modCases.shareToken, token), eq(modCases.public, true)))
+    .get();
+  if (!row) return null;
+
+  const guild = client.guilds.cache.get(row.guildId);
+  if (!guild) return null;
+
+  const [target, mod, evidenceCaptures, evidenceFileRows] = await Promise.all([
+    resolvePerson(guild, row.userId),
+    resolvePerson(guild, row.modId),
+    listEvidenceForCase(guild, row.id),
+    db.select().from(caseEvidenceFiles).where(eq(caseEvidenceFiles.caseId, row.id)).all(),
+  ]);
+
+  return {
+    guild: { id: guild.id, name: guild.name, icon: guild.icon },
+    case: {
+      id: row.id,
+      type: row.type,
+      createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
+      reason: row.reason,
+      publicNote: row.publicNote,
+      target,
+      mod,
+      evidenceCaptures,
+      evidenceFiles: evidenceFileRows.map((file) => ({
+        id: file.id,
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+        byteSize: file.byteSize,
+        caption: file.caption,
+        uploadedAt: toIso(file.uploadedAt) ?? new Date(0).toISOString(),
+      })),
+    },
+  };
+}
+
+/** Token-scoped file read for the public case page. Verifies the file actually belongs to
+ * that token's (still-public) case before returning bytes, so a guessed file id on its own
+ * isn't enough to read it. */
+export async function getPublicCaseFile(
+  token: string,
+  fileId: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  const db = getDb();
+  const caseRow = await db
+    .select({ id: modCases.id, guildId: modCases.guildId })
+    .from(modCases)
+    .where(and(eq(modCases.shareToken, token), eq(modCases.public, true)))
+    .get();
+  if (!caseRow) return null;
+
+  const fileRow = await db
+    .select()
+    .from(caseEvidenceFiles)
+    .where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.caseId, caseRow.id)))
+    .get();
+  if (!fileRow) return null;
+
+  const buffer = readCaseEvidenceFile(fileRow.fileName, caseRow.guildId, caseRow.id);
+  if (!buffer) return null;
+  return { buffer, mimeType: fileRow.mimeType || mimeTypeForFileName(fileRow.fileName) };
 }
