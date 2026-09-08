@@ -50,7 +50,8 @@ export const debugCommands: SlashCommandDefinition[] = [
         const file = new AttachmentBuilder(Buffer.from(lines.join("\n"), "utf-8"), { name: "app-emojis.txt" });
 
         const embed = baseEmbed()
-          .setAuthor({ name: "Application emojis", iconURL: ctx.client.user?.displayAvatarURL() })
+          .setTitle("Application emojis")
+          .setThumbnail(ctx.client.user?.displayAvatarURL())
           .setDescription(`Exported **${emojis.size}** application emoji${emojis.size === 1 ? "" : "s"}.`);
         await i.editReply(embedWithFilesEdit(embed, [file]));
         return;

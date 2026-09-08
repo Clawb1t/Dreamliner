@@ -3,7 +3,7 @@ import { configManager } from "../../../config/manager.js";
 import { baseEmbed } from "../../../core/embeds.js";
 import { hasPermission } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
+import { containerEdit, containerReply, resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
 import { getPlaneTypeById } from "./catalog.js";
 import { buildCardRevealBatch, buildInventoryPage } from "./cardDisplay.js";
 import { PLANE_INVENTORY_PREFIX, PLANE_PACK_PREFIX, PLANE_SELL_PREFIX, PLANE_STATS_PREFIX } from "./customIds.js";
@@ -49,7 +49,8 @@ export async function handlePlaneStatsButtonInteraction(interaction: ButtonInter
 
   const owned = getInventoryEntry(interaction.user.id, plane.id);
   const embed = baseEmbed()
-    .setAuthor({ name: plane.name, iconURL: interaction.client.user?.displayAvatarURL() })
+    .setTitle(plane.name)
+    .setThumbnail(interaction.client.user?.displayAvatarURL())
     .addFields(
       { name: "Type", value: cardTypeBadge(plane.cardType), inline: true },
       { name: "Rarity", value: rarityBadge(plane.rarity), inline: true },
@@ -57,7 +58,7 @@ export async function handlePlaneStatsButtonInteraction(interaction: ButtonInter
     )
     .setFooter({ text: [plane.subtitle || null, owned ? `You own x${owned.quantity}` : null].filter(Boolean).join(" · ") || "Dreamliner Hangar" });
 
-  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  await interaction.reply(containerReply(embed, true));
   return true;
 }
 
@@ -110,19 +111,15 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
       `<:icons_gift:1544417552627802212> Cost ${result.cost > 0 ? formatCoinAmount(result.cost) : "free"} ✧ Balance ${formatCoinAmount(result.balance)}`,
     );
     await interaction.update({
-      content: "",
-      embeds: [embed],
-      components: rows,
+      ...containerEdit(embed, rows),
       files,
     });
   } catch (err) {
     if (err instanceof PackError) {
       const title = err.code === "insufficient" ? "Not enough coins" : "Purchase failed";
-      await interaction.update({
-        content: "",
-        ...resultEdit(title, err.message, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
-        components: [],
-      });
+      await interaction.update(
+        resultEdit(title, err.message, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      );
       return true;
     }
     throw err;
@@ -181,7 +178,7 @@ export async function handlePlaneInventoryButtonInteraction(interaction: ButtonI
     viewerId: parsed.viewerId,
     targetUserId: parsed.targetUserId,
   });
-  await interaction.update({ embeds: [embed], components: [row], files });
+  await interaction.update({ ...containerEdit(embed, [row]), files });
   return true;
 }
 

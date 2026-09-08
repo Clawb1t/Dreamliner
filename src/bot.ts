@@ -99,12 +99,6 @@ import {
   handleCompanionModalSubmit,
   handleCompanionSelectInteraction,
 } from "./plugins/companion_channels/functions/interface.js";
-import {
-  ANIME_SAVE_PREFIX,
-  ANIME_SAVED_NAV_PREFIX,
-  handleAnimeSaveButtonInteraction,
-  handleAnimeSavedNavButtonInteraction,
-} from "./plugins/anime/functions/buttons.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
 import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
@@ -301,14 +295,6 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(EXPAND_DELETE_PREFIX)) {
         const handled = await handleExpandDeleteButtonInteraction(interaction);
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(ANIME_SAVE_PREFIX)) {
-        const handled = await handleAnimeSaveButtonInteraction(interaction);
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(ANIME_SAVED_NAV_PREFIX)) {
-        const handled = await handleAnimeSavedNavButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(PLANE_STATS_PREFIX)) {

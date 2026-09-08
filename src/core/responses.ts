@@ -2,21 +2,57 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ComponentType,
   MessageFlags,
-  type APIEmbed,
   type AttachmentBuilder,
-  type EmbedBuilder,
   type InteractionDeferReplyOptions,
   type InteractionEditReplyOptions,
   type InteractionReplyOptions,
+  type MessageActionRowComponentBuilder,
+  type TopLevelComponentData,
 } from "discord.js";
-import { buildResultEmbed, type ResultEmbedOptions } from "./embeds.js";
+import { buildResultEmbed, type ResultContainer, type ResultEmbedOptions } from "./embeds.js";
 import type { SlashCommandContext } from "./types.js";
 
 export { guildResultOptions } from "./embeds.js";
 
 function withEphemeral(ephemeral: boolean): Pick<InteractionReplyOptions, "flags"> | Record<string, never> {
   return ephemeral ? { flags: MessageFlags.Ephemeral } : {};
+}
+
+function componentsFlags(ephemeral: boolean): number {
+  return MessageFlags.IsComponentsV2 | (ephemeral ? MessageFlags.Ephemeral : 0);
+}
+
+/**
+ * A raw ping (role/user mention) as its own top-level text component, for the rare case a
+ * Components V2 message needs to actually notify someone — Components V2 messages can't carry
+ * `content`, and mentions inside a container's own text are suppressed by the `allowedMentions`
+ * most builders set, so the ping needs to live in its own unsuppressed component.
+ */
+export function pingComponent(mention: string): TopLevelComponentData {
+  return { type: ComponentType.TextDisplay, content: mention };
+}
+
+/**
+ * The plain payload shape `containerReply`/`containerEdit` return. Deliberately not typed as
+ * `InteractionReplyOptions`/`InteractionEditReplyOptions` (which is what those two are used to
+ * build in most call sites) — this is generic enough to also drop straight into a raw
+ * `channel.send(...)`/`message.edit(...)` call, which is why so many places reuse these two
+ * instead of hand-assembling `{ components, flags }` themselves. `flags` is a plain `number` so
+ * it structurally satisfies every one of Discord.js's differently-narrowed `flags` fields.
+ */
+export type ContainerPayload = {
+  components: TopLevelComponentData[];
+  flags: number;
+};
+
+function toTopLevel(
+  container: ResultContainer,
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): TopLevelComponentData[] {
+  const rows = components?.length ? components.map((row) => row.toJSON()) : undefined;
+  return [container.toContainerComponent(rows)];
 }
 
 export function deferReplyOptions(ephemeral = false): InteractionDeferReplyOptions {
@@ -35,49 +71,77 @@ export function resultReply(
   details?: string,
   ephemeral = false,
   options?: ResultEmbedOptions,
-  components?: ActionRowBuilder<ButtonBuilder>[],
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): InteractionReplyOptions {
-  return {
-    ...embedReply(buildResultEmbed(title, details, options), ephemeral),
-    ...(components?.length ? { components } : {}),
-  };
+  return containerReply(buildResultEmbed(title, details, options), ephemeral, components);
 }
 
 export function resultEdit(
   title: string,
   details?: string,
   options?: ResultEmbedOptions,
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): InteractionEditReplyOptions {
-  return embedEdit(buildResultEmbed(title, details, options));
+  return containerEdit(buildResultEmbed(title, details, options), components);
 }
 
-export function embedReply(embed: APIEmbed | EmbedBuilder, ephemeral = false): InteractionReplyOptions {
-  return { embeds: [embed], ...withEphemeral(ephemeral) };
+export function embedReply(
+  container: ResultContainer,
+  ephemeral = false,
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): InteractionReplyOptions {
+  return containerReply(container, ephemeral, components);
 }
 
-export function embedEdit(embed: APIEmbed | EmbedBuilder): InteractionEditReplyOptions {
-  return { embeds: [embed] };
+export function embedEdit(
+  container: ResultContainer,
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): InteractionEditReplyOptions {
+  return containerEdit(container, components);
+}
+
+export function containerReply(
+  container: ResultContainer,
+  ephemeral = false,
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): ContainerPayload {
+  return {
+    components: toTopLevel(container, components),
+    flags: componentsFlags(ephemeral),
+  };
+}
+
+export function containerEdit(
+  container: ResultContainer,
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): ContainerPayload {
+  return {
+    components: toTopLevel(container, components),
+    flags: MessageFlags.IsComponentsV2,
+  };
 }
 
 export function embedWithFilesReply(
-  embed: APIEmbed | EmbedBuilder,
+  container: ResultContainer,
   files: AttachmentBuilder[],
   ephemeral = false,
-  components?: ActionRowBuilder<ButtonBuilder>[],
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): InteractionReplyOptions {
   return {
-    embeds: [embed],
+    ...containerReply(container, ephemeral, components),
     files,
-    ...(components?.length ? { components } : {}),
-    ...withEphemeral(ephemeral),
   };
 }
 
 export function embedWithFilesEdit(
-  embed: APIEmbed | EmbedBuilder,
+  container: ResultContainer,
   files: AttachmentBuilder[],
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): InteractionEditReplyOptions {
-  return { embeds: [embed], files };
+  return {
+    ...containerEdit(container, components),
+    files,
+  };
 }
 
 export function contentReply(content: string, ephemeral = false): InteractionReplyOptions {

@@ -1,4 +1,4 @@
-import { AttachmentBuilder, ChannelType, SlashCommandBuilder, SlashCommandIntegerOption } from "discord.js";
+import { AttachmentBuilder, ChannelType, MessageFlags, SlashCommandBuilder, SlashCommandIntegerOption } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { deferReplyOptions, resultReply, slashResultOptions } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
@@ -98,7 +98,7 @@ export const statsCommands: SlashCommandDefinition[] = [
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
       const message = await buildStatsMessage(state, ctx.interaction.guild!, ctx.client, ctx.guildConfig, ctx.ephemeral);
       await ctx.interaction.editReply({
-        embeds: message.embeds,
+        flags: MessageFlags.IsComponentsV2,
         files: message.files,
         components: message.components,
       });

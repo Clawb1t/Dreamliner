@@ -1,11 +1,12 @@
 import {
   ActionRowBuilder,
-  EmbedBuilder,
   StringSelectMenuBuilder,
   type VoiceBasedChannel,
   type VoiceChannel,
 } from "discord.js";
 import type { CompanionChannelsConfig } from "../../../config/schemas/companion.js";
+import { baseEmbed, type ResultContainer } from "../../../core/embeds.js";
+import { containerReply } from "../../../core/responses.js";
 import { featureEnabled } from "./config.js";
 
 export const COMPANION_SETTINGS_ID = "companion:settings";
@@ -85,11 +86,10 @@ export function buildCompanionInterface(config: CompanionChannelsConfig) {
   return rows;
 }
 
-export function companionInterfaceEmbed(): EmbedBuilder {
-  return new EmbedBuilder()
+export function companionInterfaceEmbed(): ResultContainer {
+  return baseEmbed()
     .setTitle("Temporary channel controls")
-    .setDescription("Use the menus below to manage this room. You can also use `/companion` commands.")
-    .setColor(0x5662f5);
+    .setDescription("Use the menus below to manage this room. You can also use `/companion` commands.");
 }
 
 export async function postCompanionInterface(
@@ -97,12 +97,9 @@ export async function postCompanionInterface(
   config: CompanionChannelsConfig,
 ): Promise<string> {
   if (!("send" in channel)) return "";
-  const components = buildCompanionInterface(config);
-  if (!components.length) return "";
-  const message = await channel.send({
-    embeds: [companionInterfaceEmbed()],
-    components,
-  });
+  const rows = buildCompanionInterface(config);
+  if (!rows.length) return "";
+  const message = await channel.send(containerReply(companionInterfaceEmbed(), false, rows));
   return message.id;
 }
 

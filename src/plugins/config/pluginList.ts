@@ -2,19 +2,17 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  MessageFlags,
   PermissionFlagsBits,
-  type APIEmbed,
   type ButtonInteraction,
   type Client,
   type InteractionReplyOptions,
   type InteractionUpdateOptions,
 } from "discord.js";
 import type { EmojisConfig, GuildConfig } from "../../config/schemas/guild.js";
-import { baseEmbed, setEmbedAuthor, trimLines } from "../../core/embeds.js";
+import { baseEmbed, setEmbedAuthor, trimLines, type ResultContainer } from "../../core/embeds.js";
 import { resolveEmojiForContent } from "../../core/emoji.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
-import { resultReply, guildResultOptions } from "../../core/responses.js";
+import { containerEdit, containerReply, resultReply, guildResultOptions } from "../../core/responses.js";
 import { TOGGLEABLE_PLUGINS, formatPluginLabel } from "./toggleablePlugins.js";
 
 export const PLUGIN_LIST_PREFIX = "dl:plugin-list";
@@ -48,7 +46,7 @@ function buildPluginListEmbed(
   total: number,
   client: Client,
   emojis: EmojisConfig,
-): APIEmbed {
+): ResultContainer {
   const lines = pageEntries.map(({ value, enabled }) => {
     const icon = resolveEmojiForContent(enabled ? emojis.success : emojis.unchecked, client);
     return `${icon} **${formatPluginLabel(value)}** (\`${value}\`)`;
@@ -67,8 +65,7 @@ function buildPluginListEmbed(
     .setDescription(description)
     .setFooter({
       text: `Page ${page + 1}/${pageCount} · ${total} plugin${total === 1 ? "" : "s"} · Use /plugin toggle to change status`,
-    })
-    .toJSON();
+    });
 }
 
 function buildNavRow(page: number, pageCount: number): ActionRowBuilder<ButtonBuilder> {
@@ -90,7 +87,7 @@ function buildPluginListPayload(
   pageIndex: number,
   guildConfig: GuildConfig,
   client: Client,
-): { embeds: APIEmbed[]; components: ActionRowBuilder<ButtonBuilder>[] } {
+): { embed: ResultContainer; rows: ActionRowBuilder<ButtonBuilder>[] } {
   const entries = allPluginEntries(guildConfig);
   const pages = chunk(entries, PLUGINS_PER_PAGE);
   const pageCount = pages.length;
@@ -98,9 +95,9 @@ function buildPluginListPayload(
   const pageEntries = pages[page] ?? [];
 
   const embed = buildPluginListEmbed(pageEntries, page, pageCount, entries.length, client, guildConfig.emojis);
-  const components = pageCount > 1 ? [buildNavRow(page, pageCount)] : [];
+  const rows = pageCount > 1 ? [buildNavRow(page, pageCount)] : [];
 
-  return { embeds: [embed], components };
+  return { embed, rows };
 }
 
 export function buildPluginListMessage(
@@ -109,12 +106,8 @@ export function buildPluginListMessage(
   client: Client,
   ephemeral: boolean,
 ): InteractionReplyOptions {
-  const { embeds, components } = buildPluginListPayload(pageIndex, guildConfig, client);
-  return {
-    embeds,
-    components,
-    ...(ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
-  };
+  const { embed, rows } = buildPluginListPayload(pageIndex, guildConfig, client);
+  return containerReply(embed, ephemeral, rows);
 }
 
 function buildPluginListUpdate(
@@ -122,8 +115,8 @@ function buildPluginListUpdate(
   guildConfig: GuildConfig,
   client: Client,
 ): InteractionUpdateOptions {
-  const { embeds, components } = buildPluginListPayload(pageIndex, guildConfig, client);
-  return { embeds, components };
+  const { embed, rows } = buildPluginListPayload(pageIndex, guildConfig, client);
+  return containerEdit(embed, rows);
 }
 
 function parsePluginListPage(customId: string): number | null {

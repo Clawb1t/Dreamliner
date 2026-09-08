@@ -2,9 +2,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  MessageFlags,
   StringSelectMenuBuilder,
-  type APIEmbed,
   type ButtonInteraction,
   type Client,
   type InteractionReplyOptions,
@@ -16,7 +14,8 @@ import type { EmojisConfig } from "../../../config/schemas/guild.js";
 import { SUPPORT_URL, getSiteUrl, linkButton } from "../../../core/docsUrl.js";
 import { HELP_CATEGORIES, type HelpCategory } from "../../../core/helpCategories.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { baseEmbed, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
+import { baseEmbed, setEmbedAuthor, trimLines, type ResultContainer } from "../../../core/embeds.js";
+import { containerEdit, containerReply } from "../../../core/responses.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
 
 export const HELP_BUTTON_PREFIX = "dl:help";
@@ -83,7 +82,6 @@ const PLUGIN_DOCS: Record<string, string> = {
   suggestions: "plugins/suggestions",
   passport: "plugins/passport",
   economy: "plugins/economy",
-  anime: "plugins/anime",
   config: "configuration",
   starboard: "plugins/starboard",
   autorole: "plugins/autorole",
@@ -326,7 +324,7 @@ function docsPathFor(entries: CommandEntry[], fallback = ""): string {
   return (plugin && PLUGIN_DOCS[plugin]) || fallback;
 }
 
-function buildHomeEmbed(entries: CommandEntry[], client: Client, emojis?: EmojisConfig): APIEmbed {
+function buildHomeEmbed(entries: CommandEntry[], client: Client, emojis?: EmojisConfig): ResultContainer {
   const categoryNames = CATEGORIES.filter(
     (category) => category.id === "config" || categoryEntries(category, entries).length > 0,
   )
@@ -345,8 +343,7 @@ function buildHomeEmbed(entries: CommandEntry[], client: Client, emojis?: Emojis
         ${categoryNames}
       `),
     )
-    .setFooter({ text: `${entries.length} commands` })
-    .toJSON();
+    .setFooter({ text: `${entries.length} commands` });
 }
 
 const GROUP_LABELS: Record<string, string> = {
@@ -390,7 +387,7 @@ function buildCategoryEmbed(
   totalCommands: number,
   client: Client,
   emojis?: EmojisConfig,
-): APIEmbed {
+): ResultContainer {
   const groups = new Map<string, CommandEntry[]>();
   for (const entry of pageEntries) {
     const label = GROUP_LABELS[entry.plugin] ?? entry.plugin;
@@ -418,18 +415,20 @@ function buildCategoryEmbed(
     embed.setDescription(description);
   } else {
     embed.setDescription(category.blurb);
+    let fieldCount = 0;
     for (const [label, groupEntries] of groups) {
       const parts = splitFieldValue(groupEntries.map(commandLine));
-      parts.slice(0, 25 - (embed.data.fields?.length ?? 0)).forEach((value, index) => {
+      parts.slice(0, 25 - fieldCount).forEach((value, index) => {
         embed.addFields({ name: index === 0 ? label : `${label} (${index + 1})`, value });
+        fieldCount += 1;
       });
     }
   }
 
-  return embed.toJSON();
+  return embed;
 }
 
-function buildDetailEmbed(entry: CommandEntry, categoryLabel: string, client: Client, emojis?: EmojisConfig): APIEmbed {
+function buildDetailEmbed(entry: CommandEntry, categoryLabel: string, client: Client, emojis?: EmojisConfig): ResultContainer {
   const optionLines =
     entry.options.length > 0
       ? entry.options
@@ -449,8 +448,7 @@ function buildDetailEmbed(entry: CommandEntry, categoryLabel: string, client: Cl
         ${optionLines}
       `),
     )
-    .setFooter({ text: `${categoryLabel} · Use the menus below to keep browsing` })
-    .toJSON();
+    .setFooter({ text: `${categoryLabel} · Use the menus below to keep browsing` });
 }
 
 function buildSearchEmbed(
@@ -461,11 +459,10 @@ function buildSearchEmbed(
   total: number,
   client: Client,
   emojis?: EmojisConfig,
-): APIEmbed {
+): ResultContainer {
   if (total === 0) {
     return setEmbedAuthor(baseEmbed(), "Help search", client, { tone: "warning", emojis })
-      .setDescription(`No commands matched **${query}**.\n\nTry a shorter term, or open Help without a query to browse categories.`)
-      .toJSON();
+      .setDescription(`No commands matched **${query}**.\n\nTry a shorter term, or open Help without a query to browse categories.`);
   }
 
   const lines = pageEntries.map(commandLine);
@@ -475,8 +472,7 @@ function buildSearchEmbed(
     emoji: "<:icons_search:1544417406640726168>",
   })
     .setDescription(trimLines(`${lines.join("\n")}`))
-    .setFooter({ text: `${total} match${total === 1 ? "" : "es"} · Page ${page + 1}/${totalPages}` })
-    .toJSON();
+    .setFooter({ text: `${total} match${total === 1 ? "" : "es"} · Page ${page + 1}/${totalPages}` });
 }
 
 function buildNavButtons(view: HelpView, query: string, pageCount: number): ActionRowBuilder<ButtonBuilder> {
@@ -702,7 +698,7 @@ function buildHelpPayload(
   client: Client,
   emojis?: EmojisConfig,
   commands = getAllSlashCommands(),
-): { embeds: APIEmbed[]; components: ActionRowBuilder<MessageActionRowComponentBuilder>[] } {
+): { embed: ResultContainer; rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] } {
   const entries = allEntries(commands);
   const activeView: HelpView =
     view.kind === "home"
@@ -714,7 +710,7 @@ function buildHelpPayload(
           : view;
 
   const resolved = resolvePageEntries(activeView, entries, query);
-  let embed: APIEmbed;
+  let embed: ResultContainer;
 
   if (activeView.kind === "home") {
     embed = buildHomeEmbed(entries, client, emojis);
@@ -745,20 +741,20 @@ function buildHelpPayload(
     embed = buildHomeEmbed(entries, client, emojis);
   }
 
-  const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
+  const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
     buildNavButtons(activeView, query, resolved.pageCount),
     buildHelpLinkRow(docsBaseUrl, resolved.docsPath),
   ];
 
   if (!query) {
-    components.push(buildCategorySelect(activeView, query, entries));
+    rows.push(buildCategorySelect(activeView, query, entries));
   }
 
   const commandSelect = buildCommandSelect(activeView, query, resolved.pageEntries);
-  if (commandSelect) components.push(commandSelect);
+  if (commandSelect) rows.push(commandSelect);
 
   // Discord allows max 5 rows.
-  return { embeds: [embed], components: components.slice(0, 5) };
+  return { embed, rows: rows.slice(0, 5) };
 }
 
 export function buildHelpMessage(
@@ -771,12 +767,8 @@ export function buildHelpMessage(
   commands = getAllSlashCommands(),
 ): InteractionReplyOptions {
   const view: HelpView = query ? { kind: "search", page: Math.max(0, pageIndex) } : { kind: "home" };
-  const { embeds, components } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
-  return {
-    embeds,
-    components,
-    ...(ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
-  };
+  const { embed, rows } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
+  return containerReply(embed, ephemeral, rows);
 }
 
 export function buildHelpUpdate(
@@ -787,8 +779,8 @@ export function buildHelpUpdate(
   emojis?: EmojisConfig,
   commands = getAllSlashCommands(),
 ): InteractionUpdateOptions {
-  const { embeds, components } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
-  return { embeds, components };
+  const { embed, rows } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
+  return containerEdit(embed, rows);
 }
 
 function parseHelpInteraction(

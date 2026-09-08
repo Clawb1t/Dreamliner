@@ -9,7 +9,7 @@ import type { ConfigManager } from "../../../config/manager.js";
 import { zReviewsConfig } from "../../../config/schemas/reviews.js";
 import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
-import { resultReply, guildResultOptions } from "../../../core/responses.js";
+import { containerEdit, containerReply, resultReply, guildResultOptions } from "../../../core/responses.js";
 import { checkFeedbackEligibility } from "../../feedback/eligibility.js";
 import {
   createReview,
@@ -256,14 +256,14 @@ export async function handleReviewModalSubmit(
       if (existing?.channelId && existing.messageId && existing.channelId === channel.id) {
         const msg = await channel.messages.fetch(existing.messageId).catch(() => null);
         if (msg) {
-          await msg.edit({ embeds: [embed] });
+          await msg.edit(containerEdit(embed));
           review = (await updateReview(review.id, { channelId: channel.id, messageId: msg.id })) ?? review;
         } else {
-          const sent = await channel.send({ embeds: [embed] });
+          const sent = await channel.send(containerReply(embed));
           review = (await updateReview(review.id, { channelId: channel.id, messageId: sent.id })) ?? review;
         }
       } else {
-        const sent = await channel.send({ embeds: [embed] });
+        const sent = await channel.send(containerReply(embed));
         review = (await updateReview(review.id, { channelId: channel.id, messageId: sent.id })) ?? review;
       }
     } catch (error) {

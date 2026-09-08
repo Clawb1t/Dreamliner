@@ -1,10 +1,7 @@
-import { EmbedBuilder, type Client, type GuildMember } from "discord.js";
+import { ComponentType, SeparatorSpacingSize, type Client, type GuildMember } from "discord.js";
+import type { ComponentInContainerData, ContainerComponentData, TextDisplayComponentData } from "discord.js";
 import type { EmojisConfig, GuildConfig } from "../config/schemas/guild.js";
 import { resolveEmojiForContent } from "./emoji.js";
-
-/** Zero-width space for embed field name padding */
-export const EMPTY_EMBED = "\u200b";
-export const PRE_EMBED_PADDING = `${EMPTY_EMBED}\n`;
 
 const DEFAULT_EMOJIS: EmojisConfig = {
   success: "<:icons_Correct:1544417199798886530>",
@@ -17,7 +14,6 @@ const DEFAULT_EMOJIS: EmojisConfig = {
 export type EmbedTone = "success" | "neutral" | "error" | "warning" | "unchecked";
 
 export type ResultEmbedOptions = {
-  color?: number;
   imageURL?: string | null;
   client?: Client;
   tone?: EmbedTone;
@@ -75,35 +71,6 @@ export function inferEmbedTone(title: string): EmbedTone {
   return "neutral";
 }
 
-export function setEmbedAuthor(
-  embed: EmbedBuilder,
-  title: string,
-  client: Client,
-  subjectOrOptions?: string | null | EmbedHeaderOptions,
-): EmbedBuilder {
-  let thumbnailURL: string | null | undefined;
-  let tone: EmbedTone | undefined;
-  let emoji: string | undefined;
-  let emojis = DEFAULT_EMOJIS;
-
-  if (typeof subjectOrOptions === "string" || subjectOrOptions === null) {
-    thumbnailURL = subjectOrOptions ?? undefined;
-  } else if (subjectOrOptions) {
-    thumbnailURL = subjectOrOptions.thumbnailURL;
-    tone = subjectOrOptions.tone;
-    emoji = subjectOrOptions.emoji;
-    emojis = resolveEmojis(subjectOrOptions.emojis);
-  }
-
-  const resolvedTone = tone ?? inferEmbedTone(title);
-  const prefix = resolveEmojiForContent(emoji ?? resolveToneEmoji(resolvedTone, emojis, client), client);
-
-  embed.setAuthor({ name: "Dreamliner", iconURL: botAvatarURL(client) });
-  embed.setTitle(`${prefix} ${title}`);
-  if (thumbnailURL) embed.setThumbnail(thumbnailURL);
-  return embed;
-}
-
 export function trimLines(text: string): string {
   return text
     .split("\n")
@@ -137,48 +104,181 @@ export function codeBlock(content: string, lang = ""): string {
   return `\`\`\`${lang}\n${content}\n\`\`\``;
 }
 
-export function embedField(name: string, value: string, inline = false) {
-  return { name: PRE_EMBED_PADDING + name, value: trimLines(value), inline };
+export type ContainerField = { name: string; value: string; inline?: boolean };
+
+export function embedField(name: string, value: string, inline = false): ContainerField {
+  return { name, value: trimLines(value), inline };
 }
 
-/** Dreamliner brand accent used for embeds, charts, and leaderboard UI. */
+/** Dreamliner brand accent — no longer applied to command-response containers (see ResultContainer), kept for the handful of dashboard-authored embeds that still use a real Discord embed. */
 export const DREAMLINER_ACCENT = 0x5865f2;
 export const DREAMLINER_ACCENT_HEX = "#5865F2";
 
-export function baseEmbed(): EmbedBuilder {
-  return new EmbedBuilder().setColor(DREAMLINER_ACCENT);
+/**
+ * Small, subtle, colorless Components V2 container — the bot's standard shape for command
+ * responses, mirroring `core/logging/container.ts`: a bold title line, optional thumbnail,
+ * optional description/fields, no accent color and no author block.
+ */
+export class ResultContainer {
+  private titleText = "";
+  private descriptionText?: string;
+  private fieldList: ContainerField[] = [];
+  private thumbnailURL?: string | null;
+  private imageURLs: string[] = [];
+  private footerText?: string;
+
+  setTitle(title: string): this {
+    this.titleText = title;
+    return this;
+  }
+
+  setDescription(text: string | null | undefined): this {
+    this.descriptionText = text ?? undefined;
+    return this;
+  }
+
+  addFields(...fields: (ContainerField | ContainerField[])[]): this {
+    for (const entry of fields) {
+      if (Array.isArray(entry)) this.fieldList.push(...entry);
+      else this.fieldList.push(entry);
+    }
+    return this;
+  }
+
+  setThumbnail(url: string | null | undefined): this {
+    this.thumbnailURL = url;
+    return this;
+  }
+
+  setImage(url: string | null | undefined): this {
+    this.imageURLs = url ? [url] : [];
+    return this;
+  }
+
+  /** Multiple large images shown side by side (e.g. an avatar next to a banner). */
+  setImages(urls: (string | null | undefined)[]): this {
+    this.imageURLs = urls.filter((url): url is string => Boolean(url));
+    return this;
+  }
+
+  setFooter(footer: { text: string; iconURL?: string } | null | undefined): this {
+    this.footerText = footer?.text;
+    return this;
+  }
+
+  private fieldsText(): string | undefined {
+    if (!this.fieldList.length) return undefined;
+    return this.fieldList.map((f) => `**${f.name}**\n${f.value}`).join("\n\n");
+  }
+
+  /**
+   * Build the single `Container` component this builder represents. `actionRows` (already
+   * `.toJSON()`'d) are appended as the container's own final children — buttons/selects live
+   * inside the container they act on, not as separate top-level rows below it.
+   */
+  toContainerComponent(actionRows?: ComponentInContainerData[]): ContainerComponentData {
+    const children: ComponentInContainerData[] = [];
+    const title = this.titleText ? `**${this.titleText}**` : "";
+
+    if (this.thumbnailURL) {
+      const headerParts: TextDisplayComponentData[] = [];
+      if (title) headerParts.push({ type: ComponentType.TextDisplay, content: title });
+      if (this.descriptionText) headerParts.push({ type: ComponentType.TextDisplay, content: this.descriptionText });
+      if (!headerParts.length) headerParts.push({ type: ComponentType.TextDisplay, content: "​" });
+      children.push({
+        type: ComponentType.Section,
+        components: headerParts,
+        accessory: { type: ComponentType.Thumbnail, media: { url: this.thumbnailURL } },
+      });
+    } else {
+      if (title) children.push({ type: ComponentType.TextDisplay, content: title });
+      if (this.descriptionText) children.push({ type: ComponentType.TextDisplay, content: this.descriptionText });
+    }
+
+    const fieldsText = this.fieldsText();
+    if (fieldsText) {
+      children.push({ type: ComponentType.Separator, divider: true, spacing: SeparatorSpacingSize.Small });
+      children.push({ type: ComponentType.TextDisplay, content: fieldsText });
+    }
+
+    if (this.imageURLs.length) {
+      children.push({
+        type: ComponentType.MediaGallery,
+        items: this.imageURLs.map((url) => ({ media: { url } })),
+      });
+    }
+
+    if (this.footerText) {
+      children.push({ type: ComponentType.Separator, divider: false, spacing: SeparatorSpacingSize.Small });
+      children.push({ type: ComponentType.TextDisplay, content: `-# ${this.footerText}` });
+    }
+
+    if (actionRows?.length) {
+      children.push(...actionRows);
+    }
+
+    return { type: ComponentType.Container, components: children };
+  }
 }
 
-/** Dreamliner-style action, error, and status embeds */
+/** Fresh, empty result container — the Components V2 replacement for the old `baseEmbed()`. */
+export function baseEmbed(): ResultContainer {
+  return new ResultContainer();
+}
+
+/** Sets the container's title line (with tone emoji) and optional thumbnail. No author block — Components V2 containers don't have one. */
+export function setEmbedAuthor(
+  container: ResultContainer,
+  title: string,
+  client: Client | undefined,
+  subjectOrOptions?: string | null | EmbedHeaderOptions,
+): ResultContainer {
+  let thumbnailURL: string | null | undefined;
+  let tone: EmbedTone | undefined;
+  let emoji: string | undefined;
+  let emojis = DEFAULT_EMOJIS;
+
+  if (typeof subjectOrOptions === "string" || subjectOrOptions === null) {
+    thumbnailURL = subjectOrOptions ?? undefined;
+  } else if (subjectOrOptions) {
+    thumbnailURL = subjectOrOptions.thumbnailURL;
+    tone = subjectOrOptions.tone;
+    emoji = subjectOrOptions.emoji;
+    emojis = resolveEmojis(subjectOrOptions.emojis);
+  }
+
+  const resolvedTone = tone ?? inferEmbedTone(title);
+  const prefix = resolveEmojiForContent(emoji ?? resolveToneEmoji(resolvedTone, emojis, client), client);
+
+  container.setTitle(`${prefix} ${title}`);
+  if (thumbnailURL) container.setThumbnail(thumbnailURL);
+  return container;
+}
+
+/**
+ * Dreamliner-style action, error, and status containers — the bot's generic command
+ * acknowledgement. Deliberately minimal: an emoji and a line of text, no bold heading and no
+ * "Information" label. `title` is a short category (e.g. "Not found") that's usually redundant
+ * once `details` is read, so it's only shown when there's no `details` to fall back on.
+ */
 export function buildResultEmbed(
   title: string,
   details?: string,
   options?: ResultEmbedOptions,
-): EmbedBuilder {
-  const embed = baseEmbed();
-  if (options?.color) embed.setColor(options.color);
-  if (options?.client) {
-    setEmbedAuthor(embed, title, options.client, {
-      tone: options.tone ?? inferEmbedTone(title),
-      emoji: options.emoji,
-      emojis: options.emojis,
-    });
-  } else {
-    const emojis = resolveEmojis(options?.emojis);
-    const tone = options?.tone ?? inferEmbedTone(title);
-    const prefix = resolveEmojiForContent(
-      options?.emoji ?? resolveToneEmoji(tone, emojis, options?.client),
-      options?.client,
-    );
-    embed.setTitle(`${prefix} ${title}`);
-  }
-  if (details) {
-    embed.addFields(embedField("Information", details));
-  }
+): ResultContainer {
+  const container = baseEmbed();
+  const emojis = resolveEmojis(options?.emojis);
+  const tone = options?.tone ?? inferEmbedTone(title);
+  const prefix = resolveEmojiForContent(
+    options?.emoji ?? resolveToneEmoji(tone, emojis, options?.client),
+    options?.client,
+  );
+  const message = details?.trim() || title;
+  container.setDescription(`${prefix} ${message}`);
   if (options?.imageURL) {
-    embed.setImage(options.imageURL);
+    container.setImage(options.imageURL);
   }
-  return embed;
+  return container;
 }
 
 /** <150ms good, <400ms medium, otherwise bad — used anywhere a live ping/latency number is shown. */
@@ -188,10 +288,9 @@ export function pingQualityEmoji(ms: number): string {
   return "<:icons_badping:1544417484717686884>";
 }
 
-export function buildPingEmbed(roundtrip: number, ws: number, client: Client, emojis?: EmojisConfig): EmbedBuilder {
-  return setEmbedAuthor(baseEmbed(), "Pong!", client, { tone: "success", emojis })
-    .setDescription(`${pingQualityEmoji(ws)} **${ws}ms**`)
-    .setFooter({ text: `Roundtrip is ${roundtrip}ms` });
+export function buildPingEmbed(roundtrip: number, ws: number, _client: Client, _emojis?: EmojisConfig): ResultContainer {
+  return baseEmbed()
+    .setDescription(`${pingQualityEmoji(ws)} **${ws}ms** · roundtrip **${roundtrip}ms**`);
 }
 
 export function memberAccentColor(member: GuildMember | null): number | undefined {
@@ -223,7 +322,7 @@ export function guildResultOptions(
   return { client, emojis: guildConfig.emojis, ...extra };
 }
 
-/** Embed header options for slash command replies (uses guild emoji config). */
+/** Container header options for slash command replies (uses guild emoji config). */
 export function commandHeader(
   guildConfig: GuildConfig,
   opts?: Omit<EmbedHeaderOptions, "emojis">,

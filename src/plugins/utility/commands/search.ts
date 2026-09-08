@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { contentEdit, resultEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
+import { contentEdit, embedEdit, resultEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
 import { requireUtilityPermission, BanMembers, requireDiscordPerm } from "../functions/commandHelpers.js";
 import { searchMembers, searchBans, formatSearchPage, formatBanSearchPage } from "../functions/search.js";
 import { buildUserInfoEmbed } from "../functions/info.js";
@@ -57,10 +57,9 @@ export const searchCommands: SlashCommandDefinition[] = [
       const infoOnSingle = auth.pluginConfig.info_on_single_result !== false;
       if (infoOnSingle && result.total === 1 && result.members[0]) {
         const m = result.members[0];
-        await interaction.editReply({
-          content: "Only one result:",
-          embeds: [await buildUserInfoEmbed(m.user, m, guildConfig, interaction.guildId!, ctx.client)],
-        });
+        await interaction.editReply(
+          embedEdit(await buildUserInfoEmbed(m.user, m, guildConfig, interaction.guildId!, ctx.client)),
+        );
         return;
       }
 

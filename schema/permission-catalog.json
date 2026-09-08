@@ -1,26 +1,5 @@
 [
   {
-    "plugin": "anime",
-    "pluginName": "Anime",
-    "pluginDescription": "Random neko images from Nekos.best, with a personal saved collection.",
-    "entries": [
-      {
-        "plugin": "anime",
-        "permission": "can_neko",
-        "grantKey": "anime.can_neko",
-        "title": "Neko",
-        "description": "Allow members to fetch a random neko image with /anime neko."
-      },
-      {
-        "plugin": "anime",
-        "permission": "can_saved",
-        "grantKey": "anime.can_saved",
-        "title": "Saved",
-        "description": "Allow members to browse saved neko images with /anime saved."
-      }
-    ]
-  },
-  {
     "plugin": "autodelete",
     "pluginName": "Autodelete",
     "pluginDescription": "Dashboard-managed auto-clear: messages in a channel are deleted after a delay you set.",

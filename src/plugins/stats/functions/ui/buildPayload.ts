@@ -4,7 +4,6 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
-  type APIEmbed,
   type Client,
   type Guild,
   type MessageActionRowComponentBuilder,
@@ -12,7 +11,7 @@ import {
 import type { GuildConfig } from "../../../../config/schemas/guild.js";
 import { getGlobalLeaderboardUrl } from "../../../../core/docsUrl.js";
 import { publicLeaderboardUrl } from "../../../../core/publicLeaderboard.js";
-import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../../../core/embeds.js";
+import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines, type ResultContainer } from "../../../../core/embeds.js";
 import { getGuildMessageCount, getGlobalMessageCount } from "../../../utility/functions/messageCounts.js";
 import {
   formatStatsWindowLabel,
@@ -335,7 +334,7 @@ export async function buildStatsPayload(
   guild: Guild,
   client: Client,
   guildConfig: GuildConfig,
-): Promise<{ embeds: APIEmbed[]; files: AttachmentBuilder[]; components: ActionRowBuilder<MessageActionRowComponentBuilder>[] }> {
+): Promise<{ embed: ResultContainer; files: AttachmentBuilder[]; rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] }> {
   const cat = categoryDef(state.scope, state.category);
   const chartPage = Math.min(Math.max(0, state.chartPage), Math.max(0, cat.charts - 1));
   const normalized: StatsState = { ...state, chartPage };
@@ -382,15 +381,15 @@ export async function buildStatsPayload(
 
   if (chartBuffer) embed.setImage("attachment://chart.png");
 
-  const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
+  const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
     buildNavRow(normalized),
     buildCategorySelect(normalized),
     buildDaysSelect(normalized),
   ];
 
   return {
-    embeds: [embed.toJSON()],
+    embed,
     files: chartBuffer ? [new AttachmentBuilder(chartBuffer, { name: "chart.png" })] : [],
-    components,
+    rows,
   };
 }

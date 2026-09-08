@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { buildResultEmbed, setEmbedAuthor, baseEmbed, embedField } from "../../../core/embeds.js";
+import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parseBotAvatarCustomId } from "../constants.js";
 import {
@@ -92,20 +93,19 @@ async function notifyRequester(
     if (original) {
       await original
         .edit({
-          content: null,
-          embeds: [embed],
+          ...containerEdit(embed),
           files: outcome === "approved" ? files : [],
-          components: [],
         })
         .catch(() => null);
       return;
     }
   }
 
+  const payload = containerReply(embed);
   await channel
     .send({
-      content: `<@${request.requesterId}>`,
-      embeds: [embed],
+      ...payload,
+      components: [pingComponent(`<@${request.requesterId}>`), ...payload.components!],
       files,
       allowedMentions: { users: [request.requesterId] },
     })
@@ -159,8 +159,7 @@ async function finalizeReviewMessage(
     .setImage(brandImageAttachmentUrl(request.kind));
 
   const payload = {
-    embeds: [embed],
-    components: [disabled],
+    ...containerReply(embed, false, [disabled]),
     files: [brandImageAttachment(Buffer.from(request.avatarPng, "base64"), request.kind)],
   };
 

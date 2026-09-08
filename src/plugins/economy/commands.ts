@@ -162,7 +162,8 @@ export const economyCommands: SlashCommandDefinition[] = [
         which === "global" ? formatGlobal(getGlobalBalance(target.id)) : formatServer(getServerBalance(guildId, target.id), config.server);
 
       const embed = baseEmbed()
-        .setAuthor({ name: target.displayName, iconURL: target.displayAvatarURL() })
+        .setTitle(target.displayName)
+        .setThumbnail(target.displayAvatarURL())
         .setDescription(description)
         .setFooter(bankFooter(which, i.guild!, ctx.client));
 
@@ -225,7 +226,8 @@ export const economyCommands: SlashCommandDefinition[] = [
       const member = i.member as GuildMember | null;
       const bank = bankFooter(which, i.guild!, ctx.client);
       const embed = baseEmbed()
-        .setAuthor({ name: member?.displayName ?? i.user.username, iconURL: i.user.displayAvatarURL() })
+        .setTitle(member?.displayName ?? i.user.username)
+        .setThumbnail(i.user.displayAvatarURL())
         .setDescription(description)
         .setFooter({ text: `${bank.text}  ✧  🔥 streak: ${streak}`, iconURL: bank.iconURL });
 
@@ -359,17 +361,18 @@ export const economyCommands: SlashCommandDefinition[] = [
         const result = exchangeServerForGlobal(guild.id, i.user.id, amount, rate);
         const member = i.member as GuildMember | null;
         const embed = baseEmbed()
-          .setAuthor({ name: member?.displayName ?? i.user.username, iconURL: i.user.displayAvatarURL() })
+          .setTitle(member?.displayName ?? i.user.username)
+          .setThumbnail(i.user.displayAvatarURL())
           .setDescription(
             `<:icons_swap:1544418225503084695> Exchanged ${formatServer(result.serverAmount, config.server)} for ${formatGlobal(result.globalAmount)}`,
           )
           .addFields(
-            { name: "Exchange rate", value: `\`${formatExchangeRate(rate)}\` (${stock.symbol} @ ${formatCoinAmount(stock.price)})`, inline: false },
-            { name: `New ${config.server.currency_name} balance`, value: formatServer(result.serverBalance, config.server), inline: true },
-            { name: "New global balance", value: formatGlobal(result.globalBalance), inline: true },
+            { name: "Exchange rate", value: `\`${formatExchangeRate(rate)}\` (${stock.symbol} @ ${formatCoinAmount(stock.price)})` },
+            { name: `New ${config.server.currency_name} balance`, value: formatServer(result.serverBalance, config.server) },
+            { name: "New global balance", value: formatGlobal(result.globalBalance) },
           )
           .setFooter({ text: "Dreamliner Exchange" });
-        await i.reply({ ...embedReply(embed, ctx.ephemeral), components: [exchangeLinkRow()] });
+        await i.reply(embedReply(embed, ctx.ephemeral, [exchangeLinkRow()]));
       } catch (err) {
         if (err instanceof InsufficientFundsError) {
           await i.reply(
@@ -468,10 +471,11 @@ export const economyCommands: SlashCommandDefinition[] = [
             `**${idx + 1}.** \`${s.symbol}\` ${s.guildName} - ${formatCoinAmount(s.price)}  ${stockChangeArrow(s.changeAmount)} ${formatStockChange(s.changeAmount, s.changePct)}`,
         );
         const embed = baseEmbed()
-          .setAuthor({ name: "Dreamliner Exchange - Top stocks", iconURL: ctx.client.user?.displayAvatarURL() })
+          .setTitle("Dreamliner Exchange - Top stocks")
+          .setThumbnail(ctx.client.user?.displayAvatarURL())
           .setDescription(lines.join("\n") || "No stocks listed yet.")
           .setFooter({ text: "Dreamliner Exchange" });
-        await i.reply({ ...embedReply(embed, ctx.ephemeral), components: [exchangeLinkRow()] });
+        await i.reply(embedReply(embed, ctx.ephemeral, [exchangeLinkRow()]));
         return;
       }
 
@@ -485,14 +489,15 @@ export const economyCommands: SlashCommandDefinition[] = [
           (p) => `\`${p.stock.symbol}\` **${p.shares}** shares - ${formatCoinAmount(p.marketValue)}  ${stockChangeArrow(p.pl)} ${formatStockChange(p.pl, p.plPct)}`,
         );
         const embed = baseEmbed()
-          .setAuthor({ name: `${target.username}'s portfolio`, iconURL: target.displayAvatarURL() })
+          .setTitle(`${target.username}'s portfolio`)
+          .setThumbnail(target.displayAvatarURL())
           .setDescription(lines.join("\n") || "No positions yet.")
           .addFields(
-            { name: "Portfolio value", value: formatCoinAmount(portfolio.totalValue), inline: true },
-            { name: "Cash balance", value: formatCoinAmount(portfolio.balance), inline: true },
+            { name: "Portfolio value", value: formatCoinAmount(portfolio.totalValue) },
+            { name: "Cash balance", value: formatCoinAmount(portfolio.balance) },
           )
           .setFooter({ text: "Dreamliner Exchange" });
-        await i.reply({ ...embedReply(embed, ctx.ephemeral), components: [exchangeLinkRow()] });
+        await i.reply(embedReply(embed, ctx.ephemeral, [exchangeLinkRow()]));
         return;
       }
 
@@ -623,10 +628,8 @@ export const economyCommands: SlashCommandDefinition[] = [
 
         const { embed, row, files } = buildInventoryPage(cards[0], { index: 0, total: cards.length, viewerId: i.user.id, targetUserId: target.id });
         const reply: InteractionReplyOptions = {
-          embeds: [embed],
-          components: [row],
+          ...embedReply(embed, ctx.ephemeral, [row]),
           ...(files.length ? { files } : {}),
-          ...(ctx.ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
         };
         await i.reply(reply);
         return;
@@ -646,12 +649,7 @@ export const economyCommands: SlashCommandDefinition[] = [
           new ButtonBuilder().setCustomId(`${PLANE_PACK_PREFIX}cancel:${i.user.id}`).setLabel("Cancel").setStyle(ButtonStyle.Secondary),
         );
         const embed = baseEmbed().setDescription(`Buy a card pack for ${packPrice > 0 ? formatCoinAmount(packPrice) : "free"}?`);
-        const reply: InteractionReplyOptions = {
-          embeds: [embed],
-          components: [row],
-          ...(ctx.ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
-        };
-        await i.reply(reply);
+        await i.reply(embedReply(embed, ctx.ephemeral, [row]));
         return;
       }
 
@@ -689,7 +687,8 @@ export const economyCommands: SlashCommandDefinition[] = [
 
         const titleParts = [rarity ? RARITY_META[rarity].label : null, cardType ? CARD_TYPE_META[cardType].label : null].filter(Boolean);
         const embed = baseEmbed()
-          .setAuthor({ name: titleParts.length ? `${titleParts.join(" ")} cards` : "Card catalog", iconURL: ctx.client.user?.displayAvatarURL() })
+          .setTitle(titleParts.length ? `${titleParts.join(" ")} cards` : "Card catalog")
+          .setThumbnail(ctx.client.user?.displayAvatarURL())
           .setDescription(lines.join("\n") || "No cards are available yet.")
           .setFooter({ text: `${cards.length} card${cards.length === 1 ? "" : "s"} · use /planes card view <plane> for details` });
         await i.reply(embedReply(embed, ctx.ephemeral));

@@ -1,4 +1,4 @@
-import { EmbedBuilder, type Client, type GuildMember } from "discord.js";
+import type { Client, GuildMember } from "discord.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { scoreWatchdogMember, type WatchdogTier } from "../../../bridge/watchdogScoring.js";
 import {
@@ -8,17 +8,8 @@ import {
   embedField,
   setEmbedAuthor,
   trimLines,
+  type ResultContainer,
 } from "../../../core/embeds.js";
-
-// Same tier colors as the dashboard's Watchdog page (globals.css --wd-danger/
-// --wd-warn/--wd-watch, plus the shared success green) so the two stay
-// visually consistent.
-const TIER_COLOR: Record<WatchdogTier, number> = {
-  critical: 0xda3e44,
-  elevated: 0xea580c,
-  watch: 0xffc04e,
-  low: 0x12c46a,
-};
 
 const TIER_LABEL: Record<WatchdogTier, string> = {
   critical: "Critical",
@@ -32,7 +23,7 @@ export async function buildWatchdogEmbed(
   member: GuildMember,
   guildConfig: GuildConfig,
   client: Client,
-): Promise<EmbedBuilder> {
+): Promise<ResultContainer> {
   const result = await scoreWatchdogMember(member);
 
   const embed = setEmbedAuthor(
@@ -44,7 +35,6 @@ export async function buildWatchdogEmbed(
       emoji: "<:icons_user_mod:1544418270030074030>",
     }),
   );
-  embed.setColor(TIER_COLOR[result.tier]);
 
   embed.addFields(
     embedField(

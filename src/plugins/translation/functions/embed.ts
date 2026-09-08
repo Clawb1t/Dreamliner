@@ -10,6 +10,7 @@ import {
   type WebhookMessageCreateOptions,
 } from "discord.js";
 import { baseEmbed, commandHeader, setEmbedAuthor } from "../../../core/embeds.js";
+import { containerEdit } from "../../../core/responses.js";
 import { getLanguage } from "../../../core/languages.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 
@@ -94,16 +95,12 @@ export function buildTranslationPayload(
     sourceMessage?: Message | null;
   },
 ) {
-  return {
-    embeds: [
-      buildTranslationEmbed(client, guildConfig, {
-        translated: options.translated,
-        from: options.from,
-        to: options.to,
-      }),
-    ],
-    components: buildTranslationComponents(options),
-  };
+  const embed = buildTranslationEmbed(client, guildConfig, {
+    translated: options.translated,
+    from: options.from,
+    to: options.to,
+  });
+  return containerEdit(embed, buildTranslationComponents(options));
 }
 
 /** Fallback bot reply when webhooks are unavailable. */

@@ -3,7 +3,7 @@ import {
   type Client,
   type GuildTextBasedChannel,
 } from "discord.js";
-import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
+import { baseEmbed, discordTs, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import type { Review } from "./store.js";
 
 export function starsForRating(rating: number): string {
@@ -29,8 +29,7 @@ export function buildReviewEmbed(options: {
       embedField("Reviewer", review.anonymous ? "Anonymous" : `<@${review.userId}>`, true),
       embedField("ID", `#${review.id}`, true),
     )
-    .setFooter({ text: publicAuthor })
-    .setTimestamp(review.updatedAt);
+    .setFooter({ text: `${publicAuthor} · ${discordTs(review.updatedAt)}` });
 
   if (!review.anonymous && authorAvatar) {
     embed.setThumbnail(authorAvatar);

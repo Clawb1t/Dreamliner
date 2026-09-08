@@ -144,10 +144,6 @@ export const PERMISSION_TARGETS: PermissionTarget[] = [
   { key: "planes buy_pack", label: "/planes pack buy", plugin: "economy", permission: "can_buy_pack" },
   { key: "planes give", label: "/planes card give", plugin: "economy", permission: "can_give" },
   { key: "planes sell", label: "Sell button (pack reveal / hangar)", plugin: "economy", permission: "can_sell" },
-
-  // Anime
-  { key: "anime neko", label: "/anime neko", plugin: "anime", permission: "can_neko" },
-  { key: "anime saved", label: "/anime saved", plugin: "anime", permission: "can_saved" },
 ];
 
 const byKey = new Map(PERMISSION_TARGETS.map((target) => [target.key, target]));

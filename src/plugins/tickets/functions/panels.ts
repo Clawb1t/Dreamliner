@@ -18,7 +18,7 @@ import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { guildResultOptions, resultEdit, resultReply } from "../../../core/responses.js";
+import { containerReply, guildResultOptions, resultEdit, resultReply } from "../../../core/responses.js";
 import { renderTemplate } from "../../../core/templates.js";
 import { buildEmbed } from "../../persist/functions/messageBuilder.js";
 import {
@@ -253,7 +253,7 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       await performClaim(interaction.client, guildConfig, config, ticket, member.id);
       const embed = buildTicketClaimedEmbed(ticket, member.id, interaction.client, guildConfig.emojis);
       await interaction.message.edit({ components: [ticketActionRow(ticket.id, true)] }).catch(() => null);
-      if ("send" in interaction.channel!) await (interaction.channel as import("discord.js").TextChannel).send({ embeds: [embed] }).catch(() => null);
+      if ("send" in interaction.channel!) await (interaction.channel as import("discord.js").TextChannel).send(containerReply(embed)).catch(() => null);
     } else {
       await performUnclaim(ticket);
       await interaction.message.edit({ components: [ticketActionRow(ticket.id, false)] }).catch(() => null);
@@ -282,19 +282,19 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       new ButtonBuilder().setCustomId(ticketConfirmCloseId(ticket.id)).setLabel("Confirm close").setStyle(ButtonStyle.Danger),
       new ButtonBuilder().setCustomId(ticketCancelCloseId(ticket.id)).setLabel("Cancel").setStyle(ButtonStyle.Secondary),
     );
-    await interaction.reply({ ...resultReply("Close this ticket?", "This will archive the ticket and generate a transcript.", true, guildResultOptions(interaction.client, guildConfig)), components: [row] });
+    await interaction.reply(resultReply("Close this ticket?", "This will archive the ticket and generate a transcript.", true, guildResultOptions(interaction.client, guildConfig), [row]));
     return true;
   }
 
   if (parsed.kind === "closeno") {
-    await interaction.update({ ...resultEdit("Cancelled", "This ticket stays open.", guildResultOptions(interaction.client, guildConfig)), components: [] });
+    await interaction.update(resultEdit("Cancelled", "This ticket stays open.", guildResultOptions(interaction.client, guildConfig)));
     return true;
   }
 
   if (parsed.kind === "closeyes") {
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
-      await interaction.update({ ...resultEdit("Not found", "That ticket no longer exists.", guildResultOptions(interaction.client, guildConfig, { tone: "error" })), components: [] });
+      await interaction.update(resultEdit("Not found", "That ticket no longer exists.", guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
@@ -317,7 +317,7 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       await interaction.showModal(modal);
       return true;
     }
-    await interaction.update({ ...resultEdit("Closing...", "Generating transcript and closing the ticket.", guildResultOptions(interaction.client, guildConfig)), components: [] });
+    await interaction.update(resultEdit("Closing...", "Generating transcript and closing the ticket.", guildResultOptions(interaction.client, guildConfig)));
     await performClose(interaction.client, interaction.guild, guildConfig, config, category, ticket, member.id, null);
     return true;
   }

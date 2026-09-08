@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import type { Message, TextBasedChannel, User } from "discord.js";
 import { getDb } from "../../../db/client.js";
 import { ticketTranscripts } from "../../../db/schema.js";
+import { containerReply } from "../../../core/responses.js";
 import { buildTranscriptEmbed } from "./embeds.js";
 import type { TicketRecord } from "./tickets.js";
 
@@ -98,7 +99,7 @@ export async function dmTranscript(
   const guild = await user.client.guilds.fetch(ticket.guildId).catch(() => null);
   const embed = buildTranscriptEmbed(ticket, guild?.name ?? "the server", messages.length, user.client, undefined, guild?.iconURL({ size: 64 }));
   try {
-    await user.send({ embeds: [embed], files: [file] });
+    await user.send({ ...containerReply(embed), files: [file] });
     return true;
   } catch {
     return false;
@@ -122,7 +123,7 @@ export async function postTranscriptLog(
   const guild = "guild" in channel ? (channel.guild as import("discord.js").Guild) : null;
   const embed = buildTranscriptEmbed(ticket, guild?.name ?? "this server", messages.length, client, undefined, guild?.iconURL({ size: 64 }));
   await (channel as import("discord.js").TextChannel)
-    .send({ embeds: [embed], files: [file] })
+    .send({ ...containerReply(embed), files: [file] })
     .catch(() => null);
   return true;
 }

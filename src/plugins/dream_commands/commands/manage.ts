@@ -50,15 +50,15 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
 
       if (sub === "info") {
         const url = getGuildCommandsDashboardUrl(guildId);
-        await ctx.interaction.reply({
-          ...resultReply(
+        await ctx.interaction.reply(
+          resultReply(
             "Build a custom command",
             "Custom commands are built on the dashboard: a name, a description, and a reply, either a message or an embed. Open the dashboard's Commands section for this server to get started.",
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_cmd:1544418082867384360>" }),
+            [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open commands dashboard", url))],
           ),
-          components: [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open commands dashboard", url))],
-        });
+        );
         return;
       }
 
@@ -168,10 +168,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           commandHeader(ctx.guildConfig, { emoji: "<:icons_list:1544417562325164173>" }),
         ).setDescription(trimLines(lines.join("\n")));
 
-        await ctx.interaction.reply({
-          ...embedReply(embed, ctx.ephemeral),
-          components: [listStatRow(rows.length)],
-        });
+        await ctx.interaction.reply(embedReply(embed, ctx.ephemeral, [listStatRow(rows.length)]));
       }
     },
   },

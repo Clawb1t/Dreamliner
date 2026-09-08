@@ -1,5 +1,4 @@
-import { EmbedBuilder } from "discord.js";
-import { baseEmbed, discordTs, embedField, setEmbedAuthor } from "../../../core/embeds.js";
+import { baseEmbed, discordTs, embedField, setEmbedAuthor, type ResultContainer } from "../../../core/embeds.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
 import type { Client, Guild } from "discord.js";
 import type { TicketCategory } from "../../../config/schemas/tickets.js";
@@ -29,7 +28,7 @@ export function buildTicketOpenedEmbed(
   guild: Guild,
   client: Client,
   emojis?: EmojisConfig,
-): EmbedBuilder {
+): ResultContainer {
   const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number}`, client, {
     tone: "success",
     emojis,
@@ -50,7 +49,7 @@ export function buildTicketOpenedEmbed(
   return embed;
 }
 
-export function buildTicketClaimedEmbed(ticket: TicketRecord, staffId: string, client: Client, emojis?: EmojisConfig): EmbedBuilder {
+export function buildTicketClaimedEmbed(ticket: TicketRecord, staffId: string, client: Client, emojis?: EmojisConfig): ResultContainer {
   return setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} claimed`, client, {
     tone: "neutral",
     emojis,
@@ -67,7 +66,7 @@ export function buildTranscriptEmbed(
   client: Client,
   emojis?: EmojisConfig,
   guildIconURL?: string | null,
-): EmbedBuilder {
+): ResultContainer {
   const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} transcript`, client, {
     tone: "neutral",
     emojis,
@@ -88,7 +87,7 @@ export function buildTicketClosedEmbed(
   reason: string | null | undefined,
   client: Client,
   emojis?: EmojisConfig,
-): EmbedBuilder {
+): ResultContainer {
   const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} closed`, client, {
     tone: "error",
     emojis,

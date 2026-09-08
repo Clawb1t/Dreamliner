@@ -74,10 +74,9 @@ export const infoCommands: SlashCommandDefinition[] = [
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
       const guild = ctx.interaction.guild!;
       const embed = await buildServerInfoEmbed(guild, ctx.guildConfig, ctx.client);
-      await ctx.interaction.editReply({
-        ...embedEdit(embed),
-        components: [siteLinkRow({ label: "Server page", url: getGuildServerPageUrl(guild.id) })],
-      });
+      await ctx.interaction.editReply(
+        embedEdit(embed, [siteLinkRow({ label: "Server page", url: getGuildServerPageUrl(guild.id) })]),
+      );
     },
   },
   {

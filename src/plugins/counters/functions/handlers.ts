@@ -4,6 +4,7 @@ import { configManager } from "../../../config/manager.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { CounterEntry } from "../../../config/schemas/counters.js";
 import { baseEmbed, setEmbedAuthor } from "../../../core/embeds.js";
+import { containerReply } from "../../../core/responses.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { loadCountersConfig, countersByName } from "./config.js";
 import {
@@ -47,12 +48,11 @@ export function formatCounterText(entry: CounterEntry, value: number): string {
 function buildCounterEmbed(entry: CounterEntry, value: number, client: Client) {
   return setEmbedAuthor(baseEmbed(), entry.name || "Counter", client, { tone: "neutral" })
     .setDescription(`**${formatCounterText(entry, value)}**`)
-    .setFooter({ text: entry.metric === "custom" ? "Custom counter" : "Updates automatically" })
-    .toJSON();
+    .setFooter({ text: entry.metric === "custom" ? "Custom counter" : "Updates automatically" });
 }
 
 export function formatCounterMessage(entry: CounterEntry, value: number, client: Client) {
-  return { embeds: [buildCounterEmbed(entry, value, client)] };
+  return containerReply(buildCounterEmbed(entry, value, client));
 }
 
 async function applyMessageDisplay(

@@ -3263,45 +3263,6 @@
           "additionalProperties": false,
           "title": "Economy"
         },
-        "anime": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Turn this plugin on or off for the server.",
-              "title": "Enabled"
-            },
-            "config": {
-              "type": "object",
-              "properties": {
-                "can_neko": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to fetch a random neko image with /anime neko.",
-                  "title": "Neko",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_saved": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to browse saved neko images with /anime saved.",
-                  "title": "Saved",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                }
-              },
-              "additionalProperties": false,
-              "title": "Config"
-            }
-          },
-          "additionalProperties": false,
-          "title": "Anime"
-        },
         "persist": {
           "type": "object",
           "properties": {

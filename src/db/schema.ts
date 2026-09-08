@@ -896,25 +896,6 @@ export const economyStockTransactions = sqliteTable(
   (table) => [index("economy_stock_tx_user_time").on(table.userId, table.createdAt)],
 );
 
-// --- Anime (nekos.best) --------------------------------------------------------
-// One row per member per saved neko image.
-
-export const animeSavedNekos = sqliteTable(
-  "anime_saved_nekos",
-  {
-    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull(),
-    imageUrl: text("image_url").notNull(),
-    artistName: text("artist_name"),
-    artistHref: text("artist_href"),
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  },
-  (table) => [
-    index("anime_saved_nekos_user_time").on(table.userId, table.createdAt),
-    uniqueIndex("anime_saved_nekos_user_image").on(table.userId, table.imageUrl),
-  ],
-);
-
 export const tickets = sqliteTable("tickets", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   guildId: text("guild_id").notNull(),

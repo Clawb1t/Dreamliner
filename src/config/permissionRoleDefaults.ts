@@ -14,9 +14,6 @@ export const BUILT_IN_ROLE_NAMES: Record<BuiltInTier, string> = {
 export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
   // Was level >= 0 (everyone).
   member: [
-    // anime
-    "anime.can_neko",
-    "anime.can_saved",
     // booster_roles
     "booster_roles.can_view",
     "booster_roles.can_recheck",

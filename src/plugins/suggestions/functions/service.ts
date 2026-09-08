@@ -1,5 +1,6 @@
 import type { Client, Guild, GuildMember } from "discord.js";
 import type { SuggestionsConfig, SuggestionDisplayStatus } from "../../../config/schemas/suggestions.js";
+import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
 import {
   createSuggestion,
   followSuggestion,
@@ -78,11 +79,12 @@ export async function submitSuggestion(options: {
       config,
       titlePrefix: "Review",
     });
-    const contentPing = config.review_ping_role ? `<@&${config.review_ping_role}>` : undefined;
+    const payload = containerReply(embed, false, [queueActionRow(suggestion.id)]);
     const msg = await channel.send({
-      content: contentPing,
-      embeds: [embed],
-      components: [queueActionRow(suggestion.id)],
+      ...payload,
+      components: config.review_ping_role
+        ? [pingComponent(`<@&${config.review_ping_role}>`), ...payload.components!]
+        : payload.components,
       allowedMentions: config.review_ping_role ? { roles: [config.review_ping_role] } : undefined,
     });
     suggestion =
@@ -113,12 +115,13 @@ export async function postToFeed(options: {
 
   const votes = await getVoteTotals(suggestion.id);
   const embed = buildSuggestionEmbed({ client, suggestion, config, votes });
-  const components = config.voting_enabled ? [voteActionRow(suggestion.id, config, votes)] : [];
-  const contentPing = config.feed_ping_role ? `<@&${config.feed_ping_role}>` : undefined;
+  const rows = config.voting_enabled ? [voteActionRow(suggestion.id, config, votes)] : [];
+  const feedPayload = containerReply(embed, false, rows);
   const msg = await channel.send({
-    content: contentPing,
-    embeds: [embed],
-    components,
+    ...feedPayload,
+    components: config.feed_ping_role
+      ? [pingComponent(`<@&${config.feed_ping_role}>`), ...feedPayload.components!]
+      : feedPayload.components,
     allowedMentions: config.feed_ping_role ? { roles: [config.feed_ping_role] } : undefined,
   });
 
@@ -157,7 +160,7 @@ export async function refreshFeedMessage(
     config.voting_enabled && suggestion.status === "approved"
       ? [voteActionRow(suggestion.id, config, votes)]
       : [];
-  await msg.edit({ embeds: [embed], components }).catch(() => null);
+  await msg.edit(containerEdit(embed, components)).catch(() => null);
 }
 
 export async function approveSuggestion(options: {
@@ -189,7 +192,7 @@ export async function approveSuggestion(options: {
         config: options.config,
         titlePrefix: "Approved",
       });
-      await msg.edit({ embeds: [embed], components: [disabledQueueRow()] }).catch(() => null);
+      await msg.edit(containerEdit(embed, [disabledQueueRow()])).catch(() => null);
     }
   }
 
@@ -236,7 +239,7 @@ export async function denySuggestion(options: {
         config: options.config,
         titlePrefix: "Denied",
       });
-      await msg.edit({ embeds: [embed], components: [disabledQueueRow()] }).catch(() => null);
+      await msg.edit(containerEdit(embed, [disabledQueueRow()])).catch(() => null);
     }
   }
 
@@ -257,7 +260,7 @@ export async function denySuggestion(options: {
         config: options.config,
         titlePrefix: "Denied",
       });
-      const msg = await deniedChannel.send({ embeds: [embed] });
+      const msg = await deniedChannel.send(containerReply(embed));
       updated =
         (await updateSuggestion(updated.id, {
           deniedChannelId: deniedChannel.id,
@@ -314,7 +317,7 @@ export async function markSuggestion(options: {
         votes,
         titlePrefix: "Implemented",
       });
-      const msg = await archive.send({ embeds: [embed] });
+      const msg = await archive.send(containerReply(embed));
       updated =
         (await updateSuggestion(updated.id, {
           archiveChannelId: archive.id,

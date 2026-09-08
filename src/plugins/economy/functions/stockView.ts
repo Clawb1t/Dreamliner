@@ -1,11 +1,11 @@
 import {
   ActionRowBuilder,
   AttachmentBuilder,
-  MessageFlags,
   StringSelectMenuBuilder,
   type GuildMember,
   type InteractionReplyOptions,
   type InteractionUpdateOptions,
+  type MessageActionRowComponentBuilder,
   type StringSelectMenuInteraction,
 } from "discord.js";
 import { configManager } from "../../../config/manager.js";
@@ -13,7 +13,7 @@ import { baseEmbed } from "../../../core/embeds.js";
 import { getStocksUrl, siteLinkRow } from "../../../core/docsUrl.js";
 import { hasPermission } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { guildResultOptions, resultReply } from "../../../core/responses.js";
+import { containerEdit, containerReply, guildResultOptions, resultReply } from "../../../core/responses.js";
 import { formatCoinAmount, formatStockChange, stockChangeArrow } from "./format.js";
 import { renderStockChart } from "./stockChart.js";
 import {
@@ -83,35 +83,35 @@ async function buildStockViewContent(stock: StockRow, range: StockRange) {
   const chartFile = new AttachmentBuilder(await renderStockChart({ candles }), { name: "stock-chart.png" });
 
   const embed = baseEmbed()
-    .setAuthor({ name: `${stock.symbol} - ${stock.guildName}`, iconURL: stock.guildIcon ?? undefined })
+    .setTitle(`${stock.symbol} - ${stock.guildName}`)
     .setThumbnail(stock.guildIcon)
     .setImage("attachment://stock-chart.png")
     .addFields(
-      { name: "Price", value: formatCoinAmount(withChange.price), inline: true },
+      { name: "Price", value: formatCoinAmount(withChange.price) },
       {
         name: "24h change",
         value: `${stockChangeArrow(withChange.changeAmount)} ${formatStockChange(withChange.changeAmount, withChange.changePct)}`,
-        inline: true,
       },
-      { name: "Activity", value: `${withChange.activityScore}x exchange avg`, inline: true },
-      { name: "RSI (14)", value: rsiFieldValue(latestRSI), inline: true },
+      { name: "Activity", value: `${withChange.activityScore}x exchange avg` },
+      { name: "RSI (14)", value: rsiFieldValue(latestRSI) },
     )
     .setFooter({ text: `Dreamliner Exchange · price chart, ${rangeLabel(range)}` });
 
   return {
-    embeds: [embed],
+    embed,
     files: [chartFile],
-    components: [buildStockRangeRow(stock.guildId, range), exchangeLinkRow()],
+    rows: [buildStockRangeRow(stock.guildId, range), exchangeLinkRow()] as ActionRowBuilder<MessageActionRowComponentBuilder>[],
   };
 }
 
 export async function buildStockViewReply(stock: StockRow, range: StockRange, ephemeral: boolean): Promise<InteractionReplyOptions> {
   const content = await buildStockViewContent(stock, range);
-  return { ...content, ...(ephemeral ? { flags: MessageFlags.Ephemeral } : {}) };
+  return { ...containerReply(content.embed, ephemeral, content.rows), files: content.files };
 }
 
 async function buildStockViewUpdate(stock: StockRow, range: StockRange): Promise<InteractionUpdateOptions> {
-  return buildStockViewContent(stock, range);
+  const content = await buildStockViewContent(stock, range);
+  return { ...containerEdit(content.embed, content.rows), files: content.files };
 }
 
 function parseRange(value: string | undefined): StockRange {

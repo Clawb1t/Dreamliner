@@ -10,7 +10,6 @@ import { zTicketsPluginSection } from "./tickets.js";
 import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
 import { zEconomyPluginSection } from "./economy.js";
-import { zAnimePluginSection } from "./anime.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import { zSocialPluginSection } from "./social.js";
 import {
@@ -242,7 +241,6 @@ export const zGuildConfig = z.strictObject({
       scam_protect: zScamProtectPluginSection.optional(),
       passport: zPassportPluginSection.optional(),
       economy: zEconomyPluginSection.optional(),
-      anime: zAnimePluginSection.optional(),
       persist: zPersistPluginSection.optional(),
       slowmode: zSlowmodePluginSection.optional(),
       roles: zRolesPluginSection.optional(),

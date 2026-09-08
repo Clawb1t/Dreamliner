@@ -17,6 +17,7 @@ import {
   buildTicketStatusLog,
 } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
+import { containerReply } from "../../../core/responses.js";
 import { ticketClaimId, ticketCloseId, ticketDeleteId, ticketUnclaimId } from "../constants.js";
 import { isBlacklisted } from "./blacklist.js";
 import { addMemberOverwrite, archiveContainer, createTicketContainer, removeMemberOverwrite } from "./channels.js";
@@ -121,7 +122,7 @@ export async function createTicketForMember(opts: {
 
     const embed = buildTicketOpenedEmbed(ticket, category, guild, client, guildConfig.emojis);
     await channel
-      .send({ embeds: [embed], components: [ticketActionRow(ticket.id, false)] })
+      .send(containerReply(embed, false, [ticketActionRow(ticket.id, false)]))
       .catch(() => null);
   }
 
@@ -302,7 +303,7 @@ export async function performClose(
 
   if (channel?.isTextBased() && "send" in channel) {
     const embed = buildTicketClosedEmbed(closedTicket, actorId, reason, client, guildConfig.emojis);
-    await channel.send({ embeds: [embed], components: [ticketClosedActionRow(ticket.id)] }).catch(() => null);
+    await channel.send(containerReply(embed, false, [ticketClosedActionRow(ticket.id)])).catch(() => null);
   }
 
   const transcriptChannelId = category?.transcript_channel_id || pluginConfig.default_transcript_channel_id;

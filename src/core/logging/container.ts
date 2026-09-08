@@ -116,15 +116,15 @@ export function buildLogPayload(card: LogCard): MessageCreateOptions {
     });
   }
 
+  const buttonRow = card.buttons ? buildButtonRow(card.buttons) : null;
+  if (buttonRow) containerChildren.push(buttonRow.toJSON());
+
   const components: TopLevelComponentData[] = [
     {
       type: ComponentType.Container,
       components: containerChildren,
     },
   ];
-
-  const buttonRow = card.buttons ? buildButtonRow(card.buttons) : null;
-  if (buttonRow) components.push(buttonRow.toJSON());
 
   const attachments = files
     .slice(0, 8)

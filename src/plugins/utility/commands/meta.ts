@@ -1,6 +1,6 @@
 import { DiscordAPIError, MessageFlags, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { resolveDocsUrl } from "../../../core/docsUrl.js";
+import { resolveDocsUrl, siteLinkRow } from "../../../core/docsUrl.js";
 import { buildVotePayload } from "../functions/vote.js";
 import {
   resultReply,
@@ -59,10 +59,7 @@ export const metaCommands: SlashCommandDefinition[] = [
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_about");
       if (!auth) return;
-      await ctx.interaction.reply({
-        ...embedReply(buildAboutEmbed(ctx.client), ctx.ephemeral),
-        components: aboutLinkRows(),
-      });
+      await ctx.interaction.reply(embedReply(buildAboutEmbed(ctx.client), ctx.ephemeral, aboutLinkRows()));
     },
   },
   {
@@ -110,20 +107,49 @@ export const metaCommands: SlashCommandDefinition[] = [
     data: new SlashCommandBuilder()
       .setName("avatar")
       .setDescription("Show a user's avatar")
-      .addUserOption((o) => o.setName("user").setDescription("User")),
+      .addUserOption((o) => o.setName("user").setDescription("User"))
+      .addStringOption((o) =>
+        o
+          .setName("scope")
+          .setDescription("Global account avatar, or this server's avatar (default: global)")
+          .addChoices({ name: "Global", value: "global" }, { name: "Server", value: "server" }),
+      ),
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_avatar");
       if (!auth) return;
       const user = ctx.interaction.options.getUser("user") ?? ctx.interaction.user;
-      const url = user.displayAvatarURL({ size: 2048, extension: "png" });
-      await ctx.interaction.reply(
-        embedReply(
-          setEmbedAuthor(baseEmbed(), "Avatar", ctx.client, commandHeader(ctx.guildConfig, { emoji: "<:icons_image:1544417559045079181>" }))
-            .addFields(embedField("User", `<@${user.id}>`))
-            .setImage(url),
-          ctx.ephemeral,
-        ),
+      const scope = ctx.interaction.options.getString("scope") ?? "global";
+
+      // Force-fetch so `.banner` is populated — cached/interaction-supplied User objects
+      // usually only carry the avatar hash, not the banner one.
+      const fullUser = await ctx.client.users.fetch(user.id, { force: true }).catch(() => user);
+
+      let avatarUrl = fullUser.displayAvatarURL({ size: 2048, extension: "png" });
+      if (scope === "server" && ctx.interaction.guild) {
+        const member = await ctx.interaction.guild.members.fetch(user.id).catch(() => null);
+        if (member) avatarUrl = member.displayAvatarURL({ size: 2048, extension: "png" });
+      }
+      const bannerUrl = fullUser.bannerURL({ size: 2048, extension: "png" });
+
+      const embed = setEmbedAuthor(
+        baseEmbed(),
+        "Avatar",
+        ctx.client,
+        commandHeader(ctx.guildConfig, { emoji: "<:icons_image:1544417559045079181>" }),
+      ).addFields(
+        embedField("User", `<@${user.id}>`),
+        embedField("Scope", scope === "server" ? "Server" : "Global"),
       );
+
+      const downloadButtons = [{ label: "Download avatar", url: avatarUrl }];
+      if (bannerUrl) {
+        embed.setImages([avatarUrl, bannerUrl]);
+        downloadButtons.push({ label: "Download banner", url: bannerUrl });
+      } else {
+        embed.setImage(avatarUrl);
+      }
+
+      await ctx.interaction.reply(embedReply(embed, ctx.ephemeral, [siteLinkRow(...downloadButtons)]));
     },
   },
   {

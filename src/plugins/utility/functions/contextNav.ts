@@ -2,13 +2,14 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
+  MessageFlags,
   type ButtonInteraction,
   type GuildTextBasedChannel,
   type Message,
+  type TopLevelComponentData,
 } from "discord.js";
 import { configManager } from "../../../config/manager.js";
-import { DREAMLINER_ACCENT } from "../../../core/embeds.js";
+import { baseEmbed, discordTs, type ResultContainer } from "../../../core/embeds.js";
 import { guildResultOptions, resultReply } from "../../../core/responses.js";
 
 export const CONTEXT_NAV_PREFIX = "utility:context:nav:";
@@ -68,25 +69,20 @@ function offsetLabel(offset: number): string {
   return offset < 0 ? `${count} ${noun} before target` : `${count} ${noun} after target`;
 }
 
-/** Top embed: blurple, author = message author, description = the message's content. */
-export function buildContextMessageEmbed(message: Message): EmbedBuilder {
+/** Quoted message: name + avatar as the header, content as the description, footer holds the timestamp. */
+export function buildContextMessageEmbed(message: Message): ResultContainer {
   const content = message.content.trim();
-  return new EmbedBuilder()
-    .setColor(DREAMLINER_ACCENT)
-    .setAuthor({
-      name: message.author.tag,
-      iconURL: message.author.displayAvatarURL({ size: 128 }),
-    })
+  return baseEmbed()
+    .setTitle(message.author.tag)
+    .setThumbnail(message.author.displayAvatarURL({ size: 128 }))
     .setDescription(content.length > 0 ? content.slice(0, 4096) : "*(no text content)*")
-    .setTimestamp(message.createdAt);
+    .setFooter({ text: `Sent ${discordTs(message.createdAt)}` });
 }
 
-/** Bottom embed: blurple, shows where in the navigation window we are and a jump link. */
-export function buildContextNavEmbed(message: Message, offset: number): EmbedBuilder {
+/** Shows where in the navigation window we are and a jump link. */
+export function buildContextNavEmbed(message: Message, offset: number): ResultContainer {
   const link = `https://discord.com/channels/${message.guildId}/${message.channelId}/${message.id}`;
-  return new EmbedBuilder()
-    .setColor(DREAMLINER_ACCENT)
-    .setDescription(`${offsetLabel(offset)} • [Jump to message ➔](${link})`);
+  return baseEmbed().setDescription(`${offsetLabel(offset)} • [Jump to message ➔](${link})`);
 }
 
 export function buildContextNavRow(
@@ -115,10 +111,14 @@ export function buildContextNavPayload(
   anchorId: string,
   offset: number,
   invokerId: string,
-): { embeds: EmbedBuilder[]; components: ActionRowBuilder<ButtonBuilder>[] } {
+): { flags: number; components: TopLevelComponentData[] } {
+  const row = buildContextNavRow(channelId, anchorId, offset, invokerId);
   return {
-    embeds: [buildContextMessageEmbed(message), buildContextNavEmbed(message, offset)],
-    components: [buildContextNavRow(channelId, anchorId, offset, invokerId)],
+    flags: MessageFlags.IsComponentsV2,
+    components: [
+      buildContextMessageEmbed(message).toContainerComponent(),
+      buildContextNavEmbed(message, offset).toContainerComponent([row.toJSON()]),
+    ],
   };
 }
 

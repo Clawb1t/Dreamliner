@@ -21,15 +21,15 @@ export const socialCommands: SlashCommandDefinition[] = [
 
       if (sub === "info") {
         const url = getGuildSocialDashboardUrl(guildId);
-        await ctx.interaction.reply({
-          ...resultReply(
+        await ctx.interaction.reply(
+          resultReply(
             "Set up social notifications",
             "Social notifications are built on the dashboard: pick a creator (YouTube for now), the channel to post in, and customize the embed with a live preview. Open the dashboard's Social section for this server to get started.",
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_youtube:1544417751022567455>" }),
+            [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open social dashboard", url))],
           ),
-          components: [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open social dashboard", url))],
-        });
+        );
         return;
       }
 
@@ -64,9 +64,8 @@ export const socialCommands: SlashCommandDefinition[] = [
 
         const maxWatchers = resolveMaxWatchers(await isDreamlinerOneActive(guildId));
 
-        await ctx.interaction.reply({
-          ...embedReply(embed, ctx.ephemeral),
-          components: [
+        await ctx.interaction.reply(
+          embedReply(embed, ctx.ephemeral, [
             new ActionRowBuilder<ButtonBuilder>().addComponents(
               new ButtonBuilder()
                 .setCustomId("dl:social:stat:total")
@@ -74,8 +73,8 @@ export const socialCommands: SlashCommandDefinition[] = [
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(true),
             ),
-          ],
-        });
+          ]),
+        );
       }
     },
   },

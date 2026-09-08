@@ -1,5 +1,4 @@
 import {
-  MessageFlags,
   type ButtonInteraction,
   type Client,
   type Guild,
@@ -8,7 +7,7 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 import type { GuildConfig } from "../../../../config/schemas/guild.js";
-import { resultReply, guildResultOptions } from "../../../../core/responses.js";
+import { containerEdit, containerReply, resultReply, guildResultOptions } from "../../../../core/responses.js";
 import { isValidStatsWindow } from "../daily.js";
 import { buildStatsPayload } from "./buildPayload.js";
 import { parseCustomId, permissionForScope, STATS_PREFIX, type StatsState } from "./state.js";
@@ -24,12 +23,7 @@ export async function buildStatsMessage(
   ephemeral: boolean,
 ): Promise<InteractionReplyOptions> {
   const payload = await buildStatsPayload(state, guild, client, guildConfig);
-  return {
-    embeds: payload.embeds,
-    files: payload.files,
-    components: payload.components,
-    ...(ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
-  };
+  return { ...containerReply(payload.embed, ephemeral, payload.rows), files: payload.files };
 }
 
 export async function buildStatsUpdate(
@@ -39,7 +33,7 @@ export async function buildStatsUpdate(
   guildConfig: GuildConfig,
 ): Promise<InteractionUpdateOptions> {
   const payload = await buildStatsPayload(state, guild, client, guildConfig);
-  return { embeds: payload.embeds, files: payload.files, components: payload.components };
+  return { ...containerEdit(payload.embed, payload.rows), files: payload.files };
 }
 
 export async function handleStatsInteraction(

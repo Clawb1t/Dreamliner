@@ -8,6 +8,7 @@ import {
   type GuildTextBasedChannel,
 } from "discord.js";
 import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
+import { containerReply } from "../../../core/responses.js";
 import {
   BOT_BRAND_LOG_CHANNEL_ID,
   botAvatarApproveCustomId,
@@ -125,9 +126,8 @@ export async function submitBrandImageForReview(options: {
   );
 
   const reviewMessage = await channel.send({
-    embeds: [embed],
+    ...containerReply(embed, false, [row]),
     files: [file],
-    components: [row],
   });
 
   await updateBotAvatarRequestMessageIds(request.id, { reviewMessageId: reviewMessage.id });
@@ -208,9 +208,8 @@ export async function logBrandImageApplied(options: {
   );
 
   const logMessage = await channel.send({
-    embeds: [embed],
+    ...containerReply(embed, false, [row]),
     files: [file],
-    components: [row],
   });
 
   await updateBotAvatarRequestMessageIds(options.request.id, { reviewMessageId: logMessage.id });
@@ -258,8 +257,7 @@ export async function finalizeBrandLogRemoved(
 
   await message
     .edit({
-      embeds: [embed],
-      components: [disabled],
+      ...containerReply(embed, false, [disabled]),
       files: [brandImageAttachment(Buffer.from(request.avatarPng, "base64"), request.kind)],
     })
     .catch(() => null);
@@ -306,8 +304,7 @@ export async function markReviewMessageCancelled(
 
   await message
     .edit({
-      embeds: [embed],
-      components: [disabled],
+      ...containerReply(embed, false, [disabled]),
       files: [brandImageAttachment(Buffer.from(request.avatarPng, "base64"), request.kind)],
     })
     .catch(() => null);

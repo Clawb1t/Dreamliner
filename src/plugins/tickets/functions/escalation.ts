@@ -1,7 +1,8 @@
-import type { Client, Guild } from "discord.js";
+import { MessageFlags, type Client, type Guild } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
+import { containerReply, pingComponent } from "../../../core/responses.js";
 import { zTicketsConfig, type TicketCategory, type TicketEscalationStep, type TicketsConfig } from "../../../config/schemas/tickets.js";
 import { listOpenTickets, setEscalationStep, setPriority, type TicketRecord } from "./tickets.js";
 import { performClose } from "./actions.js";
@@ -28,7 +29,16 @@ async function applyEscalationStep(
       embed.setDescription(
         step.message.trim() || `This ticket has gone ${step.after_minutes}+ minutes without a staff reply.`,
       );
-      await channel.send({ content: `<@&${step.role_id}>`, embeds: [embed] }).catch(() => null);
+      // Components V2 messages can't carry `content`, so the ping lives in its own text
+      // component ahead of the container. No `allowedMentions` override here — this is the
+      // one escalation action that's supposed to ping.
+      const payload = containerReply(embed);
+      await channel
+        .send({
+          flags: MessageFlags.IsComponentsV2,
+          components: [pingComponent(`<@&${step.role_id}>`), ...payload.components!],
+        })
+        .catch(() => null);
     }
     return;
   }
@@ -43,7 +53,7 @@ async function applyEscalationStep(
         embedField("Channel", `<#${targetChannelId}>`),
       );
       if (step.message.trim()) embed.addFields(embedField("Note", step.message.trim()));
-      await channel.send({ embeds: [embed] }).catch(() => null);
+      await channel.send(containerReply(embed)).catch(() => null);
     }
     return;
   }

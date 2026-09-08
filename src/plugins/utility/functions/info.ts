@@ -12,7 +12,6 @@ import type {
 } from "discord.js";
 import {
   ChannelType,
-  EmbedBuilder,
   GuildExplicitContentFilter,
   GuildMFALevel,
   GuildNSFWLevel,
@@ -32,11 +31,11 @@ import {
   commandHeader,
   discordTs,
   embedField,
-  memberAccentColor,
   setEmbedAuthor,
   trimEmptyLines,
   trimLines,
   yesNo,
+  type ResultContainer,
 } from "../../../core/embeds.js";
 
 const MAX_ROLES_TO_DISPLAY = 15;
@@ -56,7 +55,7 @@ export async function buildUserInfoEmbed(
   guildId: string,
   client: Client,
   compact = false,
-): Promise<EmbedBuilder> {
+): Promise<ResultContainer> {
   const label = user.bot ? "Bot" : "User";
   const avatarURL = (member ?? user).displayAvatarURL({ size: 128 });
 
@@ -66,9 +65,6 @@ export async function buildUserInfoEmbed(
     client,
     commandHeader(guildConfig, { thumbnailURL: avatarURL, emoji: "<:icons_user_profile:1544418271355469885>" }),
   );
-
-  const accent = memberAccentColor(member);
-  if (accent) embed.setColor(accent);
 
   const [guildInfractions, globalInfractions, guildMessages, globalMessages] = await Promise.all([
     countUserInfractions(guildId, user.id),
@@ -221,7 +217,7 @@ function formatAfkTimeout(seconds: number): string {
   return `${seconds}s`;
 }
 
-export async function buildServerInfoEmbed(guild: Guild, guildConfig: GuildConfig, client: Client): Promise<EmbedBuilder> {
+export async function buildServerInfoEmbed(guild: Guild, guildConfig: GuildConfig, client: Client): Promise<ResultContainer> {
   const [owner, refreshed] = await Promise.all([
     guild.members.fetch(guild.ownerId).catch(() => guild.members.cache.get(guild.ownerId) ?? null),
     guild.fetch().catch(() => guild),
@@ -390,7 +386,7 @@ export function buildChannelInfoEmbed(
   guild: Guild,
   guildConfig: GuildConfig,
   client: Client,
-): EmbedBuilder {
+): ResultContainer {
   const typeLabel = channelTypeLabel(channel.type);
   const embed = setEmbedAuthor(
     baseEmbed(),
@@ -470,7 +466,7 @@ export function buildMessageInfoEmbed(
   guildId: string,
   guildConfig: GuildConfig,
   client: Client,
-): EmbedBuilder {
+): ResultContainer {
   const embed = setEmbedAuthor(
     baseEmbed(),
     `Message: ${message.id}`,
@@ -511,7 +507,7 @@ export function buildMessageInfoEmbed(
   return embed;
 }
 
-export function buildInviteInfoEmbed(invite: Invite, guildConfig: GuildConfig, client: Client): EmbedBuilder {
+export function buildInviteInfoEmbed(invite: Invite, guildConfig: GuildConfig, client: Client): ResultContainer {
   const embed = setEmbedAuthor(
     baseEmbed(),
     `Invite: ${invite.code}`,
@@ -536,10 +532,10 @@ export function buildInviteInfoEmbed(invite: Invite, guildConfig: GuildConfig, c
   return embed;
 }
 
-export function buildRoleInfoEmbed(role: Role, guild: Guild, guildConfig: GuildConfig, client: Client): EmbedBuilder {
+export function buildRoleInfoEmbed(role: Role, guild: Guild, guildConfig: GuildConfig, client: Client): ResultContainer {
   const totalRoles = guild.roles.cache.size - 1;
   const embed = setEmbedAuthor(
-    baseEmbed().setColor(role.color || 0x5865f2),
+    baseEmbed(),
     `Role: ${role.name}`,
     client,
     commandHeader(guildConfig, { emoji: "<:icons_roles:1544417804994871338>" }),
@@ -570,7 +566,7 @@ export function buildRoleInfoEmbed(role: Role, guild: Guild, guildConfig: GuildC
   return embed;
 }
 
-export function buildEmojiInfoEmbed(emoji: GuildEmoji, guildConfig: GuildConfig, client: Client): EmbedBuilder {
+export function buildEmojiInfoEmbed(emoji: GuildEmoji, guildConfig: GuildConfig, client: Client): ResultContainer {
   return setEmbedAuthor(
     baseEmbed(),
     `Emoji: ${emoji.name}`,
@@ -595,7 +591,7 @@ export function buildSnowflakeInfoEmbed(
   guildConfig: GuildConfig,
   client: Client,
   unknown = false,
-): EmbedBuilder {
+): ResultContainer {
   const decoded = decodeSnowflake(id);
   const embed = setEmbedAuthor(
     baseEmbed(),
@@ -631,7 +627,7 @@ export function buildRolesListEmbed(
   sort: string,
   guildConfig: GuildConfig,
   client: Client,
-): EmbedBuilder {
+): ResultContainer {
   let sorted = [...roles].filter((r) => r.id !== r.guild.id);
 
   if (sort === "position" || sort === "order") {
@@ -659,7 +655,7 @@ export function buildRolesListEmbed(
   ).setDescription(codeBlock(lines.join("\n")));
 }
 
-export async function buildLevelEmbed(guildId: string, member: GuildMember, guildConfig: GuildConfig, client: Client): Promise<EmbedBuilder> {
+export async function buildLevelEmbed(guildId: string, member: GuildMember, guildConfig: GuildConfig, client: Client): Promise<ResultContainer> {
   const roles = await getMemberPermissionRoles(guildId, member);
   const bypass = hasAdminBypass(member, guildConfig);
   const embed = setEmbedAuthor(
@@ -671,8 +667,6 @@ export async function buildLevelEmbed(guildId: string, member: GuildMember, guil
       emoji: "<:icons_trophy:1544418249721126922>",
     }),
   );
-  const accent = memberAccentColor(member);
-  if (accent) embed.setColor(accent);
   embed.addFields(
     embedField(
       "Dreamliner Roles",
@@ -691,7 +685,7 @@ export async function resolveInfoTarget(
   guild: Guild,
   guildConfig: GuildConfig,
   client: Client,
-): Promise<{ type: string; embed: EmbedBuilder } | null> {
+): Promise<{ type: string; embed: ResultContainer } | null> {
   const trimmed = input.trim();
 
   if (/^\d{17,20}$/.test(trimmed)) {

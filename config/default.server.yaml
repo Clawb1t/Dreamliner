@@ -253,11 +253,6 @@ plugins:
       can_balance: false
       can_daily: false
       can_admin_manage: false
-  anime:
-    enabled: true
-    config:
-      can_neko: false
-      can_saved: false
   persist:
     enabled: true
     config:

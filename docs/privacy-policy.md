@@ -79,7 +79,6 @@ Depending on which plugins a server has enabled, we may create and store:
 - **Ticket** transcripts, category configuration, and claim/close history, where the Tickets plugin is enabled
 - **Suggestion and review** submissions, votes, statuses, and moderator responses
 - **Economy** balances, transaction history, and collectible card inventories, where the Economy plugin is enabled
-- **Saved image collections** a member builds through the Anime plugin
 - **Custom voice preferences** (a chosen TTS voice) tied to a Discord user ID, where TTS is used
 - **Image and avatar fingerprints** (16-character perceptual hashes, see 3.4), never the underlying image
 - **Impersonation Detection watchlist entries** (a label, optionally a real member's Discord user ID kept live-synced, or a manual name and/or avatar fingerprint for a persona with no real account)
@@ -136,7 +135,6 @@ A small number of features send limited, feature-specific data to third-party AP
 |---|---|---|
 | **Translation** (`/translate`, auto-translate) | Google Translate (via an unofficial public API wrapper) | The specific text you asked to translate, or a message flagged for auto-translate; no Discord user ID or other identifying metadata is included in the translation request itself |
 | **Social Notifications** (YouTube uploads) | YouTube Data API v3 (Google) | The creator handle/channel URL your server configured, so we can poll for new public uploads; we do not send viewer or member data to YouTube |
-| **Anime** (`/anime neko`) | Nekos.best (a public, third-party anime-image API) | An anonymous image request; no Discord identifiers are sent |
 | **Text-to-speech** (`/tts`) | None. Voice synthesis runs locally on our own infrastructure via the open-source Piper engine. Message text used for speech is **not** sent to any third-party voice/AI provider. | N/A |
 
 Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications.

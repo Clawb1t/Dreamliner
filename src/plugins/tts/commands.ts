@@ -1,8 +1,8 @@
 import { ChannelType, SlashCommandBuilder, type AutocompleteInteraction } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
-import { resultReply, slashResultOptions } from "../../core/responses.js";
-import { baseEmbed } from "../../core/embeds.js";
+import { embedReply, resultReply, slashResultOptions } from "../../core/responses.js";
+import { buildResultEmbed } from "../../core/embeds.js";
 import { getAccountVoiceUrl, siteLinkRow } from "../../core/docsUrl.js";
 import { listPiperVoiceOptions } from "./functions/piper.js";
 import { setUserVoice } from "./functions/userVoice.js";
@@ -105,20 +105,16 @@ export const ttsCommands: SlashCommandDefinition[] = [
         }
 
         await setUserVoice(interaction.user.id, voice);
-        const base = resultReply(
+        const embed = buildResultEmbed(
           "Voice set",
           `Your messages will now be spoken as **${match.label}**.`,
-          ctx.ephemeral,
           slashResultOptions(ctx, { tone: "success", emoji: "<:icons_mic:1544417343252201552>" }),
-        );
-        const dashboardEmbed = baseEmbed().setDescription(
-          "Prefer to browse and listen first? The web dashboard lets you preview every installed voice before picking one.",
-        );
-        await interaction.reply({
-          ...base,
-          embeds: [...(base.embeds ?? []), dashboardEmbed],
-          components: [siteLinkRow({ label: "Open voice picker", url: getAccountVoiceUrl() })],
+        ).setFooter({
+          text: "Prefer to browse and listen first? The web dashboard lets you preview every installed voice before picking one.",
         });
+        await interaction.reply(
+          embedReply(embed, ctx.ephemeral, [siteLinkRow({ label: "Open voice picker", url: getAccountVoiceUrl() })]),
+        );
         return;
       }
 

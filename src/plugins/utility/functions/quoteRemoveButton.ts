@@ -74,7 +74,6 @@ export async function handleQuoteRemoveButtonInteraction(
         guildResultOptions(interaction.client, guildConfig, { tone: "neutral" }),
       ),
       files: [],
-      components: [],
     })
     .catch(async () => {
       await interaction

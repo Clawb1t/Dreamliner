@@ -54,30 +54,27 @@ export function buildSuggestionEmbed(options: {
         ? "Denied"
         : DISPLAY_STATUS_LABELS[suggestion.displayStatus] ?? "Approved";
 
-  let color: number | undefined;
-  if (
+  let tone: "success" | "warning" | "error" | "neutral" = "neutral";
+  if (suggestion.status === "denied") {
+    tone = "error";
+  } else if (suggestion.status === "awaiting_review") {
+    tone = "warning";
+  } else if (suggestion.displayStatus === "implemented") {
+    tone = "success";
+  } else if (
     suggestion.status === "approved" &&
     config.color_change_threshold > 0 &&
     votes &&
     votes.net >= config.color_change_threshold
   ) {
-    color = config.color_change_color;
-  } else if (suggestion.status === "denied") {
-    color = 0xed4245;
-  } else if (suggestion.status === "awaiting_review") {
-    color = 0xfee75c;
-  } else if (suggestion.displayStatus === "implemented") {
-    color = 0x57f287;
+    tone = "success";
   }
 
-  const embedBase = baseEmbed();
-  if (color != null) embedBase.setColor(color);
-
   const embed = setEmbedAuthor(
-    embedBase,
+    baseEmbed(),
     `${titlePrefix ?? "Suggestion"} #${suggestion.suggestionNumber}`,
     client,
-    { tone: suggestion.status === "denied" ? "error" : "neutral" },
+    { tone },
   )
     .setDescription(suggestion.content)
     .addFields(

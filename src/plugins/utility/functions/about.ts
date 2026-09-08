@@ -1,11 +1,6 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  type Client,
-  type EmbedBuilder,
-} from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, type Client } from "discord.js";
 import { getSiteUrl, linkButton } from "../../../core/docsUrl.js";
-import { baseEmbed, botAvatarURL, pingQualityEmoji, trimLines } from "../../../core/embeds.js";
+import { baseEmbed, pingQualityEmoji, trimLines, type ResultContainer } from "../../../core/embeds.js";
 import { BUILD_TIME, BUILD_VERSION } from "../../../generated/version.js";
 
 const startTime = Date.now();
@@ -18,7 +13,7 @@ const NODE_EMOJI = "<:icons_nodejs:1544418106221404201>";
 const MEMORY_EMOJI = "<:icons_monitor:1544417346460975194>";
 const BUILT_EMOJI = "<:icons_hammer:1544417299937763348>";
 
-export function buildAboutEmbed(client: Client): EmbedBuilder {
+export function buildAboutEmbed(client: Client): ResultContainer {
   const guilds = client.guilds.cache.size;
   const users = client.users.cache.size;
   const channels = client.channels.cache.size;
@@ -28,8 +23,6 @@ export function buildAboutEmbed(client: Client): EmbedBuilder {
   const memoryMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
 
   return baseEmbed()
-    .setAuthor({ name: "Dreamliner", iconURL: botAvatarURL(client) })
-    .setTitle("About Dreamliner")
     .setDescription(
       trimLines(`
         A Discord moderation and utility bot. Configure everything from the web dashboard, with granular permissions and plugins like stats, welcomer, tags, and automod.

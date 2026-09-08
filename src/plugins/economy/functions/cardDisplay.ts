@@ -1,5 +1,5 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type AttachmentBuilder, type EmbedBuilder } from "discord.js";
-import { baseEmbed } from "../../../core/embeds.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type AttachmentBuilder } from "discord.js";
+import { baseEmbed, type ResultContainer } from "../../../core/embeds.js";
 import { formatPlainAmount } from "./cardFormat.js";
 import { PLANE_INVENTORY_PREFIX, PLANE_LABEL_PREFIX, PLANE_SELL_PREFIX, PLANE_STATS_PREFIX } from "./customIds.js";
 import { planeImageAttachment } from "./images.js";
@@ -45,7 +45,7 @@ export function buildCardReveal(plane: PlaneTypeRow, ownerId?: string): { row: A
 export function buildInventoryPage(
   card: OwnedCard,
   opts: { index: number; total: number; viewerId: string; targetUserId: string },
-): { embed: EmbedBuilder; row: ActionRowBuilder<ButtonBuilder>; files: AttachmentBuilder[] } {
+): { embed: ResultContainer; row: ActionRowBuilder<ButtonBuilder>; files: AttachmentBuilder[] } {
   const { plane, quantity } = card;
   const embed = baseEmbed()
     .setDescription(`**${plane.name}**\n-# You own **x${quantity}**`)

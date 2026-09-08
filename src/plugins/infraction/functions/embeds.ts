@@ -1,23 +1,8 @@
-import { EmbedBuilder, type Client } from "discord.js";
+import type { Client } from "discord.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
-import type { InfractionType } from "../../../config/schemas/infraction.js";
-import { baseEmbed, embedField, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
+import { baseEmbed, embedField, setEmbedAuthor, trimLines, type ResultContainer } from "../../../core/embeds.js";
 import { discordTimestampBoth } from "../../../core/datetime.js";
 import { formatDurationShort } from "./duration.js";
-
-const TYPE_COLORS: Record<string, number> = {
-  warn: 0xffb347,
-  note: 0x95a5a6,
-  mute: 0xf39c12,
-  tempmute: 0xf39c12,
-  unmute: 0x2ecc71,
-  kick: 0xe67e22,
-  ban: 0xe74c3c,
-  tempban: 0xe74c3c,
-  unban: 0x2ecc71,
-  softban: 0xc0392b,
-  clean: 0x3498db,
-};
 
 const TYPE_LABELS: Record<string, string> = {
   warn: "Warning",
@@ -54,9 +39,9 @@ export function buildInfractionEmbed(
     title?: string;
     emojis?: EmojisConfig;
   } = {},
-): EmbedBuilder {
+): ResultContainer {
   const label = TYPE_LABELS[record.type] ?? record.type;
-  const embed = baseEmbed().setColor(TYPE_COLORS[record.type as InfractionType] ?? 0x5865f2);
+  const embed = baseEmbed();
   setEmbedAuthor(embed, options.title ?? `Infraction #${record.id}`, client, {
     tone: "neutral",
     emojis: options.emojis,
@@ -80,7 +65,7 @@ export function buildInfractionListEmbed(
   title: string,
   client: Client,
   emojis?: EmojisConfig,
-): EmbedBuilder {
+): ResultContainer {
   const embed = setEmbedAuthor(baseEmbed(), title, client, { tone: "neutral", emojis });
   if (records.length === 0) {
     embed.setDescription("No infractions found.");
