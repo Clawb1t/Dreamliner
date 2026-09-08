@@ -14,6 +14,8 @@ import { buildAutomodLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
 import { parseAutomodConfig, mergeCensorDbRulesIntoConfig } from "./migrate.js";
 import { parseFilterEntries } from "./customFilter.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("automod");
 
 /** Every rule Dreamliner creates in a guild's native AutoMod is named with this prefix,
  * followed by a stable `[key]` suffix, so a resync can tell "ours to manage" apart from
@@ -450,7 +452,7 @@ export async function resyncAllNativeAutomod(client: Client): Promise<void> {
       if (!config.native.enabled) continue;
       await syncNativeAutomodRules(client, guildId, config);
     } catch (error) {
-      console.warn(`[automod] Native AutoMod resync failed for guild ${guildId}:`, error);
+      log.warn(`[automod] Native AutoMod resync failed for guild ${guildId}:`, error);
     }
   }
 }

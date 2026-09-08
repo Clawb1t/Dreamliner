@@ -15,6 +15,8 @@ import { handleExpandMessageLinks } from "./functions/expandMessageLinks.js";
 import { registerIntervalTask } from "../../core/scheduler.js";
 import { sweepExpiredMessageContent } from "../../core/contentRetentionSweep.js";
 import { handleGlobalWatchdogMemberAdd } from "./functions/globalWatchdog.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("utility");
 
 export const utilityPlugin = definePlugin({
   name: "utility",
@@ -69,7 +71,7 @@ export const utilityPlugin = definePlugin({
       name: Events.GuildMemberAdd,
       execute: async (_client, member: unknown) => {
         await handleGlobalWatchdogMemberAdd(member as import("discord.js").GuildMember).catch((err) =>
-          console.error("Global Watchdog member-add error:", err),
+          log.error("Global Watchdog member-add error:", err),
         );
       },
     },

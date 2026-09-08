@@ -52,7 +52,7 @@ export const logsPlugin = definePlugin({
       name: Events.GuildMemberUpdate,
       execute: async (_client, oldMember: unknown, newMember: unknown) => {
         await handleMemberUpdate(
-          oldMember as import("discord.js").GuildMember,
+          oldMember as import("discord.js").GuildMember | import("discord.js").PartialGuildMember,
           newMember as import("discord.js").GuildMember,
         );
       },

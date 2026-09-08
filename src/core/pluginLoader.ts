@@ -4,6 +4,7 @@ import type { ConfigManager } from "../config/manager.js";
 import { collectCommands, collectContextMenuCommands } from "./plugin.js";
 import { setSchedulerClient } from "./scheduler.js";
 import type { BotContext, DreamlinerPlugin, InteractionStore } from "./types.js";
+import { getLogger } from "./logger.js";
 
 function runPluginEvent(
   pluginName: string,
@@ -11,7 +12,7 @@ function runPluginEvent(
   task: () => Promise<void>,
 ): void {
   void task().catch((error) => {
-    console.error(`[${pluginName}] ${eventName} handler failed:`, error);
+    getLogger(pluginName).error(`${eventName} handler failed:`, error);
   });
 }
 

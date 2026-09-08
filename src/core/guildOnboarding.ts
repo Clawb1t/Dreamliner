@@ -19,6 +19,8 @@ import {
   getInviteUrl,
 } from "./docsUrl.js";
 import { publicLeaderboardUrl } from "./publicLeaderboard.js";
+import { getLogger } from "./logger.js";
+const log = getLogger("core");
 
 function canSendInChannel(guild: Guild, channel: GuildTextBasedChannel): boolean {
   if (!("send" in channel) || channel.isDMBased()) return false;
@@ -170,7 +172,7 @@ export async function sendGuildOnboardingMessage(client: Client, guild: Guild): 
   if (!channel) return;
   const payload = await buildGuildOnboardingPayload(client, guild);
   await channel.send(payload).catch((error) => {
-    console.warn(
+    log.warn(
       `[onboarding] failed to send welcome in guild ${guild.id}:`,
       error instanceof Error ? error.message : error,
     );

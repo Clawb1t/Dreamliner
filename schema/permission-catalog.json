@@ -14,146 +14,6 @@
     ]
   },
   {
-    "plugin": "automod",
-    "pluginName": "Automod",
-    "pluginDescription": "Content filters, spam detection, and escalation ladders.",
-    "entries": [
-      {
-        "plugin": "automod",
-        "permission": "can_configure",
-        "grantKey": "automod.can_configure",
-        "title": "Configure",
-        "description": "Allow members to configure automod settings in Discord."
-      },
-      {
-        "plugin": "automod",
-        "permission": "can_status",
-        "grantKey": "automod.can_status",
-        "title": "Status",
-        "description": "Allow members to check automod status."
-      },
-      {
-        "plugin": "automod",
-        "permission": "can_test",
-        "grantKey": "automod.can_test",
-        "title": "Test",
-        "description": "Allow members to run automod tests."
-      }
-    ]
-  },
-  {
-    "plugin": "autoreactions",
-    "pluginName": "Autoreactions",
-    "pluginDescription": "Auto-react to matching messages.",
-    "entries": [
-      {
-        "plugin": "autoreactions",
-        "permission": "can_add",
-        "grantKey": "autoreactions.can_add",
-        "title": "Add",
-        "description": "Allow members to add autoreaction rules."
-      },
-      {
-        "plugin": "autoreactions",
-        "permission": "can_list",
-        "grantKey": "autoreactions.can_list",
-        "title": "List",
-        "description": "Allow members to list autoreaction rules."
-      },
-      {
-        "plugin": "autoreactions",
-        "permission": "can_remove",
-        "grantKey": "autoreactions.can_remove",
-        "title": "Remove",
-        "description": "Allow members to remove autoreaction rules."
-      }
-    ]
-  },
-  {
-    "plugin": "autoreplies",
-    "pluginName": "Autoreplies",
-    "pluginDescription": "Auto-reply to matching messages.",
-    "entries": [
-      {
-        "plugin": "autoreplies",
-        "permission": "can_add",
-        "grantKey": "autoreplies.can_add",
-        "title": "Add",
-        "description": "Allow members to add autoreply rules."
-      },
-      {
-        "plugin": "autoreplies",
-        "permission": "can_list",
-        "grantKey": "autoreplies.can_list",
-        "title": "List",
-        "description": "Allow members to list autoreply rules."
-      },
-      {
-        "plugin": "autoreplies",
-        "permission": "can_remove",
-        "grantKey": "autoreplies.can_remove",
-        "title": "Remove",
-        "description": "Allow members to remove autoreply rules."
-      }
-    ]
-  },
-  {
-    "plugin": "autorole",
-    "pluginName": "Autorole",
-    "pluginDescription": "Auto-assign roles on join for humans and bots.",
-    "entries": [
-      {
-        "plugin": "autorole",
-        "permission": "can_add",
-        "grantKey": "autorole.can_add",
-        "title": "Add",
-        "description": "Allow members to add autorole entries."
-      },
-      {
-        "plugin": "autorole",
-        "permission": "can_list",
-        "grantKey": "autorole.can_list",
-        "title": "List",
-        "description": "Allow members to list autorole entries."
-      },
-      {
-        "plugin": "autorole",
-        "permission": "can_remove",
-        "grantKey": "autorole.can_remove",
-        "title": "Remove",
-        "description": "Allow members to remove autorole entries."
-      }
-    ]
-  },
-  {
-    "plugin": "autothreads",
-    "pluginName": "Autothreads",
-    "pluginDescription": "Start a thread on matching messages.",
-    "entries": [
-      {
-        "plugin": "autothreads",
-        "permission": "can_add",
-        "grantKey": "autothreads.can_add",
-        "title": "Add",
-        "description": "Allow members to add autothread rules."
-      },
-      {
-        "plugin": "autothreads",
-        "permission": "can_list",
-        "grantKey": "autothreads.can_list",
-        "title": "List",
-        "description": "Allow members to list autothread rules."
-      },
-      {
-        "plugin": "autothreads",
-        "permission": "can_remove",
-        "grantKey": "autothreads.can_remove",
-        "title": "Remove",
-        "description": "Allow members to remove autothread rules."
-      }
-    ]
-  },
-  {
     "plugin": "booster_roles",
     "pluginName": "Booster Roles",
     "pluginDescription": "Reward server boosters with different roles based on how long they've been boosting.",
@@ -258,13 +118,6 @@
     "entries": [
       {
         "plugin": "economy",
-        "permission": "can_admin_manage",
-        "grantKey": "economy.can_admin_manage",
-        "title": "Admin Manage",
-        "description": "Allow members to change server economy settings (name, denominator, and whether message rewards are on)."
-      },
-      {
-        "plugin": "economy",
         "permission": "can_balance",
         "grantKey": "economy.can_balance",
         "title": "Balance",
@@ -328,24 +181,10 @@
     "entries": [
       {
         "plugin": "impersonation",
-        "permission": "can_configure",
-        "grantKey": "impersonation.can_configure",
-        "title": "Configure",
-        "description": "Allow members to configure Impersonation Detection settings in Discord."
-      },
-      {
-        "plugin": "impersonation",
-        "permission": "can_manage_watchlist",
-        "grantKey": "impersonation.can_manage_watchlist",
-        "title": "Manage Watchlist",
-        "description": "Allow members to manage the Impersonation Detection watchlist."
-      },
-      {
-        "plugin": "impersonation",
         "permission": "can_status",
         "grantKey": "impersonation.can_status",
         "title": "Status",
-        "description": "Allow members to check Impersonation Detection status."
+        "description": "Allow members to review Impersonation Detection alerts."
       }
     ]
   },
@@ -489,31 +328,10 @@
     "entries": [
       {
         "plugin": "passport",
-        "permission": "can_force",
-        "grantKey": "passport.can_force",
-        "title": "Force",
-        "description": "Allow members to force-verify a member."
-      },
-      {
-        "plugin": "passport",
-        "permission": "can_panel",
-        "grantKey": "passport.can_panel",
-        "title": "Panel",
-        "description": "Allow members to post a persistent Passport panel."
-      },
-      {
-        "plugin": "passport",
-        "permission": "can_revoke",
-        "grantKey": "passport.can_revoke",
-        "title": "Revoke",
-        "description": "Allow members to revoke a member's verification."
-      },
-      {
-        "plugin": "passport",
         "permission": "can_test",
         "grantKey": "passport.can_test",
         "title": "Test",
-        "description": "Allow members to send a test Passport ping."
+        "description": "Allow members to check a member's Passport verification status."
       }
     ]
   },
@@ -665,41 +483,6 @@
     ]
   },
   {
-    "plugin": "scam_protect",
-    "pluginName": "Scam Protect",
-    "pluginDescription": "Honeypot channel that softbans anyone who posts in it.",
-    "entries": [
-      {
-        "plugin": "scam_protect",
-        "permission": "can_setup",
-        "grantKey": "scam_protect.can_setup",
-        "title": "Setup",
-        "description": "Allow members to create or repair the Scam Protect honeypot channel."
-      },
-      {
-        "plugin": "scam_protect",
-        "permission": "can_status",
-        "grantKey": "scam_protect.can_status",
-        "title": "Status",
-        "description": "Allow members to view Scam Protect status."
-      }
-    ]
-  },
-  {
-    "plugin": "self_grantable_roles",
-    "pluginName": "Self grantable roles",
-    "pluginDescription": "Self-serve role panels.",
-    "entries": [
-      {
-        "plugin": "self_grantable_roles",
-        "permission": "can_configure",
-        "grantKey": "self_grantable_roles.can_configure",
-        "title": "Configure",
-        "description": "Allow members to configure self-serve role panels."
-      }
-    ]
-  },
-  {
     "plugin": "slowmode",
     "pluginName": "Slowmode",
     "pluginDescription": "Per-channel and individual slowmode.",
@@ -713,17 +496,10 @@
       },
       {
         "plugin": "slowmode",
-        "permission": "can_configure",
-        "grantKey": "slowmode.can_configure",
-        "title": "Configure",
-        "description": "Allow members to configure slowmode settings."
-      },
-      {
-        "plugin": "slowmode",
         "permission": "can_manage_rules",
         "grantKey": "slowmode.can_manage_rules",
         "title": "Manage Rules",
-        "description": "Allow members to manage individual slowmode rules."
+        "description": "Allow members to check effective individual slowmode for a member."
       },
       {
         "plugin": "slowmode",
@@ -1235,34 +1011,6 @@
         "grantKey": "utility.can_watchdog",
         "title": "Watchdog",
         "description": "Allow members to run /watchdog risk checks on a member."
-      }
-    ]
-  },
-  {
-    "plugin": "welcome_message",
-    "pluginName": "Welcomer",
-    "pluginDescription": "Join, leave, and DM welcomes with embeds and image cards.",
-    "entries": [
-      {
-        "plugin": "welcome_message",
-        "permission": "can_disable",
-        "grantKey": "welcome_message.can_disable",
-        "title": "Disable",
-        "description": "Allow members to disable welcomer messages."
-      },
-      {
-        "plugin": "welcome_message",
-        "permission": "can_set",
-        "grantKey": "welcome_message.can_set",
-        "title": "Set",
-        "description": "Allow members to configure the welcomer."
-      },
-      {
-        "plugin": "welcome_message",
-        "permission": "can_test",
-        "grantKey": "welcome_message.can_test",
-        "title": "Test",
-        "description": "Allow members to test welcomer messages."
       }
     ]
   }

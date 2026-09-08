@@ -27,6 +27,8 @@ import {
   removePersistedMessage,
   upsertPersistedMessage,
 } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("persist");
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const bumpChains = new Map<string, Promise<unknown>>();
@@ -363,7 +365,7 @@ export async function syncGuildStickies(
 export async function handlePersistReady(client: Client): Promise<void> {
   for (const guild of client.guilds.cache.values()) {
     await syncGuildStickies(client, guild.id).catch((error) => {
-      console.error(`[persist] Failed to sync stickies for ${guild.id}:`, error);
+      log.error(`[persist] Failed to sync stickies for ${guild.id}:`, error);
     });
   }
 }

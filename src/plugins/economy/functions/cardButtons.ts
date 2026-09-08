@@ -3,7 +3,7 @@ import { configManager } from "../../../config/manager.js";
 import { baseEmbed } from "../../../core/embeds.js";
 import { hasPermission } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { containerEdit, containerReply, resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
+import { containerReply, resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
 import { getPlaneTypeById } from "./catalog.js";
 import { buildCardRevealBatch, buildInventoryPage } from "./cardDisplay.js";
 import { PLANE_INVENTORY_PREFIX, PLANE_PACK_PREFIX, PLANE_SELL_PREFIX, PLANE_STATS_PREFIX } from "./customIds.js";
@@ -106,12 +106,13 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
   try {
     const { packPrice, packSize } = getPackSettings();
     const result = openPack(interaction.user.id, interaction.guildId, packPrice, packSize);
-    const { rows, files } = buildCardRevealBatch(result.cards, interaction.user.id);
-    const embed = baseEmbed().setDescription(
+    const { components, files } = buildCardRevealBatch(result.cards, interaction.user.id);
+    const summary = baseEmbed().setDescription(
       `<:icons_gift:1544417552627802212> Cost ${result.cost > 0 ? formatCoinAmount(result.cost) : "free"} ✧ Balance ${formatCoinAmount(result.balance)}`,
     );
     await interaction.update({
-      ...containerEdit(embed, rows),
+      flags: MessageFlags.IsComponentsV2,
+      components: [...components, summary.toContainerComponent()],
       files,
     });
   } catch (err) {
@@ -172,13 +173,13 @@ export async function handlePlaneInventoryButtonInteraction(interaction: ButtonI
     return true;
   }
   const index = Math.min(parsed.index, cards.length - 1);
-  const { embed, row, files } = buildInventoryPage(cards[index], {
+  const { components, files } = buildInventoryPage(cards[index], {
     index,
     total: cards.length,
     viewerId: parsed.viewerId,
     targetUserId: parsed.targetUserId,
   });
-  await interaction.update({ ...containerEdit(embed, [row]), files });
+  await interaction.update({ flags: MessageFlags.IsComponentsV2, components, files });
   return true;
 }
 

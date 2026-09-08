@@ -10,6 +10,8 @@ import { replyContextMenuError } from "../functions/contextMenuHelpers.js";
 import { getImageAttachments } from "../functions/imageAttachments.js";
 import { buildQuoteRemoveRow } from "../functions/quoteRemoveButton.js";
 import { QUOTE_CARD_FILENAME, renderQuoteCard } from "../functions/renderQuoteCard.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("utility");
 
 const MAX_GIF_ATTACHMENTS = 10;
 
@@ -42,7 +44,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           files,
         });
       } catch (error) {
-        console.error("Convert to GIF error:", error);
+        log.error("Convert to GIF error:", error);
         await replyContextMenuError(ctx, "Conversion failed", "Could not convert those images to GIFs.");
       }
     },
@@ -72,7 +74,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           components: [buildQuoteRemoveRow(author.id)],
         });
       } catch (error) {
-        console.error("Create Quote error:", error);
+        log.error("Create Quote error:", error);
         await replyContextMenuError(ctx, "Quote failed", "Could not create that quote image.");
       }
     },

@@ -15,6 +15,8 @@ import {
   syncTextAccess,
 } from "./rooms.js";
 import { getRoomByChannel, listGuildRooms, removeRoom } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("companion_channels");
 
 async function guildCompanion(guild: Guild): Promise<{
   config: ReturnType<typeof loadCompanionConfig>;
@@ -171,7 +173,7 @@ export async function handleCompanionReady(client: Client): Promise<void> {
   const guilds = await client.guilds.fetch().catch(() => client.guilds.cache);
   for (const [guildId] of guilds) {
     await syncGuildCompanion(client, guildId).catch((error) => {
-      console.error(`[companion] Failed to sync ${guildId}:`, error);
+      log.error(`[companion] Failed to sync ${guildId}:`, error);
     });
   }
 }

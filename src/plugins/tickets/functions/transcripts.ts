@@ -3,7 +3,8 @@ import { and, eq } from "drizzle-orm";
 import type { Message, TextBasedChannel, User } from "discord.js";
 import { getDb } from "../../../db/client.js";
 import { ticketTranscripts } from "../../../db/schema.js";
-import { containerReply } from "../../../core/responses.js";
+import { MessageFlags } from "discord.js";
+import { fileComponent } from "../../../core/responses.js";
 import { buildTranscriptEmbed } from "./embeds.js";
 import type { TicketRecord } from "./tickets.js";
 
@@ -95,11 +96,16 @@ export async function dmTranscript(
   if (!messages) return false;
   const { AttachmentBuilder } = await import("discord.js");
   const text = transcriptToText(ticket, messages);
-  const file = new AttachmentBuilder(Buffer.from(text, "utf8"), { name: `ticket-${ticket.number}-transcript.txt` });
+  const filename = `ticket-${ticket.number}-transcript.txt`;
+  const file = new AttachmentBuilder(Buffer.from(text, "utf8"), { name: filename });
   const guild = await user.client.guilds.fetch(ticket.guildId).catch(() => null);
   const embed = buildTranscriptEmbed(ticket, guild?.name ?? "the server", messages.length, user.client, undefined, guild?.iconURL({ size: 64 }));
   try {
-    await user.send({ ...containerReply(embed), files: [file] });
+    await user.send({
+      flags: MessageFlags.IsComponentsV2,
+      components: [embed.toContainerComponent([fileComponent(filename)])],
+      files: [file],
+    });
     return true;
   } catch {
     return false;
@@ -119,11 +125,16 @@ export async function postTranscriptLog(
   if (!channel?.isTextBased() || !("send" in channel)) return false;
   const { AttachmentBuilder } = await import("discord.js");
   const text = transcriptToText(ticket, messages);
-  const file = new AttachmentBuilder(Buffer.from(text, "utf8"), { name: `ticket-${ticket.number}-transcript.txt` });
+  const filename = `ticket-${ticket.number}-transcript.txt`;
+  const file = new AttachmentBuilder(Buffer.from(text, "utf8"), { name: filename });
   const guild = "guild" in channel ? (channel.guild as import("discord.js").Guild) : null;
   const embed = buildTranscriptEmbed(ticket, guild?.name ?? "this server", messages.length, client, undefined, guild?.iconURL({ size: 64 }));
   await (channel as import("discord.js").TextChannel)
-    .send({ ...containerReply(embed), files: [file] })
+    .send({
+      flags: MessageFlags.IsComponentsV2,
+      components: [embed.toContainerComponent([fileComponent(filename)])],
+      files: [file],
+    })
     .catch(() => null);
   return true;
 }

@@ -19,6 +19,8 @@ import {
   isReservedCommandName,
   syncGuildDreamSlashCommands,
 } from "../plugins/dream_commands/functions/guildSlash.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("bridge");
 
 export type BridgeDreamCommand = {
   guildId: string;
@@ -155,7 +157,7 @@ export async function createBridgeDreamCommand(
   try {
     await syncGuildDreamSlashCommands(client, guildId);
   } catch (error) {
-    console.error("[bridge] dream command slash sync failed after create:", error);
+    log.error("[bridge] dream command slash sync failed after create:", error);
     return {
       ok: false,
       error: "Command saved, but Discord guild slash sync failed. Restart the bot or retry save.",
@@ -200,7 +202,7 @@ export async function updateBridgeDreamCommand(
   try {
     await syncGuildDreamSlashCommands(client, guildId);
   } catch (error) {
-    console.error("[bridge] dream command slash sync failed after update:", error);
+    log.error("[bridge] dream command slash sync failed after update:", error);
     return {
       ok: false,
       error: "Command updated, but Discord guild slash sync failed. Restart the bot or retry save.",
@@ -228,7 +230,7 @@ export async function deleteBridgeDreamCommand(
   try {
     await syncGuildDreamSlashCommands(client, guildId);
   } catch (error) {
-    console.error("[bridge] dream command slash sync failed after delete:", error);
+    log.error("[bridge] dream command slash sync failed after delete:", error);
     return {
       ok: false,
       error: "Command deleted, but Discord guild slash sync failed. Restart the bot to clear stale slash commands.",

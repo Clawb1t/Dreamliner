@@ -12,6 +12,8 @@ import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { ensureGlobalAccount, creditGlobal, spendGlobal, round2, InsufficientFundsError } from "./money.js";
 import { SERVER_DAILY_BASE_AMOUNT } from "./format.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("economy");
 
 export class StockError extends Error {
   constructor(
@@ -217,7 +219,7 @@ export async function tickStockPrices(client: Client): Promise<void> {
 
       listed.push({ guildId: guild.id, messages: messagesInBucket(guild.id, bucket) });
     } catch (err) {
-      console.error(`Stock listing refresh failed for guild ${guild.id}:`, err);
+      log.error(`Stock listing refresh failed for guild ${guild.id}:`, err);
     }
   }
 
@@ -269,7 +271,7 @@ export async function tickStockPrices(client: Client): Promise<void> {
         .run();
       db.insert(economyStockPriceHistory).values({ guildId, price: nextPrice, recordedAt: tickTime }).run();
     } catch (err) {
-      console.error(`Stock price tick failed for guild ${guildId}:`, err);
+      log.error(`Stock price tick failed for guild ${guildId}:`, err);
     }
   }
 

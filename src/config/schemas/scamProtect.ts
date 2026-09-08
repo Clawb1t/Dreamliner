@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { boolPerm, channelId } from "../schemaHelp.js";
+import { channelId } from "../schemaHelp.js";
 
 export const zScamProtectConfig = z.strictObject({
   channel_id: channelId(
@@ -23,8 +23,6 @@ export const zScamProtectConfig = z.strictObject({
     .array(z.string())
     .default([])
     .describe("Roles ignored by Scam Protect (mods/admins usually) — in addition to members with Ban Members / Administrator, which are always ignored."),
-  can_setup: boolPerm("create or repair the Scam Protect honeypot channel"),
-  can_status: boolPerm("view Scam Protect status"),
 });
 
 export const zScamProtectPluginSection = z.strictObject({

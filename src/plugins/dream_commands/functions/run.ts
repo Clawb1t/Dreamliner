@@ -4,6 +4,8 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { interpolateTokens, type CommandProgram, type CommandTokenKey } from "./program.js";
 import { isReservedCommandName } from "./guildSlash.js";
 import { getDreamCommand, type DreamCommandRow } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("dream_commands");
 
 const rateBuckets = new Map<string, number>();
 const RATE_MS = 1500;
@@ -98,8 +100,11 @@ export async function handleDreamCommandSlash(
 
     const { trackCommandUsage } = await import("../../stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, command.name);
+    log.info(
+      `/${command.name} (custom) used by ${interaction.user.tag} in "${interaction.guild.name}" (${interaction.guildId})`,
+    );
   } catch (error) {
-    console.error(`[dream_commands] slash /${command.name} error:`, error);
+    log.error(`[dream_commands] slash /${command.name} error:`, error);
     const text = "Custom command failed to run.";
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: text }).catch(() => null);

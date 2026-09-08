@@ -1,4 +1,6 @@
 import type { Client } from "discord.js";
+import { getLogger } from "./logger.js";
+const log = getLogger("core");
 
 export type ScheduledTask = {
   id: string;
@@ -16,7 +18,7 @@ export function registerIntervalTask(task: ScheduledTask): void {
     task.id,
     setInterval(() => {
       task.run(globalClient!).catch((err) => {
-        console.error(`Scheduled task "${task.id}" failed:`, err);
+        log.error(`Scheduled task "${task.id}" failed:`, err);
       });
     }, task.intervalMs),
   );

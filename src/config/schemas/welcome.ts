@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { boolPerm, channelId } from "../schemaHelp.js";
+import { channelId } from "../schemaHelp.js";
 
 const colorInt = (description: string, fallback?: number) => {
   const base = z
@@ -174,9 +174,6 @@ export const zWelcomeMessageConfig = z.strictObject({
     .default(false)
     .describe("Delete the join welcome message if the member leaves within 24 hours."),
   wave_button: zWelcomeWaveButton.default({}),
-  can_set: boolPerm("configure the welcomer"),
-  can_test: boolPerm("test welcomer messages"),
-  can_disable: boolPerm("disable welcomer messages"),
 });
 
 export type WelcomeEmbedField = z.infer<typeof zWelcomeEmbedField>;

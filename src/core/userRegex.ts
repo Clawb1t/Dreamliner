@@ -1,4 +1,6 @@
 import { MAX_TESTED_CONTENT_LENGTH, validateRegexPatternSync } from "./regexSafety.js";
+import { getLogger } from "./logger.js";
+const log = getLogger("core");
 
 const cache = new Map<string, RegExp | null>();
 const CACHE_LIMIT = 500;
@@ -36,7 +38,7 @@ export function compileUserRegex(raw: string, options?: CompileUserRegexOptions)
       }
     } else if (!warnedRejections.has(cacheKey)) {
       warnedRejections.add(cacheKey);
-      console.error(`Rejected unsafe user regex pattern (${validation.error}): ${pattern}`);
+      log.error(`Rejected unsafe user regex pattern (${validation.error}): ${pattern}`);
     }
   }
 

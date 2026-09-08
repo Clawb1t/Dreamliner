@@ -3,6 +3,8 @@ import { definePlugin } from "../../core/plugin.js";
 import { zRolePanelsConfig } from "../../config/schemas/plugins.js";
 import { handleRolePanelReaction } from "./functions/handlers.js";
 import { handleRolePanelsReady, syncGuildRolePanels } from "./functions/sync.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("role_panels");
 
 export const rolePanelsPlugin = definePlugin({
   name: "role_panels",
@@ -11,7 +13,7 @@ export const rolePanelsPlugin = definePlugin({
   onLoad: async ({ client, configManager }) => {
     configManager.onSave((guildId, config) => {
       void syncGuildRolePanels(client, guildId, { guildConfig: config }).catch((error) => {
-        console.error(`[role_panels] Failed to apply panel config for ${guildId}:`, error);
+        log.error(`[role_panels] Failed to apply panel config for ${guildId}:`, error);
       });
     });
   },

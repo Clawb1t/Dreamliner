@@ -7,6 +7,8 @@ import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { safeAddRole, safeRemoveRole, safeToggleRole } from "../../../core/roles.js";
 import { parseRolePanelButtonCustomId } from "../customIds.js";
 import { findRolePanelMessageByDiscordMessage } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("role_panels");
 
 function loadPanels(guildConfig: Awaited<ReturnType<typeof configManager.getEffectiveConfig>>): RolePanel[] {
   const section = guildConfig.plugins.role_panels as { config?: { panels?: RolePanel[] } } | undefined;
@@ -70,7 +72,7 @@ export async function handleRolePanelReaction(
         const otherReaction = [...message.reactions.cache.values()].find((r) => r.me && emojiKeysMatch(role.emoji, r.emoji));
         if (otherReaction) {
           await otherReaction.users.remove(user.id).catch((error) => {
-            console.warn(
+            log.warn(
               `[role_panels] Could not remove ${user.id}'s other reaction for single-choice panel ${panel.id} (likely missing Manage Messages):`,
               error instanceof Error ? error.message : error,
             );

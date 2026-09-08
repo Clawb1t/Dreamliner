@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-08T06:24:24.136Z",
+  "generatedAt": "2026-09-08T16:33:30.527Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -94,11 +94,6 @@
           "key": "role_panels",
           "name": "Role panels",
           "description": "Dashboard-managed reaction/button role panels, with full embed customisation and a live preview."
-        },
-        {
-          "key": "self_grantable_roles",
-          "name": "Self grantable roles",
-          "description": "Self-serve role panels."
         }
       ]
     },
@@ -377,13 +372,6 @@
       "key": "role_panels",
       "name": "Role panels",
       "description": "Dashboard-managed reaction/button role panels, with full embed customisation and a live preview.",
-      "category": "Self-serve roles",
-      "categoryId": "self_roles"
-    },
-    {
-      "key": "self_grantable_roles",
-      "name": "Self grantable roles",
-      "description": "Self-serve role panels.",
       "category": "Self-serve roles",
       "categoryId": "self_roles"
     },

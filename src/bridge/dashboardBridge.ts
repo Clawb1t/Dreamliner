@@ -10,6 +10,9 @@ import {
 } from "./env.js";
 import { isDashboardSuperuser } from "./superuser.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
+import { getLogger } from "../core/logger.js";
+
+const log = getLogger("bridge");
 
 export type BridgeGuildSnapshot = {
   id: string;
@@ -215,8 +218,8 @@ async function buildEntities(guild: Guild) {
  */
 export function startDashboardBridge(client: Client, configManager: ConfigManager): void {
   if (!isDashboardBridgeEnabled()) {
-    console.log(
-      "[bridge] Dashboard bridge disabled (set DASHBOARD_BRIDGE_SECRET, or DASHBOARD_ENABLED=false to silence).",
+    log.warn(
+      "Dashboard bridge disabled (set DASHBOARD_BRIDGE_SECRET, or DASHBOARD_ENABLED=false to silence).",
     );
     return;
   }
@@ -227,6 +230,16 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   if (server) return;
 
   server = http.createServer((req, res) => {
+    const requestStart = process.hrtime.bigint();
+    const method = req.method ?? "GET";
+    const requestPath = req.url ?? "/";
+    res.once("finish", () => {
+      const durationMs = Number(process.hrtime.bigint() - requestStart) / 1e6;
+      const line = `${method} ${requestPath} -> ${res.statusCode} (${durationMs.toFixed(1)}ms)`;
+      if (res.statusCode >= 500) log.error(line);
+      else if (res.statusCode >= 400) log.warn(line);
+      else log.http(line);
+    });
     void (async () => {
       try {
         const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
@@ -773,10 +786,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         if (userStatsMatch && req.method === "GET") {
           const { buildUserPersonalStats } = await import("./userStats.js");
-          sendJson(res, 200, {
-            ok: true,
-            stats: await buildUserPersonalStats(client, userStatsMatch[1]!),
-          });
+          const { cached } = await import("./responseCache.js");
+          const stats = await cached(`user-stats:${userStatsMatch[1]!}`, 30_000, () =>
+            buildUserPersonalStats(client, userStatsMatch[1]!),
+          );
+          sendJson(res, 200, { ok: true, stats });
           return;
         }
 
@@ -5262,11 +5276,16 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             buildWebUserStats,
             buildWebChannelStats,
           } = await import("./webStats.js");
+          const { cached } = await import("./responseCache.js");
           const query = parseWebStatsQuery(url);
-          const payload =
-            kind === "users"
-              ? await buildWebUserStats(guild, entityId, query)
-              : await buildWebChannelStats(guild, entityId, query);
+          const payload = await cached(
+            `entity-stats:${guild.id}:${kind}:${entityId}:${JSON.stringify(query)}`,
+            30_000,
+            async () =>
+              kind === "users"
+                ? await buildWebUserStats(guild, entityId, query)
+                : await buildWebChannelStats(guild, entityId, query),
+          );
           sendJson(res, 200, payload);
           return;
         }
@@ -5305,7 +5324,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
-          const entities = await buildEntities(guild);
+          const { cached } = await import("./responseCache.js");
+          const entities = await cached(`entities:${guild.id}`, 45_000, () => buildEntities(guild));
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             ...entities,
@@ -5386,7 +5406,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         sendJson(res, 405, { error: "Method not allowed" });
       } catch (error) {
-        console.error("[bridge] Request error:", error);
+        log.error(`Request error (${method} ${requestPath}):`, error);
         sendJson(res, 500, {
           error: error instanceof Error ? error.message : "Internal bridge error",
         });
@@ -5395,12 +5415,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   });
 
   server.on("error", (error) => {
-    console.error(`[bridge] HTTP server error on port ${port}:`, error);
+    log.error(`HTTP server error on port ${port}:`, error);
   });
 
   server.listen(port, "0.0.0.0", () => {
-    console.log(
-      `[bridge] Dashboard bridge listening on http://0.0.0.0:${port} (${getDreamlinerEnv()})`,
+    log.success(
+      `Dashboard bridge listening on http://0.0.0.0:${port} (${getDreamlinerEnv()})`,
     );
   });
 }

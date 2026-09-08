@@ -25,7 +25,6 @@
     * [Reminders plugin](docs/plugins/reminders.md)
     * [Role buttons plugin](docs/plugins/role_buttons.md)
     * [Roles plugin](docs/plugins/roles.md)
-    * [Self grantable roles plugin](docs/plugins/self_grantable_roles.md)
     * [Slowmode plugin](docs/plugins/slowmode.md)
     * [Starboard plugin](docs/plugins/starboard.md)
     * [Stats plugin](docs/plugins/stats.md)

@@ -10,7 +10,7 @@ import {
   slashResultOptions,
   deferReplyOptions,
 } from "../../../core/responses.js";
-import { baseEmbed, buildPingEmbed, commandHeader, embedField, setEmbedAuthor } from "../../../core/embeds.js";
+import { baseEmbed, buildPingEmbed, commandHeader, embedField, memberAccentColor, setEmbedAuthor } from "../../../core/embeds.js";
 import {
   ManageGuildExpressions,
   requireDiscordPerm,
@@ -123,11 +123,11 @@ export const metaCommands: SlashCommandDefinition[] = [
       // Force-fetch so `.banner` is populated — cached/interaction-supplied User objects
       // usually only carry the avatar hash, not the banner one.
       const fullUser = await ctx.client.users.fetch(user.id, { force: true }).catch(() => user);
+      const member = ctx.interaction.guild ? await ctx.interaction.guild.members.fetch(user.id).catch(() => null) : null;
 
       let avatarUrl = fullUser.displayAvatarURL({ size: 2048, extension: "png" });
-      if (scope === "server" && ctx.interaction.guild) {
-        const member = await ctx.interaction.guild.members.fetch(user.id).catch(() => null);
-        if (member) avatarUrl = member.displayAvatarURL({ size: 2048, extension: "png" });
+      if (scope === "server" && member) {
+        avatarUrl = member.displayAvatarURL({ size: 2048, extension: "png" });
       }
       const bannerUrl = fullUser.bannerURL({ size: 2048, extension: "png" });
 
@@ -136,10 +136,12 @@ export const metaCommands: SlashCommandDefinition[] = [
         "Avatar",
         ctx.client,
         commandHeader(ctx.guildConfig, { emoji: "<:icons_image:1544417559045079181>" }),
-      ).addFields(
-        embedField("User", `<@${user.id}>`),
-        embedField("Scope", scope === "server" ? "Server" : "Global"),
-      );
+      )
+        .setColor(memberAccentColor(member))
+        .addFields(
+          embedField("User", `<@${user.id}>`),
+          embedField("Scope", scope === "server" ? "Server" : "Global"),
+        );
 
       const downloadButtons = [{ label: "Download avatar", url: avatarUrl }];
       if (bannerUrl) {

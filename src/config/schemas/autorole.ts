@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { boolPerm } from "../schemaHelp.js";
 
 const roleListDescription =
   "Use a role ID string, or an object with role + delay_ms (or delay).";
@@ -24,9 +23,6 @@ export const zAutoroleConfig = z.strictObject({
   bot_roles: zAutoroleRoleList.describe(
     `Roles for bots only. Assigned when a bot joins. ${roleListDescription}`,
   ),
-  can_add: boolPerm("add autorole entries"),
-  can_remove: boolPerm("remove autorole entries"),
-  can_list: boolPerm("list autorole entries"),
 });
 
 export const zAutorolePluginSection = z.strictObject({

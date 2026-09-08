@@ -13,6 +13,8 @@ import {
 } from "./validator.js";
 import type { GuildConfig } from "./schemas/guild.js";
 import { migrateLegacyEmojisInGuildConfig, migrateLegacyEmojisInObject } from "./emojiMigration.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("config");
 
 const cache = new Map<string, GuildConfig>();
 
@@ -39,7 +41,7 @@ export class ConfigManager {
       try {
         listener(guildId, config);
       } catch (error) {
-        console.error("[dreamliner] Config save listener failed:", error);
+        log.error("[dreamliner] Config save listener failed:", error);
       }
     }
   }
@@ -61,7 +63,7 @@ export class ConfigManager {
     try {
       parsed = YAML.parse(row.configYaml);
     } catch (error) {
-      console.error(
+      log.error(
         `[dreamliner] Guild config YAML for ${guildId} would not parse, repairing from what's on file:`,
         error instanceof Error ? error.message : error,
       );
@@ -95,7 +97,7 @@ export class ConfigManager {
           }
         }
       } catch (error) {
-        console.error(
+        log.error(
           `[dreamliner] Failed to rebuild guild config for ${guildId} from stored overrides:`,
           error,
         );
@@ -106,7 +108,7 @@ export class ConfigManager {
       // Should be unreachable: repairGuildConfig only fails to converge when the
       // shipped defaults themselves don't validate, which is a bug to fix in
       // code/schema, not something a per-guild config repair can resolve.
-      console.error(
+      log.error(
         `[dreamliner] Guild config for ${guildId} could not be repaired even from defaults (this points to a bug in the schema/defaults):`,
         validated.errors,
       );
@@ -114,7 +116,7 @@ export class ConfigManager {
     }
 
     if (repairs.length) {
-      console.warn(
+      log.warn(
         `[dreamliner] Repaired guild config for ${guildId} (kept valid settings): ${repairs.join(", ")}`,
       );
     }
@@ -130,7 +132,7 @@ export class ConfigManager {
         emojiMigration: migratedEmojis.changed,
         strippedKeys: repairs,
       }).catch((error) => {
-        console.error(`[dreamliner] Failed to persist config cleanup for ${guildId}:`, error);
+        log.error(`[dreamliner] Failed to persist config cleanup for ${guildId}:`, error);
       });
     }
 
@@ -181,10 +183,10 @@ export class ConfigManager {
       .where(eq(guildConfigs.guildId, guildId));
 
     if (reason.emojiMigration) {
-      console.log(`[dreamliner] Migrated legacy response emojis for guild ${guildId}`);
+      log.info(`[dreamliner] Migrated legacy response emojis for guild ${guildId}`);
     }
     if (reason.strippedKeys.length > 0) {
-      console.log(`[dreamliner] Persisted repaired guild config for ${guildId}`);
+      log.info(`[dreamliner] Persisted repaired guild config for ${guildId}`);
     }
   }
 
@@ -195,7 +197,7 @@ export class ConfigManager {
     // (getGuildConfig already logged the specifics above) — a guild that has
     // simply never saved a config is expected to fall back to defaults.
     if (!this.guildsWithoutStoredConfig.has(guildId)) {
-      console.warn(
+      log.warn(
         `[dreamliner] No valid stored config for guild ${guildId}; using default.server.yaml (custom settings are not applied until config loads successfully).`,
       );
     }

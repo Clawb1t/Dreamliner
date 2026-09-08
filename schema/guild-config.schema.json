@@ -1317,36 +1317,6 @@
                     "kind": "role",
                     "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                   }
-                },
-                "can_add": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to add autorole entries.",
-                  "title": "Add",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_remove": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to remove autorole entries.",
-                  "title": "Remove",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_list": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to list autorole entries.",
-                  "title": "List",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
                 }
               },
               "additionalProperties": false,
@@ -2006,36 +1976,6 @@
                   "default": {},
                   "description": "Discord native AutoMod sync settings.",
                   "title": "Native"
-                },
-                "can_status": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to check automod status.",
-                  "title": "Status",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_test": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to run automod tests.",
-                  "title": "Test",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_configure": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to configure automod settings in Discord.",
-                  "title": "Configure",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
                 }
               },
               "additionalProperties": false,
@@ -2184,28 +2124,8 @@
                 "can_status": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to check Impersonation Detection status.",
+                  "description": "Allow members to review Impersonation Detection alerts.",
                   "title": "Status",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_configure": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to configure Impersonation Detection settings in Discord.",
-                  "title": "Configure",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_manage_watchlist": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to manage the Impersonation Detection watchlist.",
-                  "title": "Manage Watchlist",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
@@ -2294,26 +2214,6 @@
                   "x-dreamliner": {
                     "kind": "role",
                     "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
-                  }
-                },
-                "can_setup": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to create or repair the Scam Protect honeypot channel.",
-                  "title": "Setup",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_status": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to view Scam Protect status.",
-                  "title": "Status",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
                 }
               },
@@ -3058,40 +2958,10 @@
                   "description": "Optional DM sent before a timeout kick. Supports placeholders.",
                   "title": "Timeout Dm"
                 },
-                "can_panel": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to post a persistent Passport panel.",
-                  "title": "Panel",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_force": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to force-verify a member.",
-                  "title": "Force",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_revoke": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to revoke a member's verification.",
-                  "title": "Revoke",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
                 "can_test": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to send a test Passport ping.",
+                  "description": "Allow members to check a member's Passport verification status.",
                   "title": "Test",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -3200,16 +3070,6 @@
                   "default": false,
                   "description": "Allow members to exchange server currency for global coins.",
                   "title": "Exchange",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_admin_manage": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to change server economy settings (name, denominator, and whether message rewards are on).",
-                  "title": "Admin Manage",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
@@ -3776,18 +3636,8 @@
                 "can_manage_rules": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to manage individual slowmode rules.",
+                  "description": "Allow members to check effective individual slowmode for a member.",
                   "title": "Manage Rules",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_configure": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to configure slowmode settings.",
-                  "title": "Configure",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
@@ -4290,47 +4140,6 @@
           },
           "additionalProperties": false,
           "title": "Role Panels"
-        },
-        "self_grantable_roles": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Turn this plugin on or off for the server.",
-              "title": "Enabled"
-            },
-            "config": {
-              "type": "object",
-              "properties": {
-                "can_configure": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to configure self-serve role panels.",
-                  "title": "Configure",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "max_roles_per_panel": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 25,
-                  "default": 10,
-                  "description": "Maximum roles allowed on one self-grant panel.",
-                  "title": "Max Roles Per Panel"
-                }
-              },
-              "additionalProperties": false,
-              "title": "Config"
-            }
-          },
-          "additionalProperties": false,
-          "title": "Self Grantable Roles",
-          "x-dreamliner": {
-            "kind": "role",
-            "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
-          }
         },
         "welcome_message": {
           "type": "object",
@@ -5680,36 +5489,6 @@
                   "additionalProperties": false,
                   "default": {},
                   "title": "Wave Button"
-                },
-                "can_set": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to configure the welcomer.",
-                  "title": "Set",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_test": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to test welcomer messages.",
-                  "title": "Test",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_disable": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to disable welcomer messages.",
-                  "title": "Disable",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
                 }
               },
               "additionalProperties": false,
@@ -6062,36 +5841,6 @@
                   "default": [],
                   "description": "Autoreaction rules. Each rule listens in one channel (or all channels) and reacts when it matches.",
                   "title": "Rules"
-                },
-                "can_add": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to add autoreaction rules.",
-                  "title": "Add",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_remove": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to remove autoreaction rules.",
-                  "title": "Remove",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_list": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to list autoreaction rules.",
-                  "title": "List",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
                 }
               },
               "additionalProperties": false,
@@ -6456,36 +6205,6 @@
                   "default": [],
                   "description": "Autoreply rules. Each rule listens in one channel (or all channels) and replies when it matches.",
                   "title": "Rules"
-                },
-                "can_add": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to add autoreply rules.",
-                  "title": "Add",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_remove": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to remove autoreply rules.",
-                  "title": "Remove",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_list": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to list autoreply rules.",
-                  "title": "List",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
                 }
               },
               "additionalProperties": false,
@@ -6875,36 +6594,6 @@
                   "default": [],
                   "description": "Autothread rules. Each rule listens in one channel (or all channels) and starts a thread when it matches.",
                   "title": "Rules"
-                },
-                "can_add": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to add autothread rules.",
-                  "title": "Add",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_remove": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to remove autothread rules.",
-                  "title": "Remove",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
-                },
-                "can_list": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Allow members to list autothread rules.",
-                  "title": "List",
-                  "x-dreamliner": {
-                    "kind": "permission",
-                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
-                  }
                 }
               },
               "additionalProperties": false,

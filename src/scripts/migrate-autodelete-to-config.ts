@@ -16,11 +16,13 @@ import { pathToFileURL } from "node:url";
 import { getDb, closeDb } from "../db/client.js";
 import { channelAutodelete } from "../db/schema.js";
 import { configManager } from "../config/manager.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("scripts");
 
 export async function migrateAutodeleteToConfig(): Promise<void> {
   const rows = getDb().select().from(channelAutodelete).all();
   if (!rows.length) {
-    console.log("[migrate:autodelete] No legacy channel_autodelete rows found — nothing to migrate.");
+    log.info("[migrate:autodelete] No legacy channel_autodelete rows found — nothing to migrate.");
     return;
   }
 
@@ -39,7 +41,7 @@ export async function migrateAutodeleteToConfig(): Promise<void> {
     const config = await configManager.getEffectiveConfig(guildId);
     const existingRules = config.plugins.autodelete?.config?.rules;
     if (Array.isArray(existingRules) && existingRules.length > 0) {
-      console.log(
+      log.info(
         `[migrate:autodelete] Skipping guild ${guildId} — already has ${existingRules.length} rule(s) in config.`,
       );
       skipped += 1;
@@ -61,16 +63,16 @@ export async function migrateAutodeleteToConfig(): Promise<void> {
     );
 
     if (!result.success) {
-      console.error(`[migrate:autodelete] Failed to migrate guild ${guildId}:`, result.errors.join("; "));
+      log.error(`[migrate:autodelete] Failed to migrate guild ${guildId}:`, result.errors.join("; "));
       failed += 1;
       continue;
     }
 
-    console.log(`[migrate:autodelete] Migrated ${rules.length} rule(s) for guild ${guildId}.`);
+    log.info(`[migrate:autodelete] Migrated ${rules.length} rule(s) for guild ${guildId}.`);
     migrated += 1;
   }
 
-  console.log(
+  log.info(
     `[migrate:autodelete] Done. Migrated ${migrated} guild(s), skipped ${skipped} already-migrated guild(s), ${failed} failure(s).`,
   );
 }
@@ -79,7 +81,7 @@ const isMain = Boolean(process.argv[1] && import.meta.url === pathToFileURL(proc
 if (isMain) {
   migrateAutodeleteToConfig()
     .catch((error) => {
-      console.error("[migrate:autodelete] Migration crashed:", error);
+      log.error("[migrate:autodelete] Migration crashed:", error);
       process.exitCode = 1;
     })
     .finally(() => closeDb());

@@ -36,6 +36,8 @@ import { canCloseTicket, createTicketForMember, performClaim, performClose, perf
 import { deleteContainer } from "./channels.js";
 import { buildTicketClaimedEmbed } from "./embeds.js";
 import type { TicketFormAnswer } from "./tickets.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("tickets");
 
 export type BuiltPanelMessage = {
   content?: string;
@@ -126,7 +128,7 @@ export async function postPanel(client: Client, _guildId: string, panel: TicketP
     // function entirely instead of failing gracefully like everything else here does.
     built = buildPanelMessage(panel, guild);
   } catch (error) {
-    console.error(`[tickets] Failed to build panel ${panel.id}'s message:`, error);
+    log.error(`[tickets] Failed to build panel ${panel.id}'s message:`, error);
     return null;
   }
   const message = await channel
@@ -139,7 +141,7 @@ export async function postPanel(client: Client, _guildId: string, panel: TicketP
       // Swallowed everywhere this return value is used (dashboard/slash command both just show a
       // generic "could not post" message) — log it here so the real Discord API rejection reason
       // (bad button/select-menu payload, missing permissions, etc.) is visible in the bot's console.
-      console.error(`[tickets] Failed to post panel ${panel.id} to channel ${panel.channel_id}:`, error);
+      log.error(`[tickets] Failed to post panel ${panel.id} to channel ${panel.channel_id}:`, error);
       return null;
     });
   return message?.id ?? null;

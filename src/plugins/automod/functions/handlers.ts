@@ -13,6 +13,8 @@ import {
 } from "./detectors/index.js";
 import { mergeCensorDbRulesIntoConfig, parseAutomodConfig } from "./migrate.js";
 import { countAutomodHits, recordAutomodHit } from "./strikes.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("automod");
 
 function isIgnored(member: GuildMember | null, config: AutomodConfig, channelId?: string): boolean {
   if (channelId && config.ignored_channels.includes(channelId)) return true;
@@ -162,7 +164,7 @@ export async function handleAutomodMemberAdd(member: GuildMember): Promise<void>
       joiners: getRecentRaidJoiners(member.guild.id, windowMs),
     });
   } catch (err) {
-    console.error("Raid Defense Mesh broadcast failed:", err);
+    log.error("Raid Defense Mesh broadcast failed:", err);
   }
 
   await applyAutomodHit({

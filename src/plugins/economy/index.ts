@@ -6,6 +6,8 @@ import { grantMessageRewards } from "./functions/activity.js";
 import { loadEconomyConfig } from "./functions/config.js";
 import { recordStockActivity, tickStockPrices } from "./functions/stocks.js";
 import type { Message, GuildMember } from "discord.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("economy");
 
 export { handlePlanesAutocomplete } from "./commands.js";
 export {
@@ -30,7 +32,7 @@ export const economyPlugin = definePlugin({
   onLoad: async ({ client }) => {
     const tick = () => {
       tickStockPrices(client).catch((err) => {
-        console.error("Stock price tick failed:", err);
+        log.error("Stock price tick failed:", err);
       });
     };
     setTimeout(tick, STOCK_TICK_INITIAL_DELAY_MS);
@@ -48,7 +50,7 @@ export const economyPlugin = definePlugin({
           grantMessageRewards(msg.member as GuildMember, msg, config);
           recordStockActivity(msg.guild.id, msg.guild.name, msg.guild.iconURL({ size: 64 }));
         } catch (err) {
-          console.error("Economy activity reward failed:", err);
+          log.error("Economy activity reward failed:", err);
         }
       },
     },

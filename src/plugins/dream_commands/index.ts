@@ -3,6 +3,8 @@ import { definePlugin } from "../../core/plugin.js";
 import { zDreamCommandsConfig } from "../../config/schemas/plugins.js";
 import { dreamCommandManageCommands } from "./commands/manage.js";
 import { syncAllGuildDreamSlashCommands, syncGuildDreamSlashCommands } from "./functions/guildSlash.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("dream_commands");
 
 export const dreamCommandsPlugin = definePlugin({
   name: "dream_commands",
@@ -17,7 +19,7 @@ export const dreamCommandsPlugin = definePlugin({
         // Ensure application id is available for guild command routes.
         await c.application?.fetch().catch(() => null);
         await syncAllGuildDreamSlashCommands(c);
-        console.log("[dream_commands] Synced guild custom slash commands.");
+        log.info("[dream_commands] Synced guild custom slash commands.");
       },
     },
     {
@@ -27,7 +29,7 @@ export const dreamCommandsPlugin = definePlugin({
         try {
           await syncGuildDreamSlashCommands(client as import("discord.js").Client, g.id);
         } catch (error) {
-          console.error(`[dream_commands] GuildCreate sync failed for ${g.id}:`, error);
+          log.error(`[dream_commands] GuildCreate sync failed for ${g.id}:`, error);
         }
       },
     },

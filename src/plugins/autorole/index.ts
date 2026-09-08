@@ -3,13 +3,12 @@ import { definePlugin } from "../../core/plugin.js";
 import { zAutoroleConfig, type AutoroleConfig } from "../../config/schemas/autorole.js";
 import { configManager } from "../../config/manager.js";
 import { getAutorolePluginConfig } from "../../core/guildHelpers.js";
-import { autoroleCommands } from "./commands.js";
 import { scheduleAutoroles } from "./functions/applyRoles.js";
 
 export const autorolePlugin = definePlugin({
   name: "autorole",
   configSchema: zAutoroleConfig,
-  slashCommands: autoroleCommands,
+  slashCommands: [],
   events: [
     {
       name: Events.GuildMemberAdd,

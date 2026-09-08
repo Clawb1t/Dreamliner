@@ -1,5 +1,5 @@
 import { ComponentType, SeparatorSpacingSize, type Client, type GuildMember } from "discord.js";
-import type { ComponentInContainerData, ContainerComponentData, TextDisplayComponentData } from "discord.js";
+import type { ComponentInContainerData, ContainerComponentData } from "discord.js";
 import type { EmojisConfig, GuildConfig } from "../config/schemas/guild.js";
 import { resolveEmojiForContent } from "./emoji.js";
 
@@ -71,10 +71,13 @@ export function inferEmbedTone(title: string): EmbedTone {
   return "neutral";
 }
 
+/** Strips each line down to its own content — dedents multi-line template literals (whose
+ *  indentation is just source-code formatting, not meaningful content) so container/embed text
+ *  never shows stray leading whitespace or reads as an accidental markdown code block. */
 export function trimLines(text: string): string {
   return text
     .split("\n")
-    .map((line) => line.trimEnd())
+    .map((line) => line.trim())
     .join("\n")
     .trim();
 }
@@ -126,9 +129,16 @@ export class ResultContainer {
   private thumbnailURL?: string | null;
   private imageURLs: string[] = [];
   private footerText?: string;
+  private accentColor?: number;
 
   setTitle(title: string): this {
     this.titleText = title;
+    return this;
+  }
+
+  /** Accent color bar down the container's left edge. Omitted by default (see the class doc) — use for things that already have a natural color, like a member's highest role. */
+  setColor(color: number | null | undefined): this {
+    this.accentColor = color ?? undefined;
     return this;
   }
 
@@ -179,26 +189,33 @@ export class ResultContainer {
   toContainerComponent(actionRows?: ComponentInContainerData[]): ContainerComponentData {
     const children: ComponentInContainerData[] = [];
     const title = this.titleText ? `**${this.titleText}**` : "";
+    const fieldsText = this.fieldsText();
 
     if (this.thumbnailURL) {
-      const headerParts: TextDisplayComponentData[] = [];
-      if (title) headerParts.push({ type: ComponentType.TextDisplay, content: title });
-      if (this.descriptionText) headerParts.push({ type: ComponentType.TextDisplay, content: this.descriptionText });
-      if (!headerParts.length) headerParts.push({ type: ComponentType.TextDisplay, content: "​" });
+      // Everything lives in one TextDisplay inside the section so the thumbnail sits as a
+      // single top-right accessory next to all the content, not just the title — a separate
+      // fields block below the section would strand the thumbnail up top on its own.
+      const parts: string[] = [];
+      if (title) parts.push(title);
+      if (this.descriptionText) parts.push(this.descriptionText);
+      if (fieldsText) parts.push(fieldsText);
+      if (this.footerText) parts.push(`-# ${this.footerText}`);
       children.push({
         type: ComponentType.Section,
-        components: headerParts,
+        components: [{ type: ComponentType.TextDisplay, content: parts.length ? parts.join("\n\n") : "​" }],
         accessory: { type: ComponentType.Thumbnail, media: { url: this.thumbnailURL } },
       });
     } else {
       if (title) children.push({ type: ComponentType.TextDisplay, content: title });
       if (this.descriptionText) children.push({ type: ComponentType.TextDisplay, content: this.descriptionText });
-    }
-
-    const fieldsText = this.fieldsText();
-    if (fieldsText) {
-      children.push({ type: ComponentType.Separator, divider: true, spacing: SeparatorSpacingSize.Small });
-      children.push({ type: ComponentType.TextDisplay, content: fieldsText });
+      if (fieldsText) {
+        children.push({ type: ComponentType.Separator, divider: true, spacing: SeparatorSpacingSize.Small });
+        children.push({ type: ComponentType.TextDisplay, content: fieldsText });
+      }
+      if (this.footerText) {
+        children.push({ type: ComponentType.Separator, divider: false, spacing: SeparatorSpacingSize.Small });
+        children.push({ type: ComponentType.TextDisplay, content: `-# ${this.footerText}` });
+      }
     }
 
     if (this.imageURLs.length) {
@@ -208,16 +225,15 @@ export class ResultContainer {
       });
     }
 
-    if (this.footerText) {
-      children.push({ type: ComponentType.Separator, divider: false, spacing: SeparatorSpacingSize.Small });
-      children.push({ type: ComponentType.TextDisplay, content: `-# ${this.footerText}` });
-    }
-
     if (actionRows?.length) {
       children.push(...actionRows);
     }
 
-    return { type: ComponentType.Container, components: children };
+    return {
+      type: ComponentType.Container,
+      components: children,
+      ...(this.accentColor != null ? { accentColor: this.accentColor } : {}),
+    };
   }
 }
 

@@ -22,7 +22,6 @@ import {
   zRoleButtonsConfig,
   zRolePanelsConfig,
   zRolesConfig,
-  zSelfGrantableRolesConfig,
   zSlowmodeConfig,
   zStatsConfig,
   zUsernameSaverConfig,
@@ -39,6 +38,8 @@ import {
   zTtsConfig,
   zWelcomeMessageConfig,
 } from "../config/schemas/plugins.js";
+import { getLogger } from "./logger.js";
+const log = getLogger("core");
 
 export const pluginConfigSchemas: Record<string, ZodType> = {
   utility: zUtilityConfig,
@@ -63,7 +64,6 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   reaction_roles: zReactionRolesConfig,
   role_buttons: zRoleButtonsConfig,
   role_panels: zRolePanelsConfig,
-  self_grantable_roles: zSelfGrantableRolesConfig,
   welcome_message: zWelcomeMessageConfig,
   tags: zTagsConfig,
   autodelete: zAutodeleteConfig,
@@ -115,7 +115,7 @@ export function parsePluginConfig<S extends ZodTypeAny>(schema: S, value: unknow
   if (parsed.success) return parsed.data as z.output<S>;
   const fallback = schema.safeParse({});
   if (fallback.success) {
-    console.warn(
+    log.warn(
       `[config] Plugin config was invalid and was reset to defaults: ${parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
         .join("; ")}`,

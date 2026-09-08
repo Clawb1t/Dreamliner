@@ -19,6 +19,8 @@ import { buildAutoTranslatePayload, buildAutoTranslateWebhookPayload } from "./e
 import { translateText, waitGuildTranslateSlot } from "./translate.js";
 import { getAutoTranslateWebhook } from "./webhook.js";
 import { isDreamlinerOneActive } from "../../../bridge/dreamlinerOne.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("translation");
 
 const recentlyTranslated = new Map<string, number>();
 const TRANSLATE_DEDUP_MS = 60_000;
@@ -71,7 +73,7 @@ export async function handleAutoTranslateMessage(message: Message): Promise<void
     const flag = flagForLanguage(defaultLanguage);
     await message.react(flag);
   } catch (error) {
-    console.warn(
+    log.warn(
       `[translation] auto-translate detect/react failed in guild ${message.guild.id}:`,
       error instanceof Error ? error.message : error,
     );

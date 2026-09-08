@@ -26,6 +26,8 @@ import {
   removeRolePanelMessage,
   upsertRolePanelMessage,
 } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("role_panels");
 
 const runChains = new Map<string, Promise<unknown>>();
 
@@ -68,7 +70,7 @@ async function reactSequential(message: Message, emojis: string[]): Promise<void
     const trimmed = emoji.trim();
     if (!trimmed) continue;
     await message.react(trimmed).catch((error) => {
-      console.warn(`[role_panels] Failed to add reaction ${trimmed} on ${message.id}:`, error instanceof Error ? error.message : error);
+      log.warn(`[role_panels] Failed to add reaction ${trimmed} on ${message.id}:`, error instanceof Error ? error.message : error);
     });
   }
 }
@@ -119,7 +121,7 @@ async function reconcileButtons(
 
   const combined = [...foreignRows.map((row) => row.toJSON()), ...newRows];
   await message.edit({ components: combined }).catch((error) => {
-    console.warn(`[role_panels] Failed to edit existing-message buttons on ${message.id}:`, error instanceof Error ? error.message : error);
+    log.warn(`[role_panels] Failed to edit existing-message buttons on ${message.id}:`, error instanceof Error ? error.message : error);
   });
   return { ok: true };
 }
@@ -143,7 +145,7 @@ async function syncBotModePanel(client: Client, guild: Guild, guildId: string, p
   const channelRef = await guild.channels.fetch(panel.channel_id).catch(() => null);
   const channel = asTextChannel(channelRef);
   if (!channel) {
-    console.warn(`[role_panels] Panel ${panel.id} in guild ${guildId}: channel ${panel.channel_id} not found or not sendable.`);
+    log.warn(`[role_panels] Panel ${panel.id} in guild ${guildId}: channel ${panel.channel_id} not found or not sendable.`);
     return;
   }
 
@@ -157,7 +159,7 @@ async function syncBotModePanel(client: Client, guild: Guild, guildId: string, p
       return;
     }
     await existing.edit(built.payload).catch((error) => {
-      console.warn(`[role_panels] Failed to edit panel ${panel.id} message:`, error instanceof Error ? error.message : error);
+      log.warn(`[role_panels] Failed to edit panel ${panel.id} message:`, error instanceof Error ? error.message : error);
     });
     if (panel.trigger_type === "reaction") {
       await reconcileReactions(existing, panel.roles.map((r) => r.emoji));
@@ -176,7 +178,7 @@ async function syncBotModePanel(client: Client, guild: Guild, guildId: string, p
 
   const sent = await channel.send(built.payload).catch(() => null);
   if (!sent) {
-    console.warn(`[role_panels] Failed to send panel ${panel.id} message in ${channel.id}.`);
+    log.warn(`[role_panels] Failed to send panel ${panel.id} message in ${channel.id}.`);
     return;
   }
   if (panel.trigger_type === "reaction") {
@@ -196,7 +198,7 @@ async function syncBotModePanel(client: Client, guild: Guild, guildId: string, p
 async function syncExistingModePanel(_client: Client, guild: Guild, guildId: string, panel: RolePanel): Promise<void> {
   const parsed = parseMessageLink(panel.existing_message_link);
   if (!parsed || parsed.guildId !== guildId) {
-    console.warn(`[role_panels] Panel ${panel.id} in guild ${guildId}: invalid or mismatched existing_message_link.`);
+    log.warn(`[role_panels] Panel ${panel.id} in guild ${guildId}: invalid or mismatched existing_message_link.`);
     return;
   }
 
@@ -287,7 +289,7 @@ export async function syncGuildRolePanels(
 export async function handleRolePanelsReady(client: Client): Promise<void> {
   for (const guild of client.guilds.cache.values()) {
     await syncGuildRolePanels(client, guild.id).catch((error) => {
-      console.error(`[role_panels] Failed to sync panels for ${guild.id}:`, error);
+      log.error(`[role_panels] Failed to sync panels for ${guild.id}:`, error);
     });
   }
 }

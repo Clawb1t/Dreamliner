@@ -3,6 +3,8 @@ import { configManager } from "../config/manager.js";
 import { emitLog } from "../core/logging/send.js";
 import type { LogEventType } from "../core/logging/events.js";
 import type { LogEmojiCategory } from "../core/logging/emojis.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("bridge");
 
 const DASHBOARD_EVENT_EMOJI: Partial<Record<LogEventType, LogEmojiCategory>> = {
   dashboard_config: "serverUpdate",
@@ -88,7 +90,7 @@ export async function logDashboardAction(
       },
     );
   } catch (error) {
-    console.warn(
+    log.warn(
       `[dashboard-audit] failed to log ${input.eventType} in guild ${guildId}:`,
       error instanceof Error ? error.message : error,
     );

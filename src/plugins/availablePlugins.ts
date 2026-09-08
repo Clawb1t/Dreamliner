@@ -20,7 +20,6 @@ import { rolesPlugin } from "../plugins/roles/index.js";
 import { reactionRolesPlugin } from "../plugins/reaction_roles/index.js";
 import { rolePanelsPlugin } from "../plugins/role_panels/index.js";
 import { roleButtonsPlugin } from "../plugins/role_buttons/index.js";
-import { selfGrantableRolesPlugin } from "../plugins/self_grantable_roles/index.js";
 import { welcomeMessagePlugin } from "../plugins/welcome_message/index.js";
 import { tagsPlugin } from "../plugins/tags/index.js";
 import { autodeletePlugin } from "../plugins/autodelete/index.js";
@@ -68,7 +67,6 @@ export const availablePlugins: DreamlinerPlugin[] = [
   reactionRolesPlugin,
   rolePanelsPlugin,
   roleButtonsPlugin,
-  selfGrantableRolesPlugin,
   welcomeMessagePlugin,
   tagsPlugin,
   autodeletePlugin,

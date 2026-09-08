@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { boolPerm, channelId } from "../schemaHelp.js";
+import { channelId } from "../schemaHelp.js";
 
 export const AUTOMOD_RULE_IDS = [
   "profanity",
@@ -197,9 +197,6 @@ export const zAutomodConfig = z.strictObject({
     .describe("Per-rule configuration keyed by rule id."),
   migrations: zAutomodMigrations.default({}).describe("Internal one-time migration flags."),
   native: zAutomodNativeConfig.default({}).describe("Discord native AutoMod sync settings."),
-  can_status: boolPerm("check automod status"),
-  can_test: boolPerm("run automod tests"),
-  can_configure: boolPerm("configure automod settings in Discord"),
 });
 
 export type AutomodLadderAction = z.infer<typeof zAutomodLadderAction>;

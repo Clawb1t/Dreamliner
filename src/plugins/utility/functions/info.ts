@@ -31,6 +31,7 @@ import {
   commandHeader,
   discordTs,
   embedField,
+  memberAccentColor,
   setEmbedAuthor,
   trimEmptyLines,
   trimLines,
@@ -64,7 +65,7 @@ export async function buildUserInfoEmbed(
     label,
     client,
     commandHeader(guildConfig, { thumbnailURL: avatarURL, emoji: "<:icons_user_profile:1544418271355469885>" }),
-  );
+  ).setColor(memberAccentColor(member));
 
   const [guildInfractions, globalInfractions, guildMessages, globalMessages] = await Promise.all([
     countUserInfractions(guildId, user.id),
@@ -666,7 +667,7 @@ export async function buildLevelEmbed(guildId: string, member: GuildMember, guil
       thumbnailURL: member.displayAvatarURL({ size: 128 }),
       emoji: "<:icons_trophy:1544418249721126922>",
     }),
-  );
+  ).setColor(memberAccentColor(member));
   embed.addFields(
     embedField(
       "Dreamliner Roles",

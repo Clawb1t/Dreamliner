@@ -28,6 +28,8 @@ import {
 } from "../plugins/social/functions/store.js";
 import { sendNotification } from "../plugins/social/functions/notify.js";
 import { isDreamlinerOneActive } from "./dreamlinerOne.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("bridge");
 
 export type BridgeSocialWatcher = {
   id: number;
@@ -90,7 +92,7 @@ function resolveErrorToResult(error: unknown): { ok: false; error: string; statu
   if (error instanceof YoutubeResolveError) {
     return { ok: false, error: error.message, status: 422 };
   }
-  console.error("[bridge] social YouTube resolve/poll error:", error);
+  log.error("[bridge] social YouTube resolve/poll error:", error);
   return { ok: false, error: "YouTube lookup failed. Try again shortly.", status: 502 };
 }
 
@@ -180,7 +182,7 @@ export async function createBridgeSocialWatcher(
   } catch (error) {
     // Don't block creation on a transient quota/API hiccup, just skip checkpoint seeding.
     // The next poll could send the creator's current latest video once as a result.
-    console.warn("[bridge] social: failed to seed checkpoint on create:", error);
+    log.warn("[bridge] social: failed to seed checkpoint on create:", error);
   }
 
   let embedConfig: SocialEmbedConfig;

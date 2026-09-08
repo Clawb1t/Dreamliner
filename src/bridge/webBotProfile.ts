@@ -32,6 +32,8 @@ import {
   type BotBrandImageKind,
 } from "../plugins/bot_customisation/functions/store.js";
 import { DREAMLINER_ONE_REQUIRED, isDreamlinerOneActive } from "./dreamlinerOne.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("bridge");
 
 const MAX_NICKNAME_LENGTH = 32;
 const MAX_BIO_LENGTH = 190;
@@ -406,7 +408,7 @@ export async function submitBridgeBrandImage(
     });
     logPosted = logged.logPosted;
   } catch (error) {
-    console.error(`[bot_customisation] Failed to post ${kind} photo log`, error);
+    log.error(`[bot_customisation] Failed to post ${kind} photo log`, error);
   }
 
   return {

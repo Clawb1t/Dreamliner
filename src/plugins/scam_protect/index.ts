@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zScamProtectConfig } from "../../config/schemas/scamProtect.js";
-import { scamProtectCommands } from "./commands.js";
 import {
   handleScamProtectChannelDelete,
   handleScamProtectMessage,
@@ -11,7 +10,7 @@ import {
 export const scamProtectPlugin = definePlugin({
   name: "scam_protect",
   configSchema: zScamProtectConfig,
-  slashCommands: scamProtectCommands,
+  slashCommands: [],
   events: [
     {
       name: Events.ClientReady,

@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { guildConfigs, guildPermissionRoleGrants, guildPermissionRoleTargets, guildPermissionRoles } from "../db/schema.js";
 import { BUILT_IN_ROLE_GRANTS, BUILT_IN_ROLE_NAMES, type BuiltInTier } from "../config/permissionRoleDefaults.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("scripts");
 
 // One-time, idempotent migration from the old level+override permission model to Dreamliner
 // Roles. Runs at boot, right after runMigrations() and before the Discord client logs in or
@@ -102,12 +104,12 @@ export function runPermissionRoleMigration(): void {
         })
         .map(([name]) => name);
       if (droppedOverridePlugins.length > 0) {
-        console.warn(
+        log.warn(
           `[dreamliner] Guild ${row.guildId}: dropped custom permission overrides during the Dreamliner Roles migration (no structural equivalent in the new model): ${droppedOverridePlugins.join(", ")}`,
         );
       }
     } catch (err) {
-      console.error(`[dreamliner] Permission role migration failed for guild ${row.guildId}:`, err);
+      log.error(`[dreamliner] Permission role migration failed for guild ${row.guildId}:`, err);
     }
   }
 }

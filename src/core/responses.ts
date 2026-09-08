@@ -35,6 +35,16 @@ export function pingComponent(mention: string): TopLevelComponentData {
 }
 
 /**
+ * References a non-image attachment (e.g. a `.txt` export) so it actually shows up — Components
+ * V2 messages don't auto-render bare `files`, image or not; every attachment needs an explicit
+ * component pointing at its `attachment://filename` URL. Pass the result as one of `embedReply`'s
+ * (etc.) trailing `components` rows, or straight into `toContainerComponent`.
+ */
+export function fileComponent(filename: string): TopLevelComponentData {
+  return { type: ComponentType.File, file: { url: `attachment://${filename}` } };
+}
+
+/**
  * The plain payload shape `containerReply`/`containerEdit` return. Deliberately not typed as
  * `InteractionReplyOptions`/`InteractionEditReplyOptions` (which is what those two are used to
  * build in most call sites) — this is generic enough to also drop straight into a raw

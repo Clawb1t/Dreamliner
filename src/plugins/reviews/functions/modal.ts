@@ -17,6 +17,8 @@ import {
   updateReview,
 } from "./store.js";
 import { buildReviewEmbed, resolveTextChannel } from "./embeds.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("reviews");
 
 type AnyLabelBuilder = {
   setLabel(label: string): AnyLabelBuilder;
@@ -267,7 +269,7 @@ export async function handleReviewModalSubmit(
         review = (await updateReview(review.id, { channelId: channel.id, messageId: sent.id })) ?? review;
       }
     } catch (error) {
-      console.error("[reviews] Failed to post review embed:", error);
+      log.error("[reviews] Failed to post review embed:", error);
     }
   }
 

@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { downloadFile, fileExists } from "./piperSetup.js";
 import { writeVoiceMeta } from "./voiceMeta.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("tts");
 
 /**
  * Bulk-installs every distinct Piper voice (in the requested languages) from the community
@@ -34,7 +36,7 @@ async function downloadWithRetries(url: string, destPath: string, label: string)
     } catch (error) {
       lastError = error;
       const reason = error instanceof Error ? error.message : String(error);
-      console.warn(`[tts] Attempt ${attempt}/${DOWNLOAD_ATTEMPTS} failed for ${label}: ${reason}`);
+      log.warn(`[tts] Attempt ${attempt}/${DOWNLOAD_ATTEMPTS} failed for ${label}: ${reason}`);
       if (attempt < DOWNLOAD_ATTEMPTS) await sleep(RETRY_DELAY_MS * attempt);
     }
   }
@@ -62,7 +64,7 @@ async function fetchVoiceManifest(): Promise<VoiceManifest> {
       return (await res.json()) as VoiceManifest;
     } catch (error) {
       lastError = error;
-      console.warn(
+      log.warn(
         `[tts] Manifest fetch attempt ${attempt}/${DOWNLOAD_ATTEMPTS} failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       if (attempt < DOWNLOAD_ATTEMPTS) await sleep(RETRY_DELAY_MS * attempt);
@@ -158,10 +160,10 @@ export async function ensureVoicePackInstalled(voicesDir: string, families: stri
         speakers: speakerNamesFor(voice),
       });
       installed.push(voice.key);
-      console.log(`[tts] Installed voice ${installed.length}/${voices.length - skipped}: ${voice.key}`);
+      log.info(`[tts] Installed voice ${installed.length}/${voices.length - skipped}: ${voice.key}`);
     } catch (error) {
       failed.push({ voice: voice.key, reason: error instanceof Error ? error.message : String(error) });
-      console.warn(`[tts] Giving up on ${voice.key} after ${DOWNLOAD_ATTEMPTS} attempts.`);
+      log.warn(`[tts] Giving up on ${voice.key} after ${DOWNLOAD_ATTEMPTS} attempts.`);
     }
 
     await sleep(BETWEEN_VOICES_DELAY_MS);

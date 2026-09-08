@@ -8,6 +8,8 @@ import {
   statDate,
   windowSince,
 } from "./daily.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("stats");
 
 const MAX_COMMAND_NAME = 64;
 
@@ -57,7 +59,7 @@ export async function recordCommandUsage(guildId: string, commandName: string): 
 export function trackCommandUsage(guildId: string | null | undefined, commandName: string): void {
   if (!guildId) return;
   void recordCommandUsage(guildId, commandName).catch((error) => {
-    console.warn(
+    log.warn(
       `[stats] failed to record command usage /${commandName}:`,
       error instanceof Error ? error.message : error,
     );

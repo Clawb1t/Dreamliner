@@ -3,6 +3,8 @@ import { and, asc, eq, gte, lt, lte } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { botStatusDaily, botStatusSamples } from "../db/schema.js";
 import { registerIntervalTask } from "./scheduler.js";
+import { getLogger } from "./logger.js";
+const log = getLogger("core");
 
 export type StatusLevel = "operational" | "degraded" | "outage";
 
@@ -253,7 +255,7 @@ export function startStatusMonitor(client: Client): void {
   monitorStarted = true;
 
   void recordSample(client).catch((error) => {
-    console.warn(
+    log.warn(
       "[status-monitor] initial sample failed:",
       error instanceof Error ? error.message : error,
     );

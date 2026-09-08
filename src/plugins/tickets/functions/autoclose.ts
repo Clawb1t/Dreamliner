@@ -5,6 +5,8 @@ import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { performClose } from "./actions.js";
 import { getExpiredInactiveTickets } from "./tickets.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("tickets");
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -40,7 +42,7 @@ export async function processInactiveTickets(client: Client): Promise<void> {
         "Automatically closed after prolonged inactivity.",
       );
     } catch (err) {
-      console.error(`Ticket auto-close failed for ticket #${ticket.id}:`, err);
+      log.error(`Ticket auto-close failed for ticket #${ticket.id}:`, err);
     }
   }
 }

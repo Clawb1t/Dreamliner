@@ -9,6 +9,8 @@ import {
 import type { SocialEmbedConfig } from "../../../config/schemas/social.js";
 import type { SocialWatcherRow } from "./store.js";
 import type { LatestUpload } from "./youtube.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("social");
 
 /** Tokens available in the top message, every embed text field, and button URLs. */
 export const SOCIAL_TOKENS = [
@@ -142,13 +144,13 @@ export async function sendNotification(client: Client, watcher: SocialWatcherRow
   try {
     const channel = await client.channels.fetch(watcher.discordChannelId).catch(() => null);
     if (!channel || !channel.isTextBased() || !("send" in channel)) {
-      console.warn(`[social] watcher ${watcher.id}: target channel ${watcher.discordChannelId} is unavailable.`);
+      log.warn(`[social] watcher ${watcher.id}: target channel ${watcher.discordChannelId} is unavailable.`);
       return false;
     }
     await channel.send(buildNotificationPayload(watcher, video));
     return true;
   } catch (error) {
-    console.error(`[social] watcher ${watcher.id}: failed to send notification:`, error);
+    log.error(`[social] watcher ${watcher.id}: failed to send notification:`, error);
     return false;
   }
 }

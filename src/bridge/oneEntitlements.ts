@@ -3,6 +3,8 @@ import { SKUType, type Client, type Entitlement } from "discord.js";
 import { getDb } from "../db/client.js";
 import { guildOneEntitlements } from "../db/schema.js";
 import { registerIntervalTask } from "../core/scheduler.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("bridge");
 
 export const DREAMLINER_ONE_APPLICATION_ID = "1524053555114151946";
 export const DREAMLINER_ONE_SKU_ID_DEFAULT = "1537178843033501727";
@@ -59,16 +61,16 @@ export async function resolveDreamlinerOneSkus(client: Client): Promise<void> {
       }
     }
   } catch (error) {
-    console.warn("[dreamliner-one] Failed to list SKUs; using configured SKU only.", error);
+    log.warn("[dreamliner-one] Failed to list SKUs; using configured SKU only.", error);
   }
   resolvedSkuIds = ids;
-  console.log(`[dreamliner-one] Tracking SKUs: ${[...ids].join(", ")}`);
+  log.info(`[dreamliner-one] Tracking SKUs: ${[...ids].join(", ")}`);
 }
 
 export async function upsertDiscordEntitlement(entitlement: Entitlement): Promise<void> {
   if (!isDreamlinerOneSku(entitlement.skuId)) return;
   if (!entitlement.guildId) {
-    console.warn(
+    log.warn(
       `[dreamliner-one] Ignoring entitlement ${entitlement.id} with no guild (not a guild SKU).`,
     );
     return;
@@ -102,7 +104,7 @@ export async function upsertDiscordEntitlement(entitlement: Entitlement): Promis
   }
 
   if (entitlement.isActive()) {
-    console.log(`[dreamliner-one] Active in guild ${entitlement.guildId} (entitlement ${entitlement.id}).`);
+    log.info(`[dreamliner-one] Active in guild ${entitlement.guildId} (entitlement ${entitlement.id}).`);
   }
 }
 
@@ -160,7 +162,7 @@ export async function refreshGuildDiscordOne(guildId: string): Promise<boolean> 
       return true;
     }
   } catch (error) {
-    console.warn(`[dreamliner-one] Live entitlement check failed for ${guildId}.`, error);
+    log.warn(`[dreamliner-one] Live entitlement check failed for ${guildId}.`, error);
   }
   return guildHasDiscordOne(guildId);
 }
@@ -188,14 +190,14 @@ export async function syncAllDiscordEntitlements(client: Client): Promise<void> 
     after = ids[ids.length - 1];
   }
 
-  console.log(`[dreamliner-one] Synced ${stored} Discord entitlement(s).`);
+  log.info(`[dreamliner-one] Synced ${stored} Discord entitlement(s).`);
 }
 
 export async function handleDiscordEntitlement(entitlement: Entitlement): Promise<void> {
   try {
     await upsertDiscordEntitlement(entitlement);
   } catch (error) {
-    console.error("[dreamliner-one] Failed to persist entitlement.", error);
+    log.error("[dreamliner-one] Failed to persist entitlement.", error);
   }
 }
 
@@ -203,7 +205,7 @@ export async function handleDiscordEntitlementDelete(entitlement: Entitlement): 
   try {
     await markDiscordEntitlementDeleted(entitlement.id);
   } catch (error) {
-    console.error("[dreamliner-one] Failed to delete entitlement.", error);
+    log.error("[dreamliner-one] Failed to delete entitlement.", error);
   }
 }
 
@@ -213,7 +215,7 @@ export async function startDreamlinerOneEntitlements(client: Client): Promise<vo
   try {
     await syncAllDiscordEntitlements(client);
   } catch (error) {
-    console.warn("[dreamliner-one] Startup entitlement sync failed.", error);
+    log.warn("[dreamliner-one] Startup entitlement sync failed.", error);
   }
 
   registerIntervalTask({

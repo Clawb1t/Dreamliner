@@ -6,6 +6,8 @@ import { containerReply, pingComponent } from "../../../core/responses.js";
 import { zTicketsConfig, type TicketCategory, type TicketEscalationStep, type TicketsConfig } from "../../../config/schemas/tickets.js";
 import { listOpenTickets, setEscalationStep, setPriority, type TicketRecord } from "./tickets.js";
 import { performClose } from "./actions.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("tickets");
 
 async function getTicketsConfigForGuild(guildId: string): Promise<TicketsConfig> {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
@@ -123,7 +125,7 @@ export async function processTicketEscalations(client: Client): Promise<void> {
       try {
         await applyEscalationStep(client, guild, pluginConfig, category, ticket, step);
       } catch (err) {
-        console.error(`Ticket escalation step failed for ticket #${ticket.number} in guild ${guildId}:`, err);
+        log.error(`Ticket escalation step failed for ticket #${ticket.number} in guild ${guildId}:`, err);
       }
       // Advance the pointer even if the step's own action failed above — a broken role/channel
       // config shouldn't wedge the ladder and re-fire the same broken step every sweep forever.

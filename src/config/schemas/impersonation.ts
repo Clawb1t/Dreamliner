@@ -59,9 +59,7 @@ export const zImpersonationConfig = z.strictObject({
     .min(60_000)
     .optional()
     .describe("Timeout duration when auto_action is 'timeout'."),
-  can_status: boolPerm("check Impersonation Detection status"),
-  can_configure: boolPerm("configure Impersonation Detection settings in Discord"),
-  can_manage_watchlist: boolPerm("manage the Impersonation Detection watchlist"),
+  can_status: boolPerm("review Impersonation Detection alerts"),
 });
 
 export type ImpersonationConfig = z.infer<typeof zImpersonationConfig>;

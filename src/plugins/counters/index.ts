@@ -9,6 +9,8 @@ import {
   runCounterRefreshSweep,
   syncGuildCounters,
 } from "./functions/handlers.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("counters");
 
 export const countersPlugin = definePlugin({
   name: "counters",
@@ -17,7 +19,7 @@ export const countersPlugin = definePlugin({
   onLoad: async ({ client, configManager }) => {
     configManager.onSave((guildId, config) => {
       void syncGuildCounters(client, guildId, { guildConfig: config }).catch((error) => {
-        console.error(`[counters] Failed to apply config for ${guildId}:`, error);
+        log.error(`[counters] Failed to apply config for ${guildId}:`, error);
       });
     });
 
@@ -25,7 +27,7 @@ export const countersPlugin = definePlugin({
     // refresh_minutes), so this can run often — most ticks are a no-op.
     setInterval(() => {
       runCounterRefreshSweep(client).catch((error) => {
-        console.error("[counters] Refresh sweep failed:", error);
+        log.error("[counters] Refresh sweep failed:", error);
       });
     }, 60_000);
   },

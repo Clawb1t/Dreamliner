@@ -7,6 +7,8 @@ import { parseMessageLink } from "../core/messageLink.js";
 import { ROLE_PANEL_PREFIX } from "../plugins/role_panels/customIds.js";
 import { buildEmbed } from "../plugins/persist/functions/messageBuilder.js";
 import { buildRolePanelButtonRows } from "../plugins/role_panels/functions/messageBuilder.js";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("bridge");
 
 function pickPreviewChannel(guild: Guild, channelId: unknown) {
   const requested = typeof channelId === "string" ? guild.channels.cache.get(channelId) : undefined;
@@ -96,7 +98,7 @@ export async function sendRolePanelTest(
   }
 
   const sent = await channelRef.send(built.payload).catch((error) => {
-    console.warn("[role_panels] test send failed:", error instanceof Error ? error.message : error);
+    log.warn("[role_panels] test send failed:", error instanceof Error ? error.message : error);
     return null;
   });
   if (!sent) return { ok: false, detail: "Discord rejected the message — check the bot's permissions in that channel." };

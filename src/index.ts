@@ -5,9 +5,12 @@ import { runMigrations } from "./scripts/migrate.js";
 import { runPermissionRoleMigration } from "./scripts/migratePermissionRoles.js";
 import { ensurePiperReady, resolvePiperVoicesDir } from "./plugins/tts/functions/piperSetup.js";
 import { ensureVoicePackInstalled } from "./plugins/tts/functions/voiceCatalog.js";
+import { getLogger } from "./core/logger.js";
+const log = getLogger("boot");
+const ttsLog = getLogger("tts");
 
 process.on("unhandledRejection", (reason) => {
-  console.error("[dreamliner] Unhandled promise rejection:", reason);
+  log.error("Unhandled promise rejection:", reason);
 });
 
 // Without this, an uncaught synchronous throw anywhere (a bad plugin, a
@@ -15,7 +18,7 @@ process.on("unhandledRejection", (reason) => {
 // behavior kicks in: dump the stack and kill the process. Log it and keep
 // the bot running instead of dying and relying on a process manager restart.
 process.on("uncaughtException", (error, origin) => {
-  console.error(`[dreamliner] Uncaught exception (${origin}):`, error);
+  log.error(`Uncaught exception (${origin}):`, error);
 });
 
 function shouldExportSchemaOnStart(): boolean {
@@ -32,7 +35,7 @@ function shouldExportSchemaOnStart(): boolean {
 async function main() {
   const token = process.env.DISCORD_TOKEN;
   if (!token) {
-    console.error("DISCORD_TOKEN is required.");
+    log.error("DISCORD_TOKEN is required.");
     process.exit(1);
   }
 
@@ -40,9 +43,9 @@ async function main() {
     try {
       const { exportGuildConfigSchema } = await import("./config/exportGuildConfigSchema.js");
       exportGuildConfigSchema();
-      console.log("[dreamliner] Exported guild config schema for the website editor.");
+      log.info("Exported guild config schema for the website editor.");
     } catch (error) {
-      console.warn("[dreamliner] Schema export failed:", error);
+      log.warn("Schema export failed:", error);
     }
   }
 
@@ -54,7 +57,7 @@ async function main() {
     // comment for why the ordering is load-bearing.
     runPermissionRoleMigration();
   } catch (error) {
-    console.error("[dreamliner] Permission role migration failed:", error);
+    log.error("Permission role migration failed:", error);
   }
 
   try {
@@ -65,22 +68,22 @@ async function main() {
     );
     const piperReady = await Promise.race([ensurePiperReady(), timeout]);
     if (!piperReady.ok) {
-      console.warn(`[dreamliner] Piper TTS setup incomplete: ${piperReady.reason}`);
+      log.warn(`Piper TTS setup incomplete: ${piperReady.reason}`);
     }
   } catch (error) {
-    console.warn("[dreamliner] Piper TTS setup failed:", error);
+    log.warn("Piper TTS setup failed:", error);
   }
 
   const clientId = process.env.DISCORD_CLIENT_ID;
   if (clientId && process.env.REGISTER_COMMANDS_ON_START !== "false") {
     try {
-      console.log("[dreamliner] Registering slash commands…");
+      log.info("Registering slash commands…");
       await registerSlashCommands(token, clientId);
     } catch (error) {
-      console.error("[dreamliner] Failed to register slash commands:", error);
+      log.error("Failed to register slash commands:", error);
     }
   } else if (!clientId) {
-    console.warn("[dreamliner] DISCORD_CLIENT_ID missing — slash commands were not registered on start.");
+    log.warn("DISCORD_CLIENT_ID missing — slash commands were not registered on start.");
   }
 
   const { client } = await createBot(configManager);
@@ -96,19 +99,19 @@ async function main() {
       .filter(Boolean);
     void ensureVoicePackInstalled(resolvePiperVoicesDir(), families)
       .then((result) => {
-        console.log(
-          `[tts] Voice pack (${families.join(", ")}): installed ${result.installed.length}, already had ${result.skipped}` +
+        ttsLog.info(
+          `Voice pack (${families.join(", ")}): installed ${result.installed.length}, already had ${result.skipped}` +
             (result.failed.length ? `, failed ${result.failed.length} (${result.failed.map((f) => f.voice).join(", ")})` : "") +
             ".",
         );
       })
       .catch((error) => {
-        console.warn("[tts] Voice pack install failed:", error);
+        ttsLog.warn("Voice pack install failed:", error);
       });
   }
 }
 
 main().catch((err) => {
-  console.error(err);
+  log.error(err);
   process.exit(1);
 });

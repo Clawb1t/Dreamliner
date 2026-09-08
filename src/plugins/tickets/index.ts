@@ -7,6 +7,8 @@ import { ticketCommands } from "./commands/ticket.js";
 import { processInactiveTickets } from "./functions/autoclose.js";
 import { processTicketEscalations } from "./functions/escalation.js";
 import { getTicketByChannel, touchActivity, touchStaffReply } from "./functions/tickets.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("tickets");
 
 const AUTOCLOSE_SWEEP_INTERVAL_MS = 5 * 60_000;
 const ESCALATION_SWEEP_INTERVAL_MS = 60_000;
@@ -24,12 +26,12 @@ export const ticketsPlugin = definePlugin({
   onLoad: async ({ client }) => {
     setInterval(() => {
       processInactiveTickets(client).catch((err) => {
-        console.error("Ticket auto-close sweep failed:", err);
+        log.error("Ticket auto-close sweep failed:", err);
       });
     }, AUTOCLOSE_SWEEP_INTERVAL_MS);
     setInterval(() => {
       processTicketEscalations(client).catch((err) => {
-        console.error("Ticket escalation sweep failed:", err);
+        log.error("Ticket escalation sweep failed:", err);
       });
     }, ESCALATION_SWEEP_INTERVAL_MS);
   },

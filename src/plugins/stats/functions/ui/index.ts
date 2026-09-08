@@ -11,6 +11,8 @@ import { containerEdit, containerReply, resultReply, guildResultOptions } from "
 import { isValidStatsWindow } from "../daily.js";
 import { buildStatsPayload } from "./buildPayload.js";
 import { parseCustomId, permissionForScope, STATS_PREFIX, type StatsState } from "./state.js";
+import { getLogger } from "../../../../core/logger.js";
+const log = getLogger("stats");
 
 export { STATS_PREFIX } from "./state.js";
 export type { StatsScope, StatsState } from "./state.js";
@@ -78,7 +80,7 @@ export async function handleStatsInteraction(
 
     await interaction.update(await buildStatsUpdate(nextState, interaction.guild, interaction.client, guildConfig));
   } catch (error) {
-    console.error("Stats interaction error:", error);
+    log.error("Stats interaction error:", error);
     if (!interaction.replied && !interaction.deferred) {
       await interaction
         .reply(

@@ -3,6 +3,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { getDb } from "../db/client.js";
 import type Database from "better-sqlite3";
+import { getLogger } from "../core/logger.js";
+const log = getLogger("scripts");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -91,5 +93,5 @@ export function runMigrations() {
 const isMain = Boolean(process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href);
 if (isMain) {
   runMigrations();
-  console.log("Migrations complete.");
+  log.info("Migrations complete.");
 }

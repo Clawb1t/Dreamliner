@@ -58,6 +58,13 @@ import {
   getGlobalMessageCount,
   getGuildMessageCount,
 } from "../plugins/utility/functions/messageCounts.js";
+import { mapWithConcurrency } from "../core/concurrency.js";
+import { getLogger } from "../core/logger.js";
+
+const log = getLogger("stats");
+
+/** How many leaderboard rows to resolve (Discord fetch + profile lookups) at once. */
+const PEOPLE_RESOLVE_CONCURRENCY = 5;
 
 function resolveCommandLeaders(
   entries: Array<{ commandName: string; count: number }>,
@@ -127,27 +134,35 @@ async function resolvePeople(
     includeAccents ? getAccentColorsForUsers(userIds) : Promise.resolve(new Map<string, string>()),
     getDisplayedBadgesForUsers(userIds),
   ]);
-  return Promise.all(
-    entries.map(async (entry, index) => {
-      const member = await guild.members.fetch({ user: entry.userId, force: true }).catch(() => null);
-      const user =
-        member?.user ??
-        (await guild.client.users.fetch(entry.userId, { force: true }).catch(() => null));
-      return {
-        rank: index + 1,
-        id: entry.userId,
-        name: member?.displayName ?? user?.username ?? entry.userId,
-        username: user?.username ?? null,
-        avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
-        bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
-        count: entry.count,
-        sharePct: sharePctValue(entry.count, trafficTotal),
-        shareLabel: formatSharePct(entry.count, trafficTotal),
-        accentColor: accents.get(entry.userId) ?? null,
-        badges: badgesByUser.get(entry.userId) ?? [],
-      };
-    }),
+  const startedAt = process.hrtime.bigint();
+  let apiFetches = 0;
+  const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
+    // Cache-first: the gateway keeps guild member/user caches warm for anyone who's been
+    // active, so this is normally an instant local lookup. Only genuinely uncached
+    // entries (rare — a member who left, or a very first-time computation) hit the API.
+    if (!guild.members.cache.has(entry.userId)) apiFetches++;
+    const member = await guild.members.fetch({ user: entry.userId }).catch(() => null);
+    const user =
+      member?.user ?? (await guild.client.users.fetch(entry.userId).catch(() => null));
+    return {
+      rank: index + 1,
+      id: entry.userId,
+      name: member?.displayName ?? user?.username ?? entry.userId,
+      username: user?.username ?? null,
+      avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
+      bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
+      count: entry.count,
+      sharePct: sharePctValue(entry.count, trafficTotal),
+      shareLabel: formatSharePct(entry.count, trafficTotal),
+      accentColor: accents.get(entry.userId) ?? null,
+      badges: badgesByUser.get(entry.userId) ?? [],
+    };
+  });
+  const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+  log.debug(
+    `Resolved ${entries.length} leaderboard row(s) for guild ${guild.id} in ${durationMs.toFixed(1)}ms (${apiFetches} uncached, batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
   );
+  return result;
 }
 
 function resolveChannels(
@@ -220,24 +235,31 @@ async function resolveGlobalPeople(
     getAccentColorsForUsers(userIds),
     getDisplayedBadgesForUsers(userIds),
   ]);
-  return Promise.all(
-    entries.map(async (entry, index) => {
-      const user = await client.users.fetch(entry.userId, { force: true }).catch(() => null);
-      return {
-        rank: index + 1,
-        id: entry.userId,
-        name: user?.globalName ?? user?.username ?? entry.userId,
-        username: user?.username ?? null,
-        avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
-        bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
-        count: entry.count,
-        sharePct: sharePctValue(entry.count, trafficTotal),
-        shareLabel: formatSharePct(entry.count, trafficTotal),
-        accentColor: accents.get(entry.userId) ?? null,
-        badges: badgesByUser.get(entry.userId) ?? [],
-      };
-    }),
+  const startedAt = process.hrtime.bigint();
+  let apiFetches = 0;
+  const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
+    // Cache-first — see resolvePeople() above for why this normally never touches the network.
+    if (!client.users.cache.has(entry.userId)) apiFetches++;
+    const user = await client.users.fetch(entry.userId).catch(() => null);
+    return {
+      rank: index + 1,
+      id: entry.userId,
+      name: user?.globalName ?? user?.username ?? entry.userId,
+      username: user?.username ?? null,
+      avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
+      bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
+      count: entry.count,
+      sharePct: sharePctValue(entry.count, trafficTotal),
+      shareLabel: formatSharePct(entry.count, trafficTotal),
+      accentColor: accents.get(entry.userId) ?? null,
+      badges: badgesByUser.get(entry.userId) ?? [],
+    };
+  });
+  const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+  log.debug(
+    `Resolved ${entries.length} global leaderboard row(s) in ${durationMs.toFixed(1)}ms (${apiFetches} uncached, batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
   );
+  return result;
 }
 
 function resolveGlobalChannels(

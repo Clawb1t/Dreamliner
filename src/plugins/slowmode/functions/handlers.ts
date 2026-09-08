@@ -12,6 +12,8 @@ import { cooldownKey, getActiveSlot, setAnchorSlot, type Slot } from "./cooldown
 import { ensureMarker } from "./markers.js";
 import { runExclusive } from "./queue.js";
 import { resolveIndividualDelay } from "./rules.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("slowmode");
 
 const guildConfigCache = new Map<
   string,
@@ -48,7 +50,7 @@ async function forceDeleteMessage(message: Message): Promise<void> {
     await message.delete();
   } catch (error) {
     if (!isUnknownMessageError(error)) {
-      console.error(`[slowmode] Failed to delete message ${message.id} in ${message.channel.id}:`, error);
+      log.error(`[slowmode] Failed to delete message ${message.id} in ${message.channel.id}:`, error);
     }
   }
 }
@@ -138,6 +140,6 @@ export async function handleSlowmodeMessage(message: Message): Promise<void> {
     const key = cooldownKey(message.guild.id, message.channel.id, message.author.id);
     await runExclusive(key, () => enforceSlowmode(message));
   } catch (error) {
-    console.error("[slowmode] Handler error:", error);
+    log.error("[slowmode] Handler error:", error);
   }
 }

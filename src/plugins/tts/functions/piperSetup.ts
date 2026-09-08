@@ -4,6 +4,8 @@ import { chmod, mkdir, readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("tts");
 
 /**
  * Installs Piper (https://github.com/rhasspy/piper) and a default voice on first boot if
@@ -129,10 +131,10 @@ async function installPiperBinary(binPath: string): Promise<void> {
 
   try {
     const archivePath = path.join(tmpDir, asset);
-    console.log(`[tts] Downloading Piper (${asset})...`);
+    log.info(`[tts] Downloading Piper (${asset})...`);
     await downloadFile(`https://github.com/rhasspy/piper/releases/latest/download/${asset}`, archivePath);
 
-    console.log("[tts] Extracting Piper...");
+    log.info("[tts] Extracting Piper...");
     await extractArchive(archivePath, tmpDir);
 
     const exeName = process.platform === "win32" ? "piper.exe" : "piper";
@@ -146,7 +148,7 @@ async function installPiperBinary(binPath: string): Promise<void> {
     }
 
     if (process.platform !== "win32") await chmod(binPath, 0o755);
-    console.log(`[tts] Piper installed at ${binPath}`);
+    log.info(`[tts] Piper installed at ${binPath}`);
   } finally {
     await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
@@ -170,10 +172,10 @@ async function installDefaultVoice(voicesDir: string, voiceId: string): Promise<
 
   await mkdir(voicesDir, { recursive: true });
   const base = `https://huggingface.co/rhasspy/piper-voices/resolve/main/${hfPath}`;
-  console.log(`[tts] Downloading default Piper voice (${voiceId})...`);
+  log.info(`[tts] Downloading default Piper voice (${voiceId})...`);
   await downloadFile(`${base}.onnx`, path.join(voicesDir, `${voiceId}.onnx`));
   await downloadFile(`${base}.onnx.json`, path.join(voicesDir, `${voiceId}.onnx.json`));
-  console.log(`[tts] Voice ${voiceId} installed at ${voicesDir}`);
+  log.info(`[tts] Voice ${voiceId} installed at ${voicesDir}`);
 }
 
 export type EnsurePiperResult = { ok: true } | { ok: false; reason: string };

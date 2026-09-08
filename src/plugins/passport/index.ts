@@ -4,6 +4,8 @@ import { zPassportConfig } from "../../config/schemas/passport.js";
 import { passportCommands } from "./commands.js";
 import { handlePassportMemberAdd, handlePassportMemberRemove } from "./functions/handlers.js";
 import { processExpiredPassports } from "./functions/timeout.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("passport");
 
 export const passportPlugin = definePlugin({
   name: "passport",
@@ -12,7 +14,7 @@ export const passportPlugin = definePlugin({
   onLoad: async ({ client }) => {
     setInterval(() => {
       processExpiredPassports(client).catch((err) => {
-        console.error("Passport timeout sweep failed:", err);
+        log.error("Passport timeout sweep failed:", err);
       });
     }, 60_000);
   },

@@ -3,7 +3,6 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import { embedReply, resultReply, slashResultOptions } from "../../core/responses.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, setEmbedAuthor, trimLines } from "../../core/embeds.js";
-import { getGuildSocialDashboardUrl, linkButton } from "../../core/docsUrl.js";
 import { listWatchers, resolveMaxWatchers } from "./functions/store.js";
 import { isDreamlinerOneActive } from "../../bridge/dreamlinerOne.js";
 
@@ -12,70 +11,50 @@ export const socialCommands: SlashCommandDefinition[] = [
     plugin: "social",
     data: new SlashCommandBuilder()
       .setName("social")
-      .setDescription("Social notifications for this server")
-      .addSubcommand((sub) => sub.setName("list").setDescription("List configured social notifications"))
-      .addSubcommand((sub) => sub.setName("info").setDescription("Where to set up social notifications")),
+      .setDescription("List this server's configured social notifications"),
     execute: async (ctx) => {
-      const sub = ctx.interaction.options.getSubcommand();
       const guildId = ctx.interaction.guildId!;
+      const auth = await requirePluginPermission(ctx, "social", "can_view");
+      if (!auth) return;
 
-      if (sub === "info") {
-        const url = getGuildSocialDashboardUrl(guildId);
+      const rows = await listWatchers(guildId);
+      if (!rows.length) {
         await ctx.interaction.reply(
           resultReply(
-            "Set up social notifications",
-            "Social notifications are built on the dashboard: pick a creator (YouTube for now), the channel to post in, and customize the embed with a live preview. Open the dashboard's Social section for this server to get started.",
+            "Social notifications",
+            "No social notifications configured yet.",
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_youtube:1544417751022567455>" }),
-            [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open social dashboard", url))],
           ),
         );
         return;
       }
 
-      if (sub === "list") {
-        const auth = await requirePluginPermission(ctx, "social", "can_view");
-        if (!auth) return;
+      const lines = rows.map((row) => {
+        const status = row.enabled ? "live" : "disabled";
+        return `**${row.sourceChannelName}** (YouTube) · <#${row.discordChannelId}> · ${status}`;
+      });
 
-        const rows = await listWatchers(guildId);
-        if (!rows.length) {
-          await ctx.interaction.reply(
-            resultReply(
-              "Social notifications",
-              "No social notifications configured yet.",
-              ctx.ephemeral,
-              slashResultOptions(ctx, { emoji: "<:icons_youtube:1544417751022567455>" }),
-            ),
-          );
-          return;
-        }
+      const embed = setEmbedAuthor(
+        baseEmbed(),
+        "Social notifications",
+        ctx.client,
+        commandHeader(ctx.guildConfig, { emoji: "<:icons_youtube:1544417751022567455>" }),
+      ).setDescription(trimLines(lines.join("\n")));
 
-        const lines = rows.map((row) => {
-          const status = row.enabled ? "live" : "disabled";
-          return `**${row.sourceChannelName}** (YouTube) · <#${row.discordChannelId}> · ${status}`;
-        });
+      const maxWatchers = resolveMaxWatchers(await isDreamlinerOneActive(guildId));
 
-        const embed = setEmbedAuthor(
-          baseEmbed(),
-          "Social notifications",
-          ctx.client,
-          commandHeader(ctx.guildConfig, { emoji: "<:icons_youtube:1544417751022567455>" }),
-        ).setDescription(trimLines(lines.join("\n")));
-
-        const maxWatchers = resolveMaxWatchers(await isDreamlinerOneActive(guildId));
-
-        await ctx.interaction.reply(
-          embedReply(embed, ctx.ephemeral, [
-            new ActionRowBuilder<ButtonBuilder>().addComponents(
-              new ButtonBuilder()
-                .setCustomId("dl:social:stat:total")
-                .setLabel(`${rows.length}/${maxWatchers} notifications`)
-                .setStyle(ButtonStyle.Secondary)
-                .setDisabled(true),
-            ),
-          ]),
-        );
-      }
+      await ctx.interaction.reply(
+        embedReply(embed, ctx.ephemeral, [
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId("dl:social:stat:total")
+              .setLabel(`${rows.length}/${maxWatchers} notifications`)
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(true),
+          ),
+        ]),
+      );
     },
   },
 ];

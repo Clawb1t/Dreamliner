@@ -116,6 +116,13 @@ export function buildLogPayload(card: LogCard): MessageCreateOptions {
     });
   }
 
+  const attachedFiles = files.slice(0, 8);
+  // Components V2 messages don't auto-render bare `files` the way plain messages do — each
+  // attachment needs its own component pointing at `attachment://<name>` or it won't show at all.
+  for (const file of attachedFiles) {
+    containerChildren.push({ type: ComponentType.File, file: { url: `attachment://${file.name}` } });
+  }
+
   const buttonRow = card.buttons ? buildButtonRow(card.buttons) : null;
   if (buttonRow) containerChildren.push(buttonRow.toJSON());
 
@@ -126,9 +133,9 @@ export function buildLogPayload(card: LogCard): MessageCreateOptions {
     },
   ];
 
-  const attachments = files
-    .slice(0, 8)
-    .map((file) => new AttachmentBuilder(Buffer.from(file.content, "utf-8"), { name: file.name }));
+  const attachments = attachedFiles.map(
+    (file) => new AttachmentBuilder(Buffer.from(file.content, "utf-8"), { name: file.name }),
+  );
 
   return {
     flags: MessageFlags.IsComponentsV2,

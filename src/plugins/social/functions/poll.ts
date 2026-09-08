@@ -2,6 +2,8 @@ import type { Client } from "discord.js";
 import { fetchLatestUpload } from "./youtube.js";
 import { listAllEnabledWatchers, touchLastChecked, updateCheckpoint } from "./store.js";
 import { sendNotification } from "./notify.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("social");
 
 /**
  * Polled every few minutes by the scheduler (see plugin `onLoad`). Checks every enabled watcher
@@ -31,7 +33,7 @@ export async function pollAllWatchers(client: Client): Promise<void> {
         lastVideoPublishedAt: latest.publishedAt,
       });
     } catch (error) {
-      console.error(`[social] poll failed for watcher ${watcher.id} (guild ${watcher.guildId}):`, error);
+      log.error(`[social] poll failed for watcher ${watcher.id} (guild ${watcher.guildId}):`, error);
     }
   }
 }

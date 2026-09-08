@@ -1,19 +1,14 @@
 import { ChannelType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
-import { resultReply, embedReply, slashResultOptions } from "../../core/responses.js";
-import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../core/embeds.js";
-import { zSlowmodeConfig } from "../../config/schemas/plugins.js";
+import { resultReply, slashResultOptions } from "../../core/responses.js";
 import { getSlowmodeGuildConfig } from "./functions/config.js";
 import {
   describeResolvedDelay,
   formatSeconds,
-  formatSlowmodeRule,
   normalizeSlowmodeRules,
   resolveIndividualDelay,
 } from "./functions/rules.js";
-import { buildSlowmodeRuleAddModal } from "./functions/modal.js";
-import { invalidateSlowmodeConfigCache } from "./functions/handlers.js";
 
 export const slowmodeCommands: SlashCommandDefinition[] = [
   {
@@ -73,21 +68,6 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
               .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement),
           ),
       )
-      .addSubcommandGroup((group) =>
-        group
-          .setName("rule")
-          .setDescription("Manage individual slowmode rules")
-          .addSubcommand((sub) => sub.setName("add").setDescription("Open a form to add a user or role slowmode rule"))
-          .addSubcommand((sub) =>
-            sub
-              .setName("remove")
-              .setDescription("Remove an individual slowmode rule by ID")
-              .addIntegerOption((o) =>
-                o.setName("id").setDescription("Rule ID from /slowmode rule list").setRequired(true).setMinValue(1),
-              ),
-          )
-          .addSubcommand((sub) => sub.setName("list").setDescription("List individual slowmode rules")),
-      )
       .addSubcommand((sub) =>
         sub
           .setName("check")
@@ -99,130 +79,10 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
               .setDescription("Channel to evaluate (defaults to current)")
               .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement),
           ),
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName("bypass")
-          .setDescription("Toggle whether Manage Messages bypasses individual slowmode")
-          .addBooleanOption((o) =>
-            o
-              .setName("enabled")
-              .setDescription("True = members with Manage Messages bypass; false = nobody bypasses")
-              .setRequired(true),
-          ),
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName("individual")
-          .setDescription("Configure individual (per-user/role) slowmode")
-          .addBooleanOption((o) => o.setName("enabled").setDescription("Enable or disable individual slowmode"))
-          .addIntegerOption((o) =>
-            o
-              .setName("default_seconds")
-              .setDescription("Default delay when no rule matches (0 = none)")
-              .setMinValue(0)
-              .setMaxValue(21600),
-          ),
       ),
     execute: async (ctx) => {
-      const group = ctx.interaction.options.getSubcommandGroup(false);
       const sub = ctx.interaction.options.getSubcommand();
-      const guildId = ctx.interaction.guildId!;
       const opts = slashResultOptions(ctx);
-
-      if (group === "rule") {
-        if (sub === "add") {
-          const auth = await requirePluginPermission(ctx, "slowmode", "can_manage_rules");
-          if (!auth) return;
-          await ctx.interaction.showModal(buildSlowmodeRuleAddModal());
-          return;
-        }
-
-        if (sub === "remove") {
-          const auth = await requirePluginPermission(ctx, "slowmode", "can_manage_rules");
-          if (!auth) return;
-
-          const id = ctx.interaction.options.getInteger("id", true);
-          const config = zSlowmodeConfig.parse(auth.pluginConfig);
-          const rules = normalizeSlowmodeRules(config.rules);
-          const filtered = rules.filter((rule) => rule.id !== id);
-
-          if (filtered.length === rules.length) {
-            await ctx.interaction.reply(
-              resultReply("Not found", `No slowmode rule with ID **${id}**.`, ctx.ephemeral, opts),
-            );
-            return;
-          }
-
-          const result = await ctx.configManager.patchPluginConfig(
-            guildId,
-            "slowmode",
-            { rules: filtered },
-            ctx.interaction.user.id,
-          );
-          if (!result.success) {
-            await ctx.interaction.reply(
-              resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
-            );
-            return;
-          }
-
-          invalidateSlowmodeConfigCache(guildId);
-
-          await ctx.interaction.reply(
-            resultReply(
-              "Slowmode rule removed",
-              `Removed rule **#${id}**.`,
-              ctx.ephemeral,
-              { ...opts, emoji: "<:icons_xmarkwhite:1544417463314161735>" },
-            ),
-          );
-          return;
-        }
-
-        if (sub === "list") {
-          const auth = await requirePluginPermission(ctx, "slowmode", "can_manage_rules");
-          if (!auth) return;
-
-          const config = getSlowmodeGuildConfig(ctx.guildConfig);
-          const rules = normalizeSlowmodeRules(config.rules);
-          if (!rules.length) {
-            await ctx.interaction.reply(
-              resultReply(
-                "Individual slowmode",
-                "No rules configured. Use `/slowmode rule add` to create one.",
-                ctx.ephemeral,
-                opts,
-              ),
-            );
-            return;
-          }
-
-          const lines = rules.map((rule) => formatSlowmodeRule(rule));
-          await ctx.interaction.reply(
-            embedReply(
-              setEmbedAuthor(
-                baseEmbed(),
-                "Individual slowmode rules",
-                ctx.client,
-                commandHeader(ctx.guildConfig, { emoji: "<:icons_todolist:1544417596307279952>" }),
-              ).addFields(
-                embedField("Rules", trimLines(lines.join("\n"))),
-                embedField(
-                  "Settings",
-                  [
-                    `Enabled: **${config.individual_enabled ? "yes" : "no"}**`,
-                    `Manage Messages bypass: **${config.allow_manage_messages_bypass ? "on" : "off"}**`,
-                    `Default delay: **${formatSeconds(config.individual_default_seconds)}**`,
-                  ].join("\n"),
-                ),
-              ),
-              ctx.ephemeral,
-            ),
-          );
-          return;
-        }
-      }
 
       if (sub === "check") {
         const auth = await requirePluginPermission(ctx, "slowmode", "can_manage_rules");
@@ -276,98 +136,6 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
           resultReply("Slowmode check", lines.join("\n"), ctx.ephemeral, {
             ...opts,
             emoji: "<:icons_fingerprint:1544418020682899537>",
-          }),
-        );
-        return;
-      }
-
-      if (sub === "bypass") {
-        const auth = await requirePluginPermission(ctx, "slowmode", "can_configure");
-        if (!auth) return;
-
-        const enabled = ctx.interaction.options.getBoolean("enabled", true);
-        const result = await ctx.configManager.patchPluginConfig(
-          guildId,
-          "slowmode",
-          { allow_manage_messages_bypass: enabled },
-          ctx.interaction.user.id,
-        );
-        if (!result.success) {
-          await ctx.interaction.reply(
-            resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
-          );
-          return;
-        }
-
-        invalidateSlowmodeConfigCache(guildId);
-
-        await ctx.interaction.reply(
-          resultReply(
-            "Bypass updated",
-            enabled
-              ? "Members with **Manage Messages** bypass individual slowmode."
-              : "Individual slowmode **cannot be bypassed** by Manage Messages (or anyone).",
-            ctx.ephemeral,
-            { ...opts, emoji: "<:icons_control:1544417540673900564>" },
-          ),
-        );
-        return;
-      }
-
-      if (sub === "individual") {
-        const auth = await requirePluginPermission(ctx, "slowmode", "can_configure");
-        if (!auth) return;
-
-        const enabled = ctx.interaction.options.getBoolean("enabled");
-        const defaultSeconds = ctx.interaction.options.getInteger("default_seconds");
-        if (enabled == null && defaultSeconds == null) {
-          const config = getSlowmodeGuildConfig(ctx.guildConfig);
-          await ctx.interaction.reply(
-            resultReply(
-              "Individual slowmode",
-              [
-                `Enabled: **${config.individual_enabled ? "yes" : "no"}**`,
-                `Default delay: **${formatSeconds(config.individual_default_seconds)}**`,
-                `Manage Messages bypass: **${config.allow_manage_messages_bypass ? "on" : "off"}**`,
-                `Rules: **${normalizeSlowmodeRules(config.rules).length}**`,
-                "",
-                "Pass `enabled` and/or `default_seconds` to update.",
-              ].join("\n"),
-              ctx.ephemeral,
-              opts,
-            ),
-          );
-          return;
-        }
-
-        const patch: Record<string, unknown> = {};
-        if (enabled != null) patch.individual_enabled = enabled;
-        if (defaultSeconds != null) patch.individual_default_seconds = defaultSeconds;
-
-        const result = await ctx.configManager.patchPluginConfig(guildId, "slowmode", patch, ctx.interaction.user.id);
-        if (!result.success) {
-          await ctx.interaction.reply(
-            resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
-          );
-          return;
-        }
-
-        invalidateSlowmodeConfigCache(guildId);
-
-        const parts: string[] = [];
-        if (enabled != null) parts.push(`Individual slowmode **${enabled ? "enabled" : "disabled"}**.`);
-        if (defaultSeconds != null) {
-          parts.push(
-            defaultSeconds > 0
-              ? `Default delay set to **${formatSeconds(defaultSeconds)}** when no rule matches.`
-              : "Default delay cleared (no limit unless a rule matches).",
-          );
-        }
-
-        await ctx.interaction.reply(
-          resultReply("Individual slowmode updated", parts.join("\n"), ctx.ephemeral, {
-            ...opts,
-            emoji: "<:icons_settings:1544417411875479642>",
           }),
         );
         return;

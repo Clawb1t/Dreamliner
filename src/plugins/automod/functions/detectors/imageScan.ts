@@ -3,6 +3,8 @@ import { fetchImageBuffer } from "../../../../core/imageFetch.js";
 import { closestScamImageHash } from "../scamImageHashes.js";
 import { computeDHash } from "../imageHash.js";
 import { numSetting, type Detector } from "./types.js";
+import { getLogger } from "../../../../core/logger.js";
+const log = getLogger("automod");
 
 const MAX_IMAGES_PER_MESSAGE = 3;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -44,7 +46,7 @@ export const detectImageScan: Detector = async (ctx, rule) => {
   for (const attachment of images) {
     const buffer = await fetchImageBuffer(attachment.url);
     if (!buffer) {
-      console.warn(`[automod] image_scan: could not fetch/read attachment "${attachment.name}", skipping it`);
+      log.warn(`[automod] image_scan: could not fetch/read attachment "${attachment.name}", skipping it`);
       continue;
     }
 
@@ -58,12 +60,12 @@ export const detectImageScan: Detector = async (ctx, rule) => {
           detail: closest.entry.label || `distance ${closest.distance}`,
         };
       }
-      console.debug(
+      log.debug(
         `[automod] image_scan: hash ${phash}, threshold ${maxDistance}` +
           (closest ? `, closest blocklist entry "${closest.entry.label}" at distance ${closest.distance}` : ", blocklist is empty"),
       );
     } catch (error) {
-      console.warn("[automod] image_scan: dHash failed for attachment:", error);
+      log.warn("[automod] image_scan: dHash failed for attachment:", error);
     }
   }
 

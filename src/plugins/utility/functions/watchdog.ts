@@ -6,6 +6,7 @@ import {
   commandHeader,
   discordTs,
   embedField,
+  memberAccentColor,
   setEmbedAuthor,
   trimLines,
   type ResultContainer,
@@ -34,7 +35,7 @@ export async function buildWatchdogEmbed(
       thumbnailURL: member.displayAvatarURL({ size: 128 }),
       emoji: "<:icons_user_mod:1544418270030074030>",
     }),
-  );
+  ).setColor(memberAccentColor(member));
 
   embed.addFields(
     embedField(

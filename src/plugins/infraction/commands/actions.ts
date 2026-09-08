@@ -21,6 +21,8 @@ import {
 } from "../functions/infractions.js";
 import { buildActionConfirmDetails } from "../functions/embeds.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("infraction");
 
 /** Icon per infraction type shown on the "Infraction #N" confirmation embed. */
 const ACTION_EMOJI: Record<string, string> = {
@@ -56,7 +58,7 @@ async function finishAction(
     pluginConfig,
     user,
     triggeringType: record.type,
-  }).catch((err) => console.error("Escalation error:", err));
+  }).catch((err) => log.error("Escalation error:", err));
 
   const notifyKey = type.replace("temp", "") as keyof InfractionConfig["notify"];
   const notifyMsg = buildNotifyMessage(pluginConfig, notifyKey in pluginConfig.notify ? notifyKey : "warn", {

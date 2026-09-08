@@ -42,7 +42,6 @@ export const zEconomyConfig = z.strictObject({
   can_daily: boolPerm("claim the daily reward"),
   can_stock_trade: boolPerm("buy and sell stocks on the Dreamliner Exchange"),
   can_exchange: boolPerm("exchange server currency for global coins"),
-  can_admin_manage: boolPerm("change server economy settings (name, denominator, and whether message rewards are on)"),
 
   // Trading cards (/planes — planes and airlines). The card catalog and packs are global
   // (bot-wide), not per-server — managed only via the dashboard's superuser catalog page, never

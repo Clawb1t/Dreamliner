@@ -22,6 +22,8 @@ import {
   type BotAvatarRequest,
   type BotBrandImageKind,
 } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("bot_customisation");
 
 function imageFilename(kind: BotBrandImageKind): string {
   return kind === "banner" ? "banner.png" : "avatar.png";
@@ -85,7 +87,7 @@ export async function submitBrandImageForReview(options: {
 
   const channel = await brandLogChannel(options.client);
   if (!channel) {
-    console.error(
+    log.error(
       `[bot_customisation] Photo log channel ${BOT_BRAND_LOG_CHANNEL_ID} missing or not a text channel`,
     );
     return { request, reviewPosted: false };
@@ -171,7 +173,7 @@ export async function logBrandImageApplied(options: {
 }): Promise<{ logPosted: boolean }> {
   const channel = await brandLogChannel(options.client);
   if (!channel) {
-    console.error(
+    log.error(
       `[bot_customisation] Photo log channel ${BOT_BRAND_LOG_CHANNEL_ID} missing or not a text channel`,
     );
     return { logPosted: false };

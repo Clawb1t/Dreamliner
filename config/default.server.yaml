@@ -159,9 +159,6 @@ plugins:
       dm_users: true
       rules: {}
       migrations: {}
-      can_status: false
-      can_test: false
-      can_configure: false
   impersonation:
     enabled: false
     config:
@@ -179,16 +176,12 @@ plugins:
       dm_flagged_member: false
       auto_action: none
       can_status: false
-      can_configure: false
-      can_manage_watchlist: false
   scam_protect:
     enabled: false
     config:
       channel_id: ""
       warning_message_id: ""
       channel_name: ""
-      can_setup: false
-      can_status: false
       ignored_roles: []
   passport:
     enabled: false
@@ -237,9 +230,6 @@ plugins:
       timeout_action: none
       timeout_seconds: 0
       timeout_dm: ""
-      can_panel: false
-      can_force: false
-      can_revoke: false
       can_test: false
   economy:
     enabled: false
@@ -252,7 +242,6 @@ plugins:
         message_rewards_enabled: true
       can_balance: false
       can_daily: false
-      can_admin_manage: false
   persist:
     enabled: true
     config:
@@ -268,7 +257,6 @@ plugins:
       can_set: false
       can_clear: false
       can_manage_rules: false
-      can_configure: false
   roles:
     enabled: true
     config:
@@ -285,11 +273,6 @@ plugins:
     config:
       can_create: false
       can_delete: false
-  self_grantable_roles:
-    enabled: true
-    config:
-      max_roles_per_panel: 10
-      can_configure: false
   welcome_message:
     enabled: true
     config:
@@ -314,9 +297,6 @@ plugins:
           enabled: false
         card:
           enabled: false
-      can_set: false
-      can_test: false
-      can_disable: false
   tags:
     enabled: true
     config:
@@ -340,23 +320,14 @@ plugins:
     enabled: true
     config:
       rules: []
-      can_add: false
-      can_remove: false
-      can_list: false
   autoreplies:
     enabled: true
     config:
       rules: []
-      can_add: false
-      can_remove: false
-      can_list: false
   autothreads:
     enabled: true
     config:
       rules: []
-      can_add: false
-      can_remove: false
-      can_list: false
   reminders:
     enabled: true
     config:

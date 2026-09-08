@@ -142,7 +142,6 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 - [Roles](docs/plugins/roles.md)
 - [Reaction roles](docs/plugins/reaction_roles.md)
 - [Role buttons](docs/plugins/role_buttons.md)
-- [Self-grantable roles](docs/plugins/self_grantable_roles.md)
 - [Autorole](docs/plugins/autorole.md)
 - [Member identity](docs/plugins/member_identity.md)
 

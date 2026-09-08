@@ -4,6 +4,8 @@ import { zTtsConfig } from "../../config/schemas/tts.js";
 import { ttsCommands } from "./commands.js";
 import { handleTtsTextChannelMessage } from "./functions/textChannel.js";
 import { syncTtsChannelTopic } from "./functions/channelTopic.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("tts");
 
 export const ttsPlugin = definePlugin({
   name: "tts",
@@ -12,7 +14,7 @@ export const ttsPlugin = definePlugin({
   onLoad: async ({ client, configManager }) => {
     configManager.onSave((guildId, config) => {
       void syncTtsChannelTopic(client, guildId, config).catch((error) => {
-        console.error(`[tts] Failed to sync channel topic for ${guildId}:`, error);
+        log.error(`[tts] Failed to sync channel topic for ${guildId}:`, error);
       });
     });
   },

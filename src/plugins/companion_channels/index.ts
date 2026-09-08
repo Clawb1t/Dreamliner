@@ -8,6 +8,8 @@ import {
   handleCompanionVoiceStateUpdate,
   syncGuildCompanion,
 } from "./functions/handlers.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("companion_channels");
 
 export const companionChannelsPlugin = definePlugin({
   name: "companion_channels",
@@ -16,7 +18,7 @@ export const companionChannelsPlugin = definePlugin({
   onLoad: async ({ client, configManager }) => {
     configManager.onSave((guildId, config) => {
       void syncGuildCompanion(client, guildId, config).catch((error) => {
-        console.error(`[companion] Failed to apply companion config for ${guildId}:`, error);
+        log.error(`[companion] Failed to apply companion config for ${guildId}:`, error);
       });
     });
   },

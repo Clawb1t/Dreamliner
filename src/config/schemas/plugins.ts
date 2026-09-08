@@ -152,8 +152,7 @@ export const zSlowmodeConfig = z.strictObject({
   rules: z.array(zSlowmodeRule).default([]).describe("Per-user or per-role slowmode rules."),
   can_set: boolPerm("set channel slowmode"),
   can_clear: boolPerm("clear slowmode"),
-  can_manage_rules: boolPerm("manage individual slowmode rules"),
-  can_configure: boolPerm("configure slowmode settings"),
+  can_manage_rules: boolPerm("check effective individual slowmode for a member"),
 });
 
 export const zRolesConfig = z.strictObject({
@@ -170,17 +169,6 @@ export const zReactionRolesConfig = z.strictObject({
 export const zRoleButtonsConfig = z.strictObject({
   can_create: boolPerm("create button role panels"),
   can_delete: boolPerm("delete button role panels"),
-});
-
-export const zSelfGrantableRolesConfig = z.strictObject({
-  can_configure: boolPerm("configure self-serve role panels"),
-  max_roles_per_panel: z
-    .number()
-    .int()
-    .min(1)
-    .max(25)
-    .default(10)
-    .describe("Maximum roles allowed on one self-grant panel."),
 });
 
 export const zTagsConfig = z.strictObject({
@@ -234,9 +222,6 @@ export const zAutoreactionsConfig = z.strictObject({
     )
     .default([])
     .describe("Autoreaction rules. Each rule listens in one channel (or all channels) and reacts when it matches."),
-  can_add: boolPerm("add autoreaction rules"),
-  can_remove: boolPerm("remove autoreaction rules"),
-  can_list: boolPerm("list autoreaction rules"),
 });
 
 /** Same match modes as autoreactions. */
@@ -322,9 +307,6 @@ export const zAutorepliesConfig = z.strictObject({
     )
     .default([])
     .describe("Autoreply rules. Each rule listens in one channel (or all channels) and replies when it matches."),
-  can_add: boolPerm("add autoreply rules"),
-  can_remove: boolPerm("remove autoreply rules"),
-  can_list: boolPerm("list autoreply rules"),
 });
 
 const zThreadArchiveMinutes = z
@@ -426,9 +408,6 @@ export const zAutothreadsConfig = z.strictObject({
     .describe(
       "Autothread rules. Each rule listens in one channel (or all channels) and starts a thread when it matches.",
     ),
-  can_add: boolPerm("add autothread rules"),
-  can_remove: boolPerm("remove autothread rules"),
-  can_list: boolPerm("list autothread rules"),
 });
 
 export const zRemindersConfig = z.strictObject({
@@ -560,7 +539,6 @@ export const zRolesPluginSection = zPluginSection(zRolesConfig.shape);
 export const zReactionRolesPluginSection = zPluginSection(zReactionRolesConfig.shape);
 export const zRoleButtonsPluginSection = zPluginSection(zRoleButtonsConfig.shape);
 export const zRolePanelsPluginSection = zPluginSection(zRolePanelsConfig.shape);
-export const zSelfGrantableRolesPluginSection = zPluginSection(zSelfGrantableRolesConfig.shape);
 export const zWelcomeMessagePluginSection = zPluginSection(zWelcomeMessageConfig.shape);
 export const zTagsPluginSection = zPluginSection(zTagsConfig.shape);
 export const zAutodeletePluginSection = zPluginSection(zAutodeleteConfig.shape);
@@ -587,7 +565,6 @@ export type TagsConfig = z.infer<typeof zTagsConfig>;
 export type RolesConfig = z.infer<typeof zRolesConfig>;
 export type ReactionRolesConfig = z.infer<typeof zReactionRolesConfig>;
 export type RoleButtonsConfig = z.infer<typeof zRoleButtonsConfig>;
-export type SelfGrantableRolesConfig = z.infer<typeof zSelfGrantableRolesConfig>;
 export type DreamCommandsConfig = z.infer<typeof zDreamCommandsConfig>;
 export type BotCustomisationConfig = z.infer<typeof zBotCustomisationConfig>;
 export type MemberIdentityConfig = z.infer<typeof zMemberIdentityConfig>;

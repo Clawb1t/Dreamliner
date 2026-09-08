@@ -1,5 +1,7 @@
 import { Routes, type Client, type Snowflake } from "discord.js";
 import { clearSlot, cooldownKey, getActiveSlot, sweepExpiredSlots, type Slot } from "./cooldown.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("slowmode");
 
 export const SLOWMODE_MARKER_EMOJI = "slowmode:1534690955217600683";
 
@@ -82,7 +84,7 @@ export function startSlowmodeMarkerSweeper(client: Client): void {
   if (sweepTimer) return;
   sweepTimer = setInterval(() => {
     sweepAll().catch((error) => {
-      console.error("[slowmode] Marker sweep failed:", error);
+      log.error("[slowmode] Marker sweep failed:", error);
     });
   }, 500);
 }
@@ -149,7 +151,7 @@ export async function ensureMarker(opts: {
       availableAt: opts.slot.availableAt,
     });
   } catch (error) {
-    console.error(
+    log.error(
       `[slowmode] Failed to react on ${opts.slot.messageId} in ${opts.channelId}:`,
       error,
     );

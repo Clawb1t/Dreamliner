@@ -6,6 +6,8 @@ import { manageCommands } from "./commands/manage.js";
 import { evidenceCommands } from "./commands/evidence.js";
 import { processExpiredInfractions } from "./functions/infractions.js";
 import { sweepExpiredEvidence } from "../../core/evidence.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("infraction");
 
 export const infractionPlugin = definePlugin({
   name: "infractions",
@@ -14,12 +16,12 @@ export const infractionPlugin = definePlugin({
   onLoad: async ({ client }) => {
     setInterval(() => {
       processExpiredInfractions(client).catch((err) => {
-        console.error("Infraction expiration sweep failed:", err);
+        log.error("Infraction expiration sweep failed:", err);
       });
     }, 60_000);
     setInterval(() => {
       sweepExpiredEvidence().catch((err) => {
-        console.error("Evidence retention sweep failed:", err);
+        log.error("Evidence retention sweep failed:", err);
       });
     }, 60 * 60_000);
   },

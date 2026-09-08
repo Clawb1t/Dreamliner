@@ -1,13 +1,12 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zAutoreactionsConfig } from "../../config/schemas/plugins.js";
-import { autoreactionsCommands } from "./commands.js";
 import { handleAutoreactionMessage } from "./functions/handlers.js";
 
 export const autoreactionsPlugin = definePlugin({
   name: "autoreactions",
   configSchema: zAutoreactionsConfig,
-  slashCommands: autoreactionsCommands,
+  slashCommands: [],
   events: [
     {
       name: Events.MessageCreate,

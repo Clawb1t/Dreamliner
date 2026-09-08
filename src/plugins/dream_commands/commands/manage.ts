@@ -13,6 +13,8 @@ import {
 } from "../functions/store.js";
 import { syncGuildDreamSlashCommands } from "../functions/guildSlash.js";
 import { formatTriggerLabel } from "../functions/run.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("dream_commands");
 
 function listStatRow(total: number): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -78,7 +80,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         try {
           await syncGuildDreamSlashCommands(ctx.client, guildId);
         } catch (error) {
-          console.error("[dream_commands] guild slash sync failed after remove:", error);
+          log.error("[dream_commands] guild slash sync failed after remove:", error);
         }
 
         await ctx.interaction.reply(
@@ -111,7 +113,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         try {
           await syncGuildDreamSlashCommands(ctx.client, guildId);
         } catch (error) {
-          console.error("[dream_commands] guild slash sync failed after toggle:", error);
+          log.error("[dream_commands] guild slash sync failed after toggle:", error);
         }
 
         await ctx.interaction.reply(
@@ -146,7 +148,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
             guildSlashIds.set(cmd.name, cmd.id);
           }
         } catch (error) {
-          console.warn("[dream_commands] failed to fetch guild slash ids for list:", error);
+          log.warn("[dream_commands] failed to fetch guild slash ids for list:", error);
         }
 
         const lines = rows

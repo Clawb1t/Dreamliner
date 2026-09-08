@@ -9,6 +9,8 @@ import {
   handlePersistReady,
   syncGuildStickies,
 } from "./functions/handlers.js";
+import { getLogger } from "../../core/logger.js";
+const log = getLogger("persist");
 
 export const persistPlugin = definePlugin({
   name: "persist",
@@ -17,7 +19,7 @@ export const persistPlugin = definePlugin({
   onLoad: async ({ client, configManager }) => {
     configManager.onSave((guildId, config) => {
       void syncGuildStickies(client, guildId, { updateContent: true, guildConfig: config }).catch((error) => {
-        console.error(`[persist] Failed to apply sticky config for ${guildId}:`, error);
+        log.error(`[persist] Failed to apply sticky config for ${guildId}:`, error);
       });
     });
   },

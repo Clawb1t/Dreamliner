@@ -2,6 +2,8 @@ import { existsSync } from "node:fs";
 import { DREAMLINER_ACCENT_HEX } from "../../../core/embeds.js";
 import { createCanvas, GlobalFonts, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import { cardFont } from "../../welcome_message/functions/cardFonts.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("stats");
 
 let emojiFontReady = false;
 let hasEmojiFont = false;
@@ -779,7 +781,7 @@ export async function renderRankCard(options: RankCardOptions): Promise<Buffer> 
       ctx.fillRect(0, 0, width, height);
     } catch (err) {
       // no banner — plain background already painted
-      console.warn(`[rank card] failed to load banner image from ${row.bannerURL}:`, err);
+      log.warn(`[rank card] failed to load banner image from ${row.bannerURL}:`, err);
     }
   }
   ctx.restore();

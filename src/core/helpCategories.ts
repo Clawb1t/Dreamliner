@@ -55,10 +55,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     id: "self_roles",
     label: "Self-serve roles",
     blurb: "Dashboard-managed role panels and self-serve role menus members can claim.",
-    include: [
-      { plugin: "role_panels" },
-      { plugin: "self_grantable_roles" },
-    ],
+    include: [{ plugin: "role_panels" }],
   },
   {
     id: "info",
@@ -246,11 +243,6 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Role panels",
     description: "Dashboard-managed reaction/button role panels, with full embed customisation and a live preview.",
   },
-  self_grantable_roles: {
-    key: "self_grantable_roles",
-    name: "Self grantable roles",
-    description: "Self-serve role panels.",
-  },
   autorole: {
     key: "autorole",
     name: "Autorole",
@@ -389,7 +381,6 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   reaction_roles: "self_roles",
   role_buttons: "self_roles",
   role_panels: "self_roles",
-  self_grantable_roles: "self_roles",
   locate_user: "info",
   name_history: "info",
   username_saver: "info",

@@ -14,14 +14,11 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { deferReplyOptions, embedEdit, embedReply, resultReply, slashResultOptions } from "../../core/responses.js";
 import { discordTimestamp } from "../../core/datetime.js";
-import { baseEmbed } from "../../core/embeds.js";
+import { baseEmbed, memberAccentColor } from "../../core/embeds.js";
 import { resolveEmojiForContent } from "../../core/emoji.js";
-import { emitLog } from "../../core/logging/send.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
 import {
   GLOBAL_DAILY_AMOUNT,
-  SERVER_MESSAGE_AMOUNT,
-  SERVER_MESSAGE_COOLDOWN_SECONDS,
   formatCoinAmount,
   formatExchangeRate,
   formatGlobal,
@@ -157,6 +154,7 @@ export const economyCommands: SlashCommandDefinition[] = [
       const guildId = i.guildId!;
       const target = i.options.getUser("user") ?? i.user;
       const which = i.options.getString("currency", true) as "global" | "server";
+      const targetMember = await i.guild!.members.fetch(target.id).catch(() => null);
 
       const description =
         which === "global" ? formatGlobal(getGlobalBalance(target.id)) : formatServer(getServerBalance(guildId, target.id), config.server);
@@ -164,6 +162,7 @@ export const economyCommands: SlashCommandDefinition[] = [
       const embed = baseEmbed()
         .setTitle(target.displayName)
         .setThumbnail(target.displayAvatarURL())
+        .setColor(memberAccentColor(targetMember))
         .setDescription(description)
         .setFooter(bankFooter(which, i.guild!, ctx.client));
 
@@ -228,114 +227,11 @@ export const economyCommands: SlashCommandDefinition[] = [
       const embed = baseEmbed()
         .setTitle(member?.displayName ?? i.user.username)
         .setThumbnail(i.user.displayAvatarURL())
+        .setColor(memberAccentColor(member))
         .setDescription(description)
         .setFooter({ text: `${bank.text}  ✧  🔥 streak: ${streak}`, iconURL: bank.iconURL });
 
       await i.editReply(embedEdit(embed));
-    },
-  },
-  {
-    plugin: "economy",
-    data: new SlashCommandBuilder()
-      .setName("economy")
-      .setDescription("Manager tools for this server's economy")
-      .addSubcommand((s) => s.setName("view").setDescription("View this server's economy settings"))
-      .addSubcommand((s) =>
-        s
-          .setName("settings")
-          .setDescription("Update this server's economy settings")
-          .addStringOption((o) => o.setName("name").setDescription("Currency name (plural), e.g. Credits").setMaxLength(32))
-          .addStringOption((o) =>
-            o.setName("name_singular").setDescription("Currency name (singular), e.g. Credit").setMaxLength(32),
-          )
-          .addStringOption((o) =>
-            o.setName("denominator").setDescription("Prefix shown before amounts, e.g. $ in `$0.15`").setMaxLength(8),
-          )
-          .addStringOption((o) =>
-            o
-              .setName("emoji")
-              .setDescription("Emoji shown next to amounts, e.g. 🪙 or <:coin:123>. Empty clears it.")
-              .setMaxLength(64),
-          )
-          .addBooleanOption((o) => o.setName("message_rewards_enabled").setDescription("Pay currency for sending messages")),
-      ),
-    execute: async (ctx) => {
-      const auth = await requirePluginPermission(ctx, "economy", "can_admin_manage");
-      if (!auth) return;
-      const config = zEconomyConfig.parse(auth.pluginConfig);
-      const i = ctx.interaction;
-      const guildId = i.guildId!;
-      const sub = i.options.getSubcommand();
-
-      if (sub === "view") {
-        const s = config.server;
-        const dailyAmount = getServerDailyAmount(guildId);
-        const rate = getExchangeRate(guildId);
-        await i.reply(
-          resultReply(
-            "Server economy settings",
-            [
-              `**Currency:** ${s.currency_name} (\`${s.currency_name_singular}\` singular, \`${s.currency_denominator}\` denominator)`,
-              `**Emoji:** ${s.currency_emoji.trim() || "none"}`,
-              `**Message rewards:** ${s.message_rewards_enabled ? "on" : "off"} — fixed **${SERVER_MESSAGE_AMOUNT}** per message, **${SERVER_MESSAGE_COOLDOWN_SECONDS}s** cooldown`,
-              `**Daily reward:** ${formatServer(dailyAmount, s)} (market rate \`${formatExchangeRate(rate)}\`, tracks this server's Dreamliner Exchange stock)`,
-            ].join("\n"),
-            ctx.ephemeral,
-            slashResultOptions(ctx),
-          ),
-        );
-        return;
-      }
-
-      // sub === "settings" — name, denominator, emoji, and the message-rewards on/off toggle are
-      // still admin-configurable. Rates (message amount, cooldown, multiplier, daily amount)
-      // aren't: they're fixed bot-wide, with the daily reward instead scaling automatically with
-      // this server's own stock price — see the schema comment in config/schemas/economy.ts.
-      const name = i.options.getString("name") ?? config.server.currency_name;
-      const nameSingular = i.options.getString("name_singular") ?? config.server.currency_name_singular;
-      const denominator = i.options.getString("denominator") ?? config.server.currency_denominator;
-      const emoji = i.options.getString("emoji") ?? config.server.currency_emoji;
-      const messageRewardsEnabled =
-        i.options.getBoolean("message_rewards_enabled") ?? config.server.message_rewards_enabled;
-
-      const result = await ctx.configManager.patchPluginConfig(
-        guildId,
-        "economy",
-        {
-          server: {
-            currency_name: name,
-            currency_name_singular: nameSingular,
-            currency_denominator: denominator,
-            currency_emoji: emoji,
-            message_rewards_enabled: messageRewardsEnabled,
-          },
-        },
-        i.user.id,
-      );
-      if (!result.success) {
-        await i.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-        return;
-      }
-
-      void emitLog(
-        ctx.client,
-        ctx.guildConfig,
-        {
-          title: "Economy settings updated",
-          information: [`**By:** <@${i.user.id}>`, `**Currency:** ${name}`, `**Message rewards:** ${messageRewardsEnabled ? "on" : "off"}`],
-          emojiCategory: "serverUpdate",
-        },
-        { guildId, eventType: "economy_admin_change", actorId: i.user.id, summary: "Economy settings updated" },
-      ).catch(() => null);
-
-      await i.reply(
-        resultReply(
-          "Economy settings updated",
-          `**Currency:** ${name}\n**Message rewards:** ${messageRewardsEnabled ? "on" : "off"}`,
-          ctx.ephemeral,
-          slashResultOptions(ctx, { tone: "success", emoji: "<:icons_settings:1544417411875479642>" }),
-        ),
-      );
     },
   },
   {
@@ -363,6 +259,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         const embed = baseEmbed()
           .setTitle(member?.displayName ?? i.user.username)
           .setThumbnail(i.user.displayAvatarURL())
+          .setColor(memberAccentColor(member))
           .setDescription(
             `<:icons_swap:1544418225503084695> Exchanged ${formatServer(result.serverAmount, config.server)} for ${formatGlobal(result.globalAmount)}`,
           )
@@ -484,6 +381,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "economy", "can_balance");
         if (!auth) return;
         const target = i.options.getUser("user") ?? i.user;
+        const targetMember = await i.guild!.members.fetch(target.id).catch(() => null);
         const portfolio = getPortfolio(target.id);
         const lines = portfolio.positions.map(
           (p) => `\`${p.stock.symbol}\` **${p.shares}** shares - ${formatCoinAmount(p.marketValue)}  ${stockChangeArrow(p.pl)} ${formatStockChange(p.pl, p.plPct)}`,
@@ -491,6 +389,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         const embed = baseEmbed()
           .setTitle(`${target.username}'s portfolio`)
           .setThumbnail(target.displayAvatarURL())
+          .setColor(memberAccentColor(targetMember))
           .setDescription(lines.join("\n") || "No positions yet.")
           .addFields(
             { name: "Portfolio value", value: formatCoinAmount(portfolio.totalValue) },
@@ -626,9 +525,10 @@ export const economyCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        const { embed, row, files } = buildInventoryPage(cards[0], { index: 0, total: cards.length, viewerId: i.user.id, targetUserId: target.id });
+        const { components, files } = buildInventoryPage(cards[0], { index: 0, total: cards.length, viewerId: i.user.id, targetUserId: target.id });
         const reply: InteractionReplyOptions = {
-          ...embedReply(embed, ctx.ephemeral, [row]),
+          flags: MessageFlags.IsComponentsV2 | (ctx.ephemeral ? MessageFlags.Ephemeral : 0),
+          components,
           ...(files.length ? { files } : {}),
         };
         await i.reply(reply);
@@ -663,11 +563,11 @@ export const economyCommands: SlashCommandDefinition[] = [
           await i.reply(resultReply("Not found", `No card found for \`${key}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
-        const { row, files } = buildCardReveal(plane);
+        const { components, files } = buildCardReveal(plane);
         const reply: InteractionReplyOptions = {
-          components: [row],
+          flags: MessageFlags.IsComponentsV2 | (ctx.ephemeral ? MessageFlags.Ephemeral : 0),
+          components,
           ...(files.length ? { files } : {}),
-          ...(ctx.ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
         };
         await i.reply(reply);
         return;

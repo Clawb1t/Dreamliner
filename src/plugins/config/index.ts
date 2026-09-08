@@ -2,8 +2,6 @@ import { SlashCommandBuilder } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { configEditorWithSupportRow } from "../../core/docsUrl.js";
 import { resultReply, guildResultOptions } from "../../core/responses.js";
-import { permissionsCommand } from "./commands/permissions.js";
-import { pluginCommand } from "./commands/plugin.js";
 
 export const configPlugin = definePlugin({
   name: "config",
@@ -38,7 +36,5 @@ export const configPlugin = definePlugin({
         );
       },
     },
-    permissionsCommand,
-    pluginCommand,
   ],
 });

@@ -1,6 +1,8 @@
 import { REST, Routes, SlashCommandBuilder, type Client } from "discord.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
 import { listEnabledDreamCommands, type DreamCommandRow } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("dream_commands");
 
 /** Dreamliner allows at most this many custom commands per server (product limit). */
 export const DREAM_COMMAND_CAP = 10;
@@ -41,13 +43,13 @@ function buildGuildCommandBody(rows: DreamCommandRow[]) {
 export async function syncGuildDreamSlashCommands(client: Client, guildId: string): Promise<number> {
   const clientId = client.application?.id ?? client.user?.id;
   if (!clientId) {
-    console.warn(`[dream_commands] Cannot sync guild slash commands for ${guildId}: missing application id`);
+    log.warn(`[dream_commands] Cannot sync guild slash commands for ${guildId}: missing application id`);
     return 0;
   }
 
   const token = client.token;
   if (!token) {
-    console.warn(`[dream_commands] Cannot sync guild slash commands for ${guildId}: missing token`);
+    log.warn(`[dream_commands] Cannot sync guild slash commands for ${guildId}: missing token`);
     return 0;
   }
 
@@ -63,7 +65,7 @@ export async function syncAllGuildDreamSlashCommands(client: Client): Promise<vo
     try {
       await syncGuildDreamSlashCommands(client, guild.id);
     } catch (error) {
-      console.error(`[dream_commands] Failed to sync guild commands for ${guild.id}:`, error);
+      log.error(`[dream_commands] Failed to sync guild commands for ${guild.id}:`, error);
     }
   }
 }

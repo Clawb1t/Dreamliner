@@ -1,7 +1,6 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zAutomodConfig } from "../../config/schemas/automod.js";
-import { automodCommands } from "./commands.js";
 import {
   handleAutomodMemberAdd,
   handleAutomodMessage,
@@ -12,7 +11,7 @@ import { handleNativeAutomodExecution } from "./functions/nativeSync.js";
 export const automodPlugin = definePlugin({
   name: "automod",
   configSchema: zAutomodConfig,
-  slashCommands: automodCommands,
+  slashCommands: [],
   events: [
     {
       name: Events.MessageCreate,

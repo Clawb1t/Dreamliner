@@ -10,6 +10,8 @@ import {
 } from "./globalQueries.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("stats");
 
 export type RankScope = "server" | "global";
 
@@ -33,7 +35,7 @@ export async function renderUserRankCard(
   const [member, bannerUser, profile, badges] = await Promise.all([
     guild.members.fetch(user.id).catch(() => null),
     guild.client.users.fetch(user.id, { force: true }).catch((err) => {
-      console.warn(`[rank card] forced user fetch failed for ${user.id}:`, err);
+      log.warn(`[rank card] forced user fetch failed for ${user.id}:`, err);
       return null;
     }),
     getUserProfile(user.id),

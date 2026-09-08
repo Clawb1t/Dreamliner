@@ -7,6 +7,8 @@ import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { InfractionType } from "../../../config/schemas/infraction.js";
 import type { InfractionRecord } from "./embeds.js";
 import { expiryFromDuration } from "./duration.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("infraction");
 
 export function rowToRecord(row: typeof modCases.$inferSelect): InfractionRecord {
   return {
@@ -67,7 +69,7 @@ export async function createInfraction(input: {
     .get();
 
   void captureEvidenceOnCase(input.guildId, input.userId, row.id, input.modId).catch((err) =>
-    console.error("Evidence capture error:", err),
+    log.error("Evidence capture error:", err),
   );
 
   return rowToRecord(row);
@@ -367,7 +369,7 @@ export async function processExpiredInfractions(client: Client) {
   const expired = await getExpiredActiveInfractions();
   for (const record of expired) {
     await expireInfraction(client, record).catch((err) => {
-      console.error(`Failed to expire infraction #${record.id}:`, err);
+      log.error(`Failed to expire infraction #${record.id}:`, err);
     });
   }
 }

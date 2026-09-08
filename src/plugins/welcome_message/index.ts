@@ -1,14 +1,13 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zWelcomeMessageConfig } from "../../config/schemas/welcome.js";
-import { welcomeMessageCommands } from "./commands.js";
 import { handleWelcomeMemberAdd, handleWelcomeMemberRemove } from "./functions/handlers.js";
 import { handleWelcomeFirstMessage } from "./functions/firstMessageReact.js";
 
 export const welcomeMessagePlugin = definePlugin({
   name: "welcome_message",
   configSchema: zWelcomeMessageConfig,
-  slashCommands: welcomeMessageCommands,
+  slashCommands: [],
   events: [
     {
       name: Events.GuildMemberAdd,

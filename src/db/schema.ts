@@ -231,15 +231,6 @@ export const roleButtonPanels = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.messageId, table.roleId] })],
 );
 
-export const selfRolePanels = sqliteTable(
-  "self_role_panels",
-  {
-    guildId: text("guild_id").notNull(),
-    messageId: text("message_id").notNull(),
-    config: text("config").notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.guildId, table.messageId] })],
-);
 
 export const tags = sqliteTable(
   "tags",

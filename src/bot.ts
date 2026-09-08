@@ -28,15 +28,9 @@ import {
 import { resolveEphemeral } from "./core/ephemeral.js";
 import { canUseUtility } from "./core/guildHelpers.js";
 import { handleHelpButton, handleHelpSelect, HELP_BUTTON_PREFIX } from "./plugins/utility/functions/help.js";
-import { handlePluginListButtonInteraction, PLUGIN_LIST_PREFIX } from "./plugins/config/pluginList.js";
 import { handleStatsInteraction, STATS_PREFIX } from "./plugins/stats/functions/ui/index.js";
 import { handleRoleButtonInteraction, ROLE_BUTTON_PREFIX } from "./plugins/role_buttons/index.js";
 import { handleRolePanelButtonInteraction, ROLE_PANEL_PREFIX } from "./plugins/role_panels/index.js";
-import {
-  handleSelfRoleButtonInteraction,
-  handleSelfRoleSelectInteraction,
-  SELF_ROLE_PREFIX,
-} from "./plugins/self_grantable_roles/index.js";
 import {
   BOT_AVATAR_PREFIX,
   handleBotAvatarButtonInteraction,
@@ -45,22 +39,6 @@ import {
   handleScamProtectButtonInteraction,
   SCAM_PROTECT_STATS_PREFIX,
 } from "./plugins/scam_protect/functions/buttons.js";
-import {
-  AUTOREACTION_ADD_MODAL_ID,
-  handleAutoreactionModalSubmit,
-} from "./plugins/autoreactions/functions/modal.js";
-import {
-  AUTOREPLY_ADD_MODAL_ID,
-  handleAutoreplyModalSubmit,
-} from "./plugins/autoreplies/functions/modal.js";
-import {
-  SLOWMODE_RULE_ADD_MODAL_ID,
-  handleSlowmodeRuleModalSubmit,
-} from "./plugins/slowmode/functions/modal.js";
-import {
-  AUTOROLE_ADD_MODAL_ID,
-  handleAutoroleModalSubmit,
-} from "./plugins/autorole/functions/modal.js";
 import {
   REVIEW_MODAL_ID,
   handleReviewModalSubmit,
@@ -100,8 +78,6 @@ import {
   handleCompanionSelectInteraction,
 } from "./plugins/companion_channels/functions/interface.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
-import { handlePermissionsAutocomplete } from "./plugins/config/commands/permissions.js";
-import { handlePluginAutocomplete } from "./plugins/config/commands/plugin.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
 import { handleStockAutocomplete } from "./plugins/economy/commands.js";
 import { handleStockRangeSelectInteraction, STOCK_VIEW_RANGE_PREFIX } from "./plugins/economy/functions/stockView.js";
@@ -121,6 +97,9 @@ import type { BotContext } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
 import { startDashboardBridge } from "./bridge/dashboardBridge.js";
 import { startStatusMonitor } from "./core/statusMonitor.js";
+import { getLogger } from "./core/logger.js";
+const log = getLogger("bot");
+const cmdLog = getLogger("commands");
 
 const pluginConfigGetters: Record<string, typeof getUtilityPluginConfig> = {
   utility: getUtilityPluginConfig,
@@ -157,19 +136,19 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   });
 
   client.on(Events.Error, (error) => {
-    console.error("[discord] Client error:", error);
+    log.error("[discord] Client error:", error);
   });
 
   const ctx = await loadPlugins(client, configManager, availablePlugins);
 
   client.once(Events.ClientReady, (c) => {
     applyBotPresence(c);
-    console.log(`Dreamliner ready as ${c.user.tag}`);
+    log.info(`Dreamliner ready as ${c.user.tag}`);
     startStatusMonitor(c);
     startDashboardBridge(c, configManager);
     void import("./bridge/oneEntitlements.js").then(({ startDreamlinerOneEntitlements }) =>
       startDreamlinerOneEntitlements(c).catch((error) => {
-        console.error("[dreamliner-one] Failed to start entitlement sync.", error);
+        log.error("[dreamliner-one] Failed to start entitlement sync.", error);
       }),
     );
     // Self-heals native AutoMod drift (a rule someone deleted/edited by hand in Discord's
@@ -177,7 +156,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     // hit "Sync now" on the dashboard after a restart.
     void import("./plugins/automod/functions/nativeSync.js").then(({ resyncAllNativeAutomod }) =>
       resyncAllNativeAutomod(c).catch((error) => {
-        console.error("[automod] Native AutoMod boot resync failed.", error);
+        log.error("[automod] Native AutoMod boot resync failed.", error);
       }),
     );
   });
@@ -199,6 +178,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   });
 
   client.on(Events.GuildCreate, async (guild) => {
+    log.success(
+      `Joined guild "${guild.name}" (${guild.id}) — ${guild.memberCount} members. Now in ${client.guilds.cache.size} guild(s).`,
+    );
+
     const stored = await configManager.getGuildConfig(guild.id);
     if (stored) return;
 
@@ -208,7 +191,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     // like /warn until someone explicitly saves a config.
     const provisioned = await configManager.saveGuildConfig(guild.id, "", "system:auto-onboard");
     if (!provisioned.success) {
-      console.error(
+      log.error(
         `[dreamliner] Failed to provision default config for guild ${guild.id}:`,
         provisioned.errors,
       );
@@ -218,40 +201,34 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     await sendGuildOnboardingMessage(client, guild);
   });
 
+  client.on(Events.GuildDelete, (guild) => {
+    log.warn(
+      `Left guild "${guild.name || guild.id}" (${guild.id}). Now in ${client.guilds.cache.size} guild(s).`,
+    );
+  });
+
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction.isAutocomplete()) {
-      if (interaction.commandName === "permissions") {
-        await handlePermissionsAutocomplete(interaction).catch((error) => {
-          console.error("Permissions autocomplete error:", error);
-        });
-        return;
-      }
-      if (interaction.commandName === "plugin") {
-        await handlePluginAutocomplete(interaction).catch((error) => {
-          console.error("Plugin autocomplete error:", error);
-        });
-        return;
-      }
       if (interaction.commandName === "translate") {
         await handleTranslateAutocomplete(interaction).catch((error) => {
-          console.error("Translate autocomplete error:", error);
+          log.error("Translate autocomplete error:", error);
         });
         return;
       }
       if (interaction.commandName === "tts") {
         await handleTtsAutocomplete(interaction).catch((error) => {
-          console.error("TTS autocomplete error:", error);
+          log.error("TTS autocomplete error:", error);
         });
         return;
       }
       if (interaction.commandName === "stock") {
         await handleStockAutocomplete(interaction).catch((error) => {
-          console.error("Stock autocomplete error:", error);
+          log.error("Stock autocomplete error:", error);
         });
       }
       if (interaction.commandName === "planes" || interaction.commandName === "planesadmin") {
         await handlePlanesAutocomplete(interaction).catch((error) => {
-          console.error("Planes autocomplete error:", error);
+          log.error("Planes autocomplete error:", error);
         });
       }
       return;
@@ -321,16 +298,6 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await handleRolePanelButtonInteraction(interaction);
         if (handled) return;
       }
-      if (interaction.customId.startsWith(SELF_ROLE_PREFIX) && interaction.customId.includes(":", SELF_ROLE_PREFIX.length)) {
-        const handled = await handleSelfRoleButtonInteraction(interaction);
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(`${PLUGIN_LIST_PREFIX}:`)) {
-        const handled = await handlePluginListButtonInteraction(interaction, (guildId) =>
-          configManager.getEffectiveConfig(guildId),
-        );
-        if (handled) return;
-      }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
         const handled = await handleStatsButtonInteraction(configManager, interaction);
         if (handled) return;
@@ -341,10 +308,6 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     if (interaction.isStringSelectMenu()) {
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
         const handled = await handleTicketSelectMenuInteraction(interaction);
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(SELF_ROLE_PREFIX)) {
-        const handled = await handleSelfRoleSelectInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
@@ -370,84 +333,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await handleTicketModalSubmit(interaction);
         if (handled) return;
       }
-      if (interaction.customId === AUTOREACTION_ADD_MODAL_ID) {
-        if (!(await ensurePluginEnabledForModal(configManager, interaction, "autoreactions"))) return;
-        try {
-          await handleAutoreactionModalSubmit(interaction, configManager);
-        } catch (error) {
-          console.error("Autoreaction modal error:", error);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction
-              .reply(
-                resultReply("Error", "Could not save that auto-reaction. Ask in the support server if this continues.", true, undefined, [
-                  supportLinkRow(),
-                ]),
-              )
-              .catch(() => null);
-          }
-        }
-        return;
-      }
-      if (interaction.customId === AUTOREPLY_ADD_MODAL_ID) {
-        if (!(await ensurePluginEnabledForModal(configManager, interaction, "autoreplies"))) return;
-        try {
-          await handleAutoreplyModalSubmit(interaction, configManager);
-        } catch (error) {
-          console.error("Autoreply modal error:", error);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction
-              .reply(
-                resultReply("Error", "Could not save that auto-reply. Ask in the support server if this continues.", true, undefined, [
-                  supportLinkRow(),
-                ]),
-              )
-              .catch(() => null);
-          }
-        }
-        return;
-      }
-      if (interaction.customId === SLOWMODE_RULE_ADD_MODAL_ID) {
-        if (!(await ensurePluginEnabledForModal(configManager, interaction, "slowmode"))) return;
-        try {
-          await handleSlowmodeRuleModalSubmit(interaction, configManager);
-        } catch (error) {
-          console.error("Slowmode modal error:", error);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction
-              .reply(
-                resultReply("Error", "Could not save that slowmode rule. Ask in the support server if this continues.", true, undefined, [
-                  supportLinkRow(),
-                ]),
-              )
-              .catch(() => null);
-          }
-        }
-        return;
-      }
-      if (interaction.customId === AUTOROLE_ADD_MODAL_ID) {
-        if (!(await ensurePluginEnabledForModal(configManager, interaction, "autorole"))) return;
-        try {
-          await handleAutoroleModalSubmit(interaction, configManager);
-        } catch (error) {
-          console.error("Autorole modal error:", error);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction
-              .reply(
-                resultReply("Error", "Could not save that autorole. Ask in the support server if this continues.", true, undefined, [
-                  supportLinkRow(),
-                ]),
-              )
-              .catch(() => null);
-          }
-        }
-        return;
-      }
       if (interaction.customId === REVIEW_MODAL_ID) {
         if (!(await ensurePluginEnabledForModal(configManager, interaction, "reviews"))) return;
         try {
           await handleReviewModalSubmit(interaction, configManager);
         } catch (error) {
-          console.error("Review modal error:", error);
+          log.error("Review modal error:", error);
           if (!interaction.replied && !interaction.deferred) {
             await interaction
               .reply(
@@ -465,7 +356,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         try {
           await handleSuggestModalSubmit(interaction, configManager);
         } catch (error) {
-          console.error("Suggest modal error:", error);
+          log.error("Suggest modal error:", error);
           if (!interaction.replied && !interaction.deferred) {
             await interaction
               .reply(
@@ -617,8 +508,11 @@ async function handleContextMenuCommand(
     });
     const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, interaction.commandName);
+    cmdLog.info(
+      `${interaction.commandName} (context menu) used by ${interaction.user.tag} in "${interaction.guild?.name ?? interaction.guildId}" (${interaction.guildId})`,
+    );
   } catch (error) {
-    console.error(`Error in context menu ${interaction.commandName}:`, error);
+    log.error(`Error in context menu ${interaction.commandName}:`, error);
     if (!interaction.replied && !interaction.deferred) {
       await interaction
         .reply(
@@ -644,7 +538,7 @@ async function handleSlashCommand(
   if (!command) {
     // Guild-scoped custom slash commands are not in the global command map.
     const handled = await handleDreamCommandSlash(interaction, configManager).catch((error) => {
-      console.error("Custom slash command error:", error);
+      log.error("Custom slash command error:", error);
       return true;
     });
     if (!handled && !interaction.replied && !interaction.deferred) {
@@ -734,8 +628,11 @@ async function handleSlashCommand(
     });
     const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, interaction.commandName);
+    cmdLog.info(
+      `/${interaction.commandName} used by ${interaction.user.tag} in "${interaction.guild?.name ?? interaction.guildId}" (${interaction.guildId})`,
+    );
   } catch (error) {
-    console.error(`Error in /${interaction.commandName}:`, error);
+    log.error(`Error in /${interaction.commandName}:`, error);
     if (!interaction.replied && !interaction.deferred) {
       await interaction
         .reply(
@@ -794,7 +691,7 @@ async function handleHelpInteraction(
   try {
     await run(interaction, docsUrl, guildConfig.emojis);
   } catch (error) {
-    console.error("Help interaction error:", error);
+    log.error("Help interaction error:", error);
     if (!interaction.replied && !interaction.deferred) {
       await interaction
         .reply(
@@ -886,7 +783,7 @@ export async function registerApplicationCommands(token: string, clientId: strin
 
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationCommands(clientId), { body });
-  console.log(`Registered ${slashBody.length} slash commands and ${contextBody.length} context menu commands.`);
+  log.info(`Registered ${slashBody.length} slash commands and ${contextBody.length} context menu commands.`);
 }
 
 /** @deprecated Use registerApplicationCommands */

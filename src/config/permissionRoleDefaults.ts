@@ -42,26 +42,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
   moderator: [
     // autodelete
     "autodelete.can_manage",
-    // automod
-    "automod.can_configure",
-    "automod.can_status",
-    "automod.can_test",
-    // autoreactions
-    "autoreactions.can_add",
-    "autoreactions.can_list",
-    "autoreactions.can_remove",
-    // autoreplies
-    "autoreplies.can_add",
-    "autoreplies.can_list",
-    "autoreplies.can_remove",
-    // autorole
-    "autorole.can_add",
-    "autorole.can_list",
-    "autorole.can_remove",
-    // autothreads
-    "autothreads.can_add",
-    "autothreads.can_list",
-    "autothreads.can_remove",
     // bot_customisation
     "bot_customisation.can_avatar",
     "bot_customisation.can_banner",
@@ -72,8 +52,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "dream_commands.can_edit",
     "dream_commands.can_list",
     "dream_commands.can_remove",
-    // economy
-    "economy.can_admin_manage",
     // infractions
     "infractions.can_edit_duration",
     "infractions.can_edit_reason",
@@ -89,9 +67,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "name_history.can_search",
     "name_history.can_view",
     // passport
-    "passport.can_force",
-    "passport.can_panel",
-    "passport.can_revoke",
     "passport.can_test",
     // reaction_roles
     "reaction_roles.can_create",
@@ -113,14 +88,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "roles.can_give",
     "roles.can_list",
     "roles.can_remove",
-    // scam_protect
-    "scam_protect.can_setup",
-    "scam_protect.can_status",
-    // self_grantable_roles
-    "self_grantable_roles.can_configure",
     // slowmode
     "slowmode.can_clear",
-    "slowmode.can_configure",
     "slowmode.can_manage_rules",
     "slowmode.can_set",
     // social
@@ -182,10 +151,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "utility.can_vckick",
     "utility.can_vcmove",
     "utility.can_watchdog",
-    // welcome_message
-    "welcome_message.can_disable",
-    "welcome_message.can_set",
-    "welcome_message.can_test",
   ],
 
   // Was level >= 75 OR level >= 100.

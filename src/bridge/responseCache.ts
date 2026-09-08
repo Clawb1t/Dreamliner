@@ -7,6 +7,10 @@
  * no external dependency; fine for a single bot instance.
  */
 
+import { getLogger } from "../core/logger.js";
+
+const log = getLogger("cache");
+
 type CacheEntry<T> = { value: T; expiresAt: number };
 
 const store = new Map<string, CacheEntry<unknown>>();
@@ -17,16 +21,23 @@ export async function cached<T>(key: string, ttlMs: number, compute: () => Promi
   const now = Date.now();
   const entry = store.get(key);
   if (entry && entry.expiresAt > now) {
+    log.debug(`hit  ${key}`);
     return entry.value as T;
   }
 
   const pending = inFlight.get(key);
-  if (pending) return pending as Promise<T>;
+  if (pending) {
+    log.debug(`join ${key} (already computing)`);
+    return pending as Promise<T>;
+  }
 
+  const startedAt = process.hrtime.bigint();
   const promise = (async () => {
     try {
       const value = await compute();
       store.set(key, { value, expiresAt: Date.now() + ttlMs });
+      const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+      log.debug(`miss ${key} (computed in ${durationMs.toFixed(1)}ms, cached ${ttlMs}ms)`);
       return value;
     } finally {
       inFlight.delete(key);

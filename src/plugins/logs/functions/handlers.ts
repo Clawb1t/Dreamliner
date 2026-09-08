@@ -18,6 +18,9 @@ import {
 } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { findAuditExecutor, findKickOrBanReason } from "../../../core/logging/audit.js";
+import { getLogger } from "../../../core/logger.js";
+
+const log = getLogger("logs");
 import {
   buildChannelCreateLog,
   buildChannelDeleteLog,
@@ -179,8 +182,24 @@ export async function handleMemberLeave(member: GuildMember | PartialGuildMember
   );
 }
 
-export async function handleMemberUpdate(oldMember: GuildMember, newMember: GuildMember): Promise<void> {
+export async function handleMemberUpdate(
+  oldMember: GuildMember | PartialGuildMember,
+  newMember: GuildMember,
+): Promise<void> {
   if (!newMember.guild || newMember.user.bot) return;
+  // `oldMember` can be a partial stub (e.g. discord.js only ever saw this member via a
+  // reaction/interaction on an uncached member, never a full GUILD_MEMBER_UPDATE) whose
+  // roles/nickname/timeout are all unpopulated. Diffing against that isn't a real baseline —
+  // every role the member currently holds would look "just added", every nickname would look
+  // "just changed", producing false-positive logs for members who changed nothing. Bail out;
+  // this update's payload fully populates the cached member, so the next real change diffs
+  // correctly.
+  if (oldMember.partial) {
+    log.debug(
+      `Skipped diffing member update for ${newMember.id} in guild ${newMember.guild.id}: cached member was still partial (no reliable before-state).`,
+    );
+    return;
+  }
   const guildConfig = await configManager.getEffectiveConfig(newMember.guild.id);
   const user = memberRef(newMember);
 

@@ -2,6 +2,8 @@ import type { Client } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getDueReminders, removeReminder } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("reminders");
 
 export async function processDueReminders(client: Client): Promise<void> {
   const due = await getDueReminders();
@@ -33,7 +35,7 @@ export async function processDueReminders(client: Client): Promise<void> {
         }
       }
     } catch (err) {
-      console.error(`Failed to deliver reminder #${reminder.id}:`, err);
+      log.error(`Failed to deliver reminder #${reminder.id}:`, err);
     } finally {
       const guildConfig = await configManager.getEffectiveConfig(reminder.guildId).catch(() => null);
       if (!guildConfig || pluginEnabled(guildConfig, "reminders")) {

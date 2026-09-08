@@ -21,7 +21,6 @@ import {
 } from "../functions/actions.js";
 import { getTicketHandlerStats, renameTicket, setPriority, type TicketHandlerStat } from "../functions/tickets.js";
 import { dmTranscript, getLatestTranscriptForTicket, postTranscriptLog } from "../functions/transcripts.js";
-import { postPanel } from "../functions/panels.js";
 import { formatDurationShort } from "../../infraction/functions/duration.js";
 import {
   TICKET_PRIORITIES,
@@ -108,17 +107,6 @@ export const ticketCommands: SlashCommandDefinition[] = [
           ),
       )
       .addSubcommand((sub) => sub.setName("transcript").setDescription("Send this ticket's latest transcript to you"))
-      .addSubcommandGroup((group) =>
-        group
-          .setName("panel")
-          .setDescription("Manage ticket panels")
-          .addSubcommand((sub) =>
-            sub
-              .setName("post")
-              .setDescription("Post (or repost) a ticket panel")
-              .addStringOption((o) => o.setName("panel_name").setDescription("The panel's dashboard name").setRequired(true)),
-          ),
-      )
       .addSubcommand((sub) =>
         sub
           .setName("blacklist")
@@ -131,31 +119,6 @@ export const ticketCommands: SlashCommandDefinition[] = [
       const guildId = interaction.guildId!;
       const group = interaction.options.getSubcommandGroup(false);
       const sub = interaction.options.getSubcommand();
-
-      if (group === "panel" && sub === "post") {
-        const auth = await requireTicketPermission(ctx, "can_manage_panels");
-        if (!auth) return;
-        const panelName = interaction.options.getString("panel_name", true);
-        const panel = auth.pluginConfig.panels.find((p) => p.name === panelName || p.id === panelName);
-        if (!panel) {
-          await interaction.reply(resultReply("Panel not found", `No panel named \`${panelName}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        await interaction.deferReply({ ephemeral: ctx.ephemeral });
-        const messageId = await postPanel(ctx.client, guildId, panel);
-        if (!messageId) {
-          await interaction.editReply(resultEdit("Failed", "Could not post the panel. Check the panel's channel configuration.", slashResultOptions(ctx, { tone: "error" })));
-          return;
-        }
-        await ctx.configManager.patchPluginConfig(
-          guildId,
-          "tickets",
-          { panels: auth.pluginConfig.panels.map((p) => (p.id === panel.id ? { ...p, message_id: messageId } : p)) },
-          interaction.user.id,
-        );
-        await interaction.editReply(resultEdit("Panel posted", `Posted \`${panel.name || panel.id}\` in <#${panel.channel_id}>.`, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_pin:1544417374927716513>" })));
-        return;
-      }
 
       if (sub === "new") {
         const guildConfig = ctx.guildConfig;

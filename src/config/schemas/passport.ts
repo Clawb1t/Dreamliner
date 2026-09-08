@@ -160,10 +160,7 @@ export const zPassportConfig = z.strictObject({
     .max(2000)
     .default("")
     .describe("Optional DM sent before a timeout kick. Supports placeholders."),
-  can_panel: boolPerm("post a persistent Passport panel"),
-  can_force: boolPerm("force-verify a member"),
-  can_revoke: boolPerm("revoke a member's verification"),
-  can_test: boolPerm("send a test Passport ping"),
+  can_test: boolPerm("check a member's Passport verification status"),
 });
 
 export const zPassportPluginSection = zPluginSection(zPassportConfig.shape);

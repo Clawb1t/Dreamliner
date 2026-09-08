@@ -1,6 +1,6 @@
-import { AttachmentBuilder, SlashCommandBuilder } from "discord.js";
+import { AttachmentBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
-import { deferReplyOptions, embedWithFilesEdit, resultReply, resultEdit, slashResultOptions } from "../../core/responses.js";
+import { deferReplyOptions, fileComponent, resultReply, resultEdit, slashResultOptions } from "../../core/responses.js";
 import { baseEmbed } from "../../core/embeds.js";
 import { isDashboardSuperuser } from "../../bridge/superuser.js";
 
@@ -53,7 +53,11 @@ export const debugCommands: SlashCommandDefinition[] = [
           .setTitle("Application emojis")
           .setThumbnail(ctx.client.user?.displayAvatarURL())
           .setDescription(`Exported **${emojis.size}** application emoji${emojis.size === 1 ? "" : "s"}.`);
-        await i.editReply(embedWithFilesEdit(embed, [file]));
+        await i.editReply({
+          flags: MessageFlags.IsComponentsV2,
+          components: [embed.toContainerComponent([fileComponent("app-emojis.txt")])],
+          files: [file],
+        });
         return;
       }
     },

@@ -19,6 +19,8 @@ import {
   updateCounterValue,
   type CounterRow,
 } from "./store.js";
+import { getLogger } from "../../../core/logger.js";
+const log = getLogger("counters");
 
 const bumpChains = new Map<string, Promise<unknown>>();
 
@@ -247,7 +249,7 @@ async function cleanupStaleRows(guild: Guild, stale: CounterRow[]): Promise<void
 export async function handleCounterReady(client: Client): Promise<void> {
   for (const guild of client.guilds.cache.values()) {
     await syncGuildCounters(client, guild.id).catch((error) => {
-      console.error(`[counters] Failed to sync counters for ${guild.id}:`, error);
+      log.error(`[counters] Failed to sync counters for ${guild.id}:`, error);
     });
   }
 }
