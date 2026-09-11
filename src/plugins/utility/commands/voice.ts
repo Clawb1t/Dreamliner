@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, ChannelType } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resultReply, slashResultOptions } from "../../../core/responses.js";
-import { trimLines } from "../../../core/embeds.js";
 import { requireUtilityPermission, MoveMembers, ManageNicknames, requireDiscordPerm } from "../functions/commandHelpers.js";
 import { canActOn } from "../functions/members.js";
 import { markForcedVoiceAction } from "../../../core/logging/voice.js";
@@ -89,10 +88,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(
           resultReply(
             "Voice move",
-            trimLines(`
-              Member: **${member.displayName}**
-              Channel: **${dest.name}**
-            `),
+            `Moved <@${member.id}> to **${dest.name}**`,
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_mic:1544417343252201552>" }),
           ),
@@ -134,11 +130,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(
           resultReply(
             "Voice move-all",
-            trimLines(`
-              From: **${fromCh.name}**
-              To: **${toCh.name}**
-              Moved: **${moved}** member(s)
-            `),
+            `Moved **${moved}** member(s) from **${fromCh.name}** to **${toCh.name}**`,
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_mic:1544417343252201552>" }),
           ),
@@ -180,10 +172,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(
           resultReply(
             "Voice disconnect",
-            trimLines(`
-              Member: **${member.displayName}**
-              Disconnected from: **${channelName}**
-            `),
+            `Disconnected <@${member.id}> from **${channelName}**`,
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_micmute:1544417344804102224>" }),
           ),
@@ -232,10 +221,7 @@ export const nicknameCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(
           resultReply(
             "Nickname",
-            trimLines(`
-              Member: **${member.displayName}**
-              Nickname: **${nick}**
-            `),
+            `<@${member.id}>'s nickname is **${nick}**`,
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_id:1544417556868104274>" }),
           ),
@@ -257,10 +243,7 @@ export const nicknameCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(
           resultReply(
             "Nickname",
-            trimLines(`
-              Member: **${member.displayName}**
-              New nickname: **${name}**
-            `),
+            `Set <@${member.id}>'s nickname to **${name}**`,
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_pen:1544417369709871224>" }),
           ),

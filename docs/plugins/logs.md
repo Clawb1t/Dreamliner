@@ -23,7 +23,7 @@ Configure channels and toggles in the dashboard **Logging** section. Browse stor
 
 The legacy `log_channel_id` field still works as a fallback for moderation logs if `moderation_log_channel_id` is not set.
 
-Infraction case logs can optionally use a dedicated channel via `plugins.infractions.config.case_log_channel`, which overrides `moderation_log_channel_id` for case-related Discord posts only. Those events still appear in the dashboard Logs viewer.
+Infraction case logs (warn/mute/kick/ban/etc.) always post to `moderation_log_channel_id`; there's no separate per-plugin override for them.
 
 ## Storage
 

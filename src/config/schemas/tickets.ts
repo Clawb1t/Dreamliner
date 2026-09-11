@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { boolPerm, channelId, roleId } from "../schemaHelp.js";
 import { zPersistEmbedConfig } from "./persist.js";
+import { zPluginSection } from "./pluginSection.js";
 
 /** Discord modal text inputs max out at 5 per modal. */
 export const MAX_FORM_QUESTIONS = 5;
@@ -243,9 +244,6 @@ export type TicketCategory = z.infer<typeof zTicketCategory>;
 export type TicketPanel = z.infer<typeof zTicketPanel>;
 export type TicketsConfig = z.infer<typeof zTicketsConfig>;
 
-export const zTicketsPluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn tickets on or off for this server."),
-  config: zTicketsConfig.partial().optional(),
-});
+export const zTicketsPluginSection = zPluginSection(zTicketsConfig.shape, false);
 
 export type TicketsPluginSection = z.infer<typeof zTicketsPluginSection>;

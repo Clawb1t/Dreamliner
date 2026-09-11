@@ -210,6 +210,8 @@ export function buildCleanLog(input: {
   count: number;
   archiveId?: string;
   targets?: LogRef[];
+  /** The archived messages themselves, as a real attachment — not just a bare archive ID. */
+  archiveFile?: LogFile;
 }): LogCard {
   return card(
     "Clean",
@@ -223,7 +225,11 @@ export function buildCleanLog(input: {
         : null,
       input.archiveId ? `Archive ID: \`${input.archiveId}\`` : null,
     ].filter((line): line is string => Boolean(line)),
-    { avatarUrl: input.mod.avatarUrl, emojiCategory: "delete" },
+    {
+      avatarUrl: input.mod.avatarUrl,
+      emojiCategory: "delete",
+      files: input.archiveFile ? [input.archiveFile] : undefined,
+    },
   );
 }
 

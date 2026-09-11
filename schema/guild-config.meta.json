@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-08T16:33:30.527Z",
+  "generatedAt": "2026-09-11T17:36:32.214Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -202,7 +202,7 @@
       "plugins": [
         {
           "key": "dream_commands",
-          "name": "Custom commands",
+          "name": "Commands",
           "description": "Custom slash commands built visually on the dashboard."
         }
       ]
@@ -475,7 +475,7 @@
     },
     {
       "key": "dream_commands",
-      "name": "Custom commands",
+      "name": "Commands",
       "description": "Custom slash commands built visually on the dashboard.",
       "category": "Customization",
       "categoryId": "custom"

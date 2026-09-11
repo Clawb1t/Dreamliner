@@ -1,10 +1,16 @@
 import { SlashCommandBuilder, AttachmentBuilder, MessageFlags } from "discord.js";
 import type { TextChannel } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { resultReply, resultEdit, embedWithFilesReply, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
-import { buildResultEmbed, trimLines } from "../../../core/embeds.js";
+import { resultReply, resultEdit, embedWithFilesReply, embedWithFilesEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
+import { buildResultEmbed } from "../../../core/embeds.js";
 import { requireUtilityPermission, ManageMessages, requireDiscordPerm } from "../functions/commandHelpers.js";
-import { collectMessagesForClean, serializeMessages, archiveMessages, archiveSingleMessage } from "../functions/clean.js";
+import {
+  collectMessagesForClean,
+  serializeMessages,
+  archiveMessages,
+  archiveSingleMessage,
+  formatArchiveTranscript,
+} from "../functions/clean.js";
 import { buildCleanLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
@@ -60,6 +66,8 @@ export const moderationCommands: SlashCommandDefinition[] = [
 
       const serialized = serializeMessages([...deletable.values()]);
       const archiveId = await archiveMessages(ctx.interaction.guildId!, serialized);
+      const archiveFilename = `clean-${archiveId}.txt`;
+      const transcript = formatArchiveTranscript(serialized);
 
       const deleted = await textChannel.bulkDelete(deletable, true).catch(() => null);
       const count = deleted?.size ?? 0;
@@ -76,6 +84,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
           channel: { id: textChannel.id, name: textChannel.name },
           count,
           archiveId,
+          archiveFile: { name: archiveFilename, content: transcript },
         }),
         {
           guildId: ctx.interaction.guildId!,
@@ -100,13 +109,13 @@ export const moderationCommands: SlashCommandDefinition[] = [
       }
 
       await ctx.interaction.editReply(
-        resultEdit(
-          "Clean",
-          trimLines(`
-            Deleted: **${count}** message(s)
-            Archive ID: \`${archiveId}\`
-          `),
-          slashResultOptions(ctx, { emoji: "<:icons_clean:1544417689320034304>" }),
+        embedWithFilesEdit(
+          buildResultEmbed(
+            "Clean",
+            `Deleted **${count}** message(s) (archive \`${archiveId}\`) — full content attached.`,
+            slashResultOptions(ctx, { emoji: "<:icons_clean:1544417689320034304>" }),
+          ),
+          [new AttachmentBuilder(Buffer.from(transcript, "utf-8"), { name: archiveFilename })],
         ),
       );
     },
@@ -173,10 +182,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
         embedWithFilesReply(
           buildResultEmbed(
             `Message: ${message.id}`,
-            trimLines(`
-              Archive ID: \`${archiveId}\`
-              The full message JSON is attached.
-            `),
+            `Archived as \`${archiveId}\` — JSON attached.`,
             slashResultOptions(ctx, { emoji: "<:icons_code:1544417539482845235>" }),
           ),
           [file],

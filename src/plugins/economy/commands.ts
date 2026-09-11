@@ -19,12 +19,12 @@ import { resolveEmojiForContent } from "../../core/emoji.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
 import {
   GLOBAL_DAILY_AMOUNT,
+  SERVER_DAILY_AMOUNT,
+  SERVER_TO_GLOBAL_EXCHANGE_RATE,
   formatCoinAmount,
   formatExchangeRate,
   formatGlobal,
   formatServer,
-  formatStockChange,
-  stockChangeArrow,
 } from "./functions/format.js";
 import {
   claimGlobalDaily,
@@ -38,20 +38,6 @@ import {
   nextDailyClaimAt,
   type DailyClaimResult,
 } from "./functions/money.js";
-import {
-  buyStock,
-  ensureStock,
-  getExchangeRate,
-  getPortfolio,
-  getServerDailyAmount,
-  getStockBySymbol,
-  listStocks,
-  searchStocks,
-  sellStock,
-  StockError,
-  type StockRow,
-} from "./functions/stocks.js";
-import { buildStockViewReply, exchangeLinkRow } from "./functions/stockView.js";
 import {
   CARD_TYPE_META,
   CARD_TYPES,
@@ -68,23 +54,6 @@ import { getPackSettings } from "./functions/settings.js";
 import { buildCardReveal, buildInventoryPage } from "./functions/cardDisplay.js";
 import { formatPlainAmount, planeLine } from "./functions/cardFormat.js";
 import { PLANE_PACK_PREFIX } from "./functions/customIds.js";
-
-/** Resolves the "symbol" option to a listed stock, defaulting to the current guild's own listing (listing it now if needed). */
-function resolveTradeStock(guild: Guild, symbolInput: string | null): StockRow | null {
-  if (symbolInput) return getStockBySymbol(symbolInput);
-  return ensureStock(guild.id, guild.name, guild.iconURL({ size: 64 }));
-}
-
-/** Autocomplete for the "symbol" option shared by /stock view and /stock trade buy|sell. */
-export async function handleStockAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
-  const focused = interaction.options.getFocused(true);
-  if (focused.name !== "symbol") {
-    await interaction.respond([]);
-    return;
-  }
-  const matches = searchStocks(String(focused.value ?? ""), 25);
-  await interaction.respond(matches.map((s) => ({ name: `${s.symbol} - ${s.guildName}`.slice(0, 100), value: s.symbol })));
-}
 
 /** Footer for a balance/daily embed — "Bank of {server}" with the server icon, or "Bank of Dreamliner" with the bot's avatar for the global currency. */
 function bankFooter(which: "global" | "server", guild: Guild, client: Client): { text: string; iconURL?: string } {
@@ -205,8 +174,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         streak = account.dailyStreak;
         lastDailyAt = account.lastDailyAt;
       } else {
-        // Scales with this server's own stock price — see stocks.ts's getServerDailyAmount.
-        claim = claimServerDaily(guildId, userId, getServerDailyAmount(guildId));
+        claim = claimServerDaily(guildId, userId, SERVER_DAILY_AMOUNT);
         const account = ensureServerAccount(guildId, userId);
         streak = account.dailyStreak;
         lastDailyAt = account.lastDailyAt;
@@ -238,7 +206,7 @@ export const economyCommands: SlashCommandDefinition[] = [
     plugin: "economy",
     data: new SlashCommandBuilder()
       .setName("exchange")
-      .setDescription("Exchange this server's currency for global coins, at a rate set by the server's stock price")
+      .setDescription("Exchange this server's currency for global coins")
       .addNumberOption((o) =>
         o.setName("amount").setDescription("Amount of server currency to exchange").setRequired(true).setMinValue(0.01),
       ),
@@ -249,9 +217,7 @@ export const economyCommands: SlashCommandDefinition[] = [
       const i = ctx.interaction;
       const guild = i.guild!;
       const amount = i.options.getNumber("amount", true);
-
-      const stock = ensureStock(guild.id, guild.name, guild.iconURL({ size: 64 }));
-      const rate = getExchangeRate(guild.id);
+      const rate = SERVER_TO_GLOBAL_EXCHANGE_RATE;
 
       try {
         const result = exchangeServerForGlobal(guild.id, i.user.id, amount, rate);
@@ -264,12 +230,12 @@ export const economyCommands: SlashCommandDefinition[] = [
             `<:icons_swap:1544418225503084695> Exchanged ${formatServer(result.serverAmount, config.server)} for ${formatGlobal(result.globalAmount)}`,
           )
           .addFields(
-            { name: "Exchange rate", value: `\`${formatExchangeRate(rate)}\` (${stock.symbol} @ ${formatCoinAmount(stock.price)})` },
+            { name: "Exchange rate", value: `\`${formatExchangeRate(rate)}\`` },
             { name: `New ${config.server.currency_name} balance`, value: formatServer(result.serverBalance, config.server) },
             { name: "New global balance", value: formatGlobal(result.globalBalance) },
           )
           .setFooter({ text: "Dreamliner Exchange" });
-        await i.reply(embedReply(embed, ctx.ephemeral, [exchangeLinkRow()]));
+        await i.reply(embedReply(embed, ctx.ephemeral));
       } catch (err) {
         if (err instanceof InsufficientFundsError) {
           await i.reply(
@@ -283,180 +249,6 @@ export const economyCommands: SlashCommandDefinition[] = [
           return;
         }
         throw err;
-      }
-    },
-  },
-  {
-    plugin: "economy",
-    data: new SlashCommandBuilder()
-      .setName("stock")
-      .setDescription("Invest your global coins in the Dreamliner Exchange")
-      .addSubcommand((s) =>
-        s
-          .setName("view")
-          .setDescription("View a stock's price and 24h change")
-          .addStringOption((o) =>
-            o.setName("symbol").setDescription("Ticker symbol (defaults to this server's stock)").setAutocomplete(true),
-          ),
-      )
-      .addSubcommand((s) =>
-        s
-          .setName("top")
-          .setDescription("Top stocks on the exchange by price")
-          .addIntegerOption((o) =>
-            o.setName("limit").setDescription("How many to show (default 10, max 25)").setMinValue(1).setMaxValue(25),
-          ),
-      )
-      .addSubcommand((s) =>
-        s
-          .setName("portfolio")
-          .setDescription("View a member's stock portfolio")
-          .addUserOption((o) => o.setName("user").setDescription("Member to view")),
-      )
-      .addSubcommandGroup((g) =>
-        g
-          .setName("trade")
-          .setDescription("Buy or sell stock")
-          .addSubcommand((s) =>
-            s
-              .setName("buy")
-              .setDescription("Buy shares with your global coins")
-              .addNumberOption((o) => o.setName("amount").setDescription("Coins to spend").setRequired(true).setMinValue(0.01))
-              .addStringOption((o) =>
-                o.setName("symbol").setDescription("Ticker symbol (defaults to this server's stock)").setAutocomplete(true),
-              ),
-          )
-          .addSubcommand((s) =>
-            s
-              .setName("sell")
-              .setDescription("Sell shares back for global coins")
-              .addNumberOption((o) => o.setName("shares").setDescription("Shares to sell").setRequired(true).setMinValue(0.0001))
-              .addStringOption((o) =>
-                o.setName("symbol").setDescription("Ticker symbol (defaults to this server's stock)").setAutocomplete(true),
-              ),
-          ),
-      ),
-    execute: async (ctx) => {
-      const i = ctx.interaction;
-      const group = i.options.getSubcommandGroup(false);
-      const sub = i.options.getSubcommand();
-
-      // ── /stock view ──────────────────────────────────────────────────────
-      if (!group && sub === "view") {
-        const auth = await requirePluginPermission(ctx, "economy", "can_balance");
-        if (!auth) return;
-        const symbolInput = i.options.getString("symbol");
-        const stock = resolveTradeStock(i.guild!, symbolInput);
-        if (!stock) {
-          await i.reply(
-            resultReply("Not found", `No stock listed for symbol \`${symbolInput}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
-          );
-          return;
-        }
-        await i.reply(await buildStockViewReply(stock, "24h", ctx.ephemeral));
-        return;
-      }
-
-      // ── /stock top ───────────────────────────────────────────────────────
-      if (!group && sub === "top") {
-        const auth = await requirePluginPermission(ctx, "economy", "can_balance");
-        if (!auth) return;
-        const limit = i.options.getInteger("limit") ?? 10;
-        const stocks = listStocks({ limit });
-        const lines = stocks.map(
-          (s, idx) =>
-            `**${idx + 1}.** \`${s.symbol}\` ${s.guildName} - ${formatCoinAmount(s.price)}  ${stockChangeArrow(s.changeAmount)} ${formatStockChange(s.changeAmount, s.changePct)}`,
-        );
-        const embed = baseEmbed()
-          .setTitle("Dreamliner Exchange - Top stocks")
-          .setThumbnail(ctx.client.user?.displayAvatarURL())
-          .setDescription(lines.join("\n") || "No stocks listed yet.")
-          .setFooter({ text: "Dreamliner Exchange" });
-        await i.reply(embedReply(embed, ctx.ephemeral, [exchangeLinkRow()]));
-        return;
-      }
-
-      // ── /stock portfolio ─────────────────────────────────────────────────
-      if (!group && sub === "portfolio") {
-        const auth = await requirePluginPermission(ctx, "economy", "can_balance");
-        if (!auth) return;
-        const target = i.options.getUser("user") ?? i.user;
-        const targetMember = await i.guild!.members.fetch(target.id).catch(() => null);
-        const portfolio = getPortfolio(target.id);
-        const lines = portfolio.positions.map(
-          (p) => `\`${p.stock.symbol}\` **${p.shares}** shares - ${formatCoinAmount(p.marketValue)}  ${stockChangeArrow(p.pl)} ${formatStockChange(p.pl, p.plPct)}`,
-        );
-        const embed = baseEmbed()
-          .setTitle(`${target.username}'s portfolio`)
-          .setThumbnail(target.displayAvatarURL())
-          .setColor(memberAccentColor(targetMember))
-          .setDescription(lines.join("\n") || "No positions yet.")
-          .addFields(
-            { name: "Portfolio value", value: formatCoinAmount(portfolio.totalValue) },
-            { name: "Cash balance", value: formatCoinAmount(portfolio.balance) },
-          )
-          .setFooter({ text: "Dreamliner Exchange" });
-        await i.reply(embedReply(embed, ctx.ephemeral, [exchangeLinkRow()]));
-        return;
-      }
-
-      // ── /stock trade buy|sell ────────────────────────────────────────────
-      if (group === "trade") {
-        const auth = await requirePluginPermission(ctx, "economy", "can_stock_trade");
-        if (!auth) return;
-        const symbolInput = i.options.getString("symbol");
-        const stock = resolveTradeStock(i.guild!, symbolInput);
-        if (!stock) {
-          await i.reply(
-            resultReply("Not found", `No stock listed for symbol \`${symbolInput}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
-          );
-          return;
-        }
-
-        try {
-          if (sub === "buy") {
-            const amount = i.options.getNumber("amount", true);
-            const result = buyStock(i.user.id, stock.guildId, amount);
-            const impactNote =
-              result.marketPrice > result.price
-                ? `\n${stockChangeArrow(1)} Your buy pushed the price up to ${formatCoinAmount(result.marketPrice)}.`
-                : "";
-            await i.reply(
-              resultReply(
-                "Stock purchased",
-                `Bought **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share.\n**New balance:** ${formatCoinAmount(result.balance)}${impactNote}`,
-                ctx.ephemeral,
-                slashResultOptions(ctx, { tone: "success", emoji: "<:icons_creditcard:1544417201686052905>" }),
-                [exchangeLinkRow()],
-              ),
-            );
-            return;
-          }
-
-          // sub === "sell"
-          const shares = i.options.getNumber("shares", true);
-          const result = sellStock(i.user.id, stock.guildId, shares);
-          const impactNote =
-            result.marketPrice < result.price
-              ? `\n${stockChangeArrow(-1)} Your sell pushed the price down to ${formatCoinAmount(result.marketPrice)}.`
-              : "";
-          await i.reply(
-            resultReply(
-              "Stock sold",
-              `Sold **${result.shares}** shares of **${stock.symbol}** at ${formatCoinAmount(result.price)}/share for ${formatCoinAmount(result.proceeds)}.\n**New balance:** ${formatCoinAmount(result.balance)}${impactNote}`,
-              ctx.ephemeral,
-              slashResultOptions(ctx, { tone: "success", emoji: "<:icons_dollar:1544417229603348550>" }),
-              [exchangeLinkRow()],
-            ),
-          );
-        } catch (err) {
-          if (err instanceof StockError) {
-            const title = err.code === "insufficient" ? "Insufficient funds" : err.code === "not_found" ? "Not found" : "Trade failed";
-            await i.reply(resultReply(title, err.message, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
-            return;
-          }
-          throw err;
-        }
       }
     },
   },

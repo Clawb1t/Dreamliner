@@ -11,7 +11,7 @@ import {
 } from "../functions/infractions.js";
 import { buildInfractionEmbed, buildInfractionListEmbed } from "../functions/embeds.js";
 import { parseDuration, formatDurationShort } from "../functions/duration.js";
-import type { InfractionType, InfractionConfig } from "../../../config/schemas/infraction.js";
+import type { InfractionType } from "../../../config/schemas/infraction.js";
 import { buildCaseDeleteLog, buildCaseUpdateLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
 
@@ -116,7 +116,6 @@ export const manageCommands: SlashCommandDefinition[] = [
         }
         const reasonUpdateEmoji = "<:icons_pen:1544417369709871224>";
         await updateInfractionReason(guildId, id, reason);
-        const pluginConfig = auth.pluginConfig as InfractionConfig;
         await sendModerationLog(
           ctx.client,
           ctx.guildConfig,
@@ -132,7 +131,6 @@ export const manageCommands: SlashCommandDefinition[] = [
             caseId: id,
             actorId: ctx.interaction.user.id,
             targetId: record.userId,
-            caseLogOverride: pluginConfig.case_log_channel,
           },
         );
         await ctx.interaction.reply(resultReply("Infraction updated", `Reason for #${id} updated.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: reasonUpdateEmoji })));
@@ -160,7 +158,6 @@ export const manageCommands: SlashCommandDefinition[] = [
         if (record.type === "ban") newType = "tempban";
 
         const expiresAt = await updateInfractionDuration(guildId, id, durationMs, newType);
-        const pluginConfig = auth.pluginConfig as InfractionConfig;
 
         if (record.type === "mute" || record.type === "tempmute" || newType === "tempmute") {
           const { applyTimeout, clampTimeoutMs, DISCORD_TIMEOUT_MAX_MS } = await import("../functions/infractions.js");
@@ -188,7 +185,6 @@ export const manageCommands: SlashCommandDefinition[] = [
             caseId: id,
             actorId: ctx.interaction.user.id,
             targetId: record.userId,
-            caseLogOverride: pluginConfig.case_log_channel,
           },
         );
         await ctx.interaction.reply(
@@ -212,7 +208,6 @@ export const manageCommands: SlashCommandDefinition[] = [
           return;
         }
         await deleteInfraction(guildId, id);
-        const pluginConfig = auth.pluginConfig as InfractionConfig;
         await sendModerationLog(
           ctx.client,
           ctx.guildConfig,
@@ -227,7 +222,6 @@ export const manageCommands: SlashCommandDefinition[] = [
             caseId: id,
             actorId: ctx.interaction.user.id,
             targetId: record.userId,
-            caseLogOverride: pluginConfig.case_log_channel,
           },
         );
         await ctx.interaction.reply(resultReply("Infraction deleted", `Infraction #${id} has been deleted.`, ctx.ephemeral, slashResultOptions(ctx)));

@@ -61,10 +61,6 @@ import {
   WELCOME_WAVE_CUSTOM_ID,
 } from "./plugins/welcome_message/functions/waveButton.js";
 import {
-  handleQuoteRemoveButtonInteraction,
-  QUOTE_REMOVE_PREFIX,
-} from "./plugins/utility/functions/quoteRemoveButton.js";
-import {
   CONTEXT_NAV_PREFIX,
   handleContextNavButtonInteraction,
 } from "./plugins/utility/functions/contextNav.js";
@@ -79,8 +75,6 @@ import {
 } from "./plugins/companion_channels/functions/interface.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
-import { handleStockAutocomplete } from "./plugins/economy/commands.js";
-import { handleStockRangeSelectInteraction, STOCK_VIEW_RANGE_PREFIX } from "./plugins/economy/functions/stockView.js";
 import {
   handlePlanesAutocomplete,
   handlePlaneInventoryButtonInteraction,
@@ -221,11 +215,6 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         });
         return;
       }
-      if (interaction.commandName === "stock") {
-        await handleStockAutocomplete(interaction).catch((error) => {
-          log.error("Stock autocomplete error:", error);
-        });
-      }
       if (interaction.commandName === "planes" || interaction.commandName === "planesadmin") {
         await handlePlanesAutocomplete(interaction).catch((error) => {
           log.error("Planes autocomplete error:", error);
@@ -260,10 +249,6 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {
         const handled = await handleWelcomeWaveButtonInteraction(interaction);
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(QUOTE_REMOVE_PREFIX)) {
-        const handled = await handleQuoteRemoveButtonInteraction(interaction);
         if (handled) return;
       }
       if (interaction.customId.startsWith(CONTEXT_NAV_PREFIX)) {
@@ -312,10 +297,6 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
         const handled = await handleStatsSelectInteraction(configManager, interaction);
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(`${STOCK_VIEW_RANGE_PREFIX}:`)) {
-        const handled = await handleStockRangeSelectInteraction(interaction);
         if (handled) return;
       }
       const companionSelect = await handleCompanionSelectInteraction(interaction);

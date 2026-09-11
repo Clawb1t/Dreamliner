@@ -1,4 +1,4 @@
-import type { Client, Guild } from "discord.js";
+import type { Client, Guild, User } from "discord.js";
 import {
   analyzeSeries,
   formatSharePct,
@@ -120,6 +120,21 @@ function colorIntToHex(value: number): string {
     .padStart(6, "0")}`;
 }
 
+/**
+ * A cached User (from a gateway member payload, or an un-forced fetch) never carries the
+ * `banner` field — Discord only includes it on a full REST user fetch. `banner` sits at
+ * `undefined` until that's happened; `null` means we already asked and confirmed there's no
+ * banner. So this only pays for a forced re-fetch the first time we see a given user (or after
+ * a process restart) — once fetched, discord.js updates the cached User object in place, so
+ * every subsequent lookup (leaderboard revalidation, another guild's leaderboard, etc.) reuses
+ * that same object and skips the network call. Without this, `user.bannerURL()` always
+ * returns null, which is why leaderboard rows never showed a banner at all.
+ */
+async function ensureBannerLoaded(user: User | null): Promise<User | null> {
+  if (!user || user.banner !== undefined) return user;
+  return (await user.fetch(true).catch(() => user)) ?? user;
+}
+
 async function resolvePeople(
   guild: Guild,
   entries: Array<{ userId: string; count: number }>,
@@ -142,8 +157,9 @@ async function resolvePeople(
     // entries (rare — a member who left, or a very first-time computation) hit the API.
     if (!guild.members.cache.has(entry.userId)) apiFetches++;
     const member = await guild.members.fetch({ user: entry.userId }).catch(() => null);
-    const user =
-      member?.user ?? (await guild.client.users.fetch(entry.userId).catch(() => null));
+    const user = await ensureBannerLoaded(
+      member?.user ?? (await guild.client.users.fetch(entry.userId).catch(() => null)),
+    );
     return {
       rank: index + 1,
       id: entry.userId,
@@ -240,7 +256,7 @@ async function resolveGlobalPeople(
   const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
     // Cache-first — see resolvePeople() above for why this normally never touches the network.
     if (!client.users.cache.has(entry.userId)) apiFetches++;
-    const user = await client.users.fetch(entry.userId).catch(() => null);
+    const user = await ensureBannerLoaded(await client.users.fetch(entry.userId).catch(() => null));
     return {
       rank: index + 1,
       id: entry.userId,

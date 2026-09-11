@@ -94,8 +94,8 @@ export async function getEconomyAccount(
  * Adjusts a member's **global** coin balance only — server admins can no longer adjust a
  * member's server-currency balance from the dashboard. Server currency now only moves through
  * normal play (messages, `/daily`) and `/exchange`, which converts it into global coins at a
- * rate tied to that server's own stock price; an admin override would let a server bypass that
- * exchange rate entirely and mint global coins for free.
+ * fixed bot-wide rate; an admin override would let a server bypass that exchange rate entirely
+ * and mint global coins for free.
  */
 export async function adjustEconomyAccount(
   configManager: ConfigManager,

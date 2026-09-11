@@ -6,12 +6,14 @@ import { infoCommands } from "./commands/info.js";
 import { moderationCommands } from "./commands/moderation.js";
 import { voiceCommands, nicknameCommands } from "./commands/voice.js";
 import { metaCommands } from "./commands/meta.js";
+import { snipeCommands } from "./commands/snipe.js";
 import { contextMenuCommands } from "./commands/contextMenu.js";
 import { configManager } from "../../config/manager.js";
 import { getPluginSettings } from "../../core/permissionRoles.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
 import { recordUserMessage } from "./functions/messageCounts.js";
 import { handleExpandMessageLinks } from "./functions/expandMessageLinks.js";
+import { recordDeletedMessage } from "./functions/snipe.js";
 import { registerIntervalTask } from "../../core/scheduler.js";
 import { sweepExpiredMessageContent } from "../../core/contentRetentionSweep.js";
 import { handleGlobalWatchdogMemberAdd } from "./functions/globalWatchdog.js";
@@ -28,6 +30,7 @@ export const utilityPlugin = definePlugin({
     ...voiceCommands,
     ...nicknameCommands,
     ...metaCommands,
+    ...snipeCommands,
   ],
   contextMenuCommands,
   onLoad: async () => {
@@ -51,6 +54,19 @@ export const utilityPlugin = definePlugin({
         if (pluginConfig.expand_message_links !== false) {
           await handleExpandMessageLinks(msg).catch(() => null);
         }
+      },
+    },
+    {
+      // Feeds /snipe — see functions/snipe.js for why this is its own lightweight, always-on
+      // store instead of reusing the logs plugin's message cache (which only exists at all
+      // when a server has message logging configured).
+      name: Events.MessageDelete,
+      execute: async (_client, message: unknown) => {
+        const msg = message as import("discord.js").Message | import("discord.js").PartialMessage;
+        if (!msg.guild || msg.partial) return;
+        const guildConfig = await configManager.getEffectiveConfig(msg.guild.id);
+        if (!pluginEnabled(guildConfig, "utility")) return;
+        recordDeletedMessage(msg);
       },
     },
     {

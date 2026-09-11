@@ -35,6 +35,34 @@
     ]
   },
   {
+    "plugin": "dream_commands",
+    "pluginName": "Commands",
+    "pluginDescription": "Custom slash commands built visually on the dashboard.",
+    "entries": [
+      {
+        "plugin": "dream_commands",
+        "permission": "can_edit",
+        "grantKey": "dream_commands.can_edit",
+        "title": "Edit",
+        "description": "Allow members to toggle custom commands on or off."
+      },
+      {
+        "plugin": "dream_commands",
+        "permission": "can_list",
+        "grantKey": "dream_commands.can_list",
+        "title": "List",
+        "description": "Allow members to list custom commands."
+      },
+      {
+        "plugin": "dream_commands",
+        "permission": "can_remove",
+        "grantKey": "dream_commands.can_remove",
+        "title": "Remove",
+        "description": "Allow members to remove custom commands."
+      }
+    ]
+  },
+  {
     "plugin": "bot_customisation",
     "pluginName": "Custom Branding",
     "pluginDescription": "Per-server bot avatar, banner, nickname, and bio.",
@@ -73,41 +101,6 @@
         "grantKey": "bot_customisation.can_nickname",
         "title": "Nickname",
         "description": "Allow members to set or clear Dreamliner's server nickname (dashboard)."
-      }
-    ]
-  },
-  {
-    "plugin": "dream_commands",
-    "pluginName": "Custom commands",
-    "pluginDescription": "Custom slash commands built visually on the dashboard.",
-    "entries": [
-      {
-        "plugin": "dream_commands",
-        "permission": "can_create",
-        "grantKey": "dream_commands.can_create",
-        "title": "Create",
-        "description": "Deprecated and ignored."
-      },
-      {
-        "plugin": "dream_commands",
-        "permission": "can_edit",
-        "grantKey": "dream_commands.can_edit",
-        "title": "Edit",
-        "description": "Allow members to toggle custom commands on or off."
-      },
-      {
-        "plugin": "dream_commands",
-        "permission": "can_list",
-        "grantKey": "dream_commands.can_list",
-        "title": "List",
-        "description": "Allow members to list custom commands."
-      },
-      {
-        "plugin": "dream_commands",
-        "permission": "can_remove",
-        "grantKey": "dream_commands.can_remove",
-        "title": "Remove",
-        "description": "Allow members to remove custom commands."
       }
     ]
   },
@@ -157,13 +150,6 @@
         "grantKey": "economy.can_sell",
         "title": "Sell",
         "description": "Allow members to sell a plane card for global coins."
-      },
-      {
-        "plugin": "economy",
-        "permission": "can_stock_trade",
-        "grantKey": "economy.can_stock_trade",
-        "title": "Stock Trade",
-        "description": "Allow members to buy and sell stocks on the Dreamliner Exchange."
       },
       {
         "plugin": "economy",
@@ -853,10 +839,10 @@
       },
       {
         "plugin": "utility",
-        "permission": "can_create_quote",
-        "grantKey": "utility.can_create_quote",
-        "title": "Create Quote",
-        "description": "Allow members to use the Create Quote message context command."
+        "permission": "can_create_sticker",
+        "grantKey": "utility.can_create_sticker",
+        "title": "Create Sticker",
+        "description": "Allow members to use the Create Sticker message context command."
       },
       {
         "plugin": "utility",
@@ -955,6 +941,13 @@
         "grantKey": "utility.can_server",
         "title": "Server",
         "description": "Allow members to use server info."
+      },
+      {
+        "plugin": "utility",
+        "permission": "can_snipe",
+        "grantKey": "utility.can_snipe",
+        "title": "Snipe",
+        "description": "Allow members to use /snipe to bring back the most recently deleted message in a channel."
       },
       {
         "plugin": "utility",

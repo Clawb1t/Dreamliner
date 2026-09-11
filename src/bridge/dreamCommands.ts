@@ -1,6 +1,5 @@
 import type { Client } from "discord.js";
 import { CommandProgramError, validateProgram, type CommandProgram } from "../plugins/dream_commands/functions/program.js";
-import { pluginEnabled } from "../core/pluginCommand.js";
 import type { ConfigManager } from "../config/manager.js";
 import {
   countDreamCommands,
@@ -57,30 +56,18 @@ function validateProgramInput(input: unknown): CommandProgramValidation {
   }
 }
 
-async function assertPluginEnabled(
-  configManager: ConfigManager,
-  guildId: string,
-): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
-  const guildConfig = await configManager.getEffectiveConfig(guildId);
-  if (!pluginEnabled(guildConfig, "dream_commands")) {
-    return {
-      ok: false,
-      error: "The dream_commands plugin is disabled for this server.",
-      status: 403,
-    };
-  }
-  return { ok: true };
-}
+// Editing, listing, and removing custom commands is always allowed, even while the
+// dream_commands plugin is toggled off for the server — that only gates whether a
+// saved command actually replies when run (see handleDreamCommandSlash), the same
+// way a server can draft/edit any other plugin's config while it's disabled.
 
 export async function listBridgeDreamCommands(
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
 ): Promise<
   | { ok: true; commands: BridgeDreamCommand[]; count: number; maxCommands: number }
   | { ok: false; error: string; status: number }
 > {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
   const [commands, count] = await Promise.all([
     listDreamCommands(guildId),
     countDreamCommands(guildId),
@@ -94,12 +81,10 @@ export async function listBridgeDreamCommands(
 }
 
 export async function getBridgeDreamCommand(
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   name: string,
 ): Promise<{ ok: true; command: BridgeDreamCommand } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
   const command = await getDreamCommand(guildId, name);
   if (!command) return { ok: false, error: `No command named ${normalizeCommandName(name)}.`, status: 404 };
   return { ok: true, command: serializeCommand(command) };
@@ -107,13 +92,10 @@ export async function getBridgeDreamCommand(
 
 export async function createBridgeDreamCommand(
   client: Client,
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   input: { userId: string; name: string; program: unknown },
 ): Promise<{ ok: true; command: BridgeDreamCommand } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const name = normalizeCommandName(input.name ?? "");
   if (!isValidCommandName(name)) {
     return {
@@ -170,14 +152,11 @@ export async function createBridgeDreamCommand(
 
 export async function updateBridgeDreamCommand(
   client: Client,
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   name: string,
   input: { program: unknown },
 ): Promise<{ ok: true; command: BridgeDreamCommand } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const normalized = normalizeCommandName(name);
   const existing = await getDreamCommand(guildId, normalized);
   if (!existing) {
@@ -215,13 +194,10 @@ export async function updateBridgeDreamCommand(
 
 export async function deleteBridgeDreamCommand(
   client: Client,
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   name: string,
 ): Promise<{ ok: true; command: BridgeDreamCommand } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const deleted = await deleteDreamCommand(guildId, name);
   if (!deleted) {
     return { ok: false, error: `No command named ${normalizeCommandName(name)}.`, status: 404 };

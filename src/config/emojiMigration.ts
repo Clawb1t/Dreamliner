@@ -33,7 +33,7 @@ export const LEGACY_EMOJI_REPLACEMENTS: Record<string, string> = {
 
 /**
  * Remap legacy emoji strings anywhere in a guild's fully-merged config — not just the top-level
- * `emojis` block. `configYaml` is a full merged snapshot (defaults baked in at save time), so
+ * `emojis` block. `configJson` is a full merged snapshot (defaults baked in at save time), so
  * every guild that has ever saved a config has old emoji IDs stored as literal values throughout
  * (`emojis.*`, `logging.emojis.*`, any plugin's own emoji field) — a change to the schema
  * defaults alone only reaches guilds with no stored config at all. This walks the whole tree so

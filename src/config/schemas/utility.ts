@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { boolPerm } from "../schemaHelp.js";
+import { zPluginSection } from "./pluginSection.js";
 
 export const zUtilityConfig = z.strictObject({
   jumbo_size: z
@@ -57,14 +58,13 @@ export const zUtilityConfig = z.strictObject({
   can_info: boolPerm("use generic /info"),
   can_time: boolPerm("use time utilities"),
   can_convert_gif: boolPerm("use the Convert to GIF message context command"),
-  can_create_quote: boolPerm("use the Create Quote message context command"),
+  can_create_sticker: boolPerm("use the Create Sticker message context command"),
+  can_snipe: boolPerm("use /snipe to bring back the most recently deleted message in a channel"),
 });
 
 export type UtilityConfig = z.infer<typeof zUtilityConfig>;
 
-export const zUtilityPluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn the utility plugin on or off for this server."),
-  config: zUtilityConfig.partial().optional(),
-});
+// The only plugin enabled out of the box — everything else is opt-in from the dashboard.
+export const zUtilityPluginSection = zPluginSection(zUtilityConfig.shape, true);
 
 export type UtilityPluginSection = z.infer<typeof zUtilityPluginSection>;

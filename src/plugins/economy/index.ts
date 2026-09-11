@@ -4,7 +4,6 @@ import { zEconomyConfig } from "../../config/schemas/economy.js";
 import { economyCommands } from "./commands.js";
 import { grantMessageRewards } from "./functions/activity.js";
 import { loadEconomyConfig } from "./functions/config.js";
-import { recordStockActivity, tickStockPrices } from "./functions/stocks.js";
 import type { Message, GuildMember } from "discord.js";
 import { getLogger } from "../../core/logger.js";
 const log = getLogger("economy");
@@ -21,23 +20,10 @@ export {
   PLANE_SELL_PREFIX,
 } from "./functions/cardButtons.js";
 
-/** Stock prices are checked once a minute against that minute's message activity, see stocks.ts. */
-const STOCK_TICK_INTERVAL_MS = 60_000;
-const STOCK_TICK_INITIAL_DELAY_MS = 15_000;
-
 export const economyPlugin = definePlugin({
   name: "economy",
   configSchema: zEconomyConfig,
   slashCommands: economyCommands,
-  onLoad: async ({ client }) => {
-    const tick = () => {
-      tickStockPrices(client).catch((err) => {
-        log.error("Stock price tick failed:", err);
-      });
-    };
-    setTimeout(tick, STOCK_TICK_INITIAL_DELAY_MS);
-    setInterval(tick, STOCK_TICK_INTERVAL_MS);
-  },
   events: [
     {
       name: Events.MessageCreate,
@@ -48,7 +34,6 @@ export const economyPlugin = definePlugin({
           const config = await loadEconomyConfig(msg.guild.id);
           if (!config) return;
           grantMessageRewards(msg.member as GuildMember, msg, config);
-          recordStockActivity(msg.guild.id, msg.guild.name, msg.guild.iconURL({ size: 64 }));
         } catch (err) {
           log.error("Economy activity reward failed:", err);
         }

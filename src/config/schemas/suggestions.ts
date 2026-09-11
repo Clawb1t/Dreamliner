@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { boolPerm, channelId } from "../schemaHelp.js";
+import { zPluginSection } from "./pluginSection.js";
 
 const snowflakeList = (description: string) =>
   z.array(z.string()).default([]).describe(description);
@@ -125,10 +126,7 @@ export const zSuggestionsConfig = z.strictObject({
   can_manage: boolPerm("manage the suggestion queue and mass actions"),
 });
 
-export const zSuggestionsPluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn suggestions on or off for this server."),
-  config: zSuggestionsConfig.partial().optional(),
-});
+export const zSuggestionsPluginSection = zPluginSection(zSuggestionsConfig.shape);
 
 export type SuggestionsConfig = z.infer<typeof zSuggestionsConfig>;
 export type SuggestionMode = (typeof SUGGESTION_MODES)[number];

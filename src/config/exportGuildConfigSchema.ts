@@ -4,12 +4,22 @@ import { fileURLToPath } from "node:url";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { getEditorPluginCategories } from "../core/helpCategories.js";
 import { getPermissionCatalog } from "../core/permissionCatalog.js";
-import { loadDefaultConfigRaw } from "./default.js";
+import { getDefaultConfigPath, loadDefaultConfigRaw } from "./default.js";
 import { enrichJsonSchemaForEditor } from "./schemaHelp.js";
 import { zGuildConfig } from "./schemas/guild.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const outDir = join(root, "schema");
+
+const DEFAULT_CONFIG_HEADER = `# AUTO-GENERATED — do not hand-edit.
+#
+# This is a generated snapshot of the bot's default guild config, written by
+# \`npm run schema:export\`. The real source of truth is the zod schemas under
+# src/config/schemas/ (each plugin's own enabled-by-default flag and field defaults) — this file
+# exists only so the external dashboard's GitHub-fallback path (used when the live bot bridge is
+# unreachable) still has something to read. Edit the schemas, then re-run schema:export.
+
+`;
 
 export type GuildConfigEditorArtifacts = {
   schema: Record<string, unknown>;
@@ -95,4 +105,5 @@ export function exportGuildConfigSchema(): void {
   // Dreamliner Roles' permission grant grid — every can_* flag across every plugin, grouped by
   // plugin. Kept in sync with the schemas automatically, same mechanism as the two files above.
   writeFileSync(join(outDir, "permission-catalog.json"), `${JSON.stringify(getPermissionCatalog(), null, 2)}\n`);
+  writeFileSync(getDefaultConfigPath(), `${DEFAULT_CONFIG_HEADER}${loadDefaultConfigRaw()}`);
 }

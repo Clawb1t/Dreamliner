@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { boolPerm, channelId } from "../schemaHelp.js";
+import { boolPerm } from "../schemaHelp.js";
+import { zPluginSection } from "./pluginSection.js";
 
 const notifyActionSchema = z.strictObject({
   dm: z.boolean().default(true).describe("Send the member a DM when this action is taken."),
@@ -90,7 +91,6 @@ const zEscalation = z
 export type EscalationConfig = z.infer<typeof zEscalation>;
 
 export const zInfractionConfig = z.strictObject({
-  case_log_channel: channelId("Optional channel for case logs. Falls back to moderation_log_channel_id."),
   ban_delete_message_days: z
     .number()
     .int()
@@ -142,10 +142,7 @@ export const zInfractionConfig = z.strictObject({
 
 export type InfractionConfig = z.infer<typeof zInfractionConfig>;
 
-export const zInfractionPluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn infractions on or off for this server."),
-  config: zInfractionConfig.partial().optional(),
-});
+export const zInfractionPluginSection = zPluginSection(zInfractionConfig.shape);
 
 export type InfractionPluginSection = z.infer<typeof zInfractionPluginSection>;
 

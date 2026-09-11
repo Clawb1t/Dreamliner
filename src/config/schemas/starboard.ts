@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zPluginSection } from "./pluginSection.js";
 
 const snowflakeList = (description: string) =>
   z.array(z.string()).default([]).describe(description);
@@ -87,10 +88,7 @@ export const zStarboardConfig = z.strictObject({
     .describe("Named starboard boards. Key is a short board name; value is the board settings."),
 });
 
-export const zStarboardPluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn starboard on or off for this server."),
-  config: zStarboardConfig.partial().optional(),
-});
+export const zStarboardPluginSection = zPluginSection(zStarboardConfig.shape);
 
 export type StarboardBoard = z.infer<typeof zStarboardBoard>;
 export type StarboardConfig = z.infer<typeof zStarboardConfig>;

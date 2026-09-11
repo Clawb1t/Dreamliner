@@ -5,6 +5,7 @@ import {
   ComponentType,
   MessageFlags,
   type AttachmentBuilder,
+  type MessageMentionOptions,
   type InteractionDeferReplyOptions,
   type InteractionEditReplyOptions,
   type InteractionReplyOptions,
@@ -26,9 +27,12 @@ function componentsFlags(ephemeral: boolean): number {
 
 /**
  * A raw ping (role/user mention) as its own top-level text component, for the rare case a
- * Components V2 message needs to actually notify someone — Components V2 messages can't carry
- * `content`, and mentions inside a container's own text are suppressed by the `allowedMentions`
- * most builders set, so the ping needs to live in its own unsuppressed component.
+ * message needs to actually notify someone. Components V2 messages can't carry `content`, so
+ * this is the only place a mention can live — but text alone isn't enough: every builder in
+ * this file also sets `allowedMentions: { parse: [] }` (see NO_PING), so a caller that wants
+ * this component to actually ping must additionally override `allowedMentions` on the final
+ * payload it sends (e.g. `{ ...payload, allowedMentions: { users: [id] } }`) — see
+ * bot_customisation/functions/handlers.ts or suggestions/functions/service.ts for the pattern.
  */
 export function pingComponent(mention: string): TopLevelComponentData {
   return { type: ComponentType.TextDisplay, content: mention };
@@ -55,7 +59,17 @@ export function fileComponent(filename: string): TopLevelComponentData {
 export type ContainerPayload = {
   components: TopLevelComponentData[];
   flags: number;
+  allowedMentions: MessageMentionOptions;
 };
+
+/**
+ * Every mention parsed out (no ping, no highlight) by default — command responses regularly
+ * quote a member's `<@id>` for display (e.g. "Muted @user for ..."), and without this Discord
+ * treats that exactly like a real ping: a notification, and the "mentions you" highlight for
+ * whoever it names. `pingComponent()` is the deliberate opt-back-in for the rare response that
+ * should actually notify someone — its callers pass their own `allowedMentions` override.
+ */
+const NO_PING: MessageMentionOptions = { parse: [] };
 
 function toTopLevel(
   container: ResultContainer,
@@ -118,6 +132,7 @@ export function containerReply(
   return {
     components: toTopLevel(container, components),
     flags: componentsFlags(ephemeral),
+    allowedMentions: NO_PING,
   };
 }
 
@@ -128,6 +143,7 @@ export function containerEdit(
   return {
     components: toTopLevel(container, components),
     flags: MessageFlags.IsComponentsV2,
+    allowedMentions: NO_PING,
   };
 }
 
@@ -155,11 +171,11 @@ export function embedWithFilesEdit(
 }
 
 export function contentReply(content: string, ephemeral = false): InteractionReplyOptions {
-  return { content, ...withEphemeral(ephemeral) };
+  return { content, allowedMentions: NO_PING, ...withEphemeral(ephemeral) };
 }
 
 export function contentEdit(content: string): InteractionEditReplyOptions {
-  return { content };
+  return { content, allowedMentions: NO_PING };
 }
 
 export function paginationRow(customIdPrefix: string, page: number, totalPages: number): ActionRowBuilder<ButtonBuilder> {

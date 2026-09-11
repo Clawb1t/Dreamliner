@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { channelId } from "../schemaHelp.js";
+import { zPluginSection } from "./pluginSection.js";
 
 export const zScamProtectConfig = z.strictObject({
   channel_id: channelId(
@@ -25,14 +26,6 @@ export const zScamProtectConfig = z.strictObject({
     .describe("Roles ignored by Scam Protect (mods/admins usually) — in addition to members with Ban Members / Administrator, which are always ignored."),
 });
 
-export const zScamProtectPluginSection = z.strictObject({
-  enabled: z
-    .boolean()
-    .optional()
-    .describe(
-      "Opt-in honeypot. Leave off until you enable it in the dashboard or run /scamprotect setup (creates the channel).",
-    ),
-  config: zScamProtectConfig.partial().optional(),
-});
+export const zScamProtectPluginSection = zPluginSection(zScamProtectConfig.shape, false);
 
 export type ScamProtectConfig = z.infer<typeof zScamProtectConfig>;

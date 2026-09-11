@@ -16,21 +16,29 @@ export function getImageAttachments(
   return [...attachments.values()].filter(isImageAttachment);
 }
 
-export async function downloadAttachment(attachment: Attachment, maxBytes = MAX_IMAGE_DOWNLOAD_BYTES): Promise<Buffer> {
-  const res = await fetch(attachment.url);
+export async function downloadUrl(url: string, maxBytes = MAX_IMAGE_DOWNLOAD_BYTES): Promise<Buffer> {
+  const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Failed to download attachment (${res.status})`);
+    throw new Error(`Failed to download (${res.status})`);
   }
 
   const lengthHeader = res.headers.get("content-length");
   if (lengthHeader && Number.parseInt(lengthHeader, 10) > maxBytes) {
-    throw new Error("Attachment is too large");
+    throw new Error("File is too large");
   }
 
   const buffer = Buffer.from(await res.arrayBuffer());
   if (buffer.byteLength > maxBytes) {
-    throw new Error("Attachment is too large");
+    throw new Error("File is too large");
   }
 
   return buffer;
+}
+
+export async function downloadAttachment(attachment: Attachment, maxBytes = MAX_IMAGE_DOWNLOAD_BYTES): Promise<Buffer> {
+  try {
+    return await downloadUrl(attachment.url, maxBytes);
+  } catch {
+    throw new Error("Failed to download attachment or it is too large");
+  }
 }

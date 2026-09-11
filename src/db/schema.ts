@@ -2,9 +2,10 @@ import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from
 
 export const guildConfigs = sqliteTable("guild_configs", {
   guildId: text("guild_id").primaryKey(),
-  configYaml: text("config_yaml").notNull(),
-  userConfigYaml: text("user_config_yaml"),
-  defaultsSnapshotYaml: text("defaults_snapshot_yaml"),
+  // JSON-serialized GuildConfig (not YAML — see drizzle/migrations for the rename+backfill).
+  configJson: text("config_json").notNull(),
+  userConfigJson: text("user_config_json"),
+  defaultsSnapshotJson: text("defaults_snapshot_json"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   updatedBy: text("updated_by"),
 });
@@ -176,7 +177,7 @@ export const logMessages = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.channelId, table.messageId] })],
 );
 
-/** Collapsed per-user channel hops for the dashboard Tracker. */
+/** Collapsed per-user channel hops, used for risk scoring (Watchdog) and last-seen lookups. */
 export const guildUserTrail = sqliteTable("guild_user_trail", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   guildId: text("guild_id").notNull(),
@@ -820,71 +821,6 @@ export const economyServerAccounts = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
-);
-
-// --- Dreamliner Exchange (server stocks) --------------------------------------
-// Every guild with the economy plugin enabled is listed as a "stock" whose price
-// drifts up or down based on that server's message activity relative to its own
-// recent baseline. Users invest their global coins to buy shares.
-
-export const economyStocks = sqliteTable("economy_stocks", {
-  guildId: text("guild_id").primaryKey(),
-  symbol: text("symbol").notNull(),
-  guildName: text("guild_name").notNull(),
-  guildIcon: text("guild_icon"),
-  price: real("price").notNull().default(10),
-  activityScore: real("activity_score").notNull().default(1),
-  listedAt: integer("listed_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
-
-export const economyStockPriceHistory = sqliteTable(
-  "economy_stock_price_history",
-  {
-    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    guildId: text("guild_id").notNull(),
-    price: real("price").notNull(),
-    recordedAt: integer("recorded_at", { mode: "timestamp" }).notNull(),
-  },
-  (table) => [index("economy_stock_history_guild_time").on(table.guildId, table.recordedAt)],
-);
-
-/** Persisted (not in-memory) message counts per guild per minute — survives restarts. */
-export const economyStockActivityMinutes = sqliteTable(
-  "economy_stock_activity_minutes",
-  {
-    guildId: text("guild_id").notNull(),
-    minuteBucket: text("minute_bucket").notNull(),
-    messages: integer("messages", { mode: "number" }).notNull().default(0),
-  },
-  (table) => [primaryKey({ columns: [table.guildId, table.minuteBucket] })],
-);
-
-export const economyStockHoldings = sqliteTable(
-  "economy_stock_holdings",
-  {
-    userId: text("user_id").notNull(),
-    guildId: text("guild_id").notNull(),
-    shares: real("shares").notNull().default(0),
-    costBasis: real("cost_basis").notNull().default(0),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.userId, table.guildId] })],
-);
-
-export const economyStockTransactions = sqliteTable(
-  "economy_stock_transactions",
-  {
-    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull(),
-    guildId: text("guild_id").notNull(),
-    type: text("type").notNull(),
-    shares: real("shares").notNull(),
-    price: real("price").notNull(),
-    amount: real("amount").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  },
-  (table) => [index("economy_stock_tx_user_time").on(table.userId, table.createdAt)],
 );
 
 export const tickets = sqliteTable("tickets", {

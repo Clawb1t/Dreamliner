@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createBot, registerSlashCommands } from "./bot.js";
 import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
+import { migrateConfigStorageToJson } from "./scripts/migrateConfigStorageToJson.js";
 import { runPermissionRoleMigration } from "./scripts/migratePermissionRoles.js";
 import { ensurePiperReady, resolvePiperVoicesDir } from "./plugins/tts/functions/piperSetup.js";
 import { ensureVoicePackInstalled } from "./plugins/tts/functions/voiceCatalog.js";
@@ -50,6 +51,15 @@ async function main() {
   }
 
   runMigrations();
+
+  try {
+    // Converts any still-YAML config_json/user_config_json/defaults_snapshot_json content to
+    // JSON in place. Must run before anything reads guild config (ConfigManager, the permission
+    // role migration below) — see migrateConfigStorageToJson.ts's header comment.
+    migrateConfigStorageToJson();
+  } catch (error) {
+    log.error("Config storage migration (YAML -> JSON) failed:", error);
+  }
 
   try {
     // Seeds Dreamliner Roles for every guild and best-effort migrates old levels/overrides data.

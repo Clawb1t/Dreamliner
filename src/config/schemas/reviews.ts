@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { boolPerm, channelId } from "../schemaHelp.js";
+import { zPluginSection } from "./pluginSection.js";
 
 const snowflakeList = (description: string) =>
   z.array(z.string()).default([]).describe(description);
@@ -48,9 +49,6 @@ export const zReviewsConfig = z.strictObject({
   can_manage: boolPerm("manage reviews (staff)"),
 });
 
-export const zReviewsPluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn reviews on or off for this server."),
-  config: zReviewsConfig.partial().optional(),
-});
+export const zReviewsPluginSection = zPluginSection(zReviewsConfig.shape);
 
 export type ReviewsConfig = z.infer<typeof zReviewsConfig>;

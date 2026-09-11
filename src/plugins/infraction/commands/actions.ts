@@ -19,7 +19,7 @@ import {
   isUserMuted,
   postCaseLog,
 } from "../functions/infractions.js";
-import { buildActionConfirmDetails } from "../functions/embeds.js";
+import { buildActionConfirmLine } from "../functions/embeds.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("infraction");
@@ -45,10 +45,9 @@ async function finishAction(
   user: import("discord.js").User,
   reason: string,
   record: Awaited<ReturnType<typeof createInfraction>>,
-  extras?: string,
+  durationLabel?: string | null,
 ) {
-  const durationLabel = extras?.match(/Duration: \*\*(.+)\*\*/)?.[1] ?? null;
-  await postCaseLog(ctx.client, ctx.guildConfig, pluginConfig, record, user, ctx.interaction.user, { durationLabel });
+  await postCaseLog(ctx.client, ctx.guildConfig, pluginConfig, record, user, ctx.interaction.user, { durationLabel: durationLabel ?? null });
 
   const { maybeEscalate } = await import("../functions/escalation.js");
   await maybeEscalate({
@@ -86,17 +85,16 @@ async function finishAction(
           actorId: ctx.interaction.user.id,
           targetId: user.id,
           caseId: record.id,
-          caseLogOverride: pluginConfig.case_log_channel,
         },
       );
     }
   }
 
-  const details = buildActionConfirmDetails(type, user.tag, user.id, reason, extras);
+  const line = buildActionConfirmLine(type, user.id, reason, durationLabel);
   const emoji = ACTION_EMOJI[type];
   await ctx.interaction.reply(
     embedReply(
-      buildResultEmbed(`Infraction #${record.id}`, details, slashResultOptions(ctx, emoji ? { emoji } : undefined)),
+      buildResultEmbed(`Infraction #${record.id}`, line, slashResultOptions(ctx, emoji ? { emoji } : undefined)),
       ctx.ephemeral,
     ),
   );
@@ -244,7 +242,7 @@ export const actionCommands: SlashCommandDefinition[] = [
         metadata: { method: "timeout" },
       });
 
-      await finishAction(ctx, auth.pluginConfig, "tempmute", user, reason, record, `Duration: **${formatDurationShort(durationMs)}**`);
+      await finishAction(ctx, auth.pluginConfig, "tempmute", user, reason, record, formatDurationShort(durationMs));
     },
   },
   {
@@ -441,7 +439,7 @@ export const actionCommands: SlashCommandDefinition[] = [
         expiresAt: new Date(Date.now() + durationMs),
       });
 
-      await finishAction(ctx, auth.pluginConfig, "tempban", user, reason, record, `Duration: **${formatDurationShort(durationMs)}**`);
+      await finishAction(ctx, auth.pluginConfig, "tempban", user, reason, record, formatDurationShort(durationMs));
     },
   },
   {

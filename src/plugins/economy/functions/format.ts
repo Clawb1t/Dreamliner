@@ -10,12 +10,20 @@ export const GLOBAL_DAILY_AMOUNT = 5;
 
 /**
  * Fixed server-currency earn rates — same across every server, not admin-configurable (see
- * economy.ts's schema comment for why). `SERVER_DAILY_BASE_AMOUNT` is only the base: the actual
- * `/daily` payout scales with that server's stock price, see stocks.ts's `getServerDailyAmount`.
+ * economy.ts's schema comment for why).
  */
 export const SERVER_MESSAGE_AMOUNT = 0.1;
 export const SERVER_MESSAGE_COOLDOWN_SECONDS = 5;
-export const SERVER_DAILY_BASE_AMOUNT = 5;
+export const SERVER_DAILY_AMOUNT = 5;
+
+/**
+ * Fixed server-currency -> global-coin conversion rate for /exchange, e.g. 100 server currency
+ * becomes 10 global coins at 0.1. Used to be derived from a per-server simulated "stock price"
+ * (see git history) — removed as needlessly complicated. Not admin-configurable, for the same
+ * anti-abuse reason as the rest of this file's constants: a server owner could otherwise mint
+ * unlimited global coins by setting their own rate.
+ */
+export const SERVER_TO_GLOBAL_EXCHANGE_RATE = 0.1;
 
 export function formatAmount(amount: number): string {
   return amount.toFixed(2);
@@ -32,28 +40,12 @@ export function formatServer(amount: number, server: EconomyServerConfig): strin
   return `${prefix}\`${server.currency_denominator}${formatAmount(amount)}\` ${name}`;
 }
 
-/** A price/coin amount without the trailing currency name — for stock prices, market values, P/L, etc. */
+/** A coin amount without the trailing currency name — for pack prices, card sale prices, etc. */
 export function formatCoinAmount(amount: number): string {
   return `${GLOBAL_CURRENCY_EMOJI} \`${GLOBAL_CURRENCY_DENOMINATOR}${formatAmount(amount)}\``;
-}
-
-/** Signed change amount/percent, e.g. "+$0.42 (+4.2%)" or "-$0.10 (-1.0%)". */
-export function formatStockChange(changeAmount: number, changePct: number): string {
-  const sign = changeAmount > 0 ? "+" : changeAmount < 0 ? "" : "±";
-  const pctSign = changePct > 0 ? "+" : "";
-  return `${sign}$${formatAmount(changeAmount)} (${pctSign}${changePct.toFixed(2)}%)`;
 }
 
 /** A server → global exchange rate, e.g. "1.00x". */
 export function formatExchangeRate(rate: number): string {
   return `${rate.toFixed(2)}x`;
-}
-
-/** Up/down/flat custom emoji for a signed change amount — shared by every stock-related embed. */
-export function stockChangeArrow(changeAmount: number): string {
-  return changeAmount > 0
-    ? "<:icons_uparrow:1544417597527953460>"
-    : changeAmount < 0
-      ? "<:icons_downarrow:1544417541873471488>"
-      : "<:icons_hyphen:1544417304203362406>";
 }

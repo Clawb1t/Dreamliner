@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { boolPerm } from "../schemaHelp.js";
 import { LANGUAGE_CODES } from "../../core/languages.js";
+import { zPluginSection } from "./pluginSection.js";
 
 export const zTranslationConfig = z.strictObject({
   auto_translate: z
@@ -16,10 +17,7 @@ export const zTranslationConfig = z.strictObject({
   can_translate: boolPerm("use /translate"),
 });
 
-export const zTranslationPluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn the translation plugin on or off for this server."),
-  config: zTranslationConfig.partial().optional(),
-});
+export const zTranslationPluginSection = zPluginSection(zTranslationConfig.shape);
 
 export const zDefaultLanguage = z
   .enum(LANGUAGE_CODES)

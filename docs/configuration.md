@@ -1,17 +1,22 @@
 # Configuration
 
-Dreamliner server configuration is edited entirely from the **web dashboard** and stored as YAML in the database
-under the hood — there is no in-Discord upload/download workflow anymore. The YAML shape below documents that
-underlying format (and what a fork's `config/default.server.yaml` looks like), not something you write by hand.
+Dreamliner server configuration is edited entirely from the **web dashboard** and stored as JSON in the database
+under the hood — there is no in-Discord upload/download workflow anymore. Defaults (every plugin's on/off state
+and every field's default value) live in the zod schemas under `src/config/schemas/`, not in a hand-maintained
+file — `config/default.server.yaml` is a generated snapshot (`npm run schema:export` writes it) kept around only
+for the external dashboard's fallback path, and documents the shape below in YAML form for readability.
 
-## File format
+Only the **Utility** plugin is enabled out of the box; every other plugin is opt-in from the dashboard.
+
+## Shape
 
 ```yaml
-# Server events: joins, leaves, edits, deletes, voice activity, role/nickname changes
-server_log_channel_id: "1111111111111111111"
+# Server events: joins, leaves, edits, deletes, voice activity, role/nickname changes. Unset
+# (no logs sent) until you pick a channel on the dashboard's Logging page.
+server_log_channel_id: ""
 
-# Moderation: infractions, automod, censor, /clean, voice mod, cases, expirations
-moderation_log_channel_id: "1111111111111111111"
+# Moderation: infractions, automod, censor, /clean, voice mod, cases, expirations. Same as above.
+moderation_log_channel_id: ""
 
 # Deprecated - use moderation_log_channel_id instead
 # log_channel_id: "1234567890123456789"
@@ -21,13 +26,17 @@ ephemeral_responses: false
 
 plugins:
   utility:
+    enabled: true
     config:
       jumbo_size: 128
       autojoin_threads: true
       info_on_single_result: true
+  automod:
+    enabled: false
+    config: {}
 ```
 
-`can_*` permission flags (like `can_search`, `can_clean` above) are no longer set in YAML — grant them to a
+`can_*` permission flags (like `can_search`, `can_clean` above) are no longer set in config — grant them to a
 Dreamliner Role instead. See [Permissions](permissions.md).
 
 ## Emojis
@@ -92,7 +101,7 @@ Each plugin is configured under `plugins.<name>`:
 
 | Field                     | Description                                                     |
 | ------------------------- | --------------------------------------------------------------- |
-| `enabled`                 | Set `false` to disable (utility is enabled when section exists) |
+| `enabled`                 | On/off. Every plugin defaults to `false` except **Utility**     |
 | `config`                  | Direct config values                                            |
 
 `can_*` permission flags are never set here — grant them to a Dreamliner Role on the dashboard's **Roles** page, or with `/permissions role grant`. There is no more `overrides`/`replaceDefaultOverrides` field, and no more channel/category-scoped grants. See [Permissions](permissions.md).
@@ -135,7 +144,7 @@ Dreamliner is organized into plugins under the `plugins:` key. Each plugin has i
 | Moderation        | infractions, slowmode                                                                            |
 | Protection        | automod, scam\_protect, persist, autodelete                                                      |
 | Role management   | roles, autorole                                                                                   |
-| Self-serve roles  | reaction\_roles, role\_buttons, self\_grantable\_roles                                           |
+| Self-serve roles  | reaction\_roles, role\_buttons, role\_panels                                                     |
 | Lookups           | locate\_user, name\_history, username\_saver                                                     |
 | Engagement        | welcome\_message, companion\_channels, starboard                                                 |
 | Auto responses    | tags, autoreplies, autoreactions, translation                                                       |

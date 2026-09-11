@@ -3,7 +3,7 @@ import YAML from "yaml";
 
 import { getDb } from "../db/client.js";
 import { guildConfigs } from "../db/schema.js";
-import { loadDefaultConfig, loadDefaultConfigRaw } from "./default.js";
+import { loadDefaultConfig } from "./default.js";
 import {
   computeUserOverrides,
   deepMerge,
@@ -61,10 +61,10 @@ export class ConfigManager {
 
     let parsed: unknown;
     try {
-      parsed = YAML.parse(row.configYaml);
+      parsed = JSON.parse(row.configJson);
     } catch (error) {
       log.error(
-        `[dreamliner] Guild config YAML for ${guildId} would not parse, repairing from what's on file:`,
+        `[dreamliner] Guild config JSON for ${guildId} would not parse, repairing from what's on file:`,
         error instanceof Error ? error.message : error,
       );
       parsed = undefined;
@@ -81,9 +81,9 @@ export class ConfigManager {
     // A full reset throws away every customization. If the guild's own override
     // diff is still on file, rebuilding straight from that almost always keeps
     // far more of their setup than falling all the way back to bare defaults.
-    if (neededFullReset && row.userConfigYaml) {
+    if (neededFullReset && row.userConfigJson) {
       try {
-        const userOverrides = (parseYamlConfig(row.userConfigYaml) ?? {}) as Record<string, unknown>;
+        const userOverrides = (JSON.parse(row.userConfigJson) ?? {}) as Record<string, unknown>;
         const merged = deepMerge(loadDefaultConfig() as unknown as Record<string, unknown>, userOverrides);
         const rebuilt = validateGuildConfig(merged, { repair: true });
         if (rebuilt.success) {
@@ -128,7 +128,7 @@ export class ConfigManager {
 
     const shouldPersistCleanup = repairs.length > 0 || migratedEmojis.changed;
     if (shouldPersistCleanup) {
-      void this.persistConfigCleanup(guildId, data, row.userConfigYaml, {
+      void this.persistConfigCleanup(guildId, data, row.userConfigJson, {
         emojiMigration: migratedEmojis.changed,
         strippedKeys: repairs,
       }).catch((error) => {
@@ -142,13 +142,13 @@ export class ConfigManager {
   private async persistConfigCleanup(
     guildId: string,
     config: GuildConfig,
-    userConfigYaml: string | null | undefined,
+    userConfigJson: string | null | undefined,
     reason: { emojiMigration: boolean; strippedKeys: string[] },
   ): Promise<void> {
-    let nextUserConfigYaml = userConfigYaml ?? null;
-    if (userConfigYaml) {
+    let nextUserConfigJson = userConfigJson ?? null;
+    if (userConfigJson) {
       try {
-        const parsed = (parseYamlConfig(userConfigYaml) ?? {}) as Record<string, unknown>;
+        const parsed = (JSON.parse(userConfigJson) ?? {}) as Record<string, unknown>;
         let nextUser: unknown = parsed;
         if (reason.strippedKeys.length > 0) {
           const defaults = loadDefaultConfig() as unknown as Record<string, unknown>;
@@ -161,9 +161,9 @@ export class ConfigManager {
           }
         }
         const migrated = migrateLegacyEmojisInObject(nextUser);
-        nextUserConfigYaml = YAML.stringify(migrated.value);
+        nextUserConfigJson = JSON.stringify(migrated.value);
       } catch {
-        // Keep original user YAML if it cannot be parsed.
+        // Keep original user config if it cannot be parsed.
       }
     }
 
@@ -175,8 +175,8 @@ export class ConfigManager {
     await db
       .update(guildConfigs)
       .set({
-        configYaml: YAML.stringify(config),
-        userConfigYaml: nextUserConfigYaml,
+        configJson: JSON.stringify(config),
+        userConfigJson: nextUserConfigJson,
         updatedAt: new Date(),
         updatedBy,
       })
@@ -198,7 +198,7 @@ export class ConfigManager {
     // simply never saved a config is expected to fall back to defaults.
     if (!this.guildsWithoutStoredConfig.has(guildId)) {
       log.warn(
-        `[dreamliner] No valid stored config for guild ${guildId}; using default.server.yaml (custom settings are not applied until config loads successfully).`,
+        `[dreamliner] No valid stored config for guild ${guildId}; using the built-in defaults (custom settings are not applied until config loads successfully).`,
       );
     }
     return loadDefaultConfig();
@@ -214,32 +214,34 @@ export class ConfigManager {
       return result;
     }
 
-    const defaultsSnapshotYaml = loadDefaultConfigRaw();
-    let userConfigYaml = userYaml;
+    const defaultsSnapshotJson = JSON.stringify(loadDefaultConfig());
+    let userConfigJson: string;
     try {
       const parsed = parseYamlConfig(userYaml);
-      userConfigYaml = YAML.stringify(parsed ?? {});
+      userConfigJson = JSON.stringify(parsed ?? {});
     } catch {
-      userConfigYaml = userYaml;
+      // Shouldn't happen — validateMergedConfig above already parsed this same YAML successfully.
+      userConfigJson = "{}";
     }
+    const configJson = JSON.stringify(result.data);
 
     const db = getDb();
     await db
       .insert(guildConfigs)
       .values({
         guildId,
-        configYaml: result.mergedYaml,
-        userConfigYaml,
-        defaultsSnapshotYaml,
+        configJson,
+        userConfigJson,
+        defaultsSnapshotJson,
         updatedAt: new Date(),
         updatedBy,
       })
       .onConflictDoUpdate({
         target: guildConfigs.guildId,
         set: {
-          configYaml: result.mergedYaml,
-          userConfigYaml,
-          defaultsSnapshotYaml,
+          configJson,
+          userConfigJson,
+          defaultsSnapshotJson,
           updatedAt: new Date(),
           updatedBy,
         },
@@ -273,7 +275,11 @@ export class ConfigManager {
     const db = getDb();
     const row = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).get();
     if (row) {
-      return row.configYaml;
+      try {
+        return YAML.stringify(JSON.parse(row.configJson));
+      } catch {
+        // Fall through to defaults below if the stored row is somehow unparseable.
+      }
     }
     return YAML.stringify(loadDefaultConfig());
   }
@@ -292,9 +298,9 @@ export class ConfigManager {
     const db = getDb();
     const row = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).get();
 
-    if (row?.userConfigYaml) {
+    if (row?.userConfigJson) {
       try {
-        return { success: true, data: (parseYamlConfig(row.userConfigYaml) ?? {}) as Record<string, unknown> };
+        return { success: true, data: (JSON.parse(row.userConfigJson) ?? {}) as Record<string, unknown> };
       } catch (e) {
         return { success: false, errors: [`Invalid stored user config: ${e instanceof Error ? e.message : String(e)}`] };
       }
@@ -302,9 +308,9 @@ export class ConfigManager {
 
     if (row) {
       try {
-        const stored = YAML.parse(row.configYaml) as Record<string, unknown>;
-        const oldDefaults = row.defaultsSnapshotYaml
-          ? (YAML.parse(row.defaultsSnapshotYaml) as Record<string, unknown>)
+        const stored = JSON.parse(row.configJson) as Record<string, unknown>;
+        const oldDefaults = row.defaultsSnapshotJson
+          ? (JSON.parse(row.defaultsSnapshotJson) as Record<string, unknown>)
           : (loadDefaultConfig() as unknown as Record<string, unknown>);
         return { success: true, data: computeUserOverrides(stored, oldDefaults) };
       } catch (e) {

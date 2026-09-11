@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zPluginSection } from "./pluginSection.js";
 
 const roleListDescription =
   "Use a role ID string, or an object with role + delay_ms (or delay).";
@@ -25,10 +26,7 @@ export const zAutoroleConfig = z.strictObject({
   ),
 });
 
-export const zAutorolePluginSection = z.strictObject({
-  enabled: z.boolean().optional().describe("Turn autorole on or off for this server."),
-  config: zAutoroleConfig.partial().optional(),
-});
+export const zAutorolePluginSection = zPluginSection(zAutoroleConfig.shape);
 
 export type AutoroleConfig = z.infer<typeof zAutoroleConfig>;
 export type AutoroleRoleEntry = z.infer<typeof zAutoroleRoleEntry>;

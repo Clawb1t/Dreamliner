@@ -1,32 +1,37 @@
+# AUTO-GENERATED — do not hand-edit.
+#
+# This is a generated snapshot of the bot's default guild config, written by
+# `npm run schema:export`. The real source of truth is the zod schemas under
+# src/config/schemas/ (each plugin's own enabled-by-default flag and field defaults) — this file
+# exists only so the external dashboard's GitHub-fallback path (used when the live bot bridge is
+# unreachable) still has something to read. Edit the schemas, then re-run schema:export.
 
-# Server events: joins, leaves, edits, deletes, voice activity, role/nickname changes
-server_log_channel_id: "1111111111111111111"
-
-# Moderation: infractions, automod, /clean, voice mod, cases, expirations
-moderation_log_channel_id: "1111111111111111111"
-
+emojis:
+  success: <:icons_Correct:1544417199798886530>
+  error: <:icons_Wrong:1544417460638457937>
+  neutral: <:icons_generalinfo:1544417795335389254>
+  warning: <:icons_exclamation:1544417272376852490>
+  unchecked: <:icons_disable:1544417870652379277>
 logging:
-  # Per-event log toggles. Missing keys default to enabled — only list events you want OFF.
   events: {}
-  # `logging.emojis` isn't listed here — the icon prefixed to each log card title is fixed
-  # bot-wide (not per-server configurable). See src/core/logging/emojis.ts.
-
-  # When true, command replies are only visible to the user who ran the command.
+  emojis:
+    action_emoji: <:icons_slashcmd:1544417581765501059>
+    create_emoji: <:icons_plus:1544417389872156732>
+    delete_emoji: <:icons_trash:1544418246705418332>
+    edit_emoji: <:icons_edit:1544417261115281441>
+    emoji_sticker_emoji: <:icons_createemoji:1544417838511423538>
+    join_emoji: <:icons_djoin:1544417221902864524>
+    leave_emoji: <:icons_dleave:1544417225430274058>
+    voice_emoji: <:icons_voice:1544418279760601158>
+    unban_emoji: <:icons_unbanmember:1544417814549495899>
+    server_update_emoji: <:icons_updateserver:1544417824074768584>
+    moderation_default_emoji: <:icons_moderationlow:1544418102001799328>
+    moderation_moderate_emoji: <:icons_moderationmedium:1544418103494971402>
+    moderation_severe_emoji: <:icons_moderationhighest:1544418100663812167>
 ephemeral_responses: false
-
-# When true (default), anyone with Discord's Administrator permission (or the server owner) can
-# use any bot command, regardless of levels/overrides - no configuration required. Toggle from
-# the dashboard's server settings page, or set false here to require explicit levels/overrides
-# for admins too.
 admin_bypass: true
-
-# Public server page accent (decimal 0–16777215). Used on /server/:id, leaderboard, and public stats.
 server_accent_color: 5661429
-
-# When true, personal user accents are hidden on this server's public leaderboard.
 leaderboard_override_user_accents: false
-
-# Which Stats tabs are public on /server/:id/stats (messagers leaderboard is always public).
 public_stats:
   overview: false
   activity: false
@@ -35,10 +40,8 @@ public_stats:
   patterns: false
   leaders: false
   table: false
-
-# Server default language for /translate and auto-translate (ISO code).
 default_language: en
-
+content_retention_days: 30
 plugins:
   utility:
     enabled: true
@@ -47,6 +50,7 @@ plugins:
       autojoin_threads: true
       expand_message_links: true
       info_on_single_result: true
+      global_watchdog_action: off
       can_search: false
       can_clean: false
       can_userinfo: false
@@ -59,6 +63,7 @@ plugins:
       can_snowflake: false
       can_roles: false
       can_level: false
+      can_watchdog: false
       can_context: false
       can_source: false
       can_nickname: false
@@ -74,11 +79,11 @@ plugins:
       can_info: false
       can_time: false
       can_convert_gif: false
-      can_create_quote: false
+      can_create_sticker: false
+      can_snipe: false
   infractions:
-    enabled: true
+    enabled: false
     config:
-      case_log_channel: "1111111111111111111"
       ban_delete_message_days: 0
       softban_delete_message_days: 7
       notify:
@@ -96,6 +101,21 @@ plugins:
           dm: true
         softban:
           dm: true
+      require_reason:
+        warn: false
+        mute: false
+        kick: false
+        ban: false
+        tempban: false
+        softban: false
+      default_duration: {}
+      escalation:
+        enabled: false
+        count_types:
+          - warn
+        window_ms: 0
+        steps: []
+      evidence_capture_enabled: true
       can_warn: false
       can_note: false
       can_mute: false
@@ -107,15 +127,14 @@ plugins:
       can_edit_reason: false
       can_edit_duration: false
       can_delete: false
+      can_evidence: false
   autorole:
-    enabled: true
+    enabled: false
     config:
-      roles:
-        - role: "1111111111111111111"
-          delay_ms: 0
+      roles: []
       bot_roles: []
   member_identity:
-    enabled: true
+    enabled: false
     config:
       save_on_leave: true
       save_on_update: true
@@ -127,38 +146,31 @@ plugins:
       ignored_roles: []
       delay_ms: 0
   translation:
-    enabled: true
+    enabled: false
     config:
-      auto_translate: false # Dreamliner One exclusive
+      auto_translate: false
       ignored_channels: []
+      can_translate: false
   starboard:
-    enabled: true
+    enabled: false
     config:
       ignored_channels: []
       ignored_roles: []
       allow_bot_messages: false
       allow_nsfw: true
-      boards:
-        main:
-          channel_id: "1111111111111111111"
-          stars_required: 3
-          enabled: true
-          show_star_count: true
-          copy_full_embed: true
-          count_self_stars: false
-          ignored_channels: []
-          ignored_roles: []
-          star_emoji:
-            - "⭐"
+      boards: {}
   automod:
     enabled: false
     config:
-      presets_applied: null
       ignored_channels: []
       ignored_roles: []
       dm_users: true
       rules: {}
       migrations: {}
+      native:
+        enabled: false
+        spam_detection: true
+        timeout_seconds: 0
   impersonation:
     enabled: false
     config:
@@ -176,18 +188,17 @@ plugins:
       dm_flagged_member: false
       auto_action: none
       can_status: false
+  raid_mesh:
+    enabled: false
+    config: {}
   scam_protect:
     enabled: false
     config:
-      channel_id: ""
-      warning_message_id: ""
       channel_name: ""
       ignored_roles: []
   passport:
     enabled: false
     config:
-      channel_id: ""
-      unverified_role_id: ""
       grant_role_ids: []
       remove_role_ids: []
       strip_roles_until_verified: false
@@ -195,35 +206,80 @@ plugins:
       ping:
         enabled: true
         ping_style: mention
-        content: "Hey {user}, welcome to **{guild}**.
+        content: |-
+          Hey {user}, welcome to **{guild}**.
 
-
-          Tap **Verify** to unlock the rest of the server."
-        button_label: "Verify"
+          Tap **Verify** to unlock the rest of the server.
+        embed:
+          enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
+        button_label: Verify
+        button_emoji: ""
         also_dm: false
         delete_on_verify: true
         delete_on_leave: true
         delete_after_seconds: 0
-        embed:
-          enabled: false
       panel:
-        content: "Welcome to **{guild}**.
+        content: |-
+          Welcome to **{guild}**.
 
-
-          Tap **Verify** to unlock the rest of the server."
-        button_label: "Verify"
+          Tap **Verify** to unlock the rest of the server.
         embed:
           enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
+        button_label: Verify
+        button_emoji: ""
       page:
-        headline: "Welcome to {guild}"
-        body: "Sign in with Discord and complete a quick check to prove you're human."
+        headline: Welcome to {guild}
+        body: Sign in with Discord and complete a quick check to prove you're human.
         rules: ""
+        login_button_label: Continue with Discord
+        verify_button_label: Verify
         inherit_accent: true
+        accent_color: 5661429
         background: none
+        background_color: 16053751
+        background_url: ""
         show_server_icon: true
         show_server_name: true
         show_member_count: true
         show_user_avatar: true
+        success_title: You're verified
+        success_body: You can close this tab and head back to Discord.
+        already_verified_title: Already verified
+        already_verified_body: You're already verified in this server.
+        not_a_member_title: Join the server first
+        not_a_member_body: You need to be a member of this server to verify.
+        disabled_title: Verification is off
+        disabled_body: This server isn't using Passport right now.
       remember_verifications: true
       min_account_age_seconds: 0
       bypass_role_ids: []
@@ -237,17 +293,22 @@ plugins:
       server:
         currency_name: Coins
         currency_name_singular: Coin
-        currency_denominator: "$"
+        currency_denominator: $
         currency_emoji: ""
         message_rewards_enabled: true
       can_balance: false
       can_daily: false
+      can_exchange: false
+      can_view: false
+      can_buy_pack: false
+      can_give: false
+      can_sell: false
   persist:
-    enabled: true
+    enabled: false
     config:
       messages: []
   slowmode:
-    enabled: true
+    enabled: false
     config:
       default_seconds: 5
       individual_enabled: true
@@ -258,47 +319,177 @@ plugins:
       can_clear: false
       can_manage_rules: false
   roles:
-    enabled: true
+    enabled: false
     config:
       can_give: false
       can_remove: false
       can_list: false
   reaction_roles:
-    enabled: true
+    enabled: false
     config:
       can_create: false
       can_delete: false
   role_buttons:
-    enabled: true
+    enabled: false
     config:
       can_create: false
       can_delete: false
+  role_panels:
+    enabled: false
+    config:
+      can_manage: false
+      panels: []
   welcome_message:
-    enabled: true
+    enabled: false
     config:
       join:
         enabled: true
-        content: "Welcome {user} to **{guild}**!"
+        content: Welcome {user} to **{guild}**!
         embed:
           enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
         card:
           enabled: false
+          background_type: color
+          background_color: 1974050
+          background_url: ""
+          background_asset_id: ""
+          avatar_layout: left
+          text_layout: beside
+          avatar_style: circle
+          show_avatar: true
+          show_accent_bar: true
+          greeting_text: Welcome {user_display}!
+          subtitle_text: "Member #{guild_member_count}"
+          text_color: 16777215
+          accent_color: 5661429
+          border_color: 5661429
+          border_width: 0
+          border_radius: 24
+          avatar_size: 180
+          avatar_offset_x: 0
+          avatar_offset_y: 0
+          text_offset_x: 0
+          text_offset_y: 0
+          greeting_size: 44
+          subtitle_size: 24
+          avatar_ring_width: 6
       leave:
         enabled: false
         content: ""
         embed:
           enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
         card:
           enabled: false
+          background_type: color
+          background_color: 1974050
+          background_url: ""
+          background_asset_id: ""
+          avatar_layout: left
+          text_layout: beside
+          avatar_style: circle
+          show_avatar: true
+          show_accent_bar: true
+          greeting_text: Welcome {user_display}!
+          subtitle_text: "Member #{guild_member_count}"
+          text_color: 16777215
+          accent_color: 5661429
+          border_color: 5661429
+          border_width: 0
+          border_radius: 24
+          avatar_size: 180
+          avatar_offset_x: 0
+          avatar_offset_y: 0
+          text_offset_x: 0
+          text_offset_y: 0
+          greeting_size: 44
+          subtitle_size: 24
+          avatar_ring_width: 6
       dm:
         enabled: false
         content: ""
         embed:
           enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
         card:
           enabled: false
+          background_type: color
+          background_color: 1974050
+          background_url: ""
+          background_asset_id: ""
+          avatar_layout: left
+          text_layout: beside
+          avatar_style: circle
+          show_avatar: true
+          show_accent_bar: true
+          greeting_text: Welcome {user_display}!
+          subtitle_text: "Member #{guild_member_count}"
+          text_color: 16777215
+          accent_color: 5661429
+          border_color: 5661429
+          border_width: 0
+          border_radius: 24
+          avatar_size: 180
+          avatar_offset_x: 0
+          avatar_offset_y: 0
+          text_offset_x: 0
+          text_offset_y: 0
+          greeting_size: 44
+          subtitle_size: 24
+          avatar_ring_width: 6
+      first_message_react:
+        enabled: false
+        emoji: ""
+      delete_join_on_early_leave: false
+      wave_button:
+        enabled: false
+        label: Wave
+        emoji: 👋
   tags:
-    enabled: true
+    enabled: false
     config:
       can_create: false
       can_edit: false
@@ -306,40 +497,41 @@ plugins:
       can_list: false
       can_show: false
   autodelete:
-    enabled: true
+    enabled: false
     config:
+      can_manage: false
       rules: []
   booster_roles:
-    enabled: true
+    enabled: false
     config:
       stacking: false
       tiers: []
       can_view: false
       can_recheck: false
   autoreactions:
-    enabled: true
+    enabled: false
     config:
       rules: []
   autoreplies:
-    enabled: true
+    enabled: false
     config:
       rules: []
   autothreads:
-    enabled: true
+    enabled: false
     config:
       rules: []
   reminders:
-    enabled: true
+    enabled: false
     config:
       can_create: false
       can_list: false
       can_cancel: false
   counters:
-    enabled: true
+    enabled: false
     config:
       counters: []
   companion_channels:
-    enabled: true
+    enabled: false
     config:
       setups: []
       features:
@@ -369,42 +561,58 @@ plugins:
       text_access_role_id: ""
       join_role_id: ""
       member_role_id: ""
+  tts:
+    enabled: false
+    config:
+      can_speak: false
+      can_manage_channel: false
+      can_skip: false
+      can_blacklist: false
+      voice: ""
+      max_characters: 300
+      cooldown_seconds: 0.5
+      announce_speaker: false
   name_history:
-    enabled: true
+    enabled: false
     config:
       can_view: false
       can_search: false
   username_saver:
-    enabled: true
+    enabled: false
     config:
       enabled: true
   locate_user:
-    enabled: true
+    enabled: false
     config:
       can_locate: false
       can_seen: false
   stats:
-    enabled: true
+    enabled: false
     config:
       can_server: false
       can_user: false
       can_channel: false
   dream_commands:
-    enabled: true
+    enabled: false
     config:
-      prefix: "d!"
-      can_create: false
       can_edit: false
       can_remove: false
       can_list: false
-  reviews:
-    enabled: true
+  bot_customisation:
+    enabled: false
     config:
-      review_channel_id: "1111111111111111111"
+      can_avatar: false
+      can_banner: false
+      can_nickname: false
+      can_bio: false
+      can_display_name: false
+  reviews:
+    enabled: false
+    config:
       min_messages: 50
-      min_account_age: "7d"
-      min_member_age: "3d"
-      cooldown: "7d"
+      min_account_age: 7d
+      min_member_age: 3d
+      cooldown: 7d
       allow_edit: true
       allowed_roles: []
       blocked_roles: []
@@ -420,27 +628,18 @@ plugins:
       can_delete: false
       can_manage: false
   suggestions:
-    enabled: true
+    enabled: false
     config:
       mode: review
-      suggestions_channel_id: "1111111111111111111"
-      review_channel_id: "1111111111111111111"
-      denied_channel_id: ""
-      archive_channel_id: ""
-      log_channel_id: ""
       allowed_suggest_roles: []
       blocked_suggest_roles: []
       allowed_vote_roles: []
-      review_ping_role: ""
-      feed_ping_role: ""
-      approved_role: ""
-      implemented_role: ""
       anonymous: false
-      cooldown: "1h"
+      cooldown: 1h
       max_open: 5
       min_messages: 25
-      min_account_age: "7d"
-      min_member_age: "1d"
+      min_account_age: 7d
+      min_member_age: 1d
       command_channels: []
       ignored_channels: []
       allow_attachments: true
@@ -450,9 +649,9 @@ plugins:
       upvote_label: Upvote
       midvote_label: Neutral
       downvote_label: Downvote
-      upvote_emoji: "👍"
-      midvote_emoji: "😐"
-      downvote_emoji: "👎"
+      upvote_emoji: 👍
+      midvote_emoji: 😐
+      downvote_emoji: 👎
       mid_vote_enabled: true
       allow_self_vote: false
       show_vote_count: true
@@ -471,13 +670,10 @@ plugins:
       can_delete: false
       can_block: false
       can_manage: false
-
   tickets:
     enabled: false
     config:
       staff_role_ids: []
-      log_channel_id: ""
-      default_transcript_channel_id: ""
       dm_transcript_on_close: true
       feedback_enabled: false
       max_open_tickets_per_user: 1
@@ -492,3 +688,11 @@ plugins:
       can_view_all: false
       can_delete: false
       can_blacklist: false
+      can_assign: false
+      can_set_status: false
+      can_view_stats: false
+  social:
+    enabled: false
+    config:
+      can_manage: false
+      can_view: false

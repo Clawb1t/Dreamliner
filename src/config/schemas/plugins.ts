@@ -513,10 +513,6 @@ export const zStatsConfig = z.strictObject({
 });
 
 export const zDreamCommandsConfig = z.strictObject({
-  /** @deprecated Ignored. Kept so older saved config still parses. */
-  prefix: z.string().min(1).max(10).optional().describe("Deprecated and ignored."),
-  /** @deprecated Ignored. Commands are created on the dashboard, not via a permission gate. */
-  can_create: z.boolean().optional().describe("Deprecated and ignored."),
   can_edit: boolPerm("toggle custom commands on or off"),
   can_remove: boolPerm("remove custom commands"),
   can_list: boolPerm("list custom commands"),
@@ -530,8 +526,8 @@ export const zBotCustomisationConfig = z.strictObject({
   can_display_name: boolPerm("set or clear Dreamliner's display name font, effect, and colors (dashboard)"),
 });
 
-export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape);
-export const zImpersonationPluginSection = zPluginSection(zImpersonationConfig.shape);
+export const zAutomodPluginSection = zPluginSection(zAutomodConfig.shape, false);
+export const zImpersonationPluginSection = zPluginSection(zImpersonationConfig.shape, false);
 export const zRaidMeshPluginSection = zPluginSection(zRaidMeshConfig.shape);
 export const zPersistPluginSection = zPluginSection(zPersistConfig.shape);
 export const zSlowmodePluginSection = zPluginSection(zSlowmodeConfig.shape);

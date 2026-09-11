@@ -160,7 +160,7 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
     activity_trail: {
       label: "Activity trail",
       description:
-        "Per-channel activity snippets used by server staff's Tracker view. Content clears per each server's own retention setting; the rest (channel, timing) is kept.",
+        "Per-channel activity snippets used for risk scoring and last-seen lookups. Content clears per each server's own retention setting; the rest (channel, timing) is kept.",
       rows: serializable(
         await db.select().from(guildUserTrail).where(eq(guildUserTrail.userId, userId)).all(),
       ),

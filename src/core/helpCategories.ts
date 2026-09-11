@@ -309,7 +309,7 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   stats: { key: "stats", name: "Stats", description: "Server, user, and channel stats." },
   dream_commands: {
     key: "dream_commands",
-    name: "Custom commands",
+    name: "Commands",
     description: "Custom slash commands built visually on the dashboard.",
   },
   bot_customisation: {

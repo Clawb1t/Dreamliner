@@ -1,4 +1,3 @@
-import YAML from "yaml";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { guildConfigs, guildPermissionRoleGrants, guildPermissionRoleTargets, guildPermissionRoles } from "../db/schema.js";
@@ -11,8 +10,8 @@ const log = getLogger("scripts");
 // any guild config is loaded through ConfigManager — load-bearing ordering: once a guild's
 // config passes through ConfigManager.getGuildConfig, its repair-on-load logic strips the now-
 // unknown `levels`/`overrides`/`replaceDefaultOverrides` keys and RE-SAVES the config, destroying
-// the very data this migration reads. So this reads guild_configs.configYaml directly via
-// YAML.parse, bypassing zod validation entirely, rather than going through ConfigManager.
+// the very data this migration reads. So this reads guild_configs.configJson directly via
+// JSON.parse, bypassing zod validation entirely, rather than going through ConfigManager.
 //
 // Per guild: skip if it already has any permission-role rows (idempotent — safe to call every
 // boot). Otherwise seed the 3 built-in roles (Member/Moderator/Admin) from BUILT_IN_ROLE_GRANTS,
@@ -26,6 +25,10 @@ const log = getLogger("scripts");
 // Any custom per-plugin `overrides` (channel/category/user/role-scoped extra grants) are NOT
 // migrated — there's no structural equivalent in the new model — just logged so operators have a
 // paper trail of what was dropped.
+//
+// Reads guild_configs.configJson as JSON (migrateConfigStorageToJson.ts, run earlier at boot,
+// guarantees it's JSON by this point — see that script's header for why config storage moved off
+// YAML).
 
 function now() {
   return new Date();
@@ -78,7 +81,7 @@ export function runPermissionRoleMigration(): void {
 
       let parsed: Record<string, unknown> = {};
       try {
-        parsed = (YAML.parse(row.configYaml) ?? {}) as Record<string, unknown>;
+        parsed = (JSON.parse(row.configJson) ?? {}) as Record<string, unknown>;
       } catch {
         // Unparseable stored config — nothing to migrate from, still seed defaults below.
       }

@@ -1,6 +1,5 @@
 import type { Client, TextChannel } from "discord.js";
 import type { GuildConfig } from "../../config/schemas/guild.js";
-import { getGuildCasesDashboardUrl, getGuildLogsDashboardUrl } from "../docsUrl.js";
 import { getModerationLogChannelId, getServerLogChannelId } from "./channels.js";
 import { buildLogPayload } from "./container.js";
 import { LOG_EVENT_META, type LogEventType } from "./events.js";
@@ -8,6 +7,9 @@ import { LOG_EMOJI, type LogEmojiCategory } from "./emojis.js";
 import { insertGuildLogEvent, setGuildLogDiscordMessageId } from "./store.js";
 import { isLogEventEnabled } from "./toggles.js";
 import type { LogButton, LogCard } from "./types.js";
+import { getLogger } from "../logger.js";
+
+const log = getLogger("logs");
 
 /** Maps a log emoji category to its field name in `guildConfig.logging.emojis`. */
 const EMOJI_CONFIG_KEY: Record<LogEmojiCategory, keyof GuildConfig["logging"]["emojis"]> = {
@@ -51,7 +53,7 @@ export type EmitLogOptions = {
   skipToggleCheck?: boolean;
   /** Don't write a row to guild_log_events / the dashboard Logs history (test sends). */
   skipPersist?: boolean;
-  /** Skip the automatic Jump to Message / View in Dashboard buttons. */
+  /** Skip the automatic Jump to Message button. */
   skipAutoButtons?: boolean;
 };
 
@@ -64,38 +66,47 @@ function jumpToMessageButton(guildId: string, channelId: string, messageId: stri
   };
 }
 
-function dashboardButton(guildId: string, category: "server" | "moderation"): LogButton {
-  return category === "moderation"
-    ? { label: "View in Dashboard", url: getGuildCasesDashboardUrl(guildId), style: "link", emoji: "📊" }
-    : { label: "View in Dashboard", url: getGuildLogsDashboardUrl(guildId), style: "link", emoji: "📊" };
-}
-
-/** Adds Jump to Message / View in Dashboard buttons when useful, on top of any card-specific ones. */
+/** Adds a Jump to Message button when useful, on top of any card-specific ones. */
 function withAutoButtons(
   card: LogCard,
   meta: LogEmitMeta,
-  category: "server" | "moderation",
   options?: EmitLogOptions,
 ): LogCard {
   if (options?.skipAutoButtons) return card;
+  if (!meta.channelId || !meta.messageId) return card;
 
-  const buttons: LogButton[] = [...(card.buttons ?? [])];
-  if (meta.channelId && meta.messageId) {
-    buttons.push(jumpToMessageButton(meta.guildId, meta.channelId, meta.messageId));
-  }
-  buttons.push(dashboardButton(meta.guildId, category));
+  const buttons: LogButton[] = [
+    ...(card.buttons ?? []),
+    jumpToMessageButton(meta.guildId, meta.channelId, meta.messageId),
+  ];
 
   return { ...card, buttons: buttons.slice(0, 5) };
 }
 
 async function sendToChannel(
   client: Client,
+  guildId: string,
   channelId: string,
   card: LogCard,
 ): Promise<string | null> {
-  const channel = await client.channels.fetch(channelId).catch(() => null);
-  if (!channel?.isTextBased() || !("send" in channel)) return null;
-  const sent = await (channel as TextChannel).send(buildLogPayload(card)).catch(() => null);
+  const channel = await client.channels.fetch(channelId).catch((error) => {
+    log.warn(
+      `Could not fetch log channel ${channelId} in guild ${guildId} — it may have been deleted, or I've lost access. (${error instanceof Error ? error.message : error})`,
+    );
+    return null;
+  });
+  if (!channel) return null;
+  if (!channel.isTextBased() || !("send" in channel)) {
+    log.warn(`Log channel ${channelId} in guild ${guildId} is not a sendable text channel — skipped "${card.title}".`);
+    return null;
+  }
+  const sent = await (channel as TextChannel).send(buildLogPayload(card)).catch((error) => {
+    log.error(
+      `Failed to send "${card.title}" to log channel ${channelId} in guild ${guildId} (likely missing View Channel / Send Messages permission):`,
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  });
   return sent?.id ?? null;
 }
 
@@ -117,31 +128,37 @@ export async function emitLog(
   const category = LOG_EVENT_META[meta.eventType].category;
   const emoji = resolveCardEmoji(card.emojiCategory, guildConfig);
   const titledCard = { ...card, title: `${emoji} ${card.title}` };
-  const finalCard = withAutoButtons(titledCard, meta, category, options);
+  const finalCard = withAutoButtons(titledCard, meta, options);
 
   let logId: string | null = null;
   if (!options?.skipPersist) {
-    logId = await insertGuildLogEvent({
-      guildId: meta.guildId,
-      category,
-      eventType: meta.eventType,
-      title: finalCard.title,
-      summary: summarizeCard(finalCard, meta.summary),
-      actorId: meta.actorId,
-      targetId: meta.targetId,
-      channelId: meta.channelId,
-      messageId: meta.messageId,
-      caseId: meta.caseId,
-      payload: {
+    // Never let a DB hiccup here block the actual Discord send below — the dashboard history
+    // row is a nice-to-have, the moderator seeing the log in their channel is the point.
+    try {
+      logId = await insertGuildLogEvent({
+        guildId: meta.guildId,
+        category,
+        eventType: meta.eventType,
         title: finalCard.title,
-        information: finalCard.information,
-        extra: finalCard.extra ?? null,
-        avatarUrl: finalCard.avatarUrl ?? null,
-        buttons: finalCard.buttons?.map((b) => ({ label: b.label, url: b.url })) ?? [],
-        files: finalCard.files?.map((f) => ({ name: f.name, size: f.content.length })) ?? [],
-        ...(meta.payload ?? {}),
-      },
-    });
+        summary: summarizeCard(finalCard, meta.summary),
+        actorId: meta.actorId,
+        targetId: meta.targetId,
+        channelId: meta.channelId,
+        messageId: meta.messageId,
+        caseId: meta.caseId,
+        payload: {
+          title: finalCard.title,
+          information: finalCard.information,
+          extra: finalCard.extra ?? null,
+          avatarUrl: finalCard.avatarUrl ?? null,
+          buttons: finalCard.buttons?.map((b) => ({ label: b.label, url: b.url })) ?? [],
+          files: finalCard.files?.map((f) => ({ name: f.name, size: f.content.length })) ?? [],
+          ...(meta.payload ?? {}),
+        },
+      });
+    } catch (error) {
+      log.error(`Failed to persist log event "${meta.eventType}" for guild ${meta.guildId}:`, error);
+    }
   }
 
   const channelId =
@@ -151,10 +168,16 @@ export async function emitLog(
 
   let discordMessageId: string | null = null;
   if (channelId) {
-    discordMessageId = await sendToChannel(client, channelId, finalCard);
+    discordMessageId = await sendToChannel(client, meta.guildId, channelId, finalCard);
     if (discordMessageId && logId) {
       await setGuildLogDiscordMessageId(meta.guildId, logId, discordMessageId).catch(() => null);
     }
+  } else {
+    log.debug(
+      `No ${category} log channel configured for guild ${meta.guildId} — "${finalCard.title}" was not sent to Discord${
+        options?.skipPersist ? "" : " (still recorded in the dashboard Logs history)"
+      }.`,
+    );
   }
 
   // Persisted sends return the history row id; unpersisted ones (e.g. test sends) return the

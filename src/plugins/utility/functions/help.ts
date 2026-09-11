@@ -369,7 +369,7 @@ const GROUP_LABELS: Record<string, string> = {
   reminders: "Reminders",
   counters: "Counters",
   companion_channels: "Companion channels",
-  dream_commands: "Custom commands",
+  dream_commands: "Commands",
   stats: "Stats",
   bot_customisation: "Bot customisation",
   reviews: "Reviews",

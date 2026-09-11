@@ -163,7 +163,7 @@ export const zPassportConfig = z.strictObject({
   can_test: boolPerm("check a member's Passport verification status"),
 });
 
-export const zPassportPluginSection = zPluginSection(zPassportConfig.shape);
+export const zPassportPluginSection = zPluginSection(zPassportConfig.shape, false);
 
 export type PassportPingConfig = z.infer<typeof zPassportPingConfig>;
 export type PassportPanelConfig = z.infer<typeof zPassportPanelConfig>;

@@ -24,7 +24,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "economy.can_exchange",
     "economy.can_give",
     "economy.can_sell",
-    "economy.can_stock_trade",
     "economy.can_view",
     // reviews
     "reviews.can_review",
@@ -130,7 +129,7 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "utility.can_clean",
     "utility.can_context",
     "utility.can_convert_gif",
-    "utility.can_create_quote",
+    "utility.can_create_sticker",
     "utility.can_emojiinfo",
     "utility.can_help",
     "utility.can_info",

@@ -85,7 +85,6 @@ function detectKind(key: string): DreamlinerFieldMeta["kind"] | undefined {
     (key === "channel_id" ||
       key.endsWith("_channel_id") ||
       key.endsWith("_channel") ||
-      key === "case_log_channel" ||
       key === "ignored_channels" ||
       key === "channels")
   ) {

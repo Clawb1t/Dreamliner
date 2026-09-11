@@ -165,7 +165,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
 
         const embed = setEmbedAuthor(
           baseEmbed(),
-          "Custom commands",
+          "Commands",
           ctx.client,
           commandHeader(ctx.guildConfig, { emoji: "<:icons_list:1544417562325164173>" }),
         ).setDescription(trimLines(lines.join("\n")));

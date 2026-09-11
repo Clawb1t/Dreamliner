@@ -4,12 +4,13 @@ import { zPluginSection } from "./pluginSection.js";
 
 /**
  * Server-specific currency: name and denominator only. Earn rates (message amount, message
- * cooldown, multiplier, daily amount) are deliberately NOT configurable here anymore — they're
- * fixed bot-wide constants (see format.ts's SERVER_* constants), with the daily reward scaling
- * automatically with that server's own Dreamliner Exchange stock price instead of an
- * admin-settable number. This closes off the one lever a server could previously pull to mint
- * unlimited server currency and, since /exchange converts it into global coins, unlimited global
- * coins with it.
+ * cooldown, multiplier, daily amount) and the /exchange rate into global coins are deliberately
+ * NOT configurable here — they're fixed bot-wide constants (see format.ts's SERVER_* constants
+ * and SERVER_TO_GLOBAL_EXCHANGE_RATE). This closes off the one lever a server could
+ * previously pull to mint unlimited server currency and, since /exchange converts it into global
+ * coins, unlimited global coins with it. (This server used to also list itself as a tradeable
+ * "stock" on a whole simulated exchange, with the exchange rate and /daily payout derived from
+ * that stock's price — removed as needlessly complicated; /exchange now just uses a fixed rate.)
  */
 export const zEconomyServerConfig = z.strictObject({
   currency_name: z.string().min(1).max(32).default("Coins").describe("Server currency display name (plural)."),
@@ -40,7 +41,6 @@ export const zEconomyConfig = z.strictObject({
 
   can_balance: boolPerm("view balances"),
   can_daily: boolPerm("claim the daily reward"),
-  can_stock_trade: boolPerm("buy and sell stocks on the Dreamliner Exchange"),
   can_exchange: boolPerm("exchange server currency for global coins"),
 
   // Trading cards (/planes — planes and airlines). The card catalog and packs are global
@@ -52,7 +52,7 @@ export const zEconomyConfig = z.strictObject({
   can_sell: boolPerm("sell a plane card for global coins"),
 });
 
-export const zEconomyPluginSection = zPluginSection(zEconomyConfig.shape);
+export const zEconomyPluginSection = zPluginSection(zEconomyConfig.shape, false);
 
 export type EconomyServerConfig = z.infer<typeof zEconomyServerConfig>;
 export type EconomyConfig = z.infer<typeof zEconomyConfig>;

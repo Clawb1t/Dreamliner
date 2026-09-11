@@ -83,17 +83,34 @@ export function buildInfractionListEmbed(
   return embed;
 }
 
-export function buildActionConfirmDetails(
+const ACTION_VERBS: Record<string, string> = {
+  warn: "Warned",
+  note: "Noted",
+  mute: "Muted",
+  tempmute: "Muted",
+  unmute: "Unmuted",
+  kick: "Kicked",
+  ban: "Banned",
+  tempban: "Banned",
+  unban: "Unbanned",
+  softban: "Softbanned",
+  clean: "Cleaned",
+};
+
+/**
+ * One-line action confirmation, e.g. `Muted @user for \`10m\` for "reason"` — the
+ * command-response format; the fuller Type/User/Moderator/Reason breakdown
+ * (buildInfractionEmbed) is reserved for /case view, which is an explicit detail lookup.
+ */
+export function buildActionConfirmLine(
   type: string,
-  userTag: string,
   userId: string,
   reason: string,
-  extras?: string,
+  durationLabel?: string | null,
 ): string {
-  return trimLines(`
-    Type: **${TYPE_LABELS[type] ?? type}**
-    User: **${userTag}** (\`${userId}\`)
-    Reason: ${reason}
-    ${extras ?? ""}
-  `);
+  const verb = ACTION_VERBS[type] ?? type;
+  const parts = [`${verb} <@${userId}>`];
+  if (durationLabel) parts.push(`for \`${durationLabel}\``);
+  if (reason) parts.push(`for "${reason}"`);
+  return parts.join(" ");
 }

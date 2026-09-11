@@ -1,6 +1,5 @@
 import type { Client } from "discord.js";
 import { z } from "zod";
-import { pluginEnabled } from "../core/pluginCommand.js";
 import type { ConfigManager } from "../config/manager.js";
 import {
   buildDefaultSocialEmbedConfig,
@@ -77,17 +76,6 @@ function serializeWatcher(row: SocialWatcherRow): BridgeSocialWatcher {
   };
 }
 
-async function assertPluginEnabled(
-  configManager: ConfigManager,
-  guildId: string,
-): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
-  const guildConfig = await configManager.getEffectiveConfig(guildId);
-  if (!pluginEnabled(guildConfig, "social")) {
-    return { ok: false, error: "The social plugin is disabled for this server.", status: 403 };
-  }
-  return { ok: true };
-}
-
 function resolveErrorToResult(error: unknown): { ok: false; error: string; status: number } {
   if (error instanceof YoutubeResolveError) {
     return { ok: false, error: error.message, status: 422 };
@@ -97,11 +85,12 @@ function resolveErrorToResult(error: unknown): { ok: false; error: string; statu
 }
 
 export async function listBridgeSocialWatchers(
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
 ): Promise<BridgeResult<{ watchers: BridgeSocialWatcher[]; count: number; maxWatchers: number }>> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
+  // Dashboard management (list/create/edit/delete/test) is always available, same as
+  // Autoreactions — the plugin's enabled flag only gates whether the bot actually acts on
+  // this at runtime (see pollAllWatchers), not whether you can configure it.
   const [watchers, count, oneActive] = await Promise.all([
     listWatchers(guildId),
     countWatchers(guildId),
@@ -116,12 +105,10 @@ export async function listBridgeSocialWatchers(
 }
 
 export async function resolveBridgeSocialSource(
-  configManager: ConfigManager,
-  guildId: string,
+  _configManager: ConfigManager,
+  _guildId: string,
   input: string,
 ): Promise<BridgeResult<{ channel: ResolvedYoutubeChannel }>> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
   try {
     const channel = await resolveYoutubeChannel(input);
     return { ok: true, channel };
@@ -139,14 +126,11 @@ const zCreateInput = z.object({
 });
 
 export async function createBridgeSocialWatcher(
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   actorId: string,
   input: unknown,
 ): Promise<BridgeResult<{ watcher: BridgeSocialWatcher }>> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const parsed = zCreateInput.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "sourceInput and discordChannelId are required.", status: 400 };
@@ -223,14 +207,11 @@ const zUpdateInput = z.object({
 });
 
 export async function updateBridgeSocialWatcher(
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   id: number,
   input: unknown,
 ): Promise<BridgeResult<{ watcher: BridgeSocialWatcher }>> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const existing = await getWatcher(guildId, id);
   if (!existing) return { ok: false, error: "No social notification with that ID.", status: 404 };
 
@@ -244,13 +225,10 @@ export async function updateBridgeSocialWatcher(
 }
 
 export async function deleteBridgeSocialWatcher(
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   id: number,
 ): Promise<BridgeResult<{ watcher: BridgeSocialWatcher }>> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const deleted = await deleteWatcher(guildId, id);
   if (!deleted) return { ok: false, error: "No social notification with that ID.", status: 404 };
 
@@ -259,13 +237,10 @@ export async function deleteBridgeSocialWatcher(
 
 export async function testSendBridgeSocialWatcher(
   client: Client,
-  configManager: ConfigManager,
+  _configManager: ConfigManager,
   guildId: string,
   id: number,
 ): Promise<BridgeResult<{ sent: boolean }>> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const watcher = await getWatcher(guildId, id);
   if (!watcher) return { ok: false, error: "No social notification with that ID.", status: 404 };
 

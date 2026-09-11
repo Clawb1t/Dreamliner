@@ -63,7 +63,7 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
     description: "Saved tag responses for this server.",
   },
   dream_commands: {
-    label: "Custom commands",
+    label: "Commands",
     description: "Custom slash commands built on the dashboard.",
   },
   guild_log_events: {
@@ -134,9 +134,7 @@ function detectType(jsName: string, column: Column): DbColumnMeta["type"] {
     return "number";
   }
   if (
-    /Json$|json$|payload|metadata|configYaml|userConfigYaml|defaultsSnapshotYaml|source$|definitionJson/i.test(
-      jsName,
-    )
+    /Json$|json$|payload|metadata|source$|definitionJson/i.test(jsName)
   ) {
     return "json";
   }

@@ -593,56 +593,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const dataExportMatch = /^\/bridge\/users\/(\d+)\/data\/export$/.exec(url.pathname);
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
-        const stockPortfolioMatch = /^\/bridge\/users\/(\d+)\/stocks$/.exec(url.pathname);
-        const stockBuyMatch = /^\/bridge\/users\/(\d+)\/stocks\/(\d+)\/buy$/.exec(url.pathname);
-        const stockSellMatch = /^\/bridge\/users\/(\d+)\/stocks\/(\d+)\/sell$/.exec(url.pathname);
-
-        if (stockPortfolioMatch && req.method === "GET") {
-          const { getUserPortfolio } = await import("./webStocks.js");
-          const result = getUserPortfolio(stockPortfolioMatch[1]!);
-          if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
-            return;
-          }
-          sendJson(res, 200, result);
-          return;
-        }
-
-        if (stockBuyMatch && req.method === "POST") {
-          let body: { amount?: unknown };
-          try {
-            body = JSON.parse(await readBody(req)) as typeof body;
-          } catch {
-            sendJson(res, 400, { error: "Invalid JSON body" });
-            return;
-          }
-          const { buyStockForUser } = await import("./webStocks.js");
-          const result = buyStockForUser(stockBuyMatch[1]!, stockBuyMatch[2]!, Number(body.amount));
-          if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
-            return;
-          }
-          sendJson(res, 200, result);
-          return;
-        }
-
-        if (stockSellMatch && req.method === "POST") {
-          let body: { shares?: unknown };
-          try {
-            body = JSON.parse(await readBody(req)) as typeof body;
-          } catch {
-            sendJson(res, 400, { error: "Invalid JSON body" });
-            return;
-          }
-          const { sellStockForUser } = await import("./webStocks.js");
-          const result = sellStockForUser(stockSellMatch[1]!, stockSellMatch[2]!, Number(body.shares));
-          if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
-            return;
-          }
-          sendJson(res, 200, result);
-          return;
-        }
 
         if (req.method === "GET" && url.pathname === "/bridge/tts/voices") {
           const { listTtsVoicesForWeb } = await import("./webTts.js");
@@ -1579,26 +1529,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        // Dreamliner Exchange (public — every server with economy enabled is listed).
-        if (req.method === "GET" && url.pathname === "/bridge/stocks") {
-          const { getExchangeOverview } = await import("./webStocks.js");
-          sendJson(res, 200, await getExchangeOverview(url.searchParams.get("range")));
-          return;
-        }
-
-        const stockDetailMatch = /^\/bridge\/stocks\/(\d+)$/.exec(url.pathname);
-        if (stockDetailMatch && req.method === "GET") {
-          const { getStockDetail } = await import("./webStocks.js");
-          const result = await getStockDetail(stockDetailMatch[1]!, url.searchParams.get("range"));
-          if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
-            return;
-          }
-          const { ok: _ok, ...payload } = result;
-          sendJson(res, 200, payload);
-          return;
-        }
-
         // Public case share pages, looked up by share token, not scoped to a guild path
         // segment (the caller doesn't know the guild id, only the link they were given).
         const publicCaseFileMatch = /^\/bridge\/public\/cases\/([\w-]+)\/files\/([\w-]+)$/.exec(
@@ -1695,7 +1625,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const logTestMatch = /^\/bridge\/guilds\/(\d+)\/logs\/test$/.exec(url.pathname);
         const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const logsMatch = /^\/bridge\/guilds\/(\d+)\/logs$/.exec(url.pathname);
-        const trackerMatch = /^\/bridge\/guilds\/(\d+)\/tracker\/(\d+)$/.exec(url.pathname);
         const watchdogMatch = /^\/bridge\/guilds\/(\d+)\/watchdog$/.exec(url.pathname);
         const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
         const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
@@ -1809,7 +1738,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !logTestMatch &&
           !logOneMatch &&
           !logsMatch &&
-          !trackerMatch &&
           !watchdogMatch &&
           !reviewOneMatch &&
           !reviewsMatch &&
@@ -1889,7 +1817,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           logTestMatch?.[1] ??
           logOneMatch?.[1] ??
           logsMatch?.[1] ??
-          trackerMatch?.[1] ??
           watchdogMatch?.[1] ??
           reviewOneMatch?.[1] ??
           reviewsMatch?.[1] ??
@@ -4175,32 +4102,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             log: detail,
-          });
-          return;
-        }
-
-        if (trackerMatch) {
-          if (req.method !== "GET") {
-            sendJson(res, 405, { error: "Method not allowed" });
-            return;
-          }
-          const requesterId = url.searchParams.get("userId")?.trim();
-          if (!requesterId) {
-            sendJson(res, 400, { error: "userId is required" });
-            return;
-          }
-          if (!(await memberCanManage(guild, requesterId))) {
-            sendJson(res, 403, { error: "Missing Manage Server permission." });
-            return;
-          }
-          const targetUserId = trackerMatch[2]!;
-          const { getWebUserTrail } = await import("./webTracker.js");
-          const limit = Math.min(120, Math.max(20, Number(url.searchParams.get("limit") ?? 80) || 80));
-          const trail = await getWebUserTrail(guild, targetUserId, limit);
-          sendJson(res, 200, {
-            guild: { id: guild.id, name: guild.name, icon: guild.icon },
-            userId: targetUserId,
-            ...trail,
           });
           return;
         }

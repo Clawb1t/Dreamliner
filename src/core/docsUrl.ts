@@ -52,9 +52,9 @@ export function getGuildCasesDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=cases`;
 }
 
-/** Guild dashboard opened on the custom Commands section. */
+/** Guild dashboard opened on the Commands plugin page. */
 export function getGuildCommandsDashboardUrl(guildId: string): string {
-  return `${getGuildDashboardUrl(guildId)}?section=commands`;
+  return `${getGuildDashboardUrl(guildId)}?section=plugin:dream_commands`;
 }
 
 /** Guild dashboard opened on the Social Notifications plugin page. */
@@ -73,16 +73,6 @@ export function getGlobalStatsUrl(): string {
 
 export function getGlobalLeaderboardUrl(): string {
   return `${resolveSiteUrl()}/leaderboard/global`;
-}
-
-/** Public Dreamliner Exchange page — top server stocks, trading. */
-export function getStocksUrl(): string {
-  return `${resolveSiteUrl()}/stocks`;
-}
-
-/** A single server's stock page on the Dreamliner Exchange. */
-export function getGuildStockUrl(guildId: string): string {
-  return `${getStocksUrl()}/${guildId}`;
 }
 
 export function getStatusUrl(): string {

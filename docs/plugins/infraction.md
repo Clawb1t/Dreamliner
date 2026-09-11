@@ -34,7 +34,6 @@ Infraction tracking and moderation commands for Dreamliner.
 plugins:
   infractions:
     config:
-      case_log_channel: "1234567890123456789"  # Optional; falls back to moderation_log_channel_id
       ban_delete_message_days: 0
       softban_delete_message_days: 7
       notify:
@@ -84,4 +83,4 @@ Manual `/unmute` or `/unban` also clears active infraction records.
 
 ## Case log
 
-When `case_log_channel` (or the server `moderation_log_channel_id`) is set, each action posts a log line to that channel. Case updates, deletions, and expirations are also logged there.
+When the server's `moderation_log_channel_id` is set (Dashboard → Logging), each action posts a log line to that channel. Case updates, deletions, and expirations are also logged there.

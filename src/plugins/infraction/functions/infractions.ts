@@ -242,7 +242,9 @@ export async function getExpiredActiveInfractions(): Promise<InfractionRecord[]>
 export async function postCaseLog(
   client: Client,
   guildConfig: GuildConfig,
-  pluginConfig: InfractionConfig,
+  // Unused now that case logs always go to moderation_log_channel_id. Kept for signature
+  // stability across escalation.ts's several call sites.
+  _pluginConfig: InfractionConfig,
   record: InfractionRecord,
   user?: User | null,
   mod?: User | null,
@@ -261,7 +263,6 @@ export async function postCaseLog(
     caseId: record.id,
     actorId: record.modId,
     targetId: record.userId,
-    caseLogOverride: pluginConfig.case_log_channel,
   });
 }
 

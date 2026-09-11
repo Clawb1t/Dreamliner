@@ -52,9 +52,9 @@ export function runMigrations() {
     raw.exec(`
       CREATE TABLE IF NOT EXISTS guild_configs (
         guild_id TEXT PRIMARY KEY NOT NULL,
-        config_yaml TEXT NOT NULL,
-        user_config_yaml TEXT,
-        defaults_snapshot_yaml TEXT,
+        config_json TEXT NOT NULL,
+        user_config_json TEXT,
+        defaults_snapshot_json TEXT,
         updated_at INTEGER NOT NULL,
         updated_by TEXT
       );
