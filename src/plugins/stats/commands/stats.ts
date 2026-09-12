@@ -101,6 +101,7 @@ export const statsCommands: SlashCommandDefinition[] = [
         flags: MessageFlags.IsComponentsV2,
         files: message.files,
         components: message.components,
+        allowedMentions: message.allowedMentions,
       });
     },
   },
@@ -138,6 +139,7 @@ export const statsCommands: SlashCommandDefinition[] = [
       await ctx.interaction.editReply({
         content: `<:icons_trophy:1544418249721126922> <:dreamlinerlogo:1536010087468892161> This is your ${scope} rank. View [${leaderboardLabel}](<${leaderboardUrl}>)`,
         files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
+        allowedMentions: { parse: [] },
       });
     },
   },

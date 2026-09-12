@@ -1,8 +1,9 @@
 import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { contentEdit, embedEdit, resultEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
+import { containerEdit, contentEdit, embedEdit, resultEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
 import { requireUtilityPermission, BanMembers, requireDiscordPerm } from "../functions/commandHelpers.js";
-import { searchMembers, searchBans, formatSearchPage, formatBanSearchPage } from "../functions/search.js";
+import { searchMembers, searchBans, formatSearchIds, SEARCH_EMOJI, type SearchSort } from "../functions/search.js";
+import { memberSearchPayload, banSearchPayload } from "../functions/searchUi.js";
 import { buildUserInfoEmbed } from "../functions/info.js";
 
 export const searchCommands: SlashCommandDefinition[] = [
@@ -36,20 +37,23 @@ export const searchCommands: SlashCommandDefinition[] = [
       const { interaction, guildConfig } = ctx;
       await interaction.deferReply(deferReplyOptions(ctx.ephemeral));
 
-      const result = await searchMembers(interaction.guild!, {
-        query: interaction.options.getString("query") ?? "",
+      const idsOnly = interaction.options.getBoolean("ids_only") ?? false;
+      const state = {
+        kind: "m" as const,
         page: interaction.options.getInteger("page") ?? 1,
         inVoice: interaction.options.getBoolean("in_voice") ?? false,
         botsOnly: interaction.options.getBoolean("bots_only") ?? false,
         caseSensitive: interaction.options.getBoolean("case_sensitive") ?? false,
         regex: interaction.options.getBoolean("regex") ?? false,
-        idsOnly: interaction.options.getBoolean("ids_only") ?? false,
-        sort: (interaction.options.getString("sort") as "name" | "joined" | "created" | "role") ?? "name",
-      });
+        sort: (interaction.options.getString("sort") as SearchSort) ?? "name",
+        query: interaction.options.getString("query") ?? "",
+      };
+
+      const result = await searchMembers(interaction.guild!, { ...state, idsOnly });
 
       if (result.total === 0) {
         await interaction.editReply(
-          resultEdit("Search", "No results found.", slashResultOptions(ctx, { emoji: "<:icons_search:1544417406640726168>" })),
+          resultEdit("Search", "No results found.", slashResultOptions(ctx, { emoji: SEARCH_EMOJI })),
         );
         return;
       }
@@ -63,9 +67,13 @@ export const searchCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      await interaction.editReply(
-        contentEdit(formatSearchPage(result, interaction.options.getBoolean("ids_only") ?? false)),
-      );
+      if (idsOnly) {
+        await interaction.editReply(contentEdit(formatSearchIds(result)));
+        return;
+      }
+
+      const { container, rows } = memberSearchPayload(state, result, ctx.client, guildConfig);
+      await interaction.editReply(containerEdit(container, rows));
     },
   },
   {
@@ -84,25 +92,24 @@ export const searchCommands: SlashCommandDefinition[] = [
       if (!(await requireDiscordPerm(ctx.interaction, BanMembers, "Ban Members", ctx.ephemeral, ctx.guildConfig))) return;
 
       await ctx.interaction.deferReply({ ephemeral: ctx.ephemeral });
-      const result = await searchBans(ctx.interaction.guild!, {
-        query: ctx.interaction.options.getString("query", true),
+      const state = {
+        kind: "b" as const,
         page: ctx.interaction.options.getInteger("page") ?? 1,
         caseSensitive: ctx.interaction.options.getBoolean("case_sensitive") ?? false,
         regex: ctx.interaction.options.getBoolean("regex") ?? false,
-      });
+        query: ctx.interaction.options.getString("query", true),
+      };
+      const result = await searchBans(ctx.interaction.guild!, state);
 
       if (result.total === 0) {
         await ctx.interaction.editReply(
-          resultEdit("Ban search", "No results found.", slashResultOptions(ctx, { emoji: "<:icons_search:1544417406640726168>" })),
+          resultEdit("Ban search", "No results found.", slashResultOptions(ctx, { emoji: SEARCH_EMOJI })),
         );
         return;
       }
 
-      await ctx.interaction.editReply(
-        contentEdit(
-          formatBanSearchPage(result.bans, result.page, result.totalPages, result.total, result.from, result.to),
-        ),
-      );
+      const { container, rows } = banSearchPayload(state, result, ctx.client, ctx.guildConfig);
+      await ctx.interaction.editReply(containerEdit(container, rows));
     },
   },
 ];

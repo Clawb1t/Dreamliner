@@ -1,6 +1,18 @@
-import type { GuildBan, GuildMember, User } from "discord.js";
+import type { Client, GuildBan, GuildMember } from "discord.js";
 import { userRegexMatches } from "../../../core/userRegex.js";
-import { codeBlock } from "../../../core/embeds.js";
+import {
+  baseEmbed,
+  codeBlock,
+  commandHeader,
+  discordTs,
+  embedField,
+  setEmbedAuthor,
+  trimLines,
+  type ResultContainer,
+} from "../../../core/embeds.js";
+import type { GuildConfig } from "../../../config/schemas/guild.js";
+
+export const SEARCH_EMOJI = "<:icons_search:1544417406640726168>";
 
 export type SearchSort = "name" | "joined" | "created" | "role";
 
@@ -67,7 +79,14 @@ export async function searchMembers(
   const pageSize = opts.pageSize ?? 15;
   const page = Math.max(1, opts.page ?? 1);
 
-  await guild.members.fetch();
+  // Only request the full member list over the gateway (opcode 8) when the cache doesn't
+  // already have everyone — search now runs on every Previous/Next click as well as the
+  // initial command, and re-requesting on each click hits Discord's opcode-8 rate limit
+  // (~1 request per guild per several seconds) almost immediately. A failed fetch still
+  // leaves whatever's cached to search instead of throwing the whole page away.
+  if (guild.members.cache.size < guild.memberCount) {
+    await guild.members.fetch().catch(() => null);
+  }
 
   let members = [...guild.members.cache.values()].filter((m) => !m.user.bot || opts.botsOnly);
 
@@ -101,7 +120,16 @@ export async function searchMembers(
   };
 }
 
-export async function searchBans(guild: import("discord.js").Guild, opts: SearchOptions) {
+export type BanSearchResult = {
+  bans: GuildBan[];
+  total: number;
+  page: number;
+  totalPages: number;
+  from: number;
+  to: number;
+};
+
+export async function searchBans(guild: import("discord.js").Guild, opts: SearchOptions): Promise<BanSearchResult> {
   const pageSize = opts.pageSize ?? 15;
   const page = Math.max(1, opts.page ?? 1);
 
@@ -131,19 +159,10 @@ export async function searchBans(guild: import("discord.js").Guild, opts: Search
   };
 }
 
-function formatMemberLine(member: GuildMember): string {
-  const longest = member.id.length;
-  const paddedId = member.id.padEnd(longest, " ");
-  let line = `${paddedId} ${member.user.username}`;
-  if (member.nickname) line += ` (${member.nickname})`;
-  return line;
-}
-
-function formatUserLine(user: User): string {
-  return `${user.id.padEnd(user.id.length, " ")} ${user.username}`;
-}
-
-export function formatSearchPage(result: SearchResult, idsOnly: boolean): string {
+/** Raw ID dump for `ids_only` — the one search output that's meant to be copy-pasted elsewhere
+ * (another tool, a script), so it stays plain text instead of the mention-based container every
+ * other search response uses. */
+export function formatSearchIds(result: SearchResult): string {
   const from = (result.page - 1) * result.pageSize + 1;
   const to = Math.min(result.page * result.pageSize, result.total);
 
@@ -152,35 +171,82 @@ export function formatSearchPage(result: SearchResult, idsOnly: boolean): string
       ? `**Page ${result.page}** (${from}-${to}) (total ${result.total})`
       : `Found ${result.total} matching member${result.total === 1 ? "" : "s"}`;
 
-  if (result.members.length === 0) {
-    return header;
-  }
+  if (result.members.length === 0) return header;
 
-  const list = idsOnly
-    ? result.members.map((m) => m.id).join(" ")
-    : result.members.map(formatMemberLine).join("\n");
-
-  return `${header}\n${codeBlock(list, "js")}`;
+  return `${header}\n${codeBlock(result.members.map((m) => m.id).join(" "), "js")}`;
 }
 
-export function formatBanSearchPage(
+function truncate(text: string, max: number): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+/** A member as `<@id>`, so it renders as a real, clickable mention with the member's current
+ * name/nickname — instead of a stale plain-text snapshot of their username. Never pings: every
+ * container built from this goes through `containerReply`/`containerEdit`, which default
+ * `allowedMentions` to parse nothing (see NO_PING in core/responses.ts). */
+function memberLine(member: GuildMember, sort: SearchSort): string {
+  const mention = `<@${member.id}>`;
+  if (sort === "joined" && member.joinedAt) return `${mention} · joined ${discordTs(member.joinedAt)}`;
+  if (sort === "created") return `${mention} · created ${discordTs(member.user.createdAt)}`;
+  return mention;
+}
+
+/** Pretty, paginated member search result — a Components V2 container with real (non-pinging)
+ * mentions instead of the raw id/username codeblock `formatSearchPage` prints for `ids_only`. */
+export function buildMemberSearchContainer(
+  client: Client,
+  guildConfig: GuildConfig,
+  result: SearchResult,
+  query: string,
+  sort: SearchSort,
+): ResultContainer {
+  const from = (result.page - 1) * result.pageSize + 1;
+  const lines = result.members.map((m, i) => `${from + i}. ${memberLine(m, sort)}`);
+
+  const container = setEmbedAuthor(
+    baseEmbed(),
+    query ? `Member Search: ${query}` : "Member Search",
+    client,
+    commandHeader(guildConfig, { emoji: SEARCH_EMOJI }),
+  ).addFields(embedField("Results", trimLines(lines.join("\n"))));
+
+  container.setFooter(
+    result.totalPages > 1
+      ? { text: `Page ${result.page} of ${result.totalPages} · ${result.total} total` }
+      : { text: `${result.total} matching member${result.total === 1 ? "" : "s"}` },
+  );
+
+  return container;
+}
+
+/** Pretty, paginated ban search result — same shape as `buildMemberSearchContainer`. */
+export function buildBanSearchContainer(
+  client: Client,
+  guildConfig: GuildConfig,
   bans: GuildBan[],
   page: number,
-  _totalPages: number,
+  totalPages: number,
   total: number,
   from: number,
-  to: number,
-): string {
-  const header =
-    total > bans.length
-      ? `**Page ${page}** (${from}-${to}) (total ${total})`
-      : `Found ${total} matching member${total === 1 ? "" : "s"}`;
+  query: string,
+): ResultContainer {
+  const lines = bans.map(
+    (b, i) => `${from + i}. <@${b.user.id}>${b.reason ? ` · ${truncate(b.reason, 80)}` : ""}`,
+  );
 
-  if (bans.length === 0) {
-    return header;
-  }
+  const container = setEmbedAuthor(
+    baseEmbed(),
+    query ? `Ban Search: ${query}` : "Ban Search",
+    client,
+    commandHeader(guildConfig, { emoji: SEARCH_EMOJI }),
+  ).addFields(embedField("Results", trimLines(lines.join("\n"))));
 
-  const list = bans.map((b) => formatUserLine(b.user)).join("\n");
+  container.setFooter(
+    totalPages > 1
+      ? { text: `Page ${page} of ${totalPages} · ${total} total` }
+      : { text: `${total} matching ban${total === 1 ? "" : "s"}` },
+  );
 
-  return `${header}\n${codeBlock(list, "js")}`;
+  return container;
 }

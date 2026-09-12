@@ -29,6 +29,7 @@ import { resolveEphemeral } from "./core/ephemeral.js";
 import { canUseUtility } from "./core/guildHelpers.js";
 import { handleHelpButton, handleHelpSelect, HELP_BUTTON_PREFIX } from "./plugins/utility/functions/help.js";
 import { handleStatsInteraction, STATS_PREFIX } from "./plugins/stats/functions/ui/index.js";
+import { handleSearchInteraction, SEARCH_PREFIX } from "./plugins/utility/functions/searchUi.js";
 import { handleRoleButtonInteraction, ROLE_BUTTON_PREFIX } from "./plugins/role_buttons/index.js";
 import { handleRolePanelButtonInteraction, ROLE_PANEL_PREFIX } from "./plugins/role_panels/index.js";
 import {
@@ -285,6 +286,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
         const handled = await handleStatsButtonInteraction(configManager, interaction);
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(`${SEARCH_PREFIX}:`)) {
+        const handled = await handleSearchButtonInteraction(configManager, interaction);
         if (handled) return;
       }
       await handleHelpButtonInteraction(configManager, interaction);
@@ -753,6 +758,38 @@ async function handleStatsPermissionInteraction(
   return handleStatsInteraction(interaction, guildConfig, (permission) =>
     hasPermission(interaction.guildId!, "stats", permission, guildMember, guildConfig),
   );
+}
+
+async function handleSearchButtonInteraction(
+  configManager: ConfigManager,
+  interaction: import("discord.js").ButtonInteraction,
+): Promise<boolean> {
+  if (!interaction.customId.startsWith(`${SEARCH_PREFIX}:`)) return false;
+  if (!interaction.inGuild() || !interaction.guildId) return true;
+
+  const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+  if (!pluginEnabled(guildConfig, "utility")) {
+    const ephemeral = resolveEphemeral(guildConfig);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction
+        .reply(
+          resultReply(
+            "Plugin disabled",
+            "The **utility** plugin is disabled for this server.",
+            ephemeral,
+            guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+          ),
+        )
+        .catch(() => null);
+    }
+    return true;
+  }
+
+  const member = interaction.member;
+  if (!member || typeof member === "string") return true;
+  const guildMember = member as import("discord.js").GuildMember;
+
+  return handleSearchInteraction(interaction, guildConfig, guildMember);
 }
 
 export async function registerApplicationCommands(token: string, clientId: string) {
