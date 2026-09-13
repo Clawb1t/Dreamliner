@@ -14,6 +14,7 @@ import { downloadUrl, getImageAttachments } from "../functions/imageAttachments.
 import { normalizeSticker } from "../functions/normalizeSticker.js";
 import { ManageGuildExpressions, ManageMessages } from "../functions/commandHelpers.js";
 import { archiveMessages, collectMessagesToHere, formatArchiveTranscript, serializeMessages } from "../functions/clean.js";
+import { DiscofySubmitError, submitDiscofyQuote } from "../functions/discofy.js";
 import { embedWithFilesEdit, resultEdit, guildResultOptions } from "../../../core/responses.js";
 import { buildResultEmbed } from "../../../core/embeds.js";
 import { buildCleanLog } from "../../../core/logging/format.js";
@@ -22,6 +23,7 @@ import { getLogger } from "../../../core/logger.js";
 const log = getLogger("utility");
 
 const MAX_GIF_ATTACHMENTS = 10;
+const DISCOFY_EMOJI = "<:discofy:1548639182358978620>";
 
 /** Discord sticker names: 2-30 characters, letters/numbers/underscores/dashes/spaces. */
 function sanitizeStickerName(raw: string | null | undefined): string | null {
@@ -239,6 +241,50 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           "Couldn't create sticker",
           "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers.",
         );
+      }
+    },
+  },
+  {
+    plugin: "utility",
+    permission: "can_quote_to_discofy",
+    data: new ContextMenuCommandBuilder()
+      .setName("Quote to Discofy")
+      .setType(ApplicationCommandType.Message),
+    execute: async (ctx) => {
+      const { interaction } = ctx;
+      const message = interaction.targetMessage;
+
+      const content = message.content?.trim();
+      if (!content) {
+        await replyContextMenuError(ctx, "Nothing to quote", "That message has no text content to quote.");
+        return;
+      }
+
+      const mediaUrl = getImageAttachments(message.attachments)[0]?.url;
+
+      await interaction.deferReply();
+      try {
+        const url = await submitDiscofyQuote({
+          content,
+          quotedByDiscordId: interaction.user.id,
+          quotedByUsername: interaction.user.username,
+          quotedByAvatarUrl: interaction.user.displayAvatarURL({ size: 128 }),
+          quoteeDiscordId: message.author.id,
+          quoteeUsername: message.author.username,
+          quoteeAvatarUrl: message.author.displayAvatarURL({ size: 128 }),
+          mediaUrl,
+        });
+        await interaction.editReply(
+          resultEdit(
+            "Quoted to Discofy",
+            `Added to the Discofy feed: ${url}`,
+            guildResultOptions(ctx.client, ctx.guildConfig, { emoji: DISCOFY_EMOJI }),
+          ),
+        );
+      } catch (error) {
+        log.error("Quote to Discofy error:", error);
+        const details = error instanceof DiscofySubmitError ? error.message : "Could not submit that quote to Discofy.";
+        await replyContextMenuError(ctx, "Couldn't quote to Discofy", details);
       }
     },
   },

@@ -916,6 +916,13 @@
       },
       {
         "plugin": "utility",
+        "permission": "can_quote_to_discofy",
+        "grantKey": "utility.can_quote_to_discofy",
+        "title": "Quote To Discofy",
+        "description": "Allow members to use the Quote to Discofy message context command."
+      },
+      {
+        "plugin": "utility",
         "permission": "can_reload_guild",
         "grantKey": "utility.can_reload_guild",
         "title": "Reload Guild",

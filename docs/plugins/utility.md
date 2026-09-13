@@ -34,6 +34,7 @@ The Utility plugin provides server management, search, info, message tools, voic
 | `can_info` | `/info` |
 | `can_convert_gif` | **Convert to GIF** (message context menu) |
 | `can_create_quote` | **Create Quote** (message context menu) |
+| `can_quote_to_discofy` | **Quote to Discofy** (message context menu) |
 
 ### Settings
 

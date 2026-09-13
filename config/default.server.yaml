@@ -81,6 +81,7 @@ plugins:
       can_convert_gif: false
       can_create_sticker: false
       can_snipe: false
+      can_quote_to_discofy: false
       can_one: false
   infractions:
     enabled: false
