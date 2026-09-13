@@ -60,6 +60,7 @@ export const zUtilityConfig = z.strictObject({
   can_convert_gif: boolPerm("use the Convert to GIF message context command"),
   can_create_sticker: boolPerm("use the Create Sticker message context command"),
   can_snipe: boolPerm("use /snipe to bring back the most recently deleted message in a channel"),
+  can_one: boolPerm("check Dreamliner One status and see the subscribe button for this server"),
 });
 
 export type UtilityConfig = z.infer<typeof zUtilityConfig>;

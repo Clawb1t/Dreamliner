@@ -35,6 +35,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "suggestions.can_vote",
     // tts
     "tts.can_speak",
+    // utility
+    "utility.can_one",
   ],
 
   // Was level >= 25 OR level >= 50.

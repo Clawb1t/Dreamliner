@@ -76,6 +76,7 @@ import {
 } from "./plugins/companion_channels/functions/interface.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
+import { handleTimeAutocomplete } from "./plugins/utility/functions/time.js";
 import {
   handlePlanesAutocomplete,
   handlePlaneInventoryButtonInteraction,
@@ -219,6 +220,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       if (interaction.commandName === "planes" || interaction.commandName === "planesadmin") {
         await handlePlanesAutocomplete(interaction).catch((error) => {
           log.error("Planes autocomplete error:", error);
+        });
+        return;
+      }
+      if (interaction.commandName === "time") {
+        await handleTimeAutocomplete(interaction).catch((error) => {
+          log.error("Time autocomplete error:", error);
         });
       }
       return;

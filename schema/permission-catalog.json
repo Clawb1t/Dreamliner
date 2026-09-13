@@ -902,6 +902,13 @@
       },
       {
         "plugin": "utility",
+        "permission": "can_one",
+        "grantKey": "utility.can_one",
+        "title": "One",
+        "description": "Allow members to check Dreamliner One status and see the subscribe button for this server."
+      },
+      {
+        "plugin": "utility",
         "permission": "can_ping",
         "grantKey": "utility.can_ping",
         "title": "Ping",

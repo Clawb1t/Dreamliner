@@ -18,6 +18,14 @@ import {
 } from "../functions/commandHelpers.js";
 import { aboutLinkRows, buildAboutEmbed } from "../functions/about.js";
 import { buildHelpMessage } from "../functions/help.js";
+import {
+  discordTimestamp,
+  parseWhenInput,
+  resolveTimezoneInput,
+  TIMESTAMP_STYLES,
+  TIMESTAMP_STYLE_LABELS,
+  type DiscordTimestampStyle,
+} from "../functions/time.js";
 
 const CUSTOM_EMOJI_RE = /^<(a?):(\w{2,32}):(\d+)>$/;
 
@@ -159,38 +167,85 @@ export const metaCommands: SlashCommandDefinition[] = [
     permission: "can_time",
     data: new SlashCommandBuilder()
       .setName("time")
-      .setDescription("Show the current time in a timezone")
+      .setDescription("Turn a time into a Discord timestamp that shows in everyone's own timezone")
+      .addStringOption((o) =>
+        o
+          .setName("when")
+          .setDescription("A moment, like 'now', '10 days ago', 'in 3 hours', '3pm', or 'next friday' (default: now)")
+          .setRequired(false)
+          .setAutocomplete(true),
+      )
       .addStringOption((o) =>
         o
           .setName("timezone")
-          .setDescription("IANA timezone (default: UTC)")
+          .setDescription("IANA name, GMT-style offset (GMT+5), or abbreviation (EST, JST) (default: UTC)")
           .setRequired(false),
+      )
+      .addStringOption((o) =>
+        o
+          .setName("style")
+          .setDescription("Which timestamp style to lead with (default: a full date/time)")
+          .setRequired(false)
+          .addChoices(
+            { name: "Short time (4:20 PM)", value: "t" },
+            { name: "Long time (4:20:30 PM)", value: "T" },
+            { name: "Short date (04/20/2026)", value: "d" },
+            { name: "Long date (April 20, 2026)", value: "D" },
+            { name: "Short date/time (April 20, 2026 4:20 PM)", value: "f" },
+            { name: "Long date/time (Monday, April 20, 2026 4:20 PM)", value: "F" },
+            { name: "Relative (in 2 days)", value: "R" },
+          ),
       ),
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_time");
       if (!auth) return;
 
-      const timezone = ctx.interaction.options.getString("timezone")?.trim() || "UTC";
-      let formatted: string;
-      try {
-        formatted = new Intl.DateTimeFormat("en-GB", {
-          timeZone: timezone,
-          dateStyle: "full",
-          timeStyle: "long",
-        }).format(new Date());
-      } catch {
+      const timezoneRaw = ctx.interaction.options.getString("timezone");
+      const tz = resolveTimezoneInput(timezoneRaw);
+      if (!tz) {
         await ctx.interaction.reply(
-          resultReply("Time", "Invalid timezone. Use an IANA name like `America/New_York` or `Europe/London`.", ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(
+            "Time",
+            `Couldn't recognise the timezone \`${timezoneRaw}\`. Try an IANA name like \`Europe/London\`, a GMT-style offset like \`GMT+5\`, or an abbreviation like \`EST\`.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "warning" }),
+          ),
         );
         return;
       }
 
+      const whenRaw = ctx.interaction.options.getString("when");
+      const parsed = parseWhenInput(whenRaw, tz);
+      if (!parsed) {
+        await ctx.interaction.reply(
+          resultReply(
+            "Time",
+            `Couldn't understand \`${whenRaw}\`. Try things like \`now\`, \`10 days ago\`, \`in 3 hours\`, \`3pm\`, or \`next friday\`.`,
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "warning" }),
+          ),
+        );
+        return;
+      }
+
+      const leadStyle = (ctx.interaction.options.getString("style") as DiscordTimestampStyle | null) ?? "F";
+      const lead = discordTimestamp(parsed.date, leadStyle);
+      const resultLine = leadStyle === "R" ? lead : `${lead} · ${discordTimestamp(parsed.date, "R")}`;
+
+      const formatsBlock = TIMESTAMP_STYLES.map((style) => {
+        const code = discordTimestamp(parsed.date, style);
+        return `\`${code}\` → ${code} (${TIMESTAMP_STYLE_LABELS[style]})`;
+      }).join("\n");
+
       await ctx.interaction.reply(
         embedReply(
-          setEmbedAuthor(baseEmbed(), "Time", ctx.client, commandHeader(ctx.guildConfig, { emoji: "<:icons_clock:1544417185336664114>" })).addFields(
-            embedField("Timezone", timezone),
-            embedField("Now", formatted),
-          ),
+          setEmbedAuthor(baseEmbed(), "Time", ctx.client, commandHeader(ctx.guildConfig, { emoji: "<:icons_clock:1544417185336664114>" }))
+            .addFields(
+              embedField("When", whenRaw?.trim() ? `\`${whenRaw.trim()}\`` : "now", true),
+              embedField("Timezone", tz.label, true),
+              embedField("Result", resultLine),
+              embedField("Every format (copy the code, keep the arrow)", formatsBlock),
+            ),
           ctx.ephemeral,
         ),
       );

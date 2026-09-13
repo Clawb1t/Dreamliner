@@ -767,6 +767,16 @@
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
+                },
+                "can_one": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to check Dreamliner One status and see the subscribe button for this server.",
+                  "title": "One",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
                 }
               },
               "additionalProperties": false,
@@ -805,7 +815,8 @@
                 "can_time": false,
                 "can_convert_gif": false,
                 "can_create_sticker": false,
-                "can_snipe": false
+                "can_snipe": false,
+                "can_one": false
               },
               "title": "Config"
             }

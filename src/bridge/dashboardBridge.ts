@@ -1563,10 +1563,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const publicLeaderboardMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
         const publicGuildMatch = /^\/bridge\/guilds\/(\d+)\/public$/.exec(url.pathname);
-        const publicStatsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/public$/.exec(url.pathname);
-        const publicStatsConfigMatch = /^\/bridge\/guilds\/(\d+)\/public-stats$/.exec(
-          url.pathname,
-        );
         const customChartOneMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const customChartsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts$/.exec(
@@ -1707,8 +1703,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (
           !publicLeaderboardMatch &&
           !publicGuildMatch &&
-          !publicStatsMatch &&
-          !publicStatsConfigMatch &&
           !customChartOneMatch &&
           !customChartsMatch &&
           !entityStatsMatch &&
@@ -1786,8 +1780,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const guildId = (
           publicLeaderboardMatch?.[1] ??
           publicGuildMatch?.[1] ??
-          publicStatsMatch?.[1] ??
-          publicStatsConfigMatch?.[1] ??
           customChartOneMatch?.[1] ??
           customChartsMatch?.[1] ??
           entityStatsMatch?.[1] ??
@@ -3436,86 +3428,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             buildPublicGuildHome(guild),
           );
           sendJson(res, 200, payload);
-          return;
-        }
-
-        if (publicStatsMatch) {
-          if (req.method !== "GET") {
-            sendJson(res, 405, { error: "Method not allowed" });
-            return;
-          }
-          const { buildWebPublicServerStats, parseWebStatsQuery } = await import(
-            "./publicGuild.js"
-          );
-          const { cached } = await import("./responseCache.js");
-          const query = parseWebStatsQuery(url);
-          const payload = await cached(
-            `public-guild-stats:${guild.id}:${JSON.stringify(query)}`,
-            30_000,
-            () => buildWebPublicServerStats(guild, query),
-          );
-          if (!payload.ok) {
-            sendJson(res, 404, payload);
-            return;
-          }
-          sendJson(res, 200, payload);
-          return;
-        }
-
-        if (publicStatsConfigMatch) {
-          if (req.method === "GET") {
-            const userId = url.searchParams.get("userId")?.trim();
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { configManager } = await import("../config/manager.js");
-            const config = await configManager.getEffectiveConfig(guild.id);
-            sendJson(res, 200, { ok: true, publicStats: config.public_stats });
-            return;
-          }
-
-          if (req.method === "PUT") {
-            let body: { userId?: unknown; publicStats?: unknown };
-            try {
-              body = JSON.parse(await readBody(req)) as {
-                userId?: unknown;
-                publicStats?: unknown;
-              };
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return;
-            }
-            const userId = typeof body.userId === "string" ? body.userId.trim() : "";
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { savePublicStatsSections } = await import("./publicGuild.js");
-            const result = await savePublicStatsSections(guild.id, body.publicStats, userId);
-            if (!result.ok) {
-              sendJson(res, 400, { error: "Validation failed", errors: result.errors });
-              return;
-            }
-            trackDashboardAction(client, guild.id, userId, {
-              eventType: "dashboard_config",
-              title: "Public stats updated",
-              summary: "Public stats section visibility was updated from the dashboard.",
-              payload: { publicStats: result.publicStats },
-            });
-            sendJson(res, 200, result);
-            return;
-          }
-
-          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

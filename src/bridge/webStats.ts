@@ -705,6 +705,7 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
       id: guild.id,
       name: guild.name,
       icon: guild.icon,
+      banner: guild.banner,
       memberCount: guild.memberCount,
     },
     days: query.days,
