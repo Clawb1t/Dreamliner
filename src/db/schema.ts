@@ -697,6 +697,12 @@ export const botStatusSamples = sqliteTable("bot_status_samples", {
   sampledAt: integer("sampled_at", { mode: "number" }).notNull(),
   ok: integer("ok", { mode: "boolean" }).notNull().default(true),
   wsPingMs: integer("ws_ping_ms", { mode: "number" }),
+  /** Cached guild count at sample time — backs the public status page's "Servers" chart,
+   *  nullable so old rows recorded before this column existed don't need backfilling. */
+  guildCount: integer("guild_count", { mode: "number" }),
+  /** Process RSS at sample time, in MB — backs the public status page's "RAM usage" spark.
+   *  Nullable for the same backfill reason as guildCount above. */
+  ramUsageMb: integer("ram_usage_mb", { mode: "number" }),
 });
 
 /** Daily rollup of bot status samples (uptime % + avg ping). */

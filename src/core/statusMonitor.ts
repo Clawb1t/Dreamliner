@@ -18,6 +18,11 @@ export type PublicBotStatusPayload = {
     wsPingMs: number | null;
     guildCount: number;
     uptimeSeconds: number;
+    /** Resident set size of this Node process, in MB — the whole footprint (heap, buffers, the
+     *  V8/Node runtime itself), not just JS heap, since that's what actually shows up in a host's
+     *  memory graph. Always available (no sampling needed, unlike ping) since it's read live off
+     *  the current process rather than a historical table. */
+    ramUsageMb: number;
   };
   components: Array<{
     id: string;
@@ -37,6 +42,14 @@ export type PublicBotStatusPayload = {
   ping: {
     range: "24h" | "7d";
     points: Array<{ at: string; pingMs: number }>;
+  };
+  servers: {
+    range: "24h" | "7d";
+    points: Array<{ at: string; guildCount: number }>;
+  };
+  ram: {
+    range: "24h" | "7d";
+    points: Array<{ at: string; ramUsageMb: number }>;
   };
 };
 
@@ -74,11 +87,21 @@ function overallMessage(level: StatusLevel): string {
   return "Major outage";
 }
 
-function readLive(client: Client): { ready: boolean; wsPingMs: number | null; guildCount: number } {
+function readLive(client: Client): {
+  ready: boolean;
+  wsPingMs: number | null;
+  guildCount: number;
+  ramUsageMb: number;
+} {
   const ready = client.isReady() && client.ws.status === Status.Ready;
   const raw = client.ws.ping;
   const wsPingMs = ready && Number.isFinite(raw) && raw >= 0 ? Math.round(raw) : null;
-  return { ready, wsPingMs, guildCount: client.guilds.cache.size };
+  return {
+    ready,
+    wsPingMs,
+    guildCount: client.guilds.cache.size,
+    ramUsageMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+  };
 }
 
 async function recordSample(client: Client): Promise<void> {
@@ -91,6 +114,8 @@ async function recordSample(client: Client): Promise<void> {
     sampledAt: now,
     ok,
     wsPingMs: live.wsPingMs,
+    guildCount: live.guildCount,
+    ramUsageMb: live.ramUsageMb,
   });
 
   const date = utcDateKey(now);
@@ -171,6 +196,85 @@ async function loadPingSeries(
     }));
 }
 
+/** Same bucketing as loadPingSeries, but not gated on `ok` — the cached guild list (and so
+ *  guildCount) survives a brief gateway hiccup, so there's no reason to drop those samples the
+ *  way a down/degraded ping sample gets dropped. Only excludes rows from before the guildCount
+ *  column existed (null). */
+async function loadServerSeries(
+  range: "24h" | "7d",
+): Promise<Array<{ at: string; guildCount: number }>> {
+  const now = Date.now();
+  const windowMs = range === "24h" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const bucketMs = range === "24h" ? 5 * 60 * 1000 : 60 * 60 * 1000;
+  const since = now - windowMs;
+
+  const rows = await getDb()
+    .select({
+      sampledAt: botStatusSamples.sampledAt,
+      guildCount: botStatusSamples.guildCount,
+    })
+    .from(botStatusSamples)
+    .where(gte(botStatusSamples.sampledAt, since))
+    .orderBy(asc(botStatusSamples.sampledAt))
+    .all();
+
+  const buckets = new Map<number, { sum: number; count: number }>();
+  for (const row of rows) {
+    if (row.guildCount == null || row.guildCount < 0) continue;
+    const key = Math.floor(row.sampledAt / bucketMs) * bucketMs;
+    const bucket = buckets.get(key) ?? { sum: 0, count: 0 };
+    bucket.sum += row.guildCount;
+    bucket.count += 1;
+    buckets.set(key, bucket);
+  }
+
+  return [...buckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([at, bucket]) => ({
+      at: new Date(at).toISOString(),
+      guildCount: Math.round(bucket.sum / bucket.count),
+    }));
+}
+
+/** Same shape as loadServerSeries — RAM usage is read live off the process regardless of gateway
+ *  state, so this isn't gated on `ok` either. Only excludes rows from before the ramUsageMb
+ *  column existed (null). */
+async function loadRamSeries(
+  range: "24h" | "7d",
+): Promise<Array<{ at: string; ramUsageMb: number }>> {
+  const now = Date.now();
+  const windowMs = range === "24h" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const bucketMs = range === "24h" ? 5 * 60 * 1000 : 60 * 60 * 1000;
+  const since = now - windowMs;
+
+  const rows = await getDb()
+    .select({
+      sampledAt: botStatusSamples.sampledAt,
+      ramUsageMb: botStatusSamples.ramUsageMb,
+    })
+    .from(botStatusSamples)
+    .where(gte(botStatusSamples.sampledAt, since))
+    .orderBy(asc(botStatusSamples.sampledAt))
+    .all();
+
+  const buckets = new Map<number, { sum: number; count: number }>();
+  for (const row of rows) {
+    if (row.ramUsageMb == null || row.ramUsageMb < 0) continue;
+    const key = Math.floor(row.sampledAt / bucketMs) * bucketMs;
+    const bucket = buckets.get(key) ?? { sum: 0, count: 0 };
+    bucket.sum += row.ramUsageMb;
+    bucket.count += 1;
+    buckets.set(key, bucket);
+  }
+
+  return [...buckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([at, bucket]) => ({
+      at: new Date(at).toISOString(),
+      ramUsageMb: Math.round(bucket.sum / bucket.count),
+    }));
+}
+
 export async function buildPublicBotStatus(
   client: Client,
   pingRange: "24h" | "7d" = "24h",
@@ -223,6 +327,7 @@ export async function buildPublicBotStatus(
       wsPingMs: live.wsPingMs,
       guildCount: live.guildCount,
       uptimeSeconds: Math.max(0, Math.floor((Date.now() - processStartedAt) / 1000)),
+      ramUsageMb: live.ramUsageMb,
     },
     components: [
       {
@@ -245,6 +350,14 @@ export async function buildPublicBotStatus(
     ping: {
       range: pingRange,
       points: await loadPingSeries(pingRange),
+    },
+    servers: {
+      range: pingRange,
+      points: await loadServerSeries(pingRange),
+    },
+    ram: {
+      range: pingRange,
+      points: await loadRamSeries(pingRange),
     },
   };
 }
