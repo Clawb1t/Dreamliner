@@ -27,13 +27,13 @@ function ageOk(t: Translator, createdAtMs: number, minAge: string | undefined, l
   if (ms == null) {
     return {
       ok: false,
-      message: t("feedback.invalidAgeSetting", `Invalid ${label} setting. Ask staff to fix the config.`, { label }),
+      message: t("feedback.invalidAgeSetting", "Invalid {label} setting. Ask staff to fix the config.", { label }),
     };
   }
   if (Date.now() - createdAtMs < ms) {
     return {
       ok: false,
-      message: t("feedback.minAgeRequirement", `Your ${label} must be at least \`${minAge.trim()}\`.`, {
+      message: t("feedback.minAgeRequirement", "Your {label} must be at least `{minAge}`.", {
         label,
         minAge: minAge.trim(),
       }),
@@ -87,7 +87,7 @@ export async function checkFeedbackEligibility(options: {
         ok: false,
         message: t(
           "feedback.minMessagesRequirement",
-          `You need at least **${minMessages}** messages in this server before using this (you have **${count}**).`,
+          "You need at least **{minMessages}** messages in this server before using this (you have **{count}**).",
           { minMessages, count },
         ),
       };
@@ -103,7 +103,7 @@ export async function checkFeedbackEligibility(options: {
           ok: false,
           message: t(
             "feedback.cooldownWait",
-            `Please wait until ${discordTimestamp(readyAt, "R")} before trying again.`,
+            "Please wait until {timestamp} before trying again.",
             { timestamp: discordTimestamp(readyAt, "R") },
           ),
         };

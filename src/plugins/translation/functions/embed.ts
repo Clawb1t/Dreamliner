@@ -21,7 +21,8 @@ const AUTO_TRANSLATE_MAX = 1900;
 function translateFooter(t: Translator): string {
   return t(
     "translation.footer",
-    `-# <:dreamlinerlogo:1536010087468892161> Translated with [Dreamliner](<${DREAMLINER_SITE}>)`,
+    "-# <:dreamlinerlogo:1536010087468892161> Translated with [Dreamliner](<{site}>)",
+    { site: DREAMLINER_SITE },
   );
 }
 

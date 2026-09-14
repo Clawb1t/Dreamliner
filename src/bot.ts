@@ -391,7 +391,7 @@ async function ensurePluginEnabledForModal(
     await interaction.reply(
       resultReply(
         t("common.pluginDisabledTitle", "Plugin disabled"),
-        t("common.pluginDisabledBody", `The **${pluginName}** plugin is disabled for this server.`, { plugin: pluginName }),
+        t("common.pluginDisabledBody", "The **{plugin}** plugin is disabled for this server.", { plugin: pluginName }),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -421,7 +421,7 @@ async function handleContextMenuCommand(
     await interaction.reply(
       resultReply(
         t("common.pluginDisabledTitle", "Plugin disabled"),
-        t("common.pluginDisabledBody", `The **${command.plugin}** plugin is disabled for this server.`, { plugin: command.plugin }),
+        t("common.pluginDisabledBody", "The **{plugin}** plugin is disabled for this server.", { plugin: command.plugin }),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -567,7 +567,7 @@ async function handleSlashCommand(
     await interaction.reply(
       resultReply(
         t("common.pluginDisabledTitle", "Plugin disabled"),
-        t("common.pluginDisabledBody", `The **${command.plugin}** plugin is disabled for this server.`, { plugin: command.plugin }),
+        t("common.pluginDisabledBody", "The **{plugin}** plugin is disabled for this server.", { plugin: command.plugin }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),

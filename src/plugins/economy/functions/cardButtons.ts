@@ -70,7 +70,7 @@ export async function handlePlaneStatsButtonInteraction(interaction: ButtonInter
   }
 
   const owned = getInventoryEntry(interaction.user.id, plane.id);
-  const ownedText = owned ? t("economy.stats.owned", `You own x${owned.quantity}`, { quantity: owned.quantity }) : null;
+  const ownedText = owned ? t("economy.stats.owned", "You own x{quantity}", { quantity: owned.quantity }) : null;
   const embed = baseEmbed()
     .setTitle(plane.name)
     .setThumbnail(interaction.client.user?.displayAvatarURL())
@@ -135,7 +135,7 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
     const costText = result.cost > 0 ? formatCoinAmount(result.cost) : t("economy.pack.free", "free");
     const balanceText = formatCoinAmount(result.balance);
     const summary = baseEmbed().setDescription(
-      t("economy.pack.summary", `<:icons_gift:1544417552627802212> Cost ${costText} ✧ Balance ${balanceText}`, {
+      t("economy.pack.summary", "<:icons_gift:1544417552627802212> Cost {cost} ✧ Balance {balance}", {
         cost: costText,
         balance: balanceText,
       }),
@@ -294,7 +294,7 @@ export async function handlePlaneSellButtonInteraction(interaction: ButtonIntera
         t("economy.sell.successTitle", "Card sold"),
         t(
           "economy.sell.success",
-          `Sold **${plane.name}** for ${formatCoinAmount(parsed.price)}.\n**New balance:** ${formatCoinAmount(balance)}`,
+          "Sold **{plane}** for {price}.\n**New balance:** {balance}",
           { plane: plane.name, price: formatCoinAmount(parsed.price), balance: formatCoinAmount(balance) },
         ),
         true,
@@ -306,7 +306,7 @@ export async function handlePlaneSellButtonInteraction(interaction: ButtonIntera
       await interaction.reply(
         resultReply(
           t("economy.sell.failTitle", "Couldn't sell card"),
-          t("economy.sell.failDescription", `You no longer own **${plane.name}**.`, { plane: plane.name }),
+          t("economy.sell.failDescription", "You no longer own **{plane}**.", { plane: plane.name }),
           true,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
         ),

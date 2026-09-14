@@ -108,7 +108,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
               ctx.t("tts.unknownVoiceTitle", "Unknown voice"),
               ctx.t(
                 "tts.unknownVoiceDetails",
-                `"${voice}" isn't an installed voice. Pick one from the autocomplete list.`,
+                '"{voice}" isn\'t an installed voice. Pick one from the autocomplete list.',
                 { voice },
               ),
               ctx.ephemeral,
@@ -121,7 +121,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
         await setUserVoice(interaction.user.id, voice);
         const embed = buildResultEmbed(
           ctx.t("tts.voiceSetTitle", "Voice set"),
-          ctx.t("tts.voiceSetDetails", `Your messages will now be spoken as **${match.label}**.`, {
+          ctx.t("tts.voiceSetDetails", "Your messages will now be spoken as **{voice}**.", {
             voice: match.label,
           }),
           slashResultOptions(ctx, { tone: "success", emoji: "<:icons_mic:1544417343252201552>" }),
@@ -178,7 +178,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
             ctx.t("tts.channelSetTitle", "Channel set"),
             ctx.t(
               "tts.channelSetDetails",
-              `Messages sent in <#${channel.id}> from members in a voice channel will now be spoken there automatically.`,
+              "Messages sent in <#{channel}> from members in a voice channel will now be spoken there automatically.",
               { channel: channel.id },
             ),
             ctx.ephemeral,
@@ -221,7 +221,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
         await interaction.reply(
           resultReply(
             ctx.t("tts.blockedTitle", "Blocked"),
-            ctx.t("tts.blockedTargetDetails", `${target.tag} can no longer use TTS on this server.`, {
+            ctx.t("tts.blockedTargetDetails", "{user} can no longer use TTS on this server.", {
               user: target.tag,
             }),
             ctx.ephemeral,
@@ -240,7 +240,7 @@ export const ttsCommands: SlashCommandDefinition[] = [
         await interaction.reply(
           resultReply(
             ctx.t("tts.unblockedTitle", "Unblocked"),
-            ctx.t("tts.unblockedDetails", `${target.tag} can use TTS again.`, { user: target.tag }),
+            ctx.t("tts.unblockedDetails", "{user} can use TTS again.", { user: target.tag }),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_enable:1544417874351755264>" }),
           ),

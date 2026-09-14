@@ -358,7 +358,7 @@ function buildHomeEmbed(entries: CommandEntry[], client: Client, t: Translator, 
         ${categoryNames}
       `),
     )
-    .setFooter({ text: t("help.home.footer", `${entries.length} commands`, { count: entries.length }) });
+    .setFooter({ text: t("help.home.footer", "{count} commands", { count: entries.length }) });
 }
 
 const GROUP_LABELS: Record<string, string> = {
@@ -426,7 +426,7 @@ function buildCategoryEmbed(
   const embed = setEmbedAuthor(baseEmbed(), categoryLabel(t, category), client, { tone: "neutral", emojis }).setFooter({
     text: t(
       "help.category.footer",
-      `Page ${page + 1}/${totalPages} · ${totalCommands} commands · Select a command for details`,
+      "Page {page}/{totalPages} · {count} commands · Select a command for details",
       { page: page + 1, totalPages, count: totalCommands },
     ),
   });
@@ -469,7 +469,7 @@ function buildDetailEmbed(entry: CommandEntry, categoryLabelText: string, client
       `),
     )
     .setFooter({
-      text: t("help.detail.footer", `${categoryLabelText} · Use the menus below to keep browsing`, { category: categoryLabelText }),
+      text: t("help.detail.footer", "{category} · Use the menus below to keep browsing", { category: categoryLabelText }),
     });
 }
 
@@ -487,14 +487,14 @@ function buildSearchEmbed(
     return setEmbedAuthor(baseEmbed(), t("help.search.title", "Help search"), client, { tone: "warning", emojis }).setDescription(
       t(
         "help.search.empty",
-        `No commands matched **${query}**.\n\nTry a shorter term, or open Help without a query to browse categories.`,
+        "No commands matched **{query}**.\n\nTry a shorter term, or open Help without a query to browse categories.",
         { query },
       ),
     );
   }
 
   const lines = pageEntries.map(commandLine);
-  return setEmbedAuthor(baseEmbed(), t("help.search.titleWithQuery", `Search: ${query}`, { query }), client, {
+  return setEmbedAuthor(baseEmbed(), t("help.search.titleWithQuery", "Search: {query}", { query }), client, {
     tone: "neutral",
     emojis,
     emoji: "<:icons_search:1544417406640726168>",
@@ -503,7 +503,7 @@ function buildSearchEmbed(
     .setFooter({
       text: t(
         "help.search.footer",
-        `${total} match${total === 1 ? "" : "es"} · Page ${page + 1}/${totalPages}`,
+        "{count} match(es) · Page {page}/{totalPages}",
         { count: total, page: page + 1, totalPages },
       ),
     });
@@ -752,7 +752,7 @@ function buildHelpPayload(
     embed = buildHomeEmbed(entries, client, t, emojis);
   } else if (activeView.kind === "detail" && resolved.detail) {
     const label = query
-      ? t("help.search.titleWithQuery", `Search: ${query}`, { query })
+      ? t("help.search.titleWithQuery", "Search: {query}", { query })
       : resolved.category
         ? categoryLabel(t, resolved.category)
         : t("help.commands", "Commands");

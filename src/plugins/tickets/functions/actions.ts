@@ -77,11 +77,9 @@ export async function createTicketForMember(opts: {
   if (blocked) {
     return {
       error: pluginConfig.blacklist_notify
-        ? t(
-            "tickets.actions.blockedWithReason",
-            `You are blocked from opening tickets in this server${blocked.reason ? `: ${blocked.reason}` : "."}`,
-            { reason: blocked.reason ?? "" },
-          )
+        ? blocked.reason
+          ? t("tickets.actions.blockedWithReason", "You are blocked from opening tickets in this server: {reason}", { reason: blocked.reason })
+          : t("tickets.actions.blockedNoReason", "You are blocked from opening tickets in this server.")
         : t("tickets.actions.blocked", "You cannot open a ticket right now."),
     };
   }
@@ -96,7 +94,7 @@ export async function createTicketForMember(opts: {
     return {
       error: t(
         "tickets.actions.openLimitReached",
-        `You already have ${openCount} open ticket${openCount === 1 ? "" : "s"} (max ${limit}).`,
+        "You already have {count} open ticket(s) (max {max}).",
         { count: openCount, max: limit },
       ),
     };

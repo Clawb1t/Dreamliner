@@ -53,7 +53,7 @@ export const debugCommands: SlashCommandDefinition[] = [
           .setTitle(ctx.t("debug.appEmojis.title", "Application emojis"))
           .setThumbnail(ctx.client.user?.displayAvatarURL())
           .setDescription(
-            ctx.t("debug.appEmojis.exported", `Exported **${emojis.size}** application emoji${emojis.size === 1 ? "" : "s"}.`, {
+            ctx.t("debug.appEmojis.exported", "Exported **{count}** application emoji(s).", {
               count: emojis.size,
             }),
           );

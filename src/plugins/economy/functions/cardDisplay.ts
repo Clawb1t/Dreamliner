@@ -24,7 +24,7 @@ function sellButton(plane: PlaneTypeRow, ownerId: string, t: Translator): { butt
   const priceCents = Math.round(price * 100);
   const button = new ButtonBuilder()
     .setCustomId(`${PLANE_SELL_PREFIX}${plane.id}:${ownerId}:${priceCents}`)
-    .setLabel(t("economy.card.sellButton", `Sell for ${formatPlainAmount(price)}`, { price: formatPlainAmount(price) }))
+    .setLabel(t("economy.card.sellButton", "Sell for {price}", { price: formatPlainAmount(price) }))
     .setStyle(ButtonStyle.Primary);
   return { button, price };
 }
@@ -110,8 +110,8 @@ export function buildInventoryPage(
   const art = planeImageAttachment(plane.imageKey);
   const container = baseEmbed()
     .setTitle(plane.name)
-    .setDescription(t("economy.card.ownedQuantity", `-# You own **x${quantity}**`, { quantity }))
-    .setFooter({ text: t("economy.card.pageFooter", `Card ${opts.index + 1} of ${opts.total}`, { index: opts.index + 1, total: opts.total }) })
+    .setDescription(t("economy.card.ownedQuantity", "-# You own **x{quantity}**", { quantity }))
+    .setFooter({ text: t("economy.card.pageFooter", "Card {index} of {total}", { index: opts.index + 1, total: opts.total }) })
     .toContainerComponent([row.toJSON()]);
 
   const media = artMediaComponent(art);

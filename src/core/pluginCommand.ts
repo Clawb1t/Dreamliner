@@ -24,7 +24,7 @@ export async function requirePluginPermission(
     await interaction.reply(
       resultReply(
         t("common.pluginDisabledTitle", "Plugin disabled"),
-        t("common.pluginDisabledBody", `The **${pluginName}** plugin is disabled for this server.`, { plugin: pluginName }),
+        t("common.pluginDisabledBody", "The **{plugin}** plugin is disabled for this server.", { plugin: pluginName }),
         ephemeral,
         slashResultOptions(ctx, { tone: "error" }),
       ),

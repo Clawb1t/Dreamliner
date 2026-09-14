@@ -61,7 +61,7 @@ function bankFooter(which: "global" | "server", guild: Guild, client: Client, t:
   if (which === "global") {
     return { text: t("economy.bank.global", "Bank of Dreamliner"), iconURL: client.user?.displayAvatarURL() };
   }
-  return { text: t("economy.bank.server", `Bank of ${guild.name}`, { guild: guild.name }), iconURL: guild.iconURL() ?? undefined };
+  return { text: t("economy.bank.server", "Bank of {guild}", { guild: guild.name }), iconURL: guild.iconURL() ?? undefined };
 }
 
 // ── Trading cards (planes/airlines) ──────────────────────────────────────────

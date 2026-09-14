@@ -131,7 +131,7 @@ export async function setCompanionName(
   if (!trimmed) return fail(t("companion_channels.error.giveChannelName", "Give the channel a name."));
   await resolved.channel.setName(trimmed);
   return ok(
-    t("companion_channels.success.renamed", `Renamed the room to **${trimmed}**.`, { name: trimmed }),
+    t("companion_channels.success.renamed", "Renamed the room to **{name}**.", { name: trimmed }),
     COMPANION_ICON.rename,
   );
 }
@@ -152,7 +152,7 @@ export async function setCompanionLimit(
   return ok(
     value === 0
       ? t("companion_channels.success.limitRemoved", "Removed the user limit.")
-      : t("companion_channels.success.limitSet", `User limit set to **${value}**.`, { value }),
+      : t("companion_channels.success.limitSet", "User limit set to **{value}**.", { value }),
     COMPANION_ICON.limit,
   );
 }
@@ -168,7 +168,7 @@ export async function setCompanionBitrate(
   const value = Math.max(8, Math.min(384, Math.floor(kbps)));
   await resolved.channel.setBitrate(value * 1000);
   return ok(
-    t("companion_channels.success.bitrateSet", `Bitrate set to **${value} kbps**.`, { value }),
+    t("companion_channels.success.bitrateSet", "Bitrate set to **{value} kbps**.", { value }),
     COMPANION_ICON.bitrate,
   );
 }
@@ -186,7 +186,7 @@ export async function setCompanionStatus(
   if (!applied) return fail(t("companion_channels.error.statusFailed", "Could not set a status on this channel."));
   return ok(
     trimmed
-      ? t("companion_channels.success.statusSet", `Status set to **${trimmed}**.`, { status: trimmed })
+      ? t("companion_channels.success.statusSet", "Status set to **{status}**.", { status: trimmed })
       : t("companion_channels.success.statusCleared", "Cleared the channel status."),
     COMPANION_ICON.status,
   );
@@ -204,7 +204,7 @@ export async function setCompanionRegion(
   await resolved.channel.setRTCRegion(value && value !== "automatic" ? value : null);
   return ok(
     value && value !== "automatic"
-      ? t("companion_channels.success.regionSet", `Region set to **${value}**.`, { region: value })
+      ? t("companion_channels.success.regionSet", "Region set to **{region}**.", { region: value })
       : t("companion_channels.success.regionAutomatic", "Region set to automatic."),
     COMPANION_ICON.region,
   );
@@ -282,7 +282,7 @@ export async function permitTarget(
     .catch(() => null);
   const label = targetLabel(target);
   return ok(
-    t("companion_channels.success.permitted", `Permitted **${label}** to join.`, { target: label }),
+    t("companion_channels.success.permitted", "Permitted **{target}** to join.", { target: label }),
     COMPANION_ICON.permit,
   );
 }
@@ -307,7 +307,7 @@ export async function rejectTarget(
     }
     const label = targetLabel(target);
     return ok(
-      t("companion_channels.success.rejected", `Rejected **${label}**.`, { target: label }),
+      t("companion_channels.success.rejected", "Rejected **{target}**.", { target: label }),
       COMPANION_ICON.reject,
     );
   }
@@ -318,7 +318,7 @@ export async function rejectTarget(
     }
   }
   return ok(
-    t("companion_channels.success.rejected", `Rejected **${target.name}**.`, { target: target.name }),
+    t("companion_channels.success.rejected", "Rejected **{target}**.", { target: target.name }),
     COMPANION_ICON.reject,
   );
 }
@@ -348,7 +348,7 @@ export async function transferCompanion(
   return ok(
     t(
       "companion_channels.success.transferred",
-      `Ownership transferred to **${member.displayName}**.`,
+      "Ownership transferred to **{member}**.",
       { member: member.displayName },
     ),
     COMPANION_ICON.transfer,
@@ -409,7 +409,7 @@ export async function toggleCompanionText(
   return ok(
     t(
       "companion_channels.success.textCreated",
-      `Created a linked text channel: <#${textId}>.`,
+      "Created a linked text channel: {channel}.",
       { channel: `<#${textId}>` },
     ),
     COMPANION_ICON.textLink,
@@ -437,7 +437,7 @@ export async function postLookingForMembers(
   await lfm.send({
     content: t(
       "companion_channels.lfm.post",
-      `**${actor.member.displayName}** is looking for members in ${resolved.channel}.${invite ? `\n${invite.url}` : ""}`,
+      "**{member}** is looking for members in {channel}.{invite}",
       {
         member: actor.member.displayName,
         channel: String(resolved.channel),
