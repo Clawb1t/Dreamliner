@@ -1666,6 +1666,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           /^\/bridge\/guilds\/(\d+)\/passport(?:\/(verify|test-ping|panel|diagnostics|practice))?$/.exec(
             url.pathname,
           );
+        const passportAltsMatch = /^\/bridge\/guilds\/(\d+)\/passport\/alts(?:\/(dismiss|clear))?$/.exec(
+          url.pathname,
+        );
         const nameHistoryMatch = /^\/bridge\/guilds\/(\d+)\/name-history$/.exec(url.pathname);
         const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
         const permissionRolesMatch =
@@ -1697,6 +1700,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const impersonationWatchlistMatch =
           /^\/bridge\/guilds\/(\d+)\/impersonation\/watchlist(?:\/([\w-]+))?$/.exec(url.pathname);
         const impersonationMatch = /^\/bridge\/guilds\/(\d+)\/impersonation$/.exec(url.pathname);
+        const incidentResponseConfigMatch = /^\/bridge\/guilds\/(\d+)\/incident-response$/.exec(url.pathname);
+        const incidentsMatch =
+          /^\/bridge\/guilds\/(\d+)\/incidents(?:\/(\d+)(?:\/(resolve|dismiss))?)?$/.exec(url.pathname);
+        const incidentUnlockMatch =
+          /^\/bridge\/guilds\/(\d+)\/incidents\/lockdowns\/(\d+)\/unlock$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
@@ -1754,6 +1762,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !rolePanelsTestMatch &&
           !rolePanelsValidateMatch &&
           !passportMatch &&
+          !passportAltsMatch &&
           !nameHistoryMatch &&
           !economyMatch &&
           !permissionRolesMatch &&
@@ -1771,6 +1780,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !impersonationAlertsMatch &&
           !impersonationWatchlistMatch &&
           !impersonationMatch &&
+          !incidentResponseConfigMatch &&
+          !incidentsMatch &&
+          !incidentUnlockMatch &&
           !guildMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
@@ -1831,6 +1843,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           rolePanelsTestMatch?.[1] ??
           rolePanelsValidateMatch?.[1] ??
           passportMatch?.[1] ??
+          passportAltsMatch?.[1] ??
           nameHistoryMatch?.[1] ??
           economyMatch?.[1] ??
           permissionRolesMatch?.[1] ??
@@ -1848,6 +1861,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           impersonationAlertsMatch?.[1] ??
           impersonationWatchlistMatch?.[1] ??
           impersonationMatch?.[1] ??
+          incidentResponseConfigMatch?.[1] ??
+          incidentsMatch?.[1] ??
+          incidentUnlockMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
@@ -3163,9 +3179,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           // Member-facing verification. Trusts the website's Auth.js session +
           // captcha; here we only require that userId is a real guild member.
           if (sub === "verify" && req.method === "POST") {
-            let body: { userId?: string };
+            let body: { userId?: string; ip?: string };
             try {
-              body = JSON.parse(await readBody(req)) as { userId?: string };
+              body = JSON.parse(await readBody(req)) as { userId?: string; ip?: string };
             } catch {
               sendJson(res, 400, { error: "Invalid JSON body" });
               return;
@@ -3175,7 +3191,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, { error: "userId is required" });
               return;
             }
-            const result = await completeWebPassportVerification(client, guild, userId);
+            const result = await completeWebPassportVerification(client, guild, userId, body.ip?.trim());
             sendJson(res, result.ok ? 200 : 400, result);
             return;
           }
@@ -3241,6 +3257,194 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (passportAltsMatch) {
+          const { clearWebPassportAltData, dismissWebPassportAltPair, listWebPassportAlts } =
+            await import("./webPassportAlts.js");
+          const sub = passportAltsMatch[2] ?? null;
+
+          if (!sub && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await listWebPassportAlts(guild));
+            return;
+          }
+
+          if (sub === "dismiss" && req.method === "POST") {
+            let body: { userId?: string; userIdA?: string; userIdB?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            const userIdA = body.userIdA?.trim();
+            const userIdB = body.userIdB?.trim();
+            if (!userId || !userIdA || !userIdB) {
+              sendJson(res, 400, { error: "userId, userIdA, and userIdB are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await dismissWebPassportAltPair(guild.id, userIdA, userIdB, userId));
+            return;
+          }
+
+          if (sub === "clear" && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await clearWebPassportAltData(guild.id));
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (incidentResponseConfigMatch) {
+          const { getWebIncidentResponseState, saveWebIncidentResponse } = await import("./webIncidents.js");
+
+          if (req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await getWebIncidentResponseState(guildId));
+            return;
+          }
+
+          if (req.method === "PUT") {
+            let body: { userId?: string; enabled?: boolean; config?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const saved = await saveWebIncidentResponse(guildId, userId, body);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_incident_response",
+                title: "Incident Response updated",
+                summary: "Incident Response settings were updated from the dashboard.",
+              });
+              sendJson(res, 200, saved);
+            } catch (error) {
+              sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to save." });
+            }
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (incidentsMatch) {
+          const { dismissWebIncident, getWebIncident, listWebIncidents, parseWebIncidentsQuery, resolveWebIncident } =
+            await import("./webIncidents.js");
+          const incidentId = incidentsMatch[2] ? Number(incidentsMatch[2]) : null;
+          const action = incidentsMatch[3] ?? null;
+
+          if (!incidentId && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const query = parseWebIncidentsQuery(url);
+            sendJson(res, 200, await listWebIncidents(guild, query));
+            return;
+          }
+
+          if (incidentId && !action && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await getWebIncident(guild, incidentId);
+            if (!result) {
+              sendJson(res, 404, { error: "Incident not found." });
+              return;
+            }
+            sendJson(res, 200, result);
+            return;
+          }
+
+          if (incidentId && action && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const incident =
+              action === "resolve"
+                ? await resolveWebIncident(guild, incidentId, userId)
+                : await dismissWebIncident(guild, incidentId, userId);
+            if (!incident) {
+              sendJson(res, 404, { error: "Incident not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, incident });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (incidentUnlockMatch) {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { unlockWebChannel } = await import("./webIncidents.js");
+          let body: { userId?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as { userId?: string };
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          if (!userId || !(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const channelId = incidentUnlockMatch[2]!;
+          const result = await unlockWebChannel(guild, channelId, userId);
+          sendJson(res, result.ok ? 200 : 400, result);
           return;
         }
 
@@ -4568,7 +4772,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const { listBridgeTags } = await import("./webTags.js");
-            const result = await listBridgeTags(configManager, guildId);
+            const result = await listBridgeTags(guildId);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
@@ -4598,7 +4802,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const { createBridgeTag } = await import("./webTags.js");
-            const result = await createBridgeTag(configManager, guildId, {
+            const result = await createBridgeTag(guildId, {
               userId: requesterId,
               name: body.name,
               content: body.content,
@@ -4628,7 +4832,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const { getBridgeTag } = await import("./webTags.js");
-            const result = await getBridgeTag(configManager, guildId, tagOneMatch[2]!);
+            const result = await getBridgeTag(guildId, tagOneMatch[2]!);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
@@ -4655,7 +4859,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const { updateBridgeTag } = await import("./webTags.js");
-            const result = await updateBridgeTag(configManager, guildId, tagOneMatch[2]!, {
+            const result = await updateBridgeTag(guildId, tagOneMatch[2]!, {
               content: body.content,
             });
             if (!result.ok) {
@@ -4684,7 +4888,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             const tagName = tagOneMatch[2]!;
             const { deleteBridgeTag } = await import("./webTags.js");
-            const result = await deleteBridgeTag(configManager, guildId, tagName);
+            const result = await deleteBridgeTag(guildId, tagName);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;

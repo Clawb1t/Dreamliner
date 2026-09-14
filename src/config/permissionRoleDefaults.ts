@@ -53,6 +53,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "dream_commands.can_edit",
     "dream_commands.can_list",
     "dream_commands.can_remove",
+    // incident_response
+    "incident_response.can_manage",
     // infractions
     "infractions.can_edit_duration",
     "infractions.can_edit_reason",

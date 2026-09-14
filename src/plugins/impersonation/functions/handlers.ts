@@ -9,6 +9,10 @@ import { recordIdentityChange } from "./history.js";
 import { buildCandidateFromMember, findImpersonationMatch, isIgnored, isProtectedByRole } from "./detect.js";
 import { createAlert, type AlertTrigger } from "./alerts.js";
 import { applyAutoAction } from "./actions.js";
+import { weightForImpersonationScore } from "../../incident_response/functions/weights.js";
+import { getLogger } from "../../../core/logger.js";
+
+const log = getLogger("impersonation");
 
 function parseImpersonationConfig(raw: unknown): ImpersonationConfig {
   return zImpersonationConfig.parse(raw ?? {});
@@ -69,6 +73,24 @@ async function checkAndAlert(
     avatarDistance: match.avatarDistance,
     autoAction: autoActionLabel,
   });
+
+  const score = Math.max(match.nameSimilarity ?? 0, match.avatarDistance !== null ? 100 - match.avatarDistance : 0);
+  try {
+    const { reportSignal } = await import("../../incident_response/functions/signalBus.js");
+    await reportSignal(member.client, {
+      guildId: member.guild.id,
+      source: "impersonation",
+      signalType: `impersonation:${trigger}`,
+      weight: weightForImpersonationScore(score),
+      entityType: "user",
+      entityId: member.id,
+      entityLabel: `<@${member.id}>`,
+      reason: `Looks like "${match.protectedIdentity.label}"`,
+      detail: match.nameSimilarity ? `name ${match.nameSimilarity}%` : match.avatarDistance !== null ? `avatar Δ${match.avatarDistance}` : undefined,
+    });
+  } catch (err) {
+    log.error("Incident Response signal report failed:", err);
+  }
 
   if (config.notify_staff) {
     const logChannelId = getModerationLogChannelId(guildConfig, config.log_channel_id);

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-13T13:41:48.616Z",
+  "generatedAt": "2026-09-14T09:24:44.948Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -35,6 +35,11 @@
           "key": "impersonation",
           "name": "Impersonation Detection",
           "description": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry."
+        },
+        {
+          "key": "incident_response",
+          "name": "Incident Response",
+          "description": "Correlates Automod, Raid, Impersonation, and Scam Protect signals (plus its own server-nuke detectors) into scored Incidents, with an opt-in escalating response per severity."
         },
         {
           "key": "raid_mesh",
@@ -309,6 +314,13 @@
       "key": "impersonation",
       "name": "Impersonation Detection",
       "description": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry.",
+      "category": "Protection",
+      "categoryId": "protect"
+    },
+    {
+      "key": "incident_response",
+      "name": "Incident Response",
+      "description": "Correlates Automod, Raid, Impersonation, and Scam Protect signals (plus its own server-nuke detectors) into scored Incidents, with an opt-in escalating response per severity.",
       "category": "Protection",
       "categoryId": "protect"
     },

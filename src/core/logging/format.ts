@@ -610,6 +610,39 @@ export function buildRaidMeshAlertLog(input: {
   );
 }
 
+const INCIDENT_SEVERITY_EMOJI: Record<string, string> = {
+  low: "🟢",
+  medium: "🟡",
+  high: "🟠",
+  critical: "🔴",
+};
+
+/** Incident Response: an incident was opened, or escalated to a higher severity. */
+export function buildIncidentLog(input: {
+  id: number;
+  severity: string;
+  entityLabel: string;
+  title: string;
+  riskScore: number;
+  signalCount: number;
+  sourceCount: number;
+  reasons: string[];
+  actionsTaken?: string[];
+}): LogCard {
+  return card(
+    `${INCIDENT_SEVERITY_EMOJI[input.severity] ?? "⚪"} Incident #${input.id} — ${input.severity.toUpperCase()}`,
+    [
+      `Time: ${logTimestamp()}`,
+      `Entity: ${input.entityLabel}`,
+      `Summary: ${bold(input.title)}`,
+      `Risk score: ${bold(String(input.riskScore))} from ${input.signalCount} signal${input.signalCount === 1 ? "" : "s"} across ${input.sourceCount} source${input.sourceCount === 1 ? "" : "s"}`,
+      input.reasons.length ? `Signals:\n${input.reasons.map((r) => `• ${r}`).join("\n")}` : null,
+      input.actionsTaken?.length ? `Actions taken: ${input.actionsTaken.join(", ")}` : null,
+    ].filter((line): line is string => Boolean(line)),
+    { emojiCategory: input.severity === "low" || input.severity === "medium" ? "modDefault" : "modSevere" },
+  );
+}
+
 export function buildMemberKickLog(input: {
   user: LogRef;
   mod?: LogRef | null;

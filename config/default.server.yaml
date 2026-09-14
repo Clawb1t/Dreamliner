@@ -190,6 +190,45 @@ plugins:
       dm_flagged_member: false
       auto_action: none
       can_status: false
+  incident_response:
+    enabled: false
+    config:
+      correlation_window_ms: 1800000
+      thresholds:
+        medium: 6
+        high: 14
+        critical: 26
+      sources:
+        automod: true
+        raid: true
+        impersonation: true
+        scam_protect: true
+        nuke_detection: true
+      nuke:
+        channel_delete_count: 3
+        channel_delete_window_ms: 30000
+        role_delete_count: 3
+        role_delete_window_ms: 30000
+        ban_count: 5
+        ban_window_ms: 60000
+        kick_count: 5
+        kick_window_ms: 60000
+        webhook_count: 3
+        webhook_window_ms: 60000
+        admin_grant_new_account_hours: 72
+      policy_low:
+        actions: []
+        notify_roles: []
+      policy_medium:
+        actions: []
+        notify_roles: []
+      policy_high:
+        actions: []
+        notify_roles: []
+      policy_critical:
+        actions: []
+        notify_roles: []
+      can_manage: false
   raid_mesh:
     enabled: false
     config: {}
@@ -283,6 +322,7 @@ plugins:
         disabled_title: Verification is off
         disabled_body: This server isn't using Passport right now.
       remember_verifications: true
+      alt_detection: false
       min_account_age_seconds: 0
       bypass_role_ids: []
       timeout_action: none

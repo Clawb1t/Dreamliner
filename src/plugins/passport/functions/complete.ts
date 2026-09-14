@@ -5,6 +5,7 @@ import { emitLog } from "../../../core/logging/send.js";
 import { accountAgeTooYoung, applyVerifiedRewards, type PassportRewards } from "./roles.js";
 import { deletePassportMessage } from "./delivery.js";
 import { deletePassportPending, getPassportPending, upsertPassportVerification } from "./store.js";
+import { recordPassportNetworkSignal } from "./altSignals.js";
 
 export type PassportCompleteResult =
   | { ok: true; alreadyVerified?: boolean; rewards: PassportRewards }
@@ -17,8 +18,10 @@ export async function completePassportVerification(options: {
   config: PassportConfig;
   method: "web" | "force";
   alreadyVerified: boolean;
+  /** Requester's IP, when known (website verify calls only). Used only for alt detection. */
+  network?: { ip: string };
 }): Promise<PassportCompleteResult> {
-  const { client, member, guildConfig, config, method, alreadyVerified } = options;
+  const { client, member, guildConfig, config, method, alreadyVerified, network } = options;
 
   if (method === "web" && accountAgeTooYoung(member.user.createdTimestamp, config.min_account_age_seconds)) {
     return {
@@ -35,6 +38,11 @@ export async function completePassportVerification(options: {
     method,
     accountCreatedAt: member.user.createdAt,
   });
+
+  if (method === "web" && config.alt_detection && network?.ip) {
+    // Best-effort; never blocks verification if it fails.
+    await recordPassportNetworkSignal(member.guild.id, member.id, network.ip).catch(() => {});
+  }
 
   const pending = await getPassportPending(member.guild.id, member.id);
   if (pending && config.ping.delete_on_verify) {

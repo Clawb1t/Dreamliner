@@ -139,6 +139,14 @@ export const AUTOMOD_RULE_META: AutomodRuleMeta[] = [
     event: "message",
   },
   {
+    id: "domain_intel",
+    name: "Domain Intelligence",
+    description:
+      "Checks linked domains against a live malware/phishing feed (abuse.ch URLhaus) plus heuristics for lookalike, IP-literal, and freebie-TLD scam links — catches dangerous domains Link Spam's static blocklist won't.",
+    group: "mentions_links",
+    event: "message",
+  },
+  {
     id: "excessive_caps",
     name: "Excessive caps",
     description: "Shouting with too high a percentage of capital letters.",

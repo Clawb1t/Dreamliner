@@ -18,6 +18,7 @@ import {
   buildGlobalWatchdogHitLog,
   buildGuildUpdateLog,
   buildImpersonationLog,
+  buildIncidentLog,
   buildInviteCreateLog,
   buildInviteDeleteLog,
   buildMemberBanLog,
@@ -170,6 +171,17 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       autoAction: null,
     }),
   raid: (ctx) => buildRaidDetectedLog({ user: ctx.target, joinCount: 8, windowMs: 30_000, recentJoiners: [ctx.target, ctx.actor] }),
+  incident_response: (ctx) =>
+    buildIncidentLog({
+      id: 999999,
+      severity: "high",
+      entityLabel: `<@${ctx.target.id}>`,
+      title: "Automod + Impersonation Detection",
+      riskScore: 17,
+      signalCount: 3,
+      sourceCount: 2,
+      reasons: ["Slur detected", "Looks like \"Moderator\""],
+    }),
   raid_mesh: (ctx) =>
     buildRaidMeshAlertLog({
       sourceGuildName: "Example Partner Server",
@@ -314,6 +326,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Updated the TTS blacklist."],
       null,
       "modDefault",
+    ),
+  dashboard_incident_response: (ctx) =>
+    buildGenericServerLog(
+      "Incident Response Update",
+      [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Updated Incident Response settings."],
+      null,
+      "serverUpdate",
     ),
   dashboard_permission_role: (ctx) =>
     buildGenericServerLog(

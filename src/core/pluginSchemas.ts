@@ -11,6 +11,7 @@ import { zPassportConfig } from "../config/schemas/passport.js";
 import { zEconomyConfig } from "../config/schemas/economy.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import { zImpersonationConfig } from "../config/schemas/impersonation.js";
+import { zIncidentResponseConfig } from "../config/schemas/incidentResponse.js";
 import {
   zAutomodConfig,
   zDreamCommandsConfig,
@@ -50,6 +51,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   starboard: zStarboardConfig,
   automod: zAutomodConfig,
   impersonation: zImpersonationConfig,
+  incident_response: zIncidentResponseConfig,
   scam_protect: zScamProtectConfig,
   passport: zPassportConfig,
   economy: zEconomyConfig,

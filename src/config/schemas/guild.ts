@@ -9,6 +9,7 @@ import { zSuggestionsPluginSection } from "./suggestions.js";
 import { zTicketsPluginSection } from "./tickets.js";
 import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
+import { zIncidentResponsePluginSection } from "./incidentResponse.js";
 import { zEconomyPluginSection } from "./economy.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import { zSocialPluginSection } from "./social.js";
@@ -236,6 +237,7 @@ export const zGuildConfig = z.strictObject({
       starboard: zStarboardPluginSection.default({}),
       automod: zAutomodPluginSection.default({}),
       impersonation: zImpersonationPluginSection.default({}),
+      incident_response: zIncidentResponsePluginSection.default({}),
       raid_mesh: zRaidMeshPluginSection.default({}),
       scam_protect: zScamProtectPluginSection.default({}),
       passport: zPassportPluginSection.default({}),

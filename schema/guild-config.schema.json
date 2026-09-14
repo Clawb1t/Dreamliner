@@ -2327,6 +2327,568 @@
           "default": {},
           "title": "Impersonation"
         },
+        "incident_response": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "log_channel_id": {
+                  "type": "string",
+                  "description": "Channel Incident Response posts incident alerts to. Falls back to the server moderation log channel if empty. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "correlation_window_ms": {
+                  "type": "integer",
+                  "minimum": 60000,
+                  "maximum": 86400000,
+                  "default": 1800000,
+                  "description": "Signals about the same person/channel/server within this window are merged into one incident.",
+                  "title": "Correlation Window Ms",
+                  "x-dreamliner": {
+                    "kind": "ms",
+                    "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                  }
+                },
+                "thresholds": {
+                  "type": "object",
+                  "properties": {
+                    "medium": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "default": 6,
+                      "title": "Medium"
+                    },
+                    "high": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "default": 14,
+                      "title": "High"
+                    },
+                    "critical": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "default": 26,
+                      "title": "Critical"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Risk score needed to reach each severity tier. Below 'medium' is Low.",
+                  "title": "Thresholds"
+                },
+                "sources": {
+                  "type": "object",
+                  "properties": {
+                    "automod": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Feed Automod hits into Incident Response.",
+                      "title": "Automod"
+                    },
+                    "raid": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Feed Automod's raid detector into Incident Response.",
+                      "title": "Raid"
+                    },
+                    "impersonation": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Feed Impersonation Detection alerts into Incident Response.",
+                      "title": "Impersonation"
+                    },
+                    "scam_protect": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Feed Scam Protect trips into Incident Response.",
+                      "title": "Scam Protect"
+                    },
+                    "nuke_detection": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Watch the audit log for mass channel/role deletion, mass bans/kicks, webhook bursts, and surprise admin grants.",
+                      "title": "Nuke Detection"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Sources"
+                },
+                "nuke": {
+                  "type": "object",
+                  "properties": {
+                    "channel_delete_count": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "default": 3,
+                      "title": "Channel Delete Count"
+                    },
+                    "channel_delete_window_ms": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "default": 30000,
+                      "title": "Channel Delete Window Ms",
+                      "x-dreamliner": {
+                        "kind": "ms",
+                        "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                      }
+                    },
+                    "role_delete_count": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "default": 3,
+                      "title": "Role Delete Count"
+                    },
+                    "role_delete_window_ms": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "default": 30000,
+                      "title": "Role Delete Window Ms",
+                      "x-dreamliner": {
+                        "kind": "ms",
+                        "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                      }
+                    },
+                    "ban_count": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "default": 5,
+                      "title": "Ban Count"
+                    },
+                    "ban_window_ms": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "default": 60000,
+                      "title": "Ban Window Ms",
+                      "x-dreamliner": {
+                        "kind": "ms",
+                        "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                      }
+                    },
+                    "kick_count": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "default": 5,
+                      "title": "Kick Count"
+                    },
+                    "kick_window_ms": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "default": 60000,
+                      "title": "Kick Window Ms",
+                      "x-dreamliner": {
+                        "kind": "ms",
+                        "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                      }
+                    },
+                    "webhook_count": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "default": 3,
+                      "title": "Webhook Count"
+                    },
+                    "webhook_window_ms": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "default": 60000,
+                      "title": "Webhook Window Ms",
+                      "x-dreamliner": {
+                        "kind": "ms",
+                        "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                      }
+                    },
+                    "admin_grant_new_account_hours": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "default": 72,
+                      "description": "Flag granting Administrator to an account created within this many hours (0 = off).",
+                      "title": "Admin Grant New Account Hours"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Thresholds for the built-in server-nuke detectors.",
+                  "title": "Nuke"
+                },
+                "policy_low": {
+                  "type": "object",
+                  "properties": {
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "timeout",
+                              "kick",
+                              "softban",
+                              "ban",
+                              "lockdown_channel",
+                              "lockdown_server"
+                            ],
+                            "description": "Action to run when this severity is first reached.",
+                            "title": "Type"
+                          },
+                          "duration_ms": {
+                            "type": "integer",
+                            "minimum": 60000,
+                            "description": "Duration for a timeout action.",
+                            "title": "Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          },
+                          "delete_message_days": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 7,
+                            "description": "Days of messages to delete on softban/ban (0-7).",
+                            "title": "Delete Message Days"
+                          },
+                          "lockdown_duration_ms": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "How long the lockdown lasts before auto-unlocking (0 = manual unlock only).",
+                            "title": "Lockdown Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "default": [],
+                      "description": "Punitive/lockdown actions to run the first time an incident reaches this severity. Empty = alert only.",
+                      "title": "Actions"
+                    },
+                    "notify_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "Roles pinged in the incident alert when this severity is first reached.",
+                      "title": "Notify Roles",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Policy Low"
+                },
+                "policy_medium": {
+                  "type": "object",
+                  "properties": {
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "timeout",
+                              "kick",
+                              "softban",
+                              "ban",
+                              "lockdown_channel",
+                              "lockdown_server"
+                            ],
+                            "description": "Action to run when this severity is first reached.",
+                            "title": "Type"
+                          },
+                          "duration_ms": {
+                            "type": "integer",
+                            "minimum": 60000,
+                            "description": "Duration for a timeout action.",
+                            "title": "Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          },
+                          "delete_message_days": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 7,
+                            "description": "Days of messages to delete on softban/ban (0-7).",
+                            "title": "Delete Message Days"
+                          },
+                          "lockdown_duration_ms": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "How long the lockdown lasts before auto-unlocking (0 = manual unlock only).",
+                            "title": "Lockdown Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "default": [],
+                      "description": "Punitive/lockdown actions to run the first time an incident reaches this severity. Empty = alert only.",
+                      "title": "Actions"
+                    },
+                    "notify_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "Roles pinged in the incident alert when this severity is first reached.",
+                      "title": "Notify Roles",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Policy Medium"
+                },
+                "policy_high": {
+                  "type": "object",
+                  "properties": {
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "timeout",
+                              "kick",
+                              "softban",
+                              "ban",
+                              "lockdown_channel",
+                              "lockdown_server"
+                            ],
+                            "description": "Action to run when this severity is first reached.",
+                            "title": "Type"
+                          },
+                          "duration_ms": {
+                            "type": "integer",
+                            "minimum": 60000,
+                            "description": "Duration for a timeout action.",
+                            "title": "Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          },
+                          "delete_message_days": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 7,
+                            "description": "Days of messages to delete on softban/ban (0-7).",
+                            "title": "Delete Message Days"
+                          },
+                          "lockdown_duration_ms": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "How long the lockdown lasts before auto-unlocking (0 = manual unlock only).",
+                            "title": "Lockdown Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "default": [],
+                      "description": "Punitive/lockdown actions to run the first time an incident reaches this severity. Empty = alert only.",
+                      "title": "Actions"
+                    },
+                    "notify_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "Roles pinged in the incident alert when this severity is first reached.",
+                      "title": "Notify Roles",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Policy High"
+                },
+                "policy_critical": {
+                  "type": "object",
+                  "properties": {
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "timeout",
+                              "kick",
+                              "softban",
+                              "ban",
+                              "lockdown_channel",
+                              "lockdown_server"
+                            ],
+                            "description": "Action to run when this severity is first reached.",
+                            "title": "Type"
+                          },
+                          "duration_ms": {
+                            "type": "integer",
+                            "minimum": 60000,
+                            "description": "Duration for a timeout action.",
+                            "title": "Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          },
+                          "delete_message_days": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 7,
+                            "description": "Days of messages to delete on softban/ban (0-7).",
+                            "title": "Delete Message Days"
+                          },
+                          "lockdown_duration_ms": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "How long the lockdown lasts before auto-unlocking (0 = manual unlock only).",
+                            "title": "Lockdown Duration Ms",
+                            "x-dreamliner": {
+                              "kind": "ms",
+                              "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                            }
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "default": [],
+                      "description": "Punitive/lockdown actions to run the first time an incident reaches this severity. Empty = alert only.",
+                      "title": "Actions"
+                    },
+                    "notify_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "Roles pinged in the incident alert when this severity is first reached.",
+                      "title": "Notify Roles",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Policy Critical"
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view, resolve, dismiss, and unlock incidents.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "correlation_window_ms": 1800000,
+                "thresholds": {
+                  "medium": 6,
+                  "high": 14,
+                  "critical": 26
+                },
+                "sources": {
+                  "automod": true,
+                  "raid": true,
+                  "impersonation": true,
+                  "scam_protect": true,
+                  "nuke_detection": true
+                },
+                "nuke": {
+                  "channel_delete_count": 3,
+                  "channel_delete_window_ms": 30000,
+                  "role_delete_count": 3,
+                  "role_delete_window_ms": 30000,
+                  "ban_count": 5,
+                  "ban_window_ms": 60000,
+                  "kick_count": 5,
+                  "kick_window_ms": 60000,
+                  "webhook_count": 3,
+                  "webhook_window_ms": 60000,
+                  "admin_grant_new_account_hours": 72
+                },
+                "policy_low": {
+                  "actions": [],
+                  "notify_roles": []
+                },
+                "policy_medium": {
+                  "actions": [],
+                  "notify_roles": []
+                },
+                "policy_high": {
+                  "actions": [],
+                  "notify_roles": []
+                },
+                "policy_critical": {
+                  "actions": [],
+                  "notify_roles": []
+                },
+                "can_manage": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Incident Response"
+        },
         "raid_mesh": {
           "type": "object",
           "properties": {
@@ -3106,6 +3668,12 @@
                   "description": "Skip the gate when a previously verified member rejoins.",
                   "title": "Remember Verifications"
                 },
+                "alt_detection": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Collect network signals during verification to flag likely alt accounts in the Alts tab.",
+                  "title": "Alt Detection"
+                },
                 "min_account_age_seconds": {
                   "type": "integer",
                   "minimum": 0,
@@ -3250,6 +3818,7 @@
                   "disabled_body": "This server isn't using Passport right now."
                 },
                 "remember_verifications": true,
+                "alt_detection": false,
                 "min_account_age_seconds": 0,
                 "bypass_role_ids": [],
                 "timeout_action": "none",

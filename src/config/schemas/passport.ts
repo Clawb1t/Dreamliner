@@ -136,6 +136,12 @@ export const zPassportConfig = z.strictObject({
     .boolean()
     .default(true)
     .describe("Skip the gate when a previously verified member rejoins."),
+  alt_detection: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Collect network signals during verification to flag likely alt accounts in the Alts tab.",
+    ),
   min_account_age_seconds: z
     .number()
     .int()

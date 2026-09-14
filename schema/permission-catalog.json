@@ -175,6 +175,20 @@
     ]
   },
   {
+    "plugin": "incident_response",
+    "pluginName": "Incident Response",
+    "pluginDescription": "Correlates Automod, Raid, Impersonation, and Scam Protect signals (plus its own server-nuke detectors) into scored Incidents, with an opt-in escalating response per severity.",
+    "entries": [
+      {
+        "plugin": "incident_response",
+        "permission": "can_manage",
+        "grantKey": "incident_response.can_manage",
+        "title": "Manage",
+        "description": "Allow members to view, resolve, dismiss, and unlock incidents."
+      }
+    ]
+  },
+  {
     "plugin": "infractions",
     "pluginName": "Infractions",
     "pluginDescription": "Warn, mute, kick, ban, and case management.",

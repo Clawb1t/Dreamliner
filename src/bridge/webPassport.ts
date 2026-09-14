@@ -33,6 +33,7 @@ export type PassportPagePayload = {
     memberCount: number;
   };
   theme: { accentColor: string };
+  altDetectionEnabled: boolean;
   background: { type: "none" | "color" | "url" | "guild_banner"; color: string; url: string };
   page: {
     headline: string;
@@ -149,6 +150,7 @@ export async function buildPassportPagePayload(
       memberCount: guild.memberCount,
     },
     theme: { accentColor },
+    altDetectionEnabled: config.alt_detection,
     background: {
       type: page.background,
       color: colorIntToHex(page.background_color ?? 0xf4f5f7),
@@ -172,6 +174,7 @@ export async function completeWebPassportVerification(
   client: Client,
   guild: Guild,
   userId: string,
+  ip?: string,
 ): Promise<PassportVerifyResult> {
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   if (!isPassportEnabled(guildConfig)) {
@@ -192,6 +195,7 @@ export async function completeWebPassportVerification(
     config,
     method: "web",
     alreadyVerified,
+    network: ip ? { ip } : undefined,
   });
 
   if (!result.ok) return result;

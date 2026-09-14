@@ -800,6 +800,41 @@ export const passportVerifications = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
 );
 
+/**
+ * Network signal captured at the moment of a web Passport verification, used to
+ * cluster likely alt accounts within a guild (see `functions/altMatching.ts`).
+ * Raw IP/geo fields are bot-internal only — never returned by the bridge.
+ */
+export const passportNetworkSignals = sqliteTable(
+  "passport_network_signals",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    ipAddress: text("ip_address").notNull(),
+    country: text("country"),
+    region: text("region"),
+    city: text("city"),
+    verifiedAt: integer("verified_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    index("passport_network_signals_guild").on(table.guildId),
+  ],
+);
+
+/** A guild owner's "these two aren't alts" call, excluded from future alt clusters. */
+export const passportAltDismissals = sqliteTable(
+  "passport_alt_dismissals",
+  {
+    guildId: text("guild_id").notNull(),
+    userIdA: text("user_id_a").notNull(),
+    userIdB: text("user_id_b").notNull(),
+    dismissedAt: integer("dismissed_at", { mode: "timestamp" }).notNull(),
+    dismissedBy: text("dismissed_by").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userIdA, table.userIdB] })],
+);
+
 // --- Economy -----------------------------------------------------------------
 // Two independent ledgers: a bot-wide global economy ("coins") and a per-guild
 // server economy whose name/symbol/rates are configured per guild.
@@ -1104,5 +1139,88 @@ export const impersonationAlerts = sqliteTable(
   },
   (table) => [
     index("impersonation_alerts_guild_status_created").on(table.guildId, table.status, table.createdAt),
+  ],
+);
+
+// --- Incident Response --------------------------------------------------------
+// Correlates signals reported by other security plugins (Automod, Impersonation, Scam
+// Protect, Automod's own raid rule) plus this plugin's own audit-log "nuke" detectors into a
+// persisted Incident per (guild, entity), scored and escalated by src/plugins/incident_response.
+
+/** One correlated incident per (guild, entity) within the configured correlation window. */
+export const incidents = sqliteTable(
+  "incidents",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    entityType: text("entity_type").notNull(), // "user" | "channel" | "guild"
+    entityId: text("entity_id").notNull(),
+    severity: text("severity").notNull().default("low"), // "low" | "medium" | "high" | "critical"
+    riskScore: integer("risk_score", { mode: "number" }).notNull().default(0),
+    status: text("status").notNull().default("open"), // "open" | "acknowledged" | "resolved" | "dismissed"
+    title: text("title").notNull(),
+    signalCount: integer("signal_count", { mode: "number" }).notNull().default(0),
+    sourceCount: integer("source_count", { mode: "number" }).notNull().default(0),
+    /** Highest severity the Response Policy Engine has already acted on, so re-computing the
+     * same severity after another signal never re-fires its actions. */
+    respondedSeverity: text("responded_severity"),
+    actionsTaken: text("actions_taken").notNull().default("[]"),
+    firstSignalAt: integer("first_signal_at", { mode: "timestamp" }).notNull(),
+    lastSignalAt: integer("last_signal_at", { mode: "timestamp" }).notNull(),
+    resolvedBy: text("resolved_by"),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("incidents_guild_status").on(table.guildId, table.status),
+    index("incidents_guild_entity").on(table.guildId, table.entityType, table.entityId),
+  ],
+);
+
+/** Individual signal that fed into an incident — the "entity graph" edges on the dashboard. */
+export const incidentSignals = sqliteTable(
+  "incident_signals",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    incidentId: integer("incident_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    source: text("source").notNull(), // "automod" | "raid" | "impersonation" | "scam_protect" | "nuke_detection"
+    signalType: text("signal_type").notNull(),
+    weight: integer("weight", { mode: "number" }).notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    secondaryEntityType: text("secondary_entity_type"),
+    secondaryEntityId: text("secondary_entity_id"),
+    reason: text("reason").notNull(),
+    detail: text("detail"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("incident_signals_incident").on(table.incidentId),
+    index("incident_signals_guild_created").on(table.guildId, table.createdAt),
+  ],
+);
+
+/** A channel lock the Response Policy Engine (or a manager via `/incident unlock`) applied,
+ * recording the @everyone SendMessages state from just before locking so unlock restores it
+ * exactly instead of guessing. */
+export const incidentLockdowns = sqliteTable(
+  "incident_lockdowns",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    incidentId: integer("incident_id", { mode: "number" }),
+    previousOverwrite: text("previous_overwrite").notNull(), // "allow" | "deny" | "inherit"
+    lockedAt: integer("locked_at", { mode: "timestamp" }).notNull(),
+    lockedBy: text("locked_by").notNull(),
+    unlockAt: integer("unlock_at", { mode: "timestamp" }),
+    unlockedAt: integer("unlocked_at", { mode: "timestamp" }),
+    unlockedBy: text("unlocked_by"),
+  },
+  (table) => [
+    index("incident_lockdowns_guild").on(table.guildId),
+    index("incident_lockdowns_unlock_at").on(table.unlockAt),
   ],
 );

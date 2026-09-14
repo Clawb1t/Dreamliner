@@ -35,6 +35,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       { plugin: "automod" },
       { plugin: "impersonation" },
+      { plugin: "incident_response" },
       { plugin: "raid_mesh" },
       { plugin: "scam_protect" },
       { plugin: "passport" },
@@ -211,6 +212,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Raid Defense Mesh",
     description: "Link with other servers to share raid alerts, naming the accounts involved, when either side's raid detector trips.",
   },
+  incident_response: {
+    key: "incident_response",
+    name: "Incident Response",
+    description:
+      "Correlates Automod, Raid, Impersonation, and Scam Protect signals (plus its own server-nuke detectors) into scored Incidents, with an opt-in escalating response per severity.",
+  },
   scam_protect: {
     key: "scam_protect",
     name: "Scam Protect",
@@ -370,6 +377,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   slowmode: "mod",
   automod: "protect",
   impersonation: "protect",
+  incident_response: "protect",
   raid_mesh: "protect",
   scam_protect: "protect",
   passport: "protect",

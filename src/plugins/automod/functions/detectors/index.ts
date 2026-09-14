@@ -13,6 +13,7 @@ import {
 } from "./types.js";
 import { matchWordPack } from "./wordMatch.js";
 import { detectImageScan } from "./imageScan.js";
+import { detectDomainIntel } from "./domainIntel.js";
 
 const MESSAGE_RULE_ORDER: AutomodRuleId[] = [
   "slurs",
@@ -23,6 +24,7 @@ const MESSAGE_RULE_ORDER: AutomodRuleId[] = [
   "mass_mentions",
   "invites",
   "links",
+  "domain_intel",
   "spam",
   "emoji_spam",
   "duplicate",
@@ -35,7 +37,8 @@ const MESSAGE_RULE_ORDER: AutomodRuleId[] = [
   "excessive_caps",
   "zalgo",
   // Last: the only check that downloads anything, and only ever does anything on
-  // messages with image attachments in the first place.
+  // messages with image attachments in the first place. domain_intel above also makes a
+  // network call, but only a small threat-feed lookup, not a file download.
   "image_scan",
 ];
 
@@ -312,6 +315,7 @@ const DETECTORS: Record<AutomodRuleId, Detector> = {
   everyone_here: detectEveryoneHere,
   invites: detectInvites,
   links: detectLinks,
+  domain_intel: detectDomainIntel,
   excessive_caps: detectExcessiveCaps,
   zalgo: detectZalgo,
   image_scan: detectImageScan,

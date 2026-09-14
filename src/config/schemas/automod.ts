@@ -19,6 +19,7 @@ export const AUTOMOD_RULE_IDS = [
   "everyone_here",
   "invites",
   "links",
+  "domain_intel",
   "excessive_caps",
   "zalgo",
   "image_scan",

@@ -13,6 +13,7 @@ import {
 } from "./detectors/index.js";
 import { mergeCensorDbRulesIntoConfig, parseAutomodConfig } from "./migrate.js";
 import { countAutomodHits, recordAutomodHit } from "./strikes.js";
+import { RAID_SIGNAL_WEIGHT, weightForAutomodRule } from "../../incident_response/functions/weights.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("automod");
 
@@ -90,6 +91,44 @@ export async function handleAutomodMessage(message: Message): Promise<void> {
     user: message.author,
     guildId: message.guild.id,
   });
+
+  await reportIncidentSignal(message.client, message.guild.id, {
+    source: "automod",
+    signalType: `automod:${hit.ruleId}`,
+    weight: weightForAutomodRule(hit.ruleId),
+    entityType: "user",
+    entityId: message.author.id,
+    entityLabel: `<@${message.author.id}>`,
+    reason: hit.reason,
+    detail: hit.detail,
+    triggerChannelId: message.channel.id,
+  });
+}
+
+/** Feeds a hit into Incident Response's correlation/scoring, via a guarded dynamic import so
+ * Automod itself never breaks if that plugin is disabled/removed — same pattern as the
+ * existing Raid Defense Mesh broadcast below. */
+async function reportIncidentSignal(
+  client: import("discord.js").Client,
+  guildId: string,
+  input: {
+    source: "automod" | "raid";
+    signalType: string;
+    weight: number;
+    entityType: "user" | "guild";
+    entityId: string;
+    entityLabel: string;
+    reason: string;
+    detail?: string;
+    triggerChannelId?: string;
+  },
+): Promise<void> {
+  try {
+    const { reportSignal } = await import("../../incident_response/functions/signalBus.js");
+    await reportSignal(client, { guildId, ...input });
+  } catch (err) {
+    log.error("Incident Response signal report failed:", err);
+  }
 }
 
 export async function handleAutomodMessageUpdate(
@@ -166,6 +205,16 @@ export async function handleAutomodMemberAdd(member: GuildMember): Promise<void>
   } catch (err) {
     log.error("Raid Defense Mesh broadcast failed:", err);
   }
+
+  await reportIncidentSignal(member.client, member.guild.id, {
+    source: "raid",
+    signalType: "raid",
+    weight: RAID_SIGNAL_WEIGHT,
+    entityType: "guild",
+    entityId: member.guild.id,
+    entityLabel: member.guild.name,
+    reason: `Raid burst: ${joinCount}+ joins / ${Math.round(windowMs / 1000)}s`,
+  });
 
   await applyAutomodHit({
     client: member.client,

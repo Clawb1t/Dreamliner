@@ -7,7 +7,10 @@ import {
   isScamProtectEnabled,
 } from "./ensure.js";
 import { softbanForScamProtect } from "./softban.js";
+import { SCAM_PROTECT_SIGNAL_WEIGHT } from "../../incident_response/functions/weights.js";
+import { getLogger } from "../../../core/logger.js";
 
+const log = getLogger("scam_protect");
 const inFlight = new Set<string>();
 
 export async function handleScamProtectMessage(message: Message): Promise<void> {
@@ -42,6 +45,23 @@ export async function handleScamProtectMessage(message: Message): Promise<void> 
     if (result.ok) {
       const { refreshScamProtectWarning } = await import("./ensure.js");
       await refreshScamProtectWarning(message.guild).catch(() => null);
+
+      try {
+        const { reportSignal } = await import("../../incident_response/functions/signalBus.js");
+        await reportSignal(message.client, {
+          guildId: message.guild.id,
+          source: "scam_protect",
+          signalType: "scam_protect:honeypot",
+          weight: SCAM_PROTECT_SIGNAL_WEIGHT,
+          entityType: "user",
+          entityId: message.author.id,
+          entityLabel: `<@${message.author.id}>`,
+          reason: "Posted in the Scam Protect honeypot channel",
+          triggerChannelId: message.channelId,
+        });
+      } catch (err) {
+        log.error("Incident Response signal report failed:", err);
+      }
     }
   } finally {
     inFlight.delete(key);
