@@ -11,6 +11,7 @@ import { createAlert, type AlertTrigger } from "./alerts.js";
 import { applyAutoAction } from "./actions.js";
 import { weightForImpersonationScore } from "../../incident_response/functions/weights.js";
 import { getLogger } from "../../../core/logger.js";
+import { translatorFor } from "../../../i18n/index.js";
 
 const log = getLogger("impersonation");
 
@@ -124,9 +125,14 @@ async function checkAndAlert(
   }
 
   if (config.dm_flagged_member) {
+    const { t } = await translatorFor(member.id);
     await member
       .send(
-        `Your profile in **${member.guild.name}** was flagged as a possible impersonation match. If this wasn't intentional, consider changing your name or avatar. If you believe this is a mistake, contact server staff.`,
+        t(
+          "impersonation.flaggedDm",
+          "Your profile in **{guild}** was flagged as a possible impersonation match. If this wasn't intentional, consider changing your name or avatar. If you believe this is a mistake, contact server staff.",
+          { guild: member.guild.name },
+        ),
       )
       .catch(() => null);
   }

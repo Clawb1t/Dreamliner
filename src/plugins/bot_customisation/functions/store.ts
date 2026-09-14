@@ -321,6 +321,42 @@ export async function markBotBrandRequestRemoved(
   return updated[0] ? mapRow(updated[0]) : null;
 }
 
+/** Empty string means the nickname was cleared; null means it was never stored. */
+export async function getStoredBotNickname(guildId: string): Promise<string | null> {
+  const rows = await getDb()
+    .select()
+    .from(botGuildProfiles)
+    .where(eq(botGuildProfiles.guildId, guildId))
+    .limit(1);
+  const nick = rows[0]?.nick;
+  return nick ? nick : null;
+}
+
+export async function setStoredBotNickname(
+  guildId: string,
+  nick: string | null,
+  updatedBy: string,
+): Promise<void> {
+  const now = new Date();
+  const value = nick ?? "";
+  await getDb()
+    .insert(botGuildProfiles)
+    .values({
+      guildId,
+      nick: value,
+      updatedAt: now,
+      updatedBy,
+    })
+    .onConflictDoUpdate({
+      target: botGuildProfiles.guildId,
+      set: {
+        nick: value,
+        updatedAt: now,
+        updatedBy,
+      },
+    });
+}
+
 export async function getStoredBotBio(guildId: string): Promise<string | null> {
   const rows = await getDb()
     .select()

@@ -115,7 +115,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
           .addStringOption((o) => o.setName("reason").setDescription("Reason")),
       ),
     execute: async (ctx) => {
-      const { interaction } = ctx;
+      const { interaction, t } = ctx;
       const guildId = interaction.guildId!;
       const group = interaction.options.getSubcommandGroup(false);
       const sub = interaction.options.getSubcommand();
@@ -129,10 +129,13 @@ export const ticketCommands: SlashCommandDefinition[] = [
         if (pairs.length !== 1) {
           await interaction.reply(
             resultReply(
-              "Use the panel buttons",
+              t("tickets.new.useButtonsTitle", "Use the panel buttons"),
               pairs.length === 0
-                ? "No ticket panels are configured yet."
-                : "This server has multiple ticket categories. Open a ticket from the panel message's buttons or menu instead.",
+                ? t("tickets.new.noPanels", "No ticket panels are configured yet.")
+                : t(
+                    "tickets.new.multiplePanels",
+                    "This server has multiple ticket categories. Open a ticket from the panel message's buttons or menu instead.",
+                  ),
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "warning" }),
             ),
@@ -142,13 +145,28 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const { panel, category } = pairs[0]!;
         if (category.form_questions.length > 0) {
           await interaction.reply(
-            resultReply("Use the panel", "This ticket category asks setup questions — open it from the panel message instead.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+            resultReply(
+              t("tickets.new.usePanelTitle", "Use the panel"),
+              t(
+                "tickets.new.hasFormQuestions",
+                "This ticket category asks setup questions — open it from the panel message instead.",
+              ),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "warning" }),
+            ),
           );
           return;
         }
         const member = interaction.member;
         if (!member || typeof member === "string") {
-          await interaction.reply(resultReply("Member error", "Could not resolve member.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await interaction.reply(
+            resultReply(
+              t("tickets.common.memberErrorTitle", "Member error"),
+              t("tickets.common.memberError", "Could not resolve member."),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         await interaction.deferReply({ ephemeral: ctx.ephemeral });
@@ -160,13 +178,22 @@ export const ticketCommands: SlashCommandDefinition[] = [
           category,
           guildConfig,
           pluginConfig,
+          t,
         });
         if ("error" in result) {
-          await interaction.editReply(resultEdit("Cannot open ticket", result.error, slashResultOptions(ctx, { tone: "error" })));
+          await interaction.editReply(
+            resultEdit(t("tickets.common.cannotOpenTicketTitle", "Cannot open ticket"), result.error, slashResultOptions(ctx, { tone: "error" })),
+          );
           return;
         }
         const target = result.ticket.threadId ?? result.ticket.channelId;
-        await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
+        await interaction.editReply(
+          resultEdit(
+            t("tickets.common.ticketOpenedTitle", "Ticket opened"),
+            t("tickets.common.ticketOpenedDescription", "Your ticket is ready: <#{target}>.", { target }),
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" }),
+          ),
+        );
         return;
       }
 
@@ -176,7 +203,14 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const target = interaction.options.getUser("target", true);
         const reason = interaction.options.getString("reason");
         await addToBlacklist(guildId, target.id, "user", reason);
-        await interaction.reply(resultReply("Blacklisted", `${target.tag} can no longer open tickets.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ban:1544417486177308742>" })));
+        await interaction.reply(
+          resultReply(
+            t("tickets.blacklist.title", "Blacklisted"),
+            t("tickets.blacklist.description", "{tag} can no longer open tickets.", { tag: target.tag }),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ban:1544417486177308742>" }),
+          ),
+        );
         return;
       }
 
@@ -192,37 +226,82 @@ export const ticketCommands: SlashCommandDefinition[] = [
         });
 
         const fmt = (ms: number | null) => (ms == null ? "n/a" : formatDurationShort(ms));
-        const windowLabel = days ? `last ${days} day${days === 1 ? "" : "s"}` : "all time";
+        const windowLabel = days
+          ? days === 1
+            ? t("tickets.stats.windowLastDay", "last 1 day")
+            : t("tickets.stats.windowLastDays", "last {days} days", { days })
+          : t("tickets.stats.windowAllTime", "all time");
 
         if (memberOpt) {
           const stat = summary.handlers[0] as TicketHandlerStat | undefined;
           if (!stat) {
-            await interaction.editReply(resultEdit("No data", `No ticket activity for ${memberOpt.tag} (${windowLabel}).`, slashResultOptions(ctx, { tone: "warning" })));
+            await interaction.editReply(
+              resultEdit(
+                t("tickets.stats.noDataTitle", "No data"),
+                t("tickets.stats.noData", "No ticket activity for {tag} ({window}).", { tag: memberOpt.tag, window: windowLabel }),
+                slashResultOptions(ctx, { tone: "warning" }),
+              ),
+            );
             return;
           }
           const lines = [
-            `**Active assigned:** ${stat.activeAssigned}`,
-            `**Closed:** ${stat.ticketsClosed} (avg resolution ${fmt(stat.avgResolutionMs)})`,
-            `**First responses:** ${stat.ticketsResponded} (avg response time ${fmt(stat.avgFirstResponseMs)})`,
+            t("tickets.stats.activeAssigned", "**Active assigned:** {count}", { count: stat.activeAssigned }),
+            t("tickets.stats.closed", "**Closed:** {count} (avg resolution {avg})", {
+              count: stat.ticketsClosed,
+              avg: fmt(stat.avgResolutionMs),
+            }),
+            t("tickets.stats.firstResponses", "**First responses:** {count} (avg response time {avg})", {
+              count: stat.ticketsResponded,
+              avg: fmt(stat.avgFirstResponseMs),
+            }),
           ];
           await interaction.editReply(
-            resultEdit(`Ticket stats: ${memberOpt.tag} (${windowLabel})`, lines.join("\n"), slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" })),
+            resultEdit(
+              t("tickets.stats.memberStatsTitle", "Ticket stats: {tag} ({window})", { tag: memberOpt.tag, window: windowLabel }),
+              lines.join("\n"),
+              slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" }),
+            ),
           );
           return;
         }
 
         const top = summary.handlers.slice(0, 10);
         const lines = [
-          `**Overall (${windowLabel}):** ${summary.overall.ticketsClosed} closed, avg resolution ${fmt(summary.overall.avgResolutionMs)} · ${summary.overall.ticketsResponded} first responses, avg response time ${fmt(summary.overall.avgFirstResponseMs)}`,
+          t(
+            "tickets.stats.overallLine",
+            "**Overall ({window}):** {closed} closed, avg resolution {avgRes} · {responded} first responses, avg response time {avgResp}",
+            {
+              window: windowLabel,
+              closed: summary.overall.ticketsClosed,
+              avgRes: fmt(summary.overall.avgResolutionMs),
+              responded: summary.overall.ticketsResponded,
+              avgResp: fmt(summary.overall.avgFirstResponseMs),
+            },
+          ),
           "",
-          top.length ? "**By handler:**" : "No handler activity yet.",
-          ...top.map(
-            (h, i) =>
-              `${i + 1}. <@${h.staffId}>: ${h.ticketsClosed} closed (avg ${fmt(h.avgResolutionMs)}), ${h.ticketsResponded} first responses (avg ${fmt(h.avgFirstResponseMs)}), ${h.activeAssigned} active`,
+          top.length ? t("tickets.stats.byHandler", "**By handler:**") : t("tickets.stats.noHandlerActivity", "No handler activity yet."),
+          ...top.map((h, i) =>
+            t(
+              "tickets.stats.handlerLine",
+              "{index}. <@{staffId}>: {closed} closed (avg {avgRes}), {responded} first responses (avg {avgResp}), {active} active",
+              {
+                index: i + 1,
+                staffId: h.staffId,
+                closed: h.ticketsClosed,
+                avgRes: fmt(h.avgResolutionMs),
+                responded: h.ticketsResponded,
+                avgResp: fmt(h.avgFirstResponseMs),
+                active: h.activeAssigned,
+              },
+            ),
           ),
         ];
         await interaction.editReply(
-          resultEdit("Ticket handler stats", lines.join("\n"), slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" })),
+          resultEdit(
+            t("tickets.stats.handlerStatsTitle", "Ticket handler stats"),
+            lines.join("\n"),
+            slashResultOptions(ctx, { emoji: "<:icons_summary:1544418222831571044>" }),
+          ),
         );
         return;
       }
@@ -236,10 +315,24 @@ export const ticketCommands: SlashCommandDefinition[] = [
         if (!auth) return;
         if (sub === "claim") {
           await performClaim(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, interaction.user.id);
-          await interaction.reply(resultReply("Ticket claimed", `You are now handling ticket #${ticket.number}.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_hammer:1544417299937763348>" })));
+          await interaction.reply(
+            resultReply(
+              t("tickets.claim.claimedTitle", "Ticket claimed"),
+              t("tickets.claim.claimed", "You are now handling ticket #{number}.", { number: ticket.number }),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "success", emoji: "<:icons_hammer:1544417299937763348>" }),
+            ),
+          );
         } else {
           await performUnclaim(ticket);
-          await interaction.reply(resultReply("Ticket unclaimed", `Ticket #${ticket.number} is now unclaimed.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_unlock:1544417749617610852>" })));
+          await interaction.reply(
+            resultReply(
+              t("tickets.claim.unclaimedTitle", "Ticket unclaimed"),
+              t("tickets.claim.unclaimed", "Ticket #{number} is now unclaimed.", { number: ticket.number }),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { emoji: "<:icons_unlock:1544417749617610852>" }),
+            ),
+          );
         }
         return;
       }
@@ -251,11 +344,23 @@ export const ticketCommands: SlashCommandDefinition[] = [
           const target = interaction.options.getUser("user", true);
           await performAssign(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, target.id, interaction.user.id);
           await interaction.reply(
-            resultReply("Ticket assigned", `${target.tag} is now handling ticket #${ticket.number}.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_hammer:1544417299937763348>" })),
+            resultReply(
+              t("tickets.assign.assignedTitle", "Ticket assigned"),
+              t("tickets.assign.assigned", "{tag} is now handling ticket #{number}.", { tag: target.tag, number: ticket.number }),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "success", emoji: "<:icons_hammer:1544417299937763348>" }),
+            ),
           );
         } else {
           await performUnassign(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, interaction.user.id);
-          await interaction.reply(resultReply("Ticket unassigned", `Ticket #${ticket.number} is now unassigned.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_unlock:1544417749617610852>" })));
+          await interaction.reply(
+            resultReply(
+              t("tickets.assign.unassignedTitle", "Ticket unassigned"),
+              t("tickets.assign.unassigned", "Ticket #{number} is now unassigned.", { number: ticket.number }),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { emoji: "<:icons_unlock:1544417749617610852>" }),
+            ),
+          );
         }
         return;
       }
@@ -266,7 +371,12 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const status = interaction.options.getString("status", true) as TicketStatus;
         await performSetStatus(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, status, interaction.user.id);
         await interaction.reply(
-          resultReply("Status updated", `Ticket #${ticket.number} is now **${TICKET_STATUS_LABELS[status]}**.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_flag:1544417544251772999>" })),
+          resultReply(
+            t("tickets.status.updatedTitle", "Status updated"),
+            t("tickets.status.updated", "Ticket #{number} is now **{status}**.", { number: ticket.number, status: TICKET_STATUS_LABELS[status] }),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_flag:1544417544251772999>" }),
+          ),
         );
         return;
       }
@@ -279,17 +389,37 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const isStaff = await hasPermission(guildId, "tickets", "can_close_others", interaction.member as import("discord.js").GuildMember, ctx.guildConfig);
         const canCloseOwn = isOpener && (await hasPermission(guildId, "tickets", "can_close", interaction.member as import("discord.js").GuildMember, ctx.guildConfig));
         if (!canCloseTicket(category?.close_permission ?? "either", canCloseOwn, isStaff)) {
-          await interaction.reply(resultReply("Permission denied", "You cannot close this ticket.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await interaction.reply(
+            resultReply(
+              t("tickets.common.permissionDeniedTitle", "Permission denied"),
+              t("tickets.close.cannotClose", "You cannot close this ticket."),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         const reason = interaction.options.getString("reason");
         if (category?.require_close_reason && !reason?.trim()) {
-          await interaction.reply(resultReply("Reason required", "This category requires a close reason.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await interaction.reply(
+            resultReply(
+              t("tickets.close.reasonRequiredTitle", "Reason required"),
+              t("tickets.close.reasonRequired", "This category requires a close reason."),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         await interaction.deferReply({ ephemeral: ctx.ephemeral });
         await performClose(ctx.client, interaction.guild!, ctx.guildConfig, pluginConfig, category, ticket, interaction.user.id, reason);
-        await interaction.editReply(resultEdit("Ticket closed", `Ticket #${ticket.number} has been closed.`, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_archive:1544417474823590008>" })));
+        await interaction.editReply(
+          resultEdit(
+            t("tickets.close.closedTitle", "Ticket closed"),
+            t("tickets.close.closed", "Ticket #{number} has been closed.", { number: ticket.number }),
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_archive:1544417474823590008>" }),
+          ),
+        );
         return;
       }
 
@@ -302,13 +432,22 @@ export const ticketCommands: SlashCommandDefinition[] = [
             ? await performAddMember(interaction.guild!, ticket, target.id)
             : await performRemoveMember(interaction.guild!, ticket, target.id);
         if (!updated) {
-          await interaction.reply(resultReply("Failed", "Could not update ticket members.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await interaction.reply(
+            resultReply(
+              t("tickets.common.failedTitle", "Failed"),
+              t("tickets.member.updateFailed", "Could not update ticket members."),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         await interaction.reply(
           resultReply(
-            sub === "add" ? "Member added" : "Member removed",
-            `${target.tag} has been ${sub === "add" ? "added to" : "removed from"} this ticket.`,
+            sub === "add" ? t("tickets.member.addedTitle", "Member added") : t("tickets.member.removedTitle", "Member removed"),
+            sub === "add"
+              ? t("tickets.member.added", "{tag} has been added to this ticket.", { tag: target.tag })
+              : t("tickets.member.removed", "{tag} has been removed from this ticket.", { tag: target.tag }),
             ctx.ephemeral,
             slashResultOptions(ctx, {
               tone: "success",
@@ -329,8 +468,18 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const ok = await renameTicket(ctx.client, ticket, name);
         await interaction.reply(
           ok
-            ? resultReply("Renamed", `Ticket #${ticket.number} renamed.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_updatechannel:1544417815807922246>" }))
-            : resultReply("Failed", "Could not rename this ticket's channel.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+            ? resultReply(
+                t("tickets.rename.renamedTitle", "Renamed"),
+                t("tickets.rename.renamed", "Ticket #{number} renamed.", { number: ticket.number }),
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "success", emoji: "<:icons_updatechannel:1544417815807922246>" }),
+              )
+            : resultReply(
+                t("tickets.common.failedTitle", "Failed"),
+                t("tickets.rename.failed", "Could not rename this ticket's channel."),
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "error" }),
+              ),
         );
         return;
       }
@@ -340,7 +489,14 @@ export const ticketCommands: SlashCommandDefinition[] = [
         if (!auth) return;
         const level = interaction.options.getString("level", true) as (typeof TICKET_PRIORITIES)[number];
         await setPriority(guildId, ticket.id, level);
-        await interaction.reply(resultReply("Priority updated", `Ticket #${ticket.number} priority set to **${level}**.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "success", emoji: "<:icons_flag:1544417544251772999>" })));
+        await interaction.reply(
+          resultReply(
+            t("tickets.priority.updatedTitle", "Priority updated"),
+            t("tickets.priority.updated", "Ticket #{number} priority set to **{level}**.", { number: ticket.number, level }),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "success", emoji: "<:icons_flag:1544417544251772999>" }),
+          ),
+        );
         return;
       }
 
@@ -348,7 +504,13 @@ export const ticketCommands: SlashCommandDefinition[] = [
         await interaction.deferReply({ ephemeral: ctx.ephemeral });
         const latest = await getLatestTranscriptForTicket(guildId, ticket.id);
         if (!latest) {
-          await interaction.editReply(resultEdit("No transcript yet", "This ticket has no saved transcript yet — it's generated when the ticket closes.", slashResultOptions(ctx, { tone: "warning" })));
+          await interaction.editReply(
+            resultEdit(
+              t("tickets.transcript.noneYetTitle", "No transcript yet"),
+              t("tickets.transcript.noneYet", "This ticket has no saved transcript yet — it's generated when the ticket closes."),
+              slashResultOptions(ctx, { tone: "warning" }),
+            ),
+          );
           return;
         }
         const sent = await dmTranscript(interaction.user, ticket, latest.id);
@@ -359,8 +521,10 @@ export const ticketCommands: SlashCommandDefinition[] = [
         }
         await interaction.editReply(
           resultEdit(
-            sent ? "Transcript sent" : "Transcript posted",
-            sent ? "Check your DMs for the transcript." : "Could not DM you — posted the transcript to the log channel instead.",
+            sent ? t("tickets.transcript.sentTitle", "Transcript sent") : t("tickets.transcript.postedTitle", "Transcript posted"),
+            sent
+              ? t("tickets.transcript.sent", "Check your DMs for the transcript.")
+              : t("tickets.transcript.posted", "Could not DM you — posted the transcript to the log channel instead."),
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_folder:1544417545602334791>" }),
           ),
         );

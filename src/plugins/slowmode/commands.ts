@@ -93,7 +93,7 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         const channelRef = ctx.interaction.options.getChannel("channel") ?? ctx.interaction.channel;
         if (!channelRef) {
           await ctx.interaction.reply(
-            resultReply("Channel required", "Select a valid text channel.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+            resultReply(ctx.t("slowmode.channelRequiredTitle", "Channel required"), ctx.t("slowmode.selectValidChannel", "Select a valid text channel."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
           );
           return;
         }
@@ -101,7 +101,7 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         const member = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
         if (!member) {
           await ctx.interaction.reply(
-            resultReply("Member not found", "That user is not in this server.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+            resultReply(ctx.t("slowmode.memberNotFoundTitle", "Member not found"), ctx.t("slowmode.memberNotInServer", "That user is not in this server."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
           );
           return;
         }
@@ -109,8 +109,8 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         if (!config.individual_enabled) {
           await ctx.interaction.reply(
             resultReply(
-              "Individual slowmode",
-              `Individual slowmode is **disabled**. <@${member.id}> is not limited by rules.`,
+              ctx.t("slowmode.individualTitle", "Individual slowmode"),
+              ctx.t("slowmode.individualDisabledDesc", "Individual slowmode is **disabled**. <@{memberId}> is not limited by rules.", { memberId: member.id }),
               ctx.ephemeral,
               opts,
             ),
@@ -123,17 +123,23 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         const resolved = resolveIndividualDelay(config, member, channelRef.id);
 
         const lines = [
-          `<@${member.id}> in <#${channelRef.id}>`,
+          ctx.t("slowmode.checkHeader", "<@{memberId}> in <#{channelId}>", { memberId: member.id, channelId: channelRef.id }),
           wouldBypass
-            ? "Effective delay: **bypassed** (Manage Messages)"
+            ? ctx.t("slowmode.effectiveDelayBypassed", "Effective delay: **bypassed** (Manage Messages)")
             : resolved.seconds > 0
-              ? `Effective delay: **${formatSeconds(resolved.seconds)}** (${describeResolvedDelay(resolved)})`
-              : "Effective delay: **none**",
-          `Manage Messages bypass: **${config.allow_manage_messages_bypass ? "on" : "off"}**${hasManage ? " · member has permission" : ""}`,
+              ? ctx.t("slowmode.effectiveDelay", "Effective delay: **{seconds}** ({description})", {
+                  seconds: formatSeconds(resolved.seconds, ctx.t),
+                  description: describeResolvedDelay(resolved, ctx.t),
+                })
+              : ctx.t("slowmode.effectiveDelayNone", "Effective delay: **none**"),
+          ctx.t("slowmode.manageMessagesBypassLine", "Manage Messages bypass: **{state}**{permissionNote}", {
+            state: config.allow_manage_messages_bypass ? ctx.t("slowmode.on", "on") : ctx.t("slowmode.off", "off"),
+            permissionNote: hasManage ? ctx.t("slowmode.memberHasPermissionSuffix", " · member has permission") : "",
+          }),
         ];
 
         await ctx.interaction.reply(
-          resultReply("Slowmode check", lines.join("\n"), ctx.ephemeral, {
+          resultReply(ctx.t("slowmode.checkTitle", "Slowmode check"), lines.join("\n"), ctx.ephemeral, {
             ...opts,
             emoji: "<:icons_fingerprint:1544418020682899537>",
           }),
@@ -150,8 +156,8 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         if (!ctx.interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) {
           await ctx.interaction.reply(
             resultReply(
-              "Missing permission",
-              "You need **Manage Channels** to change Discord channel slowmode.",
+              ctx.t("slowmode.missingPermissionTitle", "Missing permission"),
+              ctx.t("slowmode.userNeedsManageChannels", "You need **Manage Channels** to change Discord channel slowmode."),
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "error" }),
             ),
@@ -163,8 +169,8 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         if (me && !me.permissions.has(PermissionFlagsBits.ManageChannels)) {
           await ctx.interaction.reply(
             resultReply(
-              "Missing permission",
-              "I need **Manage Channels** to change Discord channel slowmode.",
+              ctx.t("slowmode.missingPermissionTitle", "Missing permission"),
+              ctx.t("slowmode.botNeedsManageChannels", "I need **Manage Channels** to change Discord channel slowmode."),
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "error" }),
             ),
@@ -176,7 +182,7 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
       const channelRef = ctx.interaction.options.getChannel("channel") ?? ctx.interaction.channel;
       if (!channelRef) {
         await ctx.interaction.reply(
-          resultReply("Slowmode", "Select a valid text channel.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          resultReply(ctx.t("slowmode.title", "Slowmode"), ctx.t("slowmode.selectValidChannel", "Select a valid text channel."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
         );
         return;
       }
@@ -184,7 +190,7 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
       const channel = await ctx.interaction.guild!.channels.fetch(channelRef.id).catch(() => null);
       if (!channel?.isTextBased() || channel.isDMBased() || !("setRateLimitPerUser" in channel)) {
         await ctx.interaction.reply(
-          resultReply("Slowmode", "Select a valid text channel.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          resultReply(ctx.t("slowmode.title", "Slowmode"), ctx.t("slowmode.selectValidChannel", "Select a valid text channel."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
         );
         return;
       }
@@ -195,14 +201,21 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         const rules = normalizeSlowmodeRules(config.rules);
         const lines = [
           current
-            ? `Discord channel slowmode: **${formatSeconds(current)}**`
-            : "Discord channel slowmode: **off**",
-          `Individual slowmode: **${config.individual_enabled ? "on" : "off"}** · **${rules.length}** rule(s)`,
-          `Manage Messages bypass: **${config.allow_manage_messages_bypass ? "on" : "off"}**`,
-          `Default individual delay: **${formatSeconds(config.individual_default_seconds)}**`,
+            ? ctx.t("slowmode.discordSlowmodeValue", "Discord channel slowmode: **{seconds}**", { seconds: formatSeconds(current, ctx.t) })
+            : ctx.t("slowmode.discordSlowmodeOff", "Discord channel slowmode: **off**"),
+          ctx.t("slowmode.individualSummaryLine", "Individual slowmode: **{state}** · **{count}** rule(s)", {
+            state: config.individual_enabled ? ctx.t("slowmode.on", "on") : ctx.t("slowmode.off", "off"),
+            count: rules.length,
+          }),
+          ctx.t("slowmode.manageMessagesBypassSummary", "Manage Messages bypass: **{state}**", {
+            state: config.allow_manage_messages_bypass ? ctx.t("slowmode.on", "on") : ctx.t("slowmode.off", "off"),
+          }),
+          ctx.t("slowmode.defaultIndividualDelay", "Default individual delay: **{seconds}**", {
+            seconds: formatSeconds(config.individual_default_seconds, ctx.t),
+          }),
         ];
         await ctx.interaction.reply(
-          resultReply(`Slowmode · <#${channel.id}>`, lines.join("\n"), ctx.ephemeral, {
+          resultReply(ctx.t("slowmode.statusTitle", "Slowmode · <#{channelId}>", { channelId: channel.id }), lines.join("\n"), ctx.ephemeral, {
             ...opts,
             emoji: "<:icons_clock:1544417185336664114>",
           }),
@@ -218,8 +231,8 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
       if (sub === "set" && seconds === null) {
         await ctx.interaction.reply(
           resultReply(
-            "Missing value",
-            "Provide a `preset` or custom `seconds` value.",
+            ctx.t("slowmode.missingValueTitle", "Missing value"),
+            ctx.t("slowmode.missingValueDesc", "Provide a `preset` or custom `seconds` value."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -232,8 +245,11 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
       if (sub === "set") {
         await ctx.interaction.reply(
           resultReply(
-            "Channel slowmode set",
-            `<#${channel.id}> Discord slowmode set to **${formatSeconds(seconds ?? 0)}**.`,
+            ctx.t("slowmode.channelSlowmodeSetTitle", "Channel slowmode set"),
+            ctx.t("slowmode.channelSlowmodeSetDesc", "<#{channelId}> Discord slowmode set to **{seconds}**.", {
+              channelId: channel.id,
+              seconds: formatSeconds(seconds ?? 0, ctx.t),
+            }),
             ctx.ephemeral,
             { ...opts, emoji: "<:icons_clock:1544417185336664114>" },
           ),
@@ -243,8 +259,8 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
 
       await ctx.interaction.reply(
         resultReply(
-          "Channel slowmode cleared",
-          `<#${channel.id}> Discord slowmode disabled.`,
+          ctx.t("slowmode.channelSlowmodeClearedTitle", "Channel slowmode cleared"),
+          ctx.t("slowmode.channelSlowmodeClearedDesc", "<#{channelId}> Discord slowmode disabled.", { channelId: channel.id }),
           ctx.ephemeral,
           slashResultOptions(ctx, { tone: "unchecked", emoji: "<:icons_off:1544417567777628201>" }),
         ),

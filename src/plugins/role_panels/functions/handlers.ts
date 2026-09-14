@@ -8,6 +8,7 @@ import { safeAddRole, safeRemoveRole, safeToggleRole } from "../../../core/roles
 import { parseRolePanelButtonCustomId } from "../customIds.js";
 import { findRolePanelMessageByDiscordMessage } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
+import { translatorFor } from "../../../i18n/index.js";
 const log = getLogger("role_panels");
 
 function loadPanels(guildConfig: Awaited<ReturnType<typeof configManager.getEffectiveConfig>>): RolePanel[] {
@@ -92,15 +93,22 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
   const parsed = parseRolePanelButtonCustomId(interaction.customId);
   if (!parsed) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply({ content: "Server only.", ephemeral: true });
+    await interaction.reply({ content: t("role_panels.serverOnly", "Server only."), ephemeral: true });
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "role_panels")) {
     await interaction.reply(
-      resultReply("Disabled", "Role panels are disabled.", true, guildResultOptions(interaction.client, guildConfig, { tone: "unchecked" })),
+      resultReply(
+        t("role_panels.disabledTitle", "Disabled"),
+        t("role_panels.disabledDesc", "Role panels are disabled."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "unchecked" }),
+      ),
     );
     return true;
   }
@@ -108,7 +116,12 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
   const panel = loadPanels(guildConfig).find((p) => p.id === parsed.panelId);
   if (!panel || !panel.enabled || panel.trigger_type !== "button") {
     await interaction.reply(
-      resultReply("Unknown button", "This role panel is no longer configured.", true, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
+      resultReply(
+        t("role_panels.unknownButtonTitle", "Unknown button"),
+        t("role_panels.unknownButtonDesc", "This role panel is no longer configured."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
+      ),
     );
     return true;
   }
@@ -116,7 +129,12 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
   const roleEntry = panel.roles.find((r) => r.role_id === parsed.roleId);
   if (!roleEntry) {
     await interaction.reply(
-      resultReply("Unknown role", "This role is no longer part of the panel.", true, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
+      resultReply(
+        t("role_panels.unknownRoleTitle", "Unknown role"),
+        t("role_panels.unknownRoleDesc", "This role is no longer part of the panel."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
+      ),
     );
     return true;
   }
@@ -124,7 +142,12 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
   const member = interaction.member;
   if (!member || typeof member === "string") {
     await interaction.reply(
-      resultReply("Member error", "Could not resolve member.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(
+        t("role_panels.memberErrorTitle", "Member error"),
+        t("role_panels.memberErrorDesc", "Could not resolve member."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
     );
     return true;
   }
@@ -138,7 +161,12 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
       : await safeAddRole(guildMember, roleEntry.role_id, "Role panel");
     if (!result.ok) {
       await interaction.reply(
-        resultReply("Could not update role", result.reason, true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+        resultReply(
+          t("role_panels.couldNotUpdateTitle", "Could not update role"),
+          result.reason,
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+        ),
       );
       return true;
     }
@@ -146,8 +174,13 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
     const role = interaction.guild!.roles.cache.get(roleEntry.role_id);
     await interaction.reply(
       resultReply(
-        "Role updated",
-        `${already ? "Removed" : "Added"} ${role ?? "role"}.`,
+        t("role_panels.roleUpdatedTitle", "Role updated"),
+        t("role_panels.roleUpdatedDesc", "{action} {role}.", {
+          action: already
+            ? t("role_panels.actionRemoved", "Removed")
+            : t("role_panels.actionAdded", "Added"),
+          role: role ? role.toString() : t("role_panels.roleFallback", "role"),
+        }),
         true,
         guildResultOptions(interaction.client, guildConfig, {
           emoji: already ? "<:icons_off:1544417567777628201>" : "<:icons_on:1544417570818629753>",
@@ -160,7 +193,12 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
   const result = await safeToggleRole(guildMember, roleEntry.role_id, "Role panel");
   if (!result.ok) {
     await interaction.reply(
-      resultReply("Could not update role", result.reason, true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(
+        t("role_panels.couldNotUpdateTitle", "Could not update role"),
+        result.reason,
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
     );
     return true;
   }
@@ -168,8 +206,13 @@ export async function handleRolePanelButtonInteraction(interaction: ButtonIntera
   const role = interaction.guild!.roles.cache.get(roleEntry.role_id);
   await interaction.reply(
     resultReply(
-      "Role updated",
-      `${result.added ? "Added" : "Removed"} ${role ?? "role"}.`,
+      t("role_panels.roleUpdatedTitle", "Role updated"),
+      t("role_panels.roleUpdatedDesc", "{action} {role}.", {
+        action: result.added
+          ? t("role_panels.actionAdded", "Added")
+          : t("role_panels.actionRemoved", "Removed"),
+        role: role ? role.toString() : t("role_panels.roleFallback", "role"),
+      }),
       true,
       guildResultOptions(interaction.client, guildConfig, {
         emoji: result.added ? "<:icons_on:1544417570818629753>" : "<:icons_off:1544417567777628201>",

@@ -67,7 +67,7 @@ export const metaCommands: SlashCommandDefinition[] = [
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_about");
       if (!auth) return;
-      await ctx.interaction.reply(embedReply(buildAboutEmbed(ctx.client), ctx.ephemeral, aboutLinkRows()));
+      await ctx.interaction.reply(embedReply(buildAboutEmbed(ctx.client, ctx.t), ctx.ephemeral, aboutLinkRows(ctx.t)));
     },
   },
   {
@@ -84,7 +84,7 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const query = (ctx.interaction.options.getString("query") ?? "").trim();
       const docsUrl = resolveDocsUrl();
-      await ctx.interaction.reply(buildHelpMessage(0, query, docsUrl, ctx.ephemeral, ctx.client, ctx.guildConfig.emojis));
+      await ctx.interaction.reply(buildHelpMessage(0, query, docsUrl, ctx.ephemeral, ctx.client, ctx.t, ctx.guildConfig.emojis));
     },
   },
   {

@@ -8,22 +8,43 @@ export async function requireInfractionPermission(
   ctx: SlashCommandContext,
   permission: string,
 ): Promise<{ member: GuildMember; pluginConfig: InfractionConfig } | null> {
-  const { interaction, guildConfig } = ctx;
+  const { interaction, guildConfig, t } = ctx;
   if (!interaction.inGuild() || !interaction.guild) {
-    await interaction.reply(resultReply("Server only", "This command can only be used in a server.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(
+      resultReply(
+        t("infraction.serverOnlyTitle", "Server only"),
+        t("infraction.serverOnlyBody", "This command can only be used in a server."),
+        ctx.ephemeral,
+        guildResultOptions(ctx.client, guildConfig, { tone: "error" }),
+      ),
+    );
     return null;
   }
 
   const member = interaction.member;
   if (!member || typeof member === "string") {
-    await interaction.reply(resultReply("Member error", "Could not resolve member.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(
+      resultReply(
+        t("infraction.memberErrorTitle", "Member error"),
+        t("infraction.couldNotResolveMember", "Could not resolve member."),
+        ctx.ephemeral,
+        guildResultOptions(ctx.client, guildConfig, { tone: "error" }),
+      ),
+    );
     return null;
   }
 
   const guildMember = member as GuildMember;
 
   if (!(await canUseInfractions(interaction.guildId, guildConfig, permission, guildMember))) {
-    await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(
+      resultReply(
+        t("infraction.permissionDeniedTitle", "Permission denied"),
+        t("infraction.permissionDeniedBody", "You do not have permission to use this command."),
+        ctx.ephemeral,
+        guildResultOptions(ctx.client, guildConfig, { tone: "error" }),
+      ),
+    );
     return null;
   }
 
@@ -45,7 +66,12 @@ export async function replyIfReasonRequired(
 ): Promise<boolean> {
   if (!pluginConfig.require_reason[type] || rawReason?.trim()) return false;
   await ctx.interaction.reply(
-    resultReply(label, "This server requires a reason for this action.", ctx.ephemeral, guildResultOptions(ctx.client, ctx.guildConfig, { tone: "error" })),
+    resultReply(
+      label,
+      ctx.t("infraction.reasonRequired", "This server requires a reason for this action."),
+      ctx.ephemeral,
+      guildResultOptions(ctx.client, ctx.guildConfig, { tone: "error" }),
+    ),
   );
   return true;
 }

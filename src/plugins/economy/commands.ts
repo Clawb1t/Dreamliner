@@ -16,6 +16,7 @@ import { deferReplyOptions, embedEdit, embedReply, resultReply, slashResultOptio
 import { discordTimestamp } from "../../core/datetime.js";
 import { baseEmbed, memberAccentColor } from "../../core/embeds.js";
 import { resolveEmojiForContent } from "../../core/emoji.js";
+import type { Translator } from "../../i18n/index.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
 import {
   GLOBAL_DAILY_AMOUNT,
@@ -56,11 +57,11 @@ import { formatPlainAmount, planeLine } from "./functions/cardFormat.js";
 import { PLANE_PACK_PREFIX } from "./functions/customIds.js";
 
 /** Footer for a balance/daily embed — "Bank of {server}" with the server icon, or "Bank of Dreamliner" with the bot's avatar for the global currency. */
-function bankFooter(which: "global" | "server", guild: Guild, client: Client): { text: string; iconURL?: string } {
+function bankFooter(which: "global" | "server", guild: Guild, client: Client, t: Translator): { text: string; iconURL?: string } {
   if (which === "global") {
-    return { text: "Bank of Dreamliner", iconURL: client.user?.displayAvatarURL() };
+    return { text: t("economy.bank.global", "Bank of Dreamliner"), iconURL: client.user?.displayAvatarURL() };
   }
-  return { text: `Bank of ${guild.name}`, iconURL: guild.iconURL() ?? undefined };
+  return { text: t("economy.bank.server", `Bank of ${guild.name}`, { guild: guild.name }), iconURL: guild.iconURL() ?? undefined };
 }
 
 // ── Trading cards (planes/airlines) ──────────────────────────────────────────
@@ -133,7 +134,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         .setThumbnail(target.displayAvatarURL())
         .setColor(memberAccentColor(targetMember))
         .setDescription(description)
-        .setFooter(bankFooter(which, i.guild!, ctx.client));
+        .setFooter(bankFooter(which, i.guild!, ctx.client, ctx.t));
 
       await i.reply(embedReply(embed, ctx.ephemeral));
     },
@@ -191,7 +192,7 @@ export const economyCommands: SlashCommandDefinition[] = [
       if (nextAt) description += `  ✧  Next claim ${discordTimestamp(nextAt)}`;
 
       const member = i.member as GuildMember | null;
-      const bank = bankFooter(which, i.guild!, ctx.client);
+      const bank = bankFooter(which, i.guild!, ctx.client, ctx.t);
       const embed = baseEmbed()
         .setTitle(member?.displayName ?? i.user.username)
         .setThumbnail(i.user.displayAvatarURL())
@@ -317,7 +318,7 @@ export const economyCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        const { components, files } = buildInventoryPage(cards[0], { index: 0, total: cards.length, viewerId: i.user.id, targetUserId: target.id });
+        const { components, files } = buildInventoryPage(cards[0], { index: 0, total: cards.length, viewerId: i.user.id, targetUserId: target.id }, ctx.t);
         const reply: InteractionReplyOptions = {
           flags: MessageFlags.IsComponentsV2 | (ctx.ephemeral ? MessageFlags.Ephemeral : 0),
           components,
@@ -355,7 +356,7 @@ export const economyCommands: SlashCommandDefinition[] = [
           await i.reply(resultReply("Not found", `No card found for \`${key}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
-        const { components, files } = buildCardReveal(plane);
+        const { components, files } = buildCardReveal(plane, ctx.t);
         const reply: InteractionReplyOptions = {
           flags: MessageFlags.IsComponentsV2 | (ctx.ephemeral ? MessageFlags.Ephemeral : 0),
           components,

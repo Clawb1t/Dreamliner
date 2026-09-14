@@ -45,8 +45,8 @@ export const evidenceCommands: SlashCommandDefinition[] = [
       if (captured === 0) {
         await ctx.interaction.reply(
           resultReply(
-            "Evidence",
-            `No recent tracked messages found for ${user}.`,
+            ctx.t("infraction.evidenceTitle", "Evidence"),
+            ctx.t("infraction.noRecentTrackedMessages", "No recent tracked messages found for {user}.", { user: String(user) }),
             ctx.ephemeral,
             slashResultOptions(ctx),
           ),
@@ -56,8 +56,12 @@ export const evidenceCommands: SlashCommandDefinition[] = [
 
       await ctx.interaction.reply(
         resultReply(
-          "Evidence",
-          `Captured **${captured}** recent message(s) from ${user}. View them in the dashboard under Moderation → Evidence.`,
+          ctx.t("infraction.evidenceTitle", "Evidence"),
+          ctx.t(
+            "infraction.evidenceCaptured",
+            "Captured **{count}** recent message(s) from {user}. View them in the dashboard under Moderation → Evidence.",
+            { count: captured, user: String(user) },
+          ),
           ctx.ephemeral,
           slashResultOptions(ctx),
         ),

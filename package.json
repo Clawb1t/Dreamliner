@@ -13,6 +13,7 @@
     "panel:start": "node main.js",
     "register-commands": "tsx src/scripts/register-commands.ts",
     "schema:export": "tsx scripts/export-guild-config-schema.ts",
+    "i18n:extract": "tsx scripts/extractI18nKeys.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/migrate.ts",
     "migrate:autodelete": "tsx src/scripts/migrate-autodelete-to-config.ts",

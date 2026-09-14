@@ -38,8 +38,8 @@ export const remindCommand: SlashCommandDefinition = {
     if (!delayMinutes) {
       await ctx.interaction.reply(
         resultReply(
-          "Missing time",
-          "Provide `minutes`, `hours`, and/or `in` (e.g. `2h`).",
+          ctx.t("reminders.missingTime.title", "Missing time"),
+          ctx.t("reminders.missingTime.description", "Provide `minutes`, `hours`, and/or `in` (e.g. `2h`)."),
           ctx.ephemeral,
           slashResultOptions(ctx, { tone: "error" }),
         ),
@@ -57,8 +57,12 @@ export const remindCommand: SlashCommandDefinition = {
 
     await ctx.interaction.reply(
       resultReply(
-        "Reminder set",
-        `Reminder **#${reminder.id}** set for <t:${Math.floor(reminder.remindAt.getTime() / 1000)}:R>.`,
+        ctx.t("reminders.set.title", "Reminder set"),
+        ctx.t(
+          "reminders.set.description",
+          "Reminder **#{id}** set for <t:{timestamp}:R>.",
+          { id: reminder.id, timestamp: Math.floor(reminder.remindAt.getTime() / 1000) },
+        ),
         ctx.ephemeral,
         slashResultOptions(ctx, { emoji: "<:icons_reminder:1544417395475742732>" }),
       ),
@@ -91,7 +95,14 @@ export const remindersCommands: SlashCommandDefinition[] = [
 
         const rows = await listReminders(guildId, userId);
         if (rows.length === 0) {
-          await ctx.interaction.reply(resultReply("Reminders", "You have no active reminders.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(
+              ctx.t("reminders.list.title", "Reminders"),
+              ctx.t("reminders.list.empty", "You have no active reminders."),
+              ctx.ephemeral,
+              slashResultOptions(ctx),
+            ),
+          );
           return;
         }
 
@@ -99,7 +110,9 @@ export const remindersCommands: SlashCommandDefinition[] = [
           const when = `<t:${Math.floor(row.remindAt.getTime() / 1000)}:R>`;
           return `**#${row.id}** ${when}: ${row.message.slice(0, 80)}`;
         });
-        await ctx.interaction.reply(resultReply("Your reminders", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply(ctx.t("reminders.list.yourTitle", "Your reminders"), lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)),
+        );
         return;
       }
 
@@ -110,14 +123,21 @@ export const remindersCommands: SlashCommandDefinition[] = [
         const id = ctx.interaction.options.getInteger("id", true);
         const cancelled = await cancelReminder(guildId, userId, id);
         if (!cancelled) {
-          await ctx.interaction.reply(resultReply("Not found", `No reminder **#${id}** found.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(
+              ctx.t("reminders.cancel.notFoundTitle", "Not found"),
+              ctx.t("reminders.cancel.notFoundDescription", "No reminder **#{id}** found.", { id }),
+              ctx.ephemeral,
+              slashResultOptions(ctx),
+            ),
+          );
           return;
         }
 
         await ctx.interaction.reply(
           resultReply(
-            "Reminder cancelled",
-            `Cancelled reminder **#${id}**.`,
+            ctx.t("reminders.cancel.title", "Reminder cancelled"),
+            ctx.t("reminders.cancel.description", "Cancelled reminder **#{id}**.", { id }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_off:1544417567777628201>" }),
           ),

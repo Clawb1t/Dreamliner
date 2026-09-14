@@ -3,6 +3,7 @@ import { and, eq, isNull, lte } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { incidentLockdowns } from "../../../db/schema.js";
 import { getLogger } from "../../../core/logger.js";
+import type { Translator } from "../../../i18n/index.js";
 
 const log = getLogger("incident_response");
 
@@ -131,13 +132,21 @@ export async function unlockChannelManually(
   guild: Guild,
   channelId: string,
   unlockedBy: string,
+  t?: Translator,
 ): Promise<{ ok: boolean; error?: string }> {
   const row = await getDb()
     .select()
     .from(incidentLockdowns)
     .where(and(eq(incidentLockdowns.guildId, guild.id), eq(incidentLockdowns.channelId, channelId), isNull(incidentLockdowns.unlockedAt)))
     .get();
-  if (!row) return { ok: false, error: "That channel isn't currently locked by Incident Response." };
+  if (!row) {
+    return {
+      ok: false,
+      error: t
+        ? t("incident_response.channelNotLocked", "That channel isn't currently locked by Incident Response.")
+        : "That channel isn't currently locked by Incident Response.",
+    };
+  }
   await unlockLockdownRow(guild, row, unlockedBy);
   return { ok: true };
 }

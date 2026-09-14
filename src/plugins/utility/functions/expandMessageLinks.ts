@@ -13,18 +13,25 @@ import {
 import { extractMessageLinks, type ParsedMessageLink } from "../../../core/messageLink.js";
 import { getExpandMessageWebhook } from "./expandWebhook.js";
 import { buildExpandDeleteButton } from "./expandDeleteButton.js";
+import { translatorFor, type Translator } from "../../../i18n/index.js";
 
 const CONTENT_MAX = 1800;
 const MAX_FILES = 10;
 
-function buildExpandContent(source: Message): string {
+function buildExpandContent(source: Message, t: Translator): string {
   const parts: string[] = [];
   const body = source.content?.trim() ?? "";
   if (body) parts.push(body.slice(0, CONTENT_MAX));
 
   if (source.stickers.size > 0) {
     const stickerNames = [...source.stickers.values()].map((s) => s.name).join(", ");
-    parts.push(`_Sticker${source.stickers.size === 1 ? "" : "s"}: ${stickerNames}_`);
+    parts.push(
+      t(
+        source.stickers.size === 1 ? "utility.expandMessageLinks.sticker" : "utility.expandMessageLinks.stickers",
+        source.stickers.size === 1 ? "_Sticker: {names}_" : "_Stickers: {names}_",
+        { names: stickerNames },
+      ),
+    );
   }
 
   return parts.join("\n");
@@ -47,12 +54,12 @@ function authorName(source: Message): string {
   return display.slice(0, 80);
 }
 
-function buildWebhookPayload(source: Message, requesterId: string): WebhookMessageCreateOptions {
+function buildWebhookPayload(source: Message, requesterId: string, t: Translator): WebhookMessageCreateOptions {
   const files = buildExpandFiles(source);
   return {
     username: authorName(source),
     avatarURL: source.author.displayAvatarURL({ size: 256, extension: "png" }),
-    content: buildExpandContent(source),
+    content: buildExpandContent(source, t),
     embeds: source.embeds.length ? source.embeds.slice(0, 10).map((e) => e.toJSON()) : undefined,
     files: files.length ? files : undefined,
     components: [buildExpandActionsRow(requesterId)],
@@ -61,11 +68,11 @@ function buildWebhookPayload(source: Message, requesterId: string): WebhookMessa
   };
 }
 
-function buildFallbackPayload(source: Message, requesterId: string): MessageCreateOptions {
+function buildFallbackPayload(source: Message, requesterId: string, t: Translator): MessageCreateOptions {
   const files = buildExpandFiles(source);
   const name = authorName(source);
   return {
-    content: `**${name}**\n${buildExpandContent(source)}`,
+    content: `**${name}**\n${buildExpandContent(source, t)}`,
     embeds: source.embeds.length ? source.embeds.slice(0, 10).map((e) => e.toJSON()) : undefined,
     files: files.length ? files : undefined,
     components: [buildExpandActionsRow(requesterId)],
@@ -128,11 +135,13 @@ export async function handleExpandMessageLinks(message: Message): Promise<void> 
     return;
   }
 
+  const { t } = await translatorFor(message.author.id);
+
   const webhook = await getExpandMessageWebhook(channel);
   if (webhook) {
-    await webhook.send(buildWebhookPayload(source, message.author.id)).catch(() => null);
+    await webhook.send(buildWebhookPayload(source, message.author.id, t)).catch(() => null);
     return;
   }
 
-  await channel.send(buildFallbackPayload(source, message.author.id)).catch(() => null);
+  await channel.send(buildFallbackPayload(source, message.author.id, t)).catch(() => null);
 }

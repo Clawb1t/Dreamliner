@@ -5,6 +5,7 @@
  */
 
 import { getLogger } from "../../../core/logger.js";
+import type { Translator } from "../../../i18n/index.js";
 
 const log = getLogger("utility");
 
@@ -27,18 +28,23 @@ export type DiscofyQuotePayload = {
   mediaUrl?: string;
 };
 
-function apiKey(): string {
+function apiKey(t: Translator): string {
   const key = process.env.DISCOFY_API_KEY?.trim();
   if (!key) {
-    throw new DiscofySubmitError("Discofy integration isn't configured on this bot yet (missing DISCOFY_API_KEY).");
+    throw new DiscofySubmitError(
+      t("utility.discofy.notConfigured", "Discofy integration isn't configured on this bot yet (missing DISCOFY_API_KEY)."),
+    );
   }
   return key;
 }
 
-function requireField(value: string | undefined, field: string, maxLength: number): string {
+function requireField(t: Translator, value: string | undefined, field: string, maxLength: number): string {
   const trimmed = (value ?? "").trim();
-  if (!trimmed) throw new DiscofySubmitError(`${field} is required.`);
-  if (trimmed.length > maxLength) throw new DiscofySubmitError(`${field} must be ${maxLength} characters or fewer.`);
+  if (!trimmed) throw new DiscofySubmitError(t("utility.discofy.fieldRequired", "{field} is required.", { field }));
+  if (trimmed.length > maxLength)
+    throw new DiscofySubmitError(
+      t("utility.discofy.fieldTooLong", "{field} must be {maxLength} characters or fewer.", { field, maxLength }),
+    );
   return trimmed;
 }
 
@@ -47,23 +53,23 @@ function optionalUrl(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function requireDiscordId(value: string | undefined, field: string): string {
+function requireDiscordId(t: Translator, value: string | undefined, field: string): string {
   const trimmed = (value ?? "").trim();
   if (!SNOWFLAKE_RE.test(trimmed)) {
-    throw new DiscofySubmitError(`${field} must be a valid Discord user ID.`);
+    throw new DiscofySubmitError(t("utility.discofy.invalidDiscordId", "{field} must be a valid Discord user ID.", { field }));
   }
   return trimmed;
 }
 
 /** Validates and trims a payload client-side so obviously-bad requests fail fast without a round trip. */
-function normalizePayload(payload: DiscofyQuotePayload): DiscofyQuotePayload {
+function normalizePayload(t: Translator, payload: DiscofyQuotePayload): DiscofyQuotePayload {
   return {
-    content: requireField(payload.content, "content", MAX_CONTENT_LENGTH),
-    quotedByDiscordId: requireDiscordId(payload.quotedByDiscordId, "quotedByDiscordId"),
-    quotedByUsername: requireField(payload.quotedByUsername, "quotedByUsername", MAX_USERNAME_LENGTH),
+    content: requireField(t, payload.content, "content", MAX_CONTENT_LENGTH),
+    quotedByDiscordId: requireDiscordId(t, payload.quotedByDiscordId, "quotedByDiscordId"),
+    quotedByUsername: requireField(t, payload.quotedByUsername, "quotedByUsername", MAX_USERNAME_LENGTH),
     quotedByAvatarUrl: optionalUrl(payload.quotedByAvatarUrl),
-    quoteeDiscordId: requireDiscordId(payload.quoteeDiscordId, "quoteeDiscordId"),
-    quoteeUsername: requireField(payload.quoteeUsername, "quoteeUsername", MAX_USERNAME_LENGTH),
+    quoteeDiscordId: requireDiscordId(t, payload.quoteeDiscordId, "quoteeDiscordId"),
+    quoteeUsername: requireField(t, payload.quoteeUsername, "quoteeUsername", MAX_USERNAME_LENGTH),
     quoteeAvatarUrl: optionalUrl(payload.quoteeAvatarUrl),
     mediaUrl: optionalUrl(payload.mediaUrl),
   };
@@ -83,9 +89,9 @@ function sleep(ms: number): Promise<void> {
  * up to MAX_ATTEMPTS total tries. 400/401/403 are never retried — those mean the request or the
  * key itself needs fixing, not another attempt.
  */
-export async function submitDiscofyQuote(payload: DiscofyQuotePayload): Promise<string> {
-  const body = normalizePayload(payload);
-  const key = apiKey();
+export async function submitDiscofyQuote(payload: DiscofyQuotePayload, t: Translator): Promise<string> {
+  const body = normalizePayload(t, payload);
+  const key = apiKey(t);
 
   let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -106,13 +112,13 @@ export async function submitDiscofyQuote(payload: DiscofyQuotePayload): Promise<
         await sleep(2 ** attempt * 500);
         continue;
       }
-      throw new DiscofySubmitError("Could not reach Discofy after several attempts.");
+      throw new DiscofySubmitError(t("utility.discofy.unreachable", "Could not reach Discofy after several attempts."));
     }
 
     if (res.ok) {
       const data = (await res.json()) as DiscofySuccessBody;
       const url = data.url ?? data.quote?.url;
-      if (!url) throw new DiscofySubmitError("Discofy accepted the quote but returned no URL.");
+      if (!url) throw new DiscofySubmitError(t("utility.discofy.noUrl", "Discofy accepted the quote but returned no URL."));
       return url;
     }
 
@@ -126,7 +132,7 @@ export async function submitDiscofyQuote(payload: DiscofyQuotePayload): Promise<
         await sleep(waitMs);
         continue;
       }
-      throw new DiscofySubmitError("Discofy is rate-limiting this bot right now — try again in a bit.");
+      throw new DiscofySubmitError(t("utility.discofy.rateLimited", "Discofy is rate-limiting this bot right now — try again in a bit."));
     }
 
     if (res.status >= 500) {
@@ -137,19 +143,21 @@ export async function submitDiscofyQuote(payload: DiscofyQuotePayload): Promise<
         await sleep(2 ** attempt * 500);
         continue;
       }
-      throw new DiscofySubmitError("Discofy is having issues right now — try again later.");
+      throw new DiscofySubmitError(t("utility.discofy.serverError", "Discofy is having issues right now — try again later."));
     }
 
     // 400/401/403 and anything else 4xx: not retryable, fix the request/key instead.
     const errBody = (await res.json().catch(() => ({}))) as DiscofyErrorBody;
     log.error(`Discofy rejected the request (${res.status}):`, errBody.error ?? "(no body)");
     if (res.status === 401 || res.status === 403) {
-      throw new DiscofySubmitError("Discofy rejected the bot's API key (missing, invalid, or revoked).");
+      throw new DiscofySubmitError(t("utility.discofy.badApiKey", "Discofy rejected the bot's API key (missing, invalid, or revoked)."));
     }
-    throw new DiscofySubmitError(errBody.error || `Discofy rejected the quote (HTTP ${res.status}).`);
+    throw new DiscofySubmitError(
+      errBody.error || t("utility.discofy.rejected", "Discofy rejected the quote (HTTP {status}).", { status: res.status }),
+    );
   }
 
   throw new DiscofySubmitError(
-    lastError instanceof Error ? lastError.message : "Could not submit the quote to Discofy.",
+    lastError instanceof Error ? lastError.message : t("utility.discofy.submitFailed", "Could not submit the quote to Discofy."),
   );
 }

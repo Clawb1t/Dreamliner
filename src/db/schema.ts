@@ -490,9 +490,16 @@ export const botAvatarRequests = sqliteTable("bot_avatar_requests", {
   resolvedAt: integer("resolved_at", { mode: "timestamp" }),
 });
 
-/** Last-known guild bot bio and applied brand images. */
+/**
+ * Last-known guild bot nickname, bio, and applied brand images — the "draft" the dashboard
+ * edits. Independent of what's actually live on Discord right now: bot_customisation's enabled
+ * toggle decides whether the live per-guild bot profile mirrors this draft or sits at Discord's
+ * default, so these columns stay put across an enable/disable flip either way.
+ */
 export const botGuildProfiles = sqliteTable("bot_guild_profiles", {
   guildId: text("guild_id").primaryKey(),
+  /** Empty string if cleared, null if never stored. */
+  nick: text("nick"),
   bio: text("bio"),
   /** Base64 PNG, empty string if cleared, null if never stored. */
   avatarPng: text("avatar_png"),
@@ -1016,6 +1023,41 @@ export const ttsUserVoices = sqliteTable("tts_user_voices", {
   userId: text("user_id").primaryKey(),
   voice: text("voice").notNull(),
 });
+
+/** Global per-account language preference (not per-guild) — set via /language or the website
+ *  account page. Every reply Dreamliner sends that member is translated into this locale;
+ *  unset means English. See src/i18n/. */
+export const userLocales = sqliteTable("user_locales", {
+  userId: text("user_id").primaryKey(),
+  locale: text("locale").notNull(),
+});
+
+/** Languages Dreamliner can reply in. "en" is a built-in row (English text lives inline in code
+ *  as every t() call's fallback, so it has no dictionary of its own); ja/es/tr are seeded
+ *  built-ins with a starter dictionary; anything else is a language a platform superuser created
+ *  from the dashboard. See src/i18n/registry.ts. */
+export const botLanguages = sqliteTable("bot_languages", {
+  code: text("code").primaryKey(),
+  name: text("name").notNull(),
+  flag: text("flag").notNull().default(""),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  builtIn: integer("built_in", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+/** The dictionary: one row per (locale, key) -> translated string. Superuser-editable from the
+ *  dashboard (Platform > Languages). A key missing here just falls back to the English text
+ *  supplied inline at its t() call site — see src/i18n/catalog.ts. */
+export const botTranslations = sqliteTable(
+  "bot_translations",
+  {
+    locale: text("locale").notNull(),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.locale, table.key] })],
+);
 
 /** Per-guild block list — a blacklisted user's messages are never spoken and /tts voice is denied. */
 export const ttsBlacklist = sqliteTable(

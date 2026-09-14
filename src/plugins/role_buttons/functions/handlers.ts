@@ -10,6 +10,7 @@ import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { safeToggleRole } from "../../../core/roles.js";
 import { parseRoleButtonCustomId, roleButtonCustomId } from "../customIds.js";
 import { getRoleButtonPanel, listRoleButtonsForMessage } from "./store.js";
+import { translatorFor } from "../../../i18n/index.js";
 
 function parseButtonStyle(style: string) {
   switch (style) {
@@ -53,15 +54,22 @@ export async function handleRoleButtonInteraction(interaction: ButtonInteraction
   const parsed = parseRoleButtonCustomId(interaction.customId);
   if (!parsed) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply({ content: "Server only.", ephemeral: true });
+    await interaction.reply({ content: t("role_buttons.serverOnly", "Server only."), ephemeral: true });
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "role_buttons")) {
     await interaction.reply(
-      resultReply("Disabled", "Role buttons are disabled.", true, guildResultOptions(interaction.client, guildConfig, { tone: "unchecked" })),
+      resultReply(
+        t("role_buttons.disabled.title", "Disabled"),
+        t("role_buttons.disabled.description", "Role buttons are disabled."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "unchecked" }),
+      ),
     );
     return true;
   }
@@ -69,7 +77,12 @@ export async function handleRoleButtonInteraction(interaction: ButtonInteraction
   const panel = await getRoleButtonPanel(interaction.guildId, parsed.messageId, parsed.roleId);
   if (!panel) {
     await interaction.reply(
-      resultReply("Unknown button", "This role button is no longer configured.", true, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
+      resultReply(
+        t("role_buttons.unknownButton.title", "Unknown button"),
+        t("role_buttons.unknownButton.description", "This role button is no longer configured."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
+      ),
     );
     return true;
   }
@@ -77,7 +90,12 @@ export async function handleRoleButtonInteraction(interaction: ButtonInteraction
   const member = interaction.member;
   if (!member || typeof member === "string") {
     await interaction.reply(
-      resultReply("Member error", "Could not resolve member.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(
+        t("role_buttons.memberError.title", "Member error"),
+        t("role_buttons.memberError.description", "Could not resolve member."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
     );
     return true;
   }
@@ -85,17 +103,20 @@ export async function handleRoleButtonInteraction(interaction: ButtonInteraction
   const result = await safeToggleRole(member as import("discord.js").GuildMember, panel.roleId, "Role button");
   if (!result.ok) {
     await interaction.reply(
-      resultReply("Could not update role", result.reason, true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(t("role_buttons.updateFailed.title", "Could not update role"), result.reason, true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
     return true;
   }
 
   const role = interaction.guild!.roles.cache.get(panel.roleId);
-  const action = result.added ? "Added" : "Removed";
+  const roleMention = role ? `${role}` : t("role_buttons.roleUpdated.fallbackRole", "role");
+  const description = result.added
+    ? t("role_buttons.roleUpdated.added", "Added {role}.", { role: roleMention })
+    : t("role_buttons.roleUpdated.removed", "Removed {role}.", { role: roleMention });
   await interaction.reply(
     resultReply(
-      "Role updated",
-      `${action} ${role ?? "role"}.`,
+      t("role_buttons.roleUpdated.title", "Role updated"),
+      description,
       true,
       guildResultOptions(interaction.client, guildConfig, {
         emoji: result.added ? "<:icons_on:1544417570818629753>" : "<:icons_off:1544417567777628201>",

@@ -21,8 +21,8 @@ export const socialCommands: SlashCommandDefinition[] = [
       if (!rows.length) {
         await ctx.interaction.reply(
           resultReply(
-            "Social notifications",
-            "No social notifications configured yet.",
+            ctx.t("social.title", "Social notifications"),
+            ctx.t("social.noneConfigured", "No social notifications configured yet."),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_youtube:1544417751022567455>" }),
           ),
@@ -31,13 +31,17 @@ export const socialCommands: SlashCommandDefinition[] = [
       }
 
       const lines = rows.map((row) => {
-        const status = row.enabled ? "live" : "disabled";
-        return `**${row.sourceChannelName}** (YouTube) · <#${row.discordChannelId}> · ${status}`;
+        const status = row.enabled ? ctx.t("social.statusLive", "live") : ctx.t("social.statusDisabled", "disabled");
+        return ctx.t("social.watcherLine", "**{name}** (YouTube) · <#{channelId}> · {status}", {
+          name: row.sourceChannelName,
+          channelId: row.discordChannelId,
+          status,
+        });
       });
 
       const embed = setEmbedAuthor(
         baseEmbed(),
-        "Social notifications",
+        ctx.t("social.title", "Social notifications"),
         ctx.client,
         commandHeader(ctx.guildConfig, { emoji: "<:icons_youtube:1544417751022567455>" }),
       ).setDescription(trimLines(lines.join("\n")));
@@ -49,7 +53,7 @@ export const socialCommands: SlashCommandDefinition[] = [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
               .setCustomId("dl:social:stat:total")
-              .setLabel(`${rows.length}/${maxWatchers} notifications`)
+              .setLabel(ctx.t("social.watcherCountLabel", "{count}/{max} notifications", { count: rows.length, max: maxWatchers }))
               .setStyle(ButtonStyle.Secondary)
               .setDisabled(true),
           ),

@@ -8,6 +8,7 @@ import {
 import { guildResultOptions, resultReply } from "../../../core/responses.js";
 import { configManager } from "../../../config/manager.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
+import { translatorFor } from "../../../i18n/index.js";
 
 export const EXPAND_DELETE_PREFIX = "utility:expand:del:";
 
@@ -45,10 +46,11 @@ export async function handleExpandDeleteButtonInteraction(interaction: ButtonInt
     !!member && !!interaction.channel && member.permissionsIn(interaction.channel).has(PermissionFlagsBits.ManageMessages);
 
   if (interaction.user.id !== requesterId && !canManageMessages) {
+    const { t } = await translatorFor(interaction.user.id);
     await interaction.reply(
       resultReply(
-        "Not your message",
-        "Only the person who pasted the link or a moderator can delete this.",
+        t("utility.expandDeleteButton.notYourMessageTitle", "Not your message"),
+        t("utility.expandDeleteButton.notYourMessageDesc", "Only the person who pasted the link or a moderator can delete this."),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),

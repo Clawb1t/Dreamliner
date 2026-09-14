@@ -9,6 +9,7 @@ import {
 import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import type { SuggestionsConfig } from "../../../config/schemas/suggestions.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
   DISPLAY_STATUS_LABELS,
   suggestQueueApproveId,
@@ -16,6 +17,11 @@ import {
   suggestVoteId,
 } from "../constants.js";
 import type { Suggestion, VoteTotals } from "./store.js";
+
+/** Translated display-status label — falls back to the English label from constants.ts. */
+export function displayStatusLabel(t: Translator, value: string): string {
+  return t(`suggestions.displayStatus.${value}`, DISPLAY_STATUS_LABELS[value] ?? value);
+}
 
 export async function resolveTextChannel(
   client: Client,
@@ -44,15 +50,16 @@ export function buildSuggestionEmbed(options: {
   config: SuggestionsConfig;
   votes?: VoteTotals;
   titlePrefix?: string;
+  t?: Translator;
 }) {
-  const { client, suggestion, config, votes, titlePrefix } = options;
-  const authorLabel = suggestion.anonymous ? "Anonymous" : `<@${suggestion.authorId}>`;
+  const { client, suggestion, config, votes, titlePrefix, t = defaultTranslator } = options;
+  const authorLabel = suggestion.anonymous ? t("suggestions.anonymous", "Anonymous") : `<@${suggestion.authorId}>`;
   const statusLabel =
     suggestion.status === "awaiting_review"
-      ? "Awaiting review"
+      ? t("suggestions.status.awaitingReview", "Awaiting review")
       : suggestion.status === "denied"
-        ? "Denied"
-        : DISPLAY_STATUS_LABELS[suggestion.displayStatus] ?? "Approved";
+        ? t("suggestions.status.denied", "Denied")
+        : displayStatusLabel(t, suggestion.displayStatus);
 
   let tone: "success" | "warning" | "error" | "neutral" = "neutral";
   if (suggestion.status === "denied") {
@@ -72,15 +79,19 @@ export function buildSuggestionEmbed(options: {
 
   const embed = setEmbedAuthor(
     baseEmbed(),
-    `${titlePrefix ?? "Suggestion"} #${suggestion.suggestionNumber}`,
+    `${titlePrefix ?? t("suggestions.embedTitle", "Suggestion")} #${suggestion.suggestionNumber}`,
     client,
     { tone },
   )
     .setDescription(suggestion.content)
     .addFields(
-      embedField("Author", authorLabel, true),
-      embedField("Status", statusLabel, true),
-      embedField("Submitted", `<t:${Math.floor(suggestion.createdAt.getTime() / 1000)}:R>`, true),
+      embedField(t("suggestions.field.author", "Author"), authorLabel, true),
+      embedField(t("suggestions.field.status", "Status"), statusLabel, true),
+      embedField(
+        t("suggestions.field.submitted", "Submitted"),
+        `<t:${Math.floor(suggestion.createdAt.getTime() / 1000)}:R>`,
+        true,
+      ),
     );
 
   if (suggestion.attachmentUrl) {
@@ -88,27 +99,29 @@ export function buildSuggestionEmbed(options: {
   }
 
   if (suggestion.denialReason) {
-    embed.addFields(embedField("Reason", suggestion.denialReason));
+    embed.addFields(embedField(t("suggestions.field.reason", "Reason"), suggestion.denialReason));
   }
 
   if (suggestion.anonymous) {
-    embed.setFooter({ text: `ID ${suggestion.id} · Anonymous submission` });
+    embed.setFooter({
+      text: t("suggestions.footer.anonymous", "ID {id} · Anonymous submission", { id: suggestion.id }),
+    });
   } else {
-    embed.setFooter({ text: `ID ${suggestion.id}` });
+    embed.setFooter({ text: t("suggestions.footer.id", "ID {id}", { id: suggestion.id }) });
   }
 
   return embed;
 }
 
-export function queueActionRow(suggestionId: number): ActionRowBuilder<ButtonBuilder> {
+export function queueActionRow(suggestionId: number, t: Translator = defaultTranslator): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(suggestQueueApproveId(suggestionId))
-      .setLabel("Approve")
+      .setLabel(t("suggestions.button.approve", "Approve"))
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(suggestQueueDenyId(suggestionId))
-      .setLabel("Deny")
+      .setLabel(t("suggestions.button.deny", "Deny"))
       .setStyle(ButtonStyle.Secondary),
   );
 }
@@ -159,16 +172,16 @@ export function voteActionRow(
   return new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
 }
 
-export function disabledQueueRow(): ActionRowBuilder<ButtonBuilder> {
+export function disabledQueueRow(t: Translator = defaultTranslator): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("dl:suggest:done:a")
-      .setLabel("Approved")
+      .setLabel(t("suggestions.status.approved", "Approved"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
     new ButtonBuilder()
       .setCustomId("dl:suggest:done:d")
-      .setLabel("Denied")
+      .setLabel(t("suggestions.status.denied", "Denied"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
   );

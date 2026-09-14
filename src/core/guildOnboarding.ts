@@ -4,21 +4,11 @@ import {
   ComponentType,
   MessageFlags,
   PermissionFlagsBits,
-  type Client,
   type Guild,
   type GuildTextBasedChannel,
   type MessageCreateOptions,
 } from "discord.js";
-import {
-  SUPPORT_URL,
-  docsPageUrl,
-  getGlobalLeaderboardUrl,
-  getGlobalStatsUrl,
-  getGuildDashboardUrl,
-  getGuildStatsDashboardUrl,
-  getInviteUrl,
-} from "./docsUrl.js";
-import { publicLeaderboardUrl } from "./publicLeaderboard.js";
+import { SUPPORT_URL, getGuildDashboardUrl } from "./docsUrl.js";
 import { getLogger } from "./logger.js";
 const log = getLogger("core");
 
@@ -61,23 +51,6 @@ export async function findFirstSpeakableChannel(
   return candidates[0] ?? null;
 }
 
-async function commandMention(
-  client: Client,
-  name: string,
-  subcommand?: string,
-): Promise<string> {
-  try {
-    const commands = await client.application?.commands.fetch();
-    const cmd = commands?.find((entry) => entry.name === name);
-    if (!cmd) {
-      return subcommand ? `\`/${name} ${subcommand}\`` : `\`/${name}\``;
-    }
-    return subcommand ? `</${name} ${subcommand}:${cmd.id}>` : `</${name}:${cmd.id}>`;
-  } catch {
-    return subcommand ? `\`/${name} ${subcommand}\`` : `\`/${name}\``;
-  }
-}
-
 function linkButton(label: string, url: string) {
   return {
     type: ComponentType.Button as const,
@@ -88,63 +61,20 @@ function linkButton(label: string, url: string) {
 }
 
 /** Components V2 onboarding message for newly added guilds. */
-export async function buildGuildOnboardingPayload(
-  client: Client,
-  guild: Guild,
-): Promise<MessageCreateOptions> {
+export async function buildGuildOnboardingPayload(guild: Guild): Promise<MessageCreateOptions> {
   const guildId = guild.id;
   const dashboardUrl = getGuildDashboardUrl(guildId);
-  const statsDashUrl = getGuildStatsDashboardUrl(guildId);
-  const publicLb = publicLeaderboardUrl(guildId);
 
-  const [statsServer, configCommand, about] = await Promise.all([
-    commandMention(client, "stats", "server"),
-    commandMention(client, "config"),
-    commandMention(client, "about"),
-  ]);
+  const heading = "✈️ Welcome to Dreamliner";
+  const description = [
+    "Dreamliner is a moderation and utility bot with a web dashboard for easy configuration.",
+    "Configure roles, channels, automod, tags, stats, and more from your server dashboard.",
+  ].join(" ");
 
-  const heading = "# Welcome to Dreamliner";
-  const intro = [
-    `Thanks for adding **Dreamliner** to **${guild.name}**.`,
-    "",
-    "Dreamliner is a moderation and utility bot configured from a web dashboard. Channels, roles, welcomer, tags, stats, automod, and more are all set up there.",
-  ].join("\n");
-
-  const dashboardSection = [
-    "## Dashboard first",
-    "Open the **server dashboard** (button below), sign in with Discord, pick this server, then configure plugins and save. Changes apply immediately.",
-    "",
-    `Prefer Discord? Start with ${configCommand}, or ${about} for website and docs.`,
-  ].join("\n");
-
-  const statsSection = [
-    "## Stats and leaderboards",
-    `Use ${statsServer} for interactive charts in Discord, or open **Server stats** below.`,
-    publicLb
-      ? "Share this server's public messager leaderboard with the button below."
-      : "Browse global stats and the global leaderboard with the buttons below.",
-  ].join("\n");
-
-  const helpSection = [
-    "## Help",
-    `Need more? Use **Docs** and **Support** below, or invite Dreamliner again: ${getInviteUrl()}`,
-  ].join("\n");
-
-  const row1 = [
-    linkButton("Open dashboard", dashboardUrl),
-    linkButton("Server stats", statsDashUrl),
-    linkButton("Docs", docsPageUrl("getting-started")),
-  ];
-  const row2 = [
-    linkButton("Global stats", getGlobalStatsUrl()),
-    linkButton("Global leaderboard", getGlobalLeaderboardUrl()),
+  const buttons = [
+    linkButton("Dashboard", dashboardUrl),
     linkButton("Support", SUPPORT_URL),
   ];
-  if (publicLb) {
-    row2.unshift(linkButton("Public leaderboard", publicLb));
-    // Keep max 5 buttons per row.
-    while (row2.length > 5) row2.pop();
-  }
 
   return {
     flags: MessageFlags.IsComponentsV2,
@@ -153,13 +83,8 @@ export async function buildGuildOnboardingPayload(
         type: ComponentType.Container,
         components: [
           { type: ComponentType.TextDisplay, content: heading },
-          { type: ComponentType.TextDisplay, content: intro },
-          { type: ComponentType.Separator, divider: true, spacing: 1 },
-          { type: ComponentType.TextDisplay, content: dashboardSection },
-          { type: ComponentType.TextDisplay, content: statsSection },
-          { type: ComponentType.TextDisplay, content: helpSection },
-          { type: ComponentType.ActionRow, components: row1 },
-          { type: ComponentType.ActionRow, components: row2 },
+          { type: ComponentType.TextDisplay, content: description },
+          { type: ComponentType.ActionRow, components: buttons },
         ],
       },
     ],
@@ -167,10 +92,10 @@ export async function buildGuildOnboardingPayload(
   } as MessageCreateOptions;
 }
 
-export async function sendGuildOnboardingMessage(client: Client, guild: Guild): Promise<void> {
+export async function sendGuildOnboardingMessage(guild: Guild): Promise<void> {
   const channel = await findFirstSpeakableChannel(guild);
   if (!channel) return;
-  const payload = await buildGuildOnboardingPayload(client, guild);
+  const payload = await buildGuildOnboardingPayload(guild);
   await channel.send(payload).catch((error) => {
     log.warn(
       `[onboarding] failed to send welcome in guild ${guild.id}:`,

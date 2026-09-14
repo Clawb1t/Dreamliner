@@ -853,6 +853,13 @@
       },
       {
         "plugin": "utility",
+        "permission": "can_create_emoji",
+        "grantKey": "utility.can_create_emoji",
+        "title": "Create Emoji",
+        "description": "Allow members to use the Create Emoji message context command."
+      },
+      {
+        "plugin": "utility",
         "permission": "can_create_sticker",
         "grantKey": "utility.can_create_sticker",
         "title": "Create Sticker",

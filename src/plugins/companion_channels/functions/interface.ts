@@ -15,6 +15,7 @@ import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { resultReply } from "../../../core/responses.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
+import { translatorFor, type Translator } from "../../../i18n/index.js";
 import {
   claimCompanion,
   ghostCompanion,
@@ -42,18 +43,20 @@ import {
   COMPANION_SETTINGS_ID,
 } from "./panel.js";
 
-const REGIONS = [
-  { label: "Automatic", value: "automatic" },
-  { label: "US East", value: "us-east" },
-  { label: "US West", value: "us-west" },
-  { label: "US Central", value: "us-central" },
-  { label: "Europe", value: "rotterdam" },
-  { label: "Brazil", value: "brazil" },
-  { label: "Singapore", value: "singapore" },
-  { label: "Japan", value: "japan" },
-  { label: "Sydney", value: "sydney" },
-  { label: "India", value: "india" },
-];
+function regionOptions(t: Translator) {
+  return [
+    { label: t("companion_channels.region.automatic", "Automatic"), value: "automatic" },
+    { label: t("companion_channels.region.usEast", "US East"), value: "us-east" },
+    { label: t("companion_channels.region.usWest", "US West"), value: "us-west" },
+    { label: t("companion_channels.region.usCentral", "US Central"), value: "us-central" },
+    { label: t("companion_channels.region.europe", "Europe"), value: "rotterdam" },
+    { label: t("companion_channels.region.brazil", "Brazil"), value: "brazil" },
+    { label: t("companion_channels.region.singapore", "Singapore"), value: "singapore" },
+    { label: t("companion_channels.region.japan", "Japan"), value: "japan" },
+    { label: t("companion_channels.region.sydney", "Sydney"), value: "sydney" },
+    { label: t("companion_channels.region.india", "India"), value: "india" },
+  ];
+}
 
 type InterfaceActor = CompanionActor & { emojis: EmojisConfig };
 
@@ -78,8 +81,9 @@ async function replyResult(
   result: CompanionActionResult,
   publicPing: boolean,
   emojis: EmojisConfig,
+  t: Translator,
 ): Promise<void> {
-  const payload = resultReply("Companion", result.message, !publicPing, {
+  const payload = resultReply(t("companion_channels.title", "Companion"), result.message, !publicPing, {
     client: interaction.client,
     emojis,
     tone: result.ok ? "success" : "error",
@@ -122,11 +126,18 @@ export async function handleCompanionSelectInteraction(interaction: StringSelect
     return false;
   }
 
+  const { t } = await translatorFor(interaction.user.id);
   const actor = await actorFrom(interaction);
   if (!actor) return true;
   const channel = voiceFrom(interaction);
   if (!channel) {
-    await replyResult(interaction, failResult("Use this in the temporary voice channel."), false, actor.emojis);
+    await replyResult(
+      interaction,
+      failResult(t("companion_channels.error.useInVoiceChannel", "Use this in the temporary voice channel.")),
+      false,
+      actor.emojis,
+      t,
+    );
     return true;
   }
 
@@ -134,35 +145,65 @@ export async function handleCompanionSelectInteraction(interaction: StringSelect
   const ping = actor.config.features.interface_ping;
 
   if (interaction.customId === COMPANION_REGION_ID) {
-    await replyResult(interaction, await setCompanionRegion(actor, channel, choice), ping, actor.emojis);
+    await replyResult(interaction, await setCompanionRegion(actor, channel, choice, t), ping, actor.emojis, t);
     return true;
   }
 
   if (choice === "name") {
-    await interaction.showModal(textModal("name", "Rename room", "Channel name", channel.name));
+    await interaction.showModal(
+      textModal(
+        "name",
+        t("companion_channels.modal.rename.title", "Rename room"),
+        t("companion_channels.modal.rename.label", "Channel name"),
+        channel.name,
+      ),
+    );
     return true;
   }
   if (choice === "limit") {
-    await interaction.showModal(textModal("limit", "User limit", "Limit (0 = unlimited)", String(channel.userLimit ?? 0)));
+    await interaction.showModal(
+      textModal(
+        "limit",
+        t("companion_channels.modal.limit.title", "User limit"),
+        t("companion_channels.modal.limit.label", "Limit (0 = unlimited)"),
+        String(channel.userLimit ?? 0),
+      ),
+    );
     return true;
   }
   if (choice === "bitrate") {
     await interaction.showModal(
-      textModal("bitrate", "Bitrate", "Bitrate in kbps (8–384)", String(Math.round((channel.bitrate ?? 64000) / 1000))),
+      textModal(
+        "bitrate",
+        t("companion_channels.modal.bitrate.title", "Bitrate"),
+        t("companion_channels.modal.bitrate.label", "Bitrate in kbps (8–384)"),
+        String(Math.round((channel.bitrate ?? 64000) / 1000)),
+      ),
     );
     return true;
   }
   if (choice === "status") {
-    await interaction.showModal(textModal("status", "Channel status", "Status", "", true));
+    await interaction.showModal(
+      textModal(
+        "status",
+        t("companion_channels.modal.status.title", "Channel status"),
+        t("companion_channels.modal.status.label", "Status"),
+        "",
+        true,
+      ),
+    );
     return true;
   }
   if (choice === "region") {
     await interaction.reply({
       ephemeral: true,
-      content: "Choose a voice region.",
+      content: t("companion_channels.prompt.chooseRegion", "Choose a voice region."),
       components: [
         new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-          new StringSelectMenuBuilder().setCustomId(COMPANION_REGION_ID).setPlaceholder("Voice region").addOptions(REGIONS),
+          new StringSelectMenuBuilder()
+            .setCustomId(COMPANION_REGION_ID)
+            .setPlaceholder(t("companion_channels.select.voiceRegion", "Voice region"))
+            .addOptions(regionOptions(t)),
         ),
       ],
     });
@@ -171,12 +212,15 @@ export async function handleCompanionSelectInteraction(interaction: StringSelect
   if (choice === "permit" || choice === "reject") {
     await interaction.reply({
       ephemeral: true,
-      content: choice === "permit" ? "Choose who to permit." : "Choose who to reject.",
+      content:
+        choice === "permit"
+          ? t("companion_channels.prompt.choosePermit", "Choose who to permit.")
+          : t("companion_channels.prompt.chooseReject", "Choose who to reject."),
       components: [
         new ActionRowBuilder<MentionableSelectMenuBuilder>().addComponents(
           new MentionableSelectMenuBuilder()
             .setCustomId(`${COMPANION_PICK_PREFIX}${choice}`)
-            .setPlaceholder("User or role")
+            .setPlaceholder(t("companion_channels.select.userOrRole", "User or role"))
             .setMinValues(1)
             .setMaxValues(1),
         ),
@@ -187,12 +231,12 @@ export async function handleCompanionSelectInteraction(interaction: StringSelect
   if (choice === "transfer") {
     await interaction.reply({
       ephemeral: true,
-      content: "Choose the new owner.",
+      content: t("companion_channels.prompt.chooseNewOwner", "Choose the new owner."),
       components: [
         new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
           new UserSelectMenuBuilder()
             .setCustomId(`${COMPANION_PICK_PREFIX}${choice}`)
-            .setPlaceholder("Select a member")
+            .setPlaceholder(t("companion_channels.select.member", "Select a member"))
             .setMinValues(1)
             .setMaxValues(1),
         ),
@@ -201,17 +245,17 @@ export async function handleCompanionSelectInteraction(interaction: StringSelect
     return true;
   }
 
-  let result: CompanionActionResult = failResult("Unknown action.");
-  if (choice === "lock") result = await lockCompanion(actor, channel, true);
-  else if (choice === "unlock") result = await lockCompanion(actor, channel, false);
-  else if (choice === "ghost") result = await ghostCompanion(actor, channel, true);
-  else if (choice === "unghost") result = await ghostCompanion(actor, channel, false);
-  else if (choice === "nsfw") result = await toggleCompanionNsfw(actor, channel);
-  else if (choice === "text") result = await toggleCompanionText(actor, channel);
-  else if (choice === "lfm") result = await postLookingForMembers(actor, channel);
-  else if (choice === "claim") result = await claimCompanion(actor, channel);
+  let result: CompanionActionResult = failResult(t("companion_channels.error.unknownAction", "Unknown action."));
+  if (choice === "lock") result = await lockCompanion(actor, channel, true, t);
+  else if (choice === "unlock") result = await lockCompanion(actor, channel, false, t);
+  else if (choice === "ghost") result = await ghostCompanion(actor, channel, true, t);
+  else if (choice === "unghost") result = await ghostCompanion(actor, channel, false, t);
+  else if (choice === "nsfw") result = await toggleCompanionNsfw(actor, channel, t);
+  else if (choice === "text") result = await toggleCompanionText(actor, channel, t);
+  else if (choice === "lfm") result = await postLookingForMembers(actor, channel, t);
+  else if (choice === "claim") result = await claimCompanion(actor, channel, t);
 
-  await replyResult(interaction, result, ping, actor.emojis);
+  await replyResult(interaction, result, ping, actor.emojis, t);
   return true;
 }
 
@@ -219,17 +263,24 @@ export async function handleCompanionEntitySelect(interaction: MessageComponentI
   if (!interaction.isMentionableSelectMenu() && !interaction.isUserSelectMenu()) return false;
   if (!interaction.customId.startsWith(COMPANION_PICK_PREFIX)) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
   const actor = await actorFrom(interaction);
   if (!actor) return true;
   const channel = voiceFrom(interaction);
   if (!channel) {
-    await replyResult(interaction, failResult("Use this in the temporary voice channel."), false, actor.emojis);
+    await replyResult(
+      interaction,
+      failResult(t("companion_channels.error.useInVoiceChannel", "Use this in the temporary voice channel.")),
+      false,
+      actor.emojis,
+      t,
+    );
     return true;
   }
 
   const action = interaction.customId.slice(COMPANION_PICK_PREFIX.length);
   const ping = actor.config.features.interface_ping;
-  let result: CompanionActionResult = failResult("Nothing selected.");
+  let result: CompanionActionResult = failResult(t("companion_channels.error.nothingSelected", "Nothing selected."));
 
   if (interaction.isMentionableSelectMenu()) {
     const user = interaction.users.first();
@@ -239,43 +290,50 @@ export async function handleCompanionEntitySelect(interaction: MessageComponentI
       : null;
     const target = user ?? role;
     if (!target) {
-      await replyResult(interaction, failResult("Pick a user or role."), false, actor.emojis);
+      await replyResult(interaction, failResult(t("companion_channels.error.pickUserOrRole", "Pick a user or role.")), false, actor.emojis, t);
       return true;
     }
-    if (action === "permit") result = await permitTarget(actor, channel, target);
-    if (action === "reject") result = await rejectTarget(actor, channel, target);
+    if (action === "permit") result = await permitTarget(actor, channel, target, t);
+    if (action === "reject") result = await rejectTarget(actor, channel, target, t);
   } else {
     const user = interaction.users.first();
     if (!user) {
-      await replyResult(interaction, failResult("Pick a member."), false, actor.emojis);
+      await replyResult(interaction, failResult(t("companion_channels.error.pickMember", "Pick a member.")), false, actor.emojis, t);
       return true;
     }
-    if (action === "transfer") result = await transferCompanion(actor, channel, user);
+    if (action === "transfer") result = await transferCompanion(actor, channel, user, t);
   }
 
-  await replyResult(interaction, result, ping, actor.emojis);
+  await replyResult(interaction, result, ping, actor.emojis, t);
   return true;
 }
 
 export async function handleCompanionModalSubmit(interaction: ModalSubmitInteraction): Promise<boolean> {
   if (!interaction.customId.startsWith(COMPANION_MODAL_PREFIX)) return false;
+  const { t } = await translatorFor(interaction.user.id);
   const actor = await actorFrom(interaction);
   if (!actor) return true;
   const channel = voiceFrom(interaction);
   if (!channel) {
-    await replyResult(interaction, failResult("Use this in the temporary voice channel."), false, actor.emojis);
+    await replyResult(
+      interaction,
+      failResult(t("companion_channels.error.useInVoiceChannel", "Use this in the temporary voice channel.")),
+      false,
+      actor.emojis,
+      t,
+    );
     return true;
   }
 
   const kind = interaction.customId.slice(COMPANION_MODAL_PREFIX.length);
   const value = interaction.fields.getTextInputValue("value");
   const ping = actor.config.features.interface_ping;
-  let result: CompanionActionResult = failResult("Unknown action.");
-  if (kind === "name") result = await setCompanionName(actor, channel, value);
-  else if (kind === "limit") result = await setCompanionLimit(actor, channel, Number(value) || 0);
-  else if (kind === "bitrate") result = await setCompanionBitrate(actor, channel, Number(value) || 64);
-  else if (kind === "status") result = await setCompanionStatus(actor, channel, value);
-  await replyResult(interaction, result, ping, actor.emojis);
+  let result: CompanionActionResult = failResult(t("companion_channels.error.unknownAction", "Unknown action."));
+  if (kind === "name") result = await setCompanionName(actor, channel, value, t);
+  else if (kind === "limit") result = await setCompanionLimit(actor, channel, Number(value) || 0, t);
+  else if (kind === "bitrate") result = await setCompanionBitrate(actor, channel, Number(value) || 64, t);
+  else if (kind === "status") result = await setCompanionStatus(actor, channel, value, t);
+  await replyResult(interaction, result, ping, actor.emojis, t);
   return true;
 }
 

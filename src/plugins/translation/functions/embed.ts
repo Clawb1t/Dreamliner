@@ -13,14 +13,21 @@ import { baseEmbed, commandHeader, setEmbedAuthor } from "../../../core/embeds.j
 import { containerEdit } from "../../../core/responses.js";
 import { getLanguage } from "../../../core/languages.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
+import type { Translator } from "../../../i18n/index.js";
 
 const DREAMLINER_SITE = "https://dreamliner.site";
-const TRANSLATE_FOOTER = `-# <:dreamlinerlogo:1536010087468892161> Translated with [Dreamliner](<${DREAMLINER_SITE}>)`;
 const AUTO_TRANSLATE_MAX = 1900;
 
-function buildAutoTranslateContent(translated: string): string {
+function translateFooter(t: Translator): string {
+  return t(
+    "translation.footer",
+    `-# <:dreamlinerlogo:1536010087468892161> Translated with [Dreamliner](<${DREAMLINER_SITE}>)`,
+  );
+}
+
+function buildAutoTranslateContent(t: Translator, translated: string): string {
   const body = translated.trim().slice(0, AUTO_TRANSLATE_MAX);
-  return `${body}\n${TRANSLATE_FOOTER}`;
+  return `${body}\n${translateFooter(t)}`;
 }
 
 function clipLabel(text: string, max = 80): string {
@@ -28,12 +35,15 @@ function clipLabel(text: string, max = 80): string {
   return `${text.slice(0, max - 1)}…`;
 }
 
-export function buildTranslationComponents(options: {
-  from: string;
-  to: string;
-  author?: User | null;
-  sourceMessage?: Message | null;
-}): ActionRowBuilder<ButtonBuilder>[] {
+export function buildTranslationComponents(
+  t: Translator,
+  options: {
+    from: string;
+    to: string;
+    author?: User | null;
+    sourceMessage?: Message | null;
+  },
+): ActionRowBuilder<ButtonBuilder>[] {
   const fromLang = getLanguage(options.from);
   const toLang = getLanguage(options.to);
   const row = new ActionRowBuilder<ButtonBuilder>();
@@ -59,7 +69,7 @@ export function buildTranslationComponents(options: {
   if (options.sourceMessage?.url) {
     row.addComponents(
       new ButtonBuilder()
-        .setLabel("Original")
+        .setLabel(t("translation.originalButton", "Original"))
         .setStyle(ButtonStyle.Link)
         .setURL(options.sourceMessage.url),
     );
@@ -71,13 +81,14 @@ export function buildTranslationComponents(options: {
 export function buildTranslationEmbed(
   client: Client,
   guildConfig: GuildConfig,
+  t: Translator,
   options: {
     translated: string;
     from: string;
     to: string;
   },
 ) {
-  return setEmbedAuthor(baseEmbed(), "Translation", client, {
+  return setEmbedAuthor(baseEmbed(), t("translation.embedTitle", "Translation"), client, {
     ...commandHeader(guildConfig),
     tone: "neutral",
     emoji: "<:icons_translate:1544417978261438614>",
@@ -87,6 +98,7 @@ export function buildTranslationEmbed(
 export function buildTranslationPayload(
   client: Client,
   guildConfig: GuildConfig,
+  t: Translator,
   options: {
     translated: string;
     from: string;
@@ -95,35 +107,41 @@ export function buildTranslationPayload(
     sourceMessage?: Message | null;
   },
 ) {
-  const embed = buildTranslationEmbed(client, guildConfig, {
+  const embed = buildTranslationEmbed(client, guildConfig, t, {
     translated: options.translated,
     from: options.from,
     to: options.to,
   });
-  return containerEdit(embed, buildTranslationComponents(options));
+  return containerEdit(embed, buildTranslationComponents(t, options));
 }
 
 /** Fallback bot reply when webhooks are unavailable. */
-export function buildAutoTranslatePayload(options: {
-  translated: string;
-}): MessageCreateOptions {
+export function buildAutoTranslatePayload(
+  t: Translator,
+  options: {
+    translated: string;
+  },
+): MessageCreateOptions {
   return {
-    content: buildAutoTranslateContent(options.translated),
+    content: buildAutoTranslateContent(t, options.translated),
     flags: MessageFlags.SuppressNotifications,
     allowedMentions: { parse: [], repliedUser: false },
   };
 }
 
 /** Webhook payload: Discord author avatar/name + silent plain text. */
-export function buildAutoTranslateWebhookPayload(options: {
-  translated: string;
-  author: User;
-}): WebhookMessageCreateOptions {
+export function buildAutoTranslateWebhookPayload(
+  t: Translator,
+  options: {
+    translated: string;
+    author: User;
+  },
+): WebhookMessageCreateOptions {
   const name = (options.author.displayName || options.author.username).slice(0, 80);
   return {
     username: name,
     avatarURL: options.author.displayAvatarURL({ size: 256, extension: "png" }),
-    content: buildAutoTranslateContent(options.translated),
+    content: buildAutoTranslateContent(t, options.translated),
     flags: MessageFlags.SuppressNotifications,
     allowedMentions: { parse: [] },
   };

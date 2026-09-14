@@ -14,13 +14,14 @@ import {
 import { syncGuildDreamSlashCommands } from "../functions/guildSlash.js";
 import { formatTriggerLabel } from "../functions/run.js";
 import { getLogger } from "../../../core/logger.js";
+import type { Translator } from "../../../i18n/index.js";
 const log = getLogger("dream_commands");
 
-function listStatRow(total: number): ActionRowBuilder<ButtonBuilder> {
+function listStatRow(t: Translator, total: number): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("dl:dreamcmd:stat:total")
-      .setLabel(`${total}/${MAX_DREAM_COMMANDS} commands`)
+      .setLabel(t("dream_commands.statTotal", "{total}/{max} commands", { total, max: MAX_DREAM_COMMANDS }))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
   );
@@ -54,11 +55,18 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         const url = getGuildCommandsDashboardUrl(guildId);
         await ctx.interaction.reply(
           resultReply(
-            "Build a custom command",
-            "Custom commands are built on the dashboard: a name, a description, and a reply, either a message or an embed. Open the dashboard's Commands section for this server to get started.",
+            ctx.t("dream_commands.buildTitle", "Build a custom command"),
+            ctx.t(
+              "dream_commands.buildDescription",
+              "Custom commands are built on the dashboard: a name, a description, and a reply, either a message or an embed. Open the dashboard's Commands section for this server to get started.",
+            ),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_cmd:1544418082867384360>" }),
-            [new ActionRowBuilder<ButtonBuilder>().addComponents(linkButton("Open commands dashboard", url))],
+            [
+              new ActionRowBuilder<ButtonBuilder>().addComponents(
+                linkButton(ctx.t("dream_commands.openDashboardButton", "Open commands dashboard"), url),
+              ),
+            ],
           ),
         );
         return;
@@ -72,7 +80,12 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         const deleted = await deleteDreamCommand(guildId, name);
         if (!deleted) {
           await ctx.interaction.reply(
-            resultReply("Not found", `No command named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(
+              ctx.t("dream_commands.notFoundTitle", "Not found"),
+              ctx.t("dream_commands.notFoundBody", "No command named **{name}**.", { name }),
+              ctx.ephemeral,
+              slashResultOptions(ctx),
+            ),
           );
           return;
         }
@@ -85,8 +98,11 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
 
         await ctx.interaction.reply(
           resultReply(
-            "Command removed",
-            `Removed **${deleted.name}** (\`${formatTriggerLabel(deleted)}\`).`,
+            ctx.t("dream_commands.removedTitle", "Command removed"),
+            ctx.t("dream_commands.removedBody", "Removed **{name}** (`{trigger}`).", {
+              name: deleted.name,
+              trigger: formatTriggerLabel(deleted),
+            }),
             ctx.ephemeral,
             slashResultOptions(ctx),
           ),
@@ -102,7 +118,12 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         const existing = await getDreamCommand(guildId, name);
         if (!existing) {
           await ctx.interaction.reply(
-            resultReply("Not found", `No command named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(
+              ctx.t("dream_commands.notFoundTitle", "Not found"),
+              ctx.t("dream_commands.notFoundBody", "No command named **{name}**.", { name }),
+              ctx.ephemeral,
+              slashResultOptions(ctx),
+            ),
           );
           return;
         }
@@ -118,10 +139,19 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
 
         await ctx.interaction.reply(
           resultReply(
-            updated.enabled ? "Command enabled" : "Command disabled",
             updated.enabled
-              ? `**${updated.name}** (\`${formatTriggerLabel(updated)}\`) is live again.`
-              : `**${updated.name}** is disabled and no longer registered on this server.`,
+              ? ctx.t("dream_commands.enabledTitle", "Command enabled")
+              : ctx.t("dream_commands.disabledTitle", "Command disabled"),
+            updated.enabled
+              ? ctx.t("dream_commands.enabledBody", "**{name}** (`{trigger}`) is live again.", {
+                  name: updated.name,
+                  trigger: formatTriggerLabel(updated),
+                })
+              : ctx.t(
+                  "dream_commands.disabledBody",
+                  "**{name}** is disabled and no longer registered on this server.",
+                  { name: updated.name },
+                ),
             ctx.ephemeral,
             slashResultOptions(ctx, updated.enabled ? { emoji: "<:icons_unlock:1544417749617610852>" } : undefined),
           ),
@@ -136,7 +166,12 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         const rows = await listDreamCommands(guildId);
         if (!rows.length) {
           await ctx.interaction.reply(
-            resultReply("Commands", "No custom commands configured yet.", ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(
+              ctx.t("dream_commands.listTitle", "Commands"),
+              ctx.t("dream_commands.listEmpty", "No custom commands configured yet."),
+              ctx.ephemeral,
+              slashResultOptions(ctx),
+            ),
           );
           return;
         }
@@ -156,21 +191,21 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           .sort((a, b) => a.name.localeCompare(b.name))
           .map((row) => {
             if (!row.enabled) {
-              return `**${row.name}** · disabled`;
+              return ctx.t("dream_commands.listRowDisabled", "**{name}** · disabled", { name: row.name });
             }
             const id = guildSlashIds.get(row.name);
             const trigger = id ? `</${row.name}:${id}>` : `\`/${row.name}\``;
-            return `**${row.name}** · ${trigger}`;
+            return ctx.t("dream_commands.listRowEnabled", "**{name}** · {trigger}", { name: row.name, trigger });
           });
 
         const embed = setEmbedAuthor(
           baseEmbed(),
-          "Commands",
+          ctx.t("dream_commands.listTitle", "Commands"),
           ctx.client,
           commandHeader(ctx.guildConfig, { emoji: "<:icons_list:1544417562325164173>" }),
         ).setDescription(trimLines(lines.join("\n")));
 
-        await ctx.interaction.reply(embedReply(embed, ctx.ephemeral, [listStatRow(rows.length)]));
+        await ctx.interaction.reply(embedReply(embed, ctx.ephemeral, [listStatRow(ctx.t, rows.length)]));
       }
     },
   },

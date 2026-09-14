@@ -18,6 +18,7 @@ import {
 } from "./store.js";
 import { buildReviewEmbed, resolveTextChannel } from "./embeds.js";
 import { getLogger } from "../../../core/logger.js";
+import { translatorFor, type Translator } from "../../../i18n/index.js";
 const log = getLogger("reviews");
 
 type AnyLabelBuilder = {
@@ -57,10 +58,13 @@ const FIELD = {
   content: "dl:review:content",
 } as const;
 
-export function buildReviewModal(options?: { minRating?: number; maxRating?: number; requireText?: boolean }) {
+export function buildReviewModal(
+  t: Translator,
+  options?: { minRating?: number; maxRating?: number; requireText?: boolean },
+) {
   const min = options?.minRating ?? 1;
   const max = options?.maxRating ?? 5;
-  const modal = new ModalBuilder().setCustomId(REVIEW_MODAL_ID).setTitle("Server review");
+  const modal = new ModalBuilder().setCustomId(REVIEW_MODAL_ID).setTitle(t("reviews.modal.title", "Server review"));
 
   const ratingOptions = [];
   for (let i = max; i >= min; i--) {
@@ -68,28 +72,28 @@ export function buildReviewModal(options?: { minRating?: number; maxRating?: num
       .setValue(String(i))
       .setLabel(`${"\u2605".repeat(i)}${"\u2606".repeat(5 - i)} (${i}/5)`)
       .setDefault(i === Math.min(5, max));
-    if (i === 5) option.setDescription("Excellent");
-    if (i === 1) option.setDescription("Poor");
+    if (i === 5) option.setDescription(t("reviews.modal.ratingExcellent", "Excellent"));
+    if (i === 1) option.setDescription(t("reviews.modal.ratingPoor", "Poor"));
     ratingOptions.push(option);
   }
 
   (modal as ModalBuilder & { addLabelComponents: (...args: unknown[]) => ModalBuilder }).addLabelComponents(
     new LabelBuilder()
-      .setLabel("Rating")
-      .setDescription("How would you rate this server?")
+      .setLabel(t("reviews.modal.ratingLabel", "Rating"))
+      .setDescription(t("reviews.modal.ratingDescription", "How would you rate this server?"))
       .setRadioGroupComponent(
         new RadioGroupBuilder().setCustomId(FIELD.rating).setRequired(true).addOptions(...ratingOptions),
       ),
     new LabelBuilder()
-      .setLabel("Feedback")
-      .setDescription("Tell staff what you like or what could improve.")
+      .setLabel(t("reviews.modal.feedbackLabel", "Feedback"))
+      .setDescription(t("reviews.modal.feedbackDescription", "Tell staff what you like or what could improve."))
       .setTextInputComponent(
         new TextInputBuilder()
           .setCustomId(FIELD.content)
           .setStyle(TextInputStyle.Paragraph)
           .setRequired(options?.requireText ?? true)
           .setMaxLength(1000)
-          .setPlaceholder("Your feedback..."),
+          .setPlaceholder(t("reviews.modal.feedbackPlaceholder", "Your feedback...")),
       ),
   );
 
@@ -119,8 +123,12 @@ export async function handleReviewModalSubmit(
   interaction: ModalSubmitInteraction,
   configManager: ConfigManager,
 ): Promise<void> {
+  const { t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.guild || !interaction.member) {
-    await interaction.reply(resultReply("Server only", "Reviews can only be submitted in a server.", true));
+    await interaction.reply(
+      resultReply(t("reviews.serverOnly.title", "Server only"), t("reviews.serverOnly.description", "Reviews can only be submitted in a server."), true),
+    );
     return;
   }
 
@@ -128,7 +136,13 @@ export async function handleReviewModalSubmit(
   const section = guildConfig.plugins.reviews;
   if (section?.enabled === false) {
     await interaction.reply(
-      resultReply("Plugin disabled", "Reviews are disabled for this server.", true, undefined, undefined),
+      resultReply(
+        t("reviews.pluginDisabled.title", "Plugin disabled"),
+        t("reviews.pluginDisabled.description", "Reviews are disabled for this server."),
+        true,
+        undefined,
+        undefined,
+      ),
     );
     return;
   }
@@ -146,7 +160,12 @@ export async function handleReviewModalSubmit(
     ))
   ) {
     await interaction.reply(
-      resultReply("Permission denied", "You do not have permission to submit reviews.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(
+        t("reviews.permissionDenied.title", "Permission denied"),
+        t("reviews.permissionDenied.description", "You do not have permission to submit reviews."),
+        ephemeral,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
     );
     return;
   }
@@ -159,8 +178,8 @@ export async function handleReviewModalSubmit(
   if (existing && !pluginConfig.allow_edit) {
     await interaction.reply(
       resultReply(
-        "Already reviewed",
-        "You have already submitted a review for this server.",
+        t("reviews.alreadyReviewed.title", "Already reviewed"),
+        t("reviews.alreadyReviewed.description", "You have already submitted a review for this server."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig),
       ),
@@ -184,7 +203,7 @@ export async function handleReviewModalSubmit(
   });
   if (!eligibility.ok) {
     await interaction.reply(
-      resultReply("Not eligible", eligibility.message, ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
+      resultReply(t("reviews.notEligible.title", "Not eligible"), eligibility.message, ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
     );
     return;
   }
@@ -194,8 +213,11 @@ export async function handleReviewModalSubmit(
   if (!Number.isFinite(rating) || rating < pluginConfig.min_rating || rating > pluginConfig.max_rating) {
     await interaction.reply(
       resultReply(
-        "Invalid rating",
-        `Choose a rating between ${pluginConfig.min_rating} and ${pluginConfig.max_rating}.`,
+        t("reviews.invalidRating.title", "Invalid rating"),
+        t("reviews.invalidRating.description", "Choose a rating between {min} and {max}.", {
+          min: pluginConfig.min_rating,
+          max: pluginConfig.max_rating,
+        }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -207,8 +229,10 @@ export async function handleReviewModalSubmit(
   if (pluginConfig.require_text && content.length < pluginConfig.min_text_length) {
     await interaction.reply(
       resultReply(
-        "Comment required",
-        `Please write at least ${pluginConfig.min_text_length} characters.`,
+        t("reviews.commentRequired.title", "Comment required"),
+        t("reviews.commentRequired.description", "Please write at least {min} characters.", {
+          min: pluginConfig.min_text_length,
+        }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -218,8 +242,10 @@ export async function handleReviewModalSubmit(
   if (content.length > pluginConfig.max_text_length) {
     await interaction.reply(
       resultReply(
-        "Too long",
-        `Keep your comment under ${pluginConfig.max_text_length} characters.`,
+        t("reviews.tooLong.title", "Too long"),
+        t("reviews.tooLong.description", "Keep your comment under {max} characters.", {
+          max: pluginConfig.max_text_length,
+        }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -240,7 +266,7 @@ export async function handleReviewModalSubmit(
 
   if (!review) {
     await interaction.reply(
-      resultReply("Error", "Could not save your review.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(t("reviews.error.title", "Error"), t("reviews.error.description", "Could not save your review."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
     return;
   }
@@ -252,6 +278,7 @@ export async function handleReviewModalSubmit(
       review,
       authorTag: member.user.tag,
       authorAvatar: member.user.displayAvatarURL({ size: 128 }),
+      t,
     });
 
     try {
@@ -273,10 +300,21 @@ export async function handleReviewModalSubmit(
     }
   }
 
+  const reviewTitle = existing
+    ? t("reviews.submitted.titleUpdated", "Review updated")
+    : t("reviews.submitted.titleSubmitted", "Review submitted");
+  const reviewDescription = channel
+    ? existing
+      ? t("reviews.submitted.descriptionUpdatedPosted", "Thanks! Your review (#{id}) was updated and posted in <#{channelId}>.", { id: review.id, channelId: channel.id })
+      : t("reviews.submitted.descriptionSavedPosted", "Thanks! Your review (#{id}) was saved and posted in <#{channelId}>.", { id: review.id, channelId: channel.id })
+    : existing
+      ? t("reviews.submitted.descriptionUpdated", "Thanks! Your review (#{id}) was updated.", { id: review.id })
+      : t("reviews.submitted.descriptionSaved", "Thanks! Your review (#{id}) was saved.", { id: review.id });
+
   await interaction.reply(
     resultReply(
-      existing ? "Review updated" : "Review submitted",
-      `Thanks! Your review (#${review.id}) was ${existing ? "updated" : "saved"}${channel ? ` and posted in <#${channel.id}>` : ""}.`,
+      reviewTitle,
+      reviewDescription,
       ephemeral,
       guildResultOptions(interaction.client, guildConfig, {
         tone: "success",

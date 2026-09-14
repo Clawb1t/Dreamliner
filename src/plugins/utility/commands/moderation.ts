@@ -147,7 +147,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const payload = buildContextNavPayload(message, channel.id, anchor.id, startOffset, ctx.interaction.user.id);
+      const payload = buildContextNavPayload(message, channel.id, anchor.id, startOffset, ctx.interaction.user.id, ctx.t);
       await ctx.interaction.reply({
         ...payload,
         flags: payload.flags | (ctx.ephemeral ? MessageFlags.Ephemeral : 0),

@@ -22,8 +22,8 @@ export const debugCommands: SlashCommandDefinition[] = [
       if (!isDashboardSuperuser(i.user.id)) {
         await i.reply(
           resultReply(
-            "Permission denied",
-            "This command is restricted to the bot's developers.",
+            ctx.t("debug.permissionDenied.title", "Permission denied"),
+            ctx.t("debug.permissionDenied.description", "This command is restricted to the bot's developers."),
             true,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -36,13 +36,13 @@ export const debugCommands: SlashCommandDefinition[] = [
 
         const app = ctx.client.application;
         if (!app) {
-          await i.editReply(resultEdit("Not ready", "The bot's application isn't available yet — try again in a moment.", slashResultOptions(ctx, { tone: "error" })));
+          await i.editReply(resultEdit(ctx.t("debug.notReady.title", "Not ready"), ctx.t("debug.notReady.description", "The bot's application isn't available yet — try again in a moment."), slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         const emojis = await app.emojis.fetch();
         if (emojis.size === 0) {
-          await i.editReply(resultEdit("No application emojis", "This bot has no application-owned emojis.", slashResultOptions(ctx)));
+          await i.editReply(resultEdit(ctx.t("debug.noAppEmojis.title", "No application emojis"), ctx.t("debug.noAppEmojis.description", "This bot has no application-owned emojis."), slashResultOptions(ctx)));
           return;
         }
 
@@ -50,9 +50,13 @@ export const debugCommands: SlashCommandDefinition[] = [
         const file = new AttachmentBuilder(Buffer.from(lines.join("\n"), "utf-8"), { name: "app-emojis.txt" });
 
         const embed = baseEmbed()
-          .setTitle("Application emojis")
+          .setTitle(ctx.t("debug.appEmojis.title", "Application emojis"))
           .setThumbnail(ctx.client.user?.displayAvatarURL())
-          .setDescription(`Exported **${emojis.size}** application emoji${emojis.size === 1 ? "" : "s"}.`);
+          .setDescription(
+            ctx.t("debug.appEmojis.exported", `Exported **${emojis.size}** application emoji${emojis.size === 1 ? "" : "s"}.`, {
+              count: emojis.size,
+            }),
+          );
         await i.editReply({
           flags: MessageFlags.IsComponentsV2,
           components: [embed.toContainerComponent([fileComponent("app-emojis.txt")])],

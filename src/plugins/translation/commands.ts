@@ -26,10 +26,15 @@ async function resolveMessageTarget(
   ctx: import("../../core/types.js").SlashCommandContext,
   raw: string,
 ): Promise<{ ok: true; message: Message } | { ok: false; title: string; details: string }> {
+  const { t } = ctx;
   const guild = ctx.interaction.guild;
   const guildId = ctx.interaction.guildId;
   if (!guild || !guildId) {
-    return { ok: false, title: "Server only", details: "Use this command in a server." };
+    return {
+      ok: false,
+      title: t("translation.serverOnlyTitle", "Server only"),
+      details: t("translation.serverOnlyDetails", "Use this command in a server."),
+    };
   }
 
   const trimmed = raw.trim();
@@ -40,22 +45,30 @@ async function resolveMessageTarget(
 
   if (link) {
     if (link.guildId !== guildId) {
-      return { ok: false, title: "Wrong server", details: "That message link is from a different server." };
+      return {
+        ok: false,
+        title: t("translation.wrongServerTitle", "Wrong server"),
+        details: t("translation.wrongServerDetails", "That message link is from a different server."),
+      };
     }
     channelId = link.channelId;
     messageId = link.messageId;
   } else if (SNOWFLAKE_RE.test(trimmed)) {
     const current = ctx.interaction.channel;
     if (!current || !current.isTextBased() || !("messages" in current)) {
-      return { ok: false, title: "Channel error", details: "Could not read messages in this channel." };
+      return {
+        ok: false,
+        title: t("translation.channelErrorTitle", "Channel error"),
+        details: t("translation.channelErrorDetails", "Could not read messages in this channel."),
+      };
     }
     channelId = current.id;
     messageId = trimmed;
   } else {
     return {
       ok: false,
-      title: "Invalid message",
-      details: "Provide a message ID or a Discord message link.",
+      title: t("translation.invalidMessageTitle", "Invalid message"),
+      details: t("translation.invalidMessageDetails", "Provide a message ID or a Discord message link."),
     };
   }
 
@@ -68,17 +81,21 @@ async function resolveMessageTarget(
   }
 
   if (!channel || !("messages" in channel)) {
-    return { ok: false, title: "Not found", details: "Could not find that channel in this server." };
+    return {
+      ok: false,
+      title: t("translation.notFoundTitle", "Not found"),
+      details: t("translation.channelNotFoundDetails", "Could not find that channel in this server."),
+    };
   }
 
   const message = await channel.messages.fetch(messageId).catch(() => null);
   if (!message) {
     return {
       ok: false,
-      title: "Not found",
+      title: t("translation.notFoundTitle", "Not found"),
       details: link
-        ? "Could not find that message. Check the link and bot permissions."
-        : "Could not find that message in this channel.",
+        ? t("translation.messageNotFoundLinkDetails", "Could not find that message. Check the link and bot permissions.")
+        : t("translation.messageNotFoundDetails", "Could not find that message in this channel."),
     };
   }
 
@@ -117,8 +134,11 @@ export const translationCommands: SlashCommandDefinition[] = [
       if ((!textOpt && !messageRaw) || (textOpt && messageRaw)) {
         await ctx.interaction.reply(
           resultReply(
-            "Invalid input",
-            "Provide either `text` or `message_id` (ID or message link), not both.",
+            ctx.t("translation.invalidInputTitle", "Invalid input"),
+            ctx.t(
+              "translation.invalidInputDetails",
+              "Provide either `text` or `message_id` (ID or message link), not both.",
+            ),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -147,8 +167,8 @@ export const translationCommands: SlashCommandDefinition[] = [
         if (!sourceText) {
           await ctx.interaction.reply(
             resultReply(
-              "Empty message",
-              "That message has no text to translate.",
+              ctx.t("translation.emptyMessageTitle", "Empty message"),
+              ctx.t("translation.emptyMessageDetails", "That message has no text to translate."),
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "error" }),
             ),
@@ -160,8 +180,8 @@ export const translationCommands: SlashCommandDefinition[] = [
       if (!sourceText) {
         await ctx.interaction.reply(
           resultReply(
-            "Empty text",
-            "Provide some text to translate.",
+            ctx.t("translation.emptyTextTitle", "Empty text"),
+            ctx.t("translation.emptyTextDetails", "Provide some text to translate."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -172,8 +192,8 @@ export const translationCommands: SlashCommandDefinition[] = [
       await ctx.interaction.deferReply({ ephemeral: ctx.ephemeral });
 
       try {
-        const translated = await translateText(sourceText, target, "auto");
-        const payload = buildTranslationPayload(ctx.client, ctx.guildConfig, {
+        const translated = await translateText(sourceText, target, "auto", ctx.t);
+        const payload = buildTranslationPayload(ctx.client, ctx.guildConfig, ctx.t, {
           translated: translated.text,
           from: translated.from,
           to: translated.to,
@@ -184,9 +204,11 @@ export const translationCommands: SlashCommandDefinition[] = [
         await ctx.interaction.editReply(payload);
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Translation failed. Try again in a moment.";
+          error instanceof Error
+            ? error.message
+            : ctx.t("translation.genericFailureDetails", "Translation failed. Try again in a moment.");
         await ctx.interaction.editReply(
-          resultEdit("Translation failed", message, slashResultOptions(ctx, { tone: "error" })),
+          resultEdit(ctx.t("translation.failureTitle", "Translation failed"), message, slashResultOptions(ctx, { tone: "error" })),
         );
       }
     },

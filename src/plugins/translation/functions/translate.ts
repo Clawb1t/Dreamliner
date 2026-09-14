@@ -1,5 +1,6 @@
 import { translate } from "google-translate-api-x";
 import { normalizeLanguageCode } from "../../../core/languages.js";
+import type { Translator } from "../../../i18n/index.js";
 
 export const TRANSLATE_MAX_CHARS = 2000;
 
@@ -45,10 +46,11 @@ export async function translateText(
   text: string,
   to: string,
   from: string | "auto" = "auto",
+  t?: Translator,
 ): Promise<TranslateResult> {
   const input = truncateForTranslate(text);
   if (!input) {
-    throw new Error("Nothing to translate.");
+    throw new Error(t ? t("translation.nothingToTranslate", "Nothing to translate.") : "Nothing to translate.");
   }
 
   const target = normalizeLanguageCode(to);

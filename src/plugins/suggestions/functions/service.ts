@@ -1,6 +1,7 @@
 import type { Client, Guild, GuildMember } from "discord.js";
 import type { SuggestionsConfig, SuggestionDisplayStatus } from "../../../config/schemas/suggestions.js";
 import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
   createSuggestion,
   followSuggestion,
@@ -13,6 +14,7 @@ import {
 import {
   buildSuggestionEmbed,
   disabledQueueRow,
+  displayStatusLabel,
   queueActionRow,
   resolveTextChannel,
   voteActionRow,
@@ -55,8 +57,9 @@ export async function submitSuggestion(options: {
   content: string;
   attachmentUrl?: string | null;
   anonymous: boolean;
+  t?: Translator;
 }): Promise<{ suggestion: Suggestion; error?: string }> {
-  const { client, guild, author, config, content, attachmentUrl, anonymous } = options;
+  const { client, guild, author, config, content, attachmentUrl, anonymous, t = defaultTranslator } = options;
 
   const status = config.mode === "autoapprove" ? "approved" : "awaiting_review";
   let suggestion = await createSuggestion({
@@ -71,15 +74,19 @@ export async function submitSuggestion(options: {
   if (status === "awaiting_review") {
     const channel = await resolveTextChannel(client, config.review_channel_id);
     if (!channel) {
-      return { suggestion, error: "Review channel is not configured or inaccessible." };
+      return {
+        suggestion,
+        error: t("suggestions.error.reviewChannelMissing", "Review channel is not configured or inaccessible."),
+      };
     }
     const embed = buildSuggestionEmbed({
       client,
       suggestion,
       config,
-      titlePrefix: "Review",
+      titlePrefix: t("suggestions.titlePrefix.review", "Review"),
+      t,
     });
-    const payload = containerReply(embed, false, [queueActionRow(suggestion.id)]);
+    const payload = containerReply(embed, false, [queueActionRow(suggestion.id, t)]);
     const msg = await channel.send({
       ...payload,
       components: config.review_ping_role
@@ -95,7 +102,7 @@ export async function submitSuggestion(options: {
     return { suggestion };
   }
 
-  return postToFeed({ client, guild, config, suggestion });
+  return postToFeed({ client, guild, config, suggestion, t });
 }
 
 export async function postToFeed(options: {
@@ -103,18 +110,22 @@ export async function postToFeed(options: {
   guild: Guild;
   config: SuggestionsConfig;
   suggestion: Suggestion;
+  t?: Translator;
 }): Promise<{ suggestion: Suggestion; error?: string }> {
-  const { client, guild, config, suggestion: input } = options;
+  const { client, guild, config, suggestion: input, t = defaultTranslator } = options;
   const channel = await resolveTextChannel(client, config.suggestions_channel_id);
   if (!channel) {
-    return { suggestion: input, error: "Suggestions channel is not configured or inaccessible." };
+    return {
+      suggestion: input,
+      error: t("suggestions.error.suggestionsChannelMissing", "Suggestions channel is not configured or inaccessible."),
+    };
   }
 
   let suggestion =
     (await updateSuggestion(input.id, { status: "approved", staffActorId: input.staffActorId })) ?? input;
 
   const votes = await getVoteTotals(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes });
+  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, t });
   const rows = config.voting_enabled ? [voteActionRow(suggestion.id, config, votes)] : [];
   const feedPayload = containerReply(embed, false, rows);
   const msg = await channel.send({
@@ -137,7 +148,10 @@ export async function postToFeed(options: {
     client,
     suggestion,
     config,
-    `Your suggestion #${suggestion.suggestionNumber} in **${guild.name}** was approved.`,
+    t("suggestions.notify.approved", "Your suggestion #{num} in **{guild}** was approved.", {
+      num: suggestion.suggestionNumber,
+      guild: guild.name,
+    }),
     suggestion.staffActorId ?? undefined,
   );
 
@@ -148,6 +162,7 @@ export async function refreshFeedMessage(
   client: Client,
   config: SuggestionsConfig,
   suggestion: Suggestion,
+  t: Translator = defaultTranslator,
 ): Promise<void> {
   if (!suggestion.feedChannelId || !suggestion.feedMessageId) return;
   const channel = await resolveTextChannel(client, suggestion.feedChannelId);
@@ -155,7 +170,7 @@ export async function refreshFeedMessage(
   const msg = await channel.messages.fetch(suggestion.feedMessageId).catch(() => null);
   if (!msg) return;
   const votes = await getVoteTotals(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes });
+  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, t });
   const components =
     config.voting_enabled && suggestion.status === "approved"
       ? [voteActionRow(suggestion.id, config, votes)]
@@ -169,13 +184,15 @@ export async function approveSuggestion(options: {
   config: SuggestionsConfig;
   suggestionId: number;
   staffId: string;
+  t?: Translator;
 }): Promise<{ suggestion: Suggestion | null; error?: string }> {
+  const { t = defaultTranslator } = options;
   const suggestion = await getSuggestionById(options.suggestionId);
   if (!suggestion || suggestion.guildId !== options.guild.id) {
-    return { suggestion: null, error: "Suggestion not found." };
+    return { suggestion: null, error: t("suggestions.error.notFound", "Suggestion not found.") };
   }
   if (suggestion.status !== "awaiting_review") {
-    return { suggestion, error: "This suggestion is not awaiting review." };
+    return { suggestion, error: t("suggestions.error.notAwaitingReview", "This suggestion is not awaiting review.") };
   }
 
   let updated =
@@ -190,9 +207,10 @@ export async function approveSuggestion(options: {
         client: options.client,
         suggestion: updated,
         config: options.config,
-        titlePrefix: "Approved",
+        titlePrefix: t("suggestions.status.approved", "Approved"),
+        t,
       });
-      await msg.edit(containerEdit(embed, [disabledQueueRow()])).catch(() => null);
+      await msg.edit(containerEdit(embed, [disabledQueueRow(t)])).catch(() => null);
     }
   }
 
@@ -201,6 +219,7 @@ export async function approveSuggestion(options: {
     guild: options.guild,
     config: options.config,
     suggestion: updated,
+    t,
   });
   return posted;
 }
@@ -213,13 +232,15 @@ export async function denySuggestion(options: {
   staffId: string;
   reason?: string | null;
   silent?: boolean;
+  t?: Translator;
 }): Promise<{ suggestion: Suggestion | null; error?: string }> {
+  const { t = defaultTranslator } = options;
   const suggestion = await getSuggestionById(options.suggestionId);
   if (!suggestion || suggestion.guildId !== options.guild.id) {
-    return { suggestion: null, error: "Suggestion not found." };
+    return { suggestion: null, error: t("suggestions.error.notFound", "Suggestion not found.") };
   }
   if (suggestion.status === "denied") {
-    return { suggestion, error: "This suggestion is already denied." };
+    return { suggestion, error: t("suggestions.error.alreadyDenied", "This suggestion is already denied.") };
   }
 
   let updated =
@@ -237,9 +258,10 @@ export async function denySuggestion(options: {
         client: options.client,
         suggestion: updated,
         config: options.config,
-        titlePrefix: "Denied",
+        titlePrefix: t("suggestions.status.denied", "Denied"),
+        t,
       });
-      await msg.edit(containerEdit(embed, [disabledQueueRow()])).catch(() => null);
+      await msg.edit(containerEdit(embed, [disabledQueueRow(t)])).catch(() => null);
     }
   }
 
@@ -258,7 +280,8 @@ export async function denySuggestion(options: {
         client: options.client,
         suggestion: updated,
         config: options.config,
-        titlePrefix: "Denied",
+        titlePrefix: t("suggestions.status.denied", "Denied"),
+        t,
       });
       const msg = await deniedChannel.send(containerReply(embed));
       updated =
@@ -272,9 +295,16 @@ export async function denySuggestion(options: {
       options.client,
       updated,
       options.config,
-      `Your suggestion #${updated.suggestionNumber} in **${options.guild.name}** was denied${
-        options.reason ? `: ${options.reason}` : "."
-      }`,
+      options.reason
+        ? t("suggestions.notify.deniedWithReason", "Your suggestion #{num} in **{guild}** was denied: {reason}", {
+            num: updated.suggestionNumber,
+            guild: options.guild.name,
+            reason: options.reason,
+          })
+        : t("suggestions.notify.denied", "Your suggestion #{num} in **{guild}** was denied.", {
+            num: updated.suggestionNumber,
+            guild: options.guild.name,
+          }),
       options.staffId,
     );
   }
@@ -289,13 +319,15 @@ export async function markSuggestion(options: {
   suggestionId: number;
   staffId: string;
   displayStatus: SuggestionDisplayStatus;
+  t?: Translator;
 }): Promise<{ suggestion: Suggestion | null; error?: string }> {
+  const { t = defaultTranslator } = options;
   const suggestion = await getSuggestionById(options.suggestionId);
   if (!suggestion || suggestion.guildId !== options.guild.id) {
-    return { suggestion: null, error: "Suggestion not found." };
+    return { suggestion: null, error: t("suggestions.error.notFound", "Suggestion not found.") };
   }
   if (suggestion.status !== "approved") {
-    return { suggestion, error: "Only approved suggestions can be marked." };
+    return { suggestion, error: t("suggestions.error.onlyApprovedCanBeMarked", "Only approved suggestions can be marked.") };
   }
 
   let updated =
@@ -315,7 +347,8 @@ export async function markSuggestion(options: {
         suggestion: updated,
         config: options.config,
         votes,
-        titlePrefix: "Implemented",
+        titlePrefix: t("suggestions.titlePrefix.implemented", "Implemented"),
+        t,
       });
       const msg = await archive.send(containerReply(embed));
       updated =
@@ -326,12 +359,16 @@ export async function markSuggestion(options: {
     }
   }
 
-  await refreshFeedMessage(options.client, options.config, updated);
+  await refreshFeedMessage(options.client, options.config, updated, t);
   await notifyWatchers(
     options.client,
     updated,
     options.config,
-    `Suggestion #${updated.suggestionNumber} in **${options.guild.name}** was marked **${options.displayStatus}**.`,
+    t("suggestions.notify.marked", "Suggestion #{num} in **{guild}** was marked **{status}**.", {
+      num: updated.suggestionNumber,
+      guild: options.guild.name,
+      status: displayStatusLabel(t, options.displayStatus),
+    }),
     options.staffId,
   );
 
@@ -345,10 +382,12 @@ export async function deleteSuggestion(options: {
   suggestionId: number;
   staffId: string;
   silent?: boolean;
+  t?: Translator;
 }): Promise<{ suggestion: Suggestion | null; error?: string }> {
+  const { t = defaultTranslator } = options;
   const suggestion = await getSuggestionById(options.suggestionId);
   if (!suggestion || suggestion.guildId !== options.guild.id) {
-    return { suggestion: null, error: "Suggestion not found." };
+    return { suggestion: null, error: t("suggestions.error.notFound", "Suggestion not found.") };
   }
 
   for (const [channelId, messageId] of [
@@ -362,11 +401,12 @@ export async function deleteSuggestion(options: {
     if (msg) await msg.delete().catch(() => null);
   }
 
+  const deletedLabel = t("suggestions.deletedLabel", "Deleted");
   const updated =
     (await updateSuggestion(suggestion.id, {
       status: "denied",
       staffActorId: options.staffId,
-      denialReason: options.silent ? "Deleted" : suggestion.denialReason ?? "Deleted",
+      denialReason: options.silent ? deletedLabel : suggestion.denialReason ?? deletedLabel,
       feedChannelId: null,
       feedMessageId: null,
       reviewMessageId: null,
@@ -377,7 +417,10 @@ export async function deleteSuggestion(options: {
       options.client,
       updated,
       options.config,
-      `Suggestion #${updated.suggestionNumber} in **${options.guild.name}** was deleted.`,
+      t("suggestions.notify.deleted", "Suggestion #{num} in **{guild}** was deleted.", {
+        num: updated.suggestionNumber,
+        guild: options.guild.name,
+      }),
       options.staffId,
     );
   }

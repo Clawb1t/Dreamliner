@@ -80,13 +80,15 @@ export const manageCommands: SlashCommandDefinition[] = [
         const id = ctx.interaction.options.getInteger("id", true);
         const record = await getInfraction(guildId, id);
         if (!record) {
-          await ctx.interaction.reply(resultReply("Infraction", `No infraction #${id} found.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.noInfractionFound", "No infraction #{id} found.", { id }), ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
         const user = await ctx.client.users.fetch(record.userId).catch(() => null);
         const mod = await ctx.client.users.fetch(record.modId).catch(() => null);
         await ctx.interaction.reply(
-          embedReply(buildInfractionEmbed(record, ctx.client, { userTag: user?.tag, modTag: mod?.tag, emojis: ctx.guildConfig.emojis }), ctx.ephemeral),
+          embedReply(buildInfractionEmbed(record, ctx.client, { userTag: user?.tag, modTag: mod?.tag, emojis: ctx.guildConfig.emojis, t: ctx.t }), ctx.ephemeral),
         );
         return;
       }
@@ -97,9 +99,10 @@ export const manageCommands: SlashCommandDefinition[] = [
         const query = ctx.interaction.options.getString("query") ?? "";
         const type = ctx.interaction.options.getString("type") ?? undefined;
         const records = await searchInfractions(guildId, query, 15, type);
-        const title = `Infraction search${query ? `: ${query}` : ""}${type ? ` (${type})` : ""}`;
+        const baseTitle = ctx.t("infraction.infractionSearchTitle", "Infraction search");
+        const title = `${baseTitle}${query ? `: ${query}` : ""}${type ? ` (${type})` : ""}`;
         await ctx.interaction.reply(
-          embedReply(buildInfractionListEmbed(records, title, ctx.client, ctx.guildConfig.emojis), ctx.ephemeral),
+          embedReply(buildInfractionListEmbed(records, title, ctx.client, ctx.guildConfig.emojis, ctx.t), ctx.ephemeral),
         );
         return;
       }
@@ -111,7 +114,9 @@ export const manageCommands: SlashCommandDefinition[] = [
         const reason = ctx.interaction.options.getString("reason", true);
         const record = await getInfraction(guildId, id);
         if (!record) {
-          await ctx.interaction.reply(resultReply("Infraction", `No infraction #${id} found.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.noInfractionFound", "No infraction #{id} found.", { id }), ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
         const reasonUpdateEmoji = "<:icons_pen:1544417369709871224>";
@@ -133,7 +138,14 @@ export const manageCommands: SlashCommandDefinition[] = [
             targetId: record.userId,
           },
         );
-        await ctx.interaction.reply(resultReply("Infraction updated", `Reason for #${id} updated.`, ctx.ephemeral, slashResultOptions(ctx, { emoji: reasonUpdateEmoji })));
+        await ctx.interaction.reply(
+          resultReply(
+            ctx.t("infraction.infractionUpdatedTitle", "Infraction updated"),
+            ctx.t("infraction.reasonUpdated", "Reason for #{id} updated.", { id }),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: reasonUpdateEmoji }),
+          ),
+        );
         return;
       }
 
@@ -144,13 +156,17 @@ export const manageCommands: SlashCommandDefinition[] = [
         const durationStr = ctx.interaction.options.getString("duration", true);
         const durationMs = parseDuration(durationStr);
         if (!durationMs) {
-          await ctx.interaction.reply(resultReply("Invalid duration", "Use formats like `30m`, `2h`, `1d`.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(ctx.t("infraction.invalidDurationTitle", "Invalid duration"), ctx.t("infraction.useDurationFormats", "Use formats like `30m`, `2h`, `1d`."), ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
 
         const record = await getInfraction(guildId, id);
         if (!record) {
-          await ctx.interaction.reply(resultReply("Infraction", `No infraction #${id} found.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.noInfractionFound", "No infraction #{id} found.", { id }), ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
         let newType: InfractionType | undefined;
@@ -189,8 +205,12 @@ export const manageCommands: SlashCommandDefinition[] = [
         );
         await ctx.interaction.reply(
           resultReply(
-            "Infraction updated",
-            `Duration for #${id} set to **${durationStr}** (expires ${formatDurationShort(expiresAt.getTime() - Date.now())}).`,
+            ctx.t("infraction.infractionUpdatedTitle", "Infraction updated"),
+            ctx.t("infraction.durationUpdated", "Duration for #{id} set to **{duration}** (expires {expires}).", {
+              id,
+              duration: durationStr,
+              expires: formatDurationShort(expiresAt.getTime() - Date.now()),
+            }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_clock:1544417185336664114>" }),
           ),
@@ -204,7 +224,9 @@ export const manageCommands: SlashCommandDefinition[] = [
         const id = ctx.interaction.options.getInteger("id", true);
         const record = await getInfraction(guildId, id);
         if (!record) {
-          await ctx.interaction.reply(resultReply("Infraction", `No infraction #${id} found.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.noInfractionFound", "No infraction #{id} found.", { id }), ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
         await deleteInfraction(guildId, id);
@@ -224,7 +246,14 @@ export const manageCommands: SlashCommandDefinition[] = [
             targetId: record.userId,
           },
         );
-        await ctx.interaction.reply(resultReply("Infraction deleted", `Infraction #${id} has been deleted.`, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply(
+            ctx.t("infraction.infractionDeletedTitle", "Infraction deleted"),
+            ctx.t("infraction.infractionDeletedBody", "Infraction #{id} has been deleted.", { id }),
+            ctx.ephemeral,
+            slashResultOptions(ctx),
+          ),
+        );
       }
     },
   },

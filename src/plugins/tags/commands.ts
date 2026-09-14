@@ -62,15 +62,15 @@ export const tagsCommands: SlashCommandDefinition[] = [
 
         const existing = await getTag(guildId, name);
         if (existing) {
-          await ctx.interaction.reply(resultReply("Tag exists", `A tag named **${name}** already exists.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
+          await ctx.interaction.reply(resultReply(ctx.t("tags.existsTitle", "Tag exists"), ctx.t("tags.existsBody", "A tag named **{name}** already exists.", { name }), ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
           return;
         }
 
         await createTag({ guildId, name, content, createdBy: ctx.interaction.user.id });
         await ctx.interaction.reply(
           resultReply(
-            "Tag created",
-            `Created tag **${name}**.`,
+            ctx.t("tags.createdTitle", "Tag created"),
+            ctx.t("tags.createdBody", "Created tag **{name}**.", { name }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_tags:1544418228049158174>" }),
           ),
@@ -86,14 +86,14 @@ export const tagsCommands: SlashCommandDefinition[] = [
         const content = ctx.interaction.options.getString("content", true);
         const updated = await updateTag(guildId, name, content);
         if (!updated) {
-          await ctx.interaction.reply(resultReply("Not found", `No tag named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("tags.notFoundTitle", "Not found"), ctx.t("tags.notFoundBody", "No tag named **{name}**.", { name }), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
 
         await ctx.interaction.reply(
           resultReply(
-            "Tag updated",
-            `Updated tag **${name}**.`,
+            ctx.t("tags.updatedTitle", "Tag updated"),
+            ctx.t("tags.updatedBody", "Updated tag **{name}**.", { name }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_pen:1544417369709871224>" }),
           ),
@@ -108,11 +108,11 @@ export const tagsCommands: SlashCommandDefinition[] = [
         const name = ctx.interaction.options.getString("name", true);
         const deleted = await deleteTag(guildId, name);
         if (!deleted) {
-          await ctx.interaction.reply(resultReply("Not found", `No tag named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("tags.notFoundTitle", "Not found"), ctx.t("tags.notFoundBody", "No tag named **{name}**.", { name }), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
 
-        await ctx.interaction.reply(resultReply("Tag deleted", `Deleted tag **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("tags.deletedTitle", "Tag deleted"), ctx.t("tags.deletedBody", "Deleted tag **{name}**.", { name }), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
@@ -122,13 +122,13 @@ export const tagsCommands: SlashCommandDefinition[] = [
 
         const rows = await listTags(guildId);
         if (rows.length === 0) {
-          await ctx.interaction.reply(resultReply("Tags", "No tags configured.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("tags.listTitle", "Tags"), ctx.t("tags.listEmpty", "No tags configured."), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
 
         const names = rows.map((row) => row.name).sort().join(", ");
         await ctx.interaction.reply(
-          resultReply("Tags", names, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_tags:1544418228049158174>" })),
+          resultReply(ctx.t("tags.listTitle", "Tags"), names, ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_tags:1544418228049158174>" })),
         );
         return;
       }
@@ -140,7 +140,7 @@ export const tagsCommands: SlashCommandDefinition[] = [
         const name = ctx.interaction.options.getString("name", true);
         const tag = await getTag(guildId, name);
         if (!tag) {
-          await ctx.interaction.reply(resultReply("Not found", `No tag named **${name}**.`, ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("tags.notFoundTitle", "Not found"), ctx.t("tags.notFoundBody", "No tag named **{name}**.", { name }), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
 

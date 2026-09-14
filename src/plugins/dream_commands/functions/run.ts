@@ -4,6 +4,7 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { interpolateTokens, type CommandProgram, type CommandTokenKey } from "./program.js";
 import { isReservedCommandName } from "./guildSlash.js";
 import { getDreamCommand, type DreamCommandRow } from "./store.js";
+import { translatorFor } from "../../../i18n/index.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("dream_commands");
 
@@ -75,15 +76,28 @@ export async function handleDreamCommandSlash(
   // Failsafe: never claim a built-in bot command name as a custom command.
   if (isReservedCommandName(command.name)) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "dream_commands")) {
-    await interaction.reply({ content: "Custom commands are disabled in this server.", ephemeral: true }).catch(() => null);
+    await interaction
+      .reply({
+        content: t("dream_commands.disabledInGuild", "Custom commands are disabled in this server."),
+        ephemeral: true,
+      })
+      .catch(() => null);
     return true;
   }
 
   if (rateLimited(interaction.guildId, interaction.user.id)) {
     await interaction
-      .reply({ content: "You're using custom commands too quickly. Try again in a moment.", ephemeral: true })
+      .reply({
+        content: t(
+          "dream_commands.rateLimited",
+          "You're using custom commands too quickly. Try again in a moment.",
+        ),
+        ephemeral: true,
+      })
       .catch(() => null);
     return true;
   }
@@ -105,7 +119,7 @@ export async function handleDreamCommandSlash(
     );
   } catch (error) {
     log.error(`[dream_commands] slash /${command.name} error:`, error);
-    const text = "Custom command failed to run.";
+    const text = t("dream_commands.runFailed", "Custom command failed to run.");
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: text }).catch(() => null);
     } else {

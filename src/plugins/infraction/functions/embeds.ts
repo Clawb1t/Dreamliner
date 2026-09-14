@@ -3,20 +3,36 @@ import type { EmojisConfig } from "../../../config/schemas/guild.js";
 import { baseEmbed, embedField, setEmbedAuthor, trimLines, type ResultContainer } from "../../../core/embeds.js";
 import { discordTimestampBoth } from "../../../core/datetime.js";
 import { formatDurationShort } from "./duration.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
-const TYPE_LABELS: Record<string, string> = {
-  warn: "Warning",
-  note: "Note",
-  mute: "Mute",
-  tempmute: "Temp Mute",
-  unmute: "Unmute",
-  kick: "Kick",
-  ban: "Ban",
-  tempban: "Temp Ban",
-  unban: "Unban",
-  softban: "Softban",
-  clean: "Clean",
-};
+function typeLabel(type: string, t: Translator): string {
+  switch (type) {
+    case "warn":
+      return t("infraction.typeLabelWarn", "Warning");
+    case "note":
+      return t("infraction.typeLabelNote", "Note");
+    case "mute":
+      return t("infraction.typeLabelMute", "Mute");
+    case "tempmute":
+      return t("infraction.typeLabelTempMute", "Temp Mute");
+    case "unmute":
+      return t("infraction.typeLabelUnmute", "Unmute");
+    case "kick":
+      return t("infraction.typeLabelKick", "Kick");
+    case "ban":
+      return t("infraction.typeLabelBan", "Ban");
+    case "tempban":
+      return t("infraction.typeLabelTempBan", "Temp Ban");
+    case "unban":
+      return t("infraction.typeLabelUnban", "Unban");
+    case "softban":
+      return t("infraction.typeLabelSoftban", "Softban");
+    case "clean":
+      return t("infraction.typeLabelClean", "Clean");
+    default:
+      return type;
+  }
+}
 
 export type InfractionRecord = {
   id: number;
@@ -38,9 +54,10 @@ export function buildInfractionEmbed(
     modTag?: string;
     title?: string;
     emojis?: EmojisConfig;
+    t?: Translator;
   } = {},
 ): ResultContainer {
-  const label = TYPE_LABELS[record.type] ?? record.type;
+  const label = typeLabel(record.type, options.t ?? defaultTranslator);
   const embed = baseEmbed();
   setEmbedAuthor(embed, options.title ?? `Infraction #${record.id}`, client, {
     tone: "neutral",
@@ -65,6 +82,7 @@ export function buildInfractionListEmbed(
   title: string,
   client: Client,
   emojis?: EmojisConfig,
+  t: Translator = defaultTranslator,
 ): ResultContainer {
   const embed = setEmbedAuthor(baseEmbed(), title, client, { tone: "neutral", emojis });
   if (records.length === 0) {
@@ -73,7 +91,7 @@ export function buildInfractionListEmbed(
   }
 
   const lines = records.map((r) => {
-    const label = TYPE_LABELS[r.type] ?? r.type;
+    const label = typeLabel(r.type, t);
     const active = r.active ? "" : " (inactive)";
     const expires = r.expiresAt ? ` (expires ${formatDurationShort(r.expiresAt.getTime() - Date.now())})` : "";
     return `#${r.id} **${label}**${active} <@${r.userId}> - ${r.reason?.slice(0, 60) ?? "No reason"}${expires}`;

@@ -593,10 +593,218 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const dataExportMatch = /^\/bridge\/users\/(\d+)\/data\/export$/.exec(url.pathname);
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
+        const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
 
         if (req.method === "GET" && url.pathname === "/bridge/tts/voices") {
           const { listTtsVoicesForWeb } = await import("./webTts.js");
           sendJson(res, 200, { ok: true, voices: await listTtsVoicesForWeb() });
+          return;
+        }
+
+        if (req.method === "GET" && url.pathname === "/bridge/languages") {
+          const { listLanguagesForWeb } = await import("./webLanguage.js");
+          sendJson(res, 200, { ok: true, languages: listLanguagesForWeb() });
+          return;
+        }
+
+        if (languageMatch && req.method === "GET") {
+          const { getLanguageForWeb } = await import("./webLanguage.js");
+          sendJson(res, 200, { ok: true, ...(await getLanguageForWeb(languageMatch[1]!)) });
+          return;
+        }
+
+        if (languageMatch && req.method === "PUT") {
+          let body: { locale?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (typeof body.locale !== "string" || !body.locale.trim()) {
+            sendJson(res, 400, { error: "locale is required." });
+            return;
+          }
+          const { setLanguageForWeb } = await import("./webLanguage.js");
+          const result = await setLanguageForWeb(languageMatch[1]!, body.locale.trim());
+          if (!result.ok) {
+            sendJson(res, 400, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        // --- Platform superuser: language + dictionary management ------------------------------
+
+        if (url.pathname === "/bridge/platform/languages") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listAllLanguagesForWeb } = await import("./webLanguage.js");
+            sendJson(res, 200, { ok: true, languages: await listAllLanguagesForWeb() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: { userId?: string; code?: unknown; name?: unknown; flag?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            if (typeof body.code !== "string" || typeof body.name !== "string") {
+              sendJson(res, 400, { error: "code and name are required." });
+              return;
+            }
+            const { createLanguageForWeb } = await import("./webLanguage.js");
+            const result = await createLanguageForWeb(body.code, body.name, typeof body.flag === "string" ? body.flag : "");
+            if (!result.ok) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true, language: result.language });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformLanguageMatch = /^\/bridge\/platform\/languages\/([a-z0-9-]+)$/.exec(url.pathname);
+        if (platformLanguageMatch && (req.method === "PATCH" || req.method === "DELETE")) {
+          let body: { userId?: string; name?: unknown; flag?: unknown; enabled?: unknown };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const code = platformLanguageMatch[1]!;
+
+          if (req.method === "DELETE") {
+            const { deleteLanguageForWeb } = await import("./webLanguage.js");
+            const result = await deleteLanguageForWeb(code);
+            if (!result.ok) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          const { updateLanguageForWeb } = await import("./webLanguage.js");
+          const result = await updateLanguageForWeb(code, {
+            ...(typeof body.name === "string" ? { name: body.name } : {}),
+            ...(typeof body.flag === "string" ? { flag: body.flag } : {}),
+            ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
+          });
+          if (!result.ok) {
+            sendJson(res, 400, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        const platformTranslationsMatch = /^\/bridge\/platform\/languages\/([a-z0-9-]+)\/translations$/.exec(url.pathname);
+        if (platformTranslationsMatch) {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listTranslationsForWeb } = await import("./webLanguage.js");
+            sendJson(res, 200, { ok: true, entries: await listTranslationsForWeb(platformTranslationsMatch[1]!) });
+            return;
+          }
+          if (req.method === "PUT") {
+            let body: { userId?: string; key?: unknown; value?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            if (typeof body.key !== "string" || typeof body.value !== "string") {
+              sendJson(res, 400, { error: "key and value are required." });
+              return;
+            }
+            const { setTranslationForWeb } = await import("./webLanguage.js");
+            const result = await setTranslationForWeb(platformTranslationsMatch[1]!, body.key, body.value);
+            if (!result.ok) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformTranslationMatch = /^\/bridge\/platform\/languages\/([a-z0-9-]+)\/translations\/(.+)$/.exec(url.pathname);
+        if (platformTranslationMatch && req.method === "DELETE") {
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId || !isDashboardSuperuser(requesterId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { deleteTranslationForWeb } = await import("./webLanguage.js");
+          await deleteTranslationForWeb(platformTranslationMatch[1]!, decodeURIComponent(platformTranslationMatch[2]!));
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        const platformTranslateAllMatch = /^\/bridge\/platform\/languages\/([a-z0-9-]+)\/translate-all$/.exec(url.pathname);
+        if (platformTranslateAllMatch && req.method === "GET") {
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId || !isDashboardSuperuser(requesterId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { getBulkTranslateStatusForWeb } = await import("./webLanguage.js");
+          sendJson(res, 200, { ok: true, status: getBulkTranslateStatusForWeb(platformTranslateAllMatch[1]!) });
+          return;
+        }
+        if (platformTranslateAllMatch && req.method === "POST") {
+          let body: { userId?: string };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { startBulkTranslateForWeb } = await import("./webLanguage.js");
+          const result = startBulkTranslateForWeb(platformTranslateAllMatch[1]!);
+          if (!result.ok) {
+            sendJson(res, 400, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
           return;
         }
 
@@ -1684,7 +1892,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const botProfileActionMatch =
-          /^\/bridge\/guilds\/(\d+)\/bot-profile(?:\/(avatar|banner|nickname|bio|display-name-style))?$/.exec(url.pathname);
+          /^\/bridge\/guilds\/(\d+)\/bot-profile(?:\/(avatar|banner|nickname|bio|display-name-style|enabled))?$/.exec(url.pathname);
         const automodPresetMatch = /^\/bridge\/guilds\/(\d+)\/automod\/presets\/(light|standard|strict)$/.exec(
           url.pathname,
         );
@@ -2300,6 +2508,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             getBridgeBotProfile,
             getBridgeLiveBrandImage,
             setBridgeBotBio,
+            setBridgeBotCustomisationEnabled,
             setBridgeBotDisplayNameStyle,
             setBridgeBotNickname,
             submitBridgeBrandImage,
@@ -2334,7 +2543,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const userId = await requireManage(url.searchParams.get("userId"));
             if (!userId) return;
             const kind = botProfileMediaMatch[2] as "avatar" | "banner";
-            const result = await getBridgeLiveBrandImage(client, configManager, guild, kind);
+            const result = await getBridgeLiveBrandImage(client, guild, kind);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
@@ -2347,7 +2556,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const userId = await requireManage(url.searchParams.get("userId"));
             if (!userId) return;
             const requestId = Number(botProfileRequestImageMatch[2]);
-            const result = await getBridgeBotBrandRequestImage(configManager, guildId, requestId);
+            const result = await getBridgeBotBrandRequestImage(guildId, requestId);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
@@ -2367,7 +2576,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const userId = await requireManage(body.userId);
             if (!userId) return;
             const requestId = Number(botProfileRequestCancelMatch[2]);
-            const result = await cancelBridgeBrandRequest(client, configManager, guildId, requestId, userId);
+            const result = await cancelBridgeBrandRequest(client, guildId, requestId, userId);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
@@ -2425,6 +2634,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
                 ok: true,
                 request: result.request,
                 reviewPosted: result.reviewPosted,
+                applied: result.applied,
               });
               return;
             }
@@ -2577,6 +2787,43 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               ok: true,
               displayNameStyle: result.displayNameStyle,
             });
+            return;
+          }
+
+          if (action === "enabled" && req.method === "PUT") {
+            let body: { userId?: string; enabled?: boolean };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = await requireManage(body.userId);
+            if (!userId) return;
+            if (typeof body.enabled !== "boolean") {
+              sendJson(res, 400, { error: "enabled is required (boolean)" });
+              return;
+            }
+            const result = await setBridgeBotCustomisationEnabled(
+              client,
+              configManager,
+              guild,
+              userId,
+              body.enabled,
+            );
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_bot_brand",
+              title: `Custom Branding ${body.enabled ? "enabled" : "disabled"}`,
+              summary: body.enabled
+                ? "Turned on Custom Branding and applied the saved profile from the dashboard."
+                : "Turned off Custom Branding and reverted to Dreamliner's default profile from the dashboard.",
+              payload: { enabled: body.enabled },
+            });
+            sendJson(res, 200, { ok: true });
             return;
           }
 

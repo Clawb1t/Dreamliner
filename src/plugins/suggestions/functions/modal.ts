@@ -14,31 +14,32 @@ import { checkFeedbackEligibility } from "../../feedback/eligibility.js";
 import { SUGGEST_ANON_MODAL_ID, SUGGEST_MODAL_ID } from "../constants.js";
 import { countOpenApproved, getLastSuggestionAt, isBlocked } from "./store.js";
 import { submitSuggestion } from "./service.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
-export function buildSuggestModal(anonymous: boolean): ModalBuilder {
+export function buildSuggestModal(anonymous: boolean, t: Translator = defaultTranslator): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId(anonymous ? SUGGEST_ANON_MODAL_ID : SUGGEST_MODAL_ID)
-    .setTitle(anonymous ? "Anonymous suggestion" : "Suggestion");
+    .setTitle(anonymous ? t("suggestions.modal.anonymousTitle", "Anonymous suggestion") : t("suggestions.modal.title", "Suggestion"));
 
   modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(
       new TextInputBuilder()
         .setCustomId("dl:suggest:content")
-        .setLabel("Your suggestion")
+        .setLabel(t("suggestions.modal.contentLabel", "Your suggestion"))
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(1)
         .setMaxLength(1000)
-        .setPlaceholder("Describe your idea..."),
+        .setPlaceholder(t("suggestions.modal.contentPlaceholder", "Describe your idea...")),
     ),
     new ActionRowBuilder<TextInputBuilder>().addComponents(
       new TextInputBuilder()
         .setCustomId("dl:suggest:image")
-        .setLabel("Image URL (optional)")
+        .setLabel(t("suggestions.modal.imageLabel", "Image URL (optional)"))
         .setStyle(TextInputStyle.Short)
         .setRequired(false)
         .setMaxLength(500)
-        .setPlaceholder("https://..."),
+        .setPlaceholder(t("suggestions.modal.imagePlaceholder", "https://...")),
     ),
   );
 

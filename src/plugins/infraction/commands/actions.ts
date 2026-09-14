@@ -59,14 +59,21 @@ async function finishAction(
     triggeringType: record.type,
   }).catch((err) => log.error("Escalation error:", err));
 
+  const { translatorFor } = await import("../../../i18n/index.js");
+  const { t: userT } = await translatorFor(user.id);
   const notifyKey = type.replace("temp", "") as keyof InfractionConfig["notify"];
-  const notifyMsg = buildNotifyMessage(pluginConfig, notifyKey in pluginConfig.notify ? notifyKey : "warn", {
-    action: type,
-    guild: ctx.interaction.guild!.name,
-    reason,
-    mod: ctx.interaction.user.tag,
-    expires: record.expiresAt ? formatDurationShort(record.expiresAt.getTime() - Date.now()) : "",
-  });
+  const notifyMsg = buildNotifyMessage(
+    pluginConfig,
+    notifyKey in pluginConfig.notify ? notifyKey : "warn",
+    {
+      action: type,
+      guild: ctx.interaction.guild!.name,
+      reason,
+      mod: ctx.interaction.user.tag,
+      expires: record.expiresAt ? formatDurationShort(record.expiresAt.getTime() - Date.now()) : "",
+    },
+    userT,
+  );
   if (notifyMsg) {
     const sent = await dmUser(user, pluginConfig, notifyKey in pluginConfig.notify ? notifyKey : "warn", notifyMsg);
     if (!sent) {
@@ -94,7 +101,7 @@ async function finishAction(
   const emoji = ACTION_EMOJI[type];
   await ctx.interaction.reply(
     embedReply(
-      buildResultEmbed(`Infraction #${record.id}`, line, slashResultOptions(ctx, emoji ? { emoji } : undefined)),
+      buildResultEmbed(ctx.t("infraction.infractionNumberTitle", "Infraction #{id}", { id: record.id }), line, slashResultOptions(ctx, emoji ? { emoji } : undefined)),
       ctx.ephemeral,
     ),
   );
@@ -114,13 +121,13 @@ export const actionCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
-      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!);
+      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!, ctx.t);
       if (err) {
-        await ctx.interaction.reply(resultReply("Warn", err, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("infraction.warnTitle", "Warn"), err, ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
       const rawReason = ctx.interaction.options.getString("reason");
-      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "warn", rawReason, "Warn")) return;
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "warn", rawReason, ctx.t("infraction.warnTitle", "Warn"))) return;
       const reason = formatReason(rawReason);
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
@@ -175,14 +182,16 @@ export const actionCommands: SlashCommandDefinition[] = [
 
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
-      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!);
+      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!, ctx.t);
       if (err || !target) {
-        await ctx.interaction.reply(resultReply("Mute", err ?? "Member not found.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("infraction.muteTitle", "Mute"), err ?? ctx.t("infraction.memberNotFound", "Member not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
       if (isTimedOut(target) || (await isUserMuted(ctx.interaction.guild!, user.id))) {
-        await ctx.interaction.reply(resultReply("Mute", "That member is already timed out.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
+        await ctx.interaction.reply(
+          resultReply(ctx.t("infraction.muteTitle", "Mute"), ctx.t("infraction.alreadyTimedOut", "That member is already timed out."), ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+        );
         return;
       }
 
@@ -191,10 +200,10 @@ export const actionCommands: SlashCommandDefinition[] = [
       if (!parsedMs) {
         await ctx.interaction.reply(
           resultReply(
-            "Mute",
+            ctx.t("infraction.muteTitle", "Mute"),
             durationStr
-              ? "Invalid duration. Use formats like `30m`, `2h`, `1d`."
-              : "No duration given and no server default is configured.",
+              ? ctx.t("infraction.invalidDuration", "Invalid duration. Use formats like `30m`, `2h`, `1d`.")
+              : ctx.t("infraction.noDurationConfigured", "No duration given and no server default is configured."),
             ctx.ephemeral,
             slashResultOptions(ctx),
           ),
@@ -206,8 +215,8 @@ export const actionCommands: SlashCommandDefinition[] = [
       if (parsedMs > DISCORD_TIMEOUT_MAX_MS) {
         await ctx.interaction.reply(
           resultReply(
-            "Mute",
-            "Discord timeouts cannot exceed **28 days**. Use a shorter duration.",
+            ctx.t("infraction.muteTitle", "Mute"),
+            ctx.t("infraction.timeoutMax28Days", "Discord timeouts cannot exceed **28 days**. Use a shorter duration."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -216,15 +225,15 @@ export const actionCommands: SlashCommandDefinition[] = [
       }
 
       const rawReason = ctx.interaction.options.getString("reason");
-      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "mute", rawReason, "Mute")) return;
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "mute", rawReason, ctx.t("infraction.muteTitle", "Mute"))) return;
       const reason = formatReason(rawReason);
       try {
         await applyTimeout(target, durationMs, reason ?? "Dreamliner mute");
       } catch {
         await ctx.interaction.reply(
           resultReply(
-            "Mute failed",
-            "Could not apply timeout. Check that my role is above theirs and I have **Moderate Members**.",
+            ctx.t("infraction.muteFailedTitle", "Mute failed"),
+            ctx.t("infraction.timeoutApplyFailed", "Could not apply timeout. Check that my role is above theirs and I have **Moderate Members**."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -262,12 +271,14 @@ export const actionCommands: SlashCommandDefinition[] = [
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
       if (!target) {
-        await ctx.interaction.reply(resultReply("Unmute", "Member not found.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("infraction.unmuteTitle", "Unmute"), ctx.t("infraction.memberNotFound", "Member not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
       if (!isTimedOut(target) && !(await isUserMuted(ctx.interaction.guild!, user.id))) {
-        await ctx.interaction.reply(resultReply("Unmute", "That member is not timed out.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(
+          resultReply(ctx.t("infraction.unmuteTitle", "Unmute"), ctx.t("infraction.notTimedOut", "That member is not timed out."), ctx.ephemeral, slashResultOptions(ctx)),
+        );
         return;
       }
 
@@ -277,8 +288,8 @@ export const actionCommands: SlashCommandDefinition[] = [
       } catch {
         await ctx.interaction.reply(
           resultReply(
-            "Unmute failed",
-            "Could not clear timeout. Check that my role is above theirs and I have **Moderate Members**.",
+            ctx.t("infraction.unmuteFailedTitle", "Unmute failed"),
+            ctx.t("infraction.timeoutClearFailed", "Could not clear timeout. Check that my role is above theirs and I have **Moderate Members**."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -314,14 +325,14 @@ export const actionCommands: SlashCommandDefinition[] = [
 
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
-      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!);
+      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!, ctx.t);
       if (err || !target) {
-        await ctx.interaction.reply(resultReply("Kick", err ?? "Member not found.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("infraction.kickTitle", "Kick"), err ?? ctx.t("infraction.memberNotFound", "Member not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
       const rawReason = ctx.interaction.options.getString("reason");
-      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "kick", rawReason, "Kick")) return;
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "kick", rawReason, ctx.t("infraction.kickTitle", "Kick"))) return;
       const reason = formatReason(rawReason);
       await target.kick(reason);
 
@@ -355,15 +366,15 @@ export const actionCommands: SlashCommandDefinition[] = [
 
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
-      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!);
+      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!, ctx.t);
       if (err) {
-        await ctx.interaction.reply(resultReply("Ban", err, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("infraction.banTitle", "Ban"), err, ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
       const deleteDays = ctx.interaction.options.getInteger("delete_days") ?? auth.pluginConfig.ban_delete_message_days;
       const rawReason = ctx.interaction.options.getString("reason");
-      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "ban", rawReason, "Ban")) return;
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "ban", rawReason, ctx.t("infraction.banTitle", "Ban"))) return;
       const reason = formatReason(rawReason);
 
       await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
@@ -401,9 +412,9 @@ export const actionCommands: SlashCommandDefinition[] = [
 
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
-      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!);
+      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!, ctx.t);
       if (err) {
-        await ctx.interaction.reply(resultReply("Tempban", err, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("infraction.tempbanTitle", "Tempban"), err, ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
@@ -412,10 +423,10 @@ export const actionCommands: SlashCommandDefinition[] = [
       if (!durationMs) {
         await ctx.interaction.reply(
           resultReply(
-            "Tempban",
+            ctx.t("infraction.tempbanTitle", "Tempban"),
             durationStr
-              ? "Invalid duration. Use formats like `30m`, `2h`, `1d`."
-              : "No duration given and no server default is configured.",
+              ? ctx.t("infraction.invalidDuration", "Invalid duration. Use formats like `30m`, `2h`, `1d`.")
+              : ctx.t("infraction.noDurationConfigured", "No duration given and no server default is configured."),
             ctx.ephemeral,
             slashResultOptions(ctx),
           ),
@@ -425,7 +436,7 @@ export const actionCommands: SlashCommandDefinition[] = [
 
       const deleteDays = ctx.interaction.options.getInteger("delete_days") ?? auth.pluginConfig.ban_delete_message_days;
       const rawReason = ctx.interaction.options.getString("reason");
-      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "tempban", rawReason, "Tempban")) return;
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "tempban", rawReason, ctx.t("infraction.tempbanTitle", "Tempban"))) return;
       const reason = formatReason(rawReason);
 
       await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
@@ -490,15 +501,15 @@ export const actionCommands: SlashCommandDefinition[] = [
 
       const user = ctx.interaction.options.getUser("user", true);
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
-      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!);
+      const err = canModerateTarget(auth.member, target, user, ctx.interaction.guild!, ctx.t);
       if (err) {
-        await ctx.interaction.reply(resultReply("Softban", err, ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("infraction.softbanTitle", "Softban"), err, ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
       const deleteDays = auth.pluginConfig.softban_delete_message_days;
       const rawReason = ctx.interaction.options.getString("reason");
-      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "softban", rawReason, "Softban")) return;
+      if (await replyIfReasonRequired(ctx, auth.pluginConfig, "softban", rawReason, ctx.t("infraction.softbanTitle", "Softban"))) return;
       const reason = formatReason(rawReason);
       const guild = ctx.interaction.guild!;
 

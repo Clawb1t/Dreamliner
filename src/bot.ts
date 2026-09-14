@@ -13,6 +13,7 @@ import type { ConfigManager } from "./config/manager.js";
 import { loadPlugins } from "./core/pluginLoader.js";
 import { availablePlugins } from "./plugins/availablePlugins.js";
 import { resultReply, guildResultOptions } from "./core/responses.js";
+import { translatorFor } from "./i18n/index.js";
 import {
   getUtilityPluginConfig,
   getInfractionPluginConfig,
@@ -75,6 +76,7 @@ import {
   handleCompanionSelectInteraction,
 } from "./plugins/companion_channels/functions/interface.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
+import { LANGUAGE_SELECT_PREFIX, handleLanguageSelectInteraction } from "./plugins/language/index.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
 import { handleTimeAutocomplete } from "./plugins/utility/functions/time.js";
 import {
@@ -194,7 +196,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     }
 
     const { sendGuildOnboardingMessage } = await import("./core/guildOnboarding.js");
-    await sendGuildOnboardingMessage(client, guild);
+    await sendGuildOnboardingMessage(guild);
   });
 
   client.on(Events.GuildDelete, (guild) => {
@@ -303,6 +305,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === LANGUAGE_SELECT_PREFIX) {
+        const handled = await handleLanguageSelectInteraction(interaction);
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
         const handled = await handleTicketSelectMenuInteraction(interaction);
         if (handled) return;
@@ -381,10 +387,11 @@ async function ensurePluginEnabledForModal(
   }
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, pluginName)) {
+    const { t } = await translatorFor(interaction.user.id);
     await interaction.reply(
       resultReply(
-        "Plugin disabled",
-        `The **${pluginName}** plugin is disabled for this server.`,
+        t("common.pluginDisabledTitle", "Plugin disabled"),
+        t("common.pluginDisabledBody", `The **${pluginName}** plugin is disabled for this server.`, { plugin: pluginName }),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -408,12 +415,13 @@ async function handleContextMenuCommand(
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+  const { locale, t } = await translatorFor(interaction.user.id);
 
   if (command.plugin !== "config" && !pluginEnabled(guildConfig, command.plugin)) {
     await interaction.reply(
       resultReply(
-        "Plugin disabled",
-        `The **${command.plugin}** plugin is disabled for this server.`,
+        t("common.pluginDisabledTitle", "Plugin disabled"),
+        t("common.pluginDisabledBody", `The **${command.plugin}** plugin is disabled for this server.`, { plugin: command.plugin }),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -427,8 +435,8 @@ async function handleContextMenuCommand(
     if (!(member as import("discord.js").GuildMember).permissions.has(PermissionFlagsBits.ManageGuild)) {
       await interaction.reply(
         resultReply(
-          "Permission denied",
-          "You need **Manage Server** to use this command.",
+          t("common.permissionDeniedTitle", "Permission denied"),
+          t("common.needManageServer", "You need **Manage Server** to use this command."),
           true,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
         ),
@@ -442,8 +450,11 @@ async function handleContextMenuCommand(
     if (!hasStoredConfig) {
       await interaction.reply(
         resultReply(
-          "Configuration required",
-          "This server has no configuration yet. Open the dashboard (or run `/config`) to set up Dreamliner, then save.",
+          t("common.configRequiredTitle", "Configuration required"),
+          t(
+            "common.configRequiredBody",
+            "This server has no configuration yet. Open the dashboard (or run `/config`) to set up Dreamliner, then save.",
+          ),
           true,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
           [configEditorWithSupportRow(interaction.guildId!)],
@@ -461,8 +472,8 @@ async function handleContextMenuCommand(
     if (!(await hasPermission(interaction.guildId!, command.plugin, command.permission, guildMember, guildConfig))) {
       await interaction.reply(
         resultReply(
-          "Permission denied",
-          "You do not have permission to use this command.",
+          t("common.permissionDeniedTitle", "Permission denied"),
+          t("common.noPermission", "You do not have permission to use this command."),
           true,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
         ),
@@ -477,8 +488,8 @@ async function handleContextMenuCommand(
     if (!(member as import("discord.js").GuildMember).permissions.has(command.discordPermissions)) {
       await interaction.reply(
         resultReply(
-          "Permission denied",
-          "You lack required Discord permissions.",
+          t("common.permissionDeniedTitle", "Permission denied"),
+          t("common.lackDiscordPermissions", "You lack required Discord permissions."),
           true,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
         ),
@@ -498,6 +509,8 @@ async function handleContextMenuCommand(
       pluginConfig,
       client: ctx.client,
       configManager,
+      locale,
+      t,
     });
     const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, interaction.commandName);
@@ -547,13 +560,14 @@ async function handleSlashCommand(
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   const ephemeral = resolveEphemeral(guildConfig);
+  const { locale, t } = await translatorFor(interaction.user.id);
 
   // Config stays available so staff can re-enable plugins; everything else respects `enabled`.
   if (command.plugin !== "config" && !pluginEnabled(guildConfig, command.plugin)) {
     await interaction.reply(
       resultReply(
-        "Plugin disabled",
-        `The **${command.plugin}** plugin is disabled for this server.`,
+        t("common.pluginDisabledTitle", "Plugin disabled"),
+        t("common.pluginDisabledBody", `The **${command.plugin}** plugin is disabled for this server.`, { plugin: command.plugin }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -565,7 +579,7 @@ async function handleSlashCommand(
     const member = interaction.member;
     if (!member || typeof member === "string" || !("permissions" in member)) return;
     if (!(member as import("discord.js").GuildMember).permissions.has(PermissionFlagsBits.ManageGuild)) {
-      await interaction.reply(resultReply("Permission denied", "You need **Manage Server** to use this command.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("common.permissionDeniedTitle", "Permission denied"), t("common.needManageServer", "You need **Manage Server** to use this command."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return;
     }
   }
@@ -575,8 +589,11 @@ async function handleSlashCommand(
     if (!hasStoredConfig) {
       await interaction.reply(
         resultReply(
-          "Configuration required",
-          "This server has no configuration yet. Open the dashboard (or run `/config`) to set up Dreamliner, then save.",
+          t("common.configRequiredTitle", "Configuration required"),
+          t(
+            "common.configRequiredBody",
+            "This server has no configuration yet. Open the dashboard (or run `/config`) to set up Dreamliner, then save.",
+          ),
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
           [configEditorWithSupportRow(interaction.guildId!)],
@@ -592,7 +609,7 @@ async function handleSlashCommand(
     const guildMember = member as import("discord.js").GuildMember;
 
     if (!(await hasPermission(interaction.guildId!, command.plugin, command.permission, guildMember, guildConfig))) {
-      await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("common.permissionDeniedTitle", "Permission denied"), t("common.noPermission", "You do not have permission to use this command."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return;
     }
   }
@@ -601,7 +618,7 @@ async function handleSlashCommand(
     const member = interaction.member;
     if (!member || typeof member === "string" || !("permissions" in member)) return;
     if (!(member as import("discord.js").GuildMember).permissions.has(command.discordPermissions)) {
-      await interaction.reply(resultReply("Permission denied", "You lack required Discord permissions.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("common.permissionDeniedTitle", "Permission denied"), t("common.lackDiscordPermissions", "You lack required Discord permissions."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return;
     }
   }
@@ -618,6 +635,8 @@ async function handleSlashCommand(
       client: ctx.client,
       configManager,
       ephemeral,
+      locale,
+      t,
     });
     const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, interaction.commandName);
@@ -655,11 +674,12 @@ async function handleHelpInteraction(
   if (!interaction.inGuild() || !interaction.guildId) return;
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
+  const { t } = await translatorFor(interaction.user.id);
   if (!pluginEnabled(guildConfig, "utility")) {
     await interaction.reply(
       resultReply(
-        "Plugin disabled",
-        "The **utility** plugin is disabled for this server.",
+        t("common.pluginDisabledTitle", "Plugin disabled"),
+        t("common.pluginDisabledBody", "The **utility** plugin is disabled for this server.", { plugin: "utility" }),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -674,7 +694,7 @@ async function handleHelpInteraction(
 
   if (!(await canUseUtility(interaction.guildId, guildConfig, "can_help", guildMember))) {
     await interaction.reply(
-      resultReply("Permission denied", "You do not have permission to use help.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(t("common.permissionDeniedTitle", "Permission denied"), t("help.noPermission", "You do not have permission to use help."), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
     return;
   }
@@ -689,8 +709,8 @@ async function handleHelpInteraction(
       await interaction
         .reply(
           resultReply(
-            "Error",
-            "Could not update help. If this keeps happening, ask in the support server.",
+            t("common.errorTitle", "Error"),
+            t("help.updateError", "Could not update help. If this keeps happening, ask in the support server."),
             true,
             guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
             [supportLinkRow()],

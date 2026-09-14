@@ -4,6 +4,7 @@ import { baseEmbed } from "../../../core/embeds.js";
 import { hasPermission } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { containerReply, resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
+import { translatorFor } from "../../../i18n/index.js";
 import { getPlaneTypeById } from "./catalog.js";
 import { buildCardRevealBatch, buildInventoryPage } from "./cardDisplay.js";
 import { PLANE_INVENTORY_PREFIX, PLANE_PACK_PREFIX, PLANE_SELL_PREFIX, PLANE_STATS_PREFIX } from "./customIds.js";
@@ -20,15 +21,22 @@ export async function handlePlaneStatsButtonInteraction(interaction: ButtonInter
   const planeId = Number(interaction.customId.slice(PLANE_STATS_PREFIX.length));
   if (!Number.isInteger(planeId)) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply(resultReply("Server only", "Use this in a server.", true));
+    await interaction.reply(resultReply(t("economy.serverOnly.title", "Server only"), t("economy.serverOnly.description", "Use this in a server."), true));
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "economy")) {
     await interaction.reply(
-      resultReply("Plugin disabled", "The **economy** plugin is disabled for this server.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(
+        t("economy.pluginDisabled.title", "Plugin disabled"),
+        t("economy.pluginDisabled.description", "The **economy** plugin is disabled for this server."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
     );
     return true;
   }
@@ -36,27 +44,42 @@ export async function handlePlaneStatsButtonInteraction(interaction: ButtonInter
   const member = interaction.member;
   if (member && typeof member !== "string") {
     if (!(await hasPermission(interaction.guildId, "economy", "can_view", member as import("discord.js").GuildMember, guildConfig))) {
-      await interaction.reply(resultReply("Permission denied", "You do not have permission to view plane cards.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(
+        resultReply(
+          t("economy.permissionDenied.title", "Permission denied"),
+          t("economy.permissionDenied.view", "You do not have permission to view plane cards."),
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+        ),
+      );
       return true;
     }
   }
 
   const plane = getPlaneTypeById(planeId);
   if (!plane) {
-    await interaction.reply(resultReply("Not found", "That plane card no longer exists.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+    await interaction.reply(
+      resultReply(
+        t("economy.notFound.title", "Not found"),
+        t("economy.notFound.planeGone", "That plane card no longer exists."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
+    );
     return true;
   }
 
   const owned = getInventoryEntry(interaction.user.id, plane.id);
+  const ownedText = owned ? t("economy.stats.owned", `You own x${owned.quantity}`, { quantity: owned.quantity }) : null;
   const embed = baseEmbed()
     .setTitle(plane.name)
     .setThumbnail(interaction.client.user?.displayAvatarURL())
     .addFields(
-      { name: "Type", value: cardTypeBadge(plane.cardType), inline: true },
-      { name: "Rarity", value: rarityBadge(plane.rarity), inline: true },
-      ...statsFields(plane),
+      { name: t("economy.stat.type", "Type"), value: cardTypeBadge(plane.cardType, t), inline: true },
+      { name: t("economy.stat.rarity", "Rarity"), value: rarityBadge(plane.rarity, t), inline: true },
+      ...statsFields(plane, t),
     )
-    .setFooter({ text: [plane.subtitle || null, owned ? `You own x${owned.quantity}` : null].filter(Boolean).join(" · ") || "Dreamliner Hangar" });
+    .setFooter({ text: [plane.subtitle || null, ownedText].filter(Boolean).join(" · ") || t("economy.stats.hangarFooter", "Dreamliner Hangar") });
 
   await interaction.reply(containerReply(embed, true));
   return true;
@@ -74,41 +97,48 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
   const parsed = parsePackCustomId(interaction.customId);
   if (!parsed) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (interaction.user.id !== parsed.userId) {
-    await interaction.reply({ content: "This isn't your pack purchase to confirm.", flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t("economy.pack.notYours", "This isn't your pack purchase to confirm."), flags: MessageFlags.Ephemeral });
     return true;
   }
 
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.update({ content: "Use this in a server.", embeds: [], components: [] });
+    await interaction.update({ content: t("economy.serverOnly.description", "Use this in a server."), embeds: [], components: [] });
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "economy")) {
-    await interaction.update({ content: "The **economy** plugin is disabled for this server.", embeds: [], components: [] });
+    await interaction.update({ content: t("economy.pluginDisabled.description", "The **economy** plugin is disabled for this server."), embeds: [], components: [] });
     return true;
   }
 
   const member = interaction.member;
   if (member && typeof member !== "string") {
     if (!(await hasPermission(interaction.guildId, "economy", "can_buy_pack", member as import("discord.js").GuildMember, guildConfig))) {
-      await interaction.update({ content: "You do not have permission to buy packs.", embeds: [], components: [] });
+      await interaction.update({ content: t("economy.permissionDenied.buyPack", "You do not have permission to buy packs."), embeds: [], components: [] });
       return true;
     }
   }
 
   if (parsed.action === "cancel") {
-    await interaction.update({ content: "Purchase cancelled.", embeds: [], components: [] });
+    await interaction.update({ content: t("economy.pack.cancelled", "Purchase cancelled."), embeds: [], components: [] });
     return true;
   }
 
   try {
     const { packPrice, packSize } = getPackSettings();
-    const result = openPack(interaction.user.id, interaction.guildId, packPrice, packSize);
-    const { components, files } = buildCardRevealBatch(result.cards, interaction.user.id);
+    const result = openPack(interaction.user.id, interaction.guildId, packPrice, packSize, t);
+    const { components, files } = buildCardRevealBatch(result.cards, interaction.user.id, t);
+    const costText = result.cost > 0 ? formatCoinAmount(result.cost) : t("economy.pack.free", "free");
+    const balanceText = formatCoinAmount(result.balance);
     const summary = baseEmbed().setDescription(
-      `<:icons_gift:1544417552627802212> Cost ${result.cost > 0 ? formatCoinAmount(result.cost) : "free"} ✧ Balance ${formatCoinAmount(result.balance)}`,
+      t("economy.pack.summary", `<:icons_gift:1544417552627802212> Cost ${costText} ✧ Balance ${balanceText}`, {
+        cost: costText,
+        balance: balanceText,
+      }),
     );
     await interaction.update({
       flags: MessageFlags.IsComponentsV2,
@@ -117,7 +147,7 @@ export async function handlePlanePackButtonInteraction(interaction: ButtonIntera
     });
   } catch (err) {
     if (err instanceof PackError) {
-      const title = err.code === "insufficient" ? "Not enough coins" : "Purchase failed";
+      const title = err.code === "insufficient" ? t("economy.pack.insufficientTitle", "Not enough coins") : t("economy.pack.failedTitle", "Purchase failed");
       await interaction.update(
         resultEdit(title, err.message, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
       );
@@ -143,42 +173,48 @@ export async function handlePlaneInventoryButtonInteraction(interaction: ButtonI
   const parsed = parseInventoryCustomId(interaction.customId);
   if (!parsed) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (interaction.user.id !== parsed.viewerId) {
-    await interaction.reply({ content: "This isn't your hangar browser.", flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t("economy.inventory.notYours", "This isn't your hangar browser."), flags: MessageFlags.Ephemeral });
     return true;
   }
 
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.update({ content: "Use this in a server.", embeds: [], components: [] });
+    await interaction.update({ content: t("economy.serverOnly.description", "Use this in a server."), embeds: [], components: [] });
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "economy")) {
-    await interaction.update({ content: "The **economy** plugin is disabled for this server.", embeds: [], components: [] });
+    await interaction.update({ content: t("economy.pluginDisabled.description", "The **economy** plugin is disabled for this server."), embeds: [], components: [] });
     return true;
   }
 
   const member = interaction.member;
   if (member && typeof member !== "string") {
     if (!(await hasPermission(interaction.guildId, "economy", "can_view", member as import("discord.js").GuildMember, guildConfig))) {
-      await interaction.update({ content: "You do not have permission to view plane cards.", embeds: [], components: [] });
+      await interaction.update({ content: t("economy.permissionDenied.view", "You do not have permission to view plane cards."), embeds: [], components: [] });
       return true;
     }
   }
 
   const cards = getSortedInventory(parsed.targetUserId);
   if (cards.length === 0) {
-    await interaction.update({ content: "That hangar is empty now.", embeds: [], components: [] });
+    await interaction.update({ content: t("economy.inventory.emptyNow", "That hangar is empty now."), embeds: [], components: [] });
     return true;
   }
   const index = Math.min(parsed.index, cards.length - 1);
-  const { components, files } = buildInventoryPage(cards[index], {
-    index,
-    total: cards.length,
-    viewerId: parsed.viewerId,
-    targetUserId: parsed.targetUserId,
-  });
+  const { components, files } = buildInventoryPage(
+    cards[index],
+    {
+      index,
+      total: cards.length,
+      viewerId: parsed.viewerId,
+      targetUserId: parsed.targetUserId,
+    },
+    t,
+  );
   await interaction.update({ flags: MessageFlags.IsComponentsV2, components, files });
   return true;
 }
@@ -198,20 +234,27 @@ export async function handlePlaneSellButtonInteraction(interaction: ButtonIntera
   const parsed = parseSellCustomId(interaction.customId);
   if (!parsed) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (interaction.user.id !== parsed.ownerId) {
-    await interaction.reply({ content: "This isn't your card to sell.", flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t("economy.sell.notYours", "This isn't your card to sell."), flags: MessageFlags.Ephemeral });
     return true;
   }
 
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply(resultReply("Server only", "Use this in a server.", true));
+    await interaction.reply(resultReply(t("economy.serverOnly.title", "Server only"), t("economy.serverOnly.description", "Use this in a server."), true));
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   if (!pluginEnabled(guildConfig, "economy")) {
     await interaction.reply(
-      resultReply("Plugin disabled", "The **economy** plugin is disabled for this server.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(
+        t("economy.pluginDisabled.title", "Plugin disabled"),
+        t("economy.pluginDisabled.description", "The **economy** plugin is disabled for this server."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
     );
     return true;
   }
@@ -219,14 +262,28 @@ export async function handlePlaneSellButtonInteraction(interaction: ButtonIntera
   const member = interaction.member;
   if (member && typeof member !== "string") {
     if (!(await hasPermission(interaction.guildId, "economy", "can_sell", member as import("discord.js").GuildMember, guildConfig))) {
-      await interaction.reply(resultReply("Permission denied", "You do not have permission to sell plane cards.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(
+        resultReply(
+          t("economy.permissionDenied.title", "Permission denied"),
+          t("economy.permissionDenied.sell", "You do not have permission to sell plane cards."),
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+        ),
+      );
       return true;
     }
   }
 
   const plane = getPlaneTypeById(parsed.planeId);
   if (!plane) {
-    await interaction.reply(resultReply("Not found", "That plane card no longer exists.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+    await interaction.reply(
+      resultReply(
+        t("economy.notFound.title", "Not found"),
+        t("economy.notFound.planeGone", "That plane card no longer exists."),
+        true,
+        guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+      ),
+    );
     return true;
   }
 
@@ -234,15 +291,26 @@ export async function handlePlaneSellButtonInteraction(interaction: ButtonIntera
     const balance = sellCard(interaction.user.id, parsed.planeId, parsed.price);
     await interaction.reply(
       resultReply(
-        "Card sold",
-        `Sold **${plane.name}** for ${formatCoinAmount(parsed.price)}.\n**New balance:** ${formatCoinAmount(balance)}`,
+        t("economy.sell.successTitle", "Card sold"),
+        t(
+          "economy.sell.success",
+          `Sold **${plane.name}** for ${formatCoinAmount(parsed.price)}.\n**New balance:** ${formatCoinAmount(balance)}`,
+          { plane: plane.name, price: formatCoinAmount(parsed.price), balance: formatCoinAmount(balance) },
+        ),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_bank:1544417487326679131>" }),
       ),
     );
   } catch (err) {
     if (err instanceof InventoryError) {
-      await interaction.reply(resultReply("Couldn't sell card", `You no longer own **${plane.name}**.`, true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(
+        resultReply(
+          t("economy.sell.failTitle", "Couldn't sell card"),
+          t("economy.sell.failDescription", `You no longer own **${plane.name}**.`, { plane: plane.name }),
+          true,
+          guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+        ),
+      );
       return true;
     }
     throw err;

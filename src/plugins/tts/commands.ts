@@ -89,7 +89,12 @@ export const ttsCommands: SlashCommandDefinition[] = [
 
         if (await isTtsBlacklisted(guildId, interaction.user.id)) {
           await interaction.reply(
-            resultReply("Blocked", "You've been blocked from using TTS on this server.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+            resultReply(
+              ctx.t("tts.blockedTitle", "Blocked"),
+              ctx.t("tts.blockedSelfDetails", "You've been blocked from using TTS on this server."),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
           );
           return;
         }
@@ -99,21 +104,37 @@ export const ttsCommands: SlashCommandDefinition[] = [
         const match = available.find((v) => v.id === voice);
         if (!match) {
           await interaction.reply(
-            resultReply("Unknown voice", `"${voice}" isn't an installed voice. Pick one from the autocomplete list.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+            resultReply(
+              ctx.t("tts.unknownVoiceTitle", "Unknown voice"),
+              ctx.t(
+                "tts.unknownVoiceDetails",
+                `"${voice}" isn't an installed voice. Pick one from the autocomplete list.`,
+                { voice },
+              ),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "warning" }),
+            ),
           );
           return;
         }
 
         await setUserVoice(interaction.user.id, voice);
         const embed = buildResultEmbed(
-          "Voice set",
-          `Your messages will now be spoken as **${match.label}**.`,
+          ctx.t("tts.voiceSetTitle", "Voice set"),
+          ctx.t("tts.voiceSetDetails", `Your messages will now be spoken as **${match.label}**.`, {
+            voice: match.label,
+          }),
           slashResultOptions(ctx, { tone: "success", emoji: "<:icons_mic:1544417343252201552>" }),
         ).setFooter({
-          text: "Prefer to browse and listen first? The web dashboard lets you preview every installed voice before picking one.",
+          text: ctx.t(
+            "tts.voiceSetFooter",
+            "Prefer to browse and listen first? The web dashboard lets you preview every installed voice before picking one.",
+          ),
         });
         await interaction.reply(
-          embedReply(embed, ctx.ephemeral, [siteLinkRow({ label: "Open voice picker", url: getAccountVoiceUrl() })]),
+          embedReply(embed, ctx.ephemeral, [
+            siteLinkRow({ label: ctx.t("tts.openVoicePicker", "Open voice picker"), url: getAccountVoiceUrl() }),
+          ]),
         );
         return;
       }
@@ -125,8 +146,10 @@ export const ttsCommands: SlashCommandDefinition[] = [
         const skipped = skipCurrent(guildId);
         await interaction.reply(
           resultReply(
-            skipped ? "Skipped" : "Nothing playing",
-            skipped ? "Moving on to the next queued message, if there is one." : "There's no TTS clip playing right now.",
+            skipped ? ctx.t("tts.skippedTitle", "Skipped") : ctx.t("tts.nothingPlayingTitle", "Nothing playing"),
+            skipped
+              ? ctx.t("tts.skippedDetails", "Moving on to the next queued message, if there is one.")
+              : ctx.t("tts.nothingPlayingDetails", "There's no TTS clip playing right now."),
             ctx.ephemeral,
             slashResultOptions(ctx, {
               tone: skipped ? "success" : "warning",
@@ -144,14 +167,20 @@ export const ttsCommands: SlashCommandDefinition[] = [
         const channel = interaction.options.getChannel("channel", true);
         const result = await ctx.configManager.patchPluginConfig(guildId, "tts", { text_channel_id: channel.id }, interaction.user.id);
         if (!result.success) {
-          await interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await interaction.reply(
+            resultReply(ctx.t("tts.errorTitle", "Error"), result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
           return;
         }
 
         await interaction.reply(
           resultReply(
-            "Channel set",
-            `Messages sent in <#${channel.id}> from members in a voice channel will now be spoken there automatically.`,
+            ctx.t("tts.channelSetTitle", "Channel set"),
+            ctx.t(
+              "tts.channelSetDetails",
+              `Messages sent in <#${channel.id}> from members in a voice channel will now be spoken there automatically.`,
+              { channel: channel.id },
+            ),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_speaker:1544417584462565417>" }),
           ),
@@ -165,14 +194,16 @@ export const ttsCommands: SlashCommandDefinition[] = [
 
         const result = await ctx.configManager.patchPluginConfig(guildId, "tts", { text_channel_id: null }, interaction.user.id);
         if (!result.success) {
-          await interaction.reply(resultReply("Error", result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await interaction.reply(
+            resultReply(ctx.t("tts.errorTitle", "Error"), result.errors.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          );
           return;
         }
 
         await interaction.reply(
           resultReply(
-            "Channel cleared",
-            "The auto-speak text channel is turned off.",
+            ctx.t("tts.channelClearedTitle", "Channel cleared"),
+            ctx.t("tts.channelClearedDetails", "The auto-speak text channel is turned off."),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_speakermute:1544417589592203375>" }),
           ),
@@ -189,8 +220,10 @@ export const ttsCommands: SlashCommandDefinition[] = [
         await addToTtsBlacklist(guildId, target.id, reason);
         await interaction.reply(
           resultReply(
-            "Blocked",
-            `${target.tag} can no longer use TTS on this server.`,
+            ctx.t("tts.blockedTitle", "Blocked"),
+            ctx.t("tts.blockedTargetDetails", `${target.tag} can no longer use TTS on this server.`, {
+              user: target.tag,
+            }),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ban:1544417486177308742>" }),
           ),
@@ -206,8 +239,8 @@ export const ttsCommands: SlashCommandDefinition[] = [
         await removeFromTtsBlacklist(guildId, target.id);
         await interaction.reply(
           resultReply(
-            "Unblocked",
-            `${target.tag} can use TTS again.`,
+            ctx.t("tts.unblockedTitle", "Unblocked"),
+            ctx.t("tts.unblockedDetails", `${target.tag} can use TTS again.`, { user: target.tag }),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_enable:1544417874351755264>" }),
           ),
@@ -221,12 +254,21 @@ export const ttsCommands: SlashCommandDefinition[] = [
 
         const entries = await listTtsBlacklist(guildId);
         if (entries.length === 0) {
-          await interaction.reply(resultReply("TTS blacklist", "Nobody is blocked from using TTS.", ctx.ephemeral, slashResultOptions(ctx)));
+          await interaction.reply(
+            resultReply(
+              ctx.t("tts.blacklistTitle", "TTS blacklist"),
+              ctx.t("tts.blacklistEmpty", "Nobody is blocked from using TTS."),
+              ctx.ephemeral,
+              slashResultOptions(ctx),
+            ),
+          );
           return;
         }
 
         const lines = entries.map((e) => `<@${e.userId}>${e.reason ? ` (${e.reason})` : ""}`);
-        await interaction.reply(resultReply("TTS blacklist", lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)));
+        await interaction.reply(
+          resultReply(ctx.t("tts.blacklistTitle", "TTS blacklist"), lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx)),
+        );
       }
     },
   },

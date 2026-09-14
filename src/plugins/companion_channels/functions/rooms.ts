@@ -11,6 +11,7 @@ import {
 } from "discord.js";
 import type { CompanionChannelsConfig, CompanionSetup } from "../../../config/schemas/companion.js";
 import { renderTemplate } from "../../../core/templates.js";
+import { translatorFor } from "../../../i18n/index.js";
 import { featureEnabled } from "./config.js";
 import { ensureCompanionInterface, postCompanionInterface } from "./panel.js";
 import { renderCompanionName } from "./names.js";
@@ -335,7 +336,8 @@ export async function assignOrCreateRoom(
   }
 
   if (featureEnabled(config, "interface")) {
-    const messageId = await postCompanionInterface(voice, config).catch(() => "");
+    const { t } = await translatorFor(member.id);
+    const messageId = await postCompanionInterface(voice, config, t).catch(() => "");
     if (messageId) await updateRoom(member.guild.id, voice.id, { interfaceMessageId: messageId });
   }
 
@@ -375,7 +377,8 @@ export async function claimIdleRoom(
     if (textId) await updateRoom(member.guild.id, channel.id, { textChannelId: textId });
   }
   if (featureEnabled(config, "interface") && !room.interfaceMessageId && "send" in channel) {
-    const messageId = await postCompanionInterface(channel as VoiceChannel, config).catch(() => "");
+    const { t } = await translatorFor(member.id);
+    const messageId = await postCompanionInterface(channel as VoiceChannel, config, t).catch(() => "");
     if (messageId) await updateRoom(member.guild.id, channel.id, { interfaceMessageId: messageId });
   }
   await addJoinRole(member, config.join_role_id.trim());
@@ -513,7 +516,9 @@ export async function restoreLiveRoom(
   }
   if (occupants.size === 0) return;
 
-  const messageId = await ensureCompanionInterface(channel, room.interfaceMessageId, config).catch(() => "");
+  const anchor = occupants.first()!;
+  const { t } = await translatorFor(anchor.id);
+  const messageId = await ensureCompanionInterface(channel, room.interfaceMessageId, config, t).catch(() => "");
   if (messageId && messageId !== room.interfaceMessageId) {
     await updateRoom(guild.id, room.channelId, { interfaceMessageId: messageId });
   }

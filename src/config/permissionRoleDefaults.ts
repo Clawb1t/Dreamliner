@@ -133,6 +133,7 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "utility.can_clean",
     "utility.can_context",
     "utility.can_convert_gif",
+    "utility.can_create_emoji",
     "utility.can_create_sticker",
     "utility.can_emojiinfo",
     "utility.can_help",

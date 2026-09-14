@@ -1,0 +1,3 @@
+{
+  "_comment": "namespace.key -> Turkish translation. English fallback text lives inline at each t() call site; keys only need entries here once translated. See src/i18n/catalog.ts. Use the dashboard's Platform > Languages > Dictionary > \"Translate all from English\" button, or add entries by hand."
+}

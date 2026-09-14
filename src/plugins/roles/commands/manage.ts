@@ -41,31 +41,31 @@ export const rolesCommands: SlashCommandDefinition[] = [
         const role = ctx.interaction.options.getRole("role", true);
         const member = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
         if (!member) {
-          await ctx.interaction.reply(resultReply("Member not found", "Could not resolve that member.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.memberNotFoundTitle", "Member not found"), ctx.t("roles.memberNotFoundDesc", "Could not resolve that member."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         const guildRole = ctx.interaction.guild!.roles.cache.get(role.id);
         if (!guildRole) {
-          await ctx.interaction.reply(resultReply("Role not found", "Could not resolve that role.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.roleNotFoundTitle", "Role not found"), ctx.t("roles.roleNotFoundDesc", "Could not resolve that role."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         if (!canManageRole(auth.member, guildRole)) {
-          await ctx.interaction.reply(resultReply("Permission denied", "You cannot manage that role.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.permissionDeniedTitle", "Permission denied"), ctx.t("roles.permissionDeniedDesc", "You cannot manage that role."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         const result = await safeAddRole(member, role.id, `Roles give by ${ctx.interaction.user.tag}`);
         if (!result.ok) {
-          await ctx.interaction.reply(resultReply("Could not give role", result.reason, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.couldNotGiveTitle", "Could not give role"), result.reason, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         await ctx.interaction.reply(
           resultReply(
-            "Role given",
-            `Gave ${role} to ${user.tag}.`,
+            ctx.t("roles.roleGivenTitle", "Role given"),
+            ctx.t("roles.roleGivenDesc", "Gave {role} to {user}.", { role: role.toString(), user: user.tag }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_createrole:1544417841225146418>" }),
           ),
@@ -81,31 +81,31 @@ export const rolesCommands: SlashCommandDefinition[] = [
         const role = ctx.interaction.options.getRole("role", true);
         const member = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
         if (!member) {
-          await ctx.interaction.reply(resultReply("Member not found", "Could not resolve that member.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.memberNotFoundTitle", "Member not found"), ctx.t("roles.memberNotFoundDesc", "Could not resolve that member."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         const guildRole = ctx.interaction.guild!.roles.cache.get(role.id);
         if (!guildRole) {
-          await ctx.interaction.reply(resultReply("Role not found", "Could not resolve that role.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.roleNotFoundTitle", "Role not found"), ctx.t("roles.roleNotFoundDesc", "Could not resolve that role."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         if (!canManageRole(auth.member, guildRole)) {
-          await ctx.interaction.reply(resultReply("Permission denied", "You cannot manage that role.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.permissionDeniedTitle", "Permission denied"), ctx.t("roles.permissionDeniedDesc", "You cannot manage that role."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         const result = await safeRemoveRole(member, role.id, `Roles remove by ${ctx.interaction.user.tag}`);
         if (!result.ok) {
-          await ctx.interaction.reply(resultReply("Could not remove role", result.reason, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.couldNotRemoveTitle", "Could not remove role"), result.reason, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
         await ctx.interaction.reply(
           resultReply(
-            "Role removed",
-            `Removed ${role} from ${user.tag}.`,
+            ctx.t("roles.roleRemovedTitle", "Role removed"),
+            ctx.t("roles.roleRemovedDesc", "Removed {role} from {user}.", { role: role.toString(), user: user.tag }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_deleterole:1544417865346715718>" }),
           ),
@@ -120,7 +120,7 @@ export const rolesCommands: SlashCommandDefinition[] = [
         const user = ctx.interaction.options.getUser("user") ?? ctx.interaction.user;
         const member = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
         if (!member) {
-          await ctx.interaction.reply(resultReply("Member not found", "Could not resolve that member.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await ctx.interaction.reply(resultReply(ctx.t("roles.memberNotFoundTitle", "Member not found"), ctx.t("roles.memberNotFoundDesc", "Could not resolve that member."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
@@ -132,8 +132,8 @@ export const rolesCommands: SlashCommandDefinition[] = [
 
         await ctx.interaction.reply(
           resultReply(
-            `${user.tag}'s roles`,
-            roles.length > 0 ? roles : "No roles.",
+            ctx.t("roles.listTitle", "{user}'s roles", { user: user.tag }),
+            roles.length > 0 ? roles : ctx.t("roles.noRoles", "No roles."),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_roles:1544417804994871338>" }),
           ),

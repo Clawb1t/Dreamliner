@@ -1,3 +1,4 @@
+import type { Translator } from "../../../i18n/index.js";
 import { CARD_TYPE_META, RARITY_META, type CardType, type PlaneTypeRow, type Rarity } from "./catalog.js";
 import { formatAmount, GLOBAL_CURRENCY_DENOMINATOR } from "./format.js";
 
@@ -6,18 +7,22 @@ export function formatPlainAmount(amount: number): string {
   return `${GLOBAL_CURRENCY_DENOMINATOR}${formatAmount(amount)}`;
 }
 
-/** Plain rarity label, no emoji, e.g. "Legendary". */
-export function rarityBadge(rarity: string): string {
-  return RARITY_META[rarity as Rarity]?.label ?? rarity;
+/** Translated rarity label, no emoji, e.g. "Legendary". */
+export function rarityBadge(rarity: string, t: Translator): string {
+  const meta = RARITY_META[rarity as Rarity];
+  if (!meta) return rarity;
+  return t(`economy.rarity.${rarity}`, meta.label);
 }
 
 export function rarityColor(rarity: string): number {
   return RARITY_META[rarity as Rarity]?.color ?? 0x5865f2;
 }
 
-/** Plain card type label, e.g. "Airline". */
-export function cardTypeBadge(cardType: string): string {
-  return CARD_TYPE_META[cardType as CardType]?.label ?? cardType;
+/** Translated card type label, e.g. "Airline". */
+export function cardTypeBadge(cardType: string, t: Translator): string {
+  const meta = CARD_TYPE_META[cardType as CardType];
+  if (!meta) return cardType;
+  return t(`economy.cardType.${cardType}`, meta.label);
 }
 
 export function formatCount(count: number): string {
@@ -32,19 +37,19 @@ export function planeLine(plane: PlaneTypeRow, quantity?: number): string {
 
 /** Stats fields for a card's embed, chosen by its card type: Speed/Agility/Safety/Passengers for a
  *  plane, Reputation/Fleet Size/Destinations/Safety for an airline. Safety is shared by both. */
-export function statsFields(card: PlaneTypeRow) {
+export function statsFields(card: PlaneTypeRow, t: Translator) {
   if (card.cardType === "airline") {
     return [
-      { name: "Reputation", value: `${card.reputation}/100`, inline: true },
-      { name: "Fleet Size", value: formatCount(card.fleetSize), inline: true },
-      { name: "Destinations", value: formatCount(card.destinations), inline: true },
-      { name: "Safety", value: `${card.safety}/100`, inline: true },
+      { name: t("economy.stat.reputation", "Reputation"), value: `${card.reputation}/100`, inline: true },
+      { name: t("economy.stat.fleetSize", "Fleet Size"), value: formatCount(card.fleetSize), inline: true },
+      { name: t("economy.stat.destinations", "Destinations"), value: formatCount(card.destinations), inline: true },
+      { name: t("economy.stat.safety", "Safety"), value: `${card.safety}/100`, inline: true },
     ];
   }
   return [
-    { name: "Speed", value: `${card.speed}/100`, inline: true },
-    { name: "Agility", value: `${card.agility}/100`, inline: true },
-    { name: "Safety", value: `${card.safety}/100`, inline: true },
-    { name: "Passengers", value: formatCount(card.passengerCount), inline: true },
+    { name: t("economy.stat.speed", "Speed"), value: `${card.speed}/100`, inline: true },
+    { name: t("economy.stat.agility", "Agility"), value: `${card.agility}/100`, inline: true },
+    { name: t("economy.stat.safety", "Safety"), value: `${card.safety}/100`, inline: true },
+    { name: t("economy.stat.passengers", "Passengers"), value: formatCount(card.passengerCount), inline: true },
   ];
 }

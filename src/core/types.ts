@@ -10,6 +10,7 @@ import type {
 import type { ZodType } from "zod";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import type { ConfigManager } from "../config/manager.js";
+import type { Locale, Translator } from "../i18n/index.js";
 
 export type EmojiKind = "success" | "error" | "neutral";
 
@@ -20,6 +21,10 @@ export type SlashCommandContext = {
   client: Client;
   configManager: ConfigManager;
   ephemeral: boolean;
+  /** The invoking member's personal language (default "en"), set via /language or the website. */
+  locale: Locale;
+  /** `t(key, fallbackEnglish, vars?)` bound to `locale` — use this instead of hardcoding English. */
+  t: Translator;
 };
 
 export type SlashCommandDefinition = {
@@ -41,6 +46,8 @@ export type ContextMenuCommandContext = {
   pluginConfig: Record<string, unknown>;
   client: Client;
   configManager: ConfigManager;
+  locale: Locale;
+  t: Translator;
 };
 
 export type ContextMenuCommandDefinition = {

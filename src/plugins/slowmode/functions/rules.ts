@@ -1,6 +1,7 @@
 import type { GuildMember } from "discord.js";
 import type { SlowmodeConfig, SlowmodeRuleTarget } from "../../../config/schemas/plugins.js";
 import { formatDuration } from "../../../core/datetime.js";
+import type { Translator } from "../../../i18n/index.js";
 
 export const ALL_CHANNELS = "*";
 
@@ -51,18 +52,18 @@ export function ruleAppliesToChannel(rule: NormalizedSlowmodeRule, channelId: st
   return rule.channels.includes(ALL_CHANNELS) || rule.channels.includes(channelId);
 }
 
-export function formatChannelScope(channels: string[]): string {
-  if (!channels.length || channels.includes(ALL_CHANNELS)) return "All channels";
+export function formatChannelScope(channels: string[], t: Translator): string {
+  if (!channels.length || channels.includes(ALL_CHANNELS)) return t("slowmode.allChannels", "All channels");
   return channels.map((id) => `<#${id}>`).join(", ");
 }
 
-export function formatSlowmodeRule(rule: NormalizedSlowmodeRule): string {
+export function formatSlowmodeRule(rule: NormalizedSlowmodeRule, t: Translator): string {
   const target = rule.target === "user" ? `<@${rule.target_id}>` : `<@&${rule.target_id}>`;
-  return `**#${rule.id}** · ${rule.target} ${target} · **${formatSeconds(rule.seconds)}** · ${formatChannelScope(rule.channels)}`;
+  return `**#${rule.id}** · ${rule.target} ${target} · **${formatSeconds(rule.seconds, t)}** · ${formatChannelScope(rule.channels, t)}`;
 }
 
-export function formatSeconds(seconds: number): string {
-  if (seconds <= 0) return "none";
+export function formatSeconds(seconds: number, t: Translator): string {
+  if (seconds <= 0) return t("slowmode.none", "none");
   return formatDuration(seconds * 1000);
 }
 
@@ -93,14 +94,18 @@ export function resolveIndividualDelay(
   return { seconds: 0, source: "none" };
 }
 
-export function describeResolvedDelay(resolved: ResolvedSlowmodeDelay): string {
-  if (resolved.source === "none" || resolved.seconds <= 0) return "no individual slowmode";
-  if (resolved.source === "default") return `default (**${formatSeconds(resolved.seconds)}**)`;
+export function describeResolvedDelay(resolved: ResolvedSlowmodeDelay, t: Translator): string {
+  if (resolved.source === "none" || resolved.seconds <= 0) return t("slowmode.noIndividualSlowmode", "no individual slowmode");
+  if (resolved.source === "default") return t("slowmode.defaultDelay", "default (**{seconds}**)", { seconds: formatSeconds(resolved.seconds, t) });
   if (resolved.source === "user" && resolved.rule) {
-    return `user rule #${resolved.rule.id} (**${formatSeconds(resolved.seconds)}**)`;
+    return t("slowmode.userRuleDelay", "user rule #{id} (**{seconds}**)", { id: resolved.rule.id, seconds: formatSeconds(resolved.seconds, t) });
   }
   if (resolved.source === "role" && resolved.rule) {
-    return `role <@&${resolved.rule.target_id}> · rule #${resolved.rule.id} (**${formatSeconds(resolved.seconds)}**)`;
+    return t("slowmode.roleRuleDelay", "role <@&{roleId}> · rule #{id} (**{seconds}**)", {
+      roleId: resolved.rule.target_id,
+      id: resolved.rule.id,
+      seconds: formatSeconds(resolved.seconds, t),
+    });
   }
-  return `**${formatSeconds(resolved.seconds)}**`;
+  return `**${formatSeconds(resolved.seconds, t)}**`;
 }

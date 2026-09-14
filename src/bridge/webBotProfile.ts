@@ -21,11 +21,13 @@ import {
   getLatestApprovedBrandRequest,
   getStoredBotBio,
   getStoredBotNameStyle,
+  getStoredBotNickname,
   getStoredBrandImage,
   listPendingBotBrandRequests,
   listRecentBotBrandRequests,
   setStoredBotBio,
   setStoredBotNameStyle,
+  setStoredBotNickname,
   setStoredBrandImage,
   supersedePendingBotBrandRequests,
   type BotAvatarRequest,
@@ -61,6 +63,9 @@ export type BridgeBotBrandRequest = {
 };
 
 export type BridgeBotProfile = {
+  /** Whether Custom Branding is turned on — decides whether the fields below are actually
+   *  live on Discord right now, or just the saved draft waiting to be applied. Editing is
+   *  always allowed regardless of this flag. */
   enabled: boolean;
   nick: string | null;
   displayName: string;
@@ -109,19 +114,14 @@ function apiErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-async function assertPluginEnabled(
-  configManager: ConfigManager,
-  guildId: string,
-): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+/**
+ * Whether Custom Branding is currently on for this guild — no longer a gate on editing (every
+ * submit/clear/set function below always saves its draft regardless), just the signal that
+ * decides whether a draft change also gets applied live to Discord right now.
+ */
+async function isBotCustomisationEnabled(configManager: ConfigManager, guildId: string): Promise<boolean> {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
-  if (!pluginEnabled(guildConfig, "bot_customisation")) {
-    return {
-      ok: false,
-      error: "The bot customisation plugin is disabled for this server.",
-      status: 403,
-    };
-  }
-  return { ok: true };
+  return pluginEnabled(guildConfig, "bot_customisation");
 }
 
 async function assertDreamlinerOne(
@@ -205,6 +205,31 @@ async function fetchMemberDisplayNameStyle(
   }
 }
 
+/** PATCHes the live display name style (or clears it with `style: null`). Returns Discord's
+ * raw response so a caller that needs the echoed value (setBridgeBotDisplayNameStyle) can read
+ * it back; callers that already trust the stored draft (apply/revert below) just await it. */
+async function applyDisplayNameStyle(
+  client: Client,
+  guild: Guild,
+  style: BridgeDisplayNameStyle | null,
+  reason: string,
+): Promise<unknown> {
+  return client.rest.patch(Routes.guildMember(guild.id, "@me"), {
+    body: style
+      ? {
+          display_name_font_id: style.fontId,
+          display_name_effect_id: style.effectId,
+          display_name_colors: style.colors,
+        }
+      : {
+          display_name_font_id: null,
+          display_name_effect_id: null,
+          display_name_colors: null,
+        },
+    reason,
+  });
+}
+
 /** Applied PNG, hydrating from the latest approval when we have never stored one. */
 async function resolveAppliedBrandPng(
   guildId: string,
@@ -219,13 +244,91 @@ async function resolveAppliedBrandPng(
   return approved.avatarPng;
 }
 
+/**
+ * Applies every stored draft (avatar, banner, nickname, bio, display name style) live to
+ * Discord's per-guild bot profile in one shot — used when Custom Branding gets turned on, so
+ * whatever was configured while it was off (or before) shows up immediately. A field with no
+ * draft is explicitly cleared too, so the live profile always ends up matching the draft exactly.
+ */
+async function applyStoredBrandToDiscord(client: Client, guild: Guild, reason: string): Promise<void> {
+  const [storedAvatar, storedBanner, storedBio, storedNick, storedStyle] = await Promise.all([
+    getStoredBrandImage(guild.id, "avatar"),
+    getStoredBrandImage(guild.id, "banner"),
+    getStoredBotBio(guild.id),
+    getStoredBotNickname(guild.id),
+    getStoredBotNameStyle(guild.id),
+  ]);
+
+  const avatar = storedAvatar.state === "custom" ? Buffer.from(storedAvatar.png, "base64") : null;
+  const banner = storedBanner.state === "custom" ? Buffer.from(storedBanner.png, "base64") : null;
+
+  await guild.members.editMe({ avatar, banner, bio: storedBio, nick: storedNick, reason });
+
+  try {
+    await applyDisplayNameStyle(client, guild, storedStyle, reason);
+  } catch (error) {
+    log.error("[bot_customisation] Failed to re-apply display name style on enable:", error);
+  }
+}
+
+/**
+ * Clears the live per-guild bot profile back to Discord's own default — used when Custom
+ * Branding gets turned off. Stored drafts are left untouched, so turning it back on restores
+ * exactly what was configured.
+ */
+async function revertBrandToDefault(client: Client, guild: Guild, reason: string): Promise<void> {
+  await guild.members.editMe({ avatar: null, banner: null, bio: null, nick: null, reason });
+
+  try {
+    await applyDisplayNameStyle(client, guild, null, reason);
+  } catch (error) {
+    log.error("[bot_customisation] Failed to clear display name style on disable:", error);
+  }
+}
+
+/**
+ * Flips Custom Branding on/off and syncs the live Discord profile to match — the one place
+ * that decides "does the live bot profile mirror the draft, or sit at Discord's default".
+ */
+export async function setBridgeBotCustomisationEnabled(
+  client: Client,
+  configManager: ConfigManager,
+  guild: Guild,
+  userId: string,
+  enabled: boolean,
+): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  const saved = await configManager.setPluginEnabled(guild.id, "bot_customisation", enabled, userId);
+  if (!saved.success) {
+    return { ok: false, error: saved.errors.join(" ") || "Failed to save the enabled setting.", status: 400 };
+  }
+
+  const reason = `Custom Branding ${enabled ? "enabled" : "disabled"} from dashboard by ${userId}`;
+  try {
+    if (enabled) {
+      await applyStoredBrandToDiscord(client, guild, reason);
+    } else {
+      await revertBrandToDefault(client, guild, reason);
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: apiErrorMessage(
+        error,
+        `Custom Branding is now ${enabled ? "on" : "off"}, but Discord rejected syncing the live profile.`,
+      ),
+      status: 400,
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function getBridgeBotProfile(
   client: Client,
   configManager: ConfigManager,
   guild: Guild,
 ): Promise<{ ok: true; profile: BridgeBotProfile } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guild.id);
-  const enabled = plugin.ok;
+  const enabled = await isBotCustomisationEnabled(configManager, guild.id);
 
   // Gateway member payloads omit guild banners; REST fetch includes them.
   const me =
@@ -233,17 +336,19 @@ export async function getBridgeBotProfile(
     guild.members.me ??
     (client.user ? await guild.members.fetch({ user: client.user.id, force: true }).catch(() => null) : null);
 
-  const pending = enabled ? await listPendingBotBrandRequests(guild.id) : [];
-  const recent = enabled ? await listRecentBotBrandRequests(guild.id, 12) : [];
-  const bio = enabled ? await getStoredBotBio(guild.id) : null;
+  const [pending, recent, bio, storedNick, storedStyle, appliedAvatarPng, appliedBannerPng] = await Promise.all([
+    listPendingBotBrandRequests(guild.id),
+    listRecentBotBrandRequests(guild.id, 12),
+    getStoredBotBio(guild.id),
+    getStoredBotNickname(guild.id),
+    getStoredBotNameStyle(guild.id),
+    resolveAppliedBrandPng(guild.id, "avatar"),
+    resolveAppliedBrandPng(guild.id, "banner"),
+  ]);
   const hashes = await fetchMemberAssetHashes(client, guild, me);
-  const displayNameStyle =
-    (await fetchMemberDisplayNameStyle(client, guild)) ??
-    (enabled ? await getStoredBotNameStyle(guild.id) : null);
-  const appliedAvatarPng = enabled ? await resolveAppliedBrandPng(guild.id, "avatar") : null;
-  const appliedBannerPng = enabled ? await resolveAppliedBrandPng(guild.id, "banner") : null;
-  const appliedAvatar = enabled && appliedAvatarPng ? await getLatestApprovedBrandRequest(guild.id, "avatar") : null;
-  const appliedBanner = enabled && appliedBannerPng ? await getLatestApprovedBrandRequest(guild.id, "banner") : null;
+  const displayNameStyle = (await fetchMemberDisplayNameStyle(client, guild)) ?? storedStyle;
+  const appliedAvatar = appliedAvatarPng ? await getLatestApprovedBrandRequest(guild.id, "avatar") : null;
+  const appliedBanner = appliedBannerPng ? await getLatestApprovedBrandRequest(guild.id, "banner") : null;
   const userId = me?.id ?? client.user?.id ?? "";
   const hasCustomAvatar = Boolean(hashes.avatar || appliedAvatarPng);
   const hasCustomBanner = Boolean(hashes.banner || appliedBannerPng);
@@ -259,7 +364,7 @@ export async function getBridgeBotProfile(
     ok: true,
     profile: {
       enabled,
-      nick: me?.nickname ?? null,
+      nick: me?.nickname ?? storedNick,
       displayName: me?.displayName ?? client.user?.username ?? "Dreamliner",
       bio,
       avatarUrl,
@@ -279,13 +384,9 @@ export async function getBridgeBotProfile(
 
 export async function getBridgeLiveBrandImage(
   client: Client,
-  configManager: ConfigManager,
   guild: Guild,
   kind: BotBrandImageKind,
 ): Promise<{ ok: true; body: Buffer; contentType: string } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guild.id);
-  if (!plugin.ok) return plugin;
-
   const me =
     (await guild.members.fetchMe({ force: true }).catch(() => null)) ??
     guild.members.me ??
@@ -321,13 +422,9 @@ export async function getBridgeLiveBrandImage(
 }
 
 export async function getBridgeBotBrandRequestImage(
-  configManager: ConfigManager,
   guildId: string,
   requestId: number,
 ): Promise<{ ok: true; png: Buffer; kind: BotBrandImageKind } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const request = await getBotAvatarRequest(requestId);
   if (!request || request.guildId !== guildId) {
     return { ok: false, error: "Request not found.", status: 404 };
@@ -341,8 +438,9 @@ export async function getBridgeBotBrandRequestImage(
 }
 
 /**
- * Applies the avatar/banner immediately (no staff approval gate), then posts a
- * photo-log message with a "Remove" button so staff can moderate after the fact.
+ * Always saves the avatar/banner as the guild's draft; also applies it live (no staff approval
+ * gate) and posts a photo-log message with a "Remove" button when Custom Branding is on. While
+ * off, the draft is saved but nothing changes on Discord until it's turned on.
  */
 export async function submitBridgeBrandImage(
   client: Client,
@@ -352,11 +450,9 @@ export async function submitBridgeBrandImage(
   kind: BotBrandImageKind,
   imageBase64: string,
 ): Promise<
-  | { ok: true; request: BridgeBotBrandRequest; reviewPosted: boolean }
+  | { ok: true; request: BridgeBotBrandRequest; reviewPosted: boolean; applied: boolean }
   | { ok: false; error: string; status: number }
 > {
-  const plugin = await assertPluginEnabled(configManager, guild.id);
-  if (!plugin.ok) return plugin;
   const one = await assertDreamlinerOne(guild.id);
   if (!one.ok) return one;
 
@@ -367,18 +463,21 @@ export async function submitBridgeBrandImage(
 
   const member = await guild.members.fetch(userId).catch(() => null);
   const requesterTag = member?.user.tag ?? userId;
+  const enabled = await isBotCustomisationEnabled(configManager, guild.id);
 
-  try {
-    await guild.members.editMe({
-      ...(kind === "banner" ? { banner: normalized.buffer } : { avatar: normalized.buffer }),
-      reason: `Guild ${kind} set from dashboard by ${requesterTag}`,
-    });
-  } catch (error) {
-    return {
-      ok: false,
-      error: apiErrorMessage(error, `Discord rejected the ${kind} change.`),
-      status: 400,
-    };
+  if (enabled) {
+    try {
+      await guild.members.editMe({
+        ...(kind === "banner" ? { banner: normalized.buffer } : { avatar: normalized.buffer }),
+        reason: `Guild ${kind} set from dashboard by ${requesterTag}`,
+      });
+    } catch (error) {
+      return {
+        ok: false,
+        error: apiErrorMessage(error, `Discord rejected the ${kind} change.`),
+        status: 400,
+      };
+    }
   }
 
   const pngBase64 = normalized.buffer.toString("base64");
@@ -396,38 +495,37 @@ export async function submitBridgeBrandImage(
   });
 
   let logPosted = false;
-  try {
-    const logged = await logBrandImageApplied({
-      client,
-      guildName: guild.name,
-      requesterId: userId,
-      requesterTag,
-      request,
-      imagePng: normalized.buffer,
-      kind,
-    });
-    logPosted = logged.logPosted;
-  } catch (error) {
-    log.error(`[bot_customisation] Failed to post ${kind} photo log`, error);
+  if (enabled) {
+    try {
+      const logged = await logBrandImageApplied({
+        client,
+        guildName: guild.name,
+        requesterId: userId,
+        requesterTag,
+        request,
+        imagePng: normalized.buffer,
+        kind,
+      });
+      logPosted = logged.logPosted;
+    } catch (error) {
+      log.error(`[bot_customisation] Failed to post ${kind} photo log`, error);
+    }
   }
 
   return {
     ok: true,
     request: serializeRequest(guild.id, request),
     reviewPosted: logPosted,
+    applied: enabled,
   };
 }
 
 export async function cancelBridgeBrandRequest(
   client: Client,
-  configManager: ConfigManager,
   guildId: string,
   requestId: number,
   userId: string,
 ): Promise<{ ok: true; request: BridgeBotBrandRequest } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guildId);
-  if (!plugin.ok) return plugin;
-
   const cancelled = await cancelBotBrandRequestById(requestId, guildId, userId);
   if (!cancelled) {
     return { ok: false, error: "No pending request with that id.", status: 404 };
@@ -437,44 +535,45 @@ export async function cancelBridgeBrandRequest(
   return { ok: true, request: serializeRequest(guildId, cancelled) };
 }
 
+/** Always clears the stored draft; also clears it live when Custom Branding is on. */
 export async function clearBridgeBrandImage(
   configManager: ConfigManager,
   guild: Guild,
   userId: string,
   kind: BotBrandImageKind,
 ): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guild.id);
-  if (!plugin.ok) return plugin;
   const one = await assertDreamlinerOne(guild.id);
   if (!one.ok) return one;
 
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const tag = member?.user.tag ?? userId;
-
-  try {
-    await guild.members.editMe({
-      ...(kind === "banner" ? { banner: null } : { avatar: null }),
-      reason: `Guild ${kind} cleared from dashboard by ${tag}`,
-    });
-    await setStoredBrandImage(guild.id, kind, "", userId);
-    return { ok: true };
-  } catch (error) {
-    return {
-      ok: false,
-      error: apiErrorMessage(error, `Discord rejected clearing the ${kind}.`),
-      status: 400,
-    };
+  const enabled = await isBotCustomisationEnabled(configManager, guild.id);
+  if (enabled) {
+    const member = await guild.members.fetch(userId).catch(() => null);
+    const tag = member?.user.tag ?? userId;
+    try {
+      await guild.members.editMe({
+        ...(kind === "banner" ? { banner: null } : { avatar: null }),
+        reason: `Guild ${kind} cleared from dashboard by ${tag}`,
+      });
+    } catch (error) {
+      return {
+        ok: false,
+        error: apiErrorMessage(error, `Discord rejected clearing the ${kind}.`),
+        status: 400,
+      };
+    }
   }
+
+  await setStoredBrandImage(guild.id, kind, "", userId);
+  return { ok: true };
 }
 
+/** Always saves the nickname draft; also applies it live when Custom Branding is on. */
 export async function setBridgeBotNickname(
   configManager: ConfigManager,
   guild: Guild,
   userId: string,
   nickname: string | null,
 ): Promise<{ ok: true; nick: string | null } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guild.id);
-  if (!plugin.ok) return plugin;
   const one = await assertDreamlinerOne(guild.id);
   if (!one.ok) return one;
 
@@ -506,32 +605,35 @@ export async function setBridgeBotNickname(
     next = trimmed;
   }
 
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const tag = member?.user.tag ?? userId;
-
-  try {
-    await guild.members.editMe({
-      nick: next,
-      reason: `Guild nickname ${next ? "set" : "cleared"} from dashboard by ${tag}`,
-    });
-    return { ok: true, nick: next };
-  } catch (error) {
-    return {
-      ok: false,
-      error: apiErrorMessage(error, "Discord rejected the nickname change."),
-      status: 400,
-    };
+  const enabled = await isBotCustomisationEnabled(configManager, guild.id);
+  if (enabled) {
+    const member = await guild.members.fetch(userId).catch(() => null);
+    const tag = member?.user.tag ?? userId;
+    try {
+      await guild.members.editMe({
+        nick: next,
+        reason: `Guild nickname ${next ? "set" : "cleared"} from dashboard by ${tag}`,
+      });
+    } catch (error) {
+      return {
+        ok: false,
+        error: apiErrorMessage(error, "Discord rejected the nickname change."),
+        status: 400,
+      };
+    }
   }
+
+  await setStoredBotNickname(guild.id, next, userId);
+  return { ok: true, nick: next };
 }
 
+/** Always saves the bio draft; also applies it live when Custom Branding is on. */
 export async function setBridgeBotBio(
   configManager: ConfigManager,
   guild: Guild,
   userId: string,
   bio: string | null,
 ): Promise<{ ok: true; bio: string | null } | { ok: false; error: string; status: number }> {
-  const plugin = await assertPluginEnabled(configManager, guild.id);
-  if (!plugin.ok) return plugin;
   const one = await assertDreamlinerOne(guild.id);
   if (!one.ok) return one;
 
@@ -548,25 +650,29 @@ export async function setBridgeBotBio(
     next = trimmed.length ? trimmed : null;
   }
 
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const tag = member?.user.tag ?? userId;
-
-  try {
-    await guild.members.editMe({
-      bio: next,
-      reason: `Guild bio ${next ? "set" : "cleared"} from dashboard by ${tag}`,
-    });
-    await setStoredBotBio(guild.id, next, userId);
-    return { ok: true, bio: next };
-  } catch (error) {
-    return {
-      ok: false,
-      error: apiErrorMessage(error, "Discord rejected the bio change."),
-      status: 400,
-    };
+  const enabled = await isBotCustomisationEnabled(configManager, guild.id);
+  if (enabled) {
+    const member = await guild.members.fetch(userId).catch(() => null);
+    const tag = member?.user.tag ?? userId;
+    try {
+      await guild.members.editMe({
+        bio: next,
+        reason: `Guild bio ${next ? "set" : "cleared"} from dashboard by ${tag}`,
+      });
+    } catch (error) {
+      return {
+        ok: false,
+        error: apiErrorMessage(error, "Discord rejected the bio change."),
+        status: 400,
+      };
+    }
   }
+
+  await setStoredBotBio(guild.id, next, userId);
+  return { ok: true, bio: next };
 }
 
+/** Always saves the display name style draft; also applies it live when Custom Branding is on. */
 export async function setBridgeBotDisplayNameStyle(
   client: Client,
   configManager: ConfigManager,
@@ -577,8 +683,6 @@ export async function setBridgeBotDisplayNameStyle(
   | { ok: true; displayNameStyle: BridgeDisplayNameStyle | null }
   | { ok: false; error: string; status: number }
 > {
-  const plugin = await assertPluginEnabled(configManager, guild.id);
-  if (!plugin.ok) return plugin;
   const one = await assertDreamlinerOne(guild.id);
   if (!one.ok) return one;
 
@@ -604,33 +708,29 @@ export async function setBridgeBotDisplayNameStyle(
     }
   }
 
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const tag = member?.user.tag ?? userId;
-
-  try {
-    const updated = await client.rest.patch(Routes.guildMember(guild.id, "@me"), {
-      body: style
-        ? {
-            display_name_font_id: style.fontId,
-            display_name_effect_id: style.effectId,
-            display_name_colors: style.colors,
-          }
-        : {
-            display_name_font_id: null,
-            display_name_effect_id: null,
-            display_name_colors: null,
-          },
-      reason: `Guild display name style ${style ? "set" : "cleared"} from dashboard by ${tag}`,
-    });
-    // Discord echoes the applied style; keep it so the dashboard survives an incomplete read.
-    const applied = style ? (parseDisplayNameStyle(updated) ?? style) : null;
-    await setStoredBotNameStyle(guild.id, applied, userId);
-    return { ok: true, displayNameStyle: applied };
-  } catch (error) {
-    return {
-      ok: false,
-      error: apiErrorMessage(error, "Discord rejected the display name style change."),
-      status: 400,
-    };
+  const enabled = await isBotCustomisationEnabled(configManager, guild.id);
+  let applied = style;
+  if (enabled) {
+    const member = await guild.members.fetch(userId).catch(() => null);
+    const tag = member?.user.tag ?? userId;
+    try {
+      const updated = await applyDisplayNameStyle(
+        client,
+        guild,
+        style,
+        `Guild display name style ${style ? "set" : "cleared"} from dashboard by ${tag}`,
+      );
+      // Discord echoes the applied style; keep it so the dashboard survives an incomplete read.
+      applied = style ? (parseDisplayNameStyle(updated) ?? style) : null;
+    } catch (error) {
+      return {
+        ok: false,
+        error: apiErrorMessage(error, "Discord rejected the display name style change."),
+        status: 400,
+      };
+    }
   }
+
+  await setStoredBotNameStyle(guild.id, applied, userId);
+  return { ok: true, displayNameStyle: applied };
 }

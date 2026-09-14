@@ -8,6 +8,7 @@ import type { InfractionType } from "../../../config/schemas/infraction.js";
 import type { InfractionRecord } from "./embeds.js";
 import { expiryFromDuration } from "./duration.js";
 import { getLogger } from "../../../core/logger.js";
+import type { Translator } from "../../../i18n/index.js";
 const log = getLogger("infraction");
 
 export function rowToRecord(row: typeof modCases.$inferSelect): InfractionRecord {
@@ -286,11 +287,18 @@ export function buildNotifyMessage(
   pluginConfig: InfractionConfig,
   action: keyof InfractionConfig["notify"],
   vars: Record<string, string>,
+  t?: Translator,
 ): string | null {
   const settings = pluginConfig.notify[action];
   if (!settings?.dm) return null;
   if (!settings.format) {
-    return `You have been **${vars.action ?? action}** in **${vars.guild}**. Reason: ${vars.reason}`;
+    return t
+      ? t("infraction.defaultNotifyMessage", "You have been **{action}** in **{guild}**. Reason: {reason}", {
+          action: vars.action ?? action,
+          guild: vars.guild ?? "",
+          reason: vars.reason ?? "",
+        })
+      : `You have been **${vars.action ?? action}** in **${vars.guild}**. Reason: ${vars.reason}`;
   }
   return settings.format
     .replace(/\{action\}/g, vars.action ?? action)

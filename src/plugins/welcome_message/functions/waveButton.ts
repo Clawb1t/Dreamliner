@@ -11,6 +11,7 @@ import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import { addWelcomeWave, getWelcomeJoinMessage } from "./store.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { loadWelcomeConfig } from "./loadConfig.js";
+import { translatorFor } from "../../../i18n/index.js";
 
 /** Shared custom id; the waved welcome is identified by interaction.message.id. */
 export const WELCOME_WAVE_CUSTOM_ID = "welcome:wave";
@@ -42,8 +43,16 @@ export async function handleWelcomeWaveButtonInteraction(
 ): Promise<boolean> {
   if (interaction.customId !== WELCOME_WAVE_CUSTOM_ID) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.guild || !interaction.member) {
-    await interaction.reply(resultReply("Server only", "Use this in a server.", true));
+    await interaction.reply(
+      resultReply(
+        t("welcome_message.waveServerOnlyTitle", "Server only"),
+        t("welcome_message.waveServerOnlyBody", "Use this in a server."),
+        true,
+      ),
+    );
     return true;
   }
 
@@ -54,8 +63,8 @@ export async function handleWelcomeWaveButtonInteraction(
   if (!tracked || !tracked.waveEnabled) {
     await interaction.reply(
       resultReply(
-        "Unavailable",
-        "This wave button is no longer active.",
+        t("welcome_message.waveUnavailableTitle", "Unavailable"),
+        t("welcome_message.waveUnavailableBody", "This wave button is no longer active."),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
       ),
@@ -68,8 +77,8 @@ export async function handleWelcomeWaveButtonInteraction(
     if (result.reason === "duplicate") {
       await interaction.reply(
         resultReply(
-          "Already waved",
-          "You've already waved on this welcome.",
+          t("welcome_message.waveAlreadyTitle", "Already waved"),
+          t("welcome_message.waveAlreadyBody", "You've already waved on this welcome."),
           true,
           guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
         ),
@@ -78,8 +87,8 @@ export async function handleWelcomeWaveButtonInteraction(
     }
     await interaction.reply(
       resultReply(
-        "Unavailable",
-        "This wave button is no longer active.",
+        t("welcome_message.waveUnavailableTitle", "Unavailable"),
+        t("welcome_message.waveUnavailableBody", "This wave button is no longer active."),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
       ),

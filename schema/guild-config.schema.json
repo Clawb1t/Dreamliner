@@ -758,6 +758,16 @@
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
                 },
+                "can_create_emoji": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use the Create Emoji message context command.",
+                  "title": "Create Emoji",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
                 "can_snipe": {
                   "type": "boolean",
                   "default": false,
@@ -825,6 +835,7 @@
                 "can_time": false,
                 "can_convert_gif": false,
                 "can_create_sticker": false,
+                "can_create_emoji": false,
                 "can_snipe": false,
                 "can_quote_to_discofy": false,
                 "can_one": false

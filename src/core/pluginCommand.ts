@@ -8,23 +8,23 @@ export async function requirePluginPermission(
   pluginName: string,
   permission: string,
 ): Promise<{ member: GuildMember; pluginConfig: Record<string, unknown> } | null> {
-  const { interaction, guildConfig, ephemeral } = ctx;
+  const { interaction, guildConfig, ephemeral, t } = ctx;
   if (!interaction.inGuild() || !interaction.guild) {
-    await interaction.reply(resultReply("Server only", "This command can only be used in a server.", ephemeral, slashResultOptions(ctx)));
+    await interaction.reply(resultReply(t("common.serverOnlyTitle", "Server only"), t("common.serverOnlyBody", "This command can only be used in a server."), ephemeral, slashResultOptions(ctx)));
     return null;
   }
 
   const member = interaction.member;
   if (!member || typeof member === "string") {
-    await interaction.reply(resultReply("Member error", "Could not resolve member.", ephemeral, slashResultOptions(ctx)));
+    await interaction.reply(resultReply(t("common.memberErrorTitle", "Member error"), t("common.memberErrorBody", "Could not resolve member."), ephemeral, slashResultOptions(ctx)));
     return null;
   }
 
   if (!pluginEnabled(guildConfig, pluginName)) {
     await interaction.reply(
       resultReply(
-        "Plugin disabled",
-        `The **${pluginName}** plugin is disabled for this server.`,
+        t("common.pluginDisabledTitle", "Plugin disabled"),
+        t("common.pluginDisabledBody", `The **${pluginName}** plugin is disabled for this server.`, { plugin: pluginName }),
         ephemeral,
         slashResultOptions(ctx, { tone: "error" }),
       ),
@@ -35,7 +35,7 @@ export async function requirePluginPermission(
   const guildMember = member as GuildMember;
 
   if (!(await hasPermission(interaction.guildId, pluginName, permission, guildMember, guildConfig))) {
-    await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ephemeral, slashResultOptions(ctx, { tone: "error" })));
+    await interaction.reply(resultReply(t("common.permissionDeniedTitle", "Permission denied"), t("common.noPermission", "You do not have permission to use this command."), ephemeral, slashResultOptions(ctx, { tone: "error" })));
     return null;
   }
 

@@ -24,20 +24,24 @@ export const passportCommands: SlashCommandDefinition[] = [
       const verified = await getPassportVerification(guild.id, user.id);
       const embed = setEmbedAuthor(
         baseEmbed(),
-        "Passport status",
+        ctx.t("passport.status.title", "Passport status"),
         ctx.client,
         commandHeader(ctx.guildConfig, { emoji: "<:icons_id:1544417556868104274>" }),
       ).addFields(
-        embedField("Member", `${user} \`${user.id}\``, false),
+        embedField(ctx.t("passport.status.member", "Member"), `${user} \`${user.id}\``, false),
         embedField(
-          "Verified",
+          ctx.t("passport.status.verified", "Verified"),
           verified
             ? `<t:${Math.floor(verified.verifiedAt.getTime() / 1000)}:R> (${verified.method})`
-            : "No",
+            : ctx.t("passport.status.no", "No"),
           true,
         ),
-        embedField("Pending", pending ? "Waiting to verify" : "No", true),
-        embedField("Page", getPassportUrl(guild.id), false),
+        embedField(
+          ctx.t("passport.status.pending", "Pending"),
+          pending ? ctx.t("passport.status.waitingToVerify", "Waiting to verify") : ctx.t("passport.status.no", "No"),
+          true,
+        ),
+        embedField(ctx.t("passport.status.page", "Page"), getPassportUrl(guild.id), false),
       );
       await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
     },

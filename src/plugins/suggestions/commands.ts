@@ -62,8 +62,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       if (anon && !config.anonymous) {
         await ctx.interaction.reply(
           resultReply(
-            "Anonymous disabled",
-            "Anonymous suggestions are not enabled.",
+            ctx.t("suggestions.anonDisabledTitle", "Anonymous disabled"),
+            ctx.t("suggestions.anonDisabledBody", "Anonymous suggestions are not enabled."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
@@ -72,7 +72,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       }
       if (await isBlocked(ctx.interaction.guildId!, auth.member.id)) {
         await ctx.interaction.reply(
-          resultReply("Blocked", "You are blocked from suggesting.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          resultReply(ctx.t("suggestions.blockedTitle", "Blocked"), ctx.t("suggestions.blockedBody", "You are blocked from suggesting."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
         );
         return;
       }
@@ -94,11 +94,11 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       });
       if (!eligibility.ok) {
         await ctx.interaction.reply(
-          resultReply("Not eligible", eligibility.message, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+          resultReply(ctx.t("suggestions.notEligibleTitle", "Not eligible"), eligibility.message, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
         );
         return;
       }
-      await ctx.interaction.showModal(buildSuggestModal(anon));
+      await ctx.interaction.showModal(buildSuggestModal(anon, ctx.t));
     },
   },
   {

@@ -11,6 +11,7 @@ import {
 import { configManager } from "../../../config/manager.js";
 import { baseEmbed, discordTs, type ResultContainer } from "../../../core/embeds.js";
 import { guildResultOptions, resultReply } from "../../../core/responses.js";
+import { translatorFor, type Translator } from "../../../i18n/index.js";
 
 export const CONTEXT_NAV_PREFIX = "utility:context:nav:";
 
@@ -62,27 +63,36 @@ export async function fetchMessageAtOffset(
   return offset < 0 ? sorted[0]! : sorted[sorted.length - 1]!;
 }
 
-function offsetLabel(offset: number): string {
-  if (offset === 0) return "Target message";
+function offsetLabel(t: Translator, offset: number): string {
+  if (offset === 0) return t("utility.contextNav.targetMessage", "Target message");
   const count = Math.abs(offset);
-  const noun = count === 1 ? "message" : "messages";
-  return offset < 0 ? `${count} ${noun} before target` : `${count} ${noun} after target`;
+  return offset < 0
+    ? t("utility.contextNav.messagesBeforeTarget", "{count} {noun} before target", {
+        count,
+        noun: t(count === 1 ? "utility.contextNav.message" : "utility.contextNav.messages", count === 1 ? "message" : "messages"),
+      })
+    : t("utility.contextNav.messagesAfterTarget", "{count} {noun} after target", {
+        count,
+        noun: t(count === 1 ? "utility.contextNav.message" : "utility.contextNav.messages", count === 1 ? "message" : "messages"),
+      });
 }
 
 /** Quoted message: name + avatar as the header, content as the description, footer holds the timestamp. */
-export function buildContextMessageEmbed(message: Message): ResultContainer {
+export function buildContextMessageEmbed(message: Message, t: Translator): ResultContainer {
   const content = message.content.trim();
   return baseEmbed()
     .setTitle(message.author.tag)
     .setThumbnail(message.author.displayAvatarURL({ size: 128 }))
-    .setDescription(content.length > 0 ? content.slice(0, 4096) : "*(no text content)*")
-    .setFooter({ text: `Sent ${discordTs(message.createdAt)}` });
+    .setDescription(content.length > 0 ? content.slice(0, 4096) : t("utility.contextNav.noTextContent", "*(no text content)*"))
+    .setFooter({ text: t("utility.contextNav.sentFooter", "Sent {timestamp}", { timestamp: discordTs(message.createdAt) }) });
 }
 
 /** Shows where in the navigation window we are and a jump link. */
-export function buildContextNavEmbed(message: Message, offset: number): ResultContainer {
+export function buildContextNavEmbed(message: Message, offset: number, t: Translator): ResultContainer {
   const link = `https://discord.com/channels/${message.guildId}/${message.channelId}/${message.id}`;
-  return baseEmbed().setDescription(`${offsetLabel(offset)} • [Jump to message ➔](${link})`);
+  return baseEmbed().setDescription(
+    t("utility.contextNav.navLine", "{offsetLabel} • [Jump to message ➔]({link})", { offsetLabel: offsetLabel(t, offset), link }),
+  );
 }
 
 export function buildContextNavRow(
@@ -90,16 +100,17 @@ export function buildContextNavRow(
   anchorId: string,
   offset: number,
   invokerId: string,
+  t: Translator,
 ): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(buildContextNavCustomId(channelId, anchorId, Math.max(offset - 1, -MAX_OFFSET), invokerId))
-      .setLabel("Up")
+      .setLabel(t("utility.contextNav.up", "Up"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(offset <= -MAX_OFFSET),
     new ButtonBuilder()
       .setCustomId(buildContextNavCustomId(channelId, anchorId, Math.min(offset + 1, MAX_OFFSET), invokerId))
-      .setLabel("Down")
+      .setLabel(t("utility.contextNav.down", "Down"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(offset >= MAX_OFFSET),
   );
@@ -111,13 +122,14 @@ export function buildContextNavPayload(
   anchorId: string,
   offset: number,
   invokerId: string,
+  t: Translator,
 ): { flags: number; components: TopLevelComponentData[] } {
-  const row = buildContextNavRow(channelId, anchorId, offset, invokerId);
+  const row = buildContextNavRow(channelId, anchorId, offset, invokerId, t);
   return {
     flags: MessageFlags.IsComponentsV2,
     components: [
-      buildContextMessageEmbed(message).toContainerComponent(),
-      buildContextNavEmbed(message, offset).toContainerComponent([row.toJSON()]),
+      buildContextMessageEmbed(message, t).toContainerComponent(),
+      buildContextNavEmbed(message, offset, t).toContainerComponent([row.toJSON()]),
     ],
   };
 }
@@ -130,19 +142,32 @@ export async function handleContextNavButtonInteraction(interaction: ButtonInter
 
   if (!interaction.inGuild() || !interaction.guildId) return true;
 
+  const { t } = await translatorFor(interaction.user.id);
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   const options = guildResultOptions(interaction.client, guildConfig, { tone: "error" });
 
   if (interaction.user.id !== parsed.invokerId) {
     await interaction.reply(
-      resultReply("Not your context", "Only the person who ran /context can use these buttons.", true, options),
+      resultReply(
+        t("utility.contextNav.notYourContextTitle", "Not your context"),
+        t("utility.contextNav.notYourContextDesc", "Only the person who ran /context can use these buttons."),
+        true,
+        options,
+      ),
     );
     return true;
   }
 
   const channel = await interaction.client.channels.fetch(parsed.channelId).catch(() => null);
   if (!channel || !channel.isTextBased() || channel.isDMBased()) {
-    await interaction.reply(resultReply("Channel unavailable", "That channel is no longer available.", true, options));
+    await interaction.reply(
+      resultReply(
+        t("utility.contextNav.channelUnavailableTitle", "Channel unavailable"),
+        t("utility.contextNav.channelUnavailableDesc", "That channel is no longer available."),
+        true,
+        options,
+      ),
+    );
     return true;
   }
 
@@ -153,7 +178,12 @@ export async function handleContextNavButtonInteraction(interaction: ButtonInter
   );
   if (!message) {
     await interaction.reply(
-      resultReply("No message found", "There is no message that far in that direction.", true, options),
+      resultReply(
+        t("utility.contextNav.noMessageFoundTitle", "No message found"),
+        t("utility.contextNav.noMessageFoundDesc", "There is no message that far in that direction."),
+        true,
+        options,
+      ),
     );
     return true;
   }
@@ -164,11 +194,19 @@ export async function handleContextNavButtonInteraction(interaction: ButtonInter
     parsed.anchorId,
     parsed.offset,
     parsed.invokerId,
+    t,
   );
 
   await interaction.update(payload).catch(async () => {
     await interaction
-      .reply(resultReply("Could not update", "That message may have been deleted.", true, options))
+      .reply(
+        resultReply(
+          t("utility.contextNav.couldNotUpdateTitle", "Could not update"),
+          t("utility.contextNav.couldNotUpdateDesc", "That message may have been deleted."),
+          true,
+          options,
+        ),
+      )
       .catch(() => null);
   });
 

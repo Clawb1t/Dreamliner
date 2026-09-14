@@ -21,8 +21,8 @@ export async function replyContextMenuError(
 export async function replyContextMenuPermissionDenied(ctx: ContextMenuCommandContext): Promise<void> {
   await ctx.interaction.reply(
     resultReply(
-      "Permission denied",
-      "You do not have permission to use this command.",
+      ctx.t("utility.contextMenuHelpers.permissionDeniedTitle", "Permission denied"),
+      ctx.t("utility.contextMenuHelpers.permissionDeniedDesc", "You do not have permission to use this command."),
       true,
       guildResultOptions(ctx.client, ctx.guildConfig, { tone: "error" }),
     ),

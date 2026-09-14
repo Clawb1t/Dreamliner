@@ -52,8 +52,8 @@ export const reviewsCommands: SlashCommandDefinition[] = [
         if (existing && !config.allow_edit) {
           await ctx.interaction.reply(
             resultReply(
-              "Already reviewed",
-              "You have already submitted a review for this server.",
+              ctx.t("reviews.alreadyReviewed.title", "Already reviewed"),
+              ctx.t("reviews.alreadyReviewed.description", "You have already submitted a review for this server."),
               ctx.ephemeral,
               slashResultOptions(ctx),
             ),
@@ -77,13 +77,13 @@ export const reviewsCommands: SlashCommandDefinition[] = [
         });
         if (!eligibility.ok) {
           await ctx.interaction.reply(
-            resultReply("Not eligible", eligibility.message, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+            resultReply(ctx.t("reviews.notEligible.title", "Not eligible"), eligibility.message, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
           );
           return;
         }
 
         await ctx.interaction.showModal(
-          buildReviewModal({
+          buildReviewModal(ctx.t, {
             minRating: config.min_rating,
             maxRating: config.max_rating,
             requireText: config.require_text,
@@ -107,16 +107,16 @@ export const reviewsCommands: SlashCommandDefinition[] = [
 
         const lines =
           result.reviews.length === 0
-            ? ["No reviews found."]
+            ? [ctx.t("reviews.list.none", "No reviews found.")]
             : result.reviews.map((review) => {
-                const who = review.anonymous ? "Anonymous" : `<@${review.userId}>`;
-                const snippet = review.content.trim().slice(0, 80) || "_no comment_";
+                const who = review.anonymous ? ctx.t("reviews.anonymous", "Anonymous") : `<@${review.userId}>`;
+                const snippet = review.content.trim().slice(0, 80) || ctx.t("reviews.list.noComment", "_no comment_");
                 return `**#${review.id}** ${starsForRating(review.rating)} · ${who} — ${snippet}`;
               });
 
-        const embed = setEmbedAuthor(baseEmbed(), "Reviews", ctx.client, commandHeader(ctx.guildConfig));
+        const embed = setEmbedAuthor(baseEmbed(), ctx.t("reviews.list.title", "Reviews"), ctx.client, commandHeader(ctx.guildConfig));
         embed.setDescription(trimLines(lines.join("\n")).slice(0, 4000));
-        embed.addFields(embedField("Total", String(result.total), true));
+        embed.addFields(embedField(ctx.t("reviews.list.total", "Total"), String(result.total), true));
 
         await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
         return;
@@ -130,7 +130,12 @@ export const reviewsCommands: SlashCommandDefinition[] = [
         const review = await softDeleteReview(guildId, id);
         if (!review) {
           await ctx.interaction.reply(
-            resultReply("Not found", `Review #${id} was not found or is already deleted.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(
+              ctx.t("reviews.delete.notFoundTitle", "Not found"),
+              ctx.t("reviews.delete.notFoundDescription", "Review #{id} was not found or is already deleted.", { id }),
+              ctx.ephemeral,
+              slashResultOptions(ctx),
+            ),
           );
           return;
         }
@@ -144,8 +149,14 @@ export const reviewsCommands: SlashCommandDefinition[] = [
 
         await ctx.interaction.reply(
           resultReply(
-            "Review deleted",
-            `Deleted review #${id}.${config.review_channel_id ? " The Discord post was removed if it still existed." : ""}`,
+            ctx.t("reviews.delete.title", "Review deleted"),
+            config.review_channel_id
+              ? ctx.t(
+                  "reviews.delete.descriptionWithChannel",
+                  "Deleted review #{id}. The Discord post was removed if it still existed.",
+                  { id },
+                )
+              : ctx.t("reviews.delete.description", "Deleted review #{id}.", { id }),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success" }),
           ),
@@ -160,10 +171,20 @@ export const reviewsCommands: SlashCommandDefinition[] = [
         const stats = await averageRating(guildId);
         await ctx.interaction.reply(
           resultReply(
-            "Review stats",
+            ctx.t("reviews.stats.title", "Review stats"),
             stats.count === 0
-              ? "No reviews yet."
-              : `Average **${stats.average.toFixed(2)}/5** ${starsForRating(Math.round(stats.average))} across **${stats.count}** review${stats.count === 1 ? "" : "s"}.`,
+              ? ctx.t("reviews.stats.none", "No reviews yet.")
+              : stats.count === 1
+                ? ctx.t(
+                    "reviews.stats.summaryOne",
+                    "Average **{average}/5** {stars} across **{count}** review.",
+                    { average: stats.average.toFixed(2), stars: starsForRating(Math.round(stats.average)), count: stats.count },
+                  )
+                : ctx.t(
+                    "reviews.stats.summary",
+                    "Average **{average}/5** {stars} across **{count}** reviews.",
+                    { average: stats.average.toFixed(2), stars: starsForRating(Math.round(stats.average)), count: stats.count },
+                  ),
             ctx.ephemeral,
             slashResultOptions(ctx),
           ),

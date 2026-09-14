@@ -12,6 +12,7 @@ import { convertAttachmentToGif } from "../functions/convertToGif.js";
 import { replyContextMenuError } from "../functions/contextMenuHelpers.js";
 import { downloadUrl, getImageAttachments } from "../functions/imageAttachments.js";
 import { normalizeSticker } from "../functions/normalizeSticker.js";
+import { normalizeEmoji } from "../functions/normalizeEmoji.js";
 import { ManageGuildExpressions, ManageMessages } from "../functions/commandHelpers.js";
 import { archiveMessages, collectMessagesToHere, formatArchiveTranscript, serializeMessages } from "../functions/clean.js";
 import { DiscofySubmitError, submitDiscofyQuote } from "../functions/discofy.js";
@@ -30,6 +31,16 @@ function sanitizeStickerName(raw: string | null | undefined): string | null {
   const cleaned = (raw ?? "").replace(/[^a-zA-Z0-9_\- ]/g, "").trim().slice(0, 30);
   return cleaned.length >= 2 ? cleaned : null;
 }
+
+/** Discord custom emoji names: 2-32 characters, letters/numbers/underscores only. */
+function sanitizeEmojiName(raw: string | null | undefined): string | null {
+  const cleaned = (raw ?? "").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32);
+  return cleaned.length >= 2 ? cleaned : null;
+}
+
+/** First custom emoji anywhere in a message's text, not anchored to the whole string (unlike
+ * /stealemoji's exact-match regex, since here it's found inside free-form message content). */
+const CONTENT_EMOJI_RE = /<(a?):(\w{2,32}):(\d+)>/;
 
 export const contextMenuCommands: ContextMenuCommandDefinition[] = [
   {
@@ -246,6 +257,90 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
   },
   {
     plugin: "utility",
+    permission: "can_create_emoji",
+    discordPermissions: ManageGuildExpressions,
+    data: new ContextMenuCommandBuilder()
+      .setName("Create Emoji")
+      .setType(ApplicationCommandType.Message),
+    execute: async (ctx) => {
+      const { interaction } = ctx;
+      const guild = interaction.guild!;
+      const message = interaction.targetMessage;
+
+      // Stealing an existing custom emoji from the message's text takes priority over an
+      // image attachment — the first one found in the content is the one that gets copied.
+      const sourceMatch = CONTENT_EMOJI_RE.exec(message.content ?? "");
+      if (sourceMatch) {
+        const animated = sourceMatch[1] === "a";
+        const sourceName = sourceMatch[2];
+        const id = sourceMatch[3];
+
+        await interaction.deferReply();
+        try {
+          const name = sanitizeEmojiName(sourceName) ?? `emoji_${id}`;
+          const ext = animated ? "gif" : "png";
+          const url = `https://cdn.discordapp.com/emojis/${id}.${ext}?size=128&quality=lossless`;
+          const created = await guild.emojis.create({ attachment: url, name });
+          await interaction.editReply(
+            resultEdit(
+              "Emoji stolen",
+              `Added ${created} as \`:${created.name}:\` to this server.`,
+              guildResultOptions(ctx.client, ctx.guildConfig, { emoji: "<:icons_upload2:1544418267412570193>" }),
+            ),
+          );
+        } catch (error) {
+          log.error("Create Emoji (steal emoji) error:", error);
+          await replyContextMenuError(
+            ctx,
+            "Couldn't create emoji",
+            "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type.",
+          );
+        }
+        return;
+      }
+
+      const imageAttachments = getImageAttachments(message.attachments);
+      const attachment = imageAttachments[0];
+      if (!attachment) {
+        await replyContextMenuError(
+          ctx,
+          "No image or emoji",
+          "That message has no image attachment or custom emoji to turn into an emoji.",
+        );
+        return;
+      }
+
+      await interaction.deferReply();
+      try {
+        const raw = await downloadUrl(attachment.url);
+        const normalized = await normalizeEmoji(raw);
+        if (!normalized.ok) {
+          await replyContextMenuError(ctx, normalized.title, normalized.details);
+          return;
+        }
+
+        const fromName = attachment.name?.replace(/\.[a-z0-9]+$/i, "");
+        const name = sanitizeEmojiName(fromName) ?? `emoji_${message.id}`;
+        const created = await guild.emojis.create({ attachment: normalized.buffer, name });
+        await interaction.editReply(
+          resultEdit(
+            "Emoji created",
+            `Added ${created} as \`:${created.name}:\` to this server.`,
+            guildResultOptions(ctx.client, ctx.guildConfig, { emoji: "<:icons_upload2:1544418267412570193>" }),
+          ),
+        );
+      } catch (error) {
+        log.error("Create Emoji (from image) error:", error);
+        await replyContextMenuError(
+          ctx,
+          "Couldn't create emoji",
+          "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type.",
+        );
+      }
+    },
+  },
+  {
+    plugin: "utility",
     permission: "can_quote_to_discofy",
     data: new ContextMenuCommandBuilder()
       .setName("Quote to Discofy")
@@ -273,7 +368,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           quoteeUsername: message.author.username,
           quoteeAvatarUrl: message.author.displayAvatarURL({ size: 128 }),
           mediaUrl,
-        });
+        }, ctx.t);
         await interaction.editReply(
           resultEdit(
             "Quoted to Discofy",

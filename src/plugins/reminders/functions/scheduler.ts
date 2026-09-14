@@ -3,6 +3,7 @@ import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getDueReminders, removeReminder } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
+import { translatorFor } from "../../../i18n/index.js";
 const log = getLogger("reminders");
 
 export async function processDueReminders(client: Client): Promise<void> {
@@ -22,7 +23,8 @@ export async function processDueReminders(client: Client): Promise<void> {
       }
 
       const user = await client.users.fetch(reminder.userId).catch(() => null);
-      const content = `Reminder: ${reminder.message}`;
+      const { t } = await translatorFor(reminder.userId);
+      const content = t("reminders.deliver.content", "Reminder: {message}", { message: reminder.message });
 
       const dmSent = user
         ? await user.send({ content }).then(() => true).catch(() => false)

@@ -17,6 +17,7 @@ import {
   buildTicketStatusLog,
 } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { containerReply } from "../../../core/responses.js";
 import { ticketClaimId, ticketCloseId, ticketDeleteId, ticketUnclaimId } from "../constants.js";
 import { isBlacklisted } from "./blacklist.js";
@@ -68,33 +69,44 @@ export async function createTicketForMember(opts: {
   guildConfig: GuildConfig;
   pluginConfig: TicketsConfig;
   formResponses?: TicketFormAnswer[];
+  t?: Translator;
 }): Promise<CreateTicketResult> {
-  const { client, guild, member, panel, category, guildConfig, pluginConfig, formResponses } = opts;
+  const { client, guild, member, panel, category, guildConfig, pluginConfig, formResponses, t = defaultTranslator } = opts;
 
   const blocked = await isBlacklisted(guild.id, member);
   if (blocked) {
     return {
       error: pluginConfig.blacklist_notify
-        ? `You are blocked from opening tickets in this server${blocked.reason ? `: ${blocked.reason}` : "."}`
-        : "You cannot open a ticket right now.",
+        ? t(
+            "tickets.actions.blockedWithReason",
+            `You are blocked from opening tickets in this server${blocked.reason ? `: ${blocked.reason}` : "."}`,
+            { reason: blocked.reason ?? "" },
+          )
+        : t("tickets.actions.blocked", "You cannot open a ticket right now."),
     };
   }
 
   const categoryLimit = category.max_open_per_user;
   if (categoryLimit === 0) {
-    return { error: "This ticket category is not accepting new tickets right now." };
+    return { error: t("tickets.actions.categoryClosed", "This ticket category is not accepting new tickets right now.") };
   }
   const limit = categoryLimit ?? pluginConfig.max_open_tickets_per_user;
   const openCount = await countOpenTicketsForUser(guild.id, member.id);
   if (openCount >= limit) {
-    return { error: `You already have ${openCount} open ticket${openCount === 1 ? "" : "s"} (max ${limit}).` };
+    return {
+      error: t(
+        "tickets.actions.openLimitReached",
+        `You already have ${openCount} open ticket${openCount === 1 ? "" : "s"} (max ${limit}).`,
+        { count: openCount, max: limit },
+      ),
+    };
   }
 
   const number = await nextTicketNumber(guild.id);
   const staffRoleIds = pluginConfig.staff_role_ids;
   const container = await createTicketContainer(guild, category, member, number, staffRoleIds);
   if (!container) {
-    return { error: "Could not create the ticket channel. Check the category's channel configuration." };
+    return { error: t("tickets.actions.channelCreateFailed", "Could not create the ticket channel. Check the category's channel configuration.") };
   }
 
   const ticket = await createTicket({

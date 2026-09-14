@@ -1,5 +1,6 @@
 import { getDb } from "../../../db/client.js";
 import { planeCardPackOpenings } from "../../../db/schema.js";
+import type { Translator } from "../../../i18n/index.js";
 import { ensureGlobalAccount, spendGlobal, InsufficientFundsError } from "./money.js";
 import { RARITY_META, listPlaneTypes, type PlaneTypeRow, type Rarity } from "./catalog.js";
 import { addToInventory } from "./inventory.js";
@@ -35,10 +36,22 @@ function drawPlane(catalog: PlaneTypeRow[]): PlaneTypeRow {
 export type PackResult = { cards: PlaneTypeRow[]; cost: number; balance: number };
 
 /** Spends global coins and draws `packSize` random enabled planes, adding them to the user's inventory. */
-export function openPack(userId: string, guildId: string, cost: number, packSize: number): PackResult {
-  if (!(cost >= 0)) throw new PackError("Pack price must be non-negative.", "invalid");
+export function openPack(userId: string, guildId: string, cost: number, packSize: number, t?: Translator): PackResult {
+  if (!(cost >= 0)) {
+    throw new PackError(
+      t ? t("economy.pack.error.negativePrice", "Pack price must be non-negative.") : "Pack price must be non-negative.",
+      "invalid",
+    );
+  }
   const catalog = listPlaneTypes({ enabledOnly: true });
-  if (catalog.length === 0) throw new PackError("No plane cards are available yet. Check back soon.", "empty_catalog");
+  if (catalog.length === 0) {
+    throw new PackError(
+      t
+        ? t("economy.pack.error.emptyCatalog", "No plane cards are available yet. Check back soon.")
+        : "No plane cards are available yet. Check back soon.",
+      "empty_catalog",
+    );
+  }
 
   const db = getDb();
   try {

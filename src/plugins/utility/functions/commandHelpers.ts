@@ -3,27 +3,28 @@ import { PermissionFlagsBits, type ChatInputCommandInteraction, type GuildMember
 import { canUseUtility, getUtilityPluginConfig } from "../../../core/guildHelpers.js";
 import { resultReply, guildResultOptions } from "../../../core/responses.js";
 import type { SlashCommandContext } from "../../../core/types.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export async function requireUtilityPermission(
   ctx: SlashCommandContext,
   permission: string,
 ): Promise<{ member: GuildMember; pluginConfig: Record<string, unknown> } | null> {
-  const { interaction, guildConfig } = ctx;
+  const { interaction, guildConfig, t } = ctx;
   if (!interaction.inGuild() || !interaction.guild) {
-    await interaction.reply(resultReply("Server only", "This command can only be used in a server.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(resultReply(t("utility.commandHelpers.serverOnlyTitle", "Server only"), t("utility.commandHelpers.serverOnlyDesc", "This command can only be used in a server."), ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
 
   const member = interaction.member;
   if (!member || typeof member === "string") {
-    await interaction.reply(resultReply("Member error", "Could not resolve member.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(resultReply(t("utility.commandHelpers.memberErrorTitle", "Member error"), t("utility.commandHelpers.memberErrorDesc", "Could not resolve member."), ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
 
   const guildMember = member as GuildMember;
 
   if (!(await canUseUtility(interaction.guildId, guildConfig, permission, guildMember))) {
-    await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(resultReply(t("utility.commandHelpers.permissionDeniedTitle", "Permission denied"), t("utility.commandHelpers.permissionDeniedDesc", "You do not have permission to use this command."), ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
 
@@ -37,7 +38,8 @@ export async function requireDiscordPerm(
   perm: bigint,
   label: string,
   ephemeral = false,
-  guildConfig?: GuildConfig,
+  guildConfig: GuildConfig | undefined,
+  t: Translator = defaultTranslator,
 ): Promise<boolean> {
   const member = interaction.member;
   if (!member || typeof member === "string" || !("permissions" in member)) return false;
@@ -45,7 +47,7 @@ export async function requireDiscordPerm(
     const options = guildConfig
       ? guildResultOptions(interaction.client, guildConfig, { tone: "error" })
       : { client: interaction.client, tone: "error" as const };
-    await interaction.reply(resultReply("Missing permission", `You need the **${label}** permission.`, ephemeral, options));
+    await interaction.reply(resultReply(t("utility.commandHelpers.missingPermissionTitle", "Missing permission"), t("utility.commandHelpers.missingPermissionDesc", "You need the **{label}** permission.", { label }), ephemeral, options));
     return false;
   }
   return true;

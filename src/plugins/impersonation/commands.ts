@@ -33,17 +33,24 @@ export const impersonationCommands: SlashCommandDefinition[] = [
       if (sub === "list") {
         const [alerts, openCount] = await Promise.all([listAlerts(guildId, { status: "open", limit: 15 }), countOpenAlerts(guildId)]);
         if (!alerts.length) {
-          await ctx.interaction.reply(resultReply("Alerts", "No open alerts.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(
+            resultReply(ctx.t("impersonation.alertsTitle", "Alerts"), ctx.t("impersonation.noOpenAlerts", "No open alerts."), ctx.ephemeral, slashResultOptions(ctx)),
+          );
           return;
         }
         const lines = alerts.map(
           (a) =>
-            `• \`${a.id.slice(0, 8)}\` <@${a.subjectUserId}> looks like **${a.matchedLabel}**` +
-            (a.nameSimilarity ? ` (name ${a.nameSimilarity}%)` : "") +
-            (a.avatarDistance != null ? ` (avatar Δ${a.avatarDistance})` : ""),
+            `• \`${a.id.slice(0, 8)}\` <@${a.subjectUserId}> ${ctx.t("impersonation.looksLike", "looks like")} **${a.matchedLabel}**` +
+            (a.nameSimilarity ? ` (${ctx.t("impersonation.nameSuffix", "name {pct}%", { pct: a.nameSimilarity })})` : "") +
+            (a.avatarDistance != null ? ` (${ctx.t("impersonation.avatarSuffix", "avatar Δ{dist}", { dist: a.avatarDistance })})` : ""),
         );
         await ctx.interaction.reply(
-          resultReply(`Open alerts (${openCount})`, lines.join("\n"), ctx.ephemeral, slashResultOptions(ctx, { emoji: "<:icons_warning:1544418156913885194>" })),
+          resultReply(
+            ctx.t("impersonation.openAlertsTitle", "Open alerts ({count})", { count: openCount }),
+            lines.join("\n"),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { emoji: "<:icons_warning:1544418156913885194>" }),
+          ),
         );
         return;
       }
@@ -53,8 +60,12 @@ export const impersonationCommands: SlashCommandDefinition[] = [
       const alert = await setAlertStatus(guildId, id, sub === "resolve" ? "resolved" : "dismissed", ctx.interaction.user.id);
       await ctx.interaction.reply(
         resultReply(
-          alert ? "Updated" : "Not found",
-          alert ? `Alert marked ${sub === "resolve" ? "resolved" : "dismissed"}.` : "No alert with that id.",
+          alert ? ctx.t("impersonation.updatedTitle", "Updated") : ctx.t("impersonation.notFoundTitle", "Not found"),
+          alert
+            ? sub === "resolve"
+              ? ctx.t("impersonation.alertMarkedResolved", "Alert marked resolved.")
+              : ctx.t("impersonation.alertMarkedDismissed", "Alert marked dismissed.")
+            : ctx.t("impersonation.noAlertWithId", "No alert with that id."),
           ctx.ephemeral,
           slashResultOptions(ctx, { tone: alert ? undefined : "warning" }),
         ),

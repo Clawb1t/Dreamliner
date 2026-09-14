@@ -4,6 +4,7 @@ import { configManager } from "./config/manager.js";
 import { runMigrations } from "./scripts/migrate.js";
 import { migrateConfigStorageToJson } from "./scripts/migrateConfigStorageToJson.js";
 import { runPermissionRoleMigration } from "./scripts/migratePermissionRoles.js";
+import { ensureBuiltinLanguages } from "./i18n/bootstrap.js";
 import { ensurePiperReady, resolvePiperVoicesDir } from "./plugins/tts/functions/piperSetup.js";
 import { ensureVoicePackInstalled } from "./plugins/tts/functions/voiceCatalog.js";
 import { getLogger } from "./core/logger.js";
@@ -68,6 +69,14 @@ async function main() {
     runPermissionRoleMigration();
   } catch (error) {
     log.error("Permission role migration failed:", error);
+  }
+
+  try {
+    // Seeds "en"/"ja"/"es"/"tr" as bot_languages rows + their starter dictionary, without ever
+    // clobbering a row a superuser has since edited. See i18n/bootstrap.ts.
+    await ensureBuiltinLanguages();
+  } catch (error) {
+    log.error("i18n built-in language seed failed:", error);
   }
 
   try {

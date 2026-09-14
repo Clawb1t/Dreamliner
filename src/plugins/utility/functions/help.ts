@@ -17,6 +17,22 @@ import type { SlashCommandDefinition } from "../../../core/types.js";
 import { baseEmbed, setEmbedAuthor, trimLines, type ResultContainer } from "../../../core/embeds.js";
 import { containerEdit, containerReply } from "../../../core/responses.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
+import { translatorFor, type Translator } from "../../../i18n/index.js";
+
+/** Translated category label — falls back to the English label from helpCategories.ts. */
+function categoryLabel(t: Translator, category: HelpCategory): string {
+  return t(`help.category.${category.id}.label`, category.label);
+}
+
+/** Translated category blurb — falls back to the English blurb from helpCategories.ts. */
+function categoryBlurb(t: Translator, category: HelpCategory): string {
+  return t(`help.category.${category.id}.blurb`, category.blurb);
+}
+
+/** Translated plugin group heading used inside a category's command list. */
+function groupLabel(t: Translator, plugin: string): string {
+  return t(`help.group.${plugin}`, GROUP_LABELS[plugin] ?? plugin);
+}
 
 export const HELP_BUTTON_PREFIX = "dl:help";
 
@@ -302,7 +318,7 @@ function shortCommandName(entry: CommandEntry): string {
   return entry.usage.split(" <")[0]!.split(" [")[0]!;
 }
 
-function splitFieldValue(lines: string[]): string[] {
+function splitFieldValue(lines: string[], t: Translator): string[] {
   const chunks: string[] = [];
   let current = "";
   for (const line of lines) {
@@ -315,7 +331,7 @@ function splitFieldValue(lines: string[]): string[] {
     }
   }
   if (current) chunks.push(current);
-  return chunks.length ? chunks : ["No commands."];
+  return chunks.length ? chunks : [t("help.noCommands", "No commands.")];
 }
 
 function docsPathFor(entries: CommandEntry[], fallback = ""): string {
@@ -323,26 +339,26 @@ function docsPathFor(entries: CommandEntry[], fallback = ""): string {
   return (plugin && PLUGIN_DOCS[plugin]) || fallback;
 }
 
-function buildHomeEmbed(entries: CommandEntry[], client: Client, emojis?: EmojisConfig): ResultContainer {
+function buildHomeEmbed(entries: CommandEntry[], client: Client, t: Translator, emojis?: EmojisConfig): ResultContainer {
   const categoryNames = CATEGORIES.filter(
     (category) => category.id === "config" || categoryEntries(category, entries).length > 0,
   )
-    .map((category) => category.label)
+    .map((category) => categoryLabel(t, category))
     .join(" · ");
 
-  return setEmbedAuthor(baseEmbed(), "Help", client, {
+  return setEmbedAuthor(baseEmbed(), t("help.title", "Help"), client, {
     tone: "neutral",
     emojis,
     emoji: "<:icons_book:1544418012700999820>",
   })
     .setDescription(
       trimLines(`
-        Choose a **category** from the menu below to browse commands, or search with \`/help query:ban\`.
+        ${t("help.home.intro", "Choose a **category** from the menu below to browse commands, or search with `/help query:ban`.")}
 
         ${categoryNames}
       `),
     )
-    .setFooter({ text: `${entries.length} commands` });
+    .setFooter({ text: t("help.home.footer", `${entries.length} commands`, { count: entries.length }) });
 }
 
 const GROUP_LABELS: Record<string, string> = {
@@ -384,38 +400,44 @@ function buildCategoryEmbed(
   totalPages: number,
   totalCommands: number,
   client: Client,
+  t: Translator,
   emojis?: EmojisConfig,
 ): ResultContainer {
   const groups = new Map<string, CommandEntry[]>();
   for (const entry of pageEntries) {
-    const label = GROUP_LABELS[entry.plugin] ?? entry.plugin;
+    const label = groupLabel(t, entry.plugin);
     const list = groups.get(label) ?? [];
     list.push(entry);
     groups.set(label, list);
   }
 
+  const blurb = categoryBlurb(t, category);
   const sections = [...groups.entries()].map(([label, groupEntries]) => {
     const body = groupEntries.map(commandLine).join("\n");
     return `**${label}**\n${body}`;
   });
 
   const description = trimLines(`
-    ${category.blurb}
+    ${blurb}
 
     ${sections.join("\n\n")}
   `);
 
-  const embed = setEmbedAuthor(baseEmbed(), category.label, client, { tone: "neutral", emojis }).setFooter({
-    text: `Page ${page + 1}/${totalPages} · ${totalCommands} commands · Select a command for details`,
+  const embed = setEmbedAuthor(baseEmbed(), categoryLabel(t, category), client, { tone: "neutral", emojis }).setFooter({
+    text: t(
+      "help.category.footer",
+      `Page ${page + 1}/${totalPages} · ${totalCommands} commands · Select a command for details`,
+      { page: page + 1, totalPages, count: totalCommands },
+    ),
   });
 
   if (description.length <= MAX_DESCRIPTION) {
     embed.setDescription(description);
   } else {
-    embed.setDescription(category.blurb);
+    embed.setDescription(blurb);
     let fieldCount = 0;
     for (const [label, groupEntries] of groups) {
-      const parts = splitFieldValue(groupEntries.map(commandLine));
+      const parts = splitFieldValue(groupEntries.map(commandLine), t);
       parts.slice(0, 25 - fieldCount).forEach((value, index) => {
         embed.addFields({ name: index === 0 ? label : `${label} (${index + 1})`, value });
         fieldCount += 1;
@@ -426,27 +448,29 @@ function buildCategoryEmbed(
   return embed;
 }
 
-function buildDetailEmbed(entry: CommandEntry, categoryLabel: string, client: Client, emojis?: EmojisConfig): ResultContainer {
+function buildDetailEmbed(entry: CommandEntry, categoryLabelText: string, client: Client, t: Translator, emojis?: EmojisConfig): ResultContainer {
   const optionLines =
     entry.options.length > 0
       ? entry.options
-          .map((o) => `• **${formatOptionToken(o.name, o.required)}** - ${o.description || "No description"}`)
+          .map((o) => `• **${formatOptionToken(o.name, o.required)}** - ${o.description || t("help.noDescription", "No description")}`)
           .join("\n")
-      : "_This command has no options._";
+      : t("help.noOptions", "_This command has no options._");
 
   return setEmbedAuthor(baseEmbed(), shortCommandName(entry), client, { tone: "neutral", emojis })
     .setDescription(
       trimLines(`
         ${entry.description}
 
-        **Usage**
+        **${t("help.usage", "Usage")}**
         \`${entry.usage}\`
 
-        **Options**
+        **${t("help.options", "Options")}**
         ${optionLines}
       `),
     )
-    .setFooter({ text: `${categoryLabel} · Use the menus below to keep browsing` });
+    .setFooter({
+      text: t("help.detail.footer", `${categoryLabelText} · Use the menus below to keep browsing`, { category: categoryLabelText }),
+    });
 }
 
 function buildSearchEmbed(
@@ -456,24 +480,36 @@ function buildSearchEmbed(
   totalPages: number,
   total: number,
   client: Client,
+  t: Translator,
   emojis?: EmojisConfig,
 ): ResultContainer {
   if (total === 0) {
-    return setEmbedAuthor(baseEmbed(), "Help search", client, { tone: "warning", emojis })
-      .setDescription(`No commands matched **${query}**.\n\nTry a shorter term, or open Help without a query to browse categories.`);
+    return setEmbedAuthor(baseEmbed(), t("help.search.title", "Help search"), client, { tone: "warning", emojis }).setDescription(
+      t(
+        "help.search.empty",
+        `No commands matched **${query}**.\n\nTry a shorter term, or open Help without a query to browse categories.`,
+        { query },
+      ),
+    );
   }
 
   const lines = pageEntries.map(commandLine);
-  return setEmbedAuthor(baseEmbed(), `Search: ${query}`, client, {
+  return setEmbedAuthor(baseEmbed(), t("help.search.titleWithQuery", `Search: ${query}`, { query }), client, {
     tone: "neutral",
     emojis,
     emoji: "<:icons_search:1544417406640726168>",
   })
     .setDescription(trimLines(`${lines.join("\n")}`))
-    .setFooter({ text: `${total} match${total === 1 ? "" : "es"} · Page ${page + 1}/${totalPages}` });
+    .setFooter({
+      text: t(
+        "help.search.footer",
+        `${total} match${total === 1 ? "" : "es"} · Page ${page + 1}/${totalPages}`,
+        { count: total, page: page + 1, totalPages },
+      ),
+    });
 }
 
-function buildNavButtons(view: HelpView, query: string, pageCount: number): ActionRowBuilder<ButtonBuilder> {
+function buildNavButtons(view: HelpView, query: string, pageCount: number, t: Translator): ActionRowBuilder<ButtonBuilder> {
   const homeView: HelpView = { kind: "home" };
   let page = 0;
 
@@ -505,14 +541,14 @@ function buildNavButtons(view: HelpView, query: string, pageCount: number): Acti
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(buildCustomId("go", homeView, ""))
-      .setLabel("Home")
+      .setLabel(t("help.button.home", "Home"))
       .setStyle(ButtonStyle.Primary)
       .setDisabled(view.kind === "home" && !query),
   );
 
   if (backView) {
     row.addComponents(
-      new ButtonBuilder().setCustomId(buildCustomId("go", backView, query)).setLabel("Back").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(buildCustomId("go", backView, query)).setLabel(t("help.button.back", "Back")).setStyle(ButtonStyle.Secondary),
     );
   }
 
@@ -522,12 +558,12 @@ function buildNavButtons(view: HelpView, query: string, pageCount: number): Acti
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(buildCustomId("prev", prevView ?? view, query))
-        .setLabel("Previous")
+        .setLabel(t("help.button.previous", "Previous"))
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!prevView),
       new ButtonBuilder()
         .setCustomId(buildCustomId("next", nextView ?? view, query))
-        .setLabel("Next")
+        .setLabel(t("help.button.next", "Next"))
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!nextView),
     );
@@ -536,33 +572,33 @@ function buildNavButtons(view: HelpView, query: string, pageCount: number): Acti
   return row;
 }
 
-function buildHelpLinkRow(docsUrl: string, docsPath: string): ActionRowBuilder<ButtonBuilder> {
+function buildHelpLinkRow(docsUrl: string, docsPath: string, t: Translator): ActionRowBuilder<ButtonBuilder> {
   const docsTarget =
     !docsPath || docsPath === "index" ? docsUrl.replace(/\/$/, "") : `${docsUrl.replace(/\/$/, "")}/${docsPath.replace(/^\//, "")}`;
 
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    linkButton("Website", getSiteUrl()),
-    linkButton("Docs", docsTarget),
-    linkButton("Support", SUPPORT_URL),
+    linkButton(t("help.button.website", "Website"), getSiteUrl()),
+    linkButton(t("help.button.docs", "Docs"), docsTarget),
+    linkButton(t("help.button.support", "Support"), SUPPORT_URL),
   );
 }
 
-function buildCategorySelect(view: HelpView, query: string, entries: CommandEntry[]): ActionRowBuilder<MessageActionRowComponentBuilder> {
+function buildCategorySelect(view: HelpView, query: string, entries: CommandEntry[], t: Translator): ActionRowBuilder<MessageActionRowComponentBuilder> {
   const current =
     view.kind === "category" || view.kind === "detail" ? view.categoryId : view.kind === "home" ? "home" : "";
 
   const options = [
     {
-      label: "Home",
-      description: "Start here",
+      label: t("help.button.home", "Home"),
+      description: t("help.select.startHere", "Start here"),
       value: "home",
       default: view.kind === "home",
     },
     ...CATEGORIES.filter(
       (category) => category.id === "config" || categoryEntries(category, entries).length > 0,
     ).map((category) => ({
-      label: category.label,
-      description: category.blurb.slice(0, 100),
+      label: categoryLabel(t, category),
+      description: categoryBlurb(t, category).slice(0, 100),
       value: `cat:${category.id}`,
       default: current === category.id,
     })),
@@ -571,7 +607,7 @@ function buildCategorySelect(view: HelpView, query: string, entries: CommandEntr
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(buildCustomId("pick", view, query))
-      .setPlaceholder("Browse categories…")
+      .setPlaceholder(t("help.select.browseCategories", "Browse categories…"))
       .addOptions(options.slice(0, MAX_SELECT_OPTIONS)),
   );
 }
@@ -580,6 +616,7 @@ function buildCommandSelect(
   view: HelpView,
   query: string,
   pageEntries: CommandEntry[],
+  t: Translator,
 ): ActionRowBuilder<MessageActionRowComponentBuilder> | null {
   if (pageEntries.length === 0) return null;
   if (view.kind !== "category" && view.kind !== "search" && view.kind !== "detail") return null;
@@ -588,7 +625,7 @@ function buildCommandSelect(
 
   const options = pageEntries.slice(0, MAX_SELECT_OPTIONS).map((entry, index) => ({
     label: shortCommandName(entry).slice(0, 100),
-    description: entry.description.slice(0, 100) || "No description",
+    description: entry.description.slice(0, 100) || t("help.noDescription", "No description"),
     value: `cmd:${index}`,
     default: entry.key === selectedKey,
   }));
@@ -596,7 +633,7 @@ function buildCommandSelect(
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(buildCustomId("cmd", view.kind === "detail" ? { kind: "category", categoryId: view.categoryId, page: view.page } : view, query))
-      .setPlaceholder("View command details…")
+      .setPlaceholder(t("help.select.viewCommandDetails", "View command details…"))
       .addOptions(options),
   );
 }
@@ -694,6 +731,7 @@ function buildHelpPayload(
   query: string,
   docsBaseUrl: string,
   client: Client,
+  t: Translator,
   emojis?: EmojisConfig,
   commands = getAllSlashCommands(),
 ): { embed: ResultContainer; rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] } {
@@ -711,10 +749,14 @@ function buildHelpPayload(
   let embed: ResultContainer;
 
   if (activeView.kind === "home") {
-    embed = buildHomeEmbed(entries, client, emojis);
+    embed = buildHomeEmbed(entries, client, t, emojis);
   } else if (activeView.kind === "detail" && resolved.detail) {
-    const label = query ? `Search: ${query}` : (resolved.category?.label ?? "Commands");
-    embed = buildDetailEmbed(resolved.detail, label, client, emojis);
+    const label = query
+      ? t("help.search.titleWithQuery", `Search: ${query}`, { query })
+      : resolved.category
+        ? categoryLabel(t, resolved.category)
+        : t("help.commands", "Commands");
+    embed = buildDetailEmbed(resolved.detail, label, client, t, emojis);
   } else if (query || activeView.kind === "search") {
     embed = buildSearchEmbed(
       resolved.pageEntries,
@@ -723,6 +765,7 @@ function buildHelpPayload(
       resolved.pageCount,
       resolved.embedEntries.length,
       client,
+      t,
       emojis,
     );
   } else if (resolved.category) {
@@ -733,22 +776,23 @@ function buildHelpPayload(
       resolved.pageCount,
       resolved.embedEntries.length,
       client,
+      t,
       emojis,
     );
   } else {
-    embed = buildHomeEmbed(entries, client, emojis);
+    embed = buildHomeEmbed(entries, client, t, emojis);
   }
 
   const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
-    buildNavButtons(activeView, query, resolved.pageCount),
-    buildHelpLinkRow(docsBaseUrl, resolved.docsPath),
+    buildNavButtons(activeView, query, resolved.pageCount, t),
+    buildHelpLinkRow(docsBaseUrl, resolved.docsPath, t),
   ];
 
   if (!query) {
-    rows.push(buildCategorySelect(activeView, query, entries));
+    rows.push(buildCategorySelect(activeView, query, entries, t));
   }
 
-  const commandSelect = buildCommandSelect(activeView, query, resolved.pageEntries);
+  const commandSelect = buildCommandSelect(activeView, query, resolved.pageEntries, t);
   if (commandSelect) rows.push(commandSelect);
 
   // Discord allows max 5 rows.
@@ -761,11 +805,12 @@ export function buildHelpMessage(
   docsBaseUrl: string,
   ephemeral: boolean,
   client: Client,
+  t: Translator,
   emojis?: EmojisConfig,
   commands = getAllSlashCommands(),
 ): InteractionReplyOptions {
   const view: HelpView = query ? { kind: "search", page: Math.max(0, pageIndex) } : { kind: "home" };
-  const { embed, rows } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
+  const { embed, rows } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, t, emojis, commands);
   return containerReply(embed, ephemeral, rows);
 }
 
@@ -774,10 +819,11 @@ export function buildHelpUpdate(
   query: string,
   docsBaseUrl: string,
   client: Client,
+  t: Translator,
   emojis?: EmojisConfig,
   commands = getAllSlashCommands(),
 ): InteractionUpdateOptions {
-  const { embed, rows } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, emojis, commands);
+  const { embed, rows } = buildHelpPayload(view, query.trim(), docsBaseUrl, client, t, emojis, commands);
   return containerEdit(embed, rows);
 }
 
@@ -814,7 +860,8 @@ async function applyHelpInteraction(
     view = resolveViewFromSelect(action.value, view, resolved.pageEntries);
   }
 
-  await interaction.update(buildHelpUpdate(view, query, docsBaseUrl, interaction.client, emojis));
+  const { t } = await translatorFor(interaction.user.id);
+  await interaction.update(buildHelpUpdate(view, query, docsBaseUrl, interaction.client, t, emojis));
 }
 
 export async function handleHelpButton(

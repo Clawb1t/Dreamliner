@@ -20,6 +20,7 @@ import {
 } from "../../infraction/functions/infractions.js";
 import { formatReason } from "../../infraction/functions/moderation.js";
 import type { AutomodHit } from "./detectors/types.js";
+import { translatorFor } from "../../../i18n/index.js";
 
 function channelRef(message: Message) {
   const name = "name" in message.channel ? (message.channel.name ?? message.channel.id) : message.channel.id;
@@ -97,6 +98,7 @@ export async function applyAutomodHit(options: {
   const infractionConfig = getPluginSettings(guildConfig, "infractions") as InfractionConfig;
   const modId = client.user!.id;
   const actionLabels: string[] = [];
+  const { t } = await translatorFor(user.id);
 
   for (const action of ladderActions) {
     if (action.type === "delete" || action.type === "none") {
@@ -143,7 +145,12 @@ export async function applyAutomodHit(options: {
       await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
       if (notify) {
         await user
-          .send(`You were warned by Automod in **${guild.name}**: ${actionReason}`)
+          .send(
+            t("automod.dmWarn", "You were warned by Automod in **{guild}**: {reason}", {
+              guild: guild.name,
+              reason: actionReason,
+            }),
+          )
           .catch(() => null);
       }
       actionLabels.push(`warn #${record.id}`);
@@ -170,7 +177,12 @@ export async function applyAutomodHit(options: {
       }).catch(() => null);
       if (notify) {
         await user
-          .send(`You were timed out by Automod in **${guild.name}**: ${actionReason}`)
+          .send(
+            t("automod.dmMute", "You were timed out by Automod in **{guild}**: {reason}", {
+              guild: guild.name,
+              reason: actionReason,
+            }),
+          )
           .catch(() => null);
       }
       actionLabels.push(`mute #${record.id}`);
@@ -191,7 +203,12 @@ export async function applyAutomodHit(options: {
       await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
       if (notify) {
         await user
-          .send(`You were kicked by Automod from **${guild.name}**: ${actionReason}`)
+          .send(
+            t("automod.dmKick", "You were kicked by Automod from **{guild}**: {reason}", {
+              guild: guild.name,
+              reason: actionReason,
+            }),
+          )
           .catch(() => null);
       }
       actionLabels.push(`kick #${record.id}`);

@@ -20,6 +20,7 @@ import { translateText, waitGuildTranslateSlot } from "./translate.js";
 import { getAutoTranslateWebhook } from "./webhook.js";
 import { isDreamlinerOneActive } from "../../../bridge/dreamlinerOne.js";
 import { getLogger } from "../../../core/logger.js";
+import { translatorFor } from "../../../i18n/index.js";
 const log = getLogger("translation");
 
 const recentlyTranslated = new Map<string, number>();
@@ -134,9 +135,11 @@ export async function handleAutoTranslateReaction(
     const channel = message.channel;
     if (!channel.isTextBased() || channel.isDMBased()) return;
 
+    const { t } = await translatorFor(user.id);
+
     const webhook = await getAutoTranslateWebhook(channel);
     if (webhook) {
-      const webhookPayload = buildAutoTranslateWebhookPayload({
+      const webhookPayload = buildAutoTranslateWebhookPayload(t, {
         translated: translated.text,
         author: message.author,
       });
@@ -145,7 +148,7 @@ export async function handleAutoTranslateReaction(
     }
 
     // No Manage Webhooks → plain bot reply with text-only container
-    const payload = buildAutoTranslatePayload({ translated: translated.text });
+    const payload = buildAutoTranslatePayload(t, { translated: translated.text });
     await message.reply(payload).catch(async () => {
       if ("send" in channel) {
         await (channel as import("discord.js").TextChannel).send(payload).catch(() => null);

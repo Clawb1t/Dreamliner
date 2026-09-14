@@ -135,8 +135,11 @@ export const companionChannelsCommands: SlashCommandDefinition[] = [
       if (!channel) {
         await ctx.interaction.reply(
           resultReply(
-            "Companion",
-            "Join your temporary voice channel first, or run this from that channel's chat.",
+            ctx.t("companion_channels.title", "Companion"),
+            ctx.t(
+              "companion_channels.error.joinChannelFirst",
+              "Join your temporary voice channel first, or run this from that channel's chat.",
+            ),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -145,41 +148,49 @@ export const companionChannelsCommands: SlashCommandDefinition[] = [
       }
 
       const sub = ctx.interaction.options.getSubcommand();
-      let result: CompanionActionResult = { ok: false, message: "Unknown action." };
-      if (sub === "name") result = await setCompanionName(actor, channel, ctx.interaction.options.getString("name", true));
-      else if (sub === "limit") result = await setCompanionLimit(actor, channel, ctx.interaction.options.getInteger("limit", true));
-      else if (sub === "lock") result = await lockCompanion(actor, channel, true);
-      else if (sub === "unlock") result = await lockCompanion(actor, channel, false);
-      else if (sub === "claim") result = await claimCompanion(actor, channel);
+      let result: CompanionActionResult = {
+        ok: false,
+        message: ctx.t("companion_channels.error.unknownAction", "Unknown action."),
+      };
+      if (sub === "name") result = await setCompanionName(actor, channel, ctx.interaction.options.getString("name", true), ctx.t);
+      else if (sub === "limit") result = await setCompanionLimit(actor, channel, ctx.interaction.options.getInteger("limit", true), ctx.t);
+      else if (sub === "lock") result = await lockCompanion(actor, channel, true, ctx.t);
+      else if (sub === "unlock") result = await lockCompanion(actor, channel, false, ctx.t);
+      else if (sub === "claim") result = await claimCompanion(actor, channel, ctx.t);
       else if (sub === "permit") {
         const target = ctx.interaction.options.getMentionable("target", true);
-        if (!("id" in target)) result = { ok: false, message: "Pick a user or role." };
-        else result = await permitTarget(actor, channel, target as never);
+        if (!("id" in target)) result = { ok: false, message: ctx.t("companion_channels.error.pickUserOrRole", "Pick a user or role.") };
+        else result = await permitTarget(actor, channel, target as never, ctx.t);
       } else if (sub === "reject") {
         const target = ctx.interaction.options.getMentionable("target", true);
-        if (!("id" in target)) result = { ok: false, message: "Pick a user or role." };
-        else result = await rejectTarget(actor, channel, target as never);
-      } else if (sub === "status") result = await setCompanionStatus(actor, channel, ctx.interaction.options.getString("status", true));
-      else if (sub === "lfm") result = await postLookingForMembers(actor, channel);
-      else if (sub === "text") result = await toggleCompanionText(actor, channel);
-      else if (sub === "bitrate") result = await setCompanionBitrate(actor, channel, ctx.interaction.options.getInteger("bitrate", true));
-      else if (sub === "ghost") result = await ghostCompanion(actor, channel, true);
-      else if (sub === "unghost") result = await ghostCompanion(actor, channel, false);
+        if (!("id" in target)) result = { ok: false, message: ctx.t("companion_channels.error.pickUserOrRole", "Pick a user or role.") };
+        else result = await rejectTarget(actor, channel, target as never, ctx.t);
+      } else if (sub === "status") result = await setCompanionStatus(actor, channel, ctx.interaction.options.getString("status", true), ctx.t);
+      else if (sub === "lfm") result = await postLookingForMembers(actor, channel, ctx.t);
+      else if (sub === "text") result = await toggleCompanionText(actor, channel, ctx.t);
+      else if (sub === "bitrate") result = await setCompanionBitrate(actor, channel, ctx.interaction.options.getInteger("bitrate", true), ctx.t);
+      else if (sub === "ghost") result = await ghostCompanion(actor, channel, true, ctx.t);
+      else if (sub === "unghost") result = await ghostCompanion(actor, channel, false, ctx.t);
       else if (sub === "nsfw") {
         const enabled = ctx.interaction.options.getBoolean("enabled", true);
         const current = channel.nsfw;
         if (enabled === current) {
-          result = { ok: false, message: enabled ? "The room is already NSFW." : "The room is not NSFW." };
-        } else result = await toggleCompanionNsfw(actor, channel);
+          result = {
+            ok: false,
+            message: enabled
+              ? ctx.t("companion_channels.error.alreadyNsfw", "The room is already NSFW.")
+              : ctx.t("companion_channels.error.notNsfw", "The room is not NSFW."),
+          };
+        } else result = await toggleCompanionNsfw(actor, channel, ctx.t);
       } else if (sub === "transfer") {
-        result = await transferCompanion(actor, channel, ctx.interaction.options.getUser("member", true));
+        result = await transferCompanion(actor, channel, ctx.interaction.options.getUser("member", true), ctx.t);
       } else if (sub === "region") {
-        result = await setCompanionRegion(actor, channel, ctx.interaction.options.getString("region", true));
+        result = await setCompanionRegion(actor, channel, ctx.interaction.options.getString("region", true), ctx.t);
       }
 
       await ctx.interaction.reply(
         resultReply(
-          "Companion",
+          ctx.t("companion_channels.title", "Companion"),
           result.message,
           ctx.ephemeral,
           slashResultOptions(ctx, { tone: result.ok ? "success" : "error", emoji: result.emoji }),
