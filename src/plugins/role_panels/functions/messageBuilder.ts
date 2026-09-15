@@ -13,6 +13,7 @@ import { buildEmbed } from "../../persist/functions/messageBuilder.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { renderTemplate, type TemplateContext } from "../../../core/templates.js";
 import { rolePanelButtonCustomId } from "../customIds.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export type RolePanelBuildContext = {
   client: Client;
@@ -38,6 +39,7 @@ export function buildRolePanelButtonRows(
   panelId: string,
   roles: RolePanelRole[],
   guild?: Guild,
+  t: Translator = defaultTranslator,
 ): ActionRowBuilder<ButtonBuilder>[] {
   const rows: ActionRowBuilder<ButtonBuilder>[] = [];
   let current = new ActionRowBuilder<ButtonBuilder>();
@@ -48,7 +50,7 @@ export function buildRolePanelButtonRows(
       current = new ActionRowBuilder<ButtonBuilder>();
     }
     const liveRole = guild?.roles.cache.get(role.role_id);
-    const label = (role.label.trim() || liveRole?.name || "Role").slice(0, 80);
+    const label = (role.label.trim() || liveRole?.name || t("role_panels.roleButtonFallback", "Role")).slice(0, 80);
     const button = new ButtonBuilder()
       .setCustomId(rolePanelButtonCustomId(panelId, role.role_id))
       .setLabel(label)
@@ -76,11 +78,15 @@ export type BuiltRolePanelMessage = {
 };
 
 /** Builds the content+embed(+button rows, for trigger_type "button") payload for post_mode "bot". */
-export function buildRolePanelPayload(panel: RolePanel, ctx: RolePanelBuildContext): BuiltRolePanelMessage {
+export function buildRolePanelPayload(
+  panel: RolePanel,
+  ctx: RolePanelBuildContext,
+  t: Translator = defaultTranslator,
+): BuiltRolePanelMessage {
   const templateCtx: TemplateContext = { guild: ctx.guild, channel: ctx.channel as TemplateContext["channel"] };
   const content = renderTemplate(panel.content ?? "", templateCtx).trim();
   const embed = buildEmbed(panel.embed, { client: ctx.client, guild: ctx.guild, channel: ctx.channel });
-  const rows = panel.trigger_type === "button" ? buildRolePanelButtonRows(panel.id, panel.roles, ctx.guild) : [];
+  const rows = panel.trigger_type === "button" ? buildRolePanelButtonRows(panel.id, panel.roles, ctx.guild, t) : [];
 
   const empty = !content && !embed && rows.length === 0;
   const payload: RolePanelMessagePayload = {

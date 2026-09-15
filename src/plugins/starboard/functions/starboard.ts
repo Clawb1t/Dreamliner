@@ -25,6 +25,7 @@ import {
   getStarboardPost,
   updateStarboardPostStarCount,
 } from "./store.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 const processingLocks = new Map<string, Promise<void>>();
 
@@ -167,14 +168,14 @@ function parseCustomEmoji(configured: string): { id: string; name: string; anima
   return { animated: Boolean(match[1]), name: match[2], id: match[3] };
 }
 
-function channelFooterName(message: Message): string {
+function channelFooterName(message: Message, t: Translator): string {
   if (message.channel.isTextBased() && "name" in message.channel && message.channel.name) {
     return message.channel.name;
   }
-  return "unknown channel";
+  return t("starboard.unknownChannel", "unknown channel");
 }
 
-function buildStarboardEmbed(message: Message, board: EffectiveStarboardBoard): EmbedBuilder {
+function buildStarboardEmbed(message: Message, board: EffectiveStarboardBoard, t: Translator): EmbedBuilder {
   const embed = new EmbedBuilder();
   if (board.color !== undefined) embed.setColor(board.color);
 
@@ -212,11 +213,11 @@ function buildStarboardEmbed(message: Message, board: EffectiveStarboardBoard): 
     }
   }
 
-  embed.setFooter({ text: channelFooterName(message) });
+  embed.setFooter({ text: channelFooterName(message, t) });
   embed.setTimestamp(message.createdAt);
 
   if (!embed.data.description && !embed.data.image?.url && !embed.data.title) {
-    embed.setDescription("(no text content)");
+    embed.setDescription(t("starboard.noTextContent", "(no text content)"));
   }
 
   return embed;
@@ -226,6 +227,7 @@ function buildStarboardComponents(
   starCount: number,
   board: StarboardBoard,
   messageUrl: string,
+  t: Translator,
 ): ActionRowBuilder<ButtonBuilder> {
   const row = new ActionRowBuilder<ButtonBuilder>();
 
@@ -247,16 +249,21 @@ function buildStarboardComponents(
   }
 
   row.addComponents(
-    new ButtonBuilder().setLabel("Jump to message").setStyle(ButtonStyle.Link).setURL(messageUrl),
+    new ButtonBuilder().setLabel(t("starboard.jumpToMessage", "Jump to message")).setStyle(ButtonStyle.Link).setURL(messageUrl),
   );
 
   return row;
 }
 
-function buildStarboardPayload(message: Message, starCount: number, board: EffectiveStarboardBoard) {
+function buildStarboardPayload(
+  message: Message,
+  starCount: number,
+  board: EffectiveStarboardBoard,
+  t: Translator = defaultTranslator,
+) {
   return {
-    embeds: [buildStarboardEmbed(message, board)],
-    components: [buildStarboardComponents(starCount, board, message.url)],
+    embeds: [buildStarboardEmbed(message, board, t)],
+    components: [buildStarboardComponents(starCount, board, message.url, t)],
   };
 }
 

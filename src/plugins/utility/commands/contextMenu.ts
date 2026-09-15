@@ -55,7 +55,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
 
       const imageAttachments = getImageAttachments(interaction.targetMessage.attachments);
       if (imageAttachments.length === 0) {
-        await replyContextMenuError(ctx, "No images", "That message has no image attachments.");
+        await replyContextMenuError(ctx, ctx.t("utility.contextMenu.noImagesTitle", "No images"), ctx.t("utility.contextMenu.noImagesBody", "That message has no image attachments."));
         return;
       }
 
@@ -67,12 +67,12 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
 
         const gifEmoji = resolveEmojiForContent("<:icons_gif:1544417549347848232>", client);
         await interaction.editReply({
-          content: `${gifEmoji} Hover over the GIF and click the favorite button to add it to your favorites.`,
+          content: `${gifEmoji} ${ctx.t("utility.contextMenu.gifFavoriteHint", "Hover over the GIF and click the favorite button to add it to your favorites.")}`,
           files,
         });
       } catch (error) {
         log.error("Convert to GIF error:", error);
-        await replyContextMenuError(ctx, "Conversion failed", "Could not convert those images to GIFs.");
+        await replyContextMenuError(ctx, ctx.t("utility.contextMenu.conversionFailedTitle", "Conversion failed"), ctx.t("utility.contextMenu.conversionFailedBody", "Could not convert those images to GIFs."));
       }
     },
   },
@@ -89,7 +89,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       const { interaction } = ctx;
       const channel = interaction.channel;
       if (!channel?.isTextBased() || channel.isDMBased() || !("bulkDelete" in channel)) {
-        await replyContextMenuError(ctx, "Clean to here", "This command must be used in a text channel.");
+        await replyContextMenuError(ctx, ctx.t("utility.contextMenu.cleanToHereTitle", "Clean to here"), ctx.t("utility.contextMenu.mustBeTextChannel", "This command must be used in a text channel."));
         return;
       }
       const textChannel = channel as TextChannel;
@@ -99,7 +99,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       const result = await collectMessagesToHere(textChannel, interaction.targetMessage.id);
       if (!result || result.messages.size === 0) {
         await interaction.editReply(
-          resultEdit("Clean to here", "No messages to delete.", guildResultOptions(ctx.client, ctx.guildConfig)),
+          resultEdit(ctx.t("utility.contextMenu.cleanToHereTitle", "Clean to here"), ctx.t("utility.contextMenu.noMessagesToDelete", "No messages to delete."), guildResultOptions(ctx.client, ctx.guildConfig)),
         );
         return;
       }
@@ -144,13 +144,13 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       );
 
       const note = result.truncated
-        ? " There were more than 100 messages up to here — only the most recent 100 were cleared; run it again for the rest."
+        ? ` ${ctx.t("utility.contextMenu.cleanTruncatedNote", "There were more than 100 messages up to here — only the most recent 100 were cleared; run it again for the rest.")}`
         : "";
       await interaction.editReply(
         embedWithFilesEdit(
           buildResultEmbed(
-            "Clean to here",
-            `Deleted **${count}** message(s) up to and including the target (archive \`${archiveId}\`) — full content attached.${note}`,
+            ctx.t("utility.contextMenu.cleanToHereTitle", "Clean to here"),
+            `${ctx.t("utility.contextMenu.cleanedBody", "Deleted **{count}** message(s) up to and including the target (archive `{archiveId}`) — full content attached.", { count, archiveId })}${note}`,
             guildResultOptions(ctx.client, ctx.guildConfig, { emoji: "<:icons_clean:1544417689320034304>" }),
           ),
           [new AttachmentBuilder(Buffer.from(transcript, "utf-8"), { name: archiveFilename })],
@@ -177,8 +177,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         if (sourceSticker.format === StickerFormatType.Lottie) {
           await replyContextMenuError(
             ctx,
-            "Can't copy that sticker",
-            "That's an animated (Lottie) sticker — Dreamliner can only copy image-based stickers.",
+            ctx.t("utility.contextMenu.cantCopyStickerTitle", "Can't copy that sticker"),
+            ctx.t("utility.contextMenu.cantCopyStickerBody", "That's an animated (Lottie) sticker — Dreamliner can only copy image-based stickers."),
           );
           return;
         }
@@ -195,8 +195,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           });
           await interaction.editReply(
             resultEdit(
-              "Sticker stolen",
-              `Added **${created.name}** to this server's stickers.`,
+              ctx.t("utility.contextMenu.stickerStolenTitle", "Sticker stolen"),
+              ctx.t("utility.contextMenu.stickerAddedBody", "Added **{name}** to this server's stickers.", { name: created.name }),
               guildResultOptions(ctx.client, ctx.guildConfig, { emoji: "<:icons_upload2:1544418267412570193>" }),
             ),
           );
@@ -204,8 +204,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           log.error("Create Sticker (steal sticker) error:", error);
           await replyContextMenuError(
             ctx,
-            "Couldn't create sticker",
-            "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers.",
+            ctx.t("utility.contextMenu.couldntCreateStickerTitle", "Couldn't create sticker"),
+            ctx.t("utility.contextMenu.couldntCreateStickerBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers."),
           );
         }
         return;
@@ -216,8 +216,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       if (!attachment) {
         await replyContextMenuError(
           ctx,
-          "No image or sticker",
-          "That message has no image attachment or sticker to turn into a sticker.",
+          ctx.t("utility.contextMenu.noImageOrStickerTitle", "No image or sticker"),
+          ctx.t("utility.contextMenu.noImageOrStickerBody", "That message has no image attachment or sticker to turn into a sticker."),
         );
         return;
       }
@@ -225,7 +225,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       await interaction.deferReply();
       try {
         const raw = await downloadUrl(attachment.url);
-        const normalized = await normalizeSticker(raw);
+        const normalized = await normalizeSticker(raw, ctx.t);
         if (!normalized.ok) {
           await replyContextMenuError(ctx, normalized.title, normalized.details);
           return;
@@ -240,8 +240,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         });
         await interaction.editReply(
           resultEdit(
-            "Sticker created",
-            `Added **${created.name}** to this server's stickers.`,
+            ctx.t("utility.contextMenu.stickerCreatedTitle", "Sticker created"),
+            ctx.t("utility.contextMenu.stickerAddedBody", "Added **{name}** to this server's stickers.", { name: created.name }),
             guildResultOptions(ctx.client, ctx.guildConfig, { emoji: "<:icons_upload2:1544418267412570193>" }),
           ),
         );
@@ -249,8 +249,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         log.error("Create Sticker (from image) error:", error);
         await replyContextMenuError(
           ctx,
-          "Couldn't create sticker",
-          "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers.",
+          ctx.t("utility.contextMenu.couldntCreateStickerTitle", "Couldn't create sticker"),
+          ctx.t("utility.contextMenu.couldntCreateStickerBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers."),
         );
       }
     },
@@ -283,8 +283,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           const created = await guild.emojis.create({ attachment: url, name });
           await interaction.editReply(
             resultEdit(
-              "Emoji stolen",
-              `Added ${created} as \`:${created.name}:\` to this server.`,
+              ctx.t("utility.contextMenu.emojiStolenTitle", "Emoji stolen"),
+              ctx.t("utility.contextMenu.emojiAddedBody", "Added {emoji} as `:{name}:` to this server.", { emoji: String(created), name: created.name }),
               guildResultOptions(ctx.client, ctx.guildConfig, { emoji: "<:icons_upload2:1544418267412570193>" }),
             ),
           );
@@ -292,8 +292,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           log.error("Create Emoji (steal emoji) error:", error);
           await replyContextMenuError(
             ctx,
-            "Couldn't create emoji",
-            "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type.",
+            ctx.t("utility.contextMenu.couldntCreateEmojiTitle", "Couldn't create emoji"),
+            ctx.t("utility.contextMenu.couldntCreateEmojiBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type."),
           );
         }
         return;
@@ -304,8 +304,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       if (!attachment) {
         await replyContextMenuError(
           ctx,
-          "No image or emoji",
-          "That message has no image attachment or custom emoji to turn into an emoji.",
+          ctx.t("utility.contextMenu.noImageOrEmojiTitle", "No image or emoji"),
+          ctx.t("utility.contextMenu.noImageOrEmojiBody", "That message has no image attachment or custom emoji to turn into an emoji."),
         );
         return;
       }
@@ -313,7 +313,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       await interaction.deferReply();
       try {
         const raw = await downloadUrl(attachment.url);
-        const normalized = await normalizeEmoji(raw);
+        const normalized = await normalizeEmoji(raw, ctx.t);
         if (!normalized.ok) {
           await replyContextMenuError(ctx, normalized.title, normalized.details);
           return;
@@ -324,8 +324,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         const created = await guild.emojis.create({ attachment: normalized.buffer, name });
         await interaction.editReply(
           resultEdit(
-            "Emoji created",
-            `Added ${created} as \`:${created.name}:\` to this server.`,
+            ctx.t("utility.contextMenu.emojiCreatedTitle", "Emoji created"),
+            ctx.t("utility.contextMenu.emojiAddedBody", "Added {emoji} as `:{name}:` to this server.", { emoji: String(created), name: created.name }),
             guildResultOptions(ctx.client, ctx.guildConfig, { emoji: "<:icons_upload2:1544418267412570193>" }),
           ),
         );
@@ -333,8 +333,8 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         log.error("Create Emoji (from image) error:", error);
         await replyContextMenuError(
           ctx,
-          "Couldn't create emoji",
-          "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type.",
+          ctx.t("utility.contextMenu.couldntCreateEmojiTitle", "Couldn't create emoji"),
+          ctx.t("utility.contextMenu.couldntCreateEmojiBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type."),
         );
       }
     },
@@ -351,7 +351,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
 
       const content = message.content?.trim();
       if (!content) {
-        await replyContextMenuError(ctx, "Nothing to quote", "That message has no text content to quote.");
+        await replyContextMenuError(ctx, ctx.t("utility.contextMenu.nothingToQuoteTitle", "Nothing to quote"), ctx.t("utility.contextMenu.nothingToQuoteBody", "That message has no text content to quote."));
         return;
       }
 
@@ -371,15 +371,15 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         }, ctx.t);
         await interaction.editReply(
           resultEdit(
-            "Quoted to Discofy",
-            `Added to the Discofy feed: ${url}`,
+            ctx.t("utility.contextMenu.quotedToDiscofyTitle", "Quoted to Discofy"),
+            ctx.t("utility.contextMenu.addedToDiscofyFeedBody", "Added to the Discofy feed: {url}", { url }),
             guildResultOptions(ctx.client, ctx.guildConfig, { emoji: DISCOFY_EMOJI }),
           ),
         );
       } catch (error) {
         log.error("Quote to Discofy error:", error);
-        const details = error instanceof DiscofySubmitError ? error.message : "Could not submit that quote to Discofy.";
-        await replyContextMenuError(ctx, "Couldn't quote to Discofy", details);
+        const details = error instanceof DiscofySubmitError ? error.message : ctx.t("utility.contextMenu.couldNotSubmitQuoteBody", "Could not submit that quote to Discofy.");
+        await replyContextMenuError(ctx, ctx.t("utility.contextMenu.couldntQuoteToDiscofyTitle", "Couldn't quote to Discofy"), details);
       }
     },
   },

@@ -75,9 +75,40 @@ function readStringLiteral(src: string, i: number): { raw: string; next: number 
   return null;
 }
 
+/** Standard JS escape sequences a string/template literal can contain. `${...}` inside a
+ *  template literal is deliberately left as literal text (see header) — only backslash escapes
+ *  are resolved here. Unrecognized escapes (e.g. `ሴ`, `\x41`) are left as-is; none of our
+ *  translation strings use them. */
+const ESCAPES: Record<string, string> = {
+  n: "\n",
+  t: "\t",
+  r: "\r",
+  "\\": "\\",
+  "'": "'",
+  '"': '"',
+  "`": "`",
+  b: "\b",
+  f: "\f",
+  v: "\v",
+  "0": "\0",
+};
+
 function literalValue(raw: string): string {
-  // Strip the surrounding quote/backtick; leave escapes and ${...} as-is (best effort — see header).
-  return raw.slice(1, -1);
+  // Strip the surrounding quote/backtick, then resolve backslash escapes so the manifest holds
+  // the actual runtime string (a literal `\n` in source must become a real newline here) — not
+  // the raw source text, which is what a translator/machine-translation call actually needs.
+  const inner = raw.slice(1, -1);
+  let out = "";
+  for (let i = 0; i < inner.length; i++) {
+    if (inner[i] === "\\" && i + 1 < inner.length) {
+      const next = inner[i + 1]!;
+      out += next in ESCAPES ? ESCAPES[next] : `\\${next}`;
+      i += 1;
+    } else {
+      out += inner[i];
+    }
+  }
+  return out;
 }
 
 const CALL_PATTERN = /(?<![\w$])t\(/g;

@@ -3,6 +3,7 @@ import { getDb } from "../../../db/client.js";
 import { guildLogEvents, guildUserTrail, logMessages } from "../../../db/schema.js";
 import { isLogEventType, LOG_EVENT_META } from "../../../core/logging/events.js";
 import { snowflakeToTimestamp } from "../../../core/datetime.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export type LastSeenHit = {
   at: Date;
@@ -31,7 +32,7 @@ function pickNewest(hits: Array<LastSeenHit | null>): LastSeenHit | null {
   }, null);
 }
 
-async function fromTrail(guildId: string, userId: string): Promise<LastSeenHit | null> {
+async function fromTrail(guildId: string, userId: string, t: Translator): Promise<LastSeenHit | null> {
   try {
     const db = getDb();
     const row = await db
@@ -45,7 +46,7 @@ async function fromTrail(guildId: string, userId: string): Promise<LastSeenHit |
     if (!row || !at) return null;
     return {
       at,
-      action: `Spoke in <#${row.channelId}>`,
+      action: t("locate_user.spokeInChannel", "Spoke in <#{channel}>", { channel: row.channelId }),
       channelId: row.channelId,
     };
   } catch {
@@ -53,7 +54,7 @@ async function fromTrail(guildId: string, userId: string): Promise<LastSeenHit |
   }
 }
 
-async function fromLogMessages(guildId: string, userId: string): Promise<LastSeenHit | null> {
+async function fromLogMessages(guildId: string, userId: string, t: Translator): Promise<LastSeenHit | null> {
   try {
     const db = getDb();
     const row = await db
@@ -69,7 +70,7 @@ async function fromLogMessages(guildId: string, userId: string): Promise<LastSee
     if (!row) return null;
     return {
       at: snowflakeToTimestamp(row.messageId),
-      action: `Spoke in <#${row.channelId}>`,
+      action: t("locate_user.spokeInChannel", "Spoke in <#{channel}>", { channel: row.channelId }),
       channelId: row.channelId,
     };
   } catch {
@@ -115,10 +116,10 @@ async function fromLogEvents(guildId: string, userId: string): Promise<LastSeenH
   }
 }
 
-export async function getLastSeen(guildId: string, userId: string): Promise<LastSeenHit | null> {
+export async function getLastSeen(guildId: string, userId: string, t: Translator = defaultTranslator): Promise<LastSeenHit | null> {
   const [trail, message, event] = await Promise.all([
-    fromTrail(guildId, userId),
-    fromLogMessages(guildId, userId),
+    fromTrail(guildId, userId, t),
+    fromLogMessages(guildId, userId, t),
     fromLogEvents(guildId, userId),
   ]);
   return pickNewest([trail, message, event]);

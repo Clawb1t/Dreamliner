@@ -7,6 +7,7 @@ import { MessageFlags } from "discord.js";
 import { fileComponent } from "../../../core/responses.js";
 import { buildTranscriptEmbed } from "./embeds.js";
 import type { TicketRecord } from "./tickets.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export type TranscriptMessage = {
   id: string;
@@ -91,6 +92,7 @@ export async function dmTranscript(
   user: User,
   ticket: TicketRecord,
   transcriptId: string,
+  t: Translator = defaultTranslator,
 ): Promise<boolean> {
   const messages = await getTranscript(transcriptId);
   if (!messages) return false;
@@ -99,7 +101,15 @@ export async function dmTranscript(
   const filename = `ticket-${ticket.number}-transcript.txt`;
   const file = new AttachmentBuilder(Buffer.from(text, "utf8"), { name: filename });
   const guild = await user.client.guilds.fetch(ticket.guildId).catch(() => null);
-  const embed = buildTranscriptEmbed(ticket, guild?.name ?? "the server", messages.length, user.client, undefined, guild?.iconURL({ size: 64 }));
+  const embed = buildTranscriptEmbed(
+    ticket,
+    guild?.name ?? t("tickets.embed.theServer", "the server"),
+    messages.length,
+    user.client,
+    undefined,
+    guild?.iconURL({ size: 64 }),
+    t,
+  );
   try {
     await user.send({
       flags: MessageFlags.IsComponentsV2,
@@ -118,6 +128,7 @@ export async function postTranscriptLog(
   channelId: string,
   ticket: TicketRecord,
   transcriptId: string,
+  t: Translator = defaultTranslator,
 ): Promise<boolean> {
   const messages = await getTranscript(transcriptId);
   if (!messages) return false;
@@ -128,7 +139,15 @@ export async function postTranscriptLog(
   const filename = `ticket-${ticket.number}-transcript.txt`;
   const file = new AttachmentBuilder(Buffer.from(text, "utf8"), { name: filename });
   const guild = "guild" in channel ? (channel.guild as import("discord.js").Guild) : null;
-  const embed = buildTranscriptEmbed(ticket, guild?.name ?? "this server", messages.length, client, undefined, guild?.iconURL({ size: 64 }));
+  const embed = buildTranscriptEmbed(
+    ticket,
+    guild?.name ?? t("tickets.embed.thisServer", "this server"),
+    messages.length,
+    client,
+    undefined,
+    guild?.iconURL({ size: 64 }),
+    t,
+  );
   await (channel as import("discord.js").TextChannel)
     .send({
       flags: MessageFlags.IsComponentsV2,

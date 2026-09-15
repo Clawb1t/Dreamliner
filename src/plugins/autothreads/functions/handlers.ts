@@ -13,18 +13,21 @@ import {
   normalizeAutothreadRules,
 } from "./rules.js";
 import { shouldTriggerAutothreadByCadence } from "./state.js";
+import { translatorFor } from "../../../i18n/index.js";
 
 const ALL_CHANNELS = "*";
 const THREAD_NAME_MAX = 100;
 
-function threadNameFromRule(message: Message, nameTemplate: string): string {
+async function threadNameFromRule(message: Message, nameTemplate: string): Promise<string> {
   const rendered = renderTemplate(nameTemplate, {
     guild: message.guild,
     channel: message.channel as TextChannel,
     user: message.author,
     member: message.member as GuildMember | null,
   }).slice(0, THREAD_NAME_MAX);
-  return rendered.length > 0 ? rendered : "Thread";
+  if (rendered.length > 0) return rendered;
+  const { t } = await translatorFor(message.author.id);
+  return t("autothreads.defaultThreadName", "Thread");
 }
 
 export async function handleAutothreadMessage(message: Message): Promise<void> {
@@ -79,7 +82,7 @@ export async function handleAutothreadMessage(message: Message): Promise<void> {
 
     const thread = await message
       .startThread({
-        name: threadNameFromRule(message, rule.thread_name),
+        name: await threadNameFromRule(message, rule.thread_name),
         autoArchiveDuration: rule.auto_archive_minutes as ThreadAutoArchiveDuration,
         ...(rule.thread_slowmode_seconds ? { rateLimitPerUser: rule.thread_slowmode_seconds } : {}),
       })

@@ -303,8 +303,8 @@ export function buildNotifyMessage(
   return settings.format
     .replace(/\{action\}/g, vars.action ?? action)
     .replace(/\{guild\}/g, vars.guild ?? "")
-    .replace(/\{reason\}/g, vars.reason ?? "No reason provided")
-    .replace(/\{mod\}/g, vars.mod ?? "Staff")
+    .replace(/\{reason\}/g, vars.reason || (t ? t("infraction.noReasonProvidedShort", "No reason provided") : "No reason provided"))
+    .replace(/\{mod\}/g, vars.mod || (t ? t("infraction.staff", "Staff") : "Staff"))
     .replace(/\{expires\}/g, vars.expires ?? "");
 }
 

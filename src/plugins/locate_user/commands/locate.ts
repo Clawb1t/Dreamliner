@@ -21,8 +21,8 @@ export const locateCommands: SlashCommandDefinition[] = [
       if (!member) {
         await ctx.interaction.reply(
           resultReply(
-            "Locate",
-            "That user is not in this server.",
+            ctx.t("locate_user.locateTitle", "Locate"),
+            ctx.t("locate_user.userNotInServer", "That user is not in this server."),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_search:1544417406640726168>" }),
           ),
@@ -36,12 +36,12 @@ export const locateCommands: SlashCommandDefinition[] = [
           embedReply(
             setEmbedAuthor(
               baseEmbed(),
-              "Locate",
+              ctx.t("locate_user.locateTitle", "Locate"),
               ctx.client,
               commandHeader(ctx.guildConfig, { emoji: "<:icons_search:1544417406640726168>" }),
             ).addFields(
-              embedField("User", `<@${user.id}>`),
-              embedField("Voice", "Not connected to a voice channel."),
+              embedField(ctx.t("locate_user.fieldUser", "User"), `<@${user.id}>`),
+              embedField(ctx.t("locate_user.fieldVoice", "Voice"), ctx.t("locate_user.notConnectedToVoice", "Not connected to a voice channel.")),
             ),
             ctx.ephemeral,
           ),
@@ -55,19 +55,19 @@ export const locateCommands: SlashCommandDefinition[] = [
               .filter((m) => m.id !== user.id)
               .map((m) => `<@${m.id}>`)
               .join(", ")
-          : "None";
+          : ctx.t("locate_user.none", "None");
 
       await ctx.interaction.reply(
         embedReply(
           setEmbedAuthor(
             baseEmbed(),
-            "Locate",
+            ctx.t("locate_user.locateTitle", "Locate"),
             ctx.client,
             commandHeader(ctx.guildConfig, { emoji: "<:icons_search:1544417406640726168>" }),
           ).addFields(
-            embedField("User", `<@${user.id}>`),
-            embedField("Channel", `<#${voiceChannel.id}> (\`${voiceChannel.name}\`)`),
-            embedField("Others in channel", trimLines(others)),
+            embedField(ctx.t("locate_user.fieldUser", "User"), `<@${user.id}>`),
+            embedField(ctx.t("locate_user.fieldChannel", "Channel"), `<#${voiceChannel.id}> (\`${voiceChannel.name}\`)`),
+            embedField(ctx.t("locate_user.fieldOthersInChannel", "Others in channel"), trimLines(others)),
           ),
           ctx.ephemeral,
         ),

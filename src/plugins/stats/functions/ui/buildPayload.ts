@@ -36,13 +36,14 @@ import {
 import { analyzeSeries, formatTrend, pct, weekdayName } from "../analysis.js";
 import { renderStatsChart } from "./renderCharts.js";
 import { buildCustomId, categoriesFor, categoryDef, type StatsState } from "./state.js";
+import { defaultTranslator, type Translator } from "../../../../i18n/index.js";
 
-function windowLabel(days: StatsWindow): string {
-  return formatStatsWindowLong(days);
+function windowLabel(days: StatsWindow, t: Translator): string {
+  return formatStatsWindowLong(days, t);
 }
 
-function windowSpan(days: StatsWindow, recordedDays: number): string {
-  if (isAllTimeWindow(days)) return `${recordedDays} recorded days`;
+function windowSpan(days: StatsWindow, recordedDays: number, t: Translator): string {
+  if (isAllTimeWindow(days)) return t("stats.recordedDays", "{count} recorded days", { count: recordedDays });
   return String(days);
 }
 
@@ -55,10 +56,10 @@ function formatStatDate(statDate: string | undefined): string {
   return `<t:${statDateTimestamp(statDate)}:D>`;
 }
 
-function scopeTitle(scope: StatsState["scope"], guild: Guild): string {
-  if (scope.type === "server") return `${guild.name} stats`;
-  if (scope.type === "user") return "User stats";
-  return "Channel stats";
+function scopeTitle(scope: StatsState["scope"], guild: Guild, t: Translator): string {
+  if (scope.type === "server") return t("stats.scopeTitleServer", "{guildName} stats", { guildName: guild.name });
+  if (scope.type === "user") return t("stats.scopeTitleUser", "User stats");
+  return t("stats.scopeTitleChannel", "Channel stats");
 }
 
 function scopeEmoji(scope: StatsState["scope"]): string {
@@ -67,7 +68,7 @@ function scopeEmoji(scope: StatsState["scope"]): string {
   return "<:icons_channel:1544417183734431805>";
 }
 
-async function buildHomeFields(state: StatsState, guild: Guild) {
+async function buildHomeFields(state: StatsState, guild: Guild, t: Translator) {
   const guildId = guild.id;
   const { days } = state;
 
@@ -89,51 +90,75 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
 
     return [
       embedField(
-        "Overview",
-        trimLines(`
-          Lifetime tracked messages: \`${totalMessages.toLocaleString()}\`
-          Active messagers: \`${activeUsers.toLocaleString()}\`
-          All-time daily totals: \`${totals.messages.toLocaleString()}\` msgs · \`${totals.joins}\` joins · \`${totals.leaves}\` leaves
-        `),
+        t("stats.fieldOverview", "Overview"),
+        trimLines(
+          t(
+            "stats.overviewBody",
+            "Lifetime tracked messages: `{totalMessages}`\nActive messagers: `{activeUsers}`\nAll-time daily totals: `{totalsMessages}` msgs · `{totalsJoins}` joins · `{totalsLeaves}` leaves",
+            {
+              totalMessages: totalMessages.toLocaleString(),
+              activeUsers: activeUsers.toLocaleString(),
+              totalsMessages: totals.messages.toLocaleString(),
+              totalsJoins: totals.joins,
+              totalsLeaves: totals.leaves,
+            },
+          ),
+        ),
       ),
       embedField(
-        `Analysis (${windowLabel(days)})`,
-        trimLines(`
-          Messages: \`${msgAnalysis.total.toLocaleString()}\` (avg \`${msgAnalysis.average.toFixed(1)}\`/day)
-          Joins / leaves: \`${joinAnalysis.total}\` / \`${leaveAnalysis.total}\` (net \`${netMembers >= 0 ? "+" : ""}${netMembers}\`)
-          Peak day: ${formatStatDate(dates[msgAnalysis.peakIndex])} · \`${msgAnalysis.peakValue.toLocaleString()}\` msgs
-          Busiest weekday: **${weekdayName(msgAnalysis.busiestWeekday)}**
-          Trend: ${formatTrend(msgAnalysis.trend, msgAnalysis.trendPct)}
-        `),
+        t("stats.fieldAnalysisWindow", "Analysis ({window})", { window: windowLabel(days, t) }),
+        trimLines(
+          t(
+            "stats.serverAnalysisBody",
+            "Messages: `{msgTotal}` (avg `{msgAverage}`/day)\nJoins / leaves: `{joinsTotal}` / `{leavesTotal}` (net `{netMembers}`)\nPeak day: {peakDate} · `{peakValue}` msgs\nBusiest weekday: **{busiestWeekday}**\nTrend: {trend}",
+            {
+              msgTotal: msgAnalysis.total.toLocaleString(),
+              msgAverage: msgAnalysis.average.toFixed(1),
+              joinsTotal: joinAnalysis.total,
+              leavesTotal: leaveAnalysis.total,
+              netMembers: `${netMembers >= 0 ? "+" : ""}${netMembers}`,
+              peakDate: formatStatDate(dates[msgAnalysis.peakIndex]),
+              peakValue: msgAnalysis.peakValue.toLocaleString(),
+              busiestWeekday: weekdayName(msgAnalysis.busiestWeekday, t),
+              trend: formatTrend(msgAnalysis.trend, msgAnalysis.trendPct, t),
+            },
+          ),
+        ),
       ),
       embedField(
-        "Engagement totals",
-        trimLines(`
-          Edits: \`${totals.edits.toLocaleString()}\`
-          Deletes: \`${totals.deletes.toLocaleString()}\`
-          Reactions: \`${totals.reactions.toLocaleString()}\`
-          Attachments: \`${totals.attachments.toLocaleString()}\`
-        `),
+        t("stats.fieldEngagementTotals", "Engagement totals"),
+        trimLines(
+          t(
+            "stats.engagementTotalsBody",
+            "Edits: `{edits}`\nDeletes: `{deletes}`\nReactions: `{reactions}`\nAttachments: `{attachments}`",
+            {
+              edits: totals.edits.toLocaleString(),
+              deletes: totals.deletes.toLocaleString(),
+              reactions: totals.reactions.toLocaleString(),
+              attachments: totals.attachments.toLocaleString(),
+            },
+          ),
+        ),
       ),
       embedField(
-        `Top messagers (${windowLabel(days)})`,
+        t("stats.fieldTopMessagersWindow", "Top messagers ({window})", { window: windowLabel(days, t) }),
         topRecent.length
           ? topRecent.map((e, i) => `${i + 1}. <@${e.userId}> · \`${e.count.toLocaleString()}\``).join("\n")
-          : "No recent daily message data yet.",
+          : t("stats.noRecentMessageData", "No recent daily message data yet."),
         true,
       ),
       embedField(
-        "Top messagers (all-time)",
+        t("stats.fieldTopMessagersAllTime", "Top messagers (all-time)"),
         topAllTime.length
           ? topAllTime.map((e, i) => `${i + 1}. <@${e.userId}> · \`${e.count.toLocaleString()}\``).join("\n")
-          : "No message data yet.",
+          : t("stats.noMessageData", "No message data yet."),
         true,
       ),
       embedField(
-        `Top channels (${windowLabel(days)})`,
+        t("stats.fieldTopChannelsWindow", "Top channels ({window})", { window: windowLabel(days, t) }),
         topChannels.length
           ? topChannels.map((e, i) => `${i + 1}. <#${e.channelId}> · \`${e.count.toLocaleString()}\``).join("\n")
-          : "No channel activity recorded yet.",
+          : t("stats.noChannelActivity", "No channel activity recorded yet."),
       ),
     ];
   }
@@ -155,25 +180,42 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
     const user = await guild.client.users.fetch(userId).catch(() => null);
 
     return [
-      embedField("User", user ? `<@${user.id}> (\`${user.tag}\`)` : `<@${userId}>`),
+      embedField(t("stats.fieldUser", "User"), user ? `<@${user.id}> (\`${user.tag}\`)` : `<@${userId}>`),
       embedField(
-        "Lifetime totals",
-        trimLines(`
-          This server: \`${guildCount.toLocaleString()}\` (${pct(guildCount, serverTotal)} of tracked traffic)
-          All servers: \`${globalCount.toLocaleString()}\`
-          Rank here: \`#${rank || "—"}\` of \`${activeUsers.toLocaleString()}\` active messagers
-        `),
+        t("stats.fieldLifetimeTotals", "Lifetime totals"),
+        trimLines(
+          t(
+            "stats.userLifetimeTotalsBody",
+            "This server: `{guildCount}` ({pct} of tracked traffic)\nAll servers: `{globalCount}`\nRank here: `#{rank}` of `{activeUsers}` active messagers",
+            {
+              guildCount: guildCount.toLocaleString(),
+              pct: pct(guildCount, serverTotal),
+              globalCount: globalCount.toLocaleString(),
+              rank: rank || "—",
+              activeUsers: activeUsers.toLocaleString(),
+            },
+          ),
+        ),
       ),
       embedField(
-        `Analysis (${windowLabel(days)})`,
-        trimLines(`
-          Messages: \`${analysis.total.toLocaleString()}\` (avg \`${analysis.average.toFixed(1)}\`/day)
-          Active days: \`${analysis.activeDays}/${windowSpan(days, daily.length)}\`
-          Peak day: ${formatStatDate(dates[analysis.peakIndex])} · \`${analysis.peakValue.toLocaleString()}\` msgs
-          Share of server traffic: \`${pct(userMessagesInWindow, serverTrafficTotal)}\`
-          Busiest weekday: **${weekdayName(analysis.busiestWeekday)}**
-          Trend: ${formatTrend(analysis.trend, analysis.trendPct)}
-        `),
+        t("stats.fieldAnalysisWindow", "Analysis ({window})", { window: windowLabel(days, t) }),
+        trimLines(
+          t(
+            "stats.userAnalysisBody",
+            "Messages: `{total}` (avg `{average}`/day)\nActive days: `{activeDays}/{windowSpan}`\nPeak day: {peakDate} · `{peakValue}` msgs\nShare of server traffic: `{sharePct}`\nBusiest weekday: **{busiestWeekday}**\nTrend: {trend}",
+            {
+              total: analysis.total.toLocaleString(),
+              average: analysis.average.toFixed(1),
+              activeDays: analysis.activeDays,
+              windowSpan: windowSpan(days, daily.length, t),
+              peakDate: formatStatDate(dates[analysis.peakIndex]),
+              peakValue: analysis.peakValue.toLocaleString(),
+              sharePct: pct(userMessagesInWindow, serverTrafficTotal),
+              busiestWeekday: weekdayName(analysis.busiestWeekday, t),
+              trend: formatTrend(analysis.trend, analysis.trendPct, t),
+            },
+          ),
+        ),
       ),
     ];
   }
@@ -192,34 +234,49 @@ async function buildHomeFields(state: StatsState, guild: Guild) {
   const created =
     channel && "createdTimestamp" in channel && channel.createdTimestamp
       ? `<t:${Math.floor(channel.createdTimestamp / 1000)}:R>`
-      : "Unknown";
+      : t("stats.unknownFallback", "Unknown");
 
   return [
-    embedField("Channel", channel && "name" in channel ? `<#${channel.id}> (\`${channel.name}\`)` : `<#${channelId}>`),
+    embedField(t("stats.fieldChannel", "Channel"), channel && "name" in channel ? `<#${channel.id}> (\`${channel.name}\`)` : `<#${channelId}>`),
     embedField(
-      "Overview",
-      trimLines(`
-        Created: ${created}
-        Tracked by stats: \`${lifetimeDaily.toLocaleString()}\` msgs
-        Currently retained in logs: \`${trackedLogs.toLocaleString()}\`
-      `),
+      t("stats.fieldOverview", "Overview"),
+      trimLines(
+        t(
+          "stats.channelOverviewBody",
+          "Created: {created}\nTracked by stats: `{lifetimeDaily}` msgs\nCurrently retained in logs: `{trackedLogs}`",
+          {
+            created,
+            lifetimeDaily: lifetimeDaily.toLocaleString(),
+            trackedLogs: trackedLogs.toLocaleString(),
+          },
+        ),
+      ),
     ),
     embedField(
-      `Analysis (${windowLabel(days)})`,
-      trimLines(`
-        Messages: \`${analysis.total.toLocaleString()}\` (avg \`${analysis.average.toFixed(1)}\`/day)
-        Active days: \`${analysis.activeDays}/${windowSpan(days, daily.length)}\`
-        Peak day: ${formatStatDate(dates[analysis.peakIndex])} · \`${analysis.peakValue.toLocaleString()}\` msgs
-        Share of server traffic: \`${pct(channelMessagesInWindow, serverTrafficTotal)}\`
-        Busiest weekday: **${weekdayName(analysis.busiestWeekday)}**
-        Trend: ${formatTrend(analysis.trend, analysis.trendPct)}
-      `),
+      t("stats.fieldAnalysisWindow", "Analysis ({window})", { window: windowLabel(days, t) }),
+      trimLines(
+        t(
+          "stats.channelAnalysisBody",
+          "Messages: `{total}` (avg `{average}`/day)\nActive days: `{activeDays}/{windowSpan}`\nPeak day: {peakDate} · `{peakValue}` msgs\nShare of server traffic: `{sharePct}`\nBusiest weekday: **{busiestWeekday}**\nTrend: {trend}",
+          {
+            total: analysis.total.toLocaleString(),
+            average: analysis.average.toFixed(1),
+            activeDays: analysis.activeDays,
+            windowSpan: windowSpan(days, daily.length, t),
+            peakDate: formatStatDate(dates[analysis.peakIndex]),
+            peakValue: analysis.peakValue.toLocaleString(),
+            sharePct: pct(channelMessagesInWindow, serverTrafficTotal),
+            busiestWeekday: weekdayName(analysis.busiestWeekday, t),
+            trend: formatTrend(analysis.trend, analysis.trendPct, t),
+          },
+        ),
+      ),
     ),
   ];
 }
 
-async function buildCategoryFields(state: StatsState, guild: Guild, caption: string) {
-  if (state.category === "home") return buildHomeFields(state, guild);
+async function buildCategoryFields(state: StatsState, guild: Guild, caption: string, t: Translator) {
+  if (state.category === "home") return buildHomeFields(state, guild, t);
 
   if (state.scope.type === "server" && state.category === "leaders") {
     return [];
@@ -247,27 +304,35 @@ async function buildCategoryFields(state: StatsState, guild: Guild, caption: str
 
   const analysis = analyzeSeries(values, dates);
   return [
-    embedField("Chart", caption),
+    embedField(t("stats.fieldChart", "Chart"), caption),
     embedField(
-      `Summary (${windowLabel(state.days)})`,
-        trimLines(`
-        Total: \`${analysis.total.toLocaleString()}\`
-        Average: \`${analysis.average.toFixed(1)}\`/day
-        Peak: ${formatStatDate(dates[analysis.peakIndex])} · \`${analysis.peakValue.toLocaleString()}\`
-        Active days: \`${analysis.activeDays}/${windowSpan(state.days, dates.length)}\`
-        Busiest weekday: **${weekdayName(analysis.busiestWeekday)}**
-        Trend: ${formatTrend(analysis.trend, analysis.trendPct)}
-      `),
+      t("stats.fieldSummaryWindow", "Summary ({window})", { window: windowLabel(state.days, t) }),
+      trimLines(
+        t(
+          "stats.categorySummaryBody",
+          "Total: `{total}`\nAverage: `{average}`/day\nPeak: {peakDate} · `{peakValue}`\nActive days: `{activeDays}/{windowSpan}`\nBusiest weekday: **{busiestWeekday}**\nTrend: {trend}",
+          {
+            total: analysis.total.toLocaleString(),
+            average: analysis.average.toFixed(1),
+            peakDate: formatStatDate(dates[analysis.peakIndex]),
+            peakValue: analysis.peakValue.toLocaleString(),
+            activeDays: analysis.activeDays,
+            windowSpan: windowSpan(state.days, dates.length, t),
+            busiestWeekday: weekdayName(analysis.busiestWeekday, t),
+            trend: formatTrend(analysis.trend, analysis.trendPct, t),
+          },
+        ),
+      ),
     ),
   ];
 }
 
-function buildNavRow(state: StatsState): ActionRowBuilder<ButtonBuilder> {
-  const cat = categoryDef(state.scope, state.category);
+function buildNavRow(state: StatsState, t: Translator): ActionRowBuilder<ButtonBuilder> {
+  const cat = categoryDef(state.scope, state.category, t);
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(buildCustomId("go", { ...state, category: "home", chartPage: 0 }))
-      .setLabel("Home")
+      .setLabel(t("stats.navHome", "Home"))
       .setStyle(ButtonStyle.Primary)
       .setDisabled(state.category === "home"),
   );
@@ -276,12 +341,12 @@ function buildNavRow(state: StatsState): ActionRowBuilder<ButtonBuilder> {
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(buildCustomId("prev", { ...state, chartPage: Math.max(0, state.chartPage - 1) }))
-        .setLabel("Previous chart")
+        .setLabel(t("stats.navPreviousChart", "Previous chart"))
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(state.chartPage <= 0),
       new ButtonBuilder()
         .setCustomId(buildCustomId("next", { ...state, chartPage: Math.min(cat.charts - 1, state.chartPage + 1) }))
-        .setLabel("Next chart")
+        .setLabel(t("stats.navNextChart", "Next chart"))
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(state.chartPage >= cat.charts - 1),
     );
@@ -290,13 +355,13 @@ function buildNavRow(state: StatsState): ActionRowBuilder<ButtonBuilder> {
   return row;
 }
 
-function buildCategorySelect(state: StatsState): ActionRowBuilder<MessageActionRowComponentBuilder> {
+function buildCategorySelect(state: StatsState, t: Translator): ActionRowBuilder<MessageActionRowComponentBuilder> {
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(buildCustomId("cat", state))
-      .setPlaceholder("Browse data categories…")
+      .setPlaceholder(t("stats.categorySelectPlaceholder", "Browse data categories…"))
       .addOptions(
-        categoriesFor(state.scope).map((cat) => ({
+        categoriesFor(state.scope, t).map((cat) => ({
           label: cat.label,
           description: cat.description.slice(0, 100),
           value: cat.id,
@@ -306,20 +371,22 @@ function buildCategorySelect(state: StatsState): ActionRowBuilder<MessageActionR
   );
 }
 
-const STATS_WINDOW_OPTIONS: { days: StatsWindow; label: string; description: string }[] = [
-  { days: 7, label: "7 days", description: "Analyze the last 7 UTC days" },
-  { days: 14, label: "14 days", description: "Analyze the last 14 UTC days" },
-  { days: 30, label: "30 days", description: "Analyze the last 30 UTC days" },
-  { days: 0, label: "All time", description: "Every recorded day since tracking began" },
-];
+function statsWindowOptions(t: Translator): { days: StatsWindow; label: string; description: string }[] {
+  return [
+    { days: 7, label: t("stats.window7Days", "7 days"), description: t("stats.window7DaysDesc", "Analyze the last 7 UTC days") },
+    { days: 14, label: t("stats.window14Days", "14 days"), description: t("stats.window14DaysDesc", "Analyze the last 14 UTC days") },
+    { days: 30, label: t("stats.window30Days", "30 days"), description: t("stats.window30DaysDesc", "Analyze the last 30 UTC days") },
+    { days: 0, label: t("stats.windowAllTime", "All time"), description: t("stats.windowAllTimeDesc", "Every recorded day since tracking began") },
+  ];
+}
 
-function buildDaysSelect(state: StatsState): ActionRowBuilder<MessageActionRowComponentBuilder> {
+function buildDaysSelect(state: StatsState, t: Translator): ActionRowBuilder<MessageActionRowComponentBuilder> {
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(buildCustomId("days", state))
-      .setPlaceholder("Select time window…")
+      .setPlaceholder(t("stats.daysSelectPlaceholder", "Select time window…"))
       .addOptions(
-        STATS_WINDOW_OPTIONS.map(({ days, label, description }) => ({
+        statsWindowOptions(t).map(({ days, label, description }) => ({
           label,
           description,
           value: String(days),
@@ -334,29 +401,30 @@ export async function buildStatsPayload(
   guild: Guild,
   client: Client,
   guildConfig: GuildConfig,
+  t: Translator = defaultTranslator,
 ): Promise<{ embed: ResultContainer; files: AttachmentBuilder[]; rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] }> {
-  const cat = categoryDef(state.scope, state.category);
+  const cat = categoryDef(state.scope, state.category, t);
   const chartPage = Math.min(Math.max(0, state.chartPage), Math.max(0, cat.charts - 1));
   const normalized: StatsState = { ...state, chartPage };
 
   let chartBuffer: Buffer | null = null;
   let caption = "";
   if (cat.charts > 0) {
-    const chart = await renderStatsChart(normalized, guild);
+    const chart = await renderStatsChart(normalized, guild, t);
     chartBuffer = chart.buffer;
     caption = chart.caption;
   }
 
-  const fields = await buildCategoryFields(normalized, guild, caption);
+  const fields = await buildCategoryFields(normalized, guild, caption, t);
   if (state.scope.type === "server") {
     const serverLb = publicLeaderboardUrl(guild.id);
     const links = [
-      serverLb ? `[Public leaderboard](${serverLb})` : null,
-      `[Global leaderboard](${getGlobalLeaderboardUrl()})`,
+      serverLb ? t("stats.publicLeaderboardLink", "[Public leaderboard]({url})", { url: serverLb }) : null,
+      t("stats.globalLeaderboardLink", "[Global leaderboard]({url})", { url: getGlobalLeaderboardUrl() }),
     ]
       .filter(Boolean)
       .join(" · ");
-    fields.push(embedField("\u200b", links));
+    fields.push(embedField("​", links));
   }
 
   let thumbnailURL: string | null = null;
@@ -367,7 +435,7 @@ export async function buildStatsPayload(
 
   const embed = setEmbedAuthor(
     baseEmbed(),
-    scopeTitle(state.scope, guild),
+    scopeTitle(state.scope, guild, t),
     client,
     commandHeader(guildConfig, { thumbnailURL, emoji: scopeEmoji(state.scope) }),
   )
@@ -375,16 +443,24 @@ export async function buildStatsPayload(
     .setFooter({
       text:
         cat.charts > 0
-          ? `${cat.label} · Chart ${chartPage + 1}/${cat.charts} · ${formatStatsWindowLabel(normalized.days)} window · UTC days`
-          : `${cat.label} · ${formatStatsWindowLabel(normalized.days)} window · Pick a category below`,
+          ? t("stats.footerWithChart", "{category} · Chart {page}/{total} · {window} window · UTC days", {
+              category: cat.label,
+              page: chartPage + 1,
+              total: cat.charts,
+              window: formatStatsWindowLabel(normalized.days, t),
+            })
+          : t("stats.footerNoChart", "{category} · {window} window · Pick a category below", {
+              category: cat.label,
+              window: formatStatsWindowLabel(normalized.days, t),
+            }),
     });
 
   if (chartBuffer) embed.setImage("attachment://chart.png");
 
   const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
-    buildNavRow(normalized),
-    buildCategorySelect(normalized),
-    buildDaysSelect(normalized),
+    buildNavRow(normalized, t),
+    buildCategorySelect(normalized, t),
+    buildDaysSelect(normalized, t),
   ];
 
   return {

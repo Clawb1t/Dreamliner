@@ -12,6 +12,7 @@ import { isValidStatsWindow } from "../daily.js";
 import { buildStatsPayload } from "./buildPayload.js";
 import { parseCustomId, permissionForScope, STATS_PREFIX, type StatsState } from "./state.js";
 import { getLogger } from "../../../../core/logger.js";
+import { defaultTranslator, translatorFor, type Translator } from "../../../../i18n/index.js";
 const log = getLogger("stats");
 
 export { STATS_PREFIX } from "./state.js";
@@ -23,8 +24,9 @@ export async function buildStatsMessage(
   client: Client,
   guildConfig: GuildConfig,
   ephemeral: boolean,
+  t: Translator = defaultTranslator,
 ): Promise<InteractionReplyOptions> {
-  const payload = await buildStatsPayload(state, guild, client, guildConfig);
+  const payload = await buildStatsPayload(state, guild, client, guildConfig, t);
   return { ...containerReply(payload.embed, ephemeral, payload.rows), files: payload.files };
 }
 
@@ -33,8 +35,9 @@ export async function buildStatsUpdate(
   guild: Guild,
   client: Client,
   guildConfig: GuildConfig,
+  t: Translator = defaultTranslator,
 ): Promise<InteractionUpdateOptions> {
-  const payload = await buildStatsPayload(state, guild, client, guildConfig);
+  const payload = await buildStatsPayload(state, guild, client, guildConfig, t);
   return { ...containerEdit(payload.embed, payload.rows), files: payload.files };
 }
 
@@ -49,12 +52,14 @@ export async function handleStatsInteraction(
   const parsed = parseCustomId(interaction.customId);
   if (!parsed) return true;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   const required = permissionForScope(parsed.state.scope);
   if (!(await hasPermission(required))) {
     await interaction.reply(
       resultReply(
-        "Permission denied",
-        "You do not have permission to view these statistics.",
+        t("stats.permissionDeniedTitle", "Permission denied"),
+        t("stats.permissionDeniedDesc", "You do not have permission to view these statistics."),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -78,15 +83,15 @@ export async function handleStatsInteraction(
       }
     }
 
-    await interaction.update(await buildStatsUpdate(nextState, interaction.guild, interaction.client, guildConfig));
+    await interaction.update(await buildStatsUpdate(nextState, interaction.guild, interaction.client, guildConfig, t));
   } catch (error) {
     log.error("Stats interaction error:", error);
     if (!interaction.replied && !interaction.deferred) {
       await interaction
         .reply(
           resultReply(
-            "Error",
-            "Could not update statistics view.",
+            t("stats.errorTitle", "Error"),
+            t("stats.errorUpdatingView", "Could not update statistics view."),
             true,
             guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
           ),

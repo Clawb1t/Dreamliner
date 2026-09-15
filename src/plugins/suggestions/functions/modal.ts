@@ -14,7 +14,7 @@ import { checkFeedbackEligibility } from "../../feedback/eligibility.js";
 import { SUGGEST_ANON_MODAL_ID, SUGGEST_MODAL_ID } from "../constants.js";
 import { countOpenApproved, getLastSuggestionAt, isBlocked } from "./store.js";
 import { submitSuggestion } from "./service.js";
-import { defaultTranslator, type Translator } from "../../../i18n/index.js";
+import { defaultTranslator, translatorFor, type Translator } from "../../../i18n/index.js";
 
 export function buildSuggestModal(anonymous: boolean, t: Translator = defaultTranslator): ModalBuilder {
   const modal = new ModalBuilder()
@@ -50,15 +50,28 @@ export async function handleSuggestModalSubmit(
   interaction: ModalSubmitInteraction,
   configManager: ConfigManager,
 ): Promise<void> {
+  const { t } = await translatorFor(interaction.user.id);
   if (!interaction.inGuild() || !interaction.guild || !interaction.member) {
-    await interaction.reply(resultReply("Server only", "Suggestions can only be submitted in a server.", true));
+    await interaction.reply(
+      resultReply(
+        t("suggestions.serverOnlyTitle", "Server only"),
+        t("suggestions.serverOnlyBody", "Suggestions can only be submitted in a server."),
+        true,
+      ),
+    );
     return;
   }
 
   const anonymous = interaction.customId === SUGGEST_ANON_MODAL_ID;
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId!);
   if (guildConfig.plugins.suggestions?.enabled === false) {
-    await interaction.reply(resultReply("Plugin disabled", "Suggestions are disabled for this server.", true));
+    await interaction.reply(
+      resultReply(
+        t("suggestions.pluginDisabledTitle", "Plugin disabled"),
+        t("suggestions.pluginDisabledBody", "Suggestions are disabled for this server."),
+        true,
+      ),
+    );
     return;
   }
 
@@ -76,8 +89,8 @@ export async function handleSuggestModalSubmit(
   ) {
     await interaction.reply(
       resultReply(
-        "Permission denied",
-        "You do not have permission to submit suggestions.",
+        t("suggestions.permissionDeniedTitle", "Permission denied"),
+        t("suggestions.permissionDeniedSubmitBody", "You do not have permission to submit suggestions."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -92,8 +105,8 @@ export async function handleSuggestModalSubmit(
   if (anonymous && !config.anonymous) {
     await interaction.reply(
       resultReply(
-        "Anonymous disabled",
-        "Anonymous suggestions are not enabled on this server.",
+        t("suggestions.anonDisabledTitle", "Anonymous disabled"),
+        t("suggestions.anonDisabledOnServerBody", "Anonymous suggestions are not enabled on this server."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
       ),
@@ -104,8 +117,8 @@ export async function handleSuggestModalSubmit(
   if (await isBlocked(interaction.guildId!, member.id)) {
     await interaction.reply(
       resultReply(
-        "Blocked",
-        "You are blocked from submitting suggestions in this server.",
+        t("suggestions.blockedTitle", "Blocked"),
+        t("suggestions.blockedOnServerBody", "You are blocked from submitting suggestions in this server."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -131,7 +144,7 @@ export async function handleSuggestModalSubmit(
   });
   if (!eligibility.ok) {
     await interaction.reply(
-      resultReply("Not eligible", eligibility.message, ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
+      resultReply(t("suggestions.notEligibleTitle", "Not eligible"), eligibility.message, ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
     );
     return;
   }
@@ -141,8 +154,16 @@ export async function handleSuggestModalSubmit(
     if (open >= config.max_open) {
       await interaction.reply(
         resultReply(
-          "Limit reached",
-          `You already have ${open} open suggestion${open === 1 ? "" : "s"} (max ${config.max_open}).`,
+          t("suggestions.limitReachedTitle", "Limit reached"),
+          open === 1
+            ? t("suggestions.limitReachedBodyOne", "You already have {open} open suggestion (max {max}).", {
+                open,
+                max: config.max_open,
+              })
+            : t("suggestions.limitReachedBodyMany", "You already have {open} open suggestions (max {max}).", {
+                open,
+                max: config.max_open,
+              }),
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
         ),
@@ -154,8 +175,8 @@ export async function handleSuggestModalSubmit(
   if (config.mode === "review" && !config.review_channel_id) {
     await interaction.reply(
       resultReply(
-        "Not configured",
-        "Staff have not set a review channel yet.",
+        t("suggestions.notConfiguredTitle", "Not configured"),
+        t("suggestions.reviewChannelNotSetBody", "Staff have not set a review channel yet."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -165,8 +186,8 @@ export async function handleSuggestModalSubmit(
   if (config.mode === "autoapprove" && !config.suggestions_channel_id) {
     await interaction.reply(
       resultReply(
-        "Not configured",
-        "Staff have not set a suggestions channel yet.",
+        t("suggestions.notConfiguredTitle", "Not configured"),
+        t("suggestions.suggestionsChannelNotSetBody", "Staff have not set a suggestions channel yet."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -178,8 +199,8 @@ export async function handleSuggestModalSubmit(
   if (content.length < config.min_length) {
     await interaction.reply(
       resultReply(
-        "Too short",
-        `Suggestions must be at least ${config.min_length} characters.`,
+        t("suggestions.tooShortTitle", "Too short"),
+        t("suggestions.tooShortBody", "Suggestions must be at least {min} characters.", { min: config.min_length }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -189,8 +210,8 @@ export async function handleSuggestModalSubmit(
   if (content.length > config.max_length) {
     await interaction.reply(
       resultReply(
-        "Too long",
-        `Suggestions must be under ${config.max_length} characters.`,
+        t("suggestions.tooLongTitle", "Too long"),
+        t("suggestions.tooLongBody", "Suggestions must be under {max} characters.", { max: config.max_length }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -204,8 +225,8 @@ export async function handleSuggestModalSubmit(
     if (!config.allow_attachments) {
       await interaction.reply(
         resultReply(
-          "Attachments disabled",
-          "Image attachments are not allowed on this server.",
+          t("suggestions.attachmentsDisabledTitle", "Attachments disabled"),
+          t("suggestions.attachmentsDisabledBody", "Image attachments are not allowed on this server."),
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "warning" }),
         ),
@@ -215,8 +236,8 @@ export async function handleSuggestModalSubmit(
     if (!/^https:\/\/\S+$/i.test(imageRaw)) {
       await interaction.reply(
         resultReply(
-          "Invalid image URL",
-          "Provide a valid `https://` image URL.",
+          t("suggestions.invalidImageUrlTitle", "Invalid image URL"),
+          t("suggestions.invalidImageUrlBody", "Provide a valid `https://` image URL."),
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
         ),
@@ -236,24 +257,33 @@ export async function handleSuggestModalSubmit(
     content,
     attachmentUrl,
     anonymous,
+    t,
   });
 
   if (result.error) {
     await interaction.editReply(
-      resultEdit("Error", result.error, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultEdit(t("suggestions.errorTitle", "Error"), result.error, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
     return;
   }
 
-  const where =
+  const bodyText =
     result.suggestion.status === "awaiting_review"
-      ? "sent to the staff review queue"
-      : `posted in <#${result.suggestion.feedChannelId}>`;
+      ? t(
+          "suggestions.submittedQueueBody",
+          "Suggestion **#{num}** was sent to the staff review queue.",
+          { num: result.suggestion.suggestionNumber },
+        )
+      : t(
+          "suggestions.submittedFeedBody",
+          "Suggestion **#{num}** was posted in <#{channel}>.",
+          { num: result.suggestion.suggestionNumber, channel: result.suggestion.feedChannelId ?? "" },
+        );
 
   await interaction.editReply(
     resultEdit(
-      "Suggestion submitted",
-      `Suggestion **#${result.suggestion.suggestionNumber}** was ${where}.`,
+      t("suggestions.submittedTitle", "Suggestion submitted"),
+      bodyText,
       guildResultOptions(interaction.client, guildConfig, {
         tone: "success",
         emoji: "<:icons_bulb:1544417162050142428>",

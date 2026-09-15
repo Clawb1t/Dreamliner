@@ -24,9 +24,12 @@ export const snipeCommands: SlashCommandDefinition[] = [
         if (result.lastDeletedAt) {
           await interaction.editReply(
             resultEdit(
-              "Too late to snipe",
-              `The last deleted message in this channel was removed ${discordTs(new Date(result.lastDeletedAt))}. ` +
-                "/snipe only works within 5 minutes of a deletion.",
+              ctx.t("utility.snipe.tooLateTitle", "Too late to snipe"),
+              ctx.t(
+                "utility.snipe.tooLateBody",
+                "The last deleted message in this channel was removed {ts}. /snipe only works within 5 minutes of a deletion.",
+                { ts: discordTs(new Date(result.lastDeletedAt)) },
+              ),
               slashResultOptions(ctx, { tone: "warning" }),
             ),
           );
@@ -35,8 +38,8 @@ export const snipeCommands: SlashCommandDefinition[] = [
 
         await interaction.editReply(
           resultEdit(
-            "Nothing to snipe",
-            "No message has been deleted in this channel recently.",
+            ctx.t("utility.snipe.nothingToSnipeTitle", "Nothing to snipe"),
+            ctx.t("utility.snipe.nothingToSnipeBody", "No message has been deleted in this channel recently."),
             slashResultOptions(ctx, { tone: "neutral" }),
           ),
         );
@@ -46,7 +49,7 @@ export const snipeCommands: SlashCommandDefinition[] = [
       const sniped = result.message;
       const container = setEmbedAuthor(
         baseEmbed(),
-        "Sniped message",
+        ctx.t("utility.snipe.snipedMessageTitle", "Sniped message"),
         client,
         commandHeader(guildConfig, {
           thumbnailURL: sniped.authorAvatarUrl,
@@ -54,14 +57,14 @@ export const snipeCommands: SlashCommandDefinition[] = [
         }),
       );
 
-      container.setDescription(sniped.content || "*No text content.*");
+      container.setDescription(sniped.content || ctx.t("utility.snipe.noTextContent", "*No text content.*"));
       container.addFields(
-        embedField("Author", `${sniped.authorTag} (<@${sniped.authorId}>)`, true),
-        embedField("Deleted", discordTs(new Date(sniped.deletedAt)), true),
+        embedField(ctx.t("utility.snipe.authorLabel", "Author"), `${sniped.authorTag} (<@${sniped.authorId}>)`, true),
+        embedField(ctx.t("utility.snipe.deletedLabel", "Deleted"), discordTs(new Date(sniped.deletedAt)), true),
       );
 
       if (sniped.attachmentUrls.length > 0) {
-        container.addFields(embedField("Attachments", sniped.attachmentUrls.join("\n")));
+        container.addFields(embedField(ctx.t("utility.snipe.attachmentsLabel", "Attachments"), sniped.attachmentUrls.join("\n")));
         const firstUrl = sniped.attachmentUrls[0];
         if (firstUrl && /\.(png|jpe?g|gif|webp)$/i.test(firstUrl)) {
           container.setImage(firstUrl);

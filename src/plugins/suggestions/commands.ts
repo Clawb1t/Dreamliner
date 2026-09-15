@@ -32,7 +32,7 @@ import {
   unblockUser,
   unfollowSuggestion,
 } from "./functions/store.js";
-import { buildSuggestionEmbed } from "./functions/embeds.js";
+import { buildSuggestionEmbed, displayStatusLabel } from "./functions/embeds.js";
 
 function parseIds(raw: string): number[] {
   return [
@@ -285,9 +285,9 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           const followed = await listFollowedByUser(auth.member.id, guildId);
           const lines =
             followed.length === 0
-              ? ["You are not following any suggestions."]
+              ? [ctx.t("suggestions.notFollowingAny", "You are not following any suggestions.")]
               : followed.map((s) => `**#${s.suggestionNumber}** — ${s.content.slice(0, 80)}`);
-          const embed = setEmbedAuthor(baseEmbed(), "Followed suggestions", ctx.client, commandHeader(ctx.guildConfig));
+          const embed = setEmbedAuthor(baseEmbed(), ctx.t("suggestions.followedTitle", "Followed suggestions"), ctx.client, commandHeader(ctx.guildConfig));
           embed.setDescription(trimLines(lines.join("\n")).slice(0, 4000));
           await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
           return;
@@ -296,7 +296,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const suggestion = await getSuggestionByNumber(guildId, num);
         if (!suggestion) {
           await ctx.interaction.reply(
-            resultReply("Not found", `Suggestion #${num} was not found.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
           );
           return;
         }
@@ -304,8 +304,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           await followSuggestion(suggestion.id, auth.member.id);
           await ctx.interaction.reply(
             resultReply(
-              "Following",
-              `You are now following #${num}.`,
+              ctx.t("suggestions.followingTitle", "Following"),
+              ctx.t("suggestions.nowFollowingBody", "You are now following #{num}.", { num }),
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "success", emoji: "<:icons_notify:1544417566708211753>" }),
             ),
@@ -314,7 +314,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         }
         await unfollowSuggestion(suggestion.id, auth.member.id);
         await ctx.interaction.reply(
-          resultReply("Unfollowed", `You unfollowed #${num}.`, ctx.ephemeral, slashResultOptions(ctx)),
+          resultReply(ctx.t("suggestions.unfollowedTitle", "Unfollowed"), ctx.t("suggestions.unfollowedBody", "You unfollowed #{num}.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
         );
         return;
       }
@@ -327,7 +327,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const suggestion = await getSuggestionByNumber(guildId, num);
         if (!suggestion) {
           await ctx.interaction.reply(
-            resultReply("Not found", `Suggestion #${num} was not found.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
           );
           return;
         }
@@ -339,7 +339,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           votes,
         });
         if (suggestion.anonymous) {
-          embed.addFields(embedField("Author (staff)", `<@${suggestion.authorId}>`, true));
+          embed.addFields(embedField(ctx.t("suggestions.authorStaffLabel", "Author (staff)"), `<@${suggestion.authorId}>`, true));
         }
         await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
         return;
@@ -352,14 +352,14 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const rows = await topSuggestions(guildId, sort, 10);
         const lines =
           rows.length === 0
-            ? ["No approved suggestions yet."]
+            ? [ctx.t("suggestions.noApprovedYet", "No approved suggestions yet.")]
             : rows.map(
                 (s) =>
                   `**#${s.suggestionNumber}** net ${s.net} (▲${s.up}/▼${s.down}) — ${s.content.slice(0, 70)}`,
               );
         const embed = setEmbedAuthor(
           baseEmbed(),
-          sort === "top" ? "Top suggestions" : "Lowest suggestions",
+          sort === "top" ? ctx.t("suggestions.topTitle", "Top suggestions") : ctx.t("suggestions.lowestTitle", "Lowest suggestions"),
           ctx.client,
           commandHeader(ctx.guildConfig, sort === "top" ? { emoji: "<:icons_trophy:1544418249721126922>" } : undefined),
         );
@@ -380,19 +380,19 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         });
         const lines =
           result.suggestions.length === 0
-            ? ["No suggestions found."]
+            ? [ctx.t("suggestions.noneFound", "No suggestions found.")]
             : result.suggestions.map(
                 (s) =>
-                  `**#${s.suggestionNumber}** [${s.status}] ${s.anonymous ? "Anonymous" : `<@${s.authorId}>`} — ${s.content.slice(0, 70)}`,
+                  `**#${s.suggestionNumber}** [${s.status}] ${s.anonymous ? ctx.t("suggestions.anonymous", "Anonymous") : `<@${s.authorId}>`} — ${s.content.slice(0, 70)}`,
               );
         const embed = setEmbedAuthor(
           baseEmbed(),
-          sub === "queue" ? "Suggestion queue" : "Suggestion search",
+          sub === "queue" ? ctx.t("suggestions.queueTitle", "Suggestion queue") : ctx.t("suggestions.searchTitle", "Suggestion search"),
           ctx.client,
           commandHeader(ctx.guildConfig, sub === "queue" ? { emoji: "<:icons_queue:1544417738410164224>" } : undefined),
         );
         embed.setDescription(trimLines(lines.join("\n")).slice(0, 4000));
-        embed.addFields(embedField("Total", String(result.total), true));
+        embed.addFields(embedField(ctx.t("suggestions.totalLabel", "Total"), String(result.total), true));
         await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
         return;
       }
@@ -406,7 +406,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const suggestion = await getSuggestionByNumber(guildId, num);
         if (!suggestion) {
           await ctx.interaction.reply(
-            resultReply("Not found", `Suggestion #${num} was not found.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
           );
           return;
         }
@@ -423,8 +423,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           });
           await ctx.interaction.editReply(
             resultEdit(
-              result.error ? "Error" : "Approved",
-              result.error ?? `Approved #${num}.`,
+              result.error ? ctx.t("suggestions.errorTitle", "Error") : ctx.t("suggestions.status.approved", "Approved"),
+              result.error ?? ctx.t("suggestions.approvedNumBody", "Approved #{num}.", { num }),
               slashResultOptions(ctx, {
                 tone: result.error ? "error" : "success",
                 emoji: result.error ? undefined : "<:icons_upvote:1544417455689179349>",
@@ -437,7 +437,9 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         let reason = ctx.interaction.options.getString("reason");
         if (sub === "dupe") {
           const of = ctx.interaction.options.getInteger("of", true);
-          reason = `Duplicate of #${of}${reason ? ` — ${reason}` : ""}`;
+          reason = reason
+            ? ctx.t("suggestions.duplicateOfWithReason", "Duplicate of #{of} — {reason}", { of, reason })
+            : ctx.t("suggestions.duplicateOf", "Duplicate of #{of}", { of });
         }
 
         const result = await denySuggestion({
@@ -451,8 +453,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         });
         await ctx.interaction.editReply(
           resultEdit(
-            result.error ? "Error" : "Denied",
-            result.error ?? `Denied #${num}.`,
+            result.error ? ctx.t("suggestions.errorTitle", "Error") : ctx.t("suggestions.status.denied", "Denied"),
+            result.error ?? ctx.t("suggestions.deniedNumBody", "Denied #{num}.", { num }),
             slashResultOptions(ctx, {
               tone: result.error ? "error" : "success",
               emoji: result.error ? undefined : "<:icons_downvote:1544417248209404054>",
@@ -470,7 +472,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const suggestion = await getSuggestionByNumber(guildId, num);
         if (!suggestion) {
           await ctx.interaction.reply(
-            resultReply("Not found", `Suggestion #${num} was not found.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
           );
           return;
         }
@@ -486,8 +488,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         });
         await ctx.interaction.editReply(
           resultEdit(
-            result.error ? "Error" : "Marked",
-            result.error ?? `Marked #${num} as **${DISPLAY_STATUS_LABELS[status]}**.`,
+            result.error ? ctx.t("suggestions.errorTitle", "Error") : ctx.t("suggestions.markedTitle", "Marked"),
+            result.error ?? ctx.t("suggestions.markedNumBody", "Marked #{num} as **{status}**.", { num, status: displayStatusLabel(ctx.t, status) }),
             slashResultOptions(ctx, {
               tone: result.error ? "error" : "success",
               emoji: result.error ? undefined : "<:icons_flag:1544417544251772999>",
@@ -505,7 +507,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const suggestion = await getSuggestionByNumber(guildId, num);
         if (!suggestion) {
           await ctx.interaction.reply(
-            resultReply("Not found", `Suggestion #${num} was not found.`, ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
           );
           return;
         }
@@ -520,8 +522,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         });
         await ctx.interaction.editReply(
           resultEdit(
-            result.error ? "Error" : "Deleted",
-            result.error ?? `Deleted #${num}.`,
+            result.error ? ctx.t("suggestions.errorTitle", "Error") : ctx.t("suggestions.deletedLabel", "Deleted"),
+            result.error ?? ctx.t("suggestions.deletedNumBody", "Deleted #{num}.", { num }),
             slashResultOptions(ctx, { tone: result.error ? "error" : "success" }),
           ),
         );
@@ -535,14 +537,14 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           const blocks = await listBlocks(guildId);
           const lines =
             blocks.length === 0
-              ? ["No blocked users."]
+              ? [ctx.t("suggestions.noBlockedUsers", "No blocked users.")]
               : blocks.map((b) => {
                   const until = b.expiresAt
                     ? `<t:${Math.floor(b.expiresAt.getTime() / 1000)}:R>`
-                    : "permanent";
+                    : ctx.t("suggestions.permanent", "permanent");
                   return `<@${b.userId}> — ${until}${b.reason ? ` — ${b.reason}` : ""}`;
                 });
-          const embed = setEmbedAuthor(baseEmbed(), "Suggestion blocklist", ctx.client, commandHeader(ctx.guildConfig));
+          const embed = setEmbedAuthor(baseEmbed(), ctx.t("suggestions.blocklistTitle", "Suggestion blocklist"), ctx.client, commandHeader(ctx.guildConfig));
           embed.setDescription(trimLines(lines.join("\n")).slice(0, 4000));
           await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
           return;
@@ -552,8 +554,10 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           const ok = await unblockUser(guildId, user.id);
           await ctx.interaction.reply(
             resultReply(
-              ok ? "Unblocked" : "Not blocked",
-              ok ? `Unblocked <@${user.id}>.` : `<@${user.id}> was not blocked.`,
+              ok ? ctx.t("suggestions.unblockedTitle", "Unblocked") : ctx.t("suggestions.notBlockedTitle", "Not blocked"),
+              ok
+                ? ctx.t("suggestions.unblockedBody", "Unblocked <@{id}>.", { id: user.id })
+                : ctx.t("suggestions.wasNotBlockedBody", "<@{id}> was not blocked.", { id: user.id }),
               ctx.ephemeral,
               slashResultOptions(ctx, ok ? { emoji: "<:icons_unlock:1544417749617610852>" } : undefined),
             ),
@@ -566,7 +570,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           const ms = parseDuration(durationRaw.trim());
           if (ms == null) {
             await ctx.interaction.reply(
-              resultReply("Invalid duration", "Use a duration like `7d` or `24h`.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+              resultReply(ctx.t("suggestions.invalidDurationTitle", "Invalid duration"), ctx.t("suggestions.invalidDurationBody", "Use a duration like `7d` or `24h`."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
             );
             return;
           }
@@ -581,8 +585,13 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         });
         await ctx.interaction.reply(
           resultReply(
-            "Blocked",
-            `Blocked <@${user.id}> from suggesting${expiresAt ? ` until <t:${Math.floor(expiresAt.getTime() / 1000)}:f>` : ""}.`,
+            ctx.t("suggestions.blockedTitle", "Blocked"),
+            expiresAt
+              ? ctx.t("suggestions.blockedUntilBody", "Blocked <@{id}> from suggesting until <t:{ts}:f>.", {
+                  id: user.id,
+                  ts: Math.floor(expiresAt.getTime() / 1000),
+                })
+              : ctx.t("suggestions.blockedNoExpiryBody", "Blocked <@{id}> from suggesting.", { id: user.id }),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_ban:1544417486177308742>" }),
           ),
@@ -597,7 +606,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const ids = parseIds(ctx.interaction.options.getString("ids", true));
         if (ids.length === 0) {
           await ctx.interaction.reply(
-            resultReply("Invalid IDs", "Provide at least one suggestion number.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+            resultReply(ctx.t("suggestions.invalidIdsTitle", "Invalid IDs"), ctx.t("suggestions.invalidIdsBody", "Provide at least one suggestion number."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
           );
           return;
         }
@@ -633,8 +642,10 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         }
         await ctx.interaction.editReply(
           resultEdit(
-            "Mass action complete",
-            `${sub === "massapprove" ? "Approved" : "Denied"} **${ok}**, failed **${fail}**.`,
+            ctx.t("suggestions.massActionCompleteTitle", "Mass action complete"),
+            sub === "massapprove"
+              ? ctx.t("suggestions.massApprovedBody", "Approved **{ok}**, failed **{fail}**.", { ok, fail })
+              : ctx.t("suggestions.massDeniedBody", "Denied **{ok}**, failed **{fail}**.", { ok, fail }),
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_repeat:1544417397220311040>" }),
           ),
         );

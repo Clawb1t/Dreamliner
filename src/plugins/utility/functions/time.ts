@@ -1,5 +1,6 @@
 import * as chrono from "chrono-node";
 import type { AutocompleteInteraction } from "discord.js";
+import type { Translator } from "../../../i18n/index.js";
 
 export type ResolvedTimezone = {
   /** Offset from UTC in minutes (positive = ahead of UTC), resolved at a specific instant. */
@@ -165,6 +166,20 @@ export type DiscordTimestampStyle = "t" | "T" | "d" | "D" | "f" | "F" | "R";
 
 export const TIMESTAMP_STYLES: DiscordTimestampStyle[] = ["t", "T", "d", "D", "f", "F", "R"];
 
+export function timestampStyleLabel(t: Translator, style: DiscordTimestampStyle): string {
+  const labels: Record<DiscordTimestampStyle, string> = {
+    t: t("utility.time.styleShortTime", "Short time"),
+    T: t("utility.time.styleLongTime", "Long time"),
+    d: t("utility.time.styleShortDate", "Short date"),
+    D: t("utility.time.styleLongDate", "Long date"),
+    f: t("utility.time.styleShortDateTime", "Short date/time"),
+    F: t("utility.time.styleLongDateTime", "Long date/time"),
+    R: t("utility.time.styleRelative", "Relative"),
+  };
+  return labels[style];
+}
+
+/** @deprecated kept for backward compatibility — prefer `timestampStyleLabel(t, style)`. */
 export const TIMESTAMP_STYLE_LABELS: Record<DiscordTimestampStyle, string> = {
   t: "Short time",
   T: "Long time",

@@ -23,7 +23,7 @@ import {
   parseWhenInput,
   resolveTimezoneInput,
   TIMESTAMP_STYLES,
-  TIMESTAMP_STYLE_LABELS,
+  timestampStyleLabel,
   type DiscordTimestampStyle,
 } from "../functions/time.js";
 
@@ -55,7 +55,7 @@ export const metaCommands: SlashCommandDefinition[] = [
     plugin: "utility",
     data: new SlashCommandBuilder().setName("vote").setDescription("Vote for Dreamliner on top.gg"),
     execute: async (ctx) => {
-      const payload = buildVotePayload();
+      const payload = buildVotePayload(ctx.t);
       const flags: number = MessageFlags.IsComponentsV2 | (ctx.ephemeral ? MessageFlags.Ephemeral : 0);
       await ctx.interaction.reply({ ...payload, flags });
     },
@@ -96,13 +96,13 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const config = await ctx.configManager.reloadGuild(ctx.interaction.guildId!);
       if (!config) {
-        await ctx.interaction.reply(resultReply("Reload", "No custom config stored; using defaults.", ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
+        await ctx.interaction.reply(resultReply(ctx.t("utility.meta.reloadTitle", "Reload"), ctx.t("utility.meta.reloadNoCustomConfigBody", "No custom config stored; using defaults."), ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
         return;
       }
       await ctx.interaction.reply(
         resultReply(
-          "Reload",
-          "Guild configuration reloaded.",
+          ctx.t("utility.meta.reloadTitle", "Reload"),
+          ctx.t("utility.meta.reloadedBody", "Guild configuration reloaded."),
           ctx.ephemeral,
           slashResultOptions(ctx, { emoji: "<:icons_update:1544417598559752364>" }),
         ),
@@ -141,20 +141,20 @@ export const metaCommands: SlashCommandDefinition[] = [
 
       const embed = setEmbedAuthor(
         baseEmbed(),
-        "Avatar",
+        ctx.t("utility.meta.avatarTitle", "Avatar"),
         ctx.client,
         commandHeader(ctx.guildConfig, { emoji: "<:icons_image:1544417559045079181>" }),
       )
         .setColor(memberAccentColor(member))
         .addFields(
-          embedField("User", `<@${user.id}>`),
-          embedField("Scope", scope === "server" ? "Server" : "Global"),
+          embedField(ctx.t("utility.meta.userLabel", "User"), `<@${user.id}>`),
+          embedField(ctx.t("utility.meta.scopeLabel", "Scope"), scope === "server" ? ctx.t("utility.meta.scopeServer", "Server") : ctx.t("utility.meta.scopeGlobal", "Global")),
         );
 
-      const downloadButtons = [{ label: "Download avatar", url: avatarUrl }];
+      const downloadButtons = [{ label: ctx.t("utility.meta.downloadAvatarLabel", "Download avatar"), url: avatarUrl }];
       if (bannerUrl) {
         embed.setImages([avatarUrl, bannerUrl]);
-        downloadButtons.push({ label: "Download banner", url: bannerUrl });
+        downloadButtons.push({ label: ctx.t("utility.meta.downloadBannerLabel", "Download banner"), url: bannerUrl });
       } else {
         embed.setImage(avatarUrl);
       }
@@ -205,8 +205,12 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (!tz) {
         await ctx.interaction.reply(
           resultReply(
-            "Time",
-            `Couldn't recognise the timezone \`${timezoneRaw}\`. Try an IANA name like \`Europe/London\`, a GMT-style offset like \`GMT+5\`, or an abbreviation like \`EST\`.`,
+            ctx.t("utility.meta.timeTitle", "Time"),
+            ctx.t(
+              "utility.meta.timezoneNotRecognisedBody",
+              "Couldn't recognise the timezone `{tz}`. Try an IANA name like `Europe/London`, a GMT-style offset like `GMT+5`, or an abbreviation like `EST`.",
+              { tz: timezoneRaw ?? "" },
+            ),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
@@ -219,8 +223,12 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (!parsed) {
         await ctx.interaction.reply(
           resultReply(
-            "Time",
-            `Couldn't understand \`${whenRaw}\`. Try things like \`now\`, \`10 days ago\`, \`in 3 hours\`, \`3pm\`, or \`next friday\`.`,
+            ctx.t("utility.meta.timeTitle", "Time"),
+            ctx.t(
+              "utility.meta.whenNotUnderstoodBody",
+              "Couldn't understand `{when}`. Try things like `now`, `10 days ago`, `in 3 hours`, `3pm`, or `next friday`.",
+              { when: whenRaw ?? "" },
+            ),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
@@ -234,17 +242,17 @@ export const metaCommands: SlashCommandDefinition[] = [
 
       const formatsBlock = TIMESTAMP_STYLES.map((style) => {
         const code = discordTimestamp(parsed.date, style);
-        return `\`${code}\` → ${code} (${TIMESTAMP_STYLE_LABELS[style]})`;
+        return `\`${code}\` → ${code} (${timestampStyleLabel(ctx.t, style)})`;
       }).join("\n");
 
       await ctx.interaction.reply(
         embedReply(
-          setEmbedAuthor(baseEmbed(), "Time", ctx.client, commandHeader(ctx.guildConfig, { emoji: "<:icons_clock:1544417185336664114>" }))
+          setEmbedAuthor(baseEmbed(), ctx.t("utility.meta.timeTitle", "Time"), ctx.client, commandHeader(ctx.guildConfig, { emoji: "<:icons_clock:1544417185336664114>" }))
             .addFields(
-              embedField("When", whenRaw?.trim() ? `\`${whenRaw.trim()}\`` : "now", true),
-              embedField("Timezone", tz.label, true),
-              embedField("Result", resultLine),
-              embedField("Every format (copy the code, keep the arrow)", formatsBlock),
+              embedField(ctx.t("utility.meta.whenLabel", "When"), whenRaw?.trim() ? `\`${whenRaw.trim()}\`` : ctx.t("utility.meta.nowLabel", "now"), true),
+              embedField(ctx.t("utility.meta.timezoneLabel", "Timezone"), tz.label, true),
+              embedField(ctx.t("utility.meta.resultLabel", "Result"), resultLine),
+              embedField(ctx.t("utility.meta.everyFormatLabel", "Every format (copy the code, keep the arrow)"), formatsBlock),
             ),
           ctx.ephemeral,
         ),
@@ -272,14 +280,14 @@ export const metaCommands: SlashCommandDefinition[] = [
         const url = `https://cdn.discordapp.com/emojis/${id}.${ext}?size=${Math.min(size, 2048)}`;
         await ctx.interaction.reply(
           embedReply(
-            setEmbedAuthor(baseEmbed(), `Emoji: ${name}`, ctx.client, commandHeader(ctx.guildConfig))
+            setEmbedAuthor(baseEmbed(), ctx.t("utility.meta.emojiNameTitle", "Emoji: {name}", { name }), ctx.client, commandHeader(ctx.guildConfig))
               .setImage(url),
             ctx.ephemeral,
           ),
         );
         return;
       }
-      await ctx.interaction.reply(resultReply("Jumbo", "Only custom server emojis can be jumbo'd.", ctx.ephemeral, slashResultOptions(ctx)));
+      await ctx.interaction.reply(resultReply(ctx.t("utility.meta.jumboTitle", "Jumbo"), ctx.t("utility.meta.jumboOnlyCustomBody", "Only custom server emojis can be jumbo'd."), ctx.ephemeral, slashResultOptions(ctx)));
     },
   },
   {
@@ -308,6 +316,7 @@ export const metaCommands: SlashCommandDefinition[] = [
           "Manage Expressions",
           ctx.ephemeral,
           ctx.guildConfig,
+          ctx.t,
         ))
       ) {
         return;
@@ -318,8 +327,8 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (!me?.permissions.has(ManageGuildExpressions)) {
         await ctx.interaction.reply(
           resultReply(
-            "Bot missing permission",
-            "I need the **Manage Expressions** permission to add emojis.",
+            ctx.t("utility.meta.botMissingPermissionTitle", "Bot missing permission"),
+            ctx.t("utility.meta.needManageExpressionsBody", "I need the **Manage Expressions** permission to add emojis."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "error" }),
           ),
@@ -332,8 +341,8 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (!match) {
         await ctx.interaction.reply(
           resultReply(
-            "Invalid emoji",
-            "Paste a custom emoji like `<:name:1234567890>` or `<a:name:1234567890>`. Unicode emoji cannot be stolen.",
+            ctx.t("utility.meta.invalidEmojiTitle", "Invalid emoji"),
+            ctx.t("utility.meta.invalidEmojiBody", "Paste a custom emoji like `<:name:1234567890>` or `<a:name:1234567890>`. Unicode emoji cannot be stolen."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
@@ -349,8 +358,8 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (!name) {
         await ctx.interaction.reply(
           resultReply(
-            "Invalid name",
-            "Emoji names must be 2-32 characters and only letters, numbers, or underscores.",
+            ctx.t("utility.meta.invalidNameTitle", "Invalid name"),
+            ctx.t("utility.meta.invalidNameBody", "Emoji names must be 2-32 characters and only letters, numbers, or underscores."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
@@ -361,8 +370,8 @@ export const metaCommands: SlashCommandDefinition[] = [
       if (guild.emojis.cache.some((emoji) => emoji.name === name)) {
         await ctx.interaction.reply(
           resultReply(
-            "Name taken",
-            `This server already has an emoji named \`${name}\`. Pick a different name.`,
+            ctx.t("utility.meta.nameTakenTitle", "Name taken"),
+            ctx.t("utility.meta.nameTakenBody", "This server already has an emoji named `{name}`. Pick a different name.", { name }),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
@@ -381,29 +390,29 @@ export const metaCommands: SlashCommandDefinition[] = [
           embedEdit(
             setEmbedAuthor(
               baseEmbed(),
-              "Emoji stolen",
+              ctx.t("utility.meta.emojiStolenTitle", "Emoji stolen"),
               ctx.client,
               commandHeader(ctx.guildConfig, { tone: "success", emoji: "<:icons_upload2:1544418267412570193>" }),
             )
-              .setDescription(`Added ${created} as \`:${created.name}:\``)
+              .setDescription(ctx.t("utility.meta.emojiAddedAsBody", "Added {emoji} as `:{name}:`", { emoji: String(created), name: created.name }))
               .setThumbnail(created.imageURL({ size: 128 }))
               .addFields(
-                embedField("Name", created.name ?? name, true),
-                embedField("ID", created.id, true),
-                embedField("Animated", created.animated ? "Yes" : "No", true),
+                embedField(ctx.t("utility.meta.nameLabel", "Name"), created.name ?? name, true),
+                embedField(ctx.t("utility.meta.idLabel", "ID"), created.id, true),
+                embedField(ctx.t("utility.meta.animatedLabel", "Animated"), created.animated ? ctx.t("utility.meta.yesLabel", "Yes") : ctx.t("utility.meta.noLabel", "No"), true),
               ),
           ),
         );
       } catch (err) {
-        let message = "Could not add that emoji. Check emoji slots and that the source emoji still exists.";
+        let message = ctx.t("utility.meta.couldNotAddEmojiBody", "Could not add that emoji. Check emoji slots and that the source emoji still exists.");
         if (err instanceof DiscordAPIError) {
-          if (err.code === 30008) message = "This server has no free emoji slots for that type.";
-          else if (err.code === 50035) message = "Discord rejected the emoji name or image.";
-          else if (err.code === 50045) message = "That emoji file is too large for Discord.";
+          if (err.code === 30008) message = ctx.t("utility.meta.noFreeEmojiSlotsBody", "This server has no free emoji slots for that type.");
+          else if (err.code === 50035) message = ctx.t("utility.meta.discordRejectedEmojiBody", "Discord rejected the emoji name or image.");
+          else if (err.code === 50045) message = ctx.t("utility.meta.emojiFileTooLargeBody", "That emoji file is too large for Discord.");
           else if (err.message) message = err.message;
         }
         await ctx.interaction.editReply(
-          resultEdit("Steal failed", message, slashResultOptions(ctx, { tone: "error" })),
+          resultEdit(ctx.t("utility.meta.stealFailedTitle", "Steal failed"), message, slashResultOptions(ctx, { tone: "error" })),
         );
       }
     },

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { DREAMLINER_ACCENT_HEX } from "../../../core/embeds.js";
 import { createCanvas, GlobalFonts, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import { cardFont } from "../../welcome_message/functions/cardFonts.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("stats");
 
@@ -242,15 +243,16 @@ export async function renderWeekdayChart(
   labels: string[],
   values: number[],
   color = "#5865F2",
+  t: Translator = defaultTranslator,
 ): Promise<Buffer> {
   return renderActivityChart({
     labels,
-    series: [{ label: "Activity", color, values }],
+    series: [{ label: t("stats.seriesActivity", "Activity"), color, values }],
     mode: "bar",
   });
 }
 
-export async function renderPieChart(segments: PieSegment[]): Promise<Buffer> {
+export async function renderPieChart(segments: PieSegment[], t: Translator = defaultTranslator): Promise<Buffer> {
   const width = 1100;
   const height = 420;
   const scale = 2;
@@ -269,7 +271,7 @@ export async function renderPieChart(segments: PieSegment[]): Promise<Buffer> {
   if (total <= 0) {
     ctx.fillStyle = COLORS.muted;
     ctx.font = font("", 16);
-    ctx.fillText("No data in this window", cx - 70, cy);
+    ctx.fillText(t("stats.pieChartNoData", "No data in this window"), cx - 70, cy);
     return canvas.toBuffer("image/png");
   }
 
@@ -513,6 +515,7 @@ async function drawLeaderboardRow(
   geometry: RowGeometry,
   accent: string,
   maxShare: number,
+  t: Translator,
 ) {
   const { rowLeft, rowWidth, contentRight, shareColX, rowInnerPad, rowHeight, rankSize, avatarSize } = geometry;
   const rowCenter = rowTop + rowHeight / 2;
@@ -559,7 +562,7 @@ async function drawLeaderboardRow(
 
   ctx.fillStyle = COLORS.muted;
   ctx.font = font("", 14);
-  ctx.fillText(`${formatCount(row.count)} messages`, textX, rowCenter + 14);
+  ctx.fillText(t("stats.messagesCount", "{count} messages", { count: formatCount(row.count) }), textX, rowCenter + 14);
 
   ctx.textAlign = "right";
   ctx.fillStyle = accent;
@@ -568,7 +571,7 @@ async function drawLeaderboardRow(
 
   ctx.fillStyle = COLORS.muted;
   ctx.font = font("", 13);
-  ctx.fillText("of server traffic", contentRight, rowCenter + 16);
+  ctx.fillText(t("stats.ofServerTraffic", "of server traffic"), contentRight, rowCenter + 16);
   ctx.textAlign = "left";
 
   const barX = textX;
@@ -585,7 +588,10 @@ async function drawLeaderboardRow(
   ctx.fill();
 }
 
-export async function renderLeaderboardImage(options: LeaderboardImageOptions): Promise<Buffer> {
+export async function renderLeaderboardImage(
+  options: LeaderboardImageOptions,
+  t: Translator = defaultTranslator,
+): Promise<Buffer> {
   const width = options.width ?? 1100;
   const scale = options.scale ?? 2;
   const accent = options.accentColor ?? DREAMLINER_ACCENT_HEX;
@@ -617,7 +623,7 @@ export async function renderLeaderboardImage(options: LeaderboardImageOptions): 
   if (rows.length === 0) {
     ctx.fillStyle = COLORS.muted;
     ctx.font = font("", 18);
-    ctx.fillText("No activity recorded in this window yet.", padX, headerHeight + 36);
+    ctx.fillText(t("stats.noActivityRecorded", "No activity recorded in this window yet."), padX, headerHeight + 36);
     return canvas.toBuffer("image/png");
   }
 
@@ -626,7 +632,7 @@ export async function renderLeaderboardImage(options: LeaderboardImageOptions): 
   let y = headerHeight + 28;
 
   for (const row of rows) {
-    await drawLeaderboardRow(ctx, row, y, geometry, accent, maxShare);
+    await drawLeaderboardRow(ctx, row, y, geometry, accent, maxShare, t);
     y += rowHeight + rowGap;
   }
 
@@ -723,7 +729,7 @@ function drawRoundedFallbackAvatar(ctx: SKRSContext2D, initial: string, x: numbe
 /** Renders one leaderboard row exactly as it appears on the site (rounded-square avatar +
  * rank badge, name + badge chips, accent share line, and a radial share-percentage ring),
  * scaled up into a taller, narrower card and with the user's profile banner as a background. */
-export async function renderRankCard(options: RankCardOptions): Promise<Buffer> {
+export async function renderRankCard(options: RankCardOptions, t: Translator = defaultTranslator): Promise<Buffer> {
   const row = options.row;
   const width = options.width ?? 460;
   const scale = options.scale ?? 3;
@@ -772,9 +778,9 @@ export async function renderRankCard(options: RankCardOptions): Promise<Buffer> 
       const fadeEnd = 0.92; // fully opaque row background from here to the right edge
       const steps = 10;
       for (let i = 0; i <= steps; i++) {
-        const t = i / steps; // 0..1 across the fade zone
-        const eased = t * t * (3 - 2 * t); // smoothstep, for a gentler ease than a linear ramp
-        gradient.addColorStop(t * fadeEnd, hexToRgba(RANK_CARD.bg, 0.28 + eased * 0.72));
+        const frac = i / steps; // 0..1 across the fade zone
+        const eased = frac * frac * (3 - 2 * frac); // smoothstep, for a gentler ease than a linear ramp
+        gradient.addColorStop(frac * fadeEnd, hexToRgba(RANK_CARD.bg, 0.28 + eased * 0.72));
       }
       gradient.addColorStop(1, hexToRgba(RANK_CARD.bg, 1));
       ctx.fillStyle = gradient;
@@ -940,13 +946,17 @@ export async function renderRankCard(options: RankCardOptions): Promise<Buffer> 
   const subY = height / 2 + 17;
   ctx.font = cardFont(700, subSize);
   ctx.fillStyle = accent;
-  const shareText = `${row.shareLabel} of server traffic`;
+  const shareText = t("stats.shareOfServerTraffic", "{share} of server traffic", { share: row.shareLabel });
   ctx.fillText(shareText, textX, subY);
   const shareWidth = ctx.measureText(shareText).width;
 
   ctx.font = cardFont(400, subSize);
   ctx.fillStyle = RANK_CARD.muted;
-  ctx.fillText(` · ${row.count.toLocaleString()} msgs`, textX + shareWidth, subY);
+  ctx.fillText(
+    t("stats.msgsCountSuffix", " · {count} msgs", { count: row.count.toLocaleString() }),
+    textX + shareWidth,
+    subY,
+  );
 
   return canvas.toBuffer("image/png");
 }

@@ -59,7 +59,8 @@ export function formatChannelScope(channels: string[], t: Translator): string {
 
 export function formatSlowmodeRule(rule: NormalizedSlowmodeRule, t: Translator): string {
   const target = rule.target === "user" ? `<@${rule.target_id}>` : `<@&${rule.target_id}>`;
-  return `**#${rule.id}** · ${rule.target} ${target} · **${formatSeconds(rule.seconds, t)}** · ${formatChannelScope(rule.channels, t)}`;
+  const targetLabel = rule.target === "user" ? t("slowmode.targetUser", "user") : t("slowmode.targetRole", "role");
+  return `**#${rule.id}** · ${targetLabel} ${target} · **${formatSeconds(rule.seconds, t)}** · ${formatChannelScope(rule.channels, t)}`;
 }
 
 export function formatSeconds(seconds: number, t: Translator): string {

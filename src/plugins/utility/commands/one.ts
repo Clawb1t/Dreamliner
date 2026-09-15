@@ -30,8 +30,8 @@ export const oneCommands: SlashCommandDefinition[] = [
       if (!guildId) {
         await ctx.interaction.reply(
           resultReply(
-            "Dreamliner One",
-            "This command only works in a server.",
+            ctx.t("utility.one.title", "Dreamliner One"),
+            ctx.t("utility.one.serverOnlyBody", "This command only works in a server."),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
@@ -44,27 +44,27 @@ export const oneCommands: SlashCommandDefinition[] = [
 
       if (status.active) {
         const expiryLine = status.forever
-          ? "Doesn't expire"
+          ? ctx.t("utility.one.doesntExpire", "Doesn't expire")
           : status.expiresAt
             ? discordTimestamp(new Date(status.expiresAt), "R")
-            : "Active";
+            : ctx.t("utility.one.activeWord", "Active");
 
         const embed = setEmbedAuthor(
           baseEmbed(),
-          "Dreamliner One",
+          ctx.t("utility.one.title", "Dreamliner One"),
           ctx.client,
           commandHeader(ctx.guildConfig, { tone: "success" }),
         ).addFields(
-          embedField("Status", "Active", true),
-          embedField("Renews / expires", expiryLine, true),
-          ...(status.note ? [embedField("Note", status.note)] : []),
+          embedField(ctx.t("utility.one.statusLabel", "Status"), ctx.t("utility.one.activeWord", "Active"), true),
+          embedField(ctx.t("utility.one.renewsExpiresLabel", "Renews / expires"), expiryLine, true),
+          ...(status.note ? [embedField(ctx.t("utility.one.noteLabel", "Note"), status.note)] : []),
         );
 
         await ctx.interaction.reply(
           embedReply(embed, ctx.ephemeral, [
             new ActionRowBuilder<ButtonBuilder>().addComponents(
               new ButtonBuilder()
-                .setLabel("Manage in dashboard")
+                .setLabel(ctx.t("utility.one.manageInDashboard", "Manage in dashboard"))
                 .setStyle(ButtonStyle.Link)
                 .setURL(dashboardUrl),
             ),
@@ -75,15 +75,15 @@ export const oneCommands: SlashCommandDefinition[] = [
 
       const embed = setEmbedAuthor(
         baseEmbed(),
-        "Dreamliner One",
+        ctx.t("utility.one.title", "Dreamliner One"),
         ctx.client,
         commandHeader(ctx.guildConfig, { tone: "neutral" }),
       ).addFields(
-        embedField("Status", "Not active", true),
-        embedField("Price", DREAMLINER_ONE_PRICE, true),
+        embedField(ctx.t("utility.one.statusLabel", "Status"), ctx.t("utility.one.notActive", "Not active"), true),
+        embedField(ctx.t("utility.one.priceLabel", "Price"), DREAMLINER_ONE_PRICE, true),
         embedField(
-          "What you get",
-          "Custom bot avatar, banner, nickname, and bio, plus automatic message translation, unlocked for this server.",
+          ctx.t("utility.one.whatYouGetLabel", "What you get"),
+          ctx.t("utility.one.whatYouGetBody", "Custom bot avatar, banner, nickname, and bio, plus automatic message translation, unlocked for this server."),
         ),
       );
 
@@ -95,7 +95,7 @@ export const oneCommands: SlashCommandDefinition[] = [
       const canShowPurchaseButton = ctx.client.application?.id === DREAMLINER_ONE_APPLICATION_ID;
       const linkRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setLabel(canShowPurchaseButton ? "Learn more" : "Subscribe on the website")
+          .setLabel(canShowPurchaseButton ? ctx.t("utility.one.learnMore", "Learn more") : ctx.t("utility.one.subscribeOnWebsite", "Subscribe on the website"))
           .setStyle(ButtonStyle.Link)
           .setURL(`${getSiteUrl()}/one`),
       );

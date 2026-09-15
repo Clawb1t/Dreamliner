@@ -37,6 +37,7 @@ import { deleteContainer } from "./channels.js";
 import { buildTicketClaimedEmbed } from "./embeds.js";
 import type { TicketFormAnswer } from "./tickets.js";
 import { getLogger } from "../../../core/logger.js";
+import { defaultTranslator, translatorFor, type Translator } from "../../../i18n/index.js";
 const log = getLogger("tickets");
 
 export type BuiltPanelMessage = {
@@ -59,7 +60,7 @@ function parseButtonStyle(style: string): ButtonStyle {
 }
 
 /** Builds the {content, embeds, components} payload for a ticket panel, per its configured style. */
-export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js").Guild): BuiltPanelMessage {
+export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js").Guild, t: Translator = defaultTranslator): BuiltPanelMessage {
   const embed = buildEmbed(panel.embed, {
     client: guild?.client as Client,
     guild: guild as import("discord.js").Guild,
@@ -79,13 +80,13 @@ export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js
   // fall back to — would take down the *entire* panel's post, including its other, valid
   // categories. Falling back to a placeholder keeps a half-configured category from doing that.
   function categoryLabel(category: TicketCategory, maxLength: number): string {
-    return category.label.trim().slice(0, maxLength) || "Category";
+    return category.label.trim().slice(0, maxLength) || t("tickets.panel.categoryFallback", "Category");
   }
 
   if (panel.style === "select") {
     const select = new StringSelectMenuBuilder()
       .setCustomId(ticketOpenSelectId(panel.id))
-      .setPlaceholder("Select a ticket category...")
+      .setPlaceholder(t("tickets.panel.selectCategoryPlaceholder", "Select a ticket category..."))
       .addOptions(
         enabledCategories.slice(0, 25).map((category) => {
           const option = { label: categoryLabel(category, 100), value: category.id, description: category.description.slice(0, 100) || undefined };
@@ -116,7 +117,7 @@ export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js
 }
 
 /** Posts a panel's message to its configured channel. Returns the new message id, or null on failure. */
-export async function postPanel(client: Client, _guildId: string, panel: TicketPanel): Promise<string | null> {
+export async function postPanel(client: Client, _guildId: string, panel: TicketPanel, t: Translator = defaultTranslator): Promise<string | null> {
   if (!panel.channel_id) return null;
   const channel = await client.channels.fetch(panel.channel_id).catch(() => null);
   if (!channel?.isTextBased() || !("send" in channel)) return null;
@@ -126,7 +127,7 @@ export async function postPanel(client: Client, _guildId: string, panel: TicketP
     // discord.js's component builders (setLabel, addOptions, etc.) validate synchronously and
     // throw on bad input — a malformed category (or embed) would otherwise crash out of this
     // function entirely instead of failing gracefully like everything else here does.
-    built = buildPanelMessage(panel, guild);
+    built = buildPanelMessage(panel, guild, t);
   } catch (error) {
     log.error(`[tickets] Failed to build panel ${panel.id}'s message:`, error);
     return null;
@@ -167,16 +168,17 @@ async function openOrPromptModal(
   categoryId: string,
 ): Promise<void> {
   if (!interaction.inGuild() || !interaction.guild) return;
+  const { t } = await translatorFor(interaction.user.id);
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId!);
   if (!pluginEnabled(guildConfig, "tickets")) {
-    await interaction.reply(resultReply("Plugin disabled", "Tickets are disabled for this server.", true));
+    await interaction.reply(resultReply(t("tickets.pluginDisabledTitle", "Plugin disabled"), t("tickets.pluginDisabledBody", "Tickets are disabled for this server."), true));
     return;
   }
   const member = interaction.member as GuildMember;
   const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
   const found = findPanelAndCategory(config, panelId, categoryId);
   if (!found || !found.panel.enabled) {
-    await interaction.reply(resultReply("Unavailable", "This ticket panel is no longer available.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+    await interaction.reply(resultReply(t("tickets.unavailableTitle", "Unavailable"), t("tickets.panelUnavailableBody", "This ticket panel is no longer available."), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
     return;
   }
   const { category, panel } = found;
@@ -206,27 +208,29 @@ async function openOrPromptModal(
     category,
     guildConfig,
     pluginConfig: config,
+    t,
   });
   if ("error" in result) {
-    await interaction.editReply(resultEdit("Cannot open ticket", result.error, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+    await interaction.editReply(resultEdit(t("tickets.cannotOpenTicketTitle", "Cannot open ticket"), result.error, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
     return;
   }
   const target = result.ticket.threadId ?? result.ticket.channelId;
-  await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
+  await interaction.editReply(resultEdit(t("tickets.ticketOpenedTitle", "Ticket opened"), t("tickets.ticketReadyBody", "Your ticket is ready: <#{target}>.", { target }), guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
 }
 
 export async function handleTicketButtonInteraction(interaction: ButtonInteraction): Promise<boolean> {
   if (!interaction.customId.startsWith(TICKET_PREFIX)) return false;
   const parsed = parseTicketCustomId(interaction.customId);
   if (!parsed) return false;
+  const { t } = await translatorFor(interaction.user.id);
   if (!interaction.inGuild() || !interaction.guild || !interaction.member) {
-    await interaction.reply(resultReply("Server only", "Use this in a server.", true));
+    await interaction.reply(resultReply(t("tickets.serverOnlyTitle", "Server only"), t("tickets.useInServerBody", "Use this in a server."), true));
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId!);
   if (!pluginEnabled(guildConfig, "tickets")) {
-    await interaction.reply(resultReply("Plugin disabled", "Tickets are disabled for this server.", true));
+    await interaction.reply(resultReply(t("tickets.pluginDisabledTitle", "Plugin disabled"), t("tickets.pluginDisabledBody", "Tickets are disabled for this server."), true));
     return true;
   }
   const member = interaction.member as GuildMember;
@@ -242,23 +246,23 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
   if (parsed.kind === "claim" || parsed.kind === "unclaim") {
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
-      await interaction.reply(resultReply("Not found", "That ticket no longer exists.", true));
+      await interaction.reply(resultReply(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), true));
       return true;
     }
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
     if (!(await hasPermission(interaction.guildId!, "tickets", "can_claim", member, guildConfig))) {
-      await interaction.reply(resultReply("Permission denied", "You cannot claim tickets.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("tickets.permissionDeniedTitle", "Permission denied"), t("tickets.cannotClaimBody", "You cannot claim tickets."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     await interaction.deferUpdate();
     if (parsed.kind === "claim") {
       await performClaim(interaction.client, guildConfig, config, ticket, member.id);
-      const embed = buildTicketClaimedEmbed(ticket, member.id, interaction.client, guildConfig.emojis);
-      await interaction.message.edit({ components: [ticketActionRow(ticket.id, true)] }).catch(() => null);
+      const embed = buildTicketClaimedEmbed(ticket, member.id, interaction.client, guildConfig.emojis, t);
+      await interaction.message.edit({ components: [ticketActionRow(ticket.id, true, t)] }).catch(() => null);
       if ("send" in interaction.channel!) await (interaction.channel as import("discord.js").TextChannel).send(containerReply(embed)).catch(() => null);
     } else {
       await performUnclaim(ticket);
-      await interaction.message.edit({ components: [ticketActionRow(ticket.id, false)] }).catch(() => null);
+      await interaction.message.edit({ components: [ticketActionRow(ticket.id, false, t)] }).catch(() => null);
     }
     return true;
   }
@@ -266,7 +270,7 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
   if (parsed.kind === "close") {
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
-      await interaction.reply(resultReply("Not found", "That ticket no longer exists.", true));
+      await interaction.reply(resultReply(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), true));
       return true;
     }
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
@@ -277,26 +281,26 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
     const canCloseOwn = isOpener && (await hasPermission(interaction.guildId!, "tickets", "can_close", member, guildConfig));
     const allowed = canCloseTicket(category?.close_permission ?? "either", canCloseOwn, isStaff);
     if (!allowed) {
-      await interaction.reply(resultReply("Permission denied", "You cannot close this ticket.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("tickets.permissionDeniedTitle", "Permission denied"), t("tickets.cannotCloseThisBody", "You cannot close this ticket."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId(ticketConfirmCloseId(ticket.id)).setLabel("Confirm close").setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId(ticketCancelCloseId(ticket.id)).setLabel("Cancel").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(ticketConfirmCloseId(ticket.id)).setLabel(t("tickets.button.confirmClose", "Confirm close")).setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(ticketCancelCloseId(ticket.id)).setLabel(t("tickets.button.cancel", "Cancel")).setStyle(ButtonStyle.Secondary),
     );
-    await interaction.reply(resultReply("Close this ticket?", "This will archive the ticket and generate a transcript.", true, guildResultOptions(interaction.client, guildConfig), [row]));
+    await interaction.reply(resultReply(t("tickets.closeThisTicketTitle", "Close this ticket?"), t("tickets.closeArchiveBody", "This will archive the ticket and generate a transcript."), true, guildResultOptions(interaction.client, guildConfig), [row]));
     return true;
   }
 
   if (parsed.kind === "closeno") {
-    await interaction.update(resultEdit("Cancelled", "This ticket stays open.", guildResultOptions(interaction.client, guildConfig)));
+    await interaction.update(resultEdit(t("tickets.cancelledTitle", "Cancelled"), t("tickets.ticketStaysOpenBody", "This ticket stays open."), guildResultOptions(interaction.client, guildConfig)));
     return true;
   }
 
   if (parsed.kind === "closeyes") {
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
-      await interaction.update(resultEdit("Not found", "That ticket no longer exists.", guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.update(resultEdit(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
@@ -305,12 +309,12 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
     if (category?.require_close_reason) {
       const modal = new ModalBuilder()
         .setCustomId(ticketCloseModalId(ticket.id))
-        .setTitle("Close ticket")
+        .setTitle(t("tickets.modal.closeTicketTitle", "Close ticket"))
         .addComponents(
           new ActionRowBuilder<TextInputBuilder>().addComponents(
             new TextInputBuilder()
               .setCustomId(`${TICKET_PREFIX}reason`)
-              .setLabel("Reason")
+              .setLabel(t("tickets.modal.reasonLabel", "Reason"))
               .setStyle(TextInputStyle.Paragraph)
               .setRequired(true)
               .setMaxLength(500),
@@ -319,26 +323,26 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       await interaction.showModal(modal);
       return true;
     }
-    await interaction.update(resultEdit("Closing...", "Generating transcript and closing the ticket.", guildResultOptions(interaction.client, guildConfig)));
-    await performClose(interaction.client, interaction.guild, guildConfig, config, category, ticket, member.id, null);
+    await interaction.update(resultEdit(t("tickets.closingTitle", "Closing..."), t("tickets.generatingTranscriptBody", "Generating transcript and closing the ticket."), guildResultOptions(interaction.client, guildConfig)));
+    await performClose(interaction.client, interaction.guild, guildConfig, config, category, ticket, member.id, null, t);
     return true;
   }
 
   if (parsed.kind === "delete") {
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
-      await interaction.reply(resultReply("Not found", "That ticket no longer exists.", true));
+      await interaction.reply(resultReply(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), true));
       return true;
     }
     if (ticket.status !== "closed") {
-      await interaction.reply(resultReply("Not closed", "Close this ticket before deleting its channel.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("tickets.notClosedTitle", "Not closed"), t("tickets.closeBeforeDeleteBody", "Close this ticket before deleting its channel."), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     if (!(await hasPermission(interaction.guildId!, "tickets", "can_delete", member, guildConfig))) {
-      await interaction.reply(resultReply("Permission denied", "You cannot delete tickets.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("tickets.permissionDeniedTitle", "Permission denied"), t("tickets.cannotDeleteBody", "You cannot delete tickets."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
-    await interaction.reply(resultReply("Deleting...", "This channel is being deleted. The ticket and its transcript stay on record.", true, guildResultOptions(interaction.client, guildConfig)));
+    await interaction.reply(resultReply(t("tickets.deletingTitle", "Deleting..."), t("tickets.channelBeingDeletedBody", "This channel is being deleted. The ticket and its transcript stay on record."), true, guildResultOptions(interaction.client, guildConfig)));
     await deleteContainer(interaction.guild, ticket);
     return true;
   }
@@ -360,14 +364,15 @@ export async function handleTicketModalSubmit(interaction: ModalSubmitInteractio
   if (!interaction.customId.startsWith(TICKET_PREFIX)) return false;
   const parsed = parseTicketCustomId(interaction.customId);
   if (!parsed) return false;
+  const { t } = await translatorFor(interaction.user.id);
   if (!interaction.inGuild() || !interaction.guild || !interaction.member) {
-    await interaction.reply(resultReply("Server only", "Use this in a server.", true));
+    await interaction.reply(resultReply(t("tickets.serverOnlyTitle", "Server only"), t("tickets.useInServerBody", "Use this in a server."), true));
     return true;
   }
   const member = interaction.member as GuildMember;
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId!);
   if (!pluginEnabled(guildConfig, "tickets")) {
-    await interaction.reply(resultReply("Plugin disabled", "Tickets are disabled for this server.", true));
+    await interaction.reply(resultReply(t("tickets.pluginDisabledTitle", "Plugin disabled"), t("tickets.pluginDisabledBody", "Tickets are disabled for this server."), true));
     return true;
   }
 
@@ -375,7 +380,7 @@ export async function handleTicketModalSubmit(interaction: ModalSubmitInteractio
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
     const found = findPanelAndCategory(config, parsed.panelId, parsed.categoryId);
     if (!found) {
-      await interaction.reply(resultReply("Unavailable", "This ticket panel is no longer available.", true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.reply(resultReply(t("tickets.unavailableTitle", "Unavailable"), t("tickets.panelUnavailableBody", "This ticket panel is no longer available."), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     const { panel, category } = found;
@@ -395,13 +400,14 @@ export async function handleTicketModalSubmit(interaction: ModalSubmitInteractio
       guildConfig,
       pluginConfig: config,
       formResponses: answers,
+      t,
     });
     if ("error" in result) {
-      await interaction.editReply(resultEdit("Cannot open ticket", result.error, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      await interaction.editReply(resultEdit(t("tickets.cannotOpenTicketTitle", "Cannot open ticket"), result.error, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     const target = result.ticket.threadId ?? result.ticket.channelId;
-    await interaction.editReply(resultEdit("Ticket opened", `Your ticket is ready: <#${target}>.`, guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
+    await interaction.editReply(resultEdit(t("tickets.ticketOpenedTitle", "Ticket opened"), t("tickets.ticketReadyBody", "Your ticket is ready: <#{target}>.", { target }), guildResultOptions(interaction.client, guildConfig, { tone: "success", emoji: "<:icons_ticket:1544417593191047179>" })));
     return true;
   }
 
@@ -409,15 +415,15 @@ export async function handleTicketModalSubmit(interaction: ModalSubmitInteractio
     const { getTicket } = await import("./tickets.js");
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
-      await interaction.reply(resultReply("Not found", "That ticket no longer exists.", true));
+      await interaction.reply(resultReply(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), true));
       return true;
     }
     const reason = interaction.fields.getTextInputValue(`${TICKET_PREFIX}reason`).trim();
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
     const panel = config.panels.find((p) => p.id === ticket.panelId);
     const category = panel?.categories.find((c) => c.id === ticket.categoryId);
-    await interaction.reply(resultReply("Closing...", "Generating transcript and closing the ticket.", true, guildResultOptions(interaction.client, guildConfig)));
-    await performClose(interaction.client, interaction.guild, guildConfig, config, category, ticket, member.id, reason);
+    await interaction.reply(resultReply(t("tickets.closingTitle", "Closing..."), t("tickets.generatingTranscriptBody", "Generating transcript and closing the ticket."), true, guildResultOptions(interaction.client, guildConfig)));
+    await performClose(interaction.client, interaction.guild, guildConfig, config, category, ticket, member.id, reason, t);
     return true;
   }
 

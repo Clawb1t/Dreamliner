@@ -10,6 +10,7 @@ import { configManager } from "../../../config/manager.js";
 import { buildResultEmbed, setEmbedAuthor, baseEmbed, embedField } from "../../../core/embeds.js";
 import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
+import { translatorFor, type Translator } from "../../../i18n/index.js";
 import { parseBotAvatarCustomId } from "../constants.js";
 import {
   DASHBOARD_REQUEST_CHANNEL,
@@ -40,8 +41,8 @@ function asTextChannel(channel: unknown): GuildTextBasedChannel | null {
   return null;
 }
 
-function kindLabel(kind: BotBrandImageKind): string {
-  return kind === "banner" ? "Banner" : "Avatar";
+function kindLabel(kind: BotBrandImageKind, t: Translator): string {
+  return kind === "banner" ? t("bot_customisation.kind.banner", "Banner") : t("bot_customisation.kind.avatar", "Avatar");
 }
 
 /** Avatar = profile photo (camera), banner = the wide art canvas (paint brush). */
@@ -66,13 +67,14 @@ async function notifyRequester(
   );
   if (!channel) return;
 
-  const label = kindLabel(request.kind);
+  const { t } = await translatorFor(request.requesterId);
+  const label = kindLabel(request.kind, t);
   const embed = buildResultEmbed(
     outcome === "approved"
-      ? `${label} approved`
+      ? t("bot_customisation.notify.approved", "{label} approved", { label })
       : outcome === "denied"
-        ? `${label} denied`
-        : `${label} could not be applied`,
+        ? t("bot_customisation.notify.denied", "{label} denied", { label })
+        : t("bot_customisation.notify.failed", "{label} could not be applied", { label }),
     details,
     {
       client: interaction.client,
@@ -118,11 +120,18 @@ async function finalizeReviewMessage(
   outcome: "approved" | "denied" | "failed",
   reviewerId: string,
 ): Promise<void> {
-  const label = kindLabel(request.kind);
+  const { t } = await translatorFor(reviewerId);
+  const label = kindLabel(request.kind, t);
   const disabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`dl:botavatar:done:a:${request.id}`)
-      .setLabel(outcome === "approved" ? "Approved" : outcome === "denied" ? "Denied" : "Failed")
+      .setLabel(
+        outcome === "approved"
+          ? t("bot_customisation.button.approved", "Approved")
+          : outcome === "denied"
+            ? t("bot_customisation.button.denied", "Denied")
+            : t("bot_customisation.button.failed", "Failed"),
+      )
       .setStyle(outcome === "approved" ? ButtonStyle.Success : ButtonStyle.Secondary)
       .setDisabled(true),
   );
@@ -133,10 +142,10 @@ async function finalizeReviewMessage(
   const embed = setEmbedAuthor(
     baseEmbed(),
     outcome === "approved"
-      ? `${label} approved`
+      ? t("bot_customisation.notify.approved", "{label} approved", { label })
       : outcome === "denied"
-        ? `${label} denied`
-        : `${label} failed`,
+        ? t("bot_customisation.notify.denied", "{label} denied", { label })
+        : t("bot_customisation.review.failedTitle", "{label} failed", { label }),
     interaction.client,
     {
       tone: outcome === "approved" ? "success" : outcome === "denied" ? "unchecked" : "error",
@@ -145,14 +154,19 @@ async function finalizeReviewMessage(
   )
     .addFields(
       embedField(
-        "Request",
+        t("bot_customisation.review.requestField", "Request"),
         [
-          `**Type:** ${label}`,
-          `**Server:** ${guildName} (\`${request.guildId}\`)`,
-          `**Requested by:** <@${request.requesterId}>`,
-          `**Reviewed by:** <@${reviewerId}>`,
-          `**Request id:** \`${request.id}\``,
-          `**Status:** ${outcome}`,
+          t("bot_customisation.review.typeLine", "**Type:** {label}", { label }),
+          t("bot_customisation.review.serverLine", "**Server:** {guildName} (`{guildId}`)", {
+            guildName,
+            guildId: request.guildId,
+          }),
+          t("bot_customisation.review.requestedByLine", "**Requested by:** <@{userId}>", {
+            userId: request.requesterId,
+          }),
+          t("bot_customisation.review.reviewedByLine", "**Reviewed by:** <@{userId}>", { userId: reviewerId }),
+          t("bot_customisation.review.requestIdLine", "**Request id:** `{id}`", { id: request.id }),
+          t("bot_customisation.review.statusLine", "**Status:** {status}", { status: outcome }),
         ].join("\n"),
       ),
     )
@@ -176,9 +190,14 @@ export async function handleBotAvatarButtonInteraction(
   const parsed = parseBotAvatarCustomId(interaction.customId);
   if (!parsed) return false;
 
+  const { t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
     await interaction.reply({
-      content: "You need **Manage Server** in this server to review brand requests.",
+      content: t(
+        "bot_customisation.error.needManageServer",
+        "You need **Manage Server** in this server to review brand requests.",
+      ),
       ephemeral: true,
     });
     return true;
@@ -186,14 +205,20 @@ export async function handleBotAvatarButtonInteraction(
 
   const request = await getBotAvatarRequest(parsed.requestId);
   if (!request) {
-    await interaction.reply({ content: "That brand request no longer exists.", ephemeral: true });
+    await interaction.reply({
+      content: t("bot_customisation.error.requestGone", "That brand request no longer exists."),
+      ephemeral: true,
+    });
     return true;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(request.guildId);
   if (!pluginEnabled(guildConfig, "bot_customisation")) {
     await interaction.reply({
-      content: "The **bot_customisation** plugin is disabled for that server.",
+      content: t(
+        "bot_customisation.error.pluginDisabled",
+        "The **bot_customisation** plugin is disabled for that server.",
+      ),
       ephemeral: true,
     });
     return true;
@@ -202,7 +227,11 @@ export async function handleBotAvatarButtonInteraction(
   if (parsed.action === "remove") {
     if (request.status !== "approved") {
       await interaction.reply({
-        content: `This ${kindLabel(request.kind).toLowerCase()} was already **${request.status}**.`,
+        content: t(
+          "bot_customisation.error.alreadyStatus",
+          "This {kind} was already **{status}**.",
+          { kind: kindLabel(request.kind, t).toLowerCase(), status: request.status },
+        ),
         ephemeral: true,
       });
       return true;
@@ -212,7 +241,10 @@ export async function handleBotAvatarButtonInteraction(
 
     const removed = await markBotBrandRequestRemoved(request.id, interaction.user.id);
     if (!removed) {
-      await interaction.followUp({ content: "Someone else already resolved this request.", ephemeral: true });
+      await interaction.followUp({
+        content: t("bot_customisation.error.alreadyResolved", "Someone else already resolved this request."),
+        ephemeral: true,
+      });
       return true;
     }
 
@@ -238,7 +270,9 @@ export async function handleBotAvatarButtonInteraction(
 
   if (request.status !== "pending") {
     await interaction.reply({
-      content: `This request was already **${request.status}**.`,
+      content: t("bot_customisation.error.requestAlreadyStatus", "This request was already **{status}**.", {
+        status: request.status,
+      }),
       ephemeral: true,
     });
     return true;
@@ -246,12 +280,15 @@ export async function handleBotAvatarButtonInteraction(
 
   await interaction.deferUpdate();
 
-  const label = kindLabel(request.kind).toLowerCase();
+  const label = kindLabel(request.kind, t).toLowerCase();
 
   if (parsed.action === "deny") {
     const resolved = await resolveBotAvatarRequest(request.id, "denied", interaction.user.id);
     if (!resolved) {
-      await interaction.followUp({ content: "Someone else already resolved this request.", ephemeral: true });
+      await interaction.followUp({
+        content: t("bot_customisation.error.alreadyResolved", "Someone else already resolved this request."),
+        ephemeral: true,
+      });
       return true;
     }
 
@@ -260,7 +297,11 @@ export async function handleBotAvatarButtonInteraction(
       interaction,
       resolved,
       "denied",
-      `Staff denied the ${label} change for **${interaction.client.guilds.cache.get(resolved.guildId)?.name ?? "your server"}**. Dreamliner's ${label} was not changed.`,
+      t(
+        "bot_customisation.notify.deniedDetails",
+        "Staff denied the {kind} change for **{guildName}**. Dreamliner's {kind} was not changed.",
+        { kind: label, guildName: interaction.client.guilds.cache.get(resolved.guildId)?.name ?? t("bot_customisation.yourServer", "your server") },
+      ),
     );
     return true;
   }
@@ -268,7 +309,10 @@ export async function handleBotAvatarButtonInteraction(
   // Claim the pending row first so Approve/Deny can't race.
   const claimed = await resolveBotAvatarRequest(request.id, "approved", interaction.user.id);
   if (!claimed) {
-    await interaction.followUp({ content: "Someone else already resolved this request.", ephemeral: true });
+    await interaction.followUp({
+      content: t("bot_customisation.error.alreadyResolved", "Someone else already resolved this request."),
+      ephemeral: true,
+    });
     return true;
   }
 
@@ -284,7 +328,11 @@ export async function handleBotAvatarButtonInteraction(
       interaction,
       claimed,
       "failed",
-      `Staff approved the ${label}, but Dreamliner is no longer in that server so it could not be applied.`,
+      t(
+        "bot_customisation.notify.failedGuildGone",
+        "Staff approved the {kind}, but Dreamliner is no longer in that server so it could not be applied.",
+        { kind: label },
+      ),
     );
     return true;
   }
@@ -297,12 +345,19 @@ export async function handleBotAvatarButtonInteraction(
   } catch (error) {
     await markBotAvatarRequestFailed(claimed.id);
     await finalizeReviewMessage(interaction, { ...claimed, status: "failed" }, "failed", interaction.user.id);
-    const msg = error instanceof Error ? error.message : `Discord rejected the ${label}.`;
+    const msg =
+      error instanceof Error
+        ? error.message
+        : t("bot_customisation.notify.discordRejected", "Discord rejected the {kind}.", { kind: label });
     await notifyRequester(
       interaction,
       claimed,
       "failed",
-      `Staff approved the ${label}, but Discord rejected applying it: ${msg}`,
+      t(
+        "bot_customisation.notify.failedDiscordRejected",
+        "Staff approved the {kind}, but Discord rejected applying it: {message}",
+        { kind: label, message: msg },
+      ),
     );
     return true;
   }
@@ -316,7 +371,11 @@ export async function handleBotAvatarButtonInteraction(
     interaction,
     claimed,
     "approved",
-    `Staff approved the ${label} for **${targetGuild.name}**. Dreamliner's look in that server is now updated.`,
+    t(
+      "bot_customisation.notify.approvedDetails",
+      "Staff approved the {kind} for **{guildName}**. Dreamliner's look in that server is now updated.",
+      { kind: label, guildName: targetGuild.name },
+    ),
   );
   return true;
 }

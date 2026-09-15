@@ -1,5 +1,6 @@
 import type { GuildMember, PartialGuildMember } from "discord.js";
 import { configManager } from "../../../config/manager.js";
+import { translatorFor } from "../../../i18n/index.js";
 import { getPassportConfig, isPassportEnabled } from "./loadConfig.js";
 import {
   applyUnverifiedGate,
@@ -40,10 +41,12 @@ export async function handlePassportMemberAdd(member: GuildMember): Promise<void
 
   await applyUnverifiedGate(member, config);
 
+  const { t } = await translatorFor(member.id);
+
   let ping: { messageId: string; channelId: string } | null = null;
   if (config.ping.enabled) {
-    ping = await postPassportPing(member, config);
-    await dmPassportLink(member, config);
+    ping = await postPassportPing(member, config, t);
+    await dmPassportLink(member, config, t);
     if (ping && config.ping.delete_after_seconds > 0) {
       const { guild } = member;
       const pingRef = ping;

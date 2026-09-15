@@ -49,19 +49,19 @@ export const voiceCommands: SlashCommandDefinition[] = [
       const permission = sub === "disconnect" ? "can_vckick" : "can_vcmove";
       const auth = await requireUtilityPermission(ctx, permission);
       if (!auth) return;
-      if (!(await requireDiscordPerm(ctx.interaction, MoveMembers, "Move Members", ctx.ephemeral, ctx.guildConfig))) return;
+      if (!(await requireDiscordPerm(ctx.interaction, MoveMembers, "Move Members", ctx.ephemeral, ctx.guildConfig, ctx.t))) return;
 
       if (sub === "move") {
         const user = ctx.interaction.options.getUser("member", true);
         const channel = ctx.interaction.options.getChannel("channel", true);
         const member = await ctx.interaction.guild!.members.fetch(user.id);
         if (!canActOn(auth.member, member)) {
-          await ctx.interaction.reply(resultReply("Voice move", "You cannot act on this member.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("utility.voice.voiceMoveTitle", "Voice move"), ctx.t("utility.voice.cannotActOnMemberBody", "You cannot act on this member."), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
         const dest = await ctx.interaction.guild!.channels.fetch(channel.id);
         if (!dest?.isVoiceBased()) {
-          await ctx.interaction.reply(resultReply("Voice move", "Destination must be a voice channel.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("utility.voice.voiceMoveTitle", "Voice move"), ctx.t("utility.voice.destinationMustBeVoiceBody", "Destination must be a voice channel."), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
         const fromChannelId = member.voice.channelId;
@@ -87,8 +87,8 @@ export const voiceCommands: SlashCommandDefinition[] = [
         );
         await ctx.interaction.reply(
           resultReply(
-            "Voice move",
-            `Moved <@${member.id}> to **${dest.name}**`,
+            ctx.t("utility.voice.voiceMoveTitle", "Voice move"),
+            ctx.t("utility.voice.movedToBody", "Moved <@{id}> to **{channel}**", { id: member.id, channel: dest.name }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_mic:1544417343252201552>" }),
           ),
@@ -100,7 +100,7 @@ export const voiceCommands: SlashCommandDefinition[] = [
         const fromCh = await ctx.interaction.guild!.channels.fetch(ctx.interaction.options.getChannel("from", true).id);
         const toCh = await ctx.interaction.guild!.channels.fetch(ctx.interaction.options.getChannel("to", true).id);
         if (!fromCh?.isVoiceBased() || !toCh?.isVoiceBased()) {
-          await ctx.interaction.reply(resultReply("Voice move-all", "Both channels must be voice channels.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("utility.voice.voiceMoveAllTitle", "Voice move-all"), ctx.t("utility.voice.bothMustBeVoiceBody", "Both channels must be voice channels."), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
         let moved = 0;
@@ -129,8 +129,8 @@ export const voiceCommands: SlashCommandDefinition[] = [
         );
         await ctx.interaction.reply(
           resultReply(
-            "Voice move-all",
-            `Moved **${moved}** member(s) from **${fromCh.name}** to **${toCh.name}**`,
+            ctx.t("utility.voice.voiceMoveAllTitle", "Voice move-all"),
+            ctx.t("utility.voice.movedAllBody", "Moved **{count}** member(s) from **{from}** to **{to}**", { count: moved, from: fromCh.name, to: toCh.name }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_mic:1544417343252201552>" }),
           ),
@@ -142,11 +142,11 @@ export const voiceCommands: SlashCommandDefinition[] = [
         const user = ctx.interaction.options.getUser("member", true);
         const member = await ctx.interaction.guild!.members.fetch(user.id);
         if (!canActOn(auth.member, member)) {
-          await ctx.interaction.reply(resultReply("Voice disconnect", "You cannot act on this member.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("utility.voice.voiceDisconnectTitle", "Voice disconnect"), ctx.t("utility.voice.cannotActOnMemberBody", "You cannot act on this member."), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
         if (!member.voice.channel) {
-          await ctx.interaction.reply(resultReply("Voice disconnect", "Member is not in a voice channel.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("utility.voice.voiceDisconnectTitle", "Voice disconnect"), ctx.t("utility.voice.notInVoiceBody", "Member is not in a voice channel."), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
         const channelName = member.voice.channel.name;
@@ -171,8 +171,8 @@ export const voiceCommands: SlashCommandDefinition[] = [
         );
         await ctx.interaction.reply(
           resultReply(
-            "Voice disconnect",
-            `Disconnected <@${member.id}> from **${channelName}**`,
+            ctx.t("utility.voice.voiceDisconnectTitle", "Voice disconnect"),
+            ctx.t("utility.voice.disconnectedBody", "Disconnected <@{id}> from **{channel}**", { id: member.id, channel: channelName }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_micmute:1544417344804102224>" }),
           ),
@@ -220,8 +220,8 @@ export const nicknameCommands: SlashCommandDefinition[] = [
         const nick = member.nickname ?? member.user.username;
         await ctx.interaction.reply(
           resultReply(
-            "Nickname",
-            `<@${member.id}>'s nickname is **${nick}**`,
+            ctx.t("utility.voice.nicknameTitle", "Nickname"),
+            ctx.t("utility.voice.nicknameIsBody", "<@{id}>'s nickname is **{nick}**", { id: member.id, nick }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_id:1544417556868104274>" }),
           ),
@@ -230,9 +230,9 @@ export const nicknameCommands: SlashCommandDefinition[] = [
       }
 
       if (user.id !== ctx.interaction.user.id) {
-        if (!(await requireDiscordPerm(ctx.interaction, ManageNicknames, "Manage Nicknames", ctx.ephemeral, ctx.guildConfig))) return;
+        if (!(await requireDiscordPerm(ctx.interaction, ManageNicknames, "Manage Nicknames", ctx.ephemeral, ctx.guildConfig, ctx.t))) return;
         if (!canActOn(auth.member, member)) {
-          await ctx.interaction.reply(resultReply("Nickname", "You cannot act on this member.", ctx.ephemeral, slashResultOptions(ctx)));
+          await ctx.interaction.reply(resultReply(ctx.t("utility.voice.nicknameTitle", "Nickname"), ctx.t("utility.voice.cannotActOnMemberBody", "You cannot act on this member."), ctx.ephemeral, slashResultOptions(ctx)));
           return;
         }
       }
@@ -242,8 +242,8 @@ export const nicknameCommands: SlashCommandDefinition[] = [
         await member.setNickname(name);
         await ctx.interaction.reply(
           resultReply(
-            "Nickname",
-            `Set <@${member.id}>'s nickname to **${name}**`,
+            ctx.t("utility.voice.nicknameTitle", "Nickname"),
+            ctx.t("utility.voice.nicknameSetBody", "Set <@{id}>'s nickname to **{name}**", { id: member.id, name }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_pen:1544417369709871224>" }),
           ),
@@ -255,8 +255,8 @@ export const nicknameCommands: SlashCommandDefinition[] = [
         await member.setNickname(null);
         await ctx.interaction.reply(
           resultReply(
-            "Nickname",
-            `Reset nickname for **${member.displayName}**.`,
+            ctx.t("utility.voice.nicknameTitle", "Nickname"),
+            ctx.t("utility.voice.nicknameResetBody", "Reset nickname for **{name}**.", { name: member.displayName }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_pen:1544417369709871224>" }),
           ),

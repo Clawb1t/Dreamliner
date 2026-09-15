@@ -7,6 +7,7 @@ import { zTicketsConfig, type TicketCategory, type TicketEscalationStep, type Ti
 import { listOpenTickets, setEscalationStep, setPriority, type TicketRecord } from "./tickets.js";
 import { performClose } from "./actions.js";
 import { getLogger } from "../../../core/logger.js";
+import { defaultTranslator as t } from "../../../i18n/index.js";
 const log = getLogger("tickets");
 
 async function getTicketsConfigForGuild(guildId: string): Promise<TicketsConfig> {
@@ -27,9 +28,12 @@ async function applyEscalationStep(
   if (step.action === "ping_role" && step.role_id) {
     const channel = await client.channels.fetch(targetChannelId).catch(() => null);
     if (channel?.isTextBased() && "send" in channel) {
-      const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} needs attention`, client, { tone: "warning" });
+      const embed = setEmbedAuthor(baseEmbed(), t("tickets.escalation.needsAttentionTitle", "Ticket #{num} needs attention", { num: ticket.number }), client, { tone: "warning" });
       embed.setDescription(
-        step.message.trim() || `This ticket has gone ${step.after_minutes}+ minutes without a staff reply.`,
+        step.message.trim() ||
+          t("tickets.escalation.noReplyBody", "This ticket has gone {minutes}+ minutes without a staff reply.", {
+            minutes: step.after_minutes,
+          }),
       );
       // Components V2 messages can't carry `content`, so the ping lives in its own text
       // component ahead of the container. No `allowedMentions` override here — this is the
@@ -48,13 +52,13 @@ async function applyEscalationStep(
   if (step.action === "notify_channel" && step.channel_id) {
     const channel = await client.channels.fetch(step.channel_id).catch(() => null);
     if (channel?.isTextBased() && "send" in channel) {
-      const embed = setEmbedAuthor(baseEmbed(), `Ticket #${ticket.number} escalated`, client, { tone: "warning" });
+      const embed = setEmbedAuthor(baseEmbed(), t("tickets.escalation.escalatedTitle", "Ticket #{num} escalated", { num: ticket.number }), client, { tone: "warning" });
       embed.addFields(
-        embedField("Category", category.label || "Unknown", true),
-        embedField("Waiting", `${step.after_minutes}+ minutes`, true),
-        embedField("Channel", `<#${targetChannelId}>`),
+        embedField(t("tickets.escalation.categoryLabel", "Category"), category.label || t("tickets.escalation.unknownLabel", "Unknown"), true),
+        embedField(t("tickets.escalation.waitingLabel", "Waiting"), t("tickets.escalation.waitingValue", "{minutes}+ minutes", { minutes: step.after_minutes }), true),
+        embedField(t("tickets.escalation.channelLabel", "Channel"), `<#${targetChannelId}>`),
       );
-      if (step.message.trim()) embed.addFields(embedField("Note", step.message.trim()));
+      if (step.message.trim()) embed.addFields(embedField(t("tickets.escalation.noteLabel", "Note"), step.message.trim()));
       await channel.send(containerReply(embed)).catch(() => null);
     }
     return;
@@ -75,7 +79,11 @@ async function applyEscalationStep(
       category,
       ticket,
       client.user!.id,
-      step.message.trim() || `Auto-closed: no staff reply after ${step.after_minutes} minutes.`,
+      step.message.trim() ||
+        t("tickets.escalation.autoClosedReason", "Auto-closed: no staff reply after {minutes} minutes.", {
+          minutes: step.after_minutes,
+        }),
+      t,
     );
   }
 }

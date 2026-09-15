@@ -35,11 +35,11 @@ export const moderationCommands: SlashCommandDefinition[] = [
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_clean");
       if (!auth) return;
-      if (!(await requireDiscordPerm(ctx.interaction, ManageMessages, "Manage Messages", ctx.ephemeral, ctx.guildConfig))) return;
+      if (!(await requireDiscordPerm(ctx.interaction, ManageMessages, "Manage Messages", ctx.ephemeral, ctx.guildConfig, ctx.t))) return;
 
       const channel = ctx.interaction.channel;
       if (!channel?.isTextBased() || channel.isDMBased() || !("bulkDelete" in channel)) {
-        await ctx.interaction.reply(resultReply("Clean", "This command must be used in a text channel.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("utility.moderation.cleanTitle", "Clean"), ctx.t("utility.moderation.mustBeTextChannel", "This command must be used in a text channel."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
       const textChannel = channel as TextChannel;
@@ -60,7 +60,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
 
       const deletable = messages.filter((m) => !m.pinned || (ctx.interaction.options.getBoolean("pins_only") ?? false));
       if (deletable.size === 0) {
-        await ctx.interaction.editReply(resultEdit("Clean", "No messages matched your filters.", slashResultOptions(ctx)));
+        await ctx.interaction.editReply(resultEdit(ctx.t("utility.moderation.cleanTitle", "Clean"), ctx.t("utility.moderation.noMessagesMatched", "No messages matched your filters."), slashResultOptions(ctx)));
         return;
       }
 
@@ -101,7 +101,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
           userId: user?.id ?? "0",
           modId: ctx.interaction.user.id,
           type: "clean",
-          reason: `Deleted ${count} messages (archive ${archiveId})`,
+          reason: ctx.t("utility.moderation.cleanCaseReason", "Deleted {count} messages (archive {archiveId})", { count, archiveId }),
           active: false,
         });
         const pluginConfig = getPluginSettings(ctx.guildConfig, "infractions") as InfractionConfig;
@@ -111,8 +111,8 @@ export const moderationCommands: SlashCommandDefinition[] = [
       await ctx.interaction.editReply(
         embedWithFilesEdit(
           buildResultEmbed(
-            "Clean",
-            `Deleted **${count}** message(s) (archive \`${archiveId}\`) — full content attached.`,
+            ctx.t("utility.moderation.cleanTitle", "Clean"),
+            ctx.t("utility.moderation.cleanedBody", "Deleted **{count}** message(s) (archive `{archiveId}`) — full content attached.", { count, archiveId }),
             slashResultOptions(ctx, { emoji: "<:icons_clean:1544417689320034304>" }),
           ),
           [new AttachmentBuilder(Buffer.from(transcript, "utf-8"), { name: archiveFilename })],
@@ -136,14 +136,14 @@ export const moderationCommands: SlashCommandDefinition[] = [
       const messageId = ctx.interaction.options.getString("message_id", true);
       const anchor = await channel.messages.fetch(messageId).catch(() => null);
       if (!anchor) {
-        await ctx.interaction.reply(resultReply("Context", "Message not found.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("utility.moderation.contextTitle", "Context"), ctx.t("utility.moderation.messageNotFound", "Message not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
       const startOffset = -1;
       const message = await fetchMessageAtOffset(channel, anchor.id, startOffset);
       if (!message) {
-        await ctx.interaction.reply(resultReply("Context", "No prior message found.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("utility.moderation.contextTitle", "Context"), ctx.t("utility.moderation.noPriorMessage", "No prior message found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
@@ -170,7 +170,7 @@ export const moderationCommands: SlashCommandDefinition[] = [
       const messageId = ctx.interaction.options.getString("message_id", true);
       const message = await channel.messages.fetch(messageId).catch(() => null);
       if (!message) {
-        await ctx.interaction.reply(resultReply("Source", "Message not found.", ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.reply(resultReply(ctx.t("utility.moderation.sourceTitle", "Source"), ctx.t("utility.moderation.messageNotFound", "Message not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 
@@ -181,8 +181,8 @@ export const moderationCommands: SlashCommandDefinition[] = [
       await ctx.interaction.reply(
         embedWithFilesReply(
           buildResultEmbed(
-            `Message: ${message.id}`,
-            `Archived as \`${archiveId}\` — JSON attached.`,
+            ctx.t("utility.moderation.messageIdTitle", "Message: {id}", { id: message.id }),
+            ctx.t("utility.moderation.archivedAsBody", "Archived as `{archiveId}` — JSON attached.", { archiveId }),
             slashResultOptions(ctx, { emoji: "<:icons_code:1544417539482845235>" }),
           ),
           [file],

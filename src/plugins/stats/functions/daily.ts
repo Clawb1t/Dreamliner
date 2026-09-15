@@ -7,6 +7,7 @@ import {
   userHourlyActivity,
 } from "../../../db/schema.js";
 import { recordUserTrail } from "../../../core/logging/userTrail.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export function statDate(d = new Date()): string {
   return d.toISOString().slice(0, 10);
@@ -40,14 +41,14 @@ export function isValidStatsWindow(days: number): days is StatsWindow {
   return days === 7 || days === 14 || days === 30 || days === ALL_TIME_WINDOW;
 }
 
-export function formatStatsWindowLabel(days: StatsWindow): string {
-  if (isAllTimeWindow(days)) return "all time";
-  return `${days}d`;
+export function formatStatsWindowLabel(days: StatsWindow, t: Translator = defaultTranslator): string {
+  if (isAllTimeWindow(days)) return t("stats.windowLabelAllTime", "all time");
+  return t("stats.windowLabelDays", "{days}d", { days });
 }
 
-export function formatStatsWindowLong(days: StatsWindow): string {
-  if (isAllTimeWindow(days)) return "All time";
-  return `${days} days`;
+export function formatStatsWindowLong(days: StatsWindow, t: Translator = defaultTranslator): string {
+  if (isAllTimeWindow(days)) return t("stats.windowLongAllTime", "All time");
+  return t("stats.windowLongDays", "{days} days", { days });
 }
 
 export function windowSince(days: number): string | null {

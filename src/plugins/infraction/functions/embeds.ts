@@ -63,17 +63,18 @@ export function buildInfractionEmbed(
     tone: "neutral",
     emojis: options.emojis,
   });
+  const t = options.t ?? defaultTranslator;
   embed.addFields(
-    embedField("Type", label, true),
-    embedField("User", options.userTag ? `${options.userTag} (\`${record.userId}\`)` : `\`${record.userId}\``, true),
-    embedField("Moderator", options.modTag ? `${options.modTag} (\`${record.modId}\`)` : `\`${record.modId}\``, true),
-    embedField("Active", record.active ? "Yes" : "No", true),
-    embedField("Created", discordTimestampBoth(record.createdAt), true),
+    embedField(t("infraction.fieldType", "Type"), label, true),
+    embedField(t("infraction.fieldUser", "User"), options.userTag ? `${options.userTag} (\`${record.userId}\`)` : `\`${record.userId}\``, true),
+    embedField(t("infraction.fieldModerator", "Moderator"), options.modTag ? `${options.modTag} (\`${record.modId}\`)` : `\`${record.modId}\``, true),
+    embedField(t("infraction.fieldActive", "Active"), record.active ? t("infraction.yes", "Yes") : t("infraction.no", "No"), true),
+    embedField(t("infraction.fieldCreated", "Created"), discordTimestampBoth(record.createdAt), true),
   );
   if (record.expiresAt) {
-    embed.addFields(embedField("Expires", discordTimestampBoth(record.expiresAt), true));
+    embed.addFields(embedField(t("infraction.fieldExpires", "Expires"), discordTimestampBoth(record.expiresAt), true));
   }
-  embed.addFields(embedField("Reason", record.reason?.trim() || "No reason provided."));
+  embed.addFields(embedField(t("infraction.fieldReason", "Reason"), record.reason?.trim() || t("infraction.noReasonProvided", "No reason provided.")));
   return embed;
 }
 
@@ -86,34 +87,47 @@ export function buildInfractionListEmbed(
 ): ResultContainer {
   const embed = setEmbedAuthor(baseEmbed(), title, client, { tone: "neutral", emojis });
   if (records.length === 0) {
-    embed.setDescription("No infractions found.");
+    embed.setDescription(t("infraction.noInfractionsFound", "No infractions found."));
     return embed;
   }
 
   const lines = records.map((r) => {
     const label = typeLabel(r.type, t);
-    const active = r.active ? "" : " (inactive)";
-    const expires = r.expiresAt ? ` (expires ${formatDurationShort(r.expiresAt.getTime() - Date.now())})` : "";
-    return `#${r.id} **${label}**${active} <@${r.userId}> - ${r.reason?.slice(0, 60) ?? "No reason"}${expires}`;
+    const active = r.active ? "" : ` (${t("infraction.inactive", "inactive")})`;
+    const expires = r.expiresAt ? ` (${t("infraction.expiresParenthetical", "expires {duration}", { duration: formatDurationShort(r.expiresAt.getTime() - Date.now()) })})` : "";
+    return `#${r.id} **${label}**${active} <@${r.userId}> - ${r.reason?.slice(0, 60) ?? t("infraction.noReason", "No reason")}${expires}`;
   });
 
   embed.setDescription(trimLines(lines.join("\n")));
   return embed;
 }
 
-const ACTION_VERBS: Record<string, string> = {
-  warn: "Warned",
-  note: "Noted",
-  mute: "Muted",
-  tempmute: "Muted",
-  unmute: "Unmuted",
-  kick: "Kicked",
-  ban: "Banned",
-  tempban: "Banned",
-  unban: "Unbanned",
-  softban: "Softbanned",
-  clean: "Cleaned",
-};
+function actionVerb(type: string, t: Translator): string {
+  switch (type) {
+    case "warn":
+      return t("infraction.verbWarned", "Warned");
+    case "note":
+      return t("infraction.verbNoted", "Noted");
+    case "mute":
+    case "tempmute":
+      return t("infraction.verbMuted", "Muted");
+    case "unmute":
+      return t("infraction.verbUnmuted", "Unmuted");
+    case "kick":
+      return t("infraction.verbKicked", "Kicked");
+    case "ban":
+    case "tempban":
+      return t("infraction.verbBanned", "Banned");
+    case "unban":
+      return t("infraction.verbUnbanned", "Unbanned");
+    case "softban":
+      return t("infraction.verbSoftbanned", "Softbanned");
+    case "clean":
+      return t("infraction.verbCleaned", "Cleaned");
+    default:
+      return type;
+  }
+}
 
 /**
  * One-line action confirmation, e.g. `Muted @user for \`10m\` for "reason"` — the
@@ -125,10 +139,11 @@ export function buildActionConfirmLine(
   userId: string,
   reason: string,
   durationLabel?: string | null,
+  t: Translator = defaultTranslator,
 ): string {
-  const verb = ACTION_VERBS[type] ?? type;
+  const verb = actionVerb(type, t);
   const parts = [`${verb} <@${userId}>`];
-  if (durationLabel) parts.push(`for \`${durationLabel}\``);
-  if (reason) parts.push(`for "${reason}"`);
+  if (durationLabel) parts.push(t("infraction.confirmForDuration", 'for `{duration}`', { duration: durationLabel }));
+  if (reason) parts.push(t("infraction.confirmForReason", 'for "{reason}"', { reason }));
   return parts.join(" ");
 }

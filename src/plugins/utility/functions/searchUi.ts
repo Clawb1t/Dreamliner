@@ -14,6 +14,7 @@ import { containerEdit, guildResultOptions, resultReply } from "../../../core/re
 import { getLogger } from "../../../core/logger.js";
 import { canUseUtility } from "../../../core/guildHelpers.js";
 import { BanMembers } from "./commandHelpers.js";
+import { defaultTranslator, translatorFor, type Translator } from "../../../i18n/index.js";
 import {
   buildBanSearchContainer,
   buildMemberSearchContainer,
@@ -116,12 +117,12 @@ function paginationRow(state: SearchState, totalPages: number): ActionRowBuilder
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(buildSearchCustomId(prev))
-      .setLabel("Previous")
+      .setLabel(defaultTranslator("utility.searchUi.previous", "Previous"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(state.page <= 1),
     new ButtonBuilder()
       .setCustomId(buildSearchCustomId(next))
-      .setLabel("Next")
+      .setLabel(defaultTranslator("utility.searchUi.next", "Next"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(state.page >= totalPages),
   );
@@ -140,8 +141,9 @@ export function memberSearchPayload(
   result: SearchResult,
   client: Client,
   guildConfig: GuildConfig,
+  t: Translator = defaultTranslator,
 ): SearchPayload {
-  const container = buildMemberSearchContainer(client, guildConfig, result, state.query, state.sort);
+  const container = buildMemberSearchContainer(client, guildConfig, result, state.query, state.sort, t);
   const rows =
     result.totalPages > 1 ? [paginationRow({ ...state, page: result.page }, result.totalPages)] : [];
   return { container, rows };
@@ -153,6 +155,7 @@ export function banSearchPayload(
   result: BanSearchResult,
   client: Client,
   guildConfig: GuildConfig,
+  t: Translator = defaultTranslator,
 ): SearchPayload {
   const container = buildBanSearchContainer(
     client,
@@ -163,6 +166,7 @@ export function banSearchPayload(
     result.total,
     result.from,
     state.query,
+    t,
   );
   const rows =
     result.totalPages > 1 ? [paginationRow({ ...state, page: result.page }, result.totalPages)] : [];
@@ -174,6 +178,7 @@ async function buildSearchUpdate(
   guild: Guild,
   client: Client,
   guildConfig: GuildConfig,
+  t: Translator = defaultTranslator,
 ): Promise<InteractionUpdateOptions> {
   const { container, rows } =
     state.kind === "m"
@@ -190,6 +195,7 @@ async function buildSearchUpdate(
           }),
           client,
           guildConfig,
+          t,
         )
       : banSearchPayload(
           state,
@@ -201,6 +207,7 @@ async function buildSearchUpdate(
           }),
           client,
           guildConfig,
+          t,
         );
   return containerEdit(container, rows);
 }
@@ -215,6 +222,7 @@ export async function handleSearchInteraction(
 ): Promise<boolean> {
   if (!interaction.customId.startsWith(`${SEARCH_PREFIX}:`)) return false;
   if (!interaction.inGuild() || !interaction.guild) return true;
+  const { t } = await translatorFor(interaction.user.id);
 
   const state = parseSearchCustomId(interaction.customId);
   if (!state) return true;
@@ -223,8 +231,8 @@ export async function handleSearchInteraction(
   if (!allowed) {
     await interaction.reply(
       resultReply(
-        "Permission denied",
-        "You do not have permission to use this command.",
+        t("utility.searchUi.permissionDeniedTitle", "Permission denied"),
+        t("utility.searchUi.permissionDeniedDesc", "You do not have permission to use this command."),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -235,8 +243,8 @@ export async function handleSearchInteraction(
   if (state.kind === "b" && !guildMember.permissions.has(BanMembers)) {
     await interaction.reply(
       resultReply(
-        "Missing permission",
-        "You need the **Ban Members** permission.",
+        t("utility.searchUi.missingPermissionTitle", "Missing permission"),
+        t("utility.searchUi.missingPermissionDesc", "You need the **Ban Members** permission."),
         true,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
       ),
@@ -245,15 +253,15 @@ export async function handleSearchInteraction(
   }
 
   try {
-    await interaction.update(await buildSearchUpdate(state, interaction.guild, interaction.client, guildConfig));
+    await interaction.update(await buildSearchUpdate(state, interaction.guild, interaction.client, guildConfig, t));
   } catch (error) {
     log.error("Search pagination error:", error);
     if (!interaction.replied && !interaction.deferred) {
       await interaction
         .reply(
           resultReply(
-            "Error",
-            "Could not load that page.",
+            t("utility.searchUi.errorTitle", "Error"),
+            t("utility.searchUi.couldNotLoadPage", "Could not load that page."),
             true,
             guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
           ),

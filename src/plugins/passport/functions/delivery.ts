@@ -1,5 +1,6 @@
 import type { Guild, GuildMember, GuildTextBasedChannel, MessageCreateOptions } from "discord.js";
 import type { PassportConfig } from "../../../config/schemas/passport.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
   buildPassportDmPayload,
   buildPassportPanelPayload,
@@ -47,28 +48,45 @@ export async function deletePassportMessage(
 export async function postPassportPing(
   member: GuildMember,
   config: PassportConfig,
+  t: Translator = defaultTranslator,
 ): Promise<{ messageId: string; channelId: string } | null> {
   if (!config.ping.enabled) return null;
   const channel = await resolvePassportChannel(member.guild, config.channel_id);
   if (!channel) return null;
-  const payload = buildPassportPingPayload(config.ping, {
-    member,
-    user: member.user,
-    guild: member.guild,
-  });
+  const payload = buildPassportPingPayload(
+    config.ping,
+    {
+      member,
+      user: member.user,
+      guild: member.guild,
+    },
+    t,
+  );
   if (!payload.content && !(payload.embeds && payload.embeds.length)) {
-    payload.content = `Hey <@${member.id}>, welcome to **${member.guild.name}**.\n\nTap **Verify** to unlock the rest of the server.`;
+    payload.content = t(
+      "passport.ping.defaultContent",
+      "Hey <@{userId}>, welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server.",
+      { userId: member.id, guild: member.guild.name },
+    );
   }
   return sendPayload(channel, payload);
 }
 
-export async function dmPassportLink(member: GuildMember, config: PassportConfig): Promise<void> {
+export async function dmPassportLink(
+  member: GuildMember,
+  config: PassportConfig,
+  t: Translator = defaultTranslator,
+): Promise<void> {
   if (!config.ping.also_dm) return;
-  const payload = buildPassportDmPayload(config, {
-    member,
-    user: member.user,
-    guild: member.guild,
-  });
+  const payload = buildPassportDmPayload(
+    config,
+    {
+      member,
+      user: member.user,
+      guild: member.guild,
+    },
+    t,
+  );
   await member.send(payload).catch(() => null);
 }
 
@@ -76,18 +94,25 @@ export async function postPassportPanel(
   guild: Guild,
   config: PassportConfig,
   actor?: GuildMember | null,
+  t: Translator = defaultTranslator,
 ): Promise<{ ok: boolean; detail: string; messageId?: string; channelId?: string }> {
   const channel = await resolvePassportChannel(guild, config.channel_id);
   if (!channel) {
     return { ok: false, detail: "Set a verify channel first." };
   }
-  const payload = buildPassportPanelPayload(config.panel, {
-    member: actor ?? null,
-    user: actor?.user ?? null,
-    guild,
-  });
+  const payload = buildPassportPanelPayload(
+    config.panel,
+    {
+      member: actor ?? null,
+      user: actor?.user ?? null,
+      guild,
+    },
+    t,
+  );
   if (!payload.content && !(payload.embeds && payload.embeds.length)) {
-    payload.content = `Verify with **Passport** to unlock **${guild.name}**.`;
+    payload.content = t("passport.panel.defaultContent", "Verify with **Passport** to unlock **{guild}**.", {
+      guild: guild.name,
+    });
   }
   const sent = await sendPayload(channel, payload);
   if (!sent) return { ok: false, detail: "Could not post the panel. Check my channel permissions." };

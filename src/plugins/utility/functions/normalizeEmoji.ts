@@ -1,4 +1,5 @@
 import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 /** Discord's own limits for a guild custom emoji file. */
 const MAX_EMOJI_BYTES = 256_000;
@@ -15,15 +16,15 @@ export type NormalizeEmojiResult =
  * custom emoji limits (128x128, 256KB). Cover-crops to square first so non-square source
  * images (most message attachments) don't get squashed. Mirrors normalizeSticker.ts.
  */
-export async function normalizeEmoji(raw: Buffer): Promise<NormalizeEmojiResult> {
+export async function normalizeEmoji(raw: Buffer, t: Translator = defaultTranslator): Promise<NormalizeEmojiResult> {
   let image;
   try {
     image = await loadImage(raw);
   } catch {
     return {
       ok: false,
-      title: "Invalid image",
-      details: "That file could not be read as an image.",
+      title: t("utility.normalizeEmoji.invalidImageTitle", "Invalid image"),
+      details: t("utility.normalizeEmoji.invalidImageBody", "That file could not be read as an image."),
     };
   }
 
@@ -32,8 +33,8 @@ export async function normalizeEmoji(raw: Buffer): Promise<NormalizeEmojiResult>
   if (!srcW || !srcH) {
     return {
       ok: false,
-      title: "Invalid image",
-      details: "That file could not be read as an image.",
+      title: t("utility.normalizeEmoji.invalidImageTitle", "Invalid image"),
+      details: t("utility.normalizeEmoji.invalidImageBody", "That file could not be read as an image."),
     };
   }
 
@@ -56,7 +57,7 @@ export async function normalizeEmoji(raw: Buffer): Promise<NormalizeEmojiResult>
 
   return {
     ok: false,
-    title: "Image too large",
-    details: "Even shrunk down, that image is too complex to fit Discord's 256KB emoji limit. Try a simpler image.",
+    title: t("utility.normalizeEmoji.tooLargeTitle", "Image too large"),
+    details: t("utility.normalizeEmoji.tooLargeBody", "Even shrunk down, that image is too complex to fit Discord's 256KB emoji limit. Try a simpler image."),
   };
 }

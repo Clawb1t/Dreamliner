@@ -412,7 +412,7 @@ export const ticketCommands: SlashCommandDefinition[] = [
           return;
         }
         await interaction.deferReply({ ephemeral: ctx.ephemeral });
-        await performClose(ctx.client, interaction.guild!, ctx.guildConfig, pluginConfig, category, ticket, interaction.user.id, reason);
+        await performClose(ctx.client, interaction.guild!, ctx.guildConfig, pluginConfig, category, ticket, interaction.user.id, reason, t);
         await interaction.editReply(
           resultEdit(
             t("tickets.close.closedTitle", "Ticket closed"),
@@ -513,11 +513,11 @@ export const ticketCommands: SlashCommandDefinition[] = [
           );
           return;
         }
-        const sent = await dmTranscript(interaction.user, ticket, latest.id);
+        const sent = await dmTranscript(interaction.user, ticket, latest.id, t);
         if (!sent) {
           const pluginConfig = (await getTicketsPluginConfig(guildId, ctx.guildConfig)) as TicketsConfig;
           const channelId = pluginConfig.default_transcript_channel_id;
-          if (channelId) await postTranscriptLog(ctx.client, channelId, ticket, latest.id);
+          if (channelId) await postTranscriptLog(ctx.client, channelId, ticket, latest.id, t);
         }
         await interaction.editReply(
           resultEdit(

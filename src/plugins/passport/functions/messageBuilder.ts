@@ -12,6 +12,7 @@ import type { PassportConfig, PassportPanelConfig, PassportPingConfig } from "..
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { getPassportUrl, linkButton } from "../../../core/docsUrl.js";
 import { buildTemplateVars, renderTemplate } from "../../../core/templates.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export type PassportBuildContext = {
   member?: GuildMember | null;
@@ -84,8 +85,8 @@ export function buildPassportEmbed(
   return builder;
 }
 
-function verifyButton(label: string, emoji: string, guildId: string): ButtonBuilder {
-  const button = linkButton(label.trim() || "Verify", getPassportUrl(guildId));
+function verifyButton(label: string, emoji: string, guildId: string, t: Translator = defaultTranslator): ButtonBuilder {
+  const button = linkButton(label.trim() || t("passport.button.verify", "Verify"), getPassportUrl(guildId));
   const parsed = parseComponentEmoji(emoji);
   if (parsed) button.setEmoji(parsed);
   return button;
@@ -102,6 +103,7 @@ export function renderPassportText(template: string, ctx: PassportBuildContext):
 export function buildPassportPingPayload(
   ping: PassportPingConfig,
   ctx: PassportBuildContext,
+  t: Translator = defaultTranslator,
 ): MessageCreateOptions {
   const content = renderPassportText(ping.content, ctx);
   const mention = ping.ping_style === "mention" && ctx.member ? `<@${ctx.member.id}>` : "";
@@ -112,7 +114,7 @@ export function buildPassportPingPayload(
 
   const embed = buildPassportEmbed(ping.embed, ctx);
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    verifyButton(ping.button_label, ping.button_emoji, ctx.guild.id),
+    verifyButton(ping.button_label, ping.button_emoji, ctx.guild.id, t),
   );
 
   return {
@@ -126,11 +128,12 @@ export function buildPassportPingPayload(
 export function buildPassportPanelPayload(
   panel: PassportPanelConfig,
   ctx: PassportBuildContext,
+  t: Translator = defaultTranslator,
 ): MessageCreateOptions {
   const content = renderPassportText(panel.content, ctx);
   const embed = buildPassportEmbed(panel.embed, ctx);
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    verifyButton(panel.button_label, panel.button_emoji, ctx.guild.id),
+    verifyButton(panel.button_label, panel.button_emoji, ctx.guild.id, t),
   );
   return {
     content: content || undefined,
@@ -143,14 +146,17 @@ export function buildPassportPanelPayload(
 export function buildPassportDmPayload(
   config: PassportConfig,
   ctx: PassportBuildContext,
+  t: Translator = defaultTranslator,
 ): MessageCreateOptions {
   const ping = config.ping;
   const content =
     renderPassportText(ping.content, ctx) ||
-    `Hey, welcome to **${ctx.guild.name}**.\n\nTap **Verify** to unlock the rest of the server.`;
+    t("passport.dm.defaultContent", "Hey, welcome to **{guild}**.\n\nTap **Verify** to unlock the rest of the server.", {
+      guild: ctx.guild.name,
+    });
   const embed = buildPassportEmbed(ping.embed, ctx);
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    verifyButton(ping.button_label, ping.button_emoji, ctx.guild.id),
+    verifyButton(ping.button_label, ping.button_emoji, ctx.guild.id, t),
   );
   return {
     content,

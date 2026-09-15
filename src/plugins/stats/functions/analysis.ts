@@ -1,3 +1,5 @@
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
+
 export type TrendDirection = "up" | "down" | "stable";
 
 export type SeriesAnalysis = {
@@ -12,10 +14,20 @@ export type SeriesAnalysis = {
   busiestWeekday: number;
 };
 
-const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function weekdayNames(t: Translator): string[] {
+  return [
+    t("stats.weekdaySun", "Sun"),
+    t("stats.weekdayMon", "Mon"),
+    t("stats.weekdayTue", "Tue"),
+    t("stats.weekdayWed", "Wed"),
+    t("stats.weekdayThu", "Thu"),
+    t("stats.weekdayFri", "Fri"),
+    t("stats.weekdaySat", "Sat"),
+  ];
+}
 
-export function weekdayName(index: number): string {
-  return WEEKDAY_NAMES[index] ?? "?";
+export function weekdayName(index: number, t: Translator = defaultTranslator): string {
+  return weekdayNames(t)[index] ?? "?";
 }
 
 export function analyzeSeries(values: number[], dates: string[]): SeriesAnalysis {
@@ -65,11 +77,11 @@ export function analyzeSeries(values: number[], dates: string[]): SeriesAnalysis
   };
 }
 
-export function formatTrend(trend: TrendDirection, trendPct: number): string {
+export function formatTrend(trend: TrendDirection, trendPct: number, t: Translator = defaultTranslator): string {
   const abs = Math.abs(Math.round(trendPct));
-  if (trend === "stable") return `Stable (~${abs}% change)`;
-  if (trend === "up") return `Up **${abs}%** vs earlier period`;
-  return `Down **${abs}%** vs earlier period`;
+  if (trend === "stable") return t("stats.trendStable", "Stable (~{pct}% change)", { pct: abs });
+  if (trend === "up") return t("stats.trendUp", "Up **{pct}%** vs earlier period", { pct: abs });
+  return t("stats.trendDown", "Down **{pct}%** vs earlier period", { pct: abs });
 }
 
 /** Percentage of tracked traffic (0–100). */

@@ -9,6 +9,7 @@ import {
 } from "discord.js";
 import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import { containerReply } from "../../../core/responses.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
   BOT_BRAND_LOG_CHANNEL_ID,
   botAvatarApproveCustomId,
@@ -58,8 +59,8 @@ async function brandLogChannel(client: Client): Promise<GuildTextBasedChannel | 
   return channel;
 }
 
-function kindLabel(kind: BotBrandImageKind): string {
-  return kind === "banner" ? "Banner" : "Avatar";
+function kindLabel(kind: BotBrandImageKind, t: Translator = defaultTranslator): string {
+  return kind === "banner" ? t("bot_customisation.kind.banner", "Banner") : t("bot_customisation.kind.avatar", "Avatar");
 }
 
 /** Avatar = profile photo (camera), banner = the wide art canvas (paint brush). */
@@ -93,37 +94,53 @@ export async function submitBrandImageForReview(options: {
     return { request, reviewPosted: false };
   }
 
-  const label = kindLabel(options.kind);
+  const t = defaultTranslator;
+  const label = kindLabel(options.kind, t);
   const file = brandImageAttachment(options.imagePng, options.kind);
-  const embed = setEmbedAuthor(baseEmbed(), `${label} review`, options.client, {
+  const embed = setEmbedAuthor(baseEmbed(), t("bot_customisation.review.reviewTitle", "{label} review", { label }), options.client, {
     tone: "warning",
     emoji: "<:icons_hoursglass:1544417711864549479>",
   })
     .addFields(
       embedField(
-        "Request",
+        t("bot_customisation.review.requestField", "Request"),
         [
-          `**Type:** ${label}`,
-          `**Server:** ${options.guildName} (\`${options.guildId}\`)`,
-          `**Requested by:** <@${options.requesterId}> (\`${options.requesterTag}\`)`,
-          `**Source:** ${options.requestChannelId === DASHBOARD_REQUEST_CHANNEL || !options.requestChannelId ? "Dashboard" : "Discord"}`,
-          `**Request id:** \`${request.id}\``,
+          t("bot_customisation.review.typeLine", "**Type:** {label}", { label }),
+          t("bot_customisation.review.serverLine", "**Server:** {guildName} (`{guildId}`)", {
+            guildName: options.guildName,
+            guildId: options.guildId,
+          }),
+          t("bot_customisation.review.requestedByTagLine", "**Requested by:** <@{userId}> (`{tag}`)", {
+            userId: options.requesterId,
+            tag: options.requesterTag,
+          }),
+          t("bot_customisation.review.sourceLine", "**Source:** {source}", {
+            source:
+              options.requestChannelId === DASHBOARD_REQUEST_CHANNEL || !options.requestChannelId
+                ? t("bot_customisation.source.dashboard", "Dashboard")
+                : t("bot_customisation.source.discord", "Discord"),
+          }),
+          t("bot_customisation.review.requestIdLine", "**Request id:** `{id}`", { id: request.id }),
         ].join("\n"),
       ),
     )
     .setImage(brandImageAttachmentUrl(options.kind))
     .setFooter({
-      text: `Approve to apply this ${options.kind} in the requesting server only.`,
+      text: t(
+        "bot_customisation.review.approveFooter",
+        "Approve to apply this {kind} in the requesting server only.",
+        { kind: options.kind },
+      ),
     });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(botAvatarApproveCustomId(request.id))
-      .setLabel("Approve")
+      .setLabel(t("bot_customisation.button.approve", "Approve"))
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(botAvatarDenyCustomId(request.id))
-      .setLabel("Deny")
+      .setLabel(t("bot_customisation.button.deny", "Deny"))
       .setStyle(ButtonStyle.Danger),
   );
 
@@ -179,33 +196,49 @@ export async function logBrandImageApplied(options: {
     return { logPosted: false };
   }
 
-  const label = kindLabel(options.kind);
+  const t = defaultTranslator;
+  const label = kindLabel(options.kind, t);
   const file = brandImageAttachment(options.imagePng, options.kind);
-  const embed = setEmbedAuthor(baseEmbed(), `${label} updated`, options.client, {
+  const embed = setEmbedAuthor(baseEmbed(), t("bot_customisation.review.updatedTitle", "{label} updated", { label }), options.client, {
     tone: "success",
     emoji: kindAppliedEmoji(options.kind),
   })
     .addFields(
       embedField(
-        "Change",
+        t("bot_customisation.review.changeField", "Change"),
         [
-          `**Type:** ${label}`,
-          `**Server:** ${options.guildName} (\`${options.request.guildId}\`)`,
-          `**Set by:** <@${options.requesterId}> (\`${options.requesterTag}\`)`,
-          `**Source:** ${options.request.requestChannelId === DASHBOARD_REQUEST_CHANNEL ? "Dashboard" : "Discord"}`,
-          `**Request id:** \`${options.request.id}\``,
+          t("bot_customisation.review.typeLine", "**Type:** {label}", { label }),
+          t("bot_customisation.review.serverLine", "**Server:** {guildName} (`{guildId}`)", {
+            guildName: options.guildName,
+            guildId: options.request.guildId,
+          }),
+          t("bot_customisation.review.setByTagLine", "**Set by:** <@{userId}> (`{tag}`)", {
+            userId: options.requesterId,
+            tag: options.requesterTag,
+          }),
+          t("bot_customisation.review.sourceLine", "**Source:** {source}", {
+            source:
+              options.request.requestChannelId === DASHBOARD_REQUEST_CHANNEL
+                ? t("bot_customisation.source.dashboard", "Dashboard")
+                : t("bot_customisation.source.discord", "Discord"),
+          }),
+          t("bot_customisation.review.requestIdLine", "**Request id:** `{id}`", { id: options.request.id }),
         ].join("\n"),
       ),
     )
     .setImage(brandImageAttachmentUrl(options.kind))
     .setFooter({
-      text: `Live now in the server. Remove pulls it back to Dreamliner's default ${options.kind}.`,
+      text: t(
+        "bot_customisation.review.liveFooter",
+        "Live now in the server. Remove pulls it back to Dreamliner's default {kind}.",
+        { kind: options.kind },
+      ),
     });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(botBrandRemoveCustomId(options.request.id))
-      .setLabel("Remove")
+      .setLabel(t("bot_customisation.button.remove", "Remove"))
       .setStyle(ButtonStyle.Danger),
   );
 
@@ -231,27 +264,31 @@ export async function finalizeBrandLogRemoved(
   const message = await channel.messages.fetch(request.reviewMessageId).catch(() => null);
   if (!message) return;
 
+  const t = defaultTranslator;
   const guildName = client.guilds.cache.get(request.guildId)?.name ?? request.guildId;
-  const label = kindLabel(request.kind);
+  const label = kindLabel(request.kind, t);
   const disabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`dl:botavatar:done:r:${request.id}`)
-      .setLabel("Removed")
+      .setLabel(t("bot_customisation.button.removed", "Removed"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
   );
 
-  const embed = setEmbedAuthor(baseEmbed(), `${label} removed`, client, { tone: "unchecked" })
+  const embed = setEmbedAuthor(baseEmbed(), t("bot_customisation.review.removedTitle", "{label} removed", { label }), client, { tone: "unchecked" })
     .addFields(
       embedField(
-        "Change",
+        t("bot_customisation.review.changeField", "Change"),
         [
-          `**Type:** ${label}`,
-          `**Server:** ${guildName} (\`${request.guildId}\`)`,
-          `**Set by:** <@${request.requesterId}>`,
-          `**Removed by:** <@${removedById}>`,
-          `**Request id:** \`${request.id}\``,
-          "**Status:** removed",
+          t("bot_customisation.review.typeLine", "**Type:** {label}", { label }),
+          t("bot_customisation.review.serverLine", "**Server:** {guildName} (`{guildId}`)", {
+            guildName,
+            guildId: request.guildId,
+          }),
+          t("bot_customisation.review.setByLine", "**Set by:** <@{userId}>", { userId: request.requesterId }),
+          t("bot_customisation.review.removedByLine", "**Removed by:** <@{userId}>", { userId: removedById }),
+          t("bot_customisation.review.requestIdLine", "**Request id:** `{id}`", { id: request.id }),
+          t("bot_customisation.review.statusRemoved", "**Status:** removed"),
         ].join("\n"),
       ),
     )
@@ -278,27 +315,33 @@ export async function markReviewMessageCancelled(
   const message = await channel.messages.fetch(request.reviewMessageId).catch(() => null);
   if (!message) return;
 
+  const t = defaultTranslator;
   const guildName = client.guilds.cache.get(request.guildId)?.name ?? request.guildId;
-  const label = kindLabel(request.kind);
+  const label = kindLabel(request.kind, t);
   const disabled = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`dl:botavatar:done:c:${request.id}`)
-      .setLabel("Cancelled")
+      .setLabel(t("bot_customisation.button.cancelled", "Cancelled"))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
   );
 
-  const embed = setEmbedAuthor(baseEmbed(), `${label} cancelled`, client, { tone: "unchecked" })
+  const embed = setEmbedAuthor(baseEmbed(), t("bot_customisation.review.cancelledTitle", "{label} cancelled", { label }), client, { tone: "unchecked" })
     .addFields(
       embedField(
-        "Request",
+        t("bot_customisation.review.requestField", "Request"),
         [
-          `**Type:** ${label}`,
-          `**Server:** ${guildName} (\`${request.guildId}\`)`,
-          `**Requested by:** <@${request.requesterId}>`,
-          `**Cancelled by:** <@${cancelledById}>`,
-          `**Request id:** \`${request.id}\``,
-          "**Status:** cancelled",
+          t("bot_customisation.review.typeLine", "**Type:** {label}", { label }),
+          t("bot_customisation.review.serverLine", "**Server:** {guildName} (`{guildId}`)", {
+            guildName,
+            guildId: request.guildId,
+          }),
+          t("bot_customisation.review.requestedByLine", "**Requested by:** <@{userId}>", {
+            userId: request.requesterId,
+          }),
+          t("bot_customisation.review.cancelledByLine", "**Cancelled by:** <@{userId}>", { userId: cancelledById }),
+          t("bot_customisation.review.requestIdLine", "**Request id:** `{id}`", { id: request.id }),
+          t("bot_customisation.review.statusCancelled", "**Status:** cancelled"),
         ].join("\n"),
       ),
     )

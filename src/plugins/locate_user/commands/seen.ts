@@ -22,14 +22,14 @@ export const seenCommands: SlashCommandDefinition[] = [
       const guild = ctx.interaction.guild!;
       const [member, lastSeen] = await Promise.all([
         guild.members.fetch(user.id).catch(() => null),
-        getLastSeen(guild.id, user.id),
+        getLastSeen(guild.id, user.id, ctx.t),
       ]);
 
       if (!lastSeen) {
         await ctx.interaction.reply(
           resultReply(
-            "Seen",
-            `No recorded activity for <@${user.id}> in this server.`,
+            ctx.t("locate_user.seenTitle", "Seen"),
+            ctx.t("locate_user.noRecordedActivity", "No recorded activity for {user} in this server.", { user: `<@${user.id}>` }),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_clock:1544417185336664114>" }),
           ),
@@ -40,16 +40,16 @@ export const seenCommands: SlashCommandDefinition[] = [
       const voiceChannel = member?.voice.channel;
       const embed = setEmbedAuthor(
         baseEmbed(),
-        "Seen",
+        ctx.t("locate_user.seenTitle", "Seen"),
         ctx.client,
         commandHeader(ctx.guildConfig, { emoji: "<:icons_clock:1544417185336664114>" }),
       ).addFields(
-        embedField("User", `<@${user.id}>`),
-        embedField("Last seen", discordTimestampBoth(lastSeen.at)),
-        embedField("Activity", lastSeen.action),
+        embedField(ctx.t("locate_user.fieldUser", "User"), `<@${user.id}>`),
+        embedField(ctx.t("locate_user.fieldLastSeen", "Last seen"), discordTimestampBoth(lastSeen.at)),
+        embedField(ctx.t("locate_user.fieldActivity", "Activity"), lastSeen.action),
       );
       if (voiceChannel) {
-        embed.addFields(embedField("Currently", `In <#${voiceChannel.id}>`));
+        embed.addFields(embedField(ctx.t("locate_user.fieldCurrently", "Currently"), ctx.t("locate_user.inChannel", "In <#{channel}>", { channel: voiceChannel.id })));
       }
 
       await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));

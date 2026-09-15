@@ -7,11 +7,13 @@ import { resultEdit, resultReply, guildResultOptions } from "../../../core/respo
 import { parseSuggestCustomId, SUGGEST_PREFIX } from "../constants.js";
 import { getSuggestionById, setVote } from "./store.js";
 import { approveSuggestion, autoFollowOnUpvote, denySuggestion, refreshFeedMessage } from "./service.js";
+import { translatorFor } from "../../../i18n/index.js";
 
 export async function handleSuggestionButtonInteraction(interaction: ButtonInteraction): Promise<boolean> {
   if (!interaction.customId.startsWith(SUGGEST_PREFIX)) return false;
+  const { t } = await translatorFor(interaction.user.id);
   if (!interaction.inGuild() || !interaction.guild || !interaction.member) {
-    await interaction.reply(resultReply("Server only", "Use this in a server.", true));
+    await interaction.reply(resultReply(t("suggestions.serverOnlyTitle", "Server only"), t("suggestions.useInServerBody", "Use this in a server."), true));
     return true;
   }
 
@@ -20,7 +22,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId!);
   if (guildConfig.plugins.suggestions?.enabled === false) {
-    await interaction.reply(resultReply("Plugin disabled", "Suggestions are disabled.", true));
+    await interaction.reply(resultReply(t("suggestions.pluginDisabledTitle", "Plugin disabled"), t("suggestions.pluginDisabledShortBody", "Suggestions are disabled."), true));
     return true;
   }
 
@@ -42,7 +44,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
       ))
     ) {
       await interaction.reply(
-        resultReply("Permission denied", "You cannot manage the suggestion queue.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+        resultReply(t("suggestions.permissionDeniedTitle", "Permission denied"), t("suggestions.cannotManageQueueBody", "You cannot manage the suggestion queue."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
       );
       return true;
     }
@@ -56,6 +58,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
             config,
             suggestionId: parsed.id,
             staffId: member.id,
+            t,
           })
         : await denySuggestion({
             client: interaction.client,
@@ -63,19 +66,22 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
             config,
             suggestionId: parsed.id,
             staffId: member.id,
+            t,
           });
 
     if (result.error || !result.suggestion) {
       await interaction.editReply(
-        resultEdit("Error", result.error ?? "Failed.", guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+        resultEdit(t("suggestions.errorTitle", "Error"), result.error ?? t("suggestions.failedBody", "Failed."), guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
       );
       return true;
     }
 
     await interaction.editReply(
       resultEdit(
-        parsed.action === "approve" ? "Approved" : "Denied",
-        `Suggestion #${result.suggestion.suggestionNumber} was ${parsed.action === "approve" ? "approved" : "denied"}.`,
+        parsed.action === "approve" ? t("suggestions.status.approved", "Approved") : t("suggestions.status.denied", "Denied"),
+        parsed.action === "approve"
+          ? t("suggestions.queueApprovedBody", "Suggestion #{num} was approved.", { num: result.suggestion.suggestionNumber })
+          : t("suggestions.queueDeniedBody", "Suggestion #{num} was denied.", { num: result.suggestion.suggestionNumber }),
         guildResultOptions(interaction.client, guildConfig, {
           tone: "success",
           emoji:
@@ -92,8 +98,8 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
   if (!config.voting_enabled) {
     await interaction.reply(
       resultReply(
-        "Voting disabled",
-        "Voting is turned off for this server.",
+        t("suggestions.votingDisabledTitle", "Voting disabled"),
+        t("suggestions.votingDisabledBody", "Voting is turned off for this server."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig),
       ),
@@ -111,7 +117,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
     ))
   ) {
     await interaction.reply(
-      resultReply("Permission denied", "You cannot vote on suggestions.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
+      resultReply(t("suggestions.permissionDeniedTitle", "Permission denied"), t("suggestions.cannotVoteBody", "You cannot vote on suggestions."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })),
     );
     return true;
   }
@@ -120,7 +126,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
     const ok = config.allowed_vote_roles.some((id) => member.roles.cache.has(id));
     if (!ok) {
       await interaction.reply(
-        resultReply("Not allowed", "You need a voting role to vote.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
+        resultReply(t("suggestions.notAllowedTitle", "Not allowed"), t("suggestions.needVotingRoleBody", "You need a voting role to vote."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
       );
       return true;
     }
@@ -130,8 +136,8 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
   if (!suggestion || suggestion.guildId !== interaction.guildId || suggestion.status !== "approved") {
     await interaction.reply(
       resultReply(
-        "Unavailable",
-        "This suggestion cannot be voted on.",
+        t("suggestions.unavailableTitle", "Unavailable"),
+        t("suggestions.cannotBeVotedOnBody", "This suggestion cannot be voted on."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig),
       ),
@@ -141,7 +147,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
 
   if (!config.allow_self_vote && suggestion.authorId === member.id) {
     await interaction.reply(
-      resultReply("Not allowed", "You cannot vote on your own suggestion.", ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
+      resultReply(t("suggestions.notAllowedTitle", "Not allowed"), t("suggestions.cannotVoteOwnBody", "You cannot vote on your own suggestion."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })),
     );
     return true;
   }
@@ -149,8 +155,8 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
   if (parsed.value === "mid" && !config.mid_vote_enabled) {
     await interaction.reply(
       resultReply(
-        "Unavailable",
-        "Neutral votes are disabled.",
+        t("suggestions.unavailableTitle", "Unavailable"),
+        t("suggestions.neutralVotesDisabledBody", "Neutral votes are disabled."),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig),
       ),
@@ -163,6 +169,6 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
   if (parsed.value === "up" && voteResult.action !== "removed") {
     await autoFollowOnUpvote(config, suggestion.id, member.id);
   }
-  await refreshFeedMessage(interaction.client, config, suggestion);
+  await refreshFeedMessage(interaction.client, config, suggestion, t);
   return true;
 }

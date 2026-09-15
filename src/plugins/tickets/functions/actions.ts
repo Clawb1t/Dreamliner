@@ -42,21 +42,21 @@ import {
 export type CreateTicketResult = { ticket: TicketRecord } | { error: string };
 
 /** Action row attached to a freshly-opened ticket's welcome message. */
-export function ticketActionRow(ticketId: number, claimed: boolean): ActionRowBuilder<ButtonBuilder> {
+export function ticketActionRow(ticketId: number, claimed: boolean, t: Translator = defaultTranslator): ActionRowBuilder<ButtonBuilder> {
   const row = new ActionRowBuilder<ButtonBuilder>();
   if (!claimed) {
-    row.addComponents(new ButtonBuilder().setCustomId(ticketClaimId(ticketId)).setLabel("Claim").setStyle(ButtonStyle.Primary));
+    row.addComponents(new ButtonBuilder().setCustomId(ticketClaimId(ticketId)).setLabel(t("tickets.button.claim", "Claim")).setStyle(ButtonStyle.Primary));
   } else {
-    row.addComponents(new ButtonBuilder().setCustomId(ticketUnclaimId(ticketId)).setLabel("Unclaim").setStyle(ButtonStyle.Secondary));
+    row.addComponents(new ButtonBuilder().setCustomId(ticketUnclaimId(ticketId)).setLabel(t("tickets.button.unclaim", "Unclaim")).setStyle(ButtonStyle.Secondary));
   }
-  row.addComponents(new ButtonBuilder().setCustomId(ticketCloseId(ticketId)).setLabel("Close").setStyle(ButtonStyle.Danger));
+  row.addComponents(new ButtonBuilder().setCustomId(ticketCloseId(ticketId)).setLabel(t("tickets.button.close", "Close")).setStyle(ButtonStyle.Danger));
   return row;
 }
 
 /** Action row attached to a just-closed ticket's message, letting staff clean up the channel. */
-export function ticketClosedActionRow(ticketId: number): ActionRowBuilder<ButtonBuilder> {
+export function ticketClosedActionRow(ticketId: number, t: Translator = defaultTranslator): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(ticketDeleteId(ticketId)).setLabel("Delete ticket").setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(ticketDeleteId(ticketId)).setLabel(t("tickets.button.deleteTicket", "Delete ticket")).setStyle(ButtonStyle.Danger),
   );
 }
 
@@ -130,9 +130,9 @@ export async function createTicketForMember(opts: {
     const pingMsg = await channel.send(pingTargets.join(" ")).catch(() => null);
     await pingMsg?.delete().catch(() => null);
 
-    const embed = buildTicketOpenedEmbed(ticket, category, guild, client, guildConfig.emojis);
+    const embed = buildTicketOpenedEmbed(ticket, category, guild, client, guildConfig.emojis, t);
     await channel
-      .send(containerReply(embed, false, [ticketActionRow(ticket.id, false)]))
+      .send(containerReply(embed, false, [ticketActionRow(ticket.id, false, t)]))
       .catch(() => null);
   }
 
@@ -290,6 +290,7 @@ export async function performClose(
   ticket: TicketRecord,
   actorId: string,
   reason?: string | null,
+  t: Translator = defaultTranslator,
 ): Promise<{ transcriptId: string | null }> {
   const targetId = ticket.threadId ?? ticket.channelId;
   const channel = await client.channels.fetch(targetId).catch(() => null);
@@ -312,18 +313,18 @@ export async function performClose(
   };
 
   if (channel?.isTextBased() && "send" in channel) {
-    const embed = buildTicketClosedEmbed(closedTicket, actorId, reason, client, guildConfig.emojis);
-    await channel.send(containerReply(embed, false, [ticketClosedActionRow(ticket.id)])).catch(() => null);
+    const embed = buildTicketClosedEmbed(closedTicket, actorId, reason, client, guildConfig.emojis, t);
+    await channel.send(containerReply(embed, false, [ticketClosedActionRow(ticket.id, t)])).catch(() => null);
   }
 
   const transcriptChannelId = category?.transcript_channel_id || pluginConfig.default_transcript_channel_id;
   if (transcriptId && transcriptChannelId) {
-    await postTranscriptLog(client, transcriptChannelId, closedTicket, transcriptId).catch(() => null);
+    await postTranscriptLog(client, transcriptChannelId, closedTicket, transcriptId, t).catch(() => null);
   }
 
   if (transcriptId && pluginConfig.dm_transcript_on_close) {
     const opener = await client.users.fetch(ticket.openerId).catch(() => null);
-    if (opener) await dmTranscript(opener, closedTicket, transcriptId).catch(() => null);
+    if (opener) await dmTranscript(opener, closedTicket, transcriptId, t).catch(() => null);
   }
 
   // `feedback_enabled` (category override, else pluginConfig.feedback_enabled) reserves a spot for

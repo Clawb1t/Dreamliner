@@ -97,7 +97,7 @@ async function finishAction(
     }
   }
 
-  const line = buildActionConfirmLine(type, user.id, reason, durationLabel);
+  const line = buildActionConfirmLine(type, user.id, reason, durationLabel, ctx.t);
   const emoji = ACTION_EMOJI[type];
   await ctx.interaction.reply(
     embedReply(

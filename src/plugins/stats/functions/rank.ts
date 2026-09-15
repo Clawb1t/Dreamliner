@@ -10,6 +10,7 @@ import {
 } from "./globalQueries.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("stats");
 
@@ -30,6 +31,7 @@ export async function renderUserRankCard(
   scope: RankScope,
   guild: Guild,
   user: User,
+  t: Translator = defaultTranslator,
 ): Promise<RankResult> {
   // Banners aren't included on cached User objects — a forced fetch is required to see one.
   const [member, bannerUser, profile, badges] = await Promise.all([
@@ -69,7 +71,7 @@ export async function renderUserRankCard(
       accentColor: profile.accentColor,
       badges: rowBadges,
     };
-    const buffer = await renderRankCard({ row });
+    const buffer = await renderRankCard({ row }, t);
     return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count };
   }
 
@@ -90,6 +92,6 @@ export async function renderUserRankCard(
     accentColor: profile.accentColor,
     badges: rowBadges,
   };
-  const buffer = await renderRankCard({ row });
+  const buffer = await renderRankCard({ row }, t);
   return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count };
 }

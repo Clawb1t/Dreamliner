@@ -11,6 +11,7 @@ import {
   type ResultContainer,
 } from "../../../core/embeds.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export const SEARCH_EMOJI = "<:icons_search:1544417406640726168>";
 
@@ -162,14 +163,21 @@ export async function searchBans(guild: import("discord.js").Guild, opts: Search
 /** Raw ID dump for `ids_only` — the one search output that's meant to be copy-pasted elsewhere
  * (another tool, a script), so it stays plain text instead of the mention-based container every
  * other search response uses. */
-export function formatSearchIds(result: SearchResult): string {
+export function formatSearchIds(result: SearchResult, t: Translator = defaultTranslator): string {
   const from = (result.page - 1) * result.pageSize + 1;
   const to = Math.min(result.page * result.pageSize, result.total);
 
   const header =
     result.total > result.pageSize
-      ? `**Page ${result.page}** (${from}-${to}) (total ${result.total})`
-      : `Found ${result.total} matching member${result.total === 1 ? "" : "s"}`;
+      ? t("utility.search.pageHeader", "**Page {page}** ({from}-{to}) (total {total})", {
+          page: result.page,
+          from,
+          to,
+          total: result.total,
+        })
+      : result.total === 1
+        ? t("utility.search.foundOneMember", "Found 1 matching member")
+        : t("utility.search.foundManyMembers", "Found {total} matching members", { total: result.total });
 
   if (result.members.length === 0) return header;
 
@@ -185,10 +193,14 @@ function truncate(text: string, max: number): string {
  * name/nickname — instead of a stale plain-text snapshot of their username. Never pings: every
  * container built from this goes through `containerReply`/`containerEdit`, which default
  * `allowedMentions` to parse nothing (see NO_PING in core/responses.ts). */
-function memberLine(member: GuildMember, sort: SearchSort): string {
+function memberLine(member: GuildMember, sort: SearchSort, t: Translator = defaultTranslator): string {
   const mention = `<@${member.id}>`;
-  if (sort === "joined" && member.joinedAt) return `${mention} · joined ${discordTs(member.joinedAt)}`;
-  if (sort === "created") return `${mention} · created ${discordTs(member.user.createdAt)}`;
+  if (sort === "joined" && member.joinedAt) {
+    return t("utility.search.memberJoinedLine", "{mention} · joined {ts}", { mention, ts: discordTs(member.joinedAt) });
+  }
+  if (sort === "created") {
+    return t("utility.search.memberCreatedLine", "{mention} · created {ts}", { mention, ts: discordTs(member.user.createdAt) });
+  }
   return mention;
 }
 
@@ -200,21 +212,27 @@ export function buildMemberSearchContainer(
   result: SearchResult,
   query: string,
   sort: SearchSort,
+  t: Translator = defaultTranslator,
 ): ResultContainer {
   const from = (result.page - 1) * result.pageSize + 1;
-  const lines = result.members.map((m, i) => `${from + i}. ${memberLine(m, sort)}`);
+  const lines = result.members.map((m, i) => `${from + i}. ${memberLine(m, sort, t)}`);
 
   const container = setEmbedAuthor(
     baseEmbed(),
-    query ? `Member Search: ${query}` : "Member Search",
+    query ? t("utility.search.memberSearchQueryTitle", "Member Search: {query}", { query }) : t("utility.search.memberSearchTitle", "Member Search"),
     client,
     commandHeader(guildConfig, { emoji: SEARCH_EMOJI }),
-  ).addFields(embedField("Results", trimLines(lines.join("\n"))));
+  ).addFields(embedField(t("utility.search.resultsLabel", "Results"), trimLines(lines.join("\n"))));
 
   container.setFooter(
     result.totalPages > 1
-      ? { text: `Page ${result.page} of ${result.totalPages} · ${result.total} total` }
-      : { text: `${result.total} matching member${result.total === 1 ? "" : "s"}` },
+      ? { text: t("utility.search.pageFooter", "Page {page} of {totalPages} · {total} total", { page: result.page, totalPages: result.totalPages, total: result.total }) }
+      : {
+          text:
+            result.total === 1
+              ? t("utility.search.oneMatchingMember", "1 matching member")
+              : t("utility.search.manyMatchingMembers", "{total} matching members", { total: result.total }),
+        },
   );
 
   return container;
@@ -230,6 +248,7 @@ export function buildBanSearchContainer(
   total: number,
   from: number,
   query: string,
+  t: Translator = defaultTranslator,
 ): ResultContainer {
   const lines = bans.map(
     (b, i) => `${from + i}. <@${b.user.id}>${b.reason ? ` · ${truncate(b.reason, 80)}` : ""}`,
@@ -237,15 +256,20 @@ export function buildBanSearchContainer(
 
   const container = setEmbedAuthor(
     baseEmbed(),
-    query ? `Ban Search: ${query}` : "Ban Search",
+    query ? t("utility.search.banSearchQueryTitle", "Ban Search: {query}", { query }) : t("utility.search.banSearchTitle", "Ban Search"),
     client,
     commandHeader(guildConfig, { emoji: SEARCH_EMOJI }),
-  ).addFields(embedField("Results", trimLines(lines.join("\n"))));
+  ).addFields(embedField(t("utility.search.resultsLabel", "Results"), trimLines(lines.join("\n"))));
 
   container.setFooter(
     totalPages > 1
-      ? { text: `Page ${page} of ${totalPages} · ${total} total` }
-      : { text: `${total} matching ban${total === 1 ? "" : "s"}` },
+      ? { text: t("utility.search.pageFooter", "Page {page} of {totalPages} · {total} total", { page, totalPages, total }) }
+      : {
+          text:
+            total === 1
+              ? t("utility.search.oneMatchingBan", "1 matching ban")
+              : t("utility.search.manyMatchingBans", "{total} matching bans", { total }),
+        },
   );
 
   return container;

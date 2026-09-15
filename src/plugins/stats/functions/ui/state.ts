@@ -2,6 +2,7 @@ export const STATS_PREFIX = "dl:stats";
 
 import type { StatsWindow } from "../daily.js";
 import { isValidStatsWindow } from "../daily.js";
+import { defaultTranslator, type Translator } from "../../../../i18n/index.js";
 
 export type { StatsWindow } from "../daily.js";
 
@@ -24,34 +25,40 @@ export type StatsCategory = {
   charts: number;
 };
 
-export const SERVER_CATEGORIES: StatsCategory[] = [
-  { id: "home", label: "Overview", description: "Key metrics and highlights", charts: 0 },
-  { id: "activity", label: "Activity", description: "Message volume over time", charts: 3 },
-  { id: "membership", label: "Membership", description: "Joins, leaves, and active users", charts: 3 },
-  { id: "engagement", label: "Engagement", description: "Edits, deletes, reactions, attachments", charts: 3 },
-  { id: "leaders", label: "Leaderboards", description: "Top messagers and channels", charts: 3 },
-];
-
-export const USER_CATEGORIES: StatsCategory[] = [
-  { id: "home", label: "Overview", description: "Lifetime totals and rank", charts: 0 },
-  { id: "activity", label: "Activity", description: "Daily message patterns", charts: 3 },
-  { id: "patterns", label: "Patterns", description: "Weekday habits and traffic share", charts: 2 },
-];
-
-export const CHANNEL_CATEGORIES: StatsCategory[] = [
-  { id: "home", label: "Overview", description: "Channel totals and context", charts: 0 },
-  { id: "activity", label: "Activity", description: "Daily message patterns", charts: 3 },
-  { id: "patterns", label: "Patterns", description: "Weekday habits and traffic share", charts: 2 },
-];
-
-export function categoriesFor(scope: StatsScope): StatsCategory[] {
-  if (scope.type === "server") return SERVER_CATEGORIES;
-  if (scope.type === "user") return USER_CATEGORIES;
-  return CHANNEL_CATEGORIES;
+function serverCategories(t: Translator): StatsCategory[] {
+  return [
+    { id: "home", label: t("stats.catOverview", "Overview"), description: t("stats.catServerOverviewDesc", "Key metrics and highlights"), charts: 0 },
+    { id: "activity", label: t("stats.catActivity", "Activity"), description: t("stats.catServerActivityDesc", "Message volume over time"), charts: 3 },
+    { id: "membership", label: t("stats.catMembership", "Membership"), description: t("stats.catMembershipDesc", "Joins, leaves, and active users"), charts: 3 },
+    { id: "engagement", label: t("stats.catEngagement", "Engagement"), description: t("stats.catEngagementDesc", "Edits, deletes, reactions, attachments"), charts: 3 },
+    { id: "leaders", label: t("stats.catLeaderboards", "Leaderboards"), description: t("stats.catLeaderboardsDesc", "Top messagers and channels"), charts: 3 },
+  ];
 }
 
-export function categoryDef(scope: StatsScope, categoryId: string): StatsCategory {
-  return categoriesFor(scope).find((c) => c.id === categoryId) ?? categoriesFor(scope)[0]!;
+function userCategories(t: Translator): StatsCategory[] {
+  return [
+    { id: "home", label: t("stats.catOverview", "Overview"), description: t("stats.catUserOverviewDesc", "Lifetime totals and rank"), charts: 0 },
+    { id: "activity", label: t("stats.catActivity", "Activity"), description: t("stats.catDailyPatternsDesc", "Daily message patterns"), charts: 3 },
+    { id: "patterns", label: t("stats.catPatterns", "Patterns"), description: t("stats.catWeekdayTrafficDesc", "Weekday habits and traffic share"), charts: 2 },
+  ];
+}
+
+function channelCategories(t: Translator): StatsCategory[] {
+  return [
+    { id: "home", label: t("stats.catOverview", "Overview"), description: t("stats.catChannelOverviewDesc", "Channel totals and context"), charts: 0 },
+    { id: "activity", label: t("stats.catActivity", "Activity"), description: t("stats.catDailyPatternsDesc", "Daily message patterns"), charts: 3 },
+    { id: "patterns", label: t("stats.catPatterns", "Patterns"), description: t("stats.catWeekdayTrafficDesc", "Weekday habits and traffic share"), charts: 2 },
+  ];
+}
+
+export function categoriesFor(scope: StatsScope, t: Translator = defaultTranslator): StatsCategory[] {
+  if (scope.type === "server") return serverCategories(t);
+  if (scope.type === "user") return userCategories(t);
+  return channelCategories(t);
+}
+
+export function categoryDef(scope: StatsScope, categoryId: string, t: Translator = defaultTranslator): StatsCategory {
+  return categoriesFor(scope, t).find((c) => c.id === categoryId) ?? categoriesFor(scope, t)[0]!;
 }
 
 function serializeScope(scope: StatsScope): string {

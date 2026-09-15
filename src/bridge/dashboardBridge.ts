@@ -603,7 +603,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         if (req.method === "GET" && url.pathname === "/bridge/languages") {
           const { listLanguagesForWeb } = await import("./webLanguage.js");
-          sendJson(res, 200, { ok: true, languages: listLanguagesForWeb() });
+          sendJson(res, 200, { ok: true, languages: await listLanguagesForWeb() });
           return;
         }
 

@@ -75,7 +75,12 @@ export function openPack(userId: string, guildId: string, cost: number, packSize
       return { cards: drawn, cost, balance };
     });
   } catch (err) {
-    if (err instanceof InsufficientFundsError) throw new PackError(err.message, "insufficient");
+    if (err instanceof InsufficientFundsError) {
+      throw new PackError(
+        t ? t("economy.pack.error.insufficientFunds", "Not enough coins.") : err.message,
+        "insufficient",
+      );
+    }
     throw err;
   }
 }

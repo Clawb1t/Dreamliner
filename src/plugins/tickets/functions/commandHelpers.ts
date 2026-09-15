@@ -11,20 +11,20 @@ export async function requireTicketPermission(
 ): Promise<{ member: GuildMember; pluginConfig: TicketsConfig } | null> {
   const { interaction, guildConfig } = ctx;
   if (!interaction.inGuild() || !interaction.guild) {
-    await interaction.reply(resultReply("Server only", "This command can only be used in a server.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(resultReply(ctx.t("tickets.serverOnlyTitle", "Server only"), ctx.t("tickets.serverOnlyCommandBody", "This command can only be used in a server."), ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
 
   const member = interaction.member;
   if (!member || typeof member === "string") {
-    await interaction.reply(resultReply("Member error", "Could not resolve member.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(resultReply(ctx.t("tickets.memberErrorTitle", "Member error"), ctx.t("tickets.couldNotResolveMemberBody", "Could not resolve member."), ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
 
   const guildMember = member as GuildMember;
 
   if (!(await canUseTickets(interaction.guildId, guildConfig, permission, guildMember))) {
-    await interaction.reply(resultReply("Permission denied", "You do not have permission to use this command.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
+    await interaction.reply(resultReply(ctx.t("tickets.permissionDeniedTitle", "Permission denied"), ctx.t("tickets.noCommandPermissionBody", "You do not have permission to use this command."), ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })));
     return null;
   }
 
@@ -39,7 +39,7 @@ export async function requireTicketChannel(ctx: SlashCommandContext): Promise<Ti
   const ticket = await getTicketByChannel(interaction.guildId!, interaction.channelId!);
   if (!ticket) {
     await interaction.reply(
-      resultReply("Not a ticket", "This command can only be used inside a ticket channel.", ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })),
+      resultReply(ctx.t("tickets.notATicketTitle", "Not a ticket"), ctx.t("tickets.notATicketBody", "This command can only be used inside a ticket channel."), ctx.ephemeral, guildResultOptions(ctx.client, guildConfig, { tone: "error" })),
     );
     return null;
   }

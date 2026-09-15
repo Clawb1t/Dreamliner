@@ -5,9 +5,19 @@ import { requirePluginPermission } from "../../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
 import { discordTimestamp } from "../../../core/datetime.js";
 import { getUserNameHistory, searchNameHistory } from "../functions/store.js";
+import type { Translator } from "../../../i18n/index.js";
 
-function formatEntry(entry: { oldName: string; newName: string; changeType: string; changedAt: Date; userId: string }): string {
-  return `\`${entry.oldName}\` → \`${entry.newName}\` (${entry.changeType}) · <@${entry.userId}> · ${discordTimestamp(entry.changedAt, "R")}`;
+function changeTypeLabel(changeType: string, t: Translator): string {
+  if (changeType === "nickname") return t("name_history.changeTypeNickname", "nickname");
+  if (changeType === "username") return t("name_history.changeTypeUsername", "username");
+  return changeType;
+}
+
+function formatEntry(
+  entry: { oldName: string; newName: string; changeType: string; changedAt: Date; userId: string },
+  t: Translator,
+): string {
+  return `\`${entry.oldName}\` → \`${entry.newName}\` (${changeTypeLabel(entry.changeType, t)}) · <@${entry.userId}> · ${discordTimestamp(entry.changedAt, "R")}`;
 }
 
 export const namesCommands: SlashCommandDefinition[] = [
@@ -40,23 +50,23 @@ export const namesCommands: SlashCommandDefinition[] = [
         if (!entries.length) {
           await ctx.interaction.reply(
             resultReply(
-              "Name history",
-              `No recorded name changes for **${user.tag}**.`,
+              ctx.t("name_history.nameHistoryTitle", "Name history"),
+              ctx.t("name_history.noRecordedNameChanges", "No recorded name changes for **{user}**.", { user: user.tag }),
               ctx.ephemeral,
               slashResultOptions(ctx, { emoji: "<:icons_aka:1544417681799913482>" }),
             ),
           );
           return;
         }
-        const lines = entries.map(formatEntry);
+        const lines = entries.map((e) => formatEntry(e, ctx.t));
         await ctx.interaction.reply(
           embedReply(
             setEmbedAuthor(
               baseEmbed(),
-              `Name history · ${user.tag}`,
+              ctx.t("name_history.nameHistoryUserTitle", "Name history · {user}", { user: user.tag }),
               ctx.client,
               commandHeader(ctx.guildConfig, { emoji: "<:icons_aka:1544417681799913482>" }),
-            ).addFields(embedField("Changes", trimLines(lines.join("\n")))),
+            ).addFields(embedField(ctx.t("name_history.fieldChanges", "Changes"), trimLines(lines.join("\n")))),
             ctx.ephemeral,
           ),
         );
@@ -71,23 +81,25 @@ export const namesCommands: SlashCommandDefinition[] = [
         if (!entries.length) {
           await ctx.interaction.reply(
             resultReply(
-              "Name history",
-              "No matching name changes found.",
+              ctx.t("name_history.nameHistoryTitle", "Name history"),
+              ctx.t("name_history.noMatchingNameChanges", "No matching name changes found."),
               ctx.ephemeral,
               slashResultOptions(ctx, { emoji: "<:icons_text_search:1544418237675077702>" }),
             ),
           );
           return;
         }
-        const lines = entries.map(formatEntry);
+        const lines = entries.map((e) => formatEntry(e, ctx.t));
         await ctx.interaction.reply(
           embedReply(
             setEmbedAuthor(
               baseEmbed(),
-              `Name search${query ? `: ${query}` : ""}`,
+              query
+                ? ctx.t("name_history.nameSearchQueryTitle", "Name search: {query}", { query })
+                : ctx.t("name_history.nameSearchTitle", "Name search"),
               ctx.client,
               commandHeader(ctx.guildConfig, { emoji: "<:icons_text_search:1544418237675077702>" }),
-            ).addFields(embedField("Results", trimLines(lines.join("\n")))),
+            ).addFields(embedField(ctx.t("name_history.fieldResults", "Results"), trimLines(lines.join("\n")))),
             ctx.ephemeral,
           ),
         );

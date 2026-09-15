@@ -6,6 +6,7 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { performClose } from "./actions.js";
 import { getExpiredInactiveTickets } from "./tickets.js";
 import { getLogger } from "../../../core/logger.js";
+import { defaultTranslator } from "../../../i18n/index.js";
 const log = getLogger("tickets");
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -39,7 +40,8 @@ export async function processInactiveTickets(client: Client): Promise<void> {
         category,
         ticket,
         client.user?.id ?? ticket.openerId,
-        "Automatically closed after prolonged inactivity.",
+        defaultTranslator("tickets.autoclose.inactivityReason", "Automatically closed after prolonged inactivity."),
+        defaultTranslator,
       );
     } catch (err) {
       log.error(`Ticket auto-close failed for ticket #${ticket.id}:`, err);

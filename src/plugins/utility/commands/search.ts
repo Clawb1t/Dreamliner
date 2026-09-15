@@ -53,7 +53,7 @@ export const searchCommands: SlashCommandDefinition[] = [
 
       if (result.total === 0) {
         await interaction.editReply(
-          resultEdit("Search", "No results found.", slashResultOptions(ctx, { emoji: SEARCH_EMOJI })),
+          resultEdit(ctx.t("utility.search.searchTitle", "Search"), ctx.t("utility.search.noResultsFound", "No results found."), slashResultOptions(ctx, { emoji: SEARCH_EMOJI })),
         );
         return;
       }
@@ -62,17 +62,17 @@ export const searchCommands: SlashCommandDefinition[] = [
       if (infoOnSingle && result.total === 1 && result.members[0]) {
         const m = result.members[0];
         await interaction.editReply(
-          embedEdit(await buildUserInfoEmbed(m.user, m, guildConfig, interaction.guildId!, ctx.client)),
+          embedEdit(await buildUserInfoEmbed(m.user, m, guildConfig, interaction.guildId!, ctx.client, false, ctx.t)),
         );
         return;
       }
 
       if (idsOnly) {
-        await interaction.editReply(contentEdit(formatSearchIds(result)));
+        await interaction.editReply(contentEdit(formatSearchIds(result, ctx.t)));
         return;
       }
 
-      const { container, rows } = memberSearchPayload(state, result, ctx.client, guildConfig);
+      const { container, rows } = memberSearchPayload(state, result, ctx.client, guildConfig, ctx.t);
       await interaction.editReply(containerEdit(container, rows));
     },
   },
@@ -89,7 +89,7 @@ export const searchCommands: SlashCommandDefinition[] = [
     execute: async (ctx) => {
       const auth = await requireUtilityPermission(ctx, "can_search");
       if (!auth) return;
-      if (!(await requireDiscordPerm(ctx.interaction, BanMembers, "Ban Members", ctx.ephemeral, ctx.guildConfig))) return;
+      if (!(await requireDiscordPerm(ctx.interaction, BanMembers, "Ban Members", ctx.ephemeral, ctx.guildConfig, ctx.t))) return;
 
       await ctx.interaction.deferReply({ ephemeral: ctx.ephemeral });
       const state = {
@@ -103,12 +103,12 @@ export const searchCommands: SlashCommandDefinition[] = [
 
       if (result.total === 0) {
         await ctx.interaction.editReply(
-          resultEdit("Ban search", "No results found.", slashResultOptions(ctx, { emoji: SEARCH_EMOJI })),
+          resultEdit(ctx.t("utility.search.banSearchTitle", "Ban search"), ctx.t("utility.search.noResultsFound", "No results found."), slashResultOptions(ctx, { emoji: SEARCH_EMOJI })),
         );
         return;
       }
 
-      const { container, rows } = banSearchPayload(state, result, ctx.client, ctx.guildConfig);
+      const { container, rows } = banSearchPayload(state, result, ctx.client, ctx.guildConfig, ctx.t);
       await ctx.interaction.editReply(containerEdit(container, rows));
     },
   },

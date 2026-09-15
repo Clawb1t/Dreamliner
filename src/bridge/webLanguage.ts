@@ -16,10 +16,10 @@ import {
   type LanguageRecord,
 } from "../i18n/index.js";
 
-export type LanguageOptionForWeb = { id: string; label: string };
+export type LanguageOptionForWeb = { id: string; label: string; flag: string };
 
 export function listLanguagesForWeb(): Promise<LanguageOptionForWeb[]> {
-  return listEnabledLanguages().then((langs) => langs.map((l) => ({ id: l.code, label: l.name })));
+  return listEnabledLanguages().then((langs) => langs.map((l) => ({ id: l.code, label: l.name, flag: l.flag })));
 }
 
 export async function getLanguageForWeb(discordId: string): Promise<{ locale: string }> {

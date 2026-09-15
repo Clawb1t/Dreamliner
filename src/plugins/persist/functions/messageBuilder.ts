@@ -19,6 +19,7 @@ import type {
 } from "../../../config/schemas/persist.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { renderTemplate, type TemplateContext } from "../../../core/templates.js";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 export type PersistBuildContext = {
   client: Client;
@@ -179,7 +180,11 @@ export type BuiltPersistMessage = {
   webhookAvatarURL?: string;
 };
 
-export function buildPersistPayload(sticky: PersistSticky, ctx: PersistBuildContext): BuiltPersistMessage {
+export function buildPersistPayload(
+  sticky: PersistSticky,
+  ctx: PersistBuildContext,
+  tr: Translator = defaultTranslator,
+): BuiltPersistMessage {
   const t = templateCtx(ctx);
   const content = renderTemplate(sticky.content ?? "", t).trim();
   const embed = buildEmbed(sticky.embed, ctx);
@@ -197,7 +202,7 @@ export function buildPersistPayload(sticky: PersistSticky, ctx: PersistBuildCont
   };
 
   const webhookUsername =
-    sticky.webhook_name.trim() || sticky.name.trim() || "Sticky";
+    sticky.webhook_name.trim() || sticky.name.trim() || tr("persist.webhook.defaultName", "Sticky");
   const webhookAvatarURL = httpUrl(sticky.webhook_avatar_url);
 
   const webhookPayload: WebhookMessageCreateOptions = {

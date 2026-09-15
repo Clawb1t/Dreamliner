@@ -184,12 +184,13 @@ export const economyCommands: SlashCommandDefinition[] = [
       let description: string;
       if (claim) {
         const amount = which === "global" ? formatGlobal(claim.amount) : formatServer(claim.amount, config.server);
-        description = `${successEmoji} +${amount}`;
+        description = `${successEmoji} ${ctx.t("economy.daily.claimed", "+{amount}", { amount })}`;
       } else {
-        description = `${errorEmoji} Already claimed`;
+        description = `${errorEmoji} ${ctx.t("economy.daily.alreadyClaimed", "Already claimed")}`;
       }
       const nextAt = claim ? claim.nextAt : nextDailyClaimAt(lastDailyAt);
-      if (nextAt) description += `  ✧  Next claim ${discordTimestamp(nextAt)}`;
+      if (nextAt)
+        description += `  ✧  ${ctx.t("economy.daily.nextClaim", "Next claim {timestamp}", { timestamp: discordTimestamp(nextAt) })}`;
 
       const member = i.member as GuildMember | null;
       const bank = bankFooter(which, i.guild!, ctx.client, ctx.t);
@@ -228,21 +229,34 @@ export const economyCommands: SlashCommandDefinition[] = [
           .setThumbnail(i.user.displayAvatarURL())
           .setColor(memberAccentColor(member))
           .setDescription(
-            `<:icons_swap:1544418225503084695> Exchanged ${formatServer(result.serverAmount, config.server)} for ${formatGlobal(result.globalAmount)}`,
+            `<:icons_swap:1544418225503084695> ${ctx.t(
+              "economy.exchange.exchanged",
+              "Exchanged {server} for {global}",
+              { server: formatServer(result.serverAmount, config.server), global: formatGlobal(result.globalAmount) },
+            )}`,
           )
           .addFields(
-            { name: "Exchange rate", value: `\`${formatExchangeRate(rate)}\`` },
-            { name: `New ${config.server.currency_name} balance`, value: formatServer(result.serverBalance, config.server) },
-            { name: "New global balance", value: formatGlobal(result.globalBalance) },
+            { name: ctx.t("economy.exchange.rateField", "Exchange rate"), value: `\`${formatExchangeRate(rate)}\`` },
+            {
+              name: ctx.t("economy.exchange.newCurrencyBalance", "New {currency} balance", {
+                currency: config.server.currency_name,
+              }),
+              value: formatServer(result.serverBalance, config.server),
+            },
+            { name: ctx.t("economy.exchange.newGlobalBalance", "New global balance"), value: formatGlobal(result.globalBalance) },
           )
-          .setFooter({ text: "Dreamliner Exchange" });
+          .setFooter({ text: ctx.t("economy.exchange.footer", "Dreamliner Exchange") });
         await i.reply(embedReply(embed, ctx.ephemeral));
       } catch (err) {
         if (err instanceof InsufficientFundsError) {
           await i.reply(
             resultReply(
-              "Insufficient funds",
-              `You don't have **${formatServer(amount, config.server)}** to exchange.`,
+              ctx.t("economy.exchange.insufficientFunds.title", "Insufficient funds"),
+              ctx.t(
+                "economy.exchange.insufficientFunds.description",
+                "You don't have **{amount}** to exchange.",
+                { amount: formatServer(amount, config.server) },
+              ),
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "error" }),
             ),
@@ -309,8 +323,8 @@ export const economyCommands: SlashCommandDefinition[] = [
         if (cards.length === 0) {
           await i.reply(
             resultReply(
-              `${target.username}'s hangar`,
-              "No cards yet. Buy a pack with `/planes pack buy`.",
+              ctx.t("economy.inventory.title", "{username}'s hangar", { username: target.username }),
+              ctx.t("economy.inventory.empty", "No cards yet. Buy a pack with `/planes pack buy`."),
               ctx.ephemeral,
               slashResultOptions(ctx),
             ),
@@ -337,11 +351,24 @@ export const economyCommands: SlashCommandDefinition[] = [
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(`${PLANE_PACK_PREFIX}confirm:${i.user.id}`)
-            .setLabel(packPrice > 0 ? `Buy for ${formatPlainAmount(packPrice)}` : "Open pack (free)")
+            .setLabel(
+              packPrice > 0
+                ? ctx.t("economy.pack.buyFor", "Buy for {amount}", { amount: formatPlainAmount(packPrice) })
+                : ctx.t("economy.pack.openFree", "Open pack (free)"),
+            )
             .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId(`${PLANE_PACK_PREFIX}cancel:${i.user.id}`).setLabel("Cancel").setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(`${PLANE_PACK_PREFIX}cancel:${i.user.id}`)
+            .setLabel(ctx.t("economy.pack.cancel", "Cancel"))
+            .setStyle(ButtonStyle.Secondary),
         );
-        const embed = baseEmbed().setDescription(`Buy a card pack for ${packPrice > 0 ? formatCoinAmount(packPrice) : "free"}?`);
+        const embed = baseEmbed().setDescription(
+          ctx.t(
+            "economy.pack.confirmPrompt",
+            "Buy a card pack for {price}?",
+            { price: packPrice > 0 ? formatCoinAmount(packPrice) : ctx.t("economy.pack.free", "free") },
+          ),
+        );
         await i.reply(embedReply(embed, ctx.ephemeral, [row]));
         return;
       }
@@ -353,7 +380,14 @@ export const economyCommands: SlashCommandDefinition[] = [
         const key = i.options.getString("plane", true);
         const plane = requirePlane(key, { enabledOnly: true });
         if (!plane) {
-          await i.reply(resultReply("Not found", `No card found for \`${key}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await i.reply(
+            resultReply(
+              ctx.t("economy.card.notFound.title", "Not found"),
+              ctx.t("economy.card.notFound.description", "No card found for `{key}`.", { key }),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         const { components, files } = buildCardReveal(plane, ctx.t);
@@ -376,14 +410,32 @@ export const economyCommands: SlashCommandDefinition[] = [
         const cardType = typeInput && isCardType(typeInput) ? typeInput : undefined;
         const cards = listPlaneTypes({ enabledOnly: true, rarity, cardType });
         const lines = cards.slice(0, CARD_LIST_LIMIT).map((p) => planeLine(p));
-        if (cards.length > CARD_LIST_LIMIT) lines.push(`*+${cards.length - CARD_LIST_LIMIT} more...*`);
+        if (cards.length > CARD_LIST_LIMIT)
+          lines.push(
+            ctx.t("economy.card.list.more", "*+{count} more...*", { count: cards.length - CARD_LIST_LIMIT }),
+          );
 
         const titleParts = [rarity ? RARITY_META[rarity].label : null, cardType ? CARD_TYPE_META[cardType].label : null].filter(Boolean);
         const embed = baseEmbed()
-          .setTitle(titleParts.length ? `${titleParts.join(" ")} cards` : "Card catalog")
+          .setTitle(
+            titleParts.length
+              ? ctx.t("economy.card.list.titleFiltered", "{parts} cards", { parts: titleParts.join(" ") })
+              : ctx.t("economy.card.list.titleAll", "Card catalog"),
+          )
           .setThumbnail(ctx.client.user?.displayAvatarURL())
-          .setDescription(lines.join("\n") || "No cards are available yet.")
-          .setFooter({ text: `${cards.length} card${cards.length === 1 ? "" : "s"} · use /planes card view <plane> for details` });
+          .setDescription(lines.join("\n") || ctx.t("economy.card.list.empty", "No cards are available yet."))
+          .setFooter({
+            text:
+              cards.length === 1
+                ? ctx.t("economy.card.list.footerOne", "{count} card · use /planes card view <plane> for details", {
+                    count: cards.length,
+                  })
+                : ctx.t(
+                    "economy.card.list.footerMany",
+                    "{count} cards · use /planes card view <plane> for details",
+                    { count: cards.length },
+                  ),
+          });
         await i.reply(embedReply(embed, ctx.ephemeral));
         return;
       }
@@ -394,32 +446,63 @@ export const economyCommands: SlashCommandDefinition[] = [
         if (!auth) return;
         const target = i.options.getUser("user", true);
         if (target.bot) {
-          await i.reply(resultReply("Invalid gift", "You can't give a card to a bot.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await i.reply(
+            resultReply(
+              ctx.t("economy.give.invalidGift.title", "Invalid gift"),
+              ctx.t("economy.give.cantGiveBot", "You can't give a card to a bot."),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         if (target.id === i.user.id) {
-          await i.reply(resultReply("Invalid gift", "You can't give a card to yourself.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await i.reply(
+            resultReply(
+              ctx.t("economy.give.invalidGift.title", "Invalid gift"),
+              ctx.t("economy.give.cantGiveSelf", "You can't give a card to yourself."),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         const key = i.options.getString("plane", true);
         const plane = requirePlane(key, { enabledOnly: true });
         if (!plane) {
-          await i.reply(resultReply("Not found", `No card found for \`${key}\`.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+          await i.reply(
+            resultReply(
+              ctx.t("economy.card.notFound.title", "Not found"),
+              ctx.t("economy.card.notFound.description", "No card found for `{key}`.", { key }),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
           return;
         }
         try {
           giveCard(i.user.id, target.id, plane.id, 1);
           await i.reply(
             resultReply(
-              "Card given",
-              `Gave 1x **${plane.name}** to **${target.username}**.`,
+              ctx.t("economy.give.given.title", "Card given"),
+              ctx.t("economy.give.given.description", "Gave 1x **{plane}** to **{user}**.", {
+                plane: plane.name,
+                user: target.username,
+              }),
               ctx.ephemeral,
               slashResultOptions(ctx, { tone: "success", emoji: "<:icons_gift:1544417552627802212>" }),
             ),
           );
         } catch (err) {
           if (err instanceof InventoryError) {
-            await i.reply(resultReply("Couldn't give card", `You don't own **${plane.name}**.`, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
+            await i.reply(
+              resultReply(
+                ctx.t("economy.give.failed.title", "Couldn't give card"),
+                ctx.t("economy.give.failed.description", "You don't own **{plane}**.", { plane: plane.name }),
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "error" }),
+              ),
+            );
             return;
           }
           throw err;

@@ -90,13 +90,18 @@ export const statsCommands: SlashCommandDefinition[] = [
       const state = initialState(sub, ctx.interaction, days);
       if (!state) {
         await ctx.interaction.reply(
-          resultReply("Stats", "Could not resolve a text channel.", ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          resultReply(
+            ctx.t("stats.title", "Stats"),
+            ctx.t("stats.couldNotResolveChannel", "Could not resolve a text channel."),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "error" }),
+          ),
         );
         return;
       }
 
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
-      const message = await buildStatsMessage(state, ctx.interaction.guild!, ctx.client, ctx.guildConfig, ctx.ephemeral);
+      const message = await buildStatsMessage(state, ctx.interaction.guild!, ctx.client, ctx.guildConfig, ctx.ephemeral, ctx.t);
       await ctx.interaction.editReply({
         flags: MessageFlags.IsComponentsV2,
         files: message.files,
@@ -128,16 +133,24 @@ export const statsCommands: SlashCommandDefinition[] = [
       const guild = ctx.interaction.guild!;
 
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
-      const result = await renderUserRankCard(scope, guild, user);
+      const result = await renderUserRankCard(scope, guild, user, ctx.t);
 
       const leaderboardUrl =
         scope === "global"
           ? getGlobalLeaderboardUrl()
           : (publicLeaderboardUrl(guild.id) ?? getGuildStatsDashboardUrl(guild.id));
-      const leaderboardLabel = scope === "global" ? "Global Leaderboard" : "Server Leaderboard";
+      const leaderboardLabel =
+        scope === "global"
+          ? ctx.t("stats.globalLeaderboard", "Global Leaderboard")
+          : ctx.t("stats.serverLeaderboard", "Server Leaderboard");
+      const scopeLabel = scope === "global" ? ctx.t("stats.scopeGlobal", "global") : ctx.t("stats.scopeServer", "server");
 
       await ctx.interaction.editReply({
-        content: `<:icons_trophy:1544418249721126922> <:dreamlinerlogo:1536010087468892161> This is your ${scope} rank. View [${leaderboardLabel}](<${leaderboardUrl}>)`,
+        content: ctx.t(
+          "stats.rankCardContent",
+          "<:icons_trophy:1544418249721126922> <:dreamlinerlogo:1536010087468892161> This is your {scope} rank. View [{leaderboardLabel}](<{leaderboardUrl}>)",
+          { scope: scopeLabel, leaderboardLabel, leaderboardUrl },
+        ),
         files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
         allowedMentions: { parse: [] },
       });

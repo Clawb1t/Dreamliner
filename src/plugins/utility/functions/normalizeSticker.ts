@@ -1,4 +1,5 @@
 import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 /** Discord's own limits for a guild sticker file. */
 const MAX_STICKER_BYTES = 512_000;
@@ -15,15 +16,15 @@ export type NormalizeStickerResult =
  * sticker limits (320x320, 512KB). Cover-crops to square first so non-square source
  * images (most message attachments) don't get squashed.
  */
-export async function normalizeSticker(raw: Buffer): Promise<NormalizeStickerResult> {
+export async function normalizeSticker(raw: Buffer, t: Translator = defaultTranslator): Promise<NormalizeStickerResult> {
   let image;
   try {
     image = await loadImage(raw);
   } catch {
     return {
       ok: false,
-      title: "Invalid image",
-      details: "That file could not be read as an image.",
+      title: t("utility.normalizeSticker.invalidImageTitle", "Invalid image"),
+      details: t("utility.normalizeSticker.invalidImageBody", "That file could not be read as an image."),
     };
   }
 
@@ -32,8 +33,8 @@ export async function normalizeSticker(raw: Buffer): Promise<NormalizeStickerRes
   if (!srcW || !srcH) {
     return {
       ok: false,
-      title: "Invalid image",
-      details: "That file could not be read as an image.",
+      title: t("utility.normalizeSticker.invalidImageTitle", "Invalid image"),
+      details: t("utility.normalizeSticker.invalidImageBody", "That file could not be read as an image."),
     };
   }
 
@@ -56,7 +57,7 @@ export async function normalizeSticker(raw: Buffer): Promise<NormalizeStickerRes
 
   return {
     ok: false,
-    title: "Image too large",
-    details: "Even shrunk down, that image is too complex to fit Discord's 512KB sticker limit. Try a simpler image.",
+    title: t("utility.normalizeSticker.tooLargeTitle", "Image too large"),
+    details: t("utility.normalizeSticker.tooLargeBody", "Even shrunk down, that image is too complex to fit Discord's 512KB sticker limit. Try a simpler image."),
   };
 }
