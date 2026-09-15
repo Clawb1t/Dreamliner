@@ -788,6 +788,16 @@
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
                 },
+                "can_discofy": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use /discofy to pull a random or searched Discofy avatar/banner.",
+                  "title": "Discofy",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
                 "can_one": {
                   "type": "boolean",
                   "default": false,
@@ -838,6 +848,7 @@
                 "can_create_emoji": false,
                 "can_snipe": false,
                 "can_quote_to_discofy": false,
+                "can_discofy": false,
                 "can_one": false
               },
               "title": "Config"

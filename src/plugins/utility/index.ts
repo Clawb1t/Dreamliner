@@ -6,6 +6,7 @@ import { infoCommands } from "./commands/info.js";
 import { moderationCommands } from "./commands/moderation.js";
 import { voiceCommands, nicknameCommands } from "./commands/voice.js";
 import { metaCommands } from "./commands/meta.js";
+import { discofyCommands } from "./commands/discofy.js";
 import { oneCommands } from "./commands/one.js";
 import { snipeCommands } from "./commands/snipe.js";
 import { contextMenuCommands } from "./commands/contextMenu.js";
@@ -31,6 +32,7 @@ export const utilityPlugin = definePlugin({
     ...voiceCommands,
     ...nicknameCommands,
     ...metaCommands,
+    ...discofyCommands,
     ...oneCommands,
     ...snipeCommands,
   ],

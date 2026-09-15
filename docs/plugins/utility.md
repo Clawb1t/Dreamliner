@@ -31,6 +31,7 @@ The Utility plugin provides server management, search, info, message tools, voic
 | `can_avatar` | `/avatar` |
 | `can_jumbo` | `/jumbo` |
 | `can_stealemoji` | `/stealemoji` |
+| `can_discofy` | `/discofy` |
 | `can_info` | `/info` |
 | `can_convert_gif` | **Convert to GIF** (message context menu) |
 | `can_create_quote` | **Create Quote** (message context menu) |
@@ -251,6 +252,15 @@ Copy a custom emoji into this server from its markup. Works even if Dreamliner i
 | `name` | Optional new name (2-32 letters, numbers, underscores) |
 
 Unicode emoji cannot be stolen. Animated and static emojis both work, subject to the server’s remaining emoji slots.
+
+### `/discofy`
+
+Pull an avatar or banner from [Discofy](https://discofy.net). Requires `DISCOFY_API_KEY` (same key as the "Quote to Discofy" message context command).
+
+| Option | Description |
+|--------|-------------|
+| `type` | `Avatar` or `Banner` (required) |
+| `search` | Search for this instead of getting a random pick |
 
 ---
 

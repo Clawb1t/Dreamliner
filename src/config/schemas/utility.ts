@@ -62,6 +62,7 @@ export const zUtilityConfig = z.strictObject({
   can_create_emoji: boolPerm("use the Create Emoji message context command"),
   can_snipe: boolPerm("use /snipe to bring back the most recently deleted message in a channel"),
   can_quote_to_discofy: boolPerm("use the Quote to Discofy message context command"),
+  can_discofy: boolPerm("use /discofy to pull a random or searched Discofy avatar/banner"),
   can_one: boolPerm("check Dreamliner One status and see the subscribe button for this server"),
 });
 

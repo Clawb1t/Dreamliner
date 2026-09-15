@@ -83,6 +83,7 @@ plugins:
       can_create_emoji: false
       can_snipe: false
       can_quote_to_discofy: false
+      can_discofy: false
       can_one: false
   infractions:
     enabled: false

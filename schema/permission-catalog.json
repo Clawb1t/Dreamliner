@@ -867,6 +867,13 @@
       },
       {
         "plugin": "utility",
+        "permission": "can_discofy",
+        "grantKey": "utility.can_discofy",
+        "title": "Discofy",
+        "description": "Allow members to use /discofy to pull a random or searched Discofy avatar/banner."
+      },
+      {
+        "plugin": "utility",
         "permission": "can_emojiinfo",
         "grantKey": "utility.can_emojiinfo",
         "title": "Emojiinfo",
