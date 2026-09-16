@@ -24,6 +24,7 @@ export type ClipParticipantOut = {
 
 export type ClipSummary = {
   id: string;
+  guildId: string;
   title: string;
   durationMs: number;
   privacy: ClipPrivacy;
@@ -88,6 +89,7 @@ const SUMMARY_PARTICIPANT_CAP = 5;
 function toSummary(clip: ClipRow, participants: ParticipantRow[]): ClipSummary {
   return {
     id: clip.id,
+    guildId: clip.guildId,
     title: clip.title,
     durationMs: clip.durationMs,
     privacy: clip.privacy as ClipPrivacy,
@@ -175,6 +177,26 @@ export async function listClipsGallery(userId: string): Promise<BridgeResult<{ m
     mine: mineRows.map((clip) => toSummary(clip, participantsByClip.get(clip.id) ?? [])),
     appearIn: appearInRows.map((r) => toSummary(r.clip, participantsByClip.get(r.clip.id) ?? [])),
   };
+}
+
+const EXPLORE_CLIP_LIMIT = 30;
+
+/** Public clips captured in one server, newest first — the "Explore" feed on the website. Unlike
+ *  listClipsGallery above, this isn't scoped to a viewer's own clips; the bridge route calling
+ *  this already checked the requester is a member of `guildId` before we get here, and privacy is
+ *  still enforced here too (only "public" rows) so a caller can't widen it by skipping that route. */
+export async function listGuildPublicClips(guildId: string): Promise<BridgeResult<{ clips: ClipSummary[] }>> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(voiceClips)
+    .where(and(eq(voiceClips.guildId, guildId), eq(voiceClips.privacy, "public"), isNull(voiceClips.deletedAt)))
+    .orderBy(desc(voiceClips.createdAt))
+    .limit(EXPLORE_CLIP_LIMIT)
+    .all();
+
+  const participantsByClip = await loadParticipantsForClips(rows.map((c) => c.id));
+  return { ok: true, clips: rows.map((clip) => toSummary(clip, participantsByClip.get(clip.id) ?? [])) };
 }
 
 export type GetClipResult =

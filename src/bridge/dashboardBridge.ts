@@ -595,6 +595,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
         const clipsGalleryMatch = /^\/bridge\/users\/(\d+)\/clips\/gallery$/.exec(url.pathname);
+        const guildPublicClipsMatch = /^\/bridge\/guilds\/(\d+)\/clips\/public$/.exec(url.pathname);
         const clipVerifyPasswordMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/verify-password$/.exec(url.pathname);
         const clipMediaMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/media$/.exec(url.pathname);
         const clipMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)$/.exec(url.pathname);
@@ -990,6 +991,35 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (clipsGalleryMatch && req.method === "GET") {
           const { listClipsGallery } = await import("./webClips.js");
           const result = await listClipsGallery(clipsGalleryMatch[1]!);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (guildPublicClipsMatch && req.method === "GET") {
+          const guildId = guildPublicClipsMatch[1]!;
+          const guild = client.guilds.cache.get(guildId);
+          if (!guild) {
+            sendJson(res, 404, { error: "Guild not found (bot is not in that server)." });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          // Explore is scoped to servers you share with the bot — being a plain member (not
+          // Manage Server) is enough to see the public clips your own server has captured.
+          const member = await guild.members.fetch(userId).catch(() => null);
+          if (!member) {
+            sendJson(res, 403, { error: "You must be a member of this server to see its clips." });
+            return;
+          }
+          const { listGuildPublicClips } = await import("./webClips.js");
+          const result = await listGuildPublicClips(guildId);
           if (!result.ok) {
             sendJson(res, result.status, { error: result.error });
             return;
