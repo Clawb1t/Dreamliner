@@ -594,6 +594,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
+        const clipsGalleryMatch = /^\/bridge\/users\/(\d+)\/clips\/gallery$/.exec(url.pathname);
+        const clipVerifyPasswordMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/verify-password$/.exec(url.pathname);
+        const clipMediaMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/media$/.exec(url.pathname);
+        const clipMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)$/.exec(url.pathname);
 
         if (req.method === "GET" && url.pathname === "/bridge/tts/voices") {
           const { listTtsVoicesForWeb } = await import("./webTts.js");
@@ -973,6 +977,150 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (deleteDataMatch && req.method === "DELETE") {
           const { deleteUserPersonalData } = await import("./userProfiles.js");
           const result = await deleteUserPersonalData(deleteDataMatch[1]!);
+          sendJson(res, 200, result);
+          return;
+        }
+
+        // --- Voice clips -----------------------------------------------------------------
+        // Not guild-scoped (a clip is owned by a user, not a guild) — same shape as the
+        // /bridge/users/:userId/... routes above, but webClips.ts does its own real
+        // ownership/privacy checks rather than trusting the path, since audio content is more
+        // sensitive than what that thinner convention was built for.
+
+        if (clipsGalleryMatch && req.method === "GET") {
+          const { listClipsGallery } = await import("./webClips.js");
+          const result = await listClipsGallery(clipsGalleryMatch[1]!);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (clipVerifyPasswordMatch && req.method === "POST") {
+          let body: { password?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (typeof body.password !== "string" || !body.password) {
+            sendJson(res, 400, { error: "password is required." });
+            return;
+          }
+          const { verifyClipPassword } = await import("./webClips.js");
+          const result = await verifyClipPassword(clipVerifyPasswordMatch[1]!, body.password);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (clipMediaMatch && req.method === "GET") {
+          const viewerId = url.searchParams.get("viewerId");
+          const passwordVerified = url.searchParams.get("passwordVerified") === "true";
+          const rangeHeader = req.headers.range;
+          const rangeMatch = typeof rangeHeader === "string" ? /^bytes=(\d+)-(\d*)$/.exec(rangeHeader) : null;
+
+          const { getClipMedia } = await import("./webClips.js");
+          const result = await getClipMedia(
+            clipMediaMatch[1]!,
+            viewerId,
+            passwordVerified,
+            rangeMatch ? { start: Number(rangeMatch[1]), end: rangeMatch[2] ? Number(rangeMatch[2]) : Infinity } : undefined,
+          );
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          if (result.range) {
+            res.writeHead(206, {
+              "Content-Type": result.contentType,
+              "Content-Length": result.buffer.length,
+              "Content-Range": `bytes ${result.range.start}-${result.range.end}/${result.totalSize}`,
+              "Accept-Ranges": "bytes",
+              "Cache-Control": "private, max-age=3600",
+            });
+            res.end(result.buffer);
+            return;
+          }
+          res.writeHead(200, {
+            "Content-Type": result.contentType,
+            "Content-Length": result.buffer.length,
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "private, max-age=3600",
+          });
+          res.end(result.buffer);
+          return;
+        }
+
+        if (clipMatch && req.method === "GET") {
+          const viewerId = url.searchParams.get("viewerId");
+          const passwordVerified = url.searchParams.get("passwordVerified") === "true";
+          const { getClip } = await import("./webClips.js");
+          const result = await getClip(clipMatch[1]!, viewerId, passwordVerified);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (clipMatch && req.method === "PATCH") {
+          let body: {
+            userId?: string;
+            title?: unknown;
+            trimStartMs?: unknown;
+            trimEndMs?: unknown;
+            privacy?: unknown;
+            password?: unknown;
+            keepForever?: unknown;
+          };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          const { updateClip } = await import("./webClips.js");
+          const result = await updateClip(clipMatch[1]!, userId, {
+            title: typeof body.title === "string" ? body.title : undefined,
+            trimStartMs: typeof body.trimStartMs === "number" ? body.trimStartMs : undefined,
+            trimEndMs: typeof body.trimEndMs === "number" ? body.trimEndMs : undefined,
+            privacy: typeof body.privacy === "string" ? (body.privacy as "public" | "password" | "private") : undefined,
+            password: typeof body.password === "string" ? body.password : undefined,
+            keepForever: typeof body.keepForever === "boolean" ? body.keepForever : undefined,
+          });
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (clipMatch && req.method === "DELETE") {
+          const userId = url.searchParams.get("userId");
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          const { deleteClip } = await import("./webClips.js");
+          const result = await deleteClip(clipMatch[1]!, userId);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
           sendJson(res, 200, result);
           return;
         }

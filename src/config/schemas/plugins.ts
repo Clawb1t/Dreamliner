@@ -436,8 +436,10 @@ export {
 import { zCompanionChannelsConfig } from "./companion.js";
 
 export { zTtsConfig, type TtsConfig } from "./tts.js";
+export { zClippingConfig, type ClippingConfig } from "./clipping.js";
 
 import { zTtsConfig } from "./tts.js";
+import { zClippingConfig } from "./clipping.js";
 
 export const zNameHistoryConfig = z.strictObject({
   can_view: boolPerm("view name history"),
@@ -546,6 +548,7 @@ export const zRemindersPluginSection = zPluginSection(zRemindersConfig.shape);
 export const zCountersPluginSection = zPluginSection(zCountersConfig.shape);
 export const zCompanionChannelsPluginSection = zPluginSection(zCompanionChannelsConfig.shape);
 export const zTtsPluginSection = zPluginSection(zTtsConfig.shape);
+export const zClippingPluginSection = zPluginSection(zClippingConfig.shape);
 export const zNameHistoryPluginSection = zPluginSection(zNameHistoryConfig.shape);
 export const zUsernameSaverPluginSection = zPluginSection(zUsernameSaverConfig.shape);
 export const zMemberIdentityPluginSection = zPluginSection(zMemberIdentityConfig.shape);

@@ -8408,6 +8408,78 @@
           "default": {},
           "title": "Tts"
         },
+        "clipping": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "can_record": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to start a voice recording session with /clipping start.",
+                  "title": "Record",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_clip": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to export a clip of recent voice activity with /clip.",
+                  "title": "Clip",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "clip_max_seconds": {
+                  "type": "number",
+                  "enum": [
+                    30,
+                    60,
+                    120,
+                    240,
+                    300
+                  ],
+                  "default": 300,
+                  "description": "Longest clip /clip can export. Matches /clip's own time choices (30 seconds, 1, 2, 4, or 5 minutes).",
+                  "title": "Clip Max Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "retention_days": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 365,
+                  "default": 30,
+                  "description": "Days an exported clip is kept before automatic deletion, unless its owner marks it to keep forever from the website.",
+                  "title": "Retention Days"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "can_record": false,
+                "can_clip": false,
+                "clip_max_seconds": 300,
+                "retention_days": 30
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Clipping"
+        },
         "name_history": {
           "type": "object",
           "properties": {

@@ -131,6 +131,54 @@ export const caseEvidenceFiles = sqliteTable(
   (table) => [index("case_evidence_files_case").on(table.caseId)],
 );
 
+/** One exported voice clip (metadata only — the mp4 itself lives on disk under
+ * data/guild-assets/<guildId>/clips/<id>.mp4, same convention as caseEvidenceFiles). The clip's
+ * own id doubles as its unguessable share link, so no separate share-token column is needed. */
+export const voiceClips = sqliteTable(
+  "voice_clips",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    ownerId: text("owner_id").notNull(),
+    title: text("title").notNull().default(""),
+    durationMs: integer("duration_ms", { mode: "number" }).notNull(),
+    fileName: text("file_name").notNull(),
+    byteSize: integer("byte_size", { mode: "number" }).notNull(),
+    /** "public" | "password" | "private" — see resolveClipAccess() in the clipping plugin. */
+    privacy: text("privacy").notNull().default("public"),
+    passwordHash: text("password_hash"),
+    keepForever: integer("keep_forever", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+    editedAt: integer("edited_at", { mode: "timestamp" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    /** JSON array of {startMs, endMs, text} segments from a local Whisper model, or null if
+     * transcription is still running or failed — generated in the background after export so it
+     * never blocks /clip's reply. */
+    transcript: text("transcript"),
+  },
+  (table) => [index("voice_clips_owner").on(table.ownerId), index("voice_clips_expires").on(table.expiresAt)],
+);
+
+/** A participant captured in a voice clip, snapshotted at export time (avatar/name/username can
+ * change or the user can leave the guild later — the clip page must still show who they were). */
+export const voiceClipParticipants = sqliteTable(
+  "voice_clip_participants",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    clipId: text("clip_id").notNull(),
+    userId: text("user_id").notNull(),
+    displayName: text("display_name").notNull(),
+    username: text("username").notNull(),
+    avatarUrl: text("avatar_url"),
+  },
+  (table) => [
+    index("voice_clip_participants_clip").on(table.clipId),
+    index("voice_clip_participants_user").on(table.userId),
+  ],
+);
+
 export const guildMessageCounts = sqliteTable(
   "guild_message_counts",
   {

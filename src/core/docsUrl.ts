@@ -67,6 +67,16 @@ export function getAccountVoiceUrl(): string {
   return `${resolveSiteUrl()}/account?tab=voice`;
 }
 
+/** Dreamliner Clips gallery — clips a member captured, and clips they appear in. */
+export function getClipsGalleryUrl(): string {
+  return `${resolveSiteUrl()}/clips`;
+}
+
+/** A single clip's public/shareable page. */
+export function getClipUrl(clipId: string): string {
+  return `${resolveSiteUrl()}/clips/${clipId}`;
+}
+
 export function getGlobalStatsUrl(): string {
   return `${resolveSiteUrl()}/stats`;
 }

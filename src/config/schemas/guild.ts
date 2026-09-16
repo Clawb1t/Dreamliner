@@ -39,6 +39,7 @@ import {
   zStatsPluginSection,
   zTagsPluginSection,
   zTtsPluginSection,
+  zClippingPluginSection,
   zUsernameSaverPluginSection,
   zWelcomeMessagePluginSection,
 } from "./plugins.js";
@@ -259,6 +260,7 @@ export const zGuildConfig = z.strictObject({
       counters: zCountersPluginSection.default({}),
       companion_channels: zCompanionChannelsPluginSection.default({}),
       tts: zTtsPluginSection.default({}),
+      clipping: zClippingPluginSection.default({}),
       name_history: zNameHistoryPluginSection.default({}),
       username_saver: zUsernameSaverPluginSection.default({}),
       locate_user: zLocateUserPluginSection.default({}),

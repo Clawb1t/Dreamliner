@@ -35,6 +35,27 @@
     ]
   },
   {
+    "plugin": "clipping",
+    "pluginName": "Clipping",
+    "pluginDescription": "Record voice channel activity and export shareable clips with /clipping and /clip.",
+    "entries": [
+      {
+        "plugin": "clipping",
+        "permission": "can_clip",
+        "grantKey": "clipping.can_clip",
+        "title": "Clip",
+        "description": "Allow members to export a clip of recent voice activity with /clip."
+      },
+      {
+        "plugin": "clipping",
+        "permission": "can_record",
+        "grantKey": "clipping.can_record",
+        "title": "Record",
+        "description": "Allow members to start a voice recording session with /clipping start."
+      }
+    ]
+  },
+  {
     "plugin": "dream_commands",
     "pluginName": "Commands",
     "pluginDescription": "Custom slash commands built visually on the dashboard.",

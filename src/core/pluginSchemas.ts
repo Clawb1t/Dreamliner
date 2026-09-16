@@ -37,6 +37,7 @@ import {
   zRemindersConfig,
   zTagsConfig,
   zTtsConfig,
+  zClippingConfig,
   zWelcomeMessageConfig,
 } from "../config/schemas/plugins.js";
 import { getLogger } from "./logger.js";
@@ -81,6 +82,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   suggestions: zSuggestionsConfig,
   tickets: zTicketsConfig,
   tts: zTtsConfig,
+  clipping: zClippingConfig,
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

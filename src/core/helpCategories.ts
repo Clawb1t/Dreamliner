@@ -96,6 +96,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       { plugin: "welcome_message" },
       { plugin: "companion_channels" },
       { plugin: "tts" },
+      { plugin: "clipping" },
     ],
   },
   {
@@ -360,6 +361,11 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Text-to-speech",
     description: "Speak text aloud in a voice channel with /tts, powered by local Piper text-to-speech.",
   },
+  clipping: {
+    key: "clipping",
+    name: "Clipping",
+    description: "Record voice channel activity and export shareable clips with /clipping and /clip.",
+  },
   booster_roles: {
     key: "booster_roles",
     name: "Booster Roles",
@@ -396,6 +402,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   companion_channels: "engage",
   starboard: "engage",
   tts: "engage",
+  clipping: "engage",
   tags: "respond",
   autoreplies: "respond",
   autothreads: "respond",

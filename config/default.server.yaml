@@ -616,6 +616,13 @@ plugins:
       max_characters: 300
       cooldown_seconds: 0.5
       announce_speaker: false
+  clipping:
+    enabled: false
+    config:
+      can_record: false
+      can_clip: false
+      clip_max_seconds: 300
+      retention_days: 30
   name_history:
     enabled: false
     config:

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-15T17:53:16.630Z",
+  "generatedAt": "2026-09-16T12:21:29.189Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -148,6 +148,11 @@
           "key": "tts",
           "name": "Text-to-speech",
           "description": "Speak text aloud in a voice channel with /tts, powered by local Piper text-to-speech."
+        },
+        {
+          "key": "clipping",
+          "name": "Clipping",
+          "description": "Record voice channel activity and export shareable clips with /clipping and /clip."
         }
       ]
     },
@@ -433,6 +438,13 @@
       "key": "tts",
       "name": "Text-to-speech",
       "description": "Speak text aloud in a voice channel with /tts, powered by local Piper text-to-speech.",
+      "category": "Engagement",
+      "categoryId": "engage"
+    },
+    {
+      "key": "clipping",
+      "name": "Clipping",
+      "description": "Record voice channel activity and export shareable clips with /clipping and /clip.",
       "category": "Engagement",
       "categoryId": "engage"
     },
