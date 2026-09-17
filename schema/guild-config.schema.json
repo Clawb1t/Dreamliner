@@ -8293,7 +8293,11 @@
           },
           "additionalProperties": false,
           "default": {},
-          "title": "Companion Channels"
+          "title": "Companion Channels",
+          "x-dreamliner": {
+            "kind": "channel",
+            "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+          }
         },
         "tts": {
           "type": "object",
@@ -8407,6 +8411,283 @@
           "additionalProperties": false,
           "default": {},
           "title": "Tts"
+        },
+        "music": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "dj_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Roles treated as DJs: can force-skip, manage anyone's queue items, and bypass vote-skip. Configurable here or via /music dj.",
+                  "title": "Dj Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "dj_mode": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "When enabled, only DJs (and a track's own requester, for their own track) can control playback. When off, anyone with the relevant permission may act directly and vote-skip governs skip requests from everyone else.",
+                  "title": "Dj Mode"
+                },
+                "vote_skip_threshold_percent": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "maximum": 100,
+                  "default": 50,
+                  "description": "Percentage of non-bot members currently in the voice channel that must vote to skip the current track (rounded up, minimum 1 vote).",
+                  "title": "Vote Skip Threshold Percent"
+                },
+                "vote_skip_timeout_seconds": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "maximum": 300,
+                  "default": 60,
+                  "description": "How long a vote-skip stays open before it expires if the threshold isn't reached.",
+                  "title": "Vote Skip Timeout Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "default_volume": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 150,
+                  "default": 80,
+                  "description": "Volume (%) a fresh player starts at.",
+                  "title": "Default Volume"
+                },
+                "max_queue_size": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "maximum": 1000,
+                  "default": 200,
+                  "description": "Maximum tracks allowed in the queue at once.",
+                  "title": "Max Queue Size"
+                },
+                "max_track_duration_minutes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 600,
+                  "default": 0,
+                  "description": "Reject tracks longer than this many minutes. 0 = no limit.",
+                  "title": "Max Track Duration Minutes"
+                },
+                "allowed_filters": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "nightcore",
+                      "vaporwave",
+                      "bassboost",
+                      "8d",
+                      "karaoke"
+                    ]
+                  },
+                  "default": [
+                    "none",
+                    "nightcore",
+                    "vaporwave",
+                    "bassboost",
+                    "8d",
+                    "karaoke"
+                  ],
+                  "description": "Which /music filter presets members may use on this server.",
+                  "title": "Allowed Filters"
+                },
+                "allowed_voice_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "If set, music can only be played in these voice channels. Empty allows any voice channel.",
+                  "title": "Allowed Voice Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "allowed_text_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "If set, music commands only work in these text channels. Empty allows any channel.",
+                  "title": "Allowed Text Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "announce_now_playing": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Post a now-playing message automatically whenever a new track starts.",
+                  "title": "Announce Now Playing"
+                },
+                "announce_channel_id": {
+                  "type": "string",
+                  "description": "Text channel now-playing announcements are posted to. Falls back to the channel /music play was run in when unset. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Announce Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "stay_connected_247": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Keep the bot connected even when the queue is empty and nobody is listening, instead of auto-leaving.",
+                  "title": "Stay Connected 247"
+                },
+                "auto_leave_empty_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3600,
+                  "default": 120,
+                  "description": "Seconds to wait after the voice channel empties of non-bot members before leaving. Ignored when 24/7 is on. 0 leaves immediately.",
+                  "title": "Auto Leave Empty Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "can_play": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to queue tracks with /music play and /music search.",
+                  "title": "Play",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_control_playback": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to pause, resume, seek, adjust volume, and apply filters.",
+                  "title": "Control Playback",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_skip": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to start or join a vote-skip on the current track.",
+                  "title": "Skip",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_force_skip": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to force-skip immediately without a vote (also implied by DJ status).",
+                  "title": "Force Skip",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage_queue": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to remove, move, clear, and shuffle queue entries, and set loop mode.",
+                  "title": "Manage Queue",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage_playlists": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to save, load, rename, and delete their own saved playlists.",
+                  "title": "Manage Playlists",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage_dj": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to configure the DJ role list and DJ mode with /music dj.",
+                  "title": "Manage Dj",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage_settings": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to configure announce channel, restricted channels, default volume, and 24/7 mode with /musicconfig.",
+                  "title": "Manage Settings",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "dj_roles": [],
+                "dj_mode": false,
+                "vote_skip_threshold_percent": 50,
+                "vote_skip_timeout_seconds": 60,
+                "default_volume": 80,
+                "max_queue_size": 200,
+                "max_track_duration_minutes": 0,
+                "allowed_filters": [
+                  "none",
+                  "nightcore",
+                  "vaporwave",
+                  "bassboost",
+                  "8d",
+                  "karaoke"
+                ],
+                "allowed_voice_channels": [],
+                "allowed_text_channels": [],
+                "announce_now_playing": false,
+                "stay_connected_247": false,
+                "auto_leave_empty_seconds": 120,
+                "can_play": false,
+                "can_control_playback": false,
+                "can_skip": false,
+                "can_force_skip": false,
+                "can_manage_queue": false,
+                "can_manage_playlists": false,
+                "can_manage_dj": false,
+                "can_manage_settings": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Music"
         },
         "clipping": {
           "type": "object",
@@ -9180,7 +9461,11 @@
                   },
                   "default": [],
                   "description": "If non-empty, /suggest may only be used in these channels.",
-                  "title": "Command Channels"
+                  "title": "Command Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
                 },
                 "ignored_channels": {
                   "type": "array",

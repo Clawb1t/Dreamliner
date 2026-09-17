@@ -10,6 +10,7 @@ import {
   type VoiceConnection,
 } from "@discordjs/voice";
 import { getLogger } from "../../../core/logger.js";
+import { claimVoiceSession, releaseVoiceSession, type VoiceSessionOwner } from "../../../core/voiceSessionRegistry.js";
 import { UserOpusRingBuffer } from "./buffer.js";
 import { playStartChime } from "./notify.js";
 
@@ -95,6 +96,7 @@ export function leaveChannel(guildId: string, reason: string): void {
   clearIdleLeaveTimer(session);
   discardCaptureState(session);
   sessions.delete(guildId);
+  releaseVoiceSession(guildId, "clipping");
 
   try {
     session.connection.destroy();
@@ -125,7 +127,8 @@ export function stopRecording(guildId: string): StopRecordingResult {
 
 export type StartClippingResult =
   | { ok: true; session: ClipSession; resumed: boolean }
-  | { ok: false; reason: "busy_elsewhere" | "join_failed" };
+  | { ok: false; reason: "busy_elsewhere" | "join_failed" }
+  | { ok: false; reason: "blocked_by_other"; ownedBy: VoiceSessionOwner };
 
 export async function startClipping(
   channel: VoiceBasedChannel,
@@ -149,6 +152,9 @@ export async function startClipping(
     return { ok: true, session: existing, resumed: true };
   }
 
+  const claim = claimVoiceSession(guildId, channel.id, "clipping");
+  if (!claim.ok) return { ok: false, reason: "blocked_by_other", ownedBy: claim.ownedBy };
+
   let connection: VoiceConnection;
   try {
     connection = joinVoiceChannel({
@@ -168,6 +174,7 @@ export async function startClipping(
     } catch {
       // Never got far enough to need destroying.
     }
+    releaseVoiceSession(guildId, "clipping");
     return { ok: false, reason: "join_failed" };
   }
 

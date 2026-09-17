@@ -11,6 +11,7 @@ import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
 import { zIncidentResponsePluginSection } from "./incidentResponse.js";
 import { zEconomyPluginSection } from "./economy.js";
+import { zMusicPluginSection } from "./music.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import { zSocialPluginSection } from "./social.js";
 import {
@@ -260,6 +261,7 @@ export const zGuildConfig = z.strictObject({
       counters: zCountersPluginSection.default({}),
       companion_channels: zCompanionChannelsPluginSection.default({}),
       tts: zTtsPluginSection.default({}),
+      music: zMusicPluginSection.default({}),
       clipping: zClippingPluginSection.default({}),
       name_history: zNameHistoryPluginSection.default({}),
       username_saver: zUsernameSaverPluginSection.default({}),

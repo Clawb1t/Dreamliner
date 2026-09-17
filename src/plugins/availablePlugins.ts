@@ -42,6 +42,7 @@ import { ticketsPlugin } from "../plugins/tickets/index.js";
 import { socialPlugin } from "../plugins/social/index.js";
 import { ttsPlugin } from "../plugins/tts/index.js";
 import { clippingPlugin } from "../plugins/clipping/index.js";
+import { musicPlugin } from "../plugins/music/index.js";
 import { debugPlugin } from "../plugins/debug/index.js";
 import { languagePlugin } from "../plugins/language/index.js";
 
@@ -89,6 +90,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   socialPlugin,
   ttsPlugin,
   clippingPlugin,
+  musicPlugin,
   debugPlugin,
   languagePlugin,
 ];

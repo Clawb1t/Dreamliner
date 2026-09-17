@@ -322,6 +322,69 @@
     ]
   },
   {
+    "plugin": "music",
+    "pluginName": "Music",
+    "pluginDescription": "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists.",
+    "entries": [
+      {
+        "plugin": "music",
+        "permission": "can_control_playback",
+        "grantKey": "music.can_control_playback",
+        "title": "Control Playback",
+        "description": "Allow members to pause, resume, seek, adjust volume, and apply filters."
+      },
+      {
+        "plugin": "music",
+        "permission": "can_force_skip",
+        "grantKey": "music.can_force_skip",
+        "title": "Force Skip",
+        "description": "Allow members to force-skip immediately without a vote (also implied by DJ status)."
+      },
+      {
+        "plugin": "music",
+        "permission": "can_manage_dj",
+        "grantKey": "music.can_manage_dj",
+        "title": "Manage Dj",
+        "description": "Allow members to configure the DJ role list and DJ mode with /music dj."
+      },
+      {
+        "plugin": "music",
+        "permission": "can_manage_playlists",
+        "grantKey": "music.can_manage_playlists",
+        "title": "Manage Playlists",
+        "description": "Allow members to save, load, rename, and delete their own saved playlists."
+      },
+      {
+        "plugin": "music",
+        "permission": "can_manage_queue",
+        "grantKey": "music.can_manage_queue",
+        "title": "Manage Queue",
+        "description": "Allow members to remove, move, clear, and shuffle queue entries, and set loop mode."
+      },
+      {
+        "plugin": "music",
+        "permission": "can_manage_settings",
+        "grantKey": "music.can_manage_settings",
+        "title": "Manage Settings",
+        "description": "Allow members to configure announce channel, restricted channels, default volume, and 24/7 mode with /musicconfig."
+      },
+      {
+        "plugin": "music",
+        "permission": "can_play",
+        "grantKey": "music.can_play",
+        "title": "Play",
+        "description": "Allow members to queue tracks with /music play and /music search."
+      },
+      {
+        "plugin": "music",
+        "permission": "can_skip",
+        "grantKey": "music.can_skip",
+        "title": "Skip",
+        "description": "Allow members to start or join a vote-skip on the current track."
+      }
+    ]
+  },
+  {
     "plugin": "name_history",
     "pluginName": "Name history",
     "pluginDescription": "Track nickname and username changes.",

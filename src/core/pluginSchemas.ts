@@ -9,6 +9,7 @@ import { zTicketsConfig } from "../config/schemas/tickets.js";
 import { zScamProtectConfig } from "../config/schemas/scamProtect.js";
 import { zPassportConfig } from "../config/schemas/passport.js";
 import { zEconomyConfig } from "../config/schemas/economy.js";
+import { zMusicConfig } from "../config/schemas/music.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import { zImpersonationConfig } from "../config/schemas/impersonation.js";
 import { zIncidentResponseConfig } from "../config/schemas/incidentResponse.js";
@@ -83,6 +84,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   tickets: zTicketsConfig,
   tts: zTtsConfig,
   clipping: zClippingConfig,
+  music: zMusicConfig,
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

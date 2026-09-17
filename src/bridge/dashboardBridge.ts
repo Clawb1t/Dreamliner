@@ -11,6 +11,7 @@ import {
 import { isDashboardSuperuser } from "./superuser.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
 import { getLogger } from "../core/logger.js";
+import type { WebMusicTrack } from "./webMusic.js";
 
 const log = getLogger("bridge");
 
@@ -138,6 +139,18 @@ async function memberCanManage(guild: Guild, userId: string): Promise<boolean> {
       member.permissions.has(PermissionFlagsBits.Administrator) ||
       member.permissions.has(PermissionFlagsBits.ManageGuild)
     );
+  } catch {
+    return false;
+  }
+}
+
+/** Lighter than memberCanManage - just "is this Discord user actually in the server", for the
+ *  music web player page, which any member should be able to use, not just Manage Server staff. */
+async function memberIsInGuild(guild: Guild, userId: string): Promise<boolean> {
+  if (isDashboardSuperuser(userId)) return true;
+  try {
+    await guild.members.fetch(userId);
+    return true;
   } catch {
     return false;
   }
@@ -595,6 +608,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
         const clipsGalleryMatch = /^\/bridge\/users\/(\d+)\/clips\/gallery$/.exec(url.pathname);
+        const musicActiveMatch = /^\/bridge\/users\/(\d+)\/music\/active$/.exec(url.pathname);
+        // A distinct path segment (not nested under /playlists/) so it can never collide with a
+        // user-chosen playlist name (e.g. someone literally naming a playlist "search").
+        const playlistSearchMatch = /^\/bridge\/users\/(\d+)\/playlist-search$/.exec(url.pathname);
+        const playlistTrackMatch =
+          /^\/bridge\/users\/(\d+)\/playlists\/([^/]+)\/tracks\/(\d+)$/.exec(url.pathname);
+        const playlistTracksMatch = /^\/bridge\/users\/(\d+)\/playlists\/([^/]+)\/tracks$/.exec(url.pathname);
+        const playlistOneMatch = /^\/bridge\/users\/(\d+)\/playlists\/([^/]+)$/.exec(url.pathname);
+        const playlistsMatch = /^\/bridge\/users\/(\d+)\/playlists$/.exec(url.pathname);
         const guildPublicClipsMatch = /^\/bridge\/guilds\/(\d+)\/clips\/public$/.exec(url.pathname);
         const clipVerifyPasswordMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/verify-password$/.exec(url.pathname);
         const clipMediaMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/media$/.exec(url.pathname);
@@ -991,6 +1013,145 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (clipsGalleryMatch && req.method === "GET") {
           const { listClipsGallery } = await import("./webClips.js");
           const result = await listClipsGallery(clipsGalleryMatch[1]!);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (musicActiveMatch && req.method === "GET") {
+          const { getActiveUserMusicSession } = await import("./webMusic.js");
+          sendJson(res, 200, await getActiveUserMusicSession(client, musicActiveMatch[1]!));
+          return;
+        }
+
+        // --- Saved playlists ---------------------------------------------------------------
+        // User-scoped, not guild-scoped (same reasoning as clips above) — a playlist belongs to
+        // whoever saved it, independent of any one server.
+
+        if (playlistSearchMatch && req.method === "GET") {
+          const { searchForPlaylist } = await import("./webPlaylists.js");
+          const q = url.searchParams.get("q")?.trim() ?? "";
+          const result = await searchForPlaylist(q);
+          if ("error" in result) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (playlistsMatch && req.method === "GET") {
+          const { listWebPlaylists } = await import("./webPlaylists.js");
+          sendJson(res, 200, { playlists: await listWebPlaylists(playlistsMatch[1]!) });
+          return;
+        }
+
+        if (playlistsMatch && req.method === "POST") {
+          let body: { name?: string; tracks?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (!body.name || !Array.isArray(body.tracks)) {
+            sendJson(res, 400, { error: "name and tracks are required" });
+            return;
+          }
+          const { createWebPlaylist } = await import("./webPlaylists.js");
+          const result = await createWebPlaylist(playlistsMatch[1]!, body.name, body.tracks as never[]);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (playlistOneMatch && req.method === "GET") {
+          const { getWebPlaylist } = await import("./webPlaylists.js");
+          const playlist = await getWebPlaylist(playlistOneMatch[1]!, decodeURIComponent(playlistOneMatch[2]!));
+          if (!playlist) {
+            sendJson(res, 404, { error: "Playlist not found." });
+            return;
+          }
+          sendJson(res, 200, { playlist });
+          return;
+        }
+
+        if (playlistOneMatch && req.method === "PATCH") {
+          let body: { name?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (!body.name) {
+            sendJson(res, 400, { error: "name is required" });
+            return;
+          }
+          const { renameWebPlaylist } = await import("./webPlaylists.js");
+          const result = await renameWebPlaylist(
+            playlistOneMatch[1]!,
+            decodeURIComponent(playlistOneMatch[2]!),
+            body.name,
+          );
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (playlistOneMatch && req.method === "DELETE") {
+          const { deleteWebPlaylist } = await import("./webPlaylists.js");
+          const result = await deleteWebPlaylist(playlistOneMatch[1]!, decodeURIComponent(playlistOneMatch[2]!));
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (playlistTracksMatch && req.method === "POST") {
+          let body: { track?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (!body.track) {
+            sendJson(res, 400, { error: "track is required" });
+            return;
+          }
+          const { addWebPlaylistTrack } = await import("./webPlaylists.js");
+          const result = await addWebPlaylistTrack(
+            playlistTracksMatch[1]!,
+            decodeURIComponent(playlistTracksMatch[2]!),
+            body.track as never,
+          );
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (playlistTrackMatch && req.method === "DELETE") {
+          const { removeWebPlaylistTrack } = await import("./webPlaylists.js");
+          const result = await removeWebPlaylistTrack(
+            playlistTrackMatch[1]!,
+            decodeURIComponent(playlistTrackMatch[2]!),
+            Number(playlistTrackMatch[3]),
+          );
           if (!result.ok) {
             sendJson(res, result.status, { error: result.error });
             return;
@@ -2091,6 +2252,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           /^\/bridge\/guilds\/(\d+)\/incidents(?:\/(\d+)(?:\/(resolve|dismiss))?)?$/.exec(url.pathname);
         const incidentUnlockMatch =
           /^\/bridge\/guilds\/(\d+)\/incidents\/lockdowns\/(\d+)\/unlock$/.exec(url.pathname);
+        const musicSearchMatch = /^\/bridge\/guilds\/(\d+)\/music\/search$/.exec(url.pathname);
+        const musicQueueMatch = /^\/bridge\/guilds\/(\d+)\/music\/queue$/.exec(url.pathname);
+        const musicQueueActionMatch = /^\/bridge\/guilds\/(\d+)\/music\/queue\/(remove|move|clear|playlist)$/.exec(url.pathname);
+        const musicActionMatch =
+          /^\/bridge\/guilds\/(\d+)\/music\/(skip|pause|stop|shuffle|loop|volume|filter|join)$/.exec(url.pathname);
+        const musicMatch = /^\/bridge\/guilds\/(\d+)\/music$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
@@ -2169,6 +2336,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !incidentResponseConfigMatch &&
           !incidentsMatch &&
           !incidentUnlockMatch &&
+          !musicSearchMatch &&
+          !musicQueueMatch &&
+          !musicQueueActionMatch &&
+          !musicActionMatch &&
+          !musicMatch &&
           !guildMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
@@ -2250,6 +2422,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           incidentResponseConfigMatch?.[1] ??
           incidentsMatch?.[1] ??
           incidentUnlockMatch?.[1] ??
+          musicSearchMatch?.[1] ??
+          musicQueueMatch?.[1] ??
+          musicQueueActionMatch?.[1] ??
+          musicActionMatch?.[1] ??
+          musicMatch?.[1] ??
           guildMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
@@ -3870,6 +4047,195 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const channelId = incidentUnlockMatch[2]!;
           const result = await unlockWebChannel(guild, channelId, userId);
           sendJson(res, result.ok ? 200 : 400, result);
+          return;
+        }
+
+        if (musicMatch || musicSearchMatch || musicQueueMatch || musicQueueActionMatch || musicActionMatch) {
+          const {
+            getWebMusicState,
+            searchWebMusic,
+            queueWebTrack,
+            webSkip,
+            webSetPaused,
+            stopWebPlayer,
+            setWebVolume,
+            setWebFilter,
+            setWebLoopMode,
+            shuffleWebQueue,
+            clearWebQueue,
+            removeWebQueueTrack,
+            moveWebQueueTrack,
+            joinWebVoiceSession,
+            queueWebPlaylist,
+          } = await import("./webMusic.js");
+
+          // Any actual member of the server can use the web player, not just Manage Server staff -
+          // this is meant to be a shared "control the music together" page for the room, not an
+          // admin tool.
+          if (musicMatch && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberIsInGuild(guild, userId))) {
+              sendJson(res, 403, { error: "You need to be a member of this server." });
+              return;
+            }
+            sendJson(res, 200, await getWebMusicState(guild, userId));
+            return;
+          }
+
+          if (musicSearchMatch && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberIsInGuild(guild, userId))) {
+              sendJson(res, 403, { error: "You need to be a member of this server." });
+              return;
+            }
+            const query = url.searchParams.get("q")?.trim() ?? "";
+            const result = await searchWebMusic(guild, userId, query);
+            if ("error" in result) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, result);
+            return;
+          }
+
+          if (musicQueueMatch && req.method === "POST") {
+            let body: { userId?: string; track?: WebMusicTrack };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberIsInGuild(guild, userId))) {
+              sendJson(res, 403, { error: "You need to be a member of this server." });
+              return;
+            }
+            if (!body.track?.encoded) {
+              sendJson(res, 400, { error: "track is required" });
+              return;
+            }
+            const result = await queueWebTrack(guild, userId, body.track);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            // queueWebTrack already logs this itself (music_play, via logMusic) with richer
+            // track detail than a generic dashboard-action entry would carry.
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          if (musicActionMatch && req.method === "POST") {
+            let body: { userId?: string; paused?: boolean; percent?: number; preset?: string; mode?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberIsInGuild(guild, userId))) {
+              sendJson(res, 403, { error: "You need to be a member of this server." });
+              return;
+            }
+            const action = musicActionMatch[2];
+
+            if (action === "skip") {
+              const result = await webSkip(guild, userId);
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              sendJson(res, 200, result);
+              return;
+            }
+
+            const result = await (async () => {
+              switch (action) {
+                case "pause":
+                  return webSetPaused(guild, userId, Boolean(body.paused));
+                case "stop":
+                  return stopWebPlayer(guild, userId);
+                case "shuffle":
+                  return shuffleWebQueue(guild, userId);
+                case "volume":
+                  return setWebVolume(guild, userId, Number(body.percent));
+                case "filter":
+                  return setWebFilter(guild, userId, String(body.preset ?? ""));
+                case "loop":
+                  return setWebLoopMode(guild, userId, String(body.mode ?? ""));
+                case "join":
+                  return joinWebVoiceSession(guild, userId);
+                default:
+                  return { ok: false as const, status: 405, error: "Method not allowed" };
+              }
+            })();
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          if (musicQueueActionMatch && req.method === "POST") {
+            let body: { userId?: string; position?: number; from?: number; to?: number; playlistName?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberIsInGuild(guild, userId))) {
+              sendJson(res, 403, { error: "You need to be a member of this server." });
+              return;
+            }
+            const action = musicQueueActionMatch[2];
+
+            if (action === "playlist") {
+              const playlistName = body.playlistName?.trim();
+              if (!playlistName) {
+                sendJson(res, 400, { error: "playlistName is required" });
+                return;
+              }
+              const { getWebPlaylist } = await import("./webPlaylists.js");
+              const playlist = await getWebPlaylist(userId, playlistName);
+              if (!playlist) {
+                sendJson(res, 404, { error: "Playlist not found." });
+                return;
+              }
+              const result = await queueWebPlaylist(guild, userId, playlist.tracks);
+              if (!result.ok) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              sendJson(res, 200, result);
+              return;
+            }
+
+            const result = await (async () => {
+              switch (action) {
+                case "remove":
+                  return removeWebQueueTrack(guild, userId, Number(body.position));
+                case "move":
+                  return moveWebQueueTrack(guild, userId, Number(body.from), Number(body.to));
+                case "clear":
+                  return clearWebQueue(guild, userId);
+                default:
+                  return { ok: false as const, status: 405, error: "Method not allowed" };
+              }
+            })();
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

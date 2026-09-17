@@ -11,6 +11,7 @@ import {
   type VoiceConnection,
 } from "@discordjs/voice";
 import type { PreparedAudio } from "./synth.js";
+import { claimVoiceSession, releaseVoiceSession, type VoiceSessionOwner } from "../../../core/voiceSessionRegistry.js";
 
 type GuildSession = {
   connection: VoiceConnection;
@@ -37,6 +38,7 @@ function clearIdleTimer(session: GuildSession): void {
 function teardown(guildId: string, session: GuildSession): void {
   clearIdleTimer(session);
   sessions.delete(guildId);
+  releaseVoiceSession(guildId, "tts");
   try {
     session.connection.destroy();
   } catch {
@@ -78,7 +80,10 @@ export function skipCurrent(guildId: string): boolean {
   return true;
 }
 
-export type SpeakResult = { ok: true } | { ok: false; reason: "busy_elsewhere" | "join_failed" };
+export type SpeakResult =
+  | { ok: true }
+  | { ok: false; reason: "busy_elsewhere" | "join_failed" }
+  | { ok: false; reason: "blocked_by_other"; ownedBy: VoiceSessionOwner };
 
 /**
  * Queues `audio` to be spoken in `channel`. Joins the channel if Dreamliner isn't already
@@ -98,6 +103,9 @@ export async function speakInChannel(channel: VoiceBasedChannel, audio: Prepared
   }
 
   if (!session) {
+    const claim = claimVoiceSession(guildId, channel.id, "tts");
+    if (!claim.ok) return { ok: false, reason: "blocked_by_other", ownedBy: claim.ownedBy };
+
     let connection: VoiceConnection;
     try {
       connection = joinVoiceChannel({
@@ -109,6 +117,7 @@ export async function speakInChannel(channel: VoiceBasedChannel, audio: Prepared
       });
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
     } catch {
+      releaseVoiceSession(guildId, "tts");
       return { ok: false, reason: "join_failed" };
     }
 

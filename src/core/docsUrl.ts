@@ -62,6 +62,11 @@ export function getGuildSocialDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=plugin:social`;
 }
 
+/** Per-guild "Spotify-style" web music player - queue tracks, see album art, control playback. */
+export function getGuildMusicPlayerUrl(guildId: string): string {
+  return `${resolveSiteUrl()}/dashboard/${guildId}/music`;
+}
+
 /** Account page's Voice tab — lets a member preview and pick from every installed TTS voice. */
 export function getAccountVoiceUrl(): string {
   return `${resolveSiteUrl()}/account?tab=voice`;

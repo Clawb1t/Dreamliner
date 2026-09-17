@@ -147,6 +147,27 @@ export function containerEdit(
   };
 }
 
+type ContainerEntry = { container: ResultContainer; row?: ActionRowBuilder<MessageActionRowComponentBuilder> };
+
+/** Multiple top-level containers stacked in a single message (e.g. a track container plus a
+ *  separate "manage online" container) — Components V2 messages allow more than one top-level
+ *  container, so this avoids sending a second, separate message just to say something extra. */
+export function containersReply(entries: ContainerEntry[], ephemeral = false): ContainerPayload {
+  return {
+    components: entries.map((e) => e.container.toContainerComponent(e.row ? [e.row.toJSON()] : undefined)),
+    flags: componentsFlags(ephemeral),
+    allowedMentions: NO_PING,
+  };
+}
+
+export function containersEdit(entries: ContainerEntry[]): ContainerPayload {
+  return {
+    components: entries.map((e) => e.container.toContainerComponent(e.row ? [e.row.toJSON()] : undefined)),
+    flags: MessageFlags.IsComponentsV2,
+    allowedMentions: NO_PING,
+  };
+}
+
 export function embedWithFilesReply(
   container: ResultContainer,
   files: AttachmentBuilder[],

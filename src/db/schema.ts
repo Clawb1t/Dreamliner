@@ -1314,3 +1314,83 @@ export const incidentLockdowns = sqliteTable(
     index("incident_lockdowns_unlock_at").on(table.unlockAt),
   ],
 );
+
+// --- Music: user-curated saved playlists (per-user, usable in any server) ---------------------
+
+export const musicPlaylists = sqliteTable(
+  "music_playlists",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    ownerId: text("owner_id").notNull(),
+    name: text("name").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("music_playlists_owner_name").on(table.ownerId, table.name),
+    index("music_playlists_owner").on(table.ownerId),
+  ],
+);
+
+export const musicPlaylistTracks = sqliteTable(
+  "music_playlist_tracks",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    playlistId: integer("playlist_id", { mode: "number" }).notNull(),
+    position: integer("position", { mode: "number" }).notNull(),
+    // Lavalink "encoded" track string - re-resolved via a title/author search fallback if stale.
+    encoded: text("encoded"),
+    title: text("title").notNull(),
+    artist: text("artist"),
+    uri: text("uri"),
+    artworkUrl: text("artwork_url"),
+    durationMs: integer("duration_ms", { mode: "number" }).notNull().default(0),
+    addedAt: integer("added_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("music_playlist_tracks_playlist").on(table.playlistId, table.position)],
+);
+
+// --- Music: resume-on-restart session state ------------------------------------------------
+
+/** One row per guild with an active/paused player, so it can rejoin and resume after a bot
+ *  process restart. Written throttled by sessionPersistence.ts; deleted when the queue naturally
+ *  empties and disconnects (unless stay_connected_247) or on explicit /stop or /leave. */
+export const musicSessions = sqliteTable("music_sessions", {
+  guildId: text("guild_id").primaryKey(),
+  voiceChannelId: text("voice_channel_id").notNull(),
+  textChannelId: text("text_channel_id").notNull(),
+  // Full metadata (not just "encoded") so a track can be reconstructed synthetically on resume
+  // without a re-resolve/decode round trip - encoded alone isn't enough to rebuild a Track object.
+  currentTrackEncoded: text("current_track_encoded"),
+  currentTrackTitle: text("current_track_title"),
+  currentTrackAuthor: text("current_track_author"),
+  currentTrackUri: text("current_track_uri"),
+  currentTrackArtworkUrl: text("current_track_artwork_url"),
+  currentTrackDurationMs: integer("current_track_duration_ms", { mode: "number" }),
+  currentTrackSourceName: text("current_track_source_name"),
+  currentTrackRequestedBy: text("current_track_requested_by"),
+  positionMs: integer("position_ms", { mode: "number" }).notNull().default(0),
+  volume: integer("volume", { mode: "number" }).notNull().default(80),
+  paused: integer("paused", { mode: "boolean" }).notNull().default(false),
+  loopMode: text("loop_mode").notNull().default("off"), // "off" | "track" | "queue"
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Queued-but-not-playing tracks for a guild's session, in order. Child of musicSessions. */
+export const musicQueueItems = sqliteTable(
+  "music_queue_items",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    position: integer("position", { mode: "number" }).notNull(),
+    encoded: text("encoded").notNull(),
+    title: text("title").notNull(),
+    author: text("author"),
+    uri: text("uri"),
+    artworkUrl: text("artwork_url"),
+    durationMs: integer("duration_ms", { mode: "number" }).notNull().default(0),
+    sourceName: text("source_name"),
+    requestedBy: text("requested_by").notNull(),
+  },
+  (table) => [index("music_queue_items_guild").on(table.guildId, table.position)],
+);

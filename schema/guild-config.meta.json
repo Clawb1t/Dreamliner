@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T14:29:19.687Z",
+  "generatedAt": "2026-09-17T11:26:25.412Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -153,6 +153,11 @@
           "key": "clipping",
           "name": "Clipping",
           "description": "Record voice channel activity and export shareable clips with /clipping and /clip."
+        },
+        {
+          "key": "music",
+          "name": "Music",
+          "description": "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists."
         }
       ]
     },
@@ -445,6 +450,13 @@
       "key": "clipping",
       "name": "Clipping",
       "description": "Record voice channel activity and export shareable clips with /clipping and /clip.",
+      "category": "Engagement",
+      "categoryId": "engage"
+    },
+    {
+      "key": "music",
+      "name": "Music",
+      "description": "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists.",
       "category": "Engagement",
       "categoryId": "engage"
     },

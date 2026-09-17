@@ -97,6 +97,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       { plugin: "companion_channels" },
       { plugin: "tts" },
       { plugin: "clipping" },
+      { plugin: "music" },
     ],
   },
   {
@@ -366,6 +367,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Clipping",
     description: "Record voice channel activity and export shareable clips with /clipping and /clip.",
   },
+  music: {
+    key: "music",
+    name: "Music",
+    description:
+      "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists.",
+  },
   booster_roles: {
     key: "booster_roles",
     name: "Booster Roles",
@@ -403,6 +410,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   starboard: "engage",
   tts: "engage",
   clipping: "engage",
+  music: "engage",
   tags: "respond",
   autoreplies: "respond",
   autothreads: "respond",

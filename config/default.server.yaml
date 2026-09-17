@@ -616,6 +616,36 @@ plugins:
       max_characters: 300
       cooldown_seconds: 0.5
       announce_speaker: false
+  music:
+    enabled: false
+    config:
+      dj_roles: []
+      dj_mode: false
+      vote_skip_threshold_percent: 50
+      vote_skip_timeout_seconds: 60
+      default_volume: 80
+      max_queue_size: 200
+      max_track_duration_minutes: 0
+      allowed_filters:
+        - none
+        - nightcore
+        - vaporwave
+        - bassboost
+        - 8d
+        - karaoke
+      allowed_voice_channels: []
+      allowed_text_channels: []
+      announce_now_playing: false
+      stay_connected_247: false
+      auto_leave_empty_seconds: 120
+      can_play: false
+      can_control_playback: false
+      can_skip: false
+      can_force_skip: false
+      can_manage_queue: false
+      can_manage_playlists: false
+      can_manage_dj: false
+      can_manage_settings: false
   clipping:
     enabled: false
     config:

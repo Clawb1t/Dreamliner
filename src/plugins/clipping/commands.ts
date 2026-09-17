@@ -10,6 +10,7 @@ import { voiceClips, voiceClipParticipants } from "../../db/schema.js";
 import { getLogger } from "../../core/logger.js";
 import { CLIP_DURATION_CHOICES_SECONDS } from "../../config/schemas/clipping.js";
 import { getSession, startClipping, stopRecording } from "./functions/session.js";
+import { blockedByMessage } from "../../core/voiceSessionRegistry.js";
 import { playClipChime, playClipFailedChime } from "./functions/notify.js";
 import { mixWindow } from "./functions/mixer.js";
 import { exportClip } from "./functions/export.js";
@@ -76,7 +77,9 @@ export const clippingCommands: SlashCommandDefinition[] = [
           const body =
             result.reason === "busy_elsewhere"
               ? ctx.t("clipping.busyElsewhereBody", "Already recording in another voice channel in this server.")
-              : ctx.t("clipping.joinFailedBody", "Couldn't join that voice channel.");
+              : result.reason === "blocked_by_other"
+                ? blockedByMessage("clipping", result.ownedBy)
+                : ctx.t("clipping.joinFailedBody", "Couldn't join that voice channel.");
           await interaction.reply(
             resultReply(ctx.t("clipping.startTitle", "Start recording"), body, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
           );

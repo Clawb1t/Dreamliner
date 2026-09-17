@@ -6,6 +6,7 @@ import { parsePluginConfig } from "../../../core/pluginSchemas.js";
 import { zTtsConfig } from "../../../config/schemas/tts.js";
 import { synthesize } from "./synth.js";
 import { speakInChannel } from "./session.js";
+import { blockedByMessage } from "../../../core/voiceSessionRegistry.js";
 import { getUserVoice } from "./userVoice.js";
 import { sanitizeSpokenText } from "./sanitizeSpokenText.js";
 import { isTtsBlacklisted } from "./blacklist.js";
@@ -66,7 +67,11 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
 
   const spoken = await speakInChannel(voiceChannel, speech.audio);
   if (!spoken.ok) {
-    await message.react("❌").catch(() => {});
+    if (spoken.reason === "blocked_by_other") {
+      await message.reply(blockedByMessage("tts", spoken.ownedBy)).catch(() => {});
+    } else {
+      await message.react("❌").catch(() => {});
+    }
     return;
   }
 

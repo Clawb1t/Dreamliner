@@ -88,6 +88,18 @@ export const LOG_EVENT_TYPES = [
   "dashboard_ticket",
   "dashboard_tts",
   "dashboard_permission_role",
+  // Music
+  "music_play",
+  "music_skip",
+  "music_stop",
+  "music_playback",
+  "music_queue",
+  "music_filter",
+  "music_dj",
+  "music_playlist",
+  "music_settings",
+  "music_session",
+  "music_error",
 ] as const;
 
 export type LogEventType = (typeof LOG_EVENT_TYPES)[number];
@@ -178,6 +190,17 @@ export const LOG_EVENT_META: Record<
   dashboard_ticket: { label: "Ticket admin", category: "moderation", group: "Dashboard" },
   dashboard_tts: { label: "TTS admin", category: "moderation", group: "Dashboard" },
   dashboard_permission_role: { label: "Dreamliner Role change", category: "server", group: "Dashboard" },
+  music_play: { label: "Track played/queued", category: "server", group: "Music" },
+  music_skip: { label: "Track skipped", category: "server", group: "Music" },
+  music_stop: { label: "Playback stopped", category: "server", group: "Music" },
+  music_playback: { label: "Playback control (pause/resume/volume/seek)", category: "server", group: "Music" },
+  music_queue: { label: "Queue changed", category: "server", group: "Music" },
+  music_filter: { label: "Audio filter changed", category: "server", group: "Music" },
+  music_dj: { label: "DJ settings changed", category: "server", group: "Music" },
+  music_playlist: { label: "Playlist changed", category: "server", group: "Music" },
+  music_settings: { label: "Music settings changed", category: "server", group: "Music" },
+  music_session: { label: "Voice session (join, resume, reconnect)", category: "server", group: "Music" },
+  music_error: { label: "Playback error", category: "server", group: "Music" },
 };
 
 export function isLogEventType(value: string): value is LogEventType {

@@ -35,6 +35,10 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "suggestions.can_vote",
     // tts
     "tts.can_speak",
+    // music
+    "music.can_play",
+    "music.can_skip",
+    "music.can_manage_playlists",
     // utility
     "utility.can_one",
   ],
@@ -66,6 +70,9 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // locate_user
     "locate_user.can_locate",
     "locate_user.can_seen",
+    // music
+    "music.can_control_playback",
+    "music.can_manage_queue",
     // name_history
     "name_history.can_search",
     "name_history.can_view",
@@ -164,6 +171,10 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "infractions.can_delete",
     "infractions.can_softban",
     "infractions.can_unban",
+    // music
+    "music.can_force_skip",
+    "music.can_manage_dj",
+    "music.can_manage_settings",
     // tickets (was >=75 / >=100)
     "tickets.can_blacklist",
     "tickets.can_delete",
