@@ -236,7 +236,7 @@ export async function joinWebVoiceSession(guild: Guild, userId: string): Promise
     return { ok: false, status: 409, error };
   }
   void saveSessionNow(claim.player).catch(() => {});
-  void logMusic(guild.client, guildConfig, guild.id, "music_session", "Music — Joined Voice", [
+  void logMusic(guild.client, guildConfig, guild.id, "music_session", "Music - Joined Voice", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Channel: <#${voiceChannelId}>`,
@@ -302,11 +302,11 @@ export async function queueWebTrack(guild: Guild, userId: string, track: WebMusi
       guildConfig,
       guild.id,
       "music_play",
-      wasPlaying ? "Music — Track Queued" : "Music — Track Started",
+      wasPlaying ? "Music - Track Queued" : "Music - Track Started",
       [
         `By: <@${userId}>`,
         "Source: Web player",
-        `Track: **${track.title}**${track.author ? ` — ${track.author}` : ""} (\`${formatDuration(track.durationMs)}\`)`,
+        `Track: **${track.title}**${track.author ? ` - ${track.author}` : ""} (\`${formatDuration(track.durationMs)}\`)`,
         wasPlaying ? `Position: #${Number(size) || 0} in queue` : "Position: now playing",
       ],
       { actorId: userId, avatarUrl: track.artworkUrl },
@@ -344,12 +344,12 @@ export async function webSkip(guild: Guild, userId: string): Promise<WebSkipResu
   const current = player.queue.current;
   const requesterId = current ? requesterIdOf(current) : null;
   const bypass = canBypassVoteSkip(member, config, config.can_force_skip) || requesterId === userId;
-  const trackLine = current ? `Track: **${current.info.title}**${current.info.author ? ` — ${current.info.author}` : ""}` : "Track: (none)";
+  const trackLine = current ? `Track: **${current.info.title}**${current.info.author ? ` - ${current.info.author}` : ""}` : "Track: (none)";
 
   if (bypass) {
     clearVotes(guild.id);
     await player.skip();
-    void logMusic(guild.client, guildConfig, guild.id, "music_skip", "Music — Track Skipped", [
+    void logMusic(guild.client, guildConfig, guild.id, "music_skip", "Music - Track Skipped", [
       `By: <@${userId}>`,
       "Source: Web player",
       trackLine,
@@ -365,7 +365,7 @@ export async function webSkip(guild: Guild, userId: string): Promise<WebSkipResu
 
   if (result.status === "skipped") {
     await player.skip();
-    void logMusic(guild.client, guildConfig, guild.id, "music_skip", "Music — Track Skipped", [
+    void logMusic(guild.client, guildConfig, guild.id, "music_skip", "Music - Track Skipped", [
       `By: <@${userId}>`,
       "Source: Web player",
       trackLine,
@@ -408,7 +408,7 @@ export async function webSetPaused(guild: Guild, userId: string, paused: boolean
   if (paused) await player.pause();
   else await player.resume();
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_playback", paused ? "Music — Paused" : "Music — Resumed", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_playback", paused ? "Music - Paused" : "Music - Resumed", [
     `By: <@${userId}>`,
     "Source: Web player",
   ], { actorId: userId });
@@ -424,7 +424,7 @@ export async function stopWebPlayer(guild: Guild, userId: string): Promise<WebAc
 
   clearVotes(guild.id);
   await destroyPlayer(guild.id, "stopped from the web player");
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_stop", "Music — Playback Stopped", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_stop", "Music - Playback Stopped", [
     `By: <@${userId}>`,
     "Source: Web player",
   ], { actorId: userId });
@@ -443,7 +443,7 @@ export async function setWebVolume(guild: Guild, userId: string, percent: number
 
   await player.setVolume(percent);
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_playback", "Music — Volume Changed", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_playback", "Music - Volume Changed", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Volume set to **${percent}%**`,
@@ -465,7 +465,7 @@ export async function setWebFilter(guild: Guild, userId: string, preset: string)
   }
 
   await applyFilterPreset(player, preset as MusicFilterPreset);
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_filter", "Music — Filter Changed", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_filter", "Music - Filter Changed", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Filter set to **${preset}**`,
@@ -485,7 +485,7 @@ export async function setWebLoopMode(guild: Guild, userId: string, mode: string)
 
   await player.setRepeatMode(mode as MusicLoopMode);
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music — Loop Mode Changed", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music - Loop Mode Changed", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Loop mode set to **${mode}**`,
@@ -502,7 +502,7 @@ export async function shuffleWebQueue(guild: Guild, userId: string): Promise<Web
 
   await player.queue.shuffle();
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music — Queue Shuffled", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music - Queue Shuffled", [
     `By: <@${userId}>`,
     "Source: Web player",
   ], { actorId: userId });
@@ -518,7 +518,7 @@ export async function clearWebQueue(guild: Guild, userId: string): Promise<WebAc
 
   const count = await clearQueue(player);
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music — Queue Cleared", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music - Queue Cleared", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Cleared **${count}** track${count === 1 ? "" : "s"}`,
@@ -536,7 +536,7 @@ export async function removeWebQueueTrack(guild: Guild, userId: string, position
   const result = await removeAt(player, position);
   if (!result.ok) return { ok: false, status: 400, error: "No track at that position." };
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music — Queue Track Removed", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music - Queue Track Removed", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Removed **${result.title}** (position #${position})`,
@@ -554,7 +554,7 @@ export async function moveWebQueueTrack(guild: Guild, userId: string, from: numb
   const result = await move(player, from, to);
   if (!result.ok) return { ok: false, status: 400, error: "Invalid position." };
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music — Queue Track Moved", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music - Queue Track Moved", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Moved track from #${from} to #${to}`,
@@ -665,7 +665,7 @@ export async function queueWebPlaylist(
   }
   if (!player.playing && !player.queue.current) await player.play();
   void saveSessionNow(player).catch(() => {});
-  void logMusic(guild.client, auth.guildConfig, guild.id, "music_play", "Music — Playlist Queued", [
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_play", "Music - Playlist Queued", [
     `By: <@${userId}>`,
     "Source: Web player",
     `Queued ${queued} track${queued === 1 ? "" : "s"}${skipped ? `, ${skipped} skipped` : ""}`,

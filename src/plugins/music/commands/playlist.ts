@@ -78,7 +78,7 @@ export const playlistCommand: SlashCommandDefinition = {
         return;
       }
       await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Renamed **${name}** to **${newName}**.`, ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_playlist", "Music — Playlist Renamed", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_playlist", "Music - Playlist Renamed", [
         `By: <@${ownerId}>`,
         `Renamed **${name}** to **${newName}**`,
       ], { actorId: ownerId, emojiCategory: "edit" });
@@ -93,7 +93,7 @@ export const playlistCommand: SlashCommandDefinition = {
         return;
       }
       await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Deleted playlist **${name}**.`, ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_playlist", "Music — Playlist Deleted", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_playlist", "Music - Playlist Deleted", [
         `By: <@${ownerId}>`,
         `Deleted playlist **${name}**`,
       ], { actorId: ownerId, emojiCategory: "delete" });
@@ -119,7 +119,7 @@ export const playlistCommand: SlashCommandDefinition = {
       await interaction.reply(
         lineReply(`${MUSIC_EMOJI.success} Saved **${tracks.length}** track${tracks.length === 1 ? "" : "s"} as **${result.playlist.name}**.`, ephemeral),
       );
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_playlist", "Music — Playlist Saved", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_playlist", "Music - Playlist Saved", [
         `By: <@${ownerId}>`,
         `Saved **${tracks.length}** track${tracks.length === 1 ? "" : "s"} as **${result.playlist.name}**`,
       ], { actorId: ownerId, emojiCategory: "create" });
@@ -201,7 +201,7 @@ export const playlistCommand: SlashCommandDefinition = {
     await interaction.editReply(
       lineEdit(`${MUSIC_EMOJI.playlist} Queued **${queued}** track${queued === 1 ? "" : "s"} from **${playlist.name}**${failedNote}.`),
     );
-    void logMusic(interaction.client, ctx.guildConfig, guildId, "music_play", "Music — Playlist Loaded", [
+    void logMusic(interaction.client, ctx.guildConfig, guildId, "music_play", "Music - Playlist Loaded", [
       `By: <@${ownerId}>`,
       "Source: Discord (/playlist load)",
       `Queued **${queued}** track${queued === 1 ? "" : "s"} from **${playlist.name}**${failedNote}`,

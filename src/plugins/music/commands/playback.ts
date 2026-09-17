@@ -62,9 +62,9 @@ export const playbackCommands: SlashCommandDefinition[] = [
         clearVotes(guildId);
         await player.skip();
         await interaction.reply(lineReply(skippedLine(current), ephemeral));
-        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_skip", "Music — Track Skipped", [
+        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_skip", "Music - Track Skipped", [
           `By: <@${interaction.user.id}>`,
-          current ? `Track: **${current.info.title}**${current.info.author ? ` — ${current.info.author}` : ""}` : "Track: (none)",
+          current ? `Track: **${current.info.title}**${current.info.author ? ` - ${current.info.author}` : ""}` : "Track: (none)",
           "Method: Direct skip",
         ], { actorId: interaction.user.id });
         return;
@@ -77,10 +77,10 @@ export const playbackCommands: SlashCommandDefinition[] = [
 
       if (result.status === "skipped") {
         await player.skip();
-        await interaction.reply(lineReply(`${MUSIC_EMOJI.vote} Vote passed — ${skippedLine(current)}`, ephemeral));
-        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_skip", "Music — Track Skipped", [
+        await interaction.reply(lineReply(`${MUSIC_EMOJI.vote} Vote passed. ${skippedLine(current)}`, ephemeral));
+        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_skip", "Music - Track Skipped", [
           `By: <@${interaction.user.id}>`,
-          current ? `Track: **${current.info.title}**${current.info.author ? ` — ${current.info.author}` : ""}` : "Track: (none)",
+          current ? `Track: **${current.info.title}**${current.info.author ? ` - ${current.info.author}` : ""}` : "Track: (none)",
           `Method: Vote passed (${need} needed)`,
         ], { actorId: interaction.user.id });
         return;
@@ -111,7 +111,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       clearVotes(guildId);
       await destroyPlayer(guildId, "stopped via /stop");
       await interaction.reply(lineReply(stoppedLine(), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_stop", "Music — Playback Stopped", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_stop", "Music - Playback Stopped", [
         `By: <@${interaction.user.id}>`,
         "Source: Discord (/stop)",
       ], { actorId: interaction.user.id });
@@ -133,7 +133,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       await player.pause();
       void saveSessionNow(player).catch(() => {});
       await interaction.reply(lineReply(pausedLine(), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music — Paused", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music - Paused", [
         `By: <@${interaction.user.id}>`,
       ], { actorId: interaction.user.id });
     },
@@ -154,7 +154,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       await player.resume();
       void saveSessionNow(player).catch(() => {});
       await interaction.reply(lineReply(resumedLine(), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music — Resumed", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music - Resumed", [
         `By: <@${interaction.user.id}>`,
       ], { actorId: interaction.user.id });
     },
@@ -179,7 +179,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       await player.setVolume(percent);
       void saveSessionNow(player).catch(() => {});
       await interaction.reply(lineReply(volumeLine(percent), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music — Volume Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music - Volume Changed", [
         `By: <@${interaction.user.id}>`,
         `Volume set to **${percent}%**`,
       ], { actorId: interaction.user.id });
@@ -215,7 +215,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       await player.seek(ms);
       void saveSessionNow(player).catch(() => {});
       await interaction.reply(lineReply(seekLine(ms, current.info.duration), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music — Seeked", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_playback", "Music - Seeked", [
         `By: <@${interaction.user.id}>`,
         `Seeked to **${formatDuration(ms)} / ${formatDuration(current.info.duration)}**`,
       ], { actorId: interaction.user.id });
@@ -274,7 +274,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       }
       await applyFilterPreset(player, preset);
       await interaction.reply(lineReply(`${MUSIC_EMOJI.music} Filter set to **${preset}**.`, ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_filter", "Music — Filter Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_filter", "Music - Filter Changed", [
         `By: <@${interaction.user.id}>`,
         `Filter set to **${preset}**`,
       ], { actorId: interaction.user.id });

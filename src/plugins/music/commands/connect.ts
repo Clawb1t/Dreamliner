@@ -37,7 +37,7 @@ export const connectCommands: SlashCommandDefinition[] = [
         return;
       }
       await interaction.reply(lineReply(joinedLine(), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_session", "Music — Joined Voice", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_session", "Music - Joined Voice", [
         `By: <@${interaction.user.id}>`,
         `Channel: <#${voiceChannelId}>`,
       ], { actorId: interaction.user.id, channelId: voiceChannelId });
@@ -58,7 +58,7 @@ export const connectCommands: SlashCommandDefinition[] = [
 
       await destroyPlayer(guildId, "left via /leave");
       await interaction.reply(lineReply(leftLine(), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_stop", "Music — Left Voice", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_stop", "Music - Left Voice", [
         `By: <@${interaction.user.id}>`,
         "Source: Discord (/leave)",
       ], { actorId: interaction.user.id });
@@ -83,7 +83,7 @@ export const connectCommands: SlashCommandDefinition[] = [
       await interaction.reply(
         lineReply(`${MUSIC_EMOJI.success} 24/7 mode is now **${enabled ? "on" : "off"}**.`, ephemeral),
       );
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music — 24/7 Mode Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music - 24/7 Mode Changed", [
         `By: <@${interaction.user.id}>`,
         `24/7 mode is now **${enabled ? "on" : "off"}**`,
       ], { actorId: interaction.user.id });

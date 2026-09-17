@@ -17,7 +17,7 @@ export function formatDuration(ms: number): string {
 
 export function trackLink(track: Track): string {
   const title = track.info.title || "Unknown title";
-  const label = track.info.author ? `${title} — ${track.info.author}` : title;
+  const label = track.info.author ? `${title} - ${track.info.author}` : title;
   return track.info.uri ? `[${label}](${track.info.uri})` : label;
 }
 
@@ -142,5 +142,5 @@ export function nothingPlayingLine(): string {
 
 export function trackFailedLine(track: Track | UnresolvedTrack | null, reason: string): string {
   const label = track && !("resolve" in track) ? trackLink(track) : track ? `**${track.info.title}**` : "That track";
-  return `${MUSIC_EMOJI.warning} ${label} failed to play (${reason}) — skipping.`;
+  return `${MUSIC_EMOJI.warning} ${label} failed to play (${reason}). Skipping.`;
 }

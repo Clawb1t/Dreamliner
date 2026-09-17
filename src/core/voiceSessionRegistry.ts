@@ -57,12 +57,12 @@ const OWNER_LABELS: Record<VoiceSessionOwner, string> = {
 export function blockedByMessage(blockedOwner: VoiceSessionOwner, ownedBy: VoiceSessionOwner): string {
   if (blockedOwner === "music") {
     if (ownedBy === "clipping") {
-      return "🎙️ A clipping session is active in this server — stop it first with `/clipping stop` before playing music.";
+      return "🎙️ A clipping session is active in this server. Stop it first with `/clipping stop` before playing music.";
     }
-    return "🗣️ Text-to-speech is currently active in this server — it needs to stop before music can play.";
+    return "🗣️ Text-to-speech is currently active in this server. It needs to stop before music can play.";
   }
   if (ownedBy === "music") {
-    return "🎵 Music is currently playing in this server — stop it first with `/music stop` before using this.";
+    return "Music is currently playing in this server. Stop it first with `/music stop` before using this.";
   }
   return `Already in use by ${OWNER_LABELS[ownedBy]} in another voice channel in this server.`;
 }

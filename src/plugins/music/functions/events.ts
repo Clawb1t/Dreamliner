@@ -120,8 +120,8 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
           if (rejoin.ok) {
             log.info(`24/7 mode: rejoined voice in guild ${player.guildId} after the queue emptied.`);
             if (guildConfig) {
-              void logMusic(client, guildConfig, player.guildId, "music_session", "Music — 24/7 Reconnected", [
-                "Queue emptied — reconnected to stay in the voice channel (24/7 mode)",
+              void logMusic(client, guildConfig, player.guildId, "music_session", "Music - 24/7 Reconnected", [
+                "Queue emptied - reconnected to stay in the voice channel (24/7 mode)",
                 `Channel: <#${player.voiceChannelId}>`,
               ]);
             }
@@ -129,7 +129,7 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
           }
           log.warn(`24/7 mode couldn't rejoin voice in guild ${player.guildId}: ${rejoin.reason}`);
           if (guildConfig) {
-            void logMusic(client, guildConfig, player.guildId, "music_error", "Music — 24/7 Reconnect Failed", [
+            void logMusic(client, guildConfig, player.guildId, "music_error", "Music - 24/7 Reconnect Failed", [
               `Reason: ${rejoin.reason}`,
             ]);
           }
@@ -137,7 +137,7 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
       }
 
       if (guildConfig && !COMMAND_INITIATED_DESTROY_REASONS.has(String(destroyReason))) {
-        void logMusic(client, guildConfig, player.guildId, "music_session", "Music — Session Ended", [
+        void logMusic(client, guildConfig, player.guildId, "music_session", "Music - Session Ended", [
           `Reason: ${String(destroyReason ?? "unknown")}`,
         ]);
       }
@@ -156,7 +156,7 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
   manager.on("trackError", (player, track, payload) => {
     const reason = payload.exception?.message ?? "unknown error";
     log.error(`Track error in guild ${player.guildId}: ${reason} (${track?.info.title ?? "unknown track"})`);
-    const trackLine = track ? `Track: **${track.info.title}**${track.info.author ? ` — ${track.info.author}` : ""}` : "Track: (unknown)";
+    const trackLine = track ? `Track: **${track.info.title}**${track.info.author ? ` - ${track.info.author}` : ""}` : "Track: (unknown)";
 
     // Only auto-retry the "just started playing, nothing else queued" case - if there's a real
     // queue behind it, autoSkip already advances to the next real track, which is more useful
@@ -168,7 +168,7 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
         void player
           .play({ track: { encoded: candidate.encoded, requester: candidate.requester } })
           .catch((error: unknown) => log.error(`Retry failed in guild ${player.guildId}:`, error));
-        void logTrackError(player.guildId, "Music — Track Error (Retried)", [trackLine, `Error: ${reason}`, `Retrying with: **${candidate.info.title}**`]);
+        void logTrackError(player.guildId, "Music - Track Error (Retried)", [trackLine, `Error: ${reason}`, `Retrying with: **${candidate.info.title}**`]);
         return;
       }
 
@@ -183,17 +183,17 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
             const next = result.tracks[0];
             if (!next) {
               void send(client, player.textChannelId, trackFailedLine(track, reason));
-              void logTrackError(player.guildId, "Music — Track Error (Exhausted)", [trackLine, `Error: ${reason}`, "No fallback source results — skipped"]);
+              void logTrackError(player.guildId, "Music - Track Error (Exhausted)", [trackLine, `Error: ${reason}`, "No fallback source results - skipped"]);
               return;
             }
             next.requester = { id: fallback.requesterId };
             log.info(`Falling back to SoundCloud in guild ${player.guildId}: ${next.info.title}`);
             await player.play({ track: { encoded: next.encoded, requester: next.requester } });
-            void logTrackError(player.guildId, "Music — Track Error (Fallback Source)", [trackLine, `Error: ${reason}`, `Falling back to SoundCloud: **${next.info.title}**`]);
+            void logTrackError(player.guildId, "Music - Track Error (Fallback Source)", [trackLine, `Error: ${reason}`, `Falling back to SoundCloud: **${next.info.title}**`]);
           } catch (error) {
             log.error(`Fallback-source retry failed in guild ${player.guildId}:`, error);
             void send(client, player.textChannelId, trackFailedLine(track, reason));
-            void logTrackError(player.guildId, "Music — Track Error (Exhausted)", [trackLine, `Error: ${reason}`, "Fallback source retry also failed — skipped"]);
+            void logTrackError(player.guildId, "Music - Track Error (Exhausted)", [trackLine, `Error: ${reason}`, "Fallback source retry also failed - skipped"]);
           }
         })();
         return;
@@ -201,14 +201,14 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
     }
 
     void send(client, player.textChannelId, trackFailedLine(track, reason));
-    void logTrackError(player.guildId, "Music — Track Error", [trackLine, `Error: ${reason}`, "Skipped"]);
+    void logTrackError(player.guildId, "Music - Track Error", [trackLine, `Error: ${reason}`, "Skipped"]);
   });
 
   manager.on("trackStuck", (player, track, payload) => {
     log.warn(`Track stuck in guild ${player.guildId} after ${payload.thresholdMs}ms: ${track?.info.title ?? "unknown track"}`);
     void send(client, player.textChannelId, trackFailedLine(track, "got stuck"));
-    const trackLine = track ? `Track: **${track.info.title}**${track.info.author ? ` — ${track.info.author}` : ""}` : "Track: (unknown)";
-    void logTrackError(player.guildId, "Music — Track Stuck", [trackLine, `Stuck for: ${Math.round(payload.thresholdMs / 1000)}s`, "Skipped"]);
+    const trackLine = track ? `Track: **${track.info.title}**${track.info.author ? ` - ${track.info.author}` : ""}` : "Track: (unknown)";
+    void logTrackError(player.guildId, "Music - Track Stuck", [trackLine, `Stuck for: ${Math.round(payload.thresholdMs / 1000)}s`, "Skipped"]);
   });
 
   manager.on("playerSocketClosed", (player, payload) => {

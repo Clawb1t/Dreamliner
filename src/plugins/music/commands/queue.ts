@@ -85,7 +85,7 @@ export const queueCommands: SlashCommandDefinition[] = [
         }
         void saveSessionNow(player).catch(() => {});
         await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Removed **${result.title}** from the queue.`, ephemeral));
-        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_queue", "Music — Queue Track Removed", [
+        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_queue", "Music - Queue Track Removed", [
           `By: <@${interaction.user.id}>`,
           `Removed **${result.title}** (position #${position})`,
         ], { actorId: interaction.user.id });
@@ -102,7 +102,7 @@ export const queueCommands: SlashCommandDefinition[] = [
         }
         void saveSessionNow(player).catch(() => {});
         await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Moved track from #${from} to #${to}.`, ephemeral));
-        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_queue", "Music — Queue Track Moved", [
+        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_queue", "Music - Queue Track Moved", [
           `By: <@${interaction.user.id}>`,
           `Moved track from #${from} to #${to}`,
         ], { actorId: interaction.user.id });
@@ -113,7 +113,7 @@ export const queueCommands: SlashCommandDefinition[] = [
         const count = await clearQueue(player);
         void saveSessionNow(player).catch(() => {});
         await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Cleared **${count}** track${count === 1 ? "" : "s"} from the queue.`, ephemeral));
-        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_queue", "Music — Queue Cleared", [
+        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_queue", "Music - Queue Cleared", [
           `By: <@${interaction.user.id}>`,
           `Cleared **${count}** track${count === 1 ? "" : "s"}`,
         ], { actorId: interaction.user.id });
@@ -135,7 +135,7 @@ export const queueCommands: SlashCommandDefinition[] = [
       const count = await player.queue.shuffle();
       void saveSessionNow(player).catch(() => {});
       await interaction.reply(lineReply(shuffledLine(count), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_queue", "Music — Queue Shuffled", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_queue", "Music - Queue Shuffled", [
         `By: <@${interaction.user.id}>`,
         `Shuffled **${count}** track${count === 1 ? "" : "s"}`,
       ], { actorId: interaction.user.id });
@@ -160,7 +160,7 @@ export const queueCommands: SlashCommandDefinition[] = [
       await player.setRepeatMode(mode);
       void saveSessionNow(player).catch(() => {});
       await interaction.reply(lineReply(loopLine(mode), ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_queue", "Music — Loop Mode Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_queue", "Music - Loop Mode Changed", [
         `By: <@${interaction.user.id}>`,
         `Loop mode set to **${mode}**`,
       ], { actorId: interaction.user.id });

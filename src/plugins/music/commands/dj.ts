@@ -37,7 +37,7 @@ export const djCommand: SlashCommandDefinition = {
         roles.add(role.id);
         await configManager.patchPluginConfig(guildId, "music", { dj_roles: [...roles] }, interaction.user.id);
         await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Added <@&${role.id}> as a DJ role.`, ephemeral));
-        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_dj", "Music — DJ Role Added", [
+        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_dj", "Music - DJ Role Added", [
           `By: <@${interaction.user.id}>`,
           `Added <@&${role.id}> as a DJ role`,
         ], { actorId: interaction.user.id, targetId: role.id });
@@ -48,7 +48,7 @@ export const djCommand: SlashCommandDefinition = {
         roles.delete(role.id);
         await configManager.patchPluginConfig(guildId, "music", { dj_roles: [...roles] }, interaction.user.id);
         await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Removed <@&${role.id}> as a DJ role.`, ephemeral));
-        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_dj", "Music — DJ Role Removed", [
+        void logMusic(interaction.client, ctx.guildConfig, guildId, "music_dj", "Music - DJ Role Removed", [
           `By: <@${interaction.user.id}>`,
           `Removed <@&${role.id}> as a DJ role`,
         ], { actorId: interaction.user.id, targetId: role.id });
@@ -65,7 +65,7 @@ export const djCommand: SlashCommandDefinition = {
       const enabled = interaction.options.getBoolean("enabled", true);
       await configManager.patchPluginConfig(guildId, "music", { dj_mode: enabled }, interaction.user.id);
       await interaction.reply(lineReply(`${MUSIC_EMOJI.success} DJ mode is now **${enabled ? "on" : "off"}**.`, ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_dj", "Music — DJ Mode Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_dj", "Music - DJ Mode Changed", [
         `By: <@${interaction.user.id}>`,
         `DJ mode is now **${enabled ? "on" : "off"}**`,
       ], { actorId: interaction.user.id });

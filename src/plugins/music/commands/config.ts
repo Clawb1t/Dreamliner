@@ -38,7 +38,7 @@ export const musicConfigCommand: SlashCommandDefinition = {
       );
       const body = channel ? `Now-playing announcements will post in <#${channel.id}>.` : "Now-playing announcements are off.";
       await interaction.reply(lineReply(`${MUSIC_EMOJI.success} ${body}`, ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music — Announce Channel Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music - Announce Channel Changed", [
         `By: <@${interaction.user.id}>`,
         body,
       ], { actorId: interaction.user.id, channelId: channel?.id ?? null });
@@ -49,7 +49,7 @@ export const musicConfigCommand: SlashCommandDefinition = {
       const percent = interaction.options.getInteger("percent", true);
       await configManager.patchPluginConfig(guildId, "music", { default_volume: percent }, interaction.user.id);
       await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Default volume set to **${percent}%**.`, ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music — Default Volume Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music - Default Volume Changed", [
         `By: <@${interaction.user.id}>`,
         `Default volume set to **${percent}%**`,
       ], { actorId: interaction.user.id });
@@ -60,7 +60,7 @@ export const musicConfigCommand: SlashCommandDefinition = {
       const percent = interaction.options.getInteger("percent", true);
       await configManager.patchPluginConfig(guildId, "music", { vote_skip_threshold_percent: percent }, interaction.user.id);
       await interaction.reply(lineReply(`${MUSIC_EMOJI.success} Vote-skip threshold set to **${percent}%**.`, ephemeral));
-      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music — Vote-Skip Threshold Changed", [
+      void logMusic(interaction.client, ctx.guildConfig, guildId, "music_settings", "Music - Vote-Skip Threshold Changed", [
         `By: <@${interaction.user.id}>`,
         `Vote-skip threshold set to **${percent}%**`,
       ], { actorId: interaction.user.id });

@@ -194,9 +194,9 @@ export async function resumeSessionsOnBoot(client: Client): Promise<void> {
 
       const guildConfig = await configManager.getEffectiveConfig(session.guildId).catch(() => null);
       if (guildConfig) {
-        void logMusic(client, guildConfig, session.guildId, "music_session", "Music — Resumed After Restart", [
+        void logMusic(client, guildConfig, session.guildId, "music_session", "Music - Resumed After Restart", [
           `Channel: <#${session.voiceChannelId}>`,
-          session.currentTrackTitle ? `Track: **${session.currentTrackTitle}** at ${Math.round(session.positionMs / 1000)}s` : "No track was playing — resumed idle",
+          session.currentTrackTitle ? `Track: **${session.currentTrackTitle}** at ${Math.round(session.positionMs / 1000)}s` : "No track was playing - resumed idle",
         ]);
       }
     } catch (error) {
@@ -204,7 +204,7 @@ export async function resumeSessionsOnBoot(client: Client): Promise<void> {
       await deleteSession(session.guildId).catch(() => {});
       const guildConfig = await configManager.getEffectiveConfig(session.guildId).catch(() => null);
       if (guildConfig) {
-        void logMusic(client, guildConfig, session.guildId, "music_error", "Music — Resume After Restart Failed", [
+        void logMusic(client, guildConfig, session.guildId, "music_error", "Music - Resume After Restart Failed", [
           `Error: ${error instanceof Error ? error.message : String(error)}`,
         ]);
       }

@@ -343,78 +343,78 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
     ),
   music_play: (ctx) =>
     buildGenericServerLog(
-      "Music — Track Queued",
-      [`By: <@${ctx.actor.id}>`, "Source: Discord (/play)", "Track: **Test Song** — Test Artist (\`3:30\`)", "Position: now playing"],
+      "Music - Track Queued",
+      [`By: <@${ctx.actor.id}>`, "Source: Discord (/play)", "Track: **Test Song** - Test Artist (\`3:30\`)", "Position: now playing"],
       null,
       "create",
     ),
   music_skip: (ctx) =>
     buildGenericServerLog(
-      "Music — Track Skipped",
-      [`By: <@${ctx.actor.id}>`, "Track: **Test Song** — Test Artist", "Reason: Requester skip"],
+      "Music - Track Skipped",
+      [`By: <@${ctx.actor.id}>`, "Track: **Test Song** - Test Artist", "Reason: Requester skip"],
       null,
       "action",
     ),
   music_stop: (ctx) =>
     buildGenericServerLog(
-      "Music — Playback Stopped",
+      "Music - Playback Stopped",
       [`By: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`],
       null,
       "leave",
     ),
   music_playback: (ctx) =>
     buildGenericServerLog(
-      "Music — Playback Control",
+      "Music - Playback Control",
       [`By: <@${ctx.actor.id}>`, "Action: Volume set to **80%**"],
       null,
       "edit",
     ),
   music_queue: (ctx) =>
     buildGenericServerLog(
-      "Music — Queue Changed",
+      "Music - Queue Changed",
       [`By: <@${ctx.actor.id}>`, "Action: Cleared **5** tracks from the queue"],
       null,
       "edit",
     ),
   music_filter: (ctx) =>
     buildGenericServerLog(
-      "Music — Filter Changed",
+      "Music - Filter Changed",
       [`By: <@${ctx.actor.id}>`, "Filter: **nightcore**"],
       null,
       "edit",
     ),
   music_dj: (ctx) =>
     buildGenericServerLog(
-      "Music — DJ Settings Changed",
+      "Music - DJ Settings Changed",
       [`By: <@${ctx.actor.id}>`, `Action: Added <@&${ctx.role.id}> as a DJ role`],
       null,
       "serverUpdate",
     ),
   music_playlist: (ctx) =>
     buildGenericServerLog(
-      "Music — Playlist Changed",
+      "Music - Playlist Changed",
       [`By: <@${ctx.actor.id}>`, "Action: Saved playlist **My Playlist** (12 tracks)"],
       null,
       "create",
     ),
   music_settings: (ctx) =>
     buildGenericServerLog(
-      "Music — Settings Changed",
+      "Music - Settings Changed",
       [`By: <@${ctx.actor.id}>`, `Action: Announce channel set to <#${ctx.channel.id}>`],
       null,
       "serverUpdate",
     ),
   music_session: (ctx) =>
     buildGenericServerLog(
-      "Music — Voice Session",
+      "Music - Voice Session",
       [`By: <@${ctx.actor.id}>`, `Action: Joined <#${ctx.channel.id}>`],
       null,
       "voice",
     ),
   music_error: () =>
     buildGenericServerLog(
-      "Music — Playback Error",
-      [`Track: **Test Song** — Test Artist`, "Error: Track failed to load — skipping"],
+      "Music - Playback Error",
+      [`Track: **Test Song** - Test Artist`, "Error: Track failed to load - skipping"],
       null,
       "modDefault",
     ),

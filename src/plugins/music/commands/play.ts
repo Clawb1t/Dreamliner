@@ -97,8 +97,8 @@ export const playCommand: SlashCommandDefinition = {
         ctx.guildConfig,
         guildId,
         "music_play",
-        "Music — Track Started",
-        [`By: <@${interaction.user.id}>`, "Source: Discord (/play)", `Track: **${track.info.title}**${track.info.author ? ` — ${track.info.author}` : ""} (\`${formatDuration(track.info.duration)}\`)`, "Position: now playing"],
+        "Music - Track Started",
+        [`By: <@${interaction.user.id}>`, "Source: Discord (/play)", `Track: **${track.info.title}**${track.info.author ? ` - ${track.info.author}` : ""} (\`${formatDuration(track.info.duration)}\`)`, "Position: now playing"],
         { actorId: interaction.user.id, channelId: voiceChannelId, avatarUrl: track.info.artworkUrl },
       );
       return;
@@ -114,8 +114,8 @@ export const playCommand: SlashCommandDefinition = {
       ctx.guildConfig,
       guildId,
       "music_play",
-      "Music — Track Queued",
-      [`By: <@${interaction.user.id}>`, "Source: Discord (/play)", `Track: **${track.info.title}**${track.info.author ? ` — ${track.info.author}` : ""} (\`${formatDuration(track.info.duration)}\`)`, `Position: #${Number(size) || 0} in queue`],
+      "Music - Track Queued",
+      [`By: <@${interaction.user.id}>`, "Source: Discord (/play)", `Track: **${track.info.title}**${track.info.author ? ` - ${track.info.author}` : ""} (\`${formatDuration(track.info.duration)}\`)`, `Position: #${Number(size) || 0} in queue`],
       { actorId: interaction.user.id, channelId: voiceChannelId, avatarUrl: track.info.artworkUrl },
     );
   },

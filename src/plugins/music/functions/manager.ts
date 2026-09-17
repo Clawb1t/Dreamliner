@@ -25,7 +25,7 @@ export function initLavalinkManager(client: Client): LavalinkManager {
   if (manager) return manager;
 
   if (!isLavalinkConfigured()) {
-    log.warn("LAVALINK_HOST/LAVALINK_PASSWORD not set — music plugin will stay idle until configured.");
+    log.warn("LAVALINK_HOST/LAVALINK_PASSWORD not set - music plugin will stay idle until configured.");
   }
 
   manager = new LavalinkManager({
