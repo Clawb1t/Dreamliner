@@ -1,8 +1,8 @@
 /** Custom emoji references from the bot's app-emoji set, used across music's one-liner responses. */
 export const MUSIC_EMOJI = {
   music: "<:icons_music:1544417565521092638>",
-  play: "<:icons_play:1544417388408217641>",
-  pause: "<:icons_pause:1544417366744760380>",
+  play: "<:icons_pause:1544417366744760380>",
+  pause: "<:icons_play:1544417388408217641>",
   stop: "<:icons_musicstop:1544417348218523788>",
   skip: "<:icons_frontforward:1544417288885637253>",
   previous: "<:icons_backforward:1544417482994090015>",

@@ -95,3 +95,52 @@ export function initLavalinkManager(client: Client): LavalinkManager {
 export function getExistingPlayer(guildId: string): Player | undefined {
   return manager?.getPlayer(guildId);
 }
+
+export type LavalinkStatusSummary = {
+  connected: boolean;
+  players: number;
+  playingPlayers: number;
+  uptimeSeconds: number;
+  memory: { freeMb: number; usedMb: number; allocatedMb: number; reservableMb: number } | null;
+  cpu: { cores: number; systemLoadPct: number; lavalinkLoadPct: number } | null;
+};
+
+/** For the public status page — null when the bot isn't configured for music at all (nothing to
+ *  report, not a failure), otherwise a snapshot of the one "main" node's live stats. `node.stats`
+ *  is kept current automatically by lavalink-client via the node's stats websocket op, so this is
+ *  just reading already-pushed data, not triggering a fresh request. */
+export function getLavalinkStatusSummary(): LavalinkStatusSummary | null {
+  if (!isLavalinkConfigured() || !manager) return null;
+
+  const node = manager.nodeManager.nodes.get("main");
+  if (!node?.connected) {
+    return { connected: false, players: 0, playingPlayers: 0, uptimeSeconds: 0, memory: null, cpu: null };
+  }
+
+  const stats = node.stats;
+  if (!stats) {
+    // Connected, but the first stats push hasn't arrived yet.
+    return { connected: true, players: 0, playingPlayers: 0, uptimeSeconds: 0, memory: null, cpu: null };
+  }
+
+  const toMb = (bytes: number) => Math.round(bytes / (1024 * 1024));
+  const toPct = (fraction: number) => Math.round(fraction * 1000) / 10;
+
+  return {
+    connected: true,
+    players: stats.players,
+    playingPlayers: stats.playingPlayers,
+    uptimeSeconds: Math.round(stats.uptime / 1000),
+    memory: {
+      freeMb: toMb(stats.memory.free),
+      usedMb: toMb(stats.memory.used),
+      allocatedMb: toMb(stats.memory.allocated),
+      reservableMb: toMb(stats.memory.reservable),
+    },
+    cpu: {
+      cores: stats.cpu.cores,
+      systemLoadPct: toPct(stats.cpu.systemLoad),
+      lavalinkLoadPct: toPct(stats.cpu.lavalinkLoad),
+    },
+  };
+}

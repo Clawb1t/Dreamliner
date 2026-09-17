@@ -758,6 +758,13 @@ export const botStatusSamples = sqliteTable("bot_status_samples", {
   /** Process RSS at sample time, in MB — backs the public status page's "RAM usage" spark.
    *  Nullable for the same backfill reason as guildCount above. */
   ramUsageMb: integer("ram_usage_mb", { mode: "number" }),
+  /** Lavalink node snapshot at sample time — backs the public status page's Lavalink panel.
+   *  Null whenever music isn't configured or the node wasn't connected at sample time, same
+   *  backfill/unavailable reasoning as the other nullable columns here. */
+  lavalinkPlayers: integer("lavalink_players", { mode: "number" }),
+  lavalinkPlayingPlayers: integer("lavalink_playing_players", { mode: "number" }),
+  lavalinkMemoryUsedMb: integer("lavalink_memory_used_mb", { mode: "number" }),
+  lavalinkCpuLoadPct: real("lavalink_cpu_load_pct"),
 });
 
 /** Daily rollup of bot status samples (uptime % + avg ping). */
