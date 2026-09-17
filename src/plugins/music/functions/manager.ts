@@ -2,7 +2,14 @@ import { Events, type Client } from "discord.js";
 import { LavalinkManager, type Player } from "lavalink-client";
 import { getLogger } from "../../../core/logger.js";
 import { registerPlayerEvents } from "./events.js";
-import { resumeSessionsOnBoot } from "./sessionPersistence.js";
+import { reclaimResumedSessions, resumeSessionsOnBoot } from "./sessionPersistence.js";
+import { loadPersistedLavalinkSessionId, savePersistedLavalinkSessionId } from "./lavalinkSession.js";
+
+/** How long Lavalink keeps a session's players (and their live voice connections) alive after
+ *  our WebSocket drops, waiting for us to reconnect and claim it back via the same session id -
+ *  generous enough to cover a slow redeploy, not so long it leaves orphaned connections around
+ *  if the bot is actually being taken down for a while. */
+const SESSION_RESUME_TIMEOUT_MS = 300_000;
 
 const log = getLogger("music");
 
@@ -28,6 +35,11 @@ export function initLavalinkManager(client: Client): LavalinkManager {
     log.warn("LAVALINK_HOST/LAVALINK_PASSWORD not set - music plugin will stay idle until configured.");
   }
 
+  // A resumed WS connection needs the SAME session id we had before to hand our players back -
+  // without this, every reconnect (including a plain bot restart) looks like a brand new client
+  // to Lavalink, no matter what updateSession() does. See lavalinkSession.ts.
+  const persistedSessionId = loadPersistedLavalinkSessionId();
+
   manager = new LavalinkManager({
     nodes: [
       {
@@ -36,6 +48,7 @@ export function initLavalinkManager(client: Client): LavalinkManager {
         port: Number(process.env.LAVALINK_PORT) || 2333,
         authorization: process.env.LAVALINK_PASSWORD?.trim() || "",
         secure: process.env.LAVALINK_SECURE?.trim().toLowerCase() === "true",
+        sessionId: persistedSessionId,
       },
     ],
     sendToShard: (guildId, payload) => {
@@ -62,12 +75,55 @@ export function initLavalinkManager(client: Client): LavalinkManager {
     void manager?.sendRawData(data);
   });
 
+  // Resolved the first time the node connects, so boot (below) knows when it's actually safe to
+  // start touching players instead of racing ahead of a WebSocket that isn't open yet.
+  let nodeConnectedResolve: (() => void) | undefined;
+  const nodeConnected = new Promise<void>((resolve) => {
+    nodeConnectedResolve = resolve;
+  });
+
+  // Resolved once a "resumed" session handshake has been fully processed (including the players
+  // it fetched) - or never, if this connection wasn't a resume. Boot waits on this too, bounded
+  // by a short timeout, so reclaimResumedSessions gets a chance to run before the DB-based
+  // fallback decides what still needs a full reconnect.
+  let resumedSignalResolve: (() => void) | undefined;
+  const resumedSignal = new Promise<void>((resolve) => {
+    resumedSignalResolve = resolve;
+  });
+
   manager.nodeManager.on("connect", (node) => {
     log.info(`Lavalink node "${node.id}" connected.`);
-    // Not calling node.updateSession() here - this node is a shared public one, which reliably
-    // rejects it ("not ready, or not up to date") and issuing it seemed to correlate with a
-    // reconnect-cycling pattern. Resume-after-restart is instead handled entirely by the
-    // DB-backed sessionPersistence.ts, which doesn't depend on the node granting a resume session.
+    nodeConnectedResolve?.();
+
+    // node.sessionId right this instant may still be our stale persisted guess from before this
+    // connection - the confirmed value only lands once the "ready" op (the very next WS message)
+    // is processed, which is effectively instant on a healthy connection. The short delay avoids
+    // a rare race where we'd otherwise call updateSession() against the wrong/replaced session.
+    setTimeout(() => {
+      void node
+        .updateSession(true, SESSION_RESUME_TIMEOUT_MS)
+        .then(() => {
+          if (node.sessionId) savePersistedLavalinkSessionId(node.sessionId);
+        })
+        .catch((error) => log.warn(`Failed to enable Lavalink session resuming on node "${node.id}":`, error));
+    }, 300);
+  });
+
+  manager.nodeManager.on("resumed", (node, _payload, playersResult) => {
+    void (async () => {
+      try {
+        if (!Array.isArray(playersResult)) {
+          log.warn(`Lavalink node "${node.id}" resumed its session but couldn't fetch the players still on it.`);
+          return;
+        }
+        log.info(`Lavalink node "${node.id}" resumed its session with ${playersResult.length} still-live player(s).`);
+        await reclaimResumedSessions(client, playersResult);
+      } catch (error) {
+        log.error("Failed to reclaim resumed music sessions:", error);
+      } finally {
+        resumedSignalResolve?.();
+      }
+    })();
   });
 
   manager.nodeManager.on("disconnect", (node, reason) => {
@@ -83,13 +139,28 @@ export function initLavalinkManager(client: Client): LavalinkManager {
   registerPlayerEvents(client, manager);
 
   client.once(Events.ClientReady, (ready) => {
-    void manager
-      ?.init({ id: ready.user.id, username: ready.user.username })
-      .then(() => resumeSessionsOnBoot(client))
-      .catch((error) => log.error("Failed to initialize Lavalink manager:", error));
+    void (async () => {
+      try {
+        await manager?.init({ id: ready.user.id, username: ready.user.username });
+        // init() only kicks off the connection - it doesn't wait for the socket to actually open,
+        // so resumeSessionsOnBoot would otherwise run before there's a node to talk to at all.
+        await Promise.race([nodeConnected, delay(20_000)]);
+        // If the "ready" handshake says resumed, reclaimResumedSessions needs a moment to finish
+        // (it's a REST fetch plus per-guild work) before the DB fallback below runs, so it can see
+        // which guilds are already handled instead of duplicating (or fighting) that work.
+        await Promise.race([resumedSignal, delay(1500)]);
+        await resumeSessionsOnBoot(client);
+      } catch (error) {
+        log.error("Failed to initialize Lavalink manager:", error);
+      }
+    })();
   });
 
   return manager;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function getExistingPlayer(guildId: string): Player | undefined {

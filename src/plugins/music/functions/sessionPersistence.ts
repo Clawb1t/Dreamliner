@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { ChannelType, type Client } from "discord.js";
-import type { Player, Track } from "lavalink-client";
+import type { LavalinkPlayer, Player, Track } from "lavalink-client";
 import { getDb } from "../../../db/client.js";
 import { musicSessions, musicQueueItems } from "../../../db/schema.js";
 import { getLogger } from "../../../core/logger.js";
@@ -125,18 +125,104 @@ export async function deleteSession(guildId: string): Promise<void> {
 
 const VALID_LOOP_MODES = new Set(["off", "track", "queue"]);
 
+/**
+ * Called when the Lavalink node's WebSocket "ready" handshake reports `resumed: true` - meaning
+ * our persisted session id matched a session Lavalink kept alive (via `updateSession(true, ...)`)
+ * across the gap while the bot process was restarting. These guilds' voice connections and
+ * playback NEVER actually stopped; this just re-attaches our local bookkeeping to what Lavalink
+ * already has, instead of tearing it down and reconnecting from a DB snapshot like
+ * `resumeSessionsOnBoot` below has to for anything that didn't survive.
+ */
+export async function reclaimResumedSessions(client: Client, players: LavalinkPlayer[]): Promise<void> {
+  if (players.length === 0) return;
+  const manager = getLavalinkManager();
+  const db = getDb();
+
+  for (const raw of players) {
+    if (!raw.voice?.channelId || manager.getPlayer(raw.guildId)) continue;
+
+    try {
+      const guild = await client.guilds.fetch(raw.guildId).catch(() => null);
+      if (!guild) continue;
+
+      const claim = claimVoiceSession(raw.guildId, raw.voice.channelId, "music");
+      if (!claim.ok) {
+        log.warn(`Skipping resumed-session reclaim for guild ${raw.guildId} - voice already claimed by ${claim.ownedBy}.`);
+        continue;
+      }
+
+      const dbRow = await db.select().from(musicSessions).where(eq(musicSessions.guildId, raw.guildId)).get();
+      const textChannelId = dbRow?.textChannelId || guild.systemChannelId || raw.guildId;
+
+      const player = manager.createPlayer({
+        guildId: raw.guildId,
+        voiceChannelId: raw.voice.channelId,
+        textChannelId,
+        selfDeaf: true,
+        selfMute: false,
+        volume: raw.volume,
+      });
+
+      // Lavalink kept the actual voice connection and playback alive the whole time - just
+      // re-attach our local bookkeeping to it rather than sending a fresh connect(), which would
+      // needlessly cycle Discord's voice state for a connection that never dropped.
+      player.connected = true;
+      player.voice = { ...raw.voice };
+      player.paused = raw.paused;
+      player.playing = !raw.paused && Boolean(raw.track);
+      player.lastPosition = raw.state?.position ?? 0;
+      player.lastPositionChange = Date.now();
+      if (raw.track) {
+        player.queue.current = manager.utils.buildTrack(
+          raw.track,
+          dbRow?.currentTrackRequestedBy ? { id: dbRow.currentTrackRequestedBy } : undefined,
+        );
+      }
+
+      const queueRows = await db
+        .select()
+        .from(musicQueueItems)
+        .where(eq(musicQueueItems.guildId, raw.guildId))
+        .orderBy(musicQueueItems.position)
+        .all();
+      if (queueRows.length > 0) await player.queue.add(queueRows.map(trackFromRow));
+      if (dbRow && VALID_LOOP_MODES.has(dbRow.loopMode)) {
+        await player.setRepeatMode(dbRow.loopMode as "off" | "track" | "queue");
+      }
+
+      void saveSessionNow(player).catch(() => {});
+      log.info(`Reclaimed live music session for guild ${raw.guildId} via Lavalink session resume - it never left the voice channel.`);
+
+      const guildConfig = await configManager.getEffectiveConfig(raw.guildId).catch(() => null);
+      if (guildConfig) {
+        void logMusic(client, guildConfig, raw.guildId, "music_session", "Music - Reclaimed After Restart", [
+          `Channel: <#${raw.voice.channelId}>`,
+          raw.track ? `Track: **${raw.track.info.title}** kept playing without interruption` : "No track was playing - reclaimed idle",
+        ]);
+      }
+    } catch (error) {
+      log.error(`Failed to reclaim resumed music session for guild ${raw.guildId}:`, error);
+    }
+  }
+}
+
 /** Called once from the music plugin's onLoad - rejoins and resumes every guild that had an
- *  active player when the bot last stopped. */
+ *  active player when the bot last stopped. Skips any guild `reclaimResumedSessions` already
+ *  reattached to a live Lavalink session, and otherwise does a full reconnect from the last DB
+ *  snapshot (the only option left when the session didn't survive - Lavalink restarted too, or
+ *  the outage ran past the resume timeout). */
 export async function resumeSessionsOnBoot(client: Client): Promise<void> {
   if (!isLavalinkConfigured()) return;
   const db = getDb();
   const sessions = await db.select().from(musicSessions).all();
   if (sessions.length === 0) return;
 
-  log.info(`Resuming ${sessions.length} music session(s) from the last run...`);
   const manager = getLavalinkManager();
+  const pending = sessions.filter((session) => !manager.getPlayer(session.guildId));
+  if (pending.length === 0) return;
+  log.info(`Resuming ${pending.length} music session(s) from the last run...`);
 
-  for (const session of sessions) {
+  for (const session of pending) {
     try {
       const guild = await client.guilds.fetch(session.guildId).catch(() => null);
       if (!guild) {
