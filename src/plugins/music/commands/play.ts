@@ -7,7 +7,7 @@ import { getLogger } from "../../../core/logger.js";
 import { getOrConnectPlayer } from "../functions/player.js";
 import { isLavalinkConfigured } from "../functions/manager.js";
 import { requireMusicPermission, lineReply, lineEdit } from "../functions/commandHelpers.js";
-import { noResultsLine, buildTrackContainer, buildWebPlayerAnnounceContainer } from "../functions/formatting.js";
+import { noResultsLine, searchFailedLine, buildTrackContainer, buildWebPlayerAnnounceContainer } from "../functions/formatting.js";
 import { MUSIC_EMOJI } from "../functions/emojis.js";
 import { startRetryPlan } from "../functions/retryQueue.js";
 import { saveSessionNow } from "../functions/sessionPersistence.js";
@@ -54,12 +54,25 @@ export const playCommand: SlashCommandDefinition = {
 
     const query = interaction.options.getString("query", true);
     let result: Awaited<ReturnType<typeof player.search>> | null = null;
-    try {
-      result = await player.search({ query }, interaction.user);
-    } catch (err) {
-      log.error(`Music search failed for query=${JSON.stringify(query)} in guild ${guildId}:`, err);
+    let searchFailed = false;
+    // One retry: a node timeout is usually a transient blip (network hiccup, a slow upstream
+    // source lookup) rather than a real "nothing found" - worth one more shot before telling the
+    // user to search something else entirely.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        result = await player.search({ query }, interaction.user);
+        searchFailed = false;
+        break;
+      } catch (err) {
+        searchFailed = true;
+        log.error(`Music search failed for query=${JSON.stringify(query)} in guild ${guildId} (attempt ${attempt + 1}/2):`, err);
+      }
     }
 
+    if (searchFailed) {
+      await interaction.editReply(lineEdit(searchFailedLine(query)));
+      return;
+    }
     if (!result || result.loadType === "error" || result.loadType === "empty" || result.tracks.length === 0) {
       await interaction.editReply(lineEdit(noResultsLine(query)));
       return;

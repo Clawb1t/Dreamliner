@@ -49,6 +49,11 @@ export function initLavalinkManager(client: Client): LavalinkManager {
         authorization: process.env.LAVALINK_PASSWORD?.trim() || "",
         secure: process.env.LAVALINK_SECURE?.trim().toLowerCase() === "true",
         sessionId: persistedSessionId,
+        // Default is 10s, which is occasionally too tight for a search request that has to hit
+        // an upstream source (YouTube/SoundCloud) rather than just querying local node state -
+        // play.ts also retries once on a timeout, but giving the first attempt more room to
+        // begin with means fewer retries needed in the first place.
+        requestSignalTimeoutMS: 20_000,
       },
     ],
     sendToShard: (guildId, payload) => {

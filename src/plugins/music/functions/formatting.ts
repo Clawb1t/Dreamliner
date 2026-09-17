@@ -136,6 +136,12 @@ export function noResultsLine(query: string): string {
   return `${MUSIC_EMOJI.error} Couldn't find anything for **${query}**.`;
 }
 
+/** Distinct from noResultsLine - the search itself failed (node timeout/error) rather than
+ *  genuinely turning up nothing, so "try again" is the honest next step, not "search something else". */
+export function searchFailedLine(query: string): string {
+  return `${MUSIC_EMOJI.error} Search for **${query}** timed out - the music node didn't respond in time. Try again in a moment.`;
+}
+
 export function nothingPlayingLine(): string {
   return `${MUSIC_EMOJI.info} Nothing is playing right now.`;
 }
