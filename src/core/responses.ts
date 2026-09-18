@@ -10,12 +10,18 @@ import {
   type InteractionEditReplyOptions,
   type InteractionReplyOptions,
   type MessageActionRowComponentBuilder,
+  type RepliableInteraction,
   type TopLevelComponentData,
 } from "discord.js";
 import { buildResultEmbed, type ResultContainer, type ResultEmbedOptions } from "./embeds.js";
 import type { SlashCommandContext } from "./types.js";
+import { supportLinkRow } from "./docsUrl.js";
+import { getLogger } from "./logger.js";
+import { censorProfanity } from "./profanityFilter.js";
 
 export { guildResultOptions } from "./embeds.js";
+
+const log = getLogger("interactions");
 
 function withEphemeral(ephemeral: boolean): Pick<InteractionReplyOptions, "flags"> | Record<string, never> {
   return ephemeral ? { flags: MessageFlags.Ephemeral } : {};
@@ -109,6 +115,29 @@ export function resultEdit(
   return containerEdit(buildResultEmbed(title, details, options), components);
 }
 
+/**
+ * The one place every catch block should reply through. Discord.js gives you three different
+ * ways to respond to an interaction depending on whether it's already been deferred/replied to
+ * (`reply` vs `editReply` vs `followUp`) — getting that wrong is exactly how a command that
+ * defers and then throws leaves the user staring at a permanently "thinking..." message instead
+ * of an error. This picks the right one automatically, and never itself throws.
+ */
+export async function replyWithError(
+  interaction: RepliableInteraction,
+  message: string,
+  options?: ResultEmbedOptions,
+): Promise<void> {
+  try {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(resultEdit("Error", message, options, [supportLinkRow()]));
+    } else {
+      await interaction.reply(resultReply("Error", message, true, options, [supportLinkRow()]));
+    }
+  } catch (err) {
+    log.error("Failed to deliver error reply to user:", err);
+  }
+}
+
 export function embedReply(
   container: ResultContainer,
   ephemeral = false,
@@ -192,11 +221,11 @@ export function embedWithFilesEdit(
 }
 
 export function contentReply(content: string, ephemeral = false): InteractionReplyOptions {
-  return { content, allowedMentions: NO_PING, ...withEphemeral(ephemeral) };
+  return { content: censorProfanity(content), allowedMentions: NO_PING, ...withEphemeral(ephemeral) };
 }
 
 export function contentEdit(content: string): InteractionEditReplyOptions {
-  return { content, allowedMentions: NO_PING };
+  return { content: censorProfanity(content), allowedMentions: NO_PING };
 }
 
 export function paginationRow(customIdPrefix: string, page: number, totalPages: number): ActionRowBuilder<ButtonBuilder> {

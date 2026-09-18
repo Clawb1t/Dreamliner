@@ -48,7 +48,11 @@ export async function loadPlugins(
 
   for (const plugin of plugins) {
     if (plugin.onLoad) {
-      await plugin.onLoad({ client, configManager });
+      try {
+        await plugin.onLoad({ client, configManager });
+      } catch (error) {
+        getLogger(plugin.name).error("onLoad failed:", error);
+      }
     }
   }
 

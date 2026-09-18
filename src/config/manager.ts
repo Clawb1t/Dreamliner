@@ -29,6 +29,23 @@ export class ConfigManager {
   // that apart from a stored config that actually failed to validate.
   private guildsWithoutStoredConfig = new Set<string>();
 
+  // Serializes the read-modify-write patch methods below (loadUserOverrides -> mutate ->
+  // saveUserOverrides) per guild, so two concurrent patches for the same guild (e.g. the
+  // dashboard firing off two plugin saves back to back) queue up instead of racing and one
+  // silently clobbering the other's change.
+  private writeQueues = new Map<string, Promise<unknown>>();
+
+  private runSerialized<T>(guildId: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.writeQueues.get(guildId) ?? Promise.resolve();
+    const next = previous.then(task, task);
+    const settled = next.catch(() => {});
+    this.writeQueues.set(guildId, settled);
+    void settled.finally(() => {
+      if (this.writeQueues.get(guildId) === settled) this.writeQueues.delete(guildId);
+    });
+    return next;
+  }
+
   onSave(listener: ConfigSaveListener): () => void {
     this.saveListeners.add(listener);
     return () => {
@@ -162,8 +179,9 @@ export class ConfigManager {
         }
         const migrated = migrateLegacyEmojisInObject(nextUser);
         nextUserConfigJson = JSON.stringify(migrated.value);
-      } catch {
+      } catch (error) {
         // Keep original user config if it cannot be parsed.
+        log.warn(`[dreamliner] Could not clean up stored user config for guild ${guildId}:`, error);
       }
     }
 
@@ -331,11 +349,13 @@ export class ConfigManager {
     patch: Record<string, unknown>,
     updatedBy: string,
   ): Promise<SaveResult> {
-    const loaded = await this.loadUserOverrides(guildId);
-    if (!loaded.success) return loaded;
+    return this.runSerialized(guildId, async () => {
+      const loaded = await this.loadUserOverrides(guildId);
+      if (!loaded.success) return loaded;
 
-    const userOverrides = { ...loaded.data, ...patch };
-    return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+      const userOverrides = { ...loaded.data, ...patch };
+      return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+    });
   }
 
   async patchPluginConfig(
@@ -344,26 +364,28 @@ export class ConfigManager {
     configPatch: Record<string, unknown | null>,
     updatedBy: string,
   ): Promise<SaveResult> {
-    const loaded = await this.loadUserOverrides(guildId);
-    if (!loaded.success) return loaded;
+    return this.runSerialized(guildId, async () => {
+      const loaded = await this.loadUserOverrides(guildId);
+      if (!loaded.success) return loaded;
 
-    const userOverrides = loaded.data;
-    const plugins = { ...((userOverrides.plugins ?? {}) as Record<string, unknown>) };
-    const section = { ...((plugins[pluginName] ?? {}) as Record<string, unknown>) };
-    const config = { ...((section.config ?? {}) as Record<string, unknown>) };
+      const userOverrides = loaded.data;
+      const plugins = { ...((userOverrides.plugins ?? {}) as Record<string, unknown>) };
+      const section = { ...((plugins[pluginName] ?? {}) as Record<string, unknown>) };
+      const config = { ...((section.config ?? {}) as Record<string, unknown>) };
 
-    for (const [key, value] of Object.entries(configPatch)) {
-      if (value === null) {
-        delete config[key];
-      } else {
-        config[key] = value;
+      for (const [key, value] of Object.entries(configPatch)) {
+        if (value === null) {
+          delete config[key];
+        } else {
+          config[key] = value;
+        }
       }
-    }
 
-    plugins[pluginName] = { ...section, config };
-    userOverrides.plugins = plugins;
+      plugins[pluginName] = { ...section, config };
+      userOverrides.plugins = plugins;
 
-    return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+      return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+    });
   }
 
   async setPluginEnabled(
@@ -372,16 +394,18 @@ export class ConfigManager {
     enabled: boolean,
     updatedBy: string,
   ): Promise<SaveResult> {
-    const loaded = await this.loadUserOverrides(guildId);
-    if (!loaded.success) return loaded;
+    return this.runSerialized(guildId, async () => {
+      const loaded = await this.loadUserOverrides(guildId);
+      if (!loaded.success) return loaded;
 
-    const userOverrides = loaded.data;
-    const plugins = { ...((userOverrides.plugins ?? {}) as Record<string, unknown>) };
-    const section = { ...((plugins[pluginName] ?? {}) as Record<string, unknown>) };
-    plugins[pluginName] = { ...section, enabled };
-    userOverrides.plugins = plugins;
+      const userOverrides = loaded.data;
+      const plugins = { ...((userOverrides.plugins ?? {}) as Record<string, unknown>) };
+      const section = { ...((plugins[pluginName] ?? {}) as Record<string, unknown>) };
+      plugins[pluginName] = { ...section, enabled };
+      userOverrides.plugins = plugins;
 
-    return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+      return this.saveUserOverrides(guildId, userOverrides, updatedBy);
+    });
   }
 
 }

@@ -2,6 +2,7 @@ import { ComponentType, SeparatorSpacingSize, type Client, type GuildMember } fr
 import type { ComponentInContainerData, ContainerComponentData } from "discord.js";
 import type { EmojisConfig, GuildConfig } from "../config/schemas/guild.js";
 import { resolveEmojiForContent } from "./emoji.js";
+import { censorProfanity } from "./profanityFilter.js";
 
 const DEFAULT_EMOJIS: EmojisConfig = {
   success: "<:icons_Correct:1544417199798886530>",
@@ -178,7 +179,7 @@ export class ResultContainer {
 
   private fieldsText(): string | undefined {
     if (!this.fieldList.length) return undefined;
-    return this.fieldList.map((f) => `**${f.name}**\n${f.value}`).join("\n\n");
+    return censorProfanity(this.fieldList.map((f) => `**${f.name}**\n${f.value}`).join("\n\n"));
   }
 
   /**
@@ -188,8 +189,10 @@ export class ResultContainer {
    */
   toContainerComponent(actionRows?: ComponentInContainerData[]): ContainerComponentData {
     const children: ComponentInContainerData[] = [];
-    const title = this.titleText ? `**${this.titleText}**` : "";
+    const title = this.titleText ? `**${censorProfanity(this.titleText)}**` : "";
+    const description = censorProfanity(this.descriptionText);
     const fieldsText = this.fieldsText();
+    const footerText = censorProfanity(this.footerText);
 
     if (this.thumbnailURL) {
       // Everything lives in one TextDisplay inside the section so the thumbnail sits as a
@@ -197,9 +200,9 @@ export class ResultContainer {
       // fields block below the section would strand the thumbnail up top on its own.
       const parts: string[] = [];
       if (title) parts.push(title);
-      if (this.descriptionText) parts.push(this.descriptionText);
+      if (description) parts.push(description);
       if (fieldsText) parts.push(fieldsText);
-      if (this.footerText) parts.push(`-# ${this.footerText}`);
+      if (footerText) parts.push(`-# ${footerText}`);
       children.push({
         type: ComponentType.Section,
         components: [{ type: ComponentType.TextDisplay, content: parts.length ? parts.join("\n\n") : "​" }],
@@ -207,14 +210,14 @@ export class ResultContainer {
       });
     } else {
       if (title) children.push({ type: ComponentType.TextDisplay, content: title });
-      if (this.descriptionText) children.push({ type: ComponentType.TextDisplay, content: this.descriptionText });
+      if (description) children.push({ type: ComponentType.TextDisplay, content: description });
       if (fieldsText) {
         children.push({ type: ComponentType.Separator, divider: true, spacing: SeparatorSpacingSize.Small });
         children.push({ type: ComponentType.TextDisplay, content: fieldsText });
       }
-      if (this.footerText) {
+      if (footerText) {
         children.push({ type: ComponentType.Separator, divider: false, spacing: SeparatorSpacingSize.Small });
-        children.push({ type: ComponentType.TextDisplay, content: `-# ${this.footerText}` });
+        children.push({ type: ComponentType.TextDisplay, content: `-# ${footerText}` });
       }
     }
 

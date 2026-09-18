@@ -58,31 +58,42 @@ export const guildPermissionRoleGrants = sqliteTable(
   (table) => [primaryKey({ columns: [table.roleId, table.grantKey] })],
 );
 
-export const messageArchives = sqliteTable("message_archives", {
-  id: text("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  payload: text("payload").notNull(),
-});
+export const messageArchives = sqliteTable(
+  "message_archives",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    payload: text("payload").notNull(),
+  },
+  (table) => [index("message_archives_guild").on(table.guildId)],
+);
 
-export const modCases = sqliteTable("mod_cases", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  modId: text("mod_id").notNull(),
-  type: text("type").notNull(),
-  reason: text("reason"),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
-  expiresAt: integer("expires_at", { mode: "timestamp" }),
-  metadata: text("metadata"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  /** Whether this case has a public, shareable document page at /case/:shareToken. */
-  public: integer("public", { mode: "boolean" }).notNull().default(false),
-  shareToken: text("share_token").unique(),
-  /** Editable public-facing summary shown on the shared page, separate from the internal `reason`. */
-  publicNote: text("public_note"),
-  publishedAt: integer("published_at", { mode: "timestamp" }),
-});
+export const modCases = sqliteTable(
+  "mod_cases",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    modId: text("mod_id").notNull(),
+    type: text("type").notNull(),
+    reason: text("reason"),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+    metadata: text("metadata"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    /** Whether this case has a public, shareable document page at /case/:shareToken. */
+    public: integer("public", { mode: "boolean" }).notNull().default(false),
+    shareToken: text("share_token").unique(),
+    /** Editable public-facing summary shown on the shared page, separate from the internal `reason`. */
+    publicNote: text("public_note"),
+    publishedAt: integer("published_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    index("mod_cases_guild").on(table.guildId),
+    index("mod_cases_guild_user").on(table.guildId, table.userId),
+  ],
+);
 
 /** One capture batch of a member's recent message content, taken either automatically when a
  * moderation case is created against them, or manually via `/evidence add`. Kept 42 days
@@ -293,15 +304,22 @@ export const tags = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.name] })],
 );
 
-export const reminders = sqliteTable("reminders", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  channelId: text("channel_id").notNull(),
-  message: text("message").notNull(),
-  remindAt: integer("remind_at", { mode: "timestamp" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-});
+export const reminders = sqliteTable(
+  "reminders",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    message: text("message").notNull(),
+    remindAt: integer("remind_at", { mode: "timestamp" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("reminders_guild").on(table.guildId),
+    index("reminders_user").on(table.userId),
+  ],
+);
 
 /** Tracks the live Discord message ID for a dashboard-configured sticky. */
 export const persistedMessages = sqliteTable(
@@ -501,42 +519,50 @@ export const dreamCommands = sqliteTable(
 );
 
 /** Persisted audit log events for Discord channel + dashboard Logs. */
-export const guildLogEvents = sqliteTable("guild_log_events", {
-  id: text("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  category: text("category").notNull(),
-  eventType: text("event_type").notNull(),
-  title: text("title").notNull(),
-  summary: text("summary").notNull().default(""),
-  actorId: text("actor_id"),
-  targetId: text("target_id"),
-  channelId: text("channel_id"),
-  messageId: text("message_id"),
-  caseId: integer("case_id", { mode: "number" }),
-  payload: text("payload").notNull().default("{}"),
-  discordMessageId: text("discord_message_id"),
-});
+export const guildLogEvents = sqliteTable(
+  "guild_log_events",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    category: text("category").notNull(),
+    eventType: text("event_type").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull().default(""),
+    actorId: text("actor_id"),
+    targetId: text("target_id"),
+    channelId: text("channel_id"),
+    messageId: text("message_id"),
+    caseId: integer("case_id", { mode: "number" }),
+    payload: text("payload").notNull().default("{}"),
+    discordMessageId: text("discord_message_id"),
+  },
+  (table) => [index("guild_log_events_guild_created").on(table.guildId, table.createdAt)],
+);
 
 /** Pending/resolved guild bot avatar/banner changes awaiting staff approval. */
-export const botAvatarRequests = sqliteTable("bot_avatar_requests", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  requesterId: text("requester_id").notNull(),
-  /** Discord channel id, or `dashboard` when submitted from the website. */
-  requestChannelId: text("request_channel_id").notNull(),
-  requestMessageId: text("request_message_id"),
-  reviewMessageId: text("review_message_id"),
-  /** Base64-encoded normalized PNG (avatar 512×512, banner 680×240). */
-  avatarPng: text("avatar_png").notNull(),
-  /** avatar | banner */
-  kind: text("kind").notNull().default("avatar"),
-  /** pending | approved | denied | failed | cancelled | superseded */
-  status: text("status").notNull().default("pending"),
-  reviewerId: text("reviewer_id"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  resolvedAt: integer("resolved_at", { mode: "timestamp" }),
-});
+export const botAvatarRequests = sqliteTable(
+  "bot_avatar_requests",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    requesterId: text("requester_id").notNull(),
+    /** Discord channel id, or `dashboard` when submitted from the website. */
+    requestChannelId: text("request_channel_id").notNull(),
+    requestMessageId: text("request_message_id"),
+    reviewMessageId: text("review_message_id"),
+    /** Base64-encoded normalized PNG (avatar 512×512, banner 680×240). */
+    avatarPng: text("avatar_png").notNull(),
+    /** avatar | banner */
+    kind: text("kind").notNull().default("avatar"),
+    /** pending | approved | denied | failed | cancelled | superseded */
+    status: text("status").notNull().default("pending"),
+    reviewerId: text("reviewer_id"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  },
+  (table) => [index("bot_avatar_requests_guild").on(table.guildId)],
+);
 
 /**
  * Last-known guild bot nickname, bio, and applied brand images — the "draft" the dashboard
@@ -560,47 +586,55 @@ export const botGuildProfiles = sqliteTable("bot_guild_profiles", {
 });
 
 /** Server reviews submitted via /review. */
-export const reviews = sqliteTable("reviews", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  rating: integer("rating", { mode: "number" }).notNull(),
-  content: text("content").notNull().default(""),
-  anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
-  channelId: text("channel_id"),
-  messageId: text("message_id"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-});
+export const reviews = sqliteTable(
+  "reviews",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    rating: integer("rating", { mode: "number" }).notNull(),
+    content: text("content").notNull().default(""),
+    anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
+    channelId: text("channel_id"),
+    messageId: text("message_id"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  },
+  (table) => [index("reviews_guild").on(table.guildId)],
+);
 
 /** Community suggestions with staff review and voting. */
-export const suggestions = sqliteTable("suggestions", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  suggestionNumber: integer("suggestion_number", { mode: "number" }).notNull(),
-  authorId: text("author_id").notNull(),
-  content: text("content").notNull(),
-  attachmentUrl: text("attachment_url"),
-  anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
-  /** awaiting_review | approved | denied */
-  status: text("status").notNull().default("awaiting_review"),
-  /** none | considered | progress | implemented | no */
-  displayStatus: text("display_status").notNull().default("none"),
-  reviewChannelId: text("review_channel_id"),
-  reviewMessageId: text("review_message_id"),
-  feedChannelId: text("feed_channel_id"),
-  feedMessageId: text("feed_message_id"),
-  deniedChannelId: text("denied_channel_id"),
-  deniedMessageId: text("denied_message_id"),
-  archiveChannelId: text("archive_channel_id"),
-  archiveMessageId: text("archive_message_id"),
-  staffActorId: text("staff_actor_id"),
-  denialReason: text("denial_reason"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-  implementedAt: integer("implemented_at", { mode: "timestamp" }),
-});
+export const suggestions = sqliteTable(
+  "suggestions",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    suggestionNumber: integer("suggestion_number", { mode: "number" }).notNull(),
+    authorId: text("author_id").notNull(),
+    content: text("content").notNull(),
+    attachmentUrl: text("attachment_url"),
+    anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
+    /** awaiting_review | approved | denied */
+    status: text("status").notNull().default("awaiting_review"),
+    /** none | considered | progress | implemented | no */
+    displayStatus: text("display_status").notNull().default("none"),
+    reviewChannelId: text("review_channel_id"),
+    reviewMessageId: text("review_message_id"),
+    feedChannelId: text("feed_channel_id"),
+    feedMessageId: text("feed_message_id"),
+    deniedChannelId: text("denied_channel_id"),
+    deniedMessageId: text("denied_message_id"),
+    archiveChannelId: text("archive_channel_id"),
+    archiveMessageId: text("archive_message_id"),
+    staffActorId: text("staff_actor_id"),
+    denialReason: text("denial_reason"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    implementedAt: integer("implemented_at", { mode: "timestamp" }),
+  },
+  (table) => [index("suggestions_guild_number").on(table.guildId, table.suggestionNumber)],
+);
 
 export const suggestionVotes = sqliteTable(
   "suggestion_votes",
@@ -647,28 +681,36 @@ export const suggestionFollows = sqliteTable(
 );
 
 /** Dashboard custom charts saved per guild (stats page). */
-export const guildCustomCharts = sqliteTable("guild_custom_charts", {
-  id: text("id").primaryKey(),
-  guildId: text("guild_id").notNull(),
-  title: text("title").notNull(),
-  chartType: text("chart_type").notNull(),
-  definitionJson: text("definition_json").notNull(),
-  sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
-  createdBy: text("created_by").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
+export const guildCustomCharts = sqliteTable(
+  "guild_custom_charts",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    title: text("title").notNull(),
+    chartType: text("chart_type").notNull(),
+    definitionJson: text("definition_json").notNull(),
+    sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("guild_custom_charts_guild").on(table.guildId)],
+);
 
 /** Rolling automod rule hits used for escalation ladders. */
-export const automodHits = sqliteTable("automod_hits", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  ruleId: text("rule_id").notNull(),
-  channelId: text("channel_id"),
-  messageId: text("message_id"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-});
+export const automodHits = sqliteTable(
+  "automod_hits",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    ruleId: text("rule_id").notNull(),
+    channelId: text("channel_id"),
+    messageId: text("message_id"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("automod_hits_guild_user").on(table.guildId, table.userId)],
+);
 
 /** Per-guild daily slash/custom command uses. */
 export const commandUsageDaily = sqliteTable(
@@ -926,70 +968,82 @@ export const economyServerAccounts = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
 );
 
-export const tickets = sqliteTable("tickets", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  panelId: text("panel_id").notNull(),
-  categoryId: text("category_id").notNull(),
-  number: integer("number", { mode: "number" }).notNull(),
-  channelId: text("channel_id").notNull(),
-  threadId: text("thread_id"),
-  mode: text("mode").notNull().default("channel"),
-  openerId: text("opener_id").notNull(),
-  claimedBy: text("claimed_by"),
-  status: text("status").notNull().default("open"),
-  priority: text("priority").notNull().default("medium"),
-  formResponses: text("form_responses").notNull().default("[]"),
-  memberIds: text("member_ids").notNull().default("[]"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  closedAt: integer("closed_at", { mode: "timestamp" }),
-  closedBy: text("closed_by"),
-  closeReason: text("close_reason"),
-  lastActivityAt: integer("last_activity_at", { mode: "timestamp" }).notNull(),
-  ratingScore: integer("rating_score", { mode: "number" }),
-  ratingComment: text("rating_comment"),
-  lastStaffReplyAt: integer("last_staff_reply_at", { mode: "timestamp" }),
-  escalationStep: integer("escalation_step", { mode: "number" }).notNull().default(-1),
-  /** Work-in-progress status shown alongside open/closed (e.g. "awaiting_response"). Null = no special status. */
-  subStatus: text("sub_status"),
-  /** First time any staff member replied — set once, never overwritten. Powers the response-time stat. */
-  firstStaffReplyAt: integer("first_staff_reply_at", { mode: "timestamp" }),
-  /** Who sent that first staff reply — the response-time stat is attributed to them specifically. */
-  firstResponderId: text("first_responder_id"),
-});
+export const tickets = sqliteTable(
+  "tickets",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    panelId: text("panel_id").notNull(),
+    categoryId: text("category_id").notNull(),
+    number: integer("number", { mode: "number" }).notNull(),
+    channelId: text("channel_id").notNull(),
+    threadId: text("thread_id"),
+    mode: text("mode").notNull().default("channel"),
+    openerId: text("opener_id").notNull(),
+    claimedBy: text("claimed_by"),
+    status: text("status").notNull().default("open"),
+    priority: text("priority").notNull().default("medium"),
+    formResponses: text("form_responses").notNull().default("[]"),
+    memberIds: text("member_ids").notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    closedAt: integer("closed_at", { mode: "timestamp" }),
+    closedBy: text("closed_by"),
+    closeReason: text("close_reason"),
+    lastActivityAt: integer("last_activity_at", { mode: "timestamp" }).notNull(),
+    ratingScore: integer("rating_score", { mode: "number" }),
+    ratingComment: text("rating_comment"),
+    lastStaffReplyAt: integer("last_staff_reply_at", { mode: "timestamp" }),
+    escalationStep: integer("escalation_step", { mode: "number" }).notNull().default(-1),
+    /** Work-in-progress status shown alongside open/closed (e.g. "awaiting_response"). Null = no special status. */
+    subStatus: text("sub_status"),
+    /** First time any staff member replied — set once, never overwritten. Powers the response-time stat. */
+    firstStaffReplyAt: integer("first_staff_reply_at", { mode: "timestamp" }),
+    /** Who sent that first staff reply — the response-time stat is attributed to them specifically. */
+    firstResponderId: text("first_responder_id"),
+  },
+  (table) => [index("tickets_guild").on(table.guildId)],
+);
 
-export const ticketTranscripts = sqliteTable("ticket_transcripts", {
-  id: text("id").primaryKey(),
-  ticketId: integer("ticket_id", { mode: "number" }).notNull(),
-  guildId: text("guild_id").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  payload: text("payload").notNull(),
-});
+export const ticketTranscripts = sqliteTable(
+  "ticket_transcripts",
+  {
+    id: text("id").primaryKey(),
+    ticketId: integer("ticket_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    payload: text("payload").notNull(),
+  },
+  (table) => [index("ticket_transcripts_guild").on(table.guildId)],
+);
 
 /** Dashboard-configured YouTube upload watchers ("Social Notifications"). */
-export const socialYoutubeWatchers = sqliteTable("social_youtube_watchers", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  guildId: text("guild_id").notNull(),
-  discordChannelId: text("discord_channel_id").notNull(),
-  sourceChannelId: text("source_channel_id").notNull(),
-  sourceChannelHandle: text("source_channel_handle"),
-  sourceChannelName: text("source_channel_name").notNull(),
-  sourceChannelAvatarUrl: text("source_channel_avatar_url"),
-  sourceChannelUrl: text("source_channel_url").notNull(),
-  uploadsPlaylistId: text("uploads_playlist_id").notNull(),
-  messageContent: text("message_content").notNull().default(""),
-  /** JSON string[] of role IDs to ping. */
-  mentionRoleIds: text("mention_role_ids").notNull().default("[]"),
-  /** JSON-serialized SocialEmbedConfig. */
-  embedConfig: text("embed_config").notNull(),
-  lastVideoId: text("last_video_id"),
-  lastVideoPublishedAt: integer("last_video_published_at", { mode: "timestamp" }),
-  lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-  createdBy: text("created_by").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
+export const socialYoutubeWatchers = sqliteTable(
+  "social_youtube_watchers",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    discordChannelId: text("discord_channel_id").notNull(),
+    sourceChannelId: text("source_channel_id").notNull(),
+    sourceChannelHandle: text("source_channel_handle"),
+    sourceChannelName: text("source_channel_name").notNull(),
+    sourceChannelAvatarUrl: text("source_channel_avatar_url"),
+    sourceChannelUrl: text("source_channel_url").notNull(),
+    uploadsPlaylistId: text("uploads_playlist_id").notNull(),
+    messageContent: text("message_content").notNull().default(""),
+    /** JSON string[] of role IDs to ping. */
+    mentionRoleIds: text("mention_role_ids").notNull().default("[]"),
+    /** JSON-serialized SocialEmbedConfig. */
+    embedConfig: text("embed_config").notNull(),
+    lastVideoId: text("last_video_id"),
+    lastVideoPublishedAt: integer("last_video_published_at", { mode: "timestamp" }),
+    lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("social_youtube_watchers_guild").on(table.guildId)],
+);
 
 export const ticketBlacklist = sqliteTable(
   "ticket_blacklist",

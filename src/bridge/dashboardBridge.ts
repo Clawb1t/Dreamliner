@@ -120,10 +120,29 @@ function sendBinary(
   res.end(body);
 }
 
+// Generous headroom over any real request this bridge handles (small JSON config/control-plane
+// payloads, no file uploads) — just enough to stop an unbounded/malformed body from being buffered
+// into memory in full.
+const MAX_REQUEST_BODY_BYTES = 20 * 1024 * 1024;
+
+class PayloadTooLargeError extends Error {
+  readonly status = 413;
+  constructor() {
+    super("Request body too large.");
+    this.name = "PayloadTooLargeError";
+  }
+}
+
 async function readBody(req: http.IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
+  let total = 0;
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (total > MAX_REQUEST_BODY_BYTES) {
+      throw new PayloadTooLargeError();
+    }
+    chunks.push(buf);
   }
   return Buffer.concat(chunks).toString("utf8");
 }
@@ -6215,7 +6234,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         sendJson(res, 405, { error: "Method not allowed" });
       } catch (error) {
         log.error(`Request error (${method} ${requestPath}):`, error);
-        sendJson(res, 500, {
+        const status = error instanceof PayloadTooLargeError ? error.status : 500;
+        sendJson(res, status, {
           error: error instanceof Error ? error.message : "Internal bridge error",
         });
       }
@@ -6225,6 +6245,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   server.on("error", (error) => {
     log.error(`HTTP server error on port ${port}:`, error);
   });
+
+  // Bound how long a connection can sit idle/slow so a stalled or malicious client can't hold
+  // one open indefinitely. Generous relative to any real dashboard request.
+  server.headersTimeout = 60_000;
+  server.requestTimeout = 30_000;
+  server.keepAliveTimeout = 65_000;
 
   server.listen(port, "0.0.0.0", () => {
     log.success(

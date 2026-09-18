@@ -1,10 +1,11 @@
 import { SlashCommandBuilder, type GuildMember } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { requireMusicPermission, requireActivePlayer, requirePlaybackControl, lineReply } from "../functions/commandHelpers.js";
+import { requireMusicPermission, requireActivePlayer, requirePlaybackControl, lineReply, lineEdit } from "../functions/commandHelpers.js";
 import { getOrConnectPlayer, destroyPlayer } from "../functions/player.js";
 import { isLavalinkConfigured } from "../functions/manager.js";
 import { blockedByMessage } from "../../../core/voiceSessionRegistry.js";
 import { configManager } from "../../../config/manager.js";
+import { deferReplyOptions } from "../../../core/responses.js";
 import { joinedLine, leftLine } from "../functions/formatting.js";
 import { MUSIC_EMOJI } from "../functions/emojis.js";
 import { logMusic } from "../functions/musicLog.js";
@@ -30,13 +31,17 @@ export const connectCommands: SlashCommandDefinition[] = [
         return;
       }
 
+      // The voice-gateway handshake below can outlast Discord's ~3s interaction budget, so defer
+      // first (matching /play, which connects the same way) instead of risking a failed reply.
+      await interaction.deferReply(deferReplyOptions(ephemeral));
+
       const claim = await getOrConnectPlayer(interaction.guildId!, voiceChannelId, interaction.channelId);
       if (!claim.ok) {
         const body = claim.reason === "blocked_by_other" ? blockedByMessage("music", claim.ownedBy) : "Couldn't connect to that voice channel.";
-        await interaction.reply(lineReply(`${MUSIC_EMOJI.error} ${body}`, ephemeral));
+        await interaction.editReply(lineEdit(`${MUSIC_EMOJI.error} ${body}`));
         return;
       }
-      await interaction.reply(lineReply(joinedLine(), ephemeral));
+      await interaction.editReply(lineEdit(joinedLine()));
       void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_session", "Music - Joined Voice", [
         `By: <@${interaction.user.id}>`,
         `Channel: <#${voiceChannelId}>`,

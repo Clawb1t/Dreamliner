@@ -8,11 +8,13 @@ import {
   PermissionFlagsBits,
   REST,
   Routes,
+  type RepliableInteraction,
 } from "discord.js";
 import type { ConfigManager } from "./config/manager.js";
 import { loadPlugins } from "./core/pluginLoader.js";
 import { availablePlugins } from "./plugins/availablePlugins.js";
-import { resultReply, guildResultOptions } from "./core/responses.js";
+import { resultReply, guildResultOptions, replyWithError } from "./core/responses.js";
+import { trackCommandUsage } from "./plugins/stats/functions/commandUsage.js";
 import { translatorFor } from "./i18n/index.js";
 import {
   getUtilityPluginConfig,
@@ -104,6 +106,32 @@ const pluginConfigGetters: Record<string, typeof getUtilityPluginConfig> = {
   infractions: getInfractionPluginConfig,
 };
 
+const GENERIC_INTERACTION_ERROR = "An unexpected error occurred. If this keeps happening, ask in the support server.";
+
+/**
+ * Runs a button/select/modal handler and guarantees the interaction gets *some* reply if it
+ * throws, instead of the click silently doing nothing (an unhandled rejection with no user-facing
+ * feedback) or leaving a deferred interaction stuck on "thinking...". Preserves each handler's own
+ * `boolean | void` "did I own this interaction" return so the `if (handled) return;` routing
+ * above still works — on error we report `true` since we've already replied and shouldn't fall
+ * through to another prefix check.
+ */
+async function safeHandle<T extends RepliableInteraction>(
+  interaction: T,
+  label: string,
+  fn: () => Promise<boolean | void>,
+  errorMessage: string = GENERIC_INTERACTION_ERROR,
+): Promise<boolean> {
+  try {
+    const result = await fn();
+    return result !== false;
+  } catch (error) {
+    log.error(`${label} error:`, error);
+    await replyWithError(interaction, errorMessage);
+    return true;
+  }
+}
+
 async function resolveDispatchPluginConfig(
   pluginName: string,
   guildId: string,
@@ -176,27 +204,31 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
   });
 
   client.on(Events.GuildCreate, async (guild) => {
-    log.success(
-      `Joined guild "${guild.name}" (${guild.id}) — ${guild.memberCount} members. Now in ${client.guilds.cache.size} guild(s).`,
-    );
-
-    const stored = await configManager.getGuildConfig(guild.id);
-    if (stored) return;
-
-    // Provision a default config immediately so every command works out of the
-    // box; the guild can still customize (and overwrite this) via the dashboard
-    // or /config later. Without this, pluginsRequiringConfig gates commands
-    // like /warn until someone explicitly saves a config.
-    const provisioned = await configManager.saveGuildConfig(guild.id, "", "system:auto-onboard");
-    if (!provisioned.success) {
-      log.error(
-        `[dreamliner] Failed to provision default config for guild ${guild.id}:`,
-        provisioned.errors,
+    try {
+      log.success(
+        `Joined guild "${guild.name}" (${guild.id}) — ${guild.memberCount} members. Now in ${client.guilds.cache.size} guild(s).`,
       );
-    }
 
-    const { sendGuildOnboardingMessage } = await import("./core/guildOnboarding.js");
-    await sendGuildOnboardingMessage(guild);
+      const stored = await configManager.getGuildConfig(guild.id);
+      if (stored) return;
+
+      // Provision a default config immediately so every command works out of the
+      // box; the guild can still customize (and overwrite this) via the dashboard
+      // or /config later. Without this, pluginsRequiringConfig gates commands
+      // like /warn until someone explicitly saves a config.
+      const provisioned = await configManager.saveGuildConfig(guild.id, "", "system:auto-onboard");
+      if (!provisioned.success) {
+        log.error(
+          `[dreamliner] Failed to provision default config for guild ${guild.id}:`,
+          provisioned.errors,
+        );
+      }
+
+      const { sendGuildOnboardingMessage } = await import("./core/guildOnboarding.js");
+      await sendGuildOnboardingMessage(guild);
+    } catch (error) {
+      log.error(`[dreamliner] GuildCreate handler failed for guild ${guild.id}:`, error);
+    }
   });
 
   client.on(Events.GuildDelete, (guild) => {
@@ -242,134 +274,116 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     }
     if (interaction.isButton()) {
       if (interaction.customId.startsWith(BOT_AVATAR_PREFIX)) {
-        const handled = await handleBotAvatarButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Bot avatar button", () => handleBotAvatarButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId === SCAM_PROTECT_STATS_PREFIX) {
-        const handled = await handleScamProtectButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Scam protect button", () => handleScamProtectButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(SUGGEST_PREFIX)) {
-        const handled = await handleSuggestionButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Suggestion button", () => handleSuggestionButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
-        const handled = await handleTicketButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Ticket button", () => handleTicketButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {
-        const handled = await handleWelcomeWaveButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Welcome wave button", () => handleWelcomeWaveButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(CONTEXT_NAV_PREFIX)) {
-        const handled = await handleContextNavButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Context nav button", () => handleContextNavButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(EXPAND_DELETE_PREFIX)) {
-        const handled = await handleExpandDeleteButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Expand/delete button", () => handleExpandDeleteButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(PLANE_STATS_PREFIX)) {
-        const handled = await handlePlaneStatsButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Plane stats button", () => handlePlaneStatsButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(PLANE_PACK_PREFIX)) {
-        const handled = await handlePlanePackButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Plane pack button", () => handlePlanePackButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(PLANE_INVENTORY_PREFIX)) {
-        const handled = await handlePlaneInventoryButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Plane inventory button", () => handlePlaneInventoryButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(PLANE_SELL_PREFIX)) {
-        const handled = await handlePlaneSellButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Plane sell button", () => handlePlaneSellButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {
-        const handled = await handleRoleButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Role button", () => handleRoleButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_PANEL_PREFIX)) {
-        const handled = await handleRolePanelButtonInteraction(interaction);
+        const handled = await safeHandle(interaction, "Role panel button", () => handleRolePanelButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
-        const handled = await handleStatsButtonInteraction(configManager, interaction);
+        const handled = await safeHandle(interaction, "Stats button", () => handleStatsButtonInteraction(configManager, interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(`${SEARCH_PREFIX}:`)) {
-        const handled = await handleSearchButtonInteraction(configManager, interaction);
+        const handled = await safeHandle(interaction, "Search button", () => handleSearchButtonInteraction(configManager, interaction));
         if (handled) return;
       }
-      await handleHelpButtonInteraction(configManager, interaction);
+      await safeHandle(interaction, "Help button", () => handleHelpButtonInteraction(configManager, interaction));
       return;
     }
     if (interaction.isStringSelectMenu()) {
       if (interaction.customId === LANGUAGE_SELECT_PREFIX) {
-        const handled = await handleLanguageSelectInteraction(interaction);
+        const handled = await safeHandle(interaction, "Language select", () => handleLanguageSelectInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
-        const handled = await handleTicketSelectMenuInteraction(interaction);
+        const handled = await safeHandle(interaction, "Ticket select", () => handleTicketSelectMenuInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
-        const handled = await handleStatsSelectInteraction(configManager, interaction);
+        const handled = await safeHandle(interaction, "Stats select", () => handleStatsSelectInteraction(configManager, interaction));
         if (handled) return;
       }
-      const companionSelect = await handleCompanionSelectInteraction(interaction);
+      const companionSelect = await safeHandle(interaction, "Companion select", () => handleCompanionSelectInteraction(interaction));
       if (companionSelect) return;
-      await handleHelpSelectInteraction(configManager, interaction);
+      await safeHandle(interaction, "Help select", () => handleHelpSelectInteraction(configManager, interaction));
       return;
     }
     if (interaction.isUserSelectMenu() || interaction.isMentionableSelectMenu()) {
-      const handled = await handleCompanionEntitySelect(interaction);
-      if (handled) return;
+      await safeHandle(interaction, "Companion entity select", () => handleCompanionEntitySelect(interaction));
       return;
     }
     if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
-        const handled = await handleTicketModalSubmit(interaction);
+        const handled = await safeHandle(interaction, "Ticket modal", () => handleTicketModalSubmit(interaction));
         if (handled) return;
       }
       if (interaction.customId === REVIEW_MODAL_ID) {
         if (!(await ensurePluginEnabledForModal(configManager, interaction, "reviews"))) return;
-        try {
-          await handleReviewModalSubmit(interaction, configManager);
-        } catch (error) {
-          log.error("Review modal error:", error);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction
-              .reply(
-                resultReply("Error", "Could not save that review. Ask in the support server if this continues.", true, undefined, [
-                  supportLinkRow(),
-                ]),
-              )
-              .catch(() => null);
-          }
-        }
+        await safeHandle(
+          interaction,
+          "Review modal",
+          () => handleReviewModalSubmit(interaction, configManager),
+          "Could not save that review. Ask in the support server if this continues.",
+        );
         return;
       }
       if (interaction.customId === SUGGEST_MODAL_ID || interaction.customId === SUGGEST_ANON_MODAL_ID) {
         if (!(await ensurePluginEnabledForModal(configManager, interaction, "suggestions"))) return;
-        try {
-          await handleSuggestModalSubmit(interaction, configManager);
-        } catch (error) {
-          log.error("Suggest modal error:", error);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction
-              .reply(
-                resultReply("Error", "Could not save that suggestion. Ask in the support server if this continues.", true, undefined, [
-                  supportLinkRow(),
-                ]),
-              )
-              .catch(() => null);
-          }
-        }
+        await safeHandle(
+          interaction,
+          "Suggest modal",
+          () => handleSuggestModalSubmit(interaction, configManager),
+          "Could not save that suggestion. Ask in the support server if this continues.",
+        );
         return;
       }
-      const companionModal = await handleCompanionModalSubmit(interaction);
-      if (companionModal) return;
+      await safeHandle(interaction, "Companion modal", () => handleCompanionModalSubmit(interaction));
     }
   });
 
@@ -409,13 +423,17 @@ async function handleContextMenuCommand(
   const command = ctx.contextMenuCommands.get(interaction.commandName);
   if (!command) return;
 
+  const { locale, t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply({ content: "This command can only be used in a server.", flags: MessageFlags.Ephemeral });
+    await interaction.reply({
+      content: t("common.guildOnlyCommand", "This command can only be used in a server."),
+      flags: MessageFlags.Ephemeral,
+    });
     return;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
-  const { locale, t } = await translatorFor(interaction.user.id);
 
   if (command.plugin !== "config" && !pluginEnabled(guildConfig, command.plugin)) {
     await interaction.reply(
@@ -512,26 +530,17 @@ async function handleContextMenuCommand(
       locale,
       t,
     });
-    const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, interaction.commandName);
     cmdLog.info(
       `${interaction.commandName} (context menu) used by ${interaction.user.tag} in "${interaction.guild?.name ?? interaction.guildId}" (${interaction.guildId})`,
     );
   } catch (error) {
     log.error(`Error in context menu ${interaction.commandName}:`, error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction
-        .reply(
-          resultReply(
-            "Error",
-            "An unexpected error occurred. If this keeps happening, ask in the support server.",
-            true,
-            guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
-            [supportLinkRow()],
-          ),
-        )
-        .catch(() => null);
-    }
+    await replyWithError(
+      interaction,
+      "An unexpected error occurred. If this keeps happening, ask in the support server.",
+      guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+    );
   }
 }
 
@@ -553,14 +562,18 @@ async function handleSlashCommand(
     return;
   }
 
+  const { locale, t } = await translatorFor(interaction.user.id);
+
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply({ content: "This command can only be used in a server.", flags: MessageFlags.Ephemeral });
+    await interaction.reply({
+      content: t("common.guildOnlyCommand", "This command can only be used in a server."),
+      flags: MessageFlags.Ephemeral,
+    });
     return;
   }
 
   const guildConfig = await configManager.getEffectiveConfig(interaction.guildId);
   const ephemeral = resolveEphemeral(guildConfig);
-  const { locale, t } = await translatorFor(interaction.user.id);
 
   // Config stays available so staff can re-enable plugins; everything else respects `enabled`.
   if (command.plugin !== "config" && !pluginEnabled(guildConfig, command.plugin)) {
@@ -638,26 +651,17 @@ async function handleSlashCommand(
       locale,
       t,
     });
-    const { trackCommandUsage } = await import("./plugins/stats/functions/commandUsage.js");
     trackCommandUsage(interaction.guildId, interaction.commandName);
     cmdLog.info(
       `/${interaction.commandName} used by ${interaction.user.tag} in "${interaction.guild?.name ?? interaction.guildId}" (${interaction.guildId})`,
     );
   } catch (error) {
     log.error(`Error in /${interaction.commandName}:`, error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction
-        .reply(
-          resultReply(
-            "Error",
-            "An unexpected error occurred. If this keeps happening, ask in the support server.",
-            ephemeral,
-            guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
-            [supportLinkRow()],
-          ),
-        )
-        .catch(() => null);
-    }
+    await replyWithError(
+      interaction,
+      "An unexpected error occurred. If this keeps happening, ask in the support server.",
+      guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+    );
   }
 }
 

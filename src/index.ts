@@ -51,7 +51,12 @@ async function main() {
     }
   }
 
-  runMigrations();
+  try {
+    runMigrations();
+  } catch (error) {
+    log.error("Database migration failed — the bot cannot start against a stale schema:", error);
+    process.exit(1);
+  }
 
   try {
     // Converts any still-YAML config_json/user_config_json/defaults_snapshot_json content to
