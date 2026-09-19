@@ -73,6 +73,17 @@ export {
 import { zCountersConfig } from "./counters.js";
 
 export {
+  COUNTING_RESET_TARGETS,
+  zCountingChannel,
+  zCountingConfig,
+  type CountingChannel,
+  type CountingConfig,
+  type CountingResetTarget,
+} from "./counting.js";
+
+import { zCountingConfig } from "./counting.js";
+
+export {
   zRolePanel,
   zRolePanelRole,
   zRolePanelsConfig,
@@ -546,6 +557,7 @@ export const zAutorepliesPluginSection = zPluginSection(zAutorepliesConfig.shape
 export const zAutothreadsPluginSection = zPluginSection(zAutothreadsConfig.shape);
 export const zRemindersPluginSection = zPluginSection(zRemindersConfig.shape);
 export const zCountersPluginSection = zPluginSection(zCountersConfig.shape);
+export const zCountingPluginSection = zPluginSection(zCountingConfig.shape);
 export const zCompanionChannelsPluginSection = zPluginSection(zCompanionChannelsConfig.shape);
 export const zTtsPluginSection = zPluginSection(zTtsConfig.shape);
 export const zClippingPluginSection = zPluginSection(zClippingConfig.shape);

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { boolPerm } from "../schemaHelp.js";
 
 export const zAutodeleteRule = z.strictObject({
   enabled: z.boolean().default(true).describe("Turn this rule on or off without deleting it."),
@@ -15,9 +14,6 @@ export const zAutodeleteRule = z.strictObject({
 });
 
 export const zAutodeleteConfig = z.strictObject({
-  can_manage: boolPerm("manage autodelete rules").describe(
-    "Vestigial. Dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency.",
-  ),
   rules: z.array(zAutodeleteRule).default([]).describe("Channels with auto-delete enabled."),
 });
 

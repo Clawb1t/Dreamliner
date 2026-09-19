@@ -30,6 +30,7 @@ import { autorepliesPlugin } from "../plugins/autoreplies/index.js";
 import { autothreadsPlugin } from "../plugins/autothreads/index.js";
 import { remindersPlugin } from "../plugins/reminders/index.js";
 import { countersPlugin } from "../plugins/counters/index.js";
+import { countingPlugin } from "../plugins/counting/index.js";
 import { companionChannelsPlugin } from "../plugins/companion_channels/index.js";
 import { dreamCommandsPlugin } from "../plugins/dream_commands/index.js";
 import { botCustomisationPlugin } from "../plugins/bot_customisation/index.js";
@@ -81,6 +82,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   autothreadsPlugin,
   remindersPlugin,
   countersPlugin,
+  countingPlugin,
   companionChannelsPlugin,
   dreamCommandsPlugin,
   botCustomisationPlugin,

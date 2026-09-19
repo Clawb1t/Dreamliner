@@ -1,19 +1,5 @@
 [
   {
-    "plugin": "autodelete",
-    "pluginName": "Autodelete",
-    "pluginDescription": "Dashboard-managed auto-clear: messages in a channel are deleted after a delay you set.",
-    "entries": [
-      {
-        "plugin": "autodelete",
-        "permission": "can_manage",
-        "grantKey": "autodelete.can_manage",
-        "title": "Manage",
-        "description": "Vestigial. Dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency."
-      }
-    ]
-  },
-  {
     "plugin": "booster_roles",
     "pluginName": "Booster Roles",
     "pluginDescription": "Reward server boosters with different roles based on how long they've been boosting.",
@@ -80,6 +66,27 @@
         "grantKey": "dream_commands.can_remove",
         "title": "Remove",
         "description": "Allow members to remove custom commands."
+      }
+    ]
+  },
+  {
+    "plugin": "counting",
+    "pluginName": "Counting",
+    "pluginDescription": "A fun counting game for your server. Members count up together one message at a time, with milestones to celebrate, custom messages and reactions, and full control over who's allowed to play.",
+    "entries": [
+      {
+        "plugin": "counting",
+        "permission": "can_reset",
+        "grantKey": "counting.can_reset",
+        "title": "Reset",
+        "description": "Allow members to manually reset a counting channel's count."
+      },
+      {
+        "plugin": "counting",
+        "permission": "can_stats",
+        "grantKey": "counting.can_stats",
+        "title": "Stats",
+        "description": "Allow members to check a counting channel's current count and record."
       }
     ]
   },
@@ -521,20 +528,6 @@
         "grantKey": "role_buttons.can_delete",
         "title": "Delete",
         "description": "Allow members to delete button role panels."
-      }
-    ]
-  },
-  {
-    "plugin": "role_panels",
-    "pluginName": "Role panels",
-    "pluginDescription": "Dashboard-managed reaction/button role panels, with full embed customisation and a live preview.",
-    "entries": [
-      {
-        "plugin": "role_panels",
-        "permission": "can_manage",
-        "grantKey": "role_panels.can_manage",
-        "title": "Manage",
-        "description": "Vestigial. Dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency."
       }
     ]
   },

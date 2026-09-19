@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { boolPerm } from "../schemaHelp.js";
 import { zPersistEmbedConfig } from "./persist.js";
 
 export const zRolePanelRole = z.strictObject({
@@ -72,9 +71,6 @@ export const zRolePanel = z
   });
 
 export const zRolePanelsConfig = z.strictObject({
-  can_manage: boolPerm("manage role panels").describe(
-    "Vestigial. Dashboard routes gate on Discord Manage Server, not this flag. Kept for /permissions consistency.",
-  ),
   panels: z.array(zRolePanel).default([]).describe("Role panels for this server."),
 });
 

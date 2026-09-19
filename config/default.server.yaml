@@ -381,7 +381,6 @@ plugins:
   role_panels:
     enabled: false
     config:
-      can_manage: false
       panels: []
   welcome_message:
     enabled: false
@@ -543,7 +542,6 @@ plugins:
   autodelete:
     enabled: false
     config:
-      can_manage: false
       rules: []
   booster_roles:
     enabled: false
@@ -574,6 +572,12 @@ plugins:
     enabled: false
     config:
       counters: []
+  counting:
+    enabled: false
+    config:
+      can_reset: false
+      can_stats: false
+      channels: []
   companion_channels:
     enabled: false
     config:

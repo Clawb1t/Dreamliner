@@ -17,6 +17,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // booster_roles
     "booster_roles.can_view",
     "booster_roles.can_recheck",
+    // counting
+    "counting.can_stats",
     // economy
     "economy.can_balance",
     "economy.can_buy_pack",
@@ -45,8 +47,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
 
   // Was level >= 25 OR level >= 50.
   moderator: [
-    // autodelete
-    "autodelete.can_manage",
+    // counting
+    "counting.can_reset",
     // bot_customisation
     "bot_customisation.can_avatar",
     "bot_customisation.can_banner",
@@ -92,8 +94,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // role_buttons
     "role_buttons.can_create",
     "role_buttons.can_delete",
-    // role_panels
-    "role_panels.can_manage",
     // roles
     "roles.can_give",
     "roles.can_list",

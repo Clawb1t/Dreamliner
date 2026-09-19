@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-18T12:31:27.696Z",
+  "generatedAt": "2026-09-19T09:43:39.296Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -276,12 +276,17 @@
     {
       "id": "fun",
       "label": "Fun",
-      "description": "Games and light server extras: a global and server economy, plus plane and airline trading cards.",
+      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, and counting channels.",
       "plugins": [
         {
           "key": "economy",
           "name": "Economy",
           "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims, plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members."
+        },
+        {
+          "key": "counting",
+          "name": "Counting",
+          "description": "A fun counting game for your server. Members count up together one message at a time, with milestones to celebrate, custom messages and reactions, and full control over who's allowed to play."
         }
       ]
     },
@@ -562,6 +567,13 @@
       "key": "economy",
       "name": "Economy",
       "description": "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims, plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
+      "category": "Fun",
+      "categoryId": "fun"
+    },
+    {
+      "key": "counting",
+      "name": "Counting",
+      "description": "A fun counting game for your server. Members count up together one message at a time, with milestones to celebrate, custom messages and reactions, and full control over who's allowed to play.",
       "category": "Fun",
       "categoryId": "fun"
     },

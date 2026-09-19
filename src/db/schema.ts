@@ -352,6 +352,21 @@ export const rolePanelMessages = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.panelId] })],
 );
 
+export const countingChannels = sqliteTable(
+  "counting_channels",
+  {
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    currentCount: integer("current_count").notNull().default(0),
+    lastUserId: text("last_user_id"),
+    lastMessageId: text("last_message_id"),
+    highestCount: integer("highest_count").notNull().default(0),
+    totalResets: integer("total_resets").notNull().default(0),
+    lastCountAt: integer("last_count_at", { mode: "timestamp" }),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.channelId] })],
+);
+
 export const channelAutodelete = sqliteTable(
   "channel_autodelete",
   {

@@ -157,8 +157,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "fun",
     label: "Fun",
-    blurb: "Games and light server extras: a global and server economy, plus plane and airline trading cards.",
-    include: [{ plugin: "economy" }],
+    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, and counting channels.",
+    include: [{ plugin: "economy" }, { plugin: "counting" }],
   },
   {
     id: "support",
@@ -295,6 +295,11 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   },
   reminders: { key: "reminders", name: "Reminders", description: "Personal reminders." },
   counters: { key: "counters", name: "Counters", description: "Live counters." },
+  counting: {
+    key: "counting",
+    name: "Counting",
+    description: "A fun counting game for your server. Members count up together one message at a time, with milestones to celebrate, custom messages and reactions, and full control over who's allowed to play.",
+  },
   companion_channels: {
     key: "companion_channels",
     name: "Companion channels",
@@ -427,6 +432,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   suggestions: "feedback",
   tickets: "support",
   economy: "fun",
+  counting: "fun",
   social: "social",
 };
 
