@@ -56,7 +56,11 @@ export const utilityPlugin = definePlugin({
 
         const pluginConfig = getPluginSettings(guildConfig, "utility");
         if (pluginConfig.expand_message_links !== false) {
-          await handleExpandMessageLinks(msg).catch(() => null);
+          const maxLength =
+            typeof pluginConfig.expand_message_links_max_length === "number"
+              ? pluginConfig.expand_message_links_max_length
+              : 0;
+          await handleExpandMessageLinks(msg, maxLength).catch(() => null);
         }
       },
     },

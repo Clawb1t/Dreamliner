@@ -450,6 +450,14 @@
                   "description": "When a Discord message link is pasted in chat, repost that message (content and attachments) via webhook with the original author's name and avatar.",
                   "title": "Expand Message Links"
                 },
+                "expand_message_links_max_length": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4000,
+                  "default": 0,
+                  "description": "Skip quoting a linked message if its content is longer than this many characters (0 = no limit).",
+                  "title": "Expand Message Links Max Length"
+                },
                 "info_on_single_result": {
                   "type": "boolean",
                   "default": true,
@@ -788,6 +796,16 @@
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
                 },
+                "can_listening_to": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to use the Listening to user context command.",
+                  "title": "Listening To",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
                 "can_discofy": {
                   "type": "boolean",
                   "default": false,
@@ -814,6 +832,7 @@
                 "jumbo_size": 128,
                 "autojoin_threads": true,
                 "expand_message_links": true,
+                "expand_message_links_max_length": 0,
                 "info_on_single_result": true,
                 "global_watchdog_action": "off",
                 "can_search": false,
@@ -848,6 +867,7 @@
                 "can_create_emoji": false,
                 "can_snipe": false,
                 "can_quote_to_discofy": false,
+                "can_listening_to": false,
                 "can_discofy": false,
                 "can_one": false
               },
@@ -3574,7 +3594,8 @@
                         "none",
                         "color",
                         "url",
-                        "guild_banner"
+                        "guild_banner",
+                        "asset"
                       ],
                       "default": "none",
                       "description": "Page background source.",
@@ -3598,6 +3619,17 @@
                       "default": "",
                       "description": "Background image URL when type is url.",
                       "title": "Background Url"
+                    },
+                    "background_asset_id": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "default": "",
+                      "description": "Uploaded background asset id when type is asset.",
+                      "title": "Background Asset Id",
+                      "x-dreamliner": {
+                        "kind": "snowflake",
+                        "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                      }
                     },
                     "show_server_icon": {
                       "type": "boolean",
@@ -3826,6 +3858,7 @@
                   "background": "none",
                   "background_color": 16053751,
                   "background_url": "",
+                  "background_asset_id": "",
                   "show_server_icon": true,
                   "show_server_name": true,
                   "show_member_count": true,
@@ -6408,6 +6441,12 @@
                   "additionalProperties": false,
                   "default": {},
                   "title": "Wave Button"
+                },
+                "require_passport_verification": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Hold the join and DM welcome until the member passes Dreamliner Passport verification, instead of sending right away when they join. Has no effect if Passport isn't enabled for this server.",
+                  "title": "Require Passport Verification"
                 }
               },
               "additionalProperties": false,
@@ -6568,7 +6607,8 @@
                   "enabled": false,
                   "label": "Wave",
                   "emoji": "👋"
-                }
+                },
+                "require_passport_verification": false
               },
               "title": "Config"
             }

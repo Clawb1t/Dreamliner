@@ -80,11 +80,16 @@ export const zPassportPageConfig = z.strictObject({
     .describe("Use this server's public accent color on the Passport page."),
   accent_color: colorInt("Page accent when inherit_accent is off.", 0x5662f5),
   background: z
-    .enum(["none", "color", "url", "guild_banner"])
+    .enum(["none", "color", "url", "guild_banner", "asset"])
     .default("none")
     .describe("Page background source."),
   background_color: colorInt("Solid background when type is color.", 0xf4f5f7),
   background_url: z.string().max(512).default("").describe("Background image URL when type is url."),
+  background_asset_id: z
+    .string()
+    .max(128)
+    .default("")
+    .describe("Uploaded background asset id when type is asset."),
   show_server_icon: z.boolean().default(true).describe("Show the server icon on the page."),
   show_server_name: z.boolean().default(true).describe("Show the server name on the page."),
   show_member_count: z.boolean().default(true).describe("Show the member count on the page."),

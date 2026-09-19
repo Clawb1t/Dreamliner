@@ -115,9 +115,12 @@ async function fetchLinkedMessage(
 }
 
 /** When a member pastes a Discord message link, mirror that message via webhook. */
-export async function handleExpandMessageLinks(message: Message): Promise<void> {
+export async function handleExpandMessageLinks(message: Message, maxLength = 0): Promise<void> {
   if (!message.guild || message.author.bot || message.webhookId) return;
   if (!message.content) return;
+
+  // Trailing --silent lets the poster opt out of the quote for this message.
+  if (message.content.trim().toLowerCase().endsWith("--silent")) return;
 
   const links = extractMessageLinks(message.content);
   if (links.length === 0) return;
@@ -134,6 +137,8 @@ export async function handleExpandMessageLinks(message: Message): Promise<void> 
   if (!source.content?.trim() && source.attachments.size === 0 && source.embeds.length === 0 && source.stickers.size === 0) {
     return;
   }
+
+  if (maxLength > 0 && (source.content?.length ?? 0) > maxLength) return;
 
   const { t } = await translatorFor(message.author.id);
 

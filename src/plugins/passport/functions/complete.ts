@@ -6,6 +6,7 @@ import { accountAgeTooYoung, applyVerifiedRewards, type PassportRewards } from "
 import { deletePassportMessage } from "./delivery.js";
 import { deletePassportPending, getPassportPending, upsertPassportVerification } from "./store.js";
 import { recordPassportNetworkSignal } from "./altSignals.js";
+import { sendWelcomeAfterPassportVerification } from "../../welcome_message/functions/handlers.js";
 
 export type PassportCompleteResult =
   | { ok: true; alreadyVerified?: boolean; rewards: PassportRewards }
@@ -49,6 +50,10 @@ export async function completePassportVerification(options: {
     await deletePassportMessage(member.guild, pending.pingChannelId, pending.pingMessageId);
   }
   await deletePassportPending(member.guild.id, member.id);
+
+  if (!alreadyVerified) {
+    await sendWelcomeAfterPassportVerification(member).catch(() => null);
+  }
 
   await emitLog(
     client,

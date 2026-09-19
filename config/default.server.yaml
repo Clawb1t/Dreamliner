@@ -49,6 +49,7 @@ plugins:
       jumbo_size: 128
       autojoin_threads: true
       expand_message_links: true
+      expand_message_links_max_length: 0
       info_on_single_result: true
       global_watchdog_action: off
       can_search: false
@@ -83,6 +84,7 @@ plugins:
       can_create_emoji: false
       can_snipe: false
       can_quote_to_discofy: false
+      can_listening_to: false
       can_discofy: false
       can_one: false
   infractions:
@@ -311,6 +313,7 @@ plugins:
         background: none
         background_color: 16053751
         background_url: ""
+        background_asset_id: ""
         show_server_icon: true
         show_server_name: true
         show_member_count: true
@@ -531,6 +534,7 @@ plugins:
         enabled: false
         label: Wave
         emoji: 👋
+      require_passport_verification: false
   tags:
     enabled: false
     config:

@@ -272,6 +272,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       await handleContextMenuCommand(ctx, configManager, interaction);
       return;
     }
+    if (interaction.isUserContextMenuCommand()) {
+      await handleContextMenuCommand(ctx, configManager, interaction);
+      return;
+    }
     if (interaction.isButton()) {
       if (interaction.customId.startsWith(BOT_AVATAR_PREFIX)) {
         const handled = await safeHandle(interaction, "Bot avatar button", () => handleBotAvatarButtonInteraction(interaction));
@@ -418,7 +422,9 @@ async function ensurePluginEnabledForModal(
 async function handleContextMenuCommand(
   ctx: BotContext,
   configManager: ConfigManager,
-  interaction: import("discord.js").MessageContextMenuCommandInteraction,
+  interaction:
+    | import("discord.js").MessageContextMenuCommandInteraction
+    | import("discord.js").UserContextMenuCommandInteraction,
 ) {
   const command = ctx.contextMenuCommands.get(interaction.commandName);
   if (!command) return;

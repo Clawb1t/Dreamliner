@@ -6,6 +6,7 @@ import type {
   Interaction,
   Message,
   MessageContextMenuCommandInteraction,
+  UserContextMenuCommandInteraction,
 } from "discord.js";
 import type { ZodType } from "zod";
 import type { GuildConfig } from "../config/schemas/guild.js";
@@ -41,7 +42,7 @@ export type SlashCommandDefinition = {
 };
 
 export type ContextMenuCommandContext = {
-  interaction: MessageContextMenuCommandInteraction;
+  interaction: MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
   guildConfig: GuildConfig;
   pluginConfig: Record<string, unknown>;
   client: Client;

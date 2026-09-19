@@ -4,6 +4,7 @@ import {
   ContextMenuCommandBuilder,
   MessageFlags,
   StickerFormatType,
+  escapeMarkdown,
   type TextChannel,
 } from "discord.js";
 import { resolveEmojiForContent } from "../../../core/emoji.js";
@@ -16,15 +17,19 @@ import { normalizeEmoji } from "../functions/normalizeEmoji.js";
 import { ManageGuildExpressions, ManageMessages } from "../functions/commandHelpers.js";
 import { archiveMessages, collectMessagesToHere, formatArchiveTranscript, serializeMessages } from "../functions/clean.js";
 import { DiscofySubmitError, submitDiscofyQuote } from "../functions/discofy.js";
-import { embedWithFilesEdit, resultEdit, guildResultOptions } from "../../../core/responses.js";
-import { buildResultEmbed } from "../../../core/embeds.js";
+import { getLastfmUsername } from "../functions/lastfmConnection.js";
+import { LastfmError, getLastfmNowPlaying } from "../functions/lastfm.js";
+import { embedWithFilesEdit, embedEdit, resultEdit, guildResultOptions } from "../../../core/responses.js";
+import { buildResultEmbed, baseEmbed } from "../../../core/embeds.js";
 import { buildCleanLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
+import { siteLinkRow, getAccountLastfmUrl } from "../../../core/docsUrl.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("utility");
 
 const MAX_GIF_ATTACHMENTS = 10;
 const DISCOFY_EMOJI = "<:discofy:1548639182358978620>";
+const LISTENING_EMOJI = "<:icons_headphone:1544417301321875536>";
 
 /** Discord sticker names: 2-30 characters, letters/numbers/underscores/dashes/spaces. */
 function sanitizeStickerName(raw: string | null | undefined): string | null {
@@ -51,6 +56,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       .setType(ApplicationCommandType.Message),
     execute: async (ctx) => {
       const { interaction, client } = ctx;
+      if (!interaction.isMessageContextMenuCommand()) return;
       await interaction.deferReply();
 
       const imageAttachments = getImageAttachments(interaction.targetMessage.attachments);
@@ -87,6 +93,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       .setType(ApplicationCommandType.Message),
     execute: async (ctx) => {
       const { interaction } = ctx;
+      if (!interaction.isMessageContextMenuCommand()) return;
       const channel = interaction.channel;
       if (!channel?.isTextBased() || channel.isDMBased() || !("bulkDelete" in channel)) {
         await replyContextMenuError(ctx, ctx.t("utility.contextMenu.cleanToHereTitle", "Clean to here"), ctx.t("utility.contextMenu.mustBeTextChannel", "This command must be used in a text channel."));
@@ -167,6 +174,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       .setType(ApplicationCommandType.Message),
     execute: async (ctx) => {
       const { interaction } = ctx;
+      if (!interaction.isMessageContextMenuCommand()) return;
       const guild = interaction.guild!;
       const message = interaction.targetMessage;
 
@@ -264,6 +272,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       .setType(ApplicationCommandType.Message),
     execute: async (ctx) => {
       const { interaction } = ctx;
+      if (!interaction.isMessageContextMenuCommand()) return;
       const guild = interaction.guild!;
       const message = interaction.targetMessage;
 
@@ -347,6 +356,7 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       .setType(ApplicationCommandType.Message),
     execute: async (ctx) => {
       const { interaction } = ctx;
+      if (!interaction.isMessageContextMenuCommand()) return;
       const message = interaction.targetMessage;
 
       const content = message.content?.trim();
@@ -381,6 +391,59 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         const details = error instanceof DiscofySubmitError ? error.message : ctx.t("utility.contextMenu.couldNotSubmitQuoteBody", "Could not submit that quote to Discofy.");
         await replyContextMenuError(ctx, ctx.t("utility.contextMenu.couldntQuoteToDiscofyTitle", "Couldn't quote to Discofy"), details);
       }
+    },
+  },
+  {
+    plugin: "utility",
+    permission: "can_listening_to",
+    data: new ContextMenuCommandBuilder()
+      .setName("Listening to")
+      .setType(ApplicationCommandType.User),
+    execute: async (ctx) => {
+      const { interaction, client } = ctx;
+      if (!interaction.isUserContextMenuCommand()) return;
+      const target = interaction.targetUser;
+      await interaction.deferReply();
+
+      const username = await getLastfmUsername(target.id);
+      if (!username) {
+        await replyContextMenuError(
+          ctx,
+          ctx.t("utility.contextMenu.noLastfmTitle", "No Last.fm account"),
+          ctx.t("utility.contextMenu.noLastfmBody", "**{user}** hasn't connected a Last.fm account to Dreamliner yet.", { user: target.displayName }),
+          [siteLinkRow({ label: ctx.t("utility.contextMenu.connectLastfm", "Connect Last.fm"), url: getAccountLastfmUrl() })],
+        );
+        return;
+      }
+
+      let track;
+      try {
+        track = await getLastfmNowPlaying(username);
+      } catch (error) {
+        log.error("Listening to error:", error);
+        const details = error instanceof LastfmError ? error.message : ctx.t("utility.contextMenu.lastfmGenericError", "Couldn't reach Last.fm right now.");
+        await replyContextMenuError(ctx, ctx.t("utility.contextMenu.lastfmUnavailableTitle", "Last.fm unavailable"), details);
+        return;
+      }
+
+      if (!track) {
+        await replyContextMenuError(
+          ctx,
+          ctx.t("utility.contextMenu.nothingScrobbledTitle", "Nothing scrobbled"),
+          ctx.t("utility.contextMenu.nothingScrobbledBody", "**{user}** hasn't listened to anything on Last.fm yet.", { user: target.displayName }),
+        );
+        return;
+      }
+
+      const emoji = resolveEmojiForContent(LISTENING_EMOJI, client);
+      const verb = track.nowPlaying
+        ? ctx.t("utility.contextMenu.listeningTo", "Listening to")
+        : ctx.t("utility.contextMenu.lastListenedTo", "Last listened to");
+      const container = baseEmbed().setDescription(
+        `${emoji} ${verb} **[${escapeMarkdown(track.name)}](${track.url})** by [${escapeMarkdown(track.artist)}](${track.artistUrl})`,
+      );
+      if (track.imageUrl) container.setThumbnail(track.imageUrl);
+      await interaction.editReply(embedEdit(container));
     },
   },
 ];

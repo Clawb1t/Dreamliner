@@ -1,5 +1,6 @@
 import type { GuildMember, PartialGuildMember, TextChannel, User } from "discord.js";
 import type { WelcomeMessageConfig } from "../../../config/schemas/welcome.js";
+import { hasMemberPassedPassport } from "../../passport/functions/gate.js";
 import { armFirstMessageReact, clearFirstMessageReact } from "./firstMessageReact.js";
 import { loadWelcomeConfig } from "./loadConfig.js";
 import {
@@ -118,16 +119,45 @@ export async function handleWelcomeMemberAdd(member: GuildMember): Promise<void>
   const config = await loadWelcomeConfig(member.guild.id);
   if (!config) return;
 
+  // When gated, hold the join/DM welcome until the member actually passes Passport —
+  // sendWelcomeAfterPassportVerification sends them once that happens. Members who don't
+  // need to verify (bypass role, already verified, or Passport isn't enabled) are
+  // indistinguishable from "not gated" here, so they still get welcomed right away.
+  const waitForPassport =
+    config.require_passport_verification && !(await hasMemberPassedPassport(member));
+
+  if (!waitForPassport) {
+    if (config.join.enabled && config.join.channel_id) {
+      await sendWelcomeEvent("join", member, config);
+    }
+
+    if (config.dm.enabled) {
+      await sendWelcomeEvent("dm", member, config);
+    }
+  }
+
+  if (config.first_message_react?.enabled && config.first_message_react.emoji?.trim()) {
+    armFirstMessageReact(member.guild.id, member.id);
+  }
+}
+
+/**
+ * Called once a member successfully passes Passport verification. Only sends anything when
+ * this guild's welcomer is actually gated on Passport — otherwise the join/DM welcome was
+ * already sent at join time by handleWelcomeMemberAdd, and sending again here would duplicate it.
+ */
+export async function sendWelcomeAfterPassportVerification(member: GuildMember): Promise<void> {
+  if (!member.guild || member.user.bot) return;
+
+  const config = await loadWelcomeConfig(member.guild.id);
+  if (!config || !config.require_passport_verification) return;
+
   if (config.join.enabled && config.join.channel_id) {
     await sendWelcomeEvent("join", member, config);
   }
 
   if (config.dm.enabled) {
     await sendWelcomeEvent("dm", member, config);
-  }
-
-  if (config.first_message_react?.enabled && config.first_message_react.emoji?.trim()) {
-    armFirstMessageReact(member.guild.id, member.id);
   }
 }
 

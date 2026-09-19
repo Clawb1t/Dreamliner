@@ -1000,6 +1000,13 @@
       },
       {
         "plugin": "utility",
+        "permission": "can_listening_to",
+        "grantKey": "utility.can_listening_to",
+        "title": "Listening To",
+        "description": "Allow members to use the Listening to user context command."
+      },
+      {
+        "plugin": "utility",
         "permission": "can_messageinfo",
         "grantKey": "utility.can_messageinfo",
         "title": "Messageinfo",

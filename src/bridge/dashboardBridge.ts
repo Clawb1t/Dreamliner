@@ -626,6 +626,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
+        const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
         const clipsGalleryMatch = /^\/bridge\/users\/(\d+)\/clips\/gallery$/.exec(url.pathname);
         const musicActiveMatch = /^\/bridge\/users\/(\d+)\/music\/active$/.exec(url.pathname);
         // A distinct path segment (not nested under /playlists/) so it can never collide with a
@@ -878,6 +879,41 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 400, { error: result.error });
             return;
           }
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (lastfmMatch && req.method === "GET") {
+          const { getLastfmForWeb } = await import("./webLastfm.js");
+          sendJson(res, 200, { ok: true, ...(await getLastfmForWeb(lastfmMatch[1]!)) });
+          return;
+        }
+
+        if (lastfmMatch && req.method === "PUT") {
+          let body: { username?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (typeof body.username !== "string" || !body.username.trim()) {
+            sendJson(res, 400, { error: "username is required." });
+            return;
+          }
+          const { setLastfmForWeb } = await import("./webLastfm.js");
+          const result = await setLastfmForWeb(lastfmMatch[1]!, body.username.trim());
+          if (!result.ok) {
+            sendJson(res, 400, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true, username: result.username });
+          return;
+        }
+
+        if (lastfmMatch && req.method === "DELETE") {
+          const { clearLastfmForWeb } = await import("./webLastfm.js");
+          await clearLastfmForWeb(lastfmMatch[1]!);
           sendJson(res, 200, { ok: true });
           return;
         }
@@ -2235,11 +2271,18 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const passportAltsMatch = /^\/bridge\/guilds\/(\d+)\/passport\/alts(?:\/(dismiss|clear))?$/.exec(
           url.pathname,
         );
+        const passportAssetMatch = /^\/bridge\/guilds\/(\d+)\/passport\/assets(?:\/([a-zA-Z0-9_-]+))?$/.exec(
+          url.pathname,
+        );
         const nameHistoryMatch = /^\/bridge\/guilds\/(\d+)\/name-history$/.exec(url.pathname);
         const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
         const permissionRolesMatch =
           /^\/bridge\/guilds\/(\d+)\/permission-roles(?:\/(\d+)(?:\/(targets|grants))?)?$/.exec(url.pathname);
         const permissionCatalogMatch = /^\/bridge\/guilds\/(\d+)\/permission-catalog$/.exec(url.pathname);
+        const snapshotsMatch = /^\/bridge\/guilds\/(\d+)\/snapshots(?:\/(\d+)(?:\/(rollback|download))?)?$/.exec(
+          url.pathname,
+        );
+        const snapshotsImportMatch = /^\/bridge\/guilds\/(\d+)\/snapshots\/import$/.exec(url.pathname);
         const botProfileRequestImageMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/requests\/(\d+)\/image$/.exec(
           url.pathname,
         );
@@ -2340,6 +2383,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !economyMatch &&
           !permissionRolesMatch &&
           !permissionCatalogMatch &&
+          !snapshotsMatch &&
+          !snapshotsImportMatch &&
           !botProfileRequestImageMatch &&
           !botProfileRequestCancelMatch &&
           !botProfileMediaMatch &&
@@ -2423,10 +2468,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           rolePanelsValidateMatch?.[1] ??
           passportMatch?.[1] ??
           passportAltsMatch?.[1] ??
+          passportAssetMatch?.[1] ??
           nameHistoryMatch?.[1] ??
           economyMatch?.[1] ??
           permissionRolesMatch?.[1] ??
           permissionCatalogMatch?.[1] ??
+          snapshotsMatch?.[1] ??
+          snapshotsImportMatch?.[1] ??
           botProfileRequestImageMatch?.[1] ??
           botProfileRequestCancelMatch?.[1] ??
           botProfileMediaMatch?.[1] ??
@@ -3672,6 +3720,154 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (snapshotsImportMatch) {
+          const { importWebSnapshot } = await import("./webSnapshots.js");
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { userId?: string; label?: string; configJson?: string };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          if (!userId || !(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          if (typeof body.configJson !== "string" || !body.configJson.trim()) {
+            sendJson(res, 400, { error: "configJson is required" });
+            return;
+          }
+          const label = typeof body.label === "string" ? body.label.trim().slice(0, 100) || null : null;
+          const result = await importWebSnapshot(guildId, userId, label, body.configJson);
+          if (!result.ok) {
+            sendJson(res, 400, { error: result.error });
+            return;
+          }
+          trackDashboardAction(client, guildId, userId, {
+            eventType: "dashboard_config",
+            title: "Snapshot imported",
+            summary: "A configuration snapshot was imported from an uploaded file.",
+            details: [`Snapshot: #${result.snapshot.id}`],
+            payload: { snapshotId: result.snapshot.id },
+          });
+          sendJson(res, 200, { ok: true, snapshot: result.snapshot });
+          return;
+        }
+
+        if (snapshotsMatch) {
+          const snapshotId = snapshotsMatch[2] ? Number(snapshotsMatch[2]) : null;
+          const isRollback = snapshotsMatch[3] === "rollback";
+          const isDownload = snapshotsMatch[3] === "download";
+          const { createWebSnapshot, deleteWebSnapshot, getWebSnapshotConfig, listWebSnapshots, rollbackWebSnapshot } =
+            await import("./webSnapshots.js");
+
+          if (snapshotId && isDownload && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const configJson = await getWebSnapshotConfig(guildId, snapshotId);
+            if (!configJson) {
+              sendJson(res, 404, { error: "Snapshot not found" });
+              return;
+            }
+            sendJson(res, 200, { ok: true, configJson });
+            return;
+          }
+
+          if (!snapshotId && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, snapshots: await listWebSnapshots(guildId) });
+            return;
+          }
+
+          if (!snapshotId && req.method === "POST") {
+            let body: { userId?: string; label?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const label = typeof body.label === "string" ? body.label.trim().slice(0, 100) || null : null;
+            const snapshot = await createWebSnapshot(guildId, userId, label);
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: "Snapshot saved",
+              summary: "A configuration snapshot was saved from the dashboard.",
+              details: [`Snapshot: #${snapshot.id}`],
+              payload: { snapshotId: snapshot.id },
+            });
+            sendJson(res, 200, { ok: true, snapshot });
+            return;
+          }
+
+          if (snapshotId && isRollback && req.method === "POST") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await rollbackWebSnapshot(guildId, snapshotId, userId);
+            if (!result.ok) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: "Configuration rolled back",
+              summary: `Rolled back the configuration to snapshot #${result.snapshot.id} from the dashboard.`,
+              details: [`Safety snapshot: #${result.safetySnapshot.id}`],
+              payload: { snapshotId: result.snapshot.id, safetySnapshotId: result.safetySnapshot.id },
+            });
+            sendJson(res, 200, result);
+            return;
+          }
+
+          if (snapshotId && !isRollback && !isDownload && req.method === "DELETE") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const deleted = await deleteWebSnapshot(guildId, snapshotId);
+            sendJson(res, deleted ? 200 : 404, { ok: deleted, error: deleted ? undefined : "Snapshot not found" });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
         if (permissionRolesMatch) {
           const roleIdRaw = permissionRolesMatch[2];
           const subresource = permissionRolesMatch[3]; // "targets" | "grants" | undefined
@@ -3955,6 +4151,103 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               });
             }
             sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (passportAssetMatch) {
+          const { getPassportBackground, removePassportBackground, uploadPassportBackground } =
+            await import("./webPassport.js");
+
+          if (passportAssetMatch && req.method === "POST" && !passportAssetMatch[2]) {
+            let body: { userId?: string; imageBase64?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || typeof body.imageBase64 !== "string") {
+              sendJson(res, 400, { error: "userId and imageBase64 are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const saved = await uploadPassportBackground(guildId, body.imageBase64);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Passport background uploaded",
+                summary: "A Passport page background was uploaded from the dashboard.",
+                details: saved.assetId ? [`Asset: \`${saved.assetId}\``] : [],
+                payload: { assetId: saved.assetId ?? null },
+              });
+              sendJson(res, 200, { ok: true, ...saved });
+            } catch (error) {
+              sendJson(res, 400, {
+                error: error instanceof Error ? error.message : "Failed to upload image",
+              });
+            }
+            return;
+          }
+
+          if (passportAssetMatch?.[2] && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const buf = getPassportBackground(guildId, passportAssetMatch[2]);
+            if (!buf) {
+              sendJson(res, 404, { error: "Asset not found" });
+              return;
+            }
+            sendBinary(res, 200, buf, "image/png");
+            return;
+          }
+
+          if (passportAssetMatch?.[2] && req.method === "DELETE") {
+            let body: { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const assetId = passportAssetMatch[2]!;
+            const removed = removePassportBackground(guildId, assetId);
+            if (removed) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Passport background deleted",
+                summary: "A Passport page background was deleted from the dashboard.",
+                details: [`Asset: \`${assetId}\``],
+                payload: { assetId },
+              });
+            }
+            sendJson(res, removed ? 200 : 404, {
+              ok: removed,
+              error: removed ? undefined : "Asset not found",
+            });
             return;
           }
 

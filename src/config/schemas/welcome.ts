@@ -174,6 +174,12 @@ export const zWelcomeMessageConfig = z.strictObject({
     .default(false)
     .describe("Delete the join welcome message if the member leaves within 24 hours."),
   wave_button: zWelcomeWaveButton.default({}),
+  require_passport_verification: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Hold the join and DM welcome until the member passes Dreamliner Passport verification, instead of sending right away when they join. Has no effect if Passport isn't enabled for this server.",
+    ),
 });
 
 export type WelcomeEmbedField = z.infer<typeof zWelcomeEmbedField>;
@@ -278,6 +284,11 @@ export function migrateWelcomeMessageInConfig(value: Record<string, unknown>): b
 
   if (!isPlainObject(config.wave_button)) {
     config.wave_button = { enabled: false, label: "Wave", emoji: "👋" };
+    changed = true;
+  }
+
+  if (typeof config.require_passport_verification !== "boolean") {
+    config.require_passport_verification = false;
     changed = true;
   }
 

@@ -13,8 +13,30 @@ import {
   deletePassportVerification,
   getPassportVerification,
 } from "../plugins/passport/functions/store.js";
+import {
+  deletePassportAsset,
+  readPassportAsset,
+  savePassportBackgroundAsset,
+} from "../plugins/passport/functions/assets.js";
 import { isDashboardSuperuser } from "./superuser.js";
 import type { PassportPageConfig } from "../config/schemas/passport.js";
+
+export async function uploadPassportBackground(
+  guildId: string,
+  base64: string,
+): Promise<{ assetId: string; bytes: number }> {
+  const cleaned = base64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "");
+  const raw = Buffer.from(cleaned, "base64");
+  return savePassportBackgroundAsset(guildId, raw);
+}
+
+export function getPassportBackground(guildId: string, assetId: string): Buffer | null {
+  return readPassportAsset(guildId, assetId);
+}
+
+export function removePassportBackground(guildId: string, assetId: string): boolean {
+  return deletePassportAsset(guildId, assetId);
+}
 
 function colorIntToHex(value: number): string {
   return `#${Math.max(0, Math.min(0xffffff, Math.floor(value)))
@@ -34,7 +56,7 @@ export type PassportPagePayload = {
   };
   theme: { accentColor: string };
   altDetectionEnabled: boolean;
-  background: { type: "none" | "color" | "url" | "guild_banner"; color: string; url: string };
+  background: { type: "none" | "color" | "url" | "guild_banner" | "asset"; color: string; url: string };
   page: {
     headline: string;
     body: string;
@@ -139,6 +161,12 @@ export async function buildPassportPagePayload(
     };
   }
 
+  let backgroundUrl = page.background_url;
+  if (page.background === "asset" && page.background_asset_id) {
+    const buf = readPassportAsset(guild.id, page.background_asset_id);
+    backgroundUrl = buf ? `data:image/png;base64,${buf.toString("base64")}` : "";
+  }
+
   return {
     ok: true,
     enabled,
@@ -154,7 +182,7 @@ export async function buildPassportPagePayload(
     background: {
       type: page.background,
       color: colorIntToHex(page.background_color ?? 0xf4f5f7),
-      url: page.background_url,
+      url: backgroundUrl,
     },
     page: renderPageCopy(page, guild),
     viewer,

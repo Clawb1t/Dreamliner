@@ -34,8 +34,10 @@ The Utility plugin provides server management, search, info, message tools, voic
 | `can_discofy` | `/discofy` |
 | `can_info` | `/info` |
 | `can_convert_gif` | **Convert to GIF** (message context menu) |
-| `can_create_quote` | **Create Quote** (message context menu) |
+| `can_create_sticker` | **Create Sticker** (message context menu) |
+| `can_create_emoji` | **Create Emoji** (message context menu) |
 | `can_quote_to_discofy` | **Quote to Discofy** (message context menu) |
+| `can_listening_to` | **Listening to** (user context menu) |
 
 ### Settings
 
@@ -264,21 +266,37 @@ Pull an avatar or banner from [Discofy](https://discofy.net). Requires `DISCOFY_
 
 ---
 
-## Message context menu commands
-
-Right-click a message → **Apps** to use these commands.
+## Context menu commands
 
 ### Convert to GIF
 
-Converts image file attachments on the target message to GIF format so members can favorite them in Discord. Replies publicly on success with the GIF(s) and a short hint; failures are ephemeral.
+Right-click a message → **Apps**. Converts image file attachments on the target message to GIF format so members can favorite them in Discord. Replies publicly on success with the GIF(s) and a short hint; failures are ephemeral.
 
 Requires `can_convert_gif`.
 
-### Create Quote
+### Create Sticker
 
-Renders a quote card GIF from the target message text, with the author's avatar in grayscale on the left and quote text on the right. Includes a **Remove my quote** button that only the quoted person can use to revoke the image. Replies publicly with the GIF; failures are ephemeral.
+Right-click a message → **Apps**. Steals an existing sticker on the message, or turns its first image attachment into one, and adds it to the server's stickers. Replies publicly on success; failures are ephemeral.
 
-Requires `can_create_quote`.
+Requires `can_create_sticker` and the bot's own **Manage Expressions** permission.
+
+### Create Emoji
+
+Right-click a message → **Apps**. Steals the first custom emoji found in the message's text, or turns its first image attachment into one, and adds it to the server's emoji. Replies publicly on success; failures are ephemeral.
+
+Requires `can_create_emoji` and the bot's own **Manage Expressions** permission.
+
+### Quote to Discofy
+
+Right-click a message → **Apps**. Submits the message's text (and first image attachment, if any) to the public Discofy feed. Replies publicly with the Discofy URL; failures are ephemeral. Requires `DISCOFY_API_KEY`.
+
+Requires `can_quote_to_discofy`.
+
+### Listening to (user context menu)
+
+Right-click a member → **Apps**. Looks up that member's connected Last.fm account and shows what they're currently playing (or their most recent scrobble, worded "Last listened to" if nothing is playing right now) as a small card with the track, artist, and album art. Requires `LASTFM_API_KEY`, and requires the target member to have connected a Last.fm username at the dashboard's Account → Connections tab — if they haven't, the reply (ephemeral) links there. Replies publicly on success; all errors are ephemeral.
+
+Requires `can_listening_to`.
 
 ---
 

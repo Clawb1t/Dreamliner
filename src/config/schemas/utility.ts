@@ -20,6 +20,15 @@ export const zUtilityConfig = z.strictObject({
     .describe(
       "When a Discord message link is pasted in chat, repost that message (content and attachments) via webhook with the original author's name and avatar.",
     ),
+  expand_message_links_max_length: z
+    .number()
+    .int()
+    .min(0)
+    .max(4000)
+    .default(0)
+    .describe(
+      "Skip quoting a linked message if its content is longer than this many characters (0 = no limit).",
+    ),
   info_on_single_result: z
     .boolean()
     .default(true)
@@ -62,6 +71,7 @@ export const zUtilityConfig = z.strictObject({
   can_create_emoji: boolPerm("use the Create Emoji message context command"),
   can_snipe: boolPerm("use /snipe to bring back the most recently deleted message in a channel"),
   can_quote_to_discofy: boolPerm("use the Quote to Discofy message context command"),
+  can_listening_to: boolPerm("use the Listening to user context command"),
   can_discofy: boolPerm("use /discofy to pull a random or searched Discofy avatar/banner"),
   can_one: boolPerm("check Dreamliner One status and see the subscribe button for this server"),
 });

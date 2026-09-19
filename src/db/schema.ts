@@ -10,6 +10,31 @@ export const guildConfigs = sqliteTable("guild_configs", {
   updatedBy: text("updated_by"),
 });
 
+/**
+ * Point-in-time backups of a guild's full config, for the dashboard's Snapshots page (a
+ * config-management feature, not a bot plugin — see src/config/snapshots.ts). Captured verbatim
+ * from `guildConfigs`: the merged `configJson` for display/inspection, plus the raw
+ * `userConfigJson` overrides diff (what rollback actually restores, through the normal
+ * validate/repair/merge save path). Since this stores the whole config blob rather than
+ * per-plugin fields, every plugin's settings are captured automatically — nothing here needs to
+ * change when a new plugin is added.
+ */
+export const guildSnapshots = sqliteTable(
+  "guild_snapshots",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    label: text("label"),
+    // "manual" | "pre_rollback"
+    reason: text("reason").notNull().default("manual"),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    configJson: text("config_json").notNull(),
+    userConfigJson: text("user_config_json"),
+  },
+  (table) => [index("guild_snapshots_guild_created").on(table.guildId, table.createdAt)],
+);
+
 // --- Permission roles ----------------------------------------------------------
 // Replaces the old level+override permission model: named, Discord-role-style
 // permission groups. A member's effective grants are the OR of every role they
@@ -1154,6 +1179,13 @@ export const planeGlobalSettings = sqliteTable("plane_global_settings", {
 export const ttsUserVoices = sqliteTable("tts_user_voices", {
   userId: text("user_id").primaryKey(),
   voice: text("voice").notNull(),
+});
+
+/** Global per-account Last.fm connection (not per-guild) — set from the website account page's
+ *  Connections tab, read by the "Listening to" user context command. */
+export const userLastfmConnections = sqliteTable("user_lastfm_connections", {
+  userId: text("user_id").primaryKey(),
+  username: text("username").notNull(),
 });
 
 /** Global per-account language preference (not per-guild) — set via /language or the website

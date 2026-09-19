@@ -72,6 +72,11 @@ export function getAccountVoiceUrl(): string {
   return `${resolveSiteUrl()}/account?tab=voice`;
 }
 
+/** Account page's Connections tab — connect a Last.fm username for the "Listening to" command. */
+export function getAccountLastfmUrl(): string {
+  return `${resolveSiteUrl()}/account?tab=connections`;
+}
+
 /** Dreamliner Clips gallery — clips a member captured, and clips they appear in. */
 export function getClipsGalleryUrl(): string {
   return `${resolveSiteUrl()}/clips`;
