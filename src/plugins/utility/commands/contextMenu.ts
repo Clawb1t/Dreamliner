@@ -437,10 +437,11 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
 
       const emoji = resolveEmojiForContent(LISTENING_EMOJI, client);
       const verb = track.nowPlaying
-        ? ctx.t("utility.contextMenu.listeningTo", "Listening to")
-        : ctx.t("utility.contextMenu.lastListenedTo", "Last listened to");
+        ? ctx.t("utility.contextMenu.listeningTo", "is listening to")
+        : ctx.t("utility.contextMenu.lastListenedTo", "last listened to");
+      const name = escapeMarkdown(target.displayName);
       const container = baseEmbed().setDescription(
-        `${emoji} ${verb} **[${escapeMarkdown(track.name)}](${track.url})** by [${escapeMarkdown(track.artist)}](${track.artistUrl})`,
+        `${emoji} **${name}** ${verb} **[${escapeMarkdown(track.name)}](${track.url})** by [${escapeMarkdown(track.artist)}](${track.artistUrl})`,
       );
       if (track.imageUrl) container.setThumbnail(track.imageUrl);
       await interaction.editReply(embedEdit(container));
