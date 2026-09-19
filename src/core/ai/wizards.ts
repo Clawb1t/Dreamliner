@@ -2,6 +2,7 @@ import {
   COMPANION_PERMISSION_SOURCES,
   COMPANION_SETUP_TYPES,
 } from "../../config/schemas/companion.js";
+import { AUTOMOD_PRESETS } from "../../config/schemas/automod.js";
 import { resolveEmojiByName } from "../emoji.js";
 
 /** Server-side registry of conversational AI setup wizards. Adding AI setup to a new dashboard
@@ -68,6 +69,20 @@ const AUTO_PLACEHOLDER_NOTE =
   "Available placeholders (use naturally, at most a few per line): {user} (mention), " +
   "{user_display} (display name), {guild} (server name), {channel} (mention), {channel_name}, " +
   "{member_count}. Never invent other placeholders.";
+
+/** Mirrors AUTOMOD_GROUP_LABELS in src/plugins/automod/catalog.ts - kept as a small local copy
+ * (rather than importing plugin code into core) since it only needs the group ids/labels, and a
+ * hand-configured Automod wizard is scoped to picking a preset plus which broad categories to
+ * force on, not walking through all 22 individual rules conversationally. */
+const AUTOMOD_GROUPS = ["content", "spam", "mentions_links", "presentation", "images", "raid"] as const;
+const AUTOMOD_GROUP_LABELS: Record<(typeof AUTOMOD_GROUPS)[number], string> = {
+  content: "Content filters (profanity, slurs, custom word/phrase filters)",
+  spam: "Spam & noise (message spam, duplicate/copypasta, attachment/emoji/sticker spam)",
+  mentions_links: "Mentions & links (mass mentions, @everyone/@here, invite links, link spam)",
+  presentation: "Presentation (excessive caps, zalgo/obfuscated text)",
+  images: "Image scanning (known scam-image reposts)",
+  raid: "Join protection (raid-like bursts of new members)",
+};
 
 const NEVER_EM_DASH_RULE =
   "Never use em dashes in your questions or summary; use a comma, period, or 'and' instead.";
@@ -494,6 +509,162 @@ function validateAutoRuleMatch(config: Record<string, unknown>, noun: string): s
   return null;
 }
 
+function slowmodeSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const roleIds = ["", ...ctx.roles.map((r) => r.id)];
+  const textIds = ["", ...ctx.textChannels.map((c) => c.id)];
+  return {
+    type: "object",
+    properties: {
+      individual_enabled: { type: "boolean" },
+      allow_manage_messages_bypass: { type: "boolean" },
+      individual_default_seconds: { type: "integer" },
+      rule_role_id: { type: "string", enum: roleIds },
+      rule_seconds: { type: "integer" },
+      rule_channel_id: { type: "string", enum: textIds },
+    },
+    required: [
+      "individual_enabled",
+      "allow_manage_messages_bypass",
+      "individual_default_seconds",
+      "rule_role_id",
+      "rule_seconds",
+      "rule_channel_id",
+    ],
+    additionalProperties: false,
+  };
+}
+
+function automodSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const textIds = ["", ...ctx.textChannels.map((c) => c.id)];
+  return {
+    type: "object",
+    properties: {
+      preset: { type: "string", enum: [...AUTOMOD_PRESETS] },
+      categories: { type: "array", items: { type: "string", enum: [...AUTOMOD_GROUPS] } },
+      native_enabled: { type: "boolean" },
+      log_channel_id: { type: "string", enum: textIds },
+    },
+    required: ["preset", "categories", "native_enabled", "log_channel_id"],
+    additionalProperties: false,
+  };
+}
+
+function persistStickySchema(ctx: AiWizardContext): Record<string, unknown> {
+  const textIds = ctx.textChannels.map((c) => c.id);
+  return {
+    type: "object",
+    properties: {
+      channel_id: { type: "string", enum: textIds.length > 0 ? textIds : [""] },
+      name: { type: "string" },
+      content: { type: "string" },
+      delay_seconds: { type: "integer" },
+      message_threshold: { type: "integer" },
+    },
+    required: ["channel_id", "name", "content", "delay_seconds", "message_threshold"],
+    additionalProperties: false,
+  };
+}
+
+function autodeleteRuleSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const textIds = ctx.textChannels.map((c) => c.id);
+  return {
+    type: "object",
+    properties: {
+      channel_id: { type: "string", enum: textIds.length > 0 ? textIds : [""] },
+      name: { type: "string" },
+      delay_seconds: { type: "integer" },
+    },
+    required: ["channel_id", "name", "delay_seconds"],
+    additionalProperties: false,
+  };
+}
+
+function autoroleEntrySchema(ctx: AiWizardContext): Record<string, unknown> {
+  const roleIds = ctx.roles.map((r) => r.id);
+  return {
+    type: "object",
+    properties: {
+      audience: { type: "string", enum: ["human", "bot"] },
+      role_id: { type: "string", enum: roleIds.length > 0 ? roleIds : [""] },
+      delay_seconds: { type: "integer" },
+    },
+    required: ["audience", "role_id", "delay_seconds"],
+    additionalProperties: false,
+  };
+}
+
+function memberIdentitySetupSchema(): Record<string, unknown> {
+  return {
+    type: "object",
+    properties: {
+      restore_nickname: { type: "boolean" },
+      restore_roles: { type: "boolean" },
+      restore_timeout: { type: "boolean" },
+      skip_managed_roles: { type: "boolean" },
+      delay_seconds: { type: "integer" },
+    },
+    required: ["restore_nickname", "restore_roles", "restore_timeout", "skip_managed_roles", "delay_seconds"],
+    additionalProperties: false,
+  };
+}
+
+function rolePanelSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const textIds = ctx.textChannels.map((c) => c.id);
+  const roleIds = ctx.roles.map((r) => r.id);
+  return {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      trigger_type: { type: "string", enum: ["reaction", "button"] },
+      selection_mode: { type: "string", enum: ["multiple", "single"] },
+      channel_id: { type: "string", enum: textIds.length > 0 ? textIds : [""] },
+      content: { type: "string" },
+      roles: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            role_id: { type: "string", enum: roleIds.length > 0 ? roleIds : [""] },
+            emoji: { type: "string" },
+            label: { type: "string" },
+          },
+          required: ["role_id", "emoji", "label"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["name", "trigger_type", "selection_mode", "channel_id", "content", "roles"],
+    additionalProperties: false,
+  };
+}
+
+function boosterRoleTierSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const roleIds = ctx.roles.map((r) => r.id);
+  return {
+    type: "object",
+    properties: {
+      stacking: { type: "boolean" },
+      name: { type: "string" },
+      role_id: { type: "string", enum: roleIds.length > 0 ? roleIds : [""] },
+      duration_days: { type: "integer" },
+    },
+    required: ["stacking", "name", "role_id", "duration_days"],
+    additionalProperties: false,
+  };
+}
+
+function tagSetupSchema(): Record<string, unknown> {
+  return {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      content: { type: "string" },
+    },
+    required: ["name", "content"],
+    additionalProperties: false,
+  };
+}
+
 function validateWelcomeEvent(
   event: unknown,
   ctx: AiWizardContext,
@@ -889,6 +1060,363 @@ export const AI_WIZARDS: Record<string, AiWizardDefinition> = {
       "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
       "choices you made (leave question null). response always needs real text, never leave it " +
       "empty.",
+  },
+
+  slowmode_setup: {
+    maxQuestions: 5,
+    buildResultSchema: (ctx) => turnSchema(slowmodeSetupSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const roleId = config.rule_role_id;
+      if (typeof roleId === "string" && roleId && !ctx.roles.some((r) => r.id === roleId)) {
+        return "Autopilot picked a role that doesn't exist. Please try again.";
+      }
+      const channelId = config.rule_channel_id;
+      if (typeof channelId === "string" && channelId && !ctx.textChannels.some((c) => c.id === channelId)) {
+        return "Autopilot picked a channel that doesn't exist. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Slowmode's individual limits: a bot-enforced " +
+      "cooldown between messages for specific people or roles, separate from Discord's own " +
+      "built-in per-channel slowmode (that one is set with /slowmode set, not through this " +
+      `wizard). You are setting this up for the server "${ctx.guildName}". Ask ONE short, ` +
+      "plain-language question at a time. Never mention field names, JSON, or config, ask like a " +
+      "helpful person would. Find out: whether they want individual (per-member) slowmode turned " +
+      "on at all, how many seconds someone should wait between messages by default when no more " +
+      "specific rule applies (0 means off), whether members with Manage Messages should skip it " +
+      "entirely, and whether a particular role should get its own different delay (for example, " +
+      "new members posting slower than everyone else). Only ask about the role-specific rule if it " +
+      "feels relevant, otherwise leave rule_role_id empty. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting roles (pick rule_role_id from these ids only, or \"\" to skip a role-specific " +
+      "rule):\n" +
+      `${entityList(ctx.roles)}\n\n` +
+      "Existing text channels (pick rule_channel_id from these ids only, or \"\" for all channels, " +
+      "only relevant if rule_role_id is set):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      progressInstruction(questionsAsked, 5) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null).",
+  },
+
+  automod_setup: {
+    maxQuestions: 5,
+    buildResultSchema: (ctx) => turnSchema(automodSetupSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const channelId = config.log_channel_id;
+      if (typeof channelId === "string" && channelId && !ctx.textChannels.some((c) => c.id === channelId)) {
+        return "Autopilot picked a log channel that doesn't exist. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Automod: Dreamliner scans messages and can " +
+      "automatically act (delete, warn, timeout, kick, or ban) on things like profanity/slurs, " +
+      "spam, invite/link spam, mass mentions, and raid-like bursts of new members. It can also " +
+      "mirror some of the same rules into Discord's own native AutoMod for extra resilience if the " +
+      `bot ever goes down. You are setting this up for the server "${ctx.guildName}". Ask ONE ` +
+      "short, plain-language question at a time. Never mention field names, JSON, or config, ask " +
+      "like a helpful person would. Find out: how strict they want it overall (light, standard, or " +
+      "strict), which of the categories below matter most to this server (they can name several, " +
+      "or say \"everything\"), whether they also want native Discord AutoMod mirroring turned on, " +
+      "and which channel (if any) should get a log of what Automod catches. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nCategories (pick zero or more for categories, matching what the user says matters most " +
+      "to them; the chosen preset already gives sensible defaults, this only makes sure their " +
+      "priorities are definitely turned on):\n" +
+      Object.entries(AUTOMOD_GROUP_LABELS)
+        .map(([id, label]) => `"${id}": ${label}`)
+        .join("\n") +
+      "\n\nExisting text channels (pick log_channel_id from these ids only, or \"\" for no log):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      progressInstruction(questionsAsked, 5) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). preset always needs a real value, default to " +
+      "\"standard\" if the user has no preference.",
+  },
+
+  persist_setup: {
+    maxQuestions: 5,
+    requiresEntity: {
+      kind: "textChannels",
+      message: "This server has no text channels yet. Create one first, then try Autopilot setup again.",
+    },
+    buildResultSchema: (ctx) => turnSchema(persistStickySchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const channelId = config.channel_id;
+      if (typeof channelId !== "string" || !ctx.textChannels.some((c) => c.id === channelId)) {
+        return "Autopilot picked a channel that doesn't exist. Please try again.";
+      }
+      if (typeof config.content !== "string" || !config.content.trim()) {
+        return "Autopilot didn't write a sticky message. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Persist: a \"sticky\" message that Dreamliner " +
+      "keeps at the bottom of a channel, reposting it automatically once things go quiet or enough " +
+      "new messages pile up, so it never gets buried (common uses: channel rules, a support " +
+      `pointer, an ongoing announcement). You are setting this up for the server "${ctx.guildName}". ` +
+      "Ask ONE short, plain-language question at a time. Never mention field names, JSON, or " +
+      "config, ask like a helpful person would. Find out which channel, and what the sticky should " +
+      "say. When you write the message, make it warm and specific to what was asked, never generic " +
+      "filler. Only ask about the resend timing (how long to wait quietly before reposting, and/or " +
+      "how many other messages should go by first) if it feels relevant, otherwise use sensible " +
+      "defaults (delay_seconds 10, message_threshold 0). " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting text channels (pick channel_id from these ids only):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      AUTO_PLACEHOLDER_NOTE +
+      "\n\nBoth resend conditions apply together when both are set above 0 (it waits for whichever " +
+      "finishes last). name is a short label for the dashboard list and can be left empty.\n\n" +
+      progressInstruction(questionsAsked, 5) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). content always needs real text, never leave it " +
+      "empty.",
+  },
+
+  autodelete_setup: {
+    maxQuestions: 4,
+    requiresEntity: {
+      kind: "textChannels",
+      message: "This server has no text channels yet. Create one first, then try Autopilot setup again.",
+    },
+    buildResultSchema: (ctx) => turnSchema(autodeleteRuleSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const channelId = config.channel_id;
+      if (typeof channelId !== "string" || !ctx.textChannels.some((c) => c.id === channelId)) {
+        return "Autopilot picked a channel that doesn't exist. Please try again.";
+      }
+      if (typeof config.delay_seconds !== "number" || config.delay_seconds < 1) {
+        return "Autopilot's setup was inconsistent (needs a delay of at least a second). Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Autodelete: Dreamliner automatically deletes " +
+      "every message posted in a chosen channel after a delay (common uses: a bot-command channel, " +
+      "a giveaway-entry channel, anywhere that shouldn't build up a permanent history). You are " +
+      `setting this up for the server "${ctx.guildName}". Ask ONE short, plain-language question at ` +
+      "a time. Never mention field names, JSON, or config, ask like a helpful person would. Find " +
+      "out which channel, and how long to wait before deleting (a few seconds, a minute, an hour, " +
+      "a day, up to a week maximum). " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting text channels (pick channel_id from these ids only):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      "delay_seconds must be at least 1 and at most 604800 (7 days). name is a short label for the " +
+      "dashboard list and can be left empty.\n\n" +
+      progressInstruction(questionsAsked, 4) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null).",
+  },
+
+  autorole_setup: {
+    maxQuestions: 4,
+    buildResultSchema: (ctx) => turnSchema(autoroleEntrySchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const roleId = config.role_id;
+      if (typeof roleId !== "string" || !roleId || !ctx.roles.some((r) => r.id === roleId)) {
+        return "Autopilot didn't pick a real role to grant. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Autorole: Dreamliner automatically gives a " +
+      "role to new members the moment they join, optionally after a short delay, with separate " +
+      `lists for humans and bots. You are setting this up for the server "${ctx.guildName}". Ask ` +
+      "ONE short, plain-language question at a time. Never mention field names, JSON, or config, " +
+      "ask like a helpful person would. Find out: is this for humans or bots joining, which role " +
+      "to grant, and whether to wait before granting it (immediately, or after a short delay, for " +
+      "example to let a verification step or another bot's setup finish first). " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting roles (pick role_id from these ids only; never pick a role that sounds like a " +
+      "bot/managed role, e.g. named after a bot, unless the user is explicitly setting up the bot " +
+      "audience):\n" +
+      `${entityList(ctx.roles)}\n\n` +
+      "delay_seconds is 0 for immediate, or however many seconds to wait otherwise (convert a " +
+      "natural answer like \"5 minutes\" to seconds yourself).\n\n" +
+      progressInstruction(questionsAsked, 4) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). role_id always needs a real id from the list above, " +
+      "never invent one.",
+  },
+
+  member_identity_setup: {
+    maxQuestions: 4,
+    buildResultSchema: () => turnSchema(memberIdentitySetupSchema()),
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Member Identity: when a member leaves, " +
+      "Dreamliner remembers their nickname, roles, and any active timeout, and can reapply them if " +
+      "that member rejoins later, so they pick up where they left off instead of starting over " +
+      `(restoring roles only ever adds roles back, it never removes anything). You are setting ` +
+      `this up for the server "${ctx.guildName}". Ask ONE short, plain-language question at a ` +
+      "time. Never mention field names, JSON, or config, ask like a helpful person would. Find " +
+      "out: should their nickname come back, should their roles come back, and should an active " +
+      "timeout come back too if they left while timed out (mention this needs Moderate Members and " +
+      "is off by default since it's a stricter choice). Only ask about a delay before restoring " +
+      "(e.g. to let autorole or a verification step run first) if it feels relevant, otherwise " +
+      "leave delay_seconds at 0. skip_managed_roles should stay true unless the user specifically " +
+      "wants bot/booster/integration roles restored too. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\n" +
+      progressInstruction(questionsAsked, 4) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null).",
+  },
+
+  role_panel_setup: {
+    maxQuestions: 6,
+    requiresEntity: {
+      kind: "textChannels",
+      message: "This server has no text channels yet. Create one first, then try Autopilot setup again.",
+    },
+    buildResultSchema: (ctx) => turnSchema(rolePanelSetupSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const channelId = config.channel_id;
+      if (typeof channelId !== "string" || !ctx.textChannels.some((c) => c.id === channelId)) {
+        return "Autopilot picked a channel that doesn't exist. Please try again.";
+      }
+      const roles = config.roles;
+      if (!Array.isArray(roles) || roles.length === 0) {
+        return "Autopilot didn't pick any roles for the panel. Please try again.";
+      }
+      const isReaction = config.trigger_type === "reaction";
+      if (roles.length > 25 || (isReaction && roles.length > 20)) {
+        return "Autopilot picked too many roles for one panel. Please try again with fewer.";
+      }
+      for (const entry of roles) {
+        if (!entry || typeof entry !== "object") {
+          return "Autopilot's setup was inconsistent. Please try again.";
+        }
+        const role = entry as Record<string, unknown>;
+        if (typeof role.role_id !== "string" || !ctx.roles.some((r) => r.id === role.role_id)) {
+          return "Autopilot picked a role that doesn't exist. Please try again.";
+        }
+        if (isReaction && (typeof role.emoji !== "string" || !role.emoji.trim())) {
+          return "Autopilot's setup was inconsistent (reaction panels need an emoji for every role). Please try again.";
+        }
+        if (typeof role.emoji === "string" && role.emoji.trim()) {
+          role.emoji = resolveEmojiByName(role.emoji, ctx.emojis);
+        }
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up a Role Panel: a message with either emoji " +
+      "reactions or buttons that members click to give themselves a role, like a self-serve " +
+      `"roles" channel. You are setting this up for the server "${ctx.guildName}". Ask ONE short, ` +
+      "plain-language question at a time. Never mention field names, JSON, or config, ask like a " +
+      "helpful person would. Find out: which channel to post it in, whether members should react " +
+      "with an emoji or click a button, whether they can pick more than one option or only one at " +
+      "a time (picking a new one then removes their previous pick), a short intro message for the " +
+      "panel, and which roles to offer, with a fitting emoji for each. Match every role the user " +
+      "describes against the existing roles list below; never invent a role that isn't in it, and " +
+      "ask for clarification if you can't find a good match. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting roles (pick role_id for each entry from these ids only; never pick a role that " +
+      "sounds like a bot/managed role, e.g. named after a bot):\n" +
+      `${entityList(ctx.roles)}\n\n` +
+      "Existing text channels (pick channel_id from these ids only):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      "This server's custom emoji: " +
+      `${emojiList(ctx.emojis)}. If the user means one of these (even just by name), put its exact ` +
+      "name with no colons in that role's emoji and Dreamliner will use the real custom emoji. " +
+      "Otherwise use a literal Unicode emoji matching the role. Reaction panels need a real emoji " +
+      "for every role, never leave one empty; button panels can leave emoji empty if the user " +
+      "doesn't want one there. label is only shown on buttons and can stay empty to just use the " +
+      "role's own name. A panel can offer up to 25 roles (20 if using reactions).\n\n" +
+      progressInstruction(questionsAsked, 6) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). roles always needs at least one real entry, never " +
+      "leave it empty.",
+  },
+
+  booster_roles_setup: {
+    maxQuestions: 4,
+    buildResultSchema: (ctx) => turnSchema(boosterRoleTierSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const roleId = config.role_id;
+      if (typeof roleId !== "string" || !roleId || !ctx.roles.some((r) => r.id === roleId)) {
+        return "Autopilot didn't pick a real role for this tier. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Booster Roles: as a member continuously boosts " +
+      "the server for longer, Dreamliner automatically promotes them through role \"tiers\" you set " +
+      "up (for example, a role at 30 days of boosting, a fancier one at 90 days). You are setting " +
+      `this up for the server "${ctx.guildName}". Ask ONE short, plain-language question at a time. ` +
+      "Never mention field names, JSON, or config, ask like a helpful person would. Find out: " +
+      "should a member who reaches a higher tier keep every earlier tier's role too (stacking), or " +
+      "only ever have their single highest tier's role at once, and then walk through one tier: " +
+      "which role it grants, how many days of continuous boosting are needed first (0 means as soon " +
+      "as they start boosting), and a short label for the dashboard. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting roles (pick role_id from these ids only; never pick a role that sounds like a " +
+      "bot/managed role, e.g. named after a bot):\n" +
+      `${entityList(ctx.roles)}\n\n` +
+      progressInstruction(questionsAsked, 4) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). role_id always needs a real id from the list above, " +
+      "never invent one.",
+  },
+
+  tags_setup: {
+    maxQuestions: 3,
+    buildResultSchema: () => turnSchema(tagSetupSchema()),
+    validateConfig: (config) => {
+      if (typeof config.name !== "string" || !config.name.trim()) {
+        return "Autopilot didn't pick a name for the tag. Please try again.";
+      }
+      if (typeof config.content !== "string" || !config.content.trim()) {
+        return "Autopilot didn't write anything for the tag to say. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up a Tag: a reusable snippet of text a moderator " +
+      `can post with a slash command (e.g. /tag show rules). You are setting this up for the server ` +
+      `"${ctx.guildName}". Ask ONE short, plain-language question at a time. Never mention field ` +
+      "names, JSON, or config, ask like a helpful person would. Find out what the tag is for (e.g. " +
+      "rules, an FAQ answer, a support pointer), a short name to call it by (one word, lowercase, no " +
+      "spaces, e.g. \"rules\" or \"faq-payment\"), and what it should say. When you write the " +
+      "content, make it warm and specific to what was asked, never generic filler. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nAvailable placeholders in the content (use naturally, at most a couple): {user} " +
+      "(mention), {username}, {guild} (server name), {memberCount}. Never invent other " +
+      "placeholders.\n\n" +
+      progressInstruction(questionsAsked, 3) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). name and content always need real values, never " +
+      "leave either empty.",
   },
 };
 
