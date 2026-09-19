@@ -2275,11 +2275,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const musicQueueMatch = /^\/bridge\/guilds\/(\d+)\/music\/queue$/.exec(url.pathname);
         const musicQueueActionMatch = /^\/bridge\/guilds\/(\d+)\/music\/queue\/(remove|move|clear|playlist)$/.exec(url.pathname);
         const musicActionMatch =
-          /^\/bridge\/guilds\/(\d+)\/music\/(skip|pause|stop|shuffle|loop|volume|filter|join)$/.exec(url.pathname);
+          /^\/bridge\/guilds\/(\d+)\/music\/(skip|pause|stop|shuffle|loop|volume|filter|join|autoplay)$/.exec(url.pathname);
         const musicMatch = /^\/bridge\/guilds\/(\d+)\/music$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
+        const aiActionMatch = /^\/bridge\/guilds\/(\d+)\/ai\/(generate|status|wizard)$/.exec(url.pathname);
         if (
           !publicLeaderboardMatch &&
           !publicGuildMatch &&
@@ -2360,7 +2361,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !musicQueueActionMatch &&
           !musicActionMatch &&
           !musicMatch &&
-          !guildMatch
+          !guildMatch &&
+          !aiActionMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
           return;
@@ -2446,7 +2448,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           musicQueueActionMatch?.[1] ??
           musicActionMatch?.[1] ??
           musicMatch?.[1] ??
-          guildMatch?.[1]
+          guildMatch?.[1] ??
+          aiActionMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
@@ -3373,6 +3376,84 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (aiActionMatch) {
+          const { generateAiCopy, getAiStatus, runAiWizard } = await import("./webAi.js");
+          const action = aiActionMatch[2];
+
+          if (action === "status" && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const status = await getAiStatus(guildId);
+            sendJson(res, 200, { ok: true, ...status });
+            return;
+          }
+
+          if (action === "generate" && req.method === "POST") {
+            let body: { userId?: string; task?: string; context?: Record<string, unknown> };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await generateAiCopy(guildId, { task: body.task, context: body.context });
+            sendJson(res, result.ok ? 200 : result.status, result);
+            return;
+          }
+
+          if (action === "wizard" && req.method === "POST") {
+            let body: {
+              userId?: string;
+              wizard?: string;
+              sessionToken?: string;
+              transcript?: { role: "system" | "user" | "assistant"; content: string }[];
+              answer?: string;
+            };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await runAiWizard(guild, guildId, {
+              wizard: body.wizard,
+              sessionToken: body.sessionToken,
+              transcript: body.transcript,
+              answer: body.answer,
+            });
+            sendJson(res, result.ok ? 200 : result.status, result);
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
         if (rolePanelsPreviewMatch || rolePanelsTestMatch || rolePanelsValidateMatch) {
           const { buildRolePanelPreview, sendRolePanelTest, validateRolePanelExistingMessage } = await import(
             "./webRolePanels.js"
@@ -4080,6 +4161,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             setWebVolume,
             setWebFilter,
             setWebLoopMode,
+            setWebAutoplay,
             shuffleWebQueue,
             clearWebQueue,
             removeWebQueueTrack,
@@ -4146,7 +4228,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           if (musicActionMatch && req.method === "POST") {
-            let body: { userId?: string; paused?: boolean; percent?: number; preset?: string; mode?: string };
+            let body: {
+              userId?: string;
+              paused?: boolean;
+              percent?: number;
+              preset?: string;
+              mode?: string;
+              enabled?: boolean;
+            };
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
@@ -4186,6 +4275,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
                   return setWebLoopMode(guild, userId, String(body.mode ?? ""));
                 case "join":
                   return joinWebVoiceSession(guild, userId);
+                case "autoplay":
+                  return setWebAutoplay(guild, userId, Boolean(body.enabled));
                 default:
                   return { ok: false as const, status: 405, error: "Method not allowed" };
               }

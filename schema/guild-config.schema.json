@@ -8837,6 +8837,12 @@
                     "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
                   }
                 },
+                "autoplay_enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "When the queue runs out, automatically queue a track similar to the last one played (like YouTube's autoplay/radio) instead of going quiet. While this is on the bot won't auto-leave for an empty queue, since it keeps refilling itself - use /stop or turn this off to end the session.",
+                  "title": "Autoplay Enabled"
+                },
                 "can_play": {
                   "type": "boolean",
                   "default": false,
@@ -8916,6 +8922,16 @@
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
+                },
+                "can_autoplay": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to turn autoplay on or off with /autoplay.",
+                  "title": "Autoplay",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
                 }
               },
               "additionalProperties": false,
@@ -8940,6 +8956,7 @@
                 "announce_now_playing": false,
                 "stay_connected_247": false,
                 "auto_leave_empty_seconds": 120,
+                "autoplay_enabled": false,
                 "can_play": false,
                 "can_control_playback": false,
                 "can_skip": false,
@@ -8947,7 +8964,8 @@
                 "can_manage_queue": false,
                 "can_manage_playlists": false,
                 "can_manage_dj": false,
-                "can_manage_settings": false
+                "can_manage_settings": false,
+                "can_autoplay": false
               },
               "title": "Config"
             }

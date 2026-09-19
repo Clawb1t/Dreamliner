@@ -2,6 +2,7 @@ import { Events, type Client } from "discord.js";
 import { LavalinkManager, type Player } from "lavalink-client";
 import { getLogger } from "../../../core/logger.js";
 import { registerPlayerEvents } from "./events.js";
+import { createAutoPlayFunction } from "./autoplay.js";
 import { reclaimResumedSessions, resumeSessionsOnBoot } from "./sessionPersistence.js";
 import { loadPersistedLavalinkSessionId, savePersistedLavalinkSessionId } from "./lavalinkSession.js";
 
@@ -71,8 +72,10 @@ export function initLavalinkManager(client: Client): LavalinkManager {
       // Default grace period before leaving an empty queue - matches auto_leave_empty_seconds'
       // own default (120s) philosophy but longer, since someone queueing up a next track shouldn't
       // race a fast auto-leave. Guilds with stay_connected_247 on never hit this at all (see
-      // player.ts's create-time override).
-      onEmptyQueue: { destroyAfterMs: 600_000 },
+      // player.ts's create-time override). autoPlayFunction runs first, the instant the queue
+      // drains - it only actually queues something when the guild has autoplay_enabled, so this
+      // destroy timer still fires exactly as before for everyone who hasn't opted in.
+      onEmptyQueue: { destroyAfterMs: 600_000, autoPlayFunction: createAutoPlayFunction(client) },
     },
   });
 

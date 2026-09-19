@@ -45,6 +45,24 @@ export function parseComponentEmoji(
   return trimmed;
 }
 
+/**
+ * Resolves free text like "blahaj" (as an Autopilot wizard might produce) against a guild's own
+ * custom emoji, preferring an exact case-insensitive name match over treating the input as a
+ * literal Unicode emoji. Already-formed mentions (`<:name:id>`) and bare snowflake ids are
+ * returned unchanged - only a plain name gets looked up.
+ */
+export function resolveEmojiByName(raw: string, emojis: { id: string; name: string; animated?: boolean }[]): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  if (/^<a?:[A-Za-z0-9_]+:\d{5,20}>$/.test(trimmed)) return trimmed;
+  if (/^\d{5,20}$/.test(trimmed)) return trimmed;
+
+  const needle = trimmed.replace(/^:|:$/g, "").toLowerCase();
+  const match = emojis.find((emoji) => emoji.name.toLowerCase() === needle);
+  if (!match) return trimmed;
+  return `<${match.animated ? "a" : ""}:${match.name}:${match.id}>`;
+}
+
 export function normalizeReactionEmoji(emoji: MessageReaction["emoji"]): string {
   return emoji.toString();
 }

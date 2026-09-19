@@ -19,6 +19,7 @@ import {
   type MusicLoopMode,
 } from "../config/schemas/music.js";
 import { canBypassVoteSkip, canControlPlayback, isDj } from "../plugins/music/functions/permissions.js";
+import { ensureAutoplayQueueDepth } from "../plugins/music/functions/autoplay.js";
 import { clearVotes, registerVote, requiredVotes } from "../plugins/music/functions/voteSkip.js";
 import { logMusic } from "../plugins/music/functions/musicLog.js";
 import { formatDuration } from "../plugins/music/functions/formatting.js";
@@ -57,6 +58,9 @@ export type WebMusicState = {
   /** Which /filter presets this server allows — the web player only offers these, same as
    *  /filter's own `auth.config.allowed_filters` check. */
   allowedFilters: string[];
+  /** Guild's autoplay_enabled setting — whether the bot queues a similar track once the queue
+   *  runs dry, mirroring /autoplay's own state. */
+  autoplay: boolean;
   /** The viewer's own current voice channel, if any — lets the "no session yet" empty state offer
    *  a one-click "Start a session in #channel" instead of just telling them to use /play. */
   viewerVoiceChannel: WebVoiceChannel | null;
@@ -141,6 +145,8 @@ export async function getWebMusicState(guild: Guild, userId: string): Promise<We
   const player = getExistingPlayer(guild.id);
   const viewerVoiceChannel = await resolveViewerVoiceChannel(guild, userId);
   if (!player) {
+    const guildConfig = await configManager.getEffectiveConfig(guild.id);
+    const musicConfig = zMusicConfig.parse(getPluginSettings(guildConfig, "music"));
     return {
       active: false,
       current: null,
@@ -148,6 +154,7 @@ export async function getWebMusicState(guild: Guild, userId: string): Promise<We
       volume: 80,
       loopMode: "off",
       allowedFilters: [],
+      autoplay: musicConfig.autoplay_enabled,
       viewerVoiceChannel,
     };
   }
@@ -179,6 +186,7 @@ export async function getWebMusicState(guild: Guild, userId: string): Promise<We
     volume: player.volume,
     loopMode: player.repeatMode,
     allowedFilters: musicConfig.allowed_filters,
+    autoplay: musicConfig.autoplay_enabled,
     viewerVoiceChannel,
   };
 }
@@ -489,6 +497,34 @@ export async function setWebLoopMode(guild: Guild, userId: string, mode: string)
     `By: <@${userId}>`,
     "Source: Web player",
     `Loop mode set to **${mode}**`,
+  ], { actorId: userId });
+  return { ok: true };
+}
+
+/** Unlike the other web actions, this doesn't require an active player — autoplay_enabled is a
+ *  plain config setting (like dj_mode), togglable before a session even starts, so it uses the
+ *  same plain can_autoplay check /autoplay's own slash command does rather than
+ *  requirePlaybackControl's DJ-mode-aware gate (which would be circular for a settings toggle). */
+export async function setWebAutoplay(guild: Guild, userId: string, enabled: boolean): Promise<WebActionResult> {
+  const auth = await loadMusicAuth(guild, userId);
+  if (!auth.ok) return auth;
+  if (!auth.config.can_autoplay) {
+    return { ok: false, status: 403, error: "You don't have permission to change autoplay." };
+  }
+
+  await configManager.patchPluginConfig(guild.id, "music", { autoplay_enabled: enabled }, userId);
+
+  // Without this, turning autoplay on while something's playing with nothing queued behind it
+  // would do nothing until that track ends on its own - leaving nothing to skip to right now.
+  if (enabled) {
+    const player = getExistingPlayer(guild.id);
+    if (player) void ensureAutoplayQueueDepth(guild.client, player, auth.guildConfig).catch(() => {});
+  }
+
+  void logMusic(guild.client, auth.guildConfig, guild.id, "music_settings", "Music - Autoplay Changed", [
+    `By: <@${userId}>`,
+    "Source: Web player",
+    `Autoplay is now **${enabled ? "on" : "off"}**`,
   ], { actorId: userId });
   return { ok: true };
 }

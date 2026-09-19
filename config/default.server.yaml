@@ -642,6 +642,7 @@ plugins:
       announce_now_playing: false
       stay_connected_247: false
       auto_leave_empty_seconds: 120
+      autoplay_enabled: false
       can_play: false
       can_control_playback: false
       can_skip: false
@@ -650,6 +651,7 @@ plugins:
       can_manage_playlists: false
       can_manage_dj: false
       can_manage_settings: false
+      can_autoplay: false
   clipping:
     enabled: false
     config:

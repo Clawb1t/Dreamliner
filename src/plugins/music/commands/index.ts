@@ -6,6 +6,7 @@ import { connectCommands } from "./connect.js";
 import { djCommand } from "./dj.js";
 import { playlistCommand } from "./playlist.js";
 import { musicConfigCommand } from "./config.js";
+import { autoplayCommand } from "./autoplay.js";
 
 export const musicCommands: SlashCommandDefinition[] = [
   playCommand,
@@ -15,4 +16,5 @@ export const musicCommands: SlashCommandDefinition[] = [
   djCommand,
   playlistCommand,
   musicConfigCommand,
+  autoplayCommand,
 ];

@@ -88,6 +88,14 @@ export const zMusicConfig = z.strictObject({
       "Seconds to wait after the voice channel empties of non-bot members before leaving. Ignored when 24/7 is on. 0 leaves immediately.",
     ),
 
+  // --- Autoplay ---
+  autoplay_enabled: z
+    .boolean()
+    .default(false)
+    .describe(
+      "When the queue runs out, automatically queue a track similar to the last one played (like YouTube's autoplay/radio) instead of going quiet. While this is on the bot won't auto-leave for an empty queue, since it keeps refilling itself - use /stop or turn this off to end the session.",
+    ),
+
   // --- Permission flags ---
   can_play: boolPerm("queue tracks with /music play and /music search"),
   can_control_playback: boolPerm("pause, resume, seek, adjust volume, and apply filters"),
@@ -99,6 +107,7 @@ export const zMusicConfig = z.strictObject({
   can_manage_settings: boolPerm(
     "configure announce channel, restricted channels, default volume, and 24/7 mode with /musicconfig",
   ),
+  can_autoplay: boolPerm("turn autoplay on or off with /autoplay"),
 });
 
 export const zMusicPluginSection = zPluginSection(zMusicConfig.shape, false);

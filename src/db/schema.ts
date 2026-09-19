@@ -858,6 +858,14 @@ export const guildOneEntitlements = sqliteTable("guild_one_entitlements", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Per-guild free-tier usage for AI features (shared across every AI feature, not per-feature).
+ * Dreamliner One servers bypass this entirely — see isDreamlinerOneActive(). */
+export const guildAiUsage = sqliteTable("guild_ai_usage", {
+  guildId: text("guild_id").primaryKey(),
+  freeUsesConsumed: integer("free_uses_consumed").notNull().default(0),
+  lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+});
+
 /** Complimentary Dreamliner One codes created from the superuser dashboard. */
 export const oneDiscountCodes = sqliteTable("one_discount_codes", {
   code: text("code").primaryKey(),

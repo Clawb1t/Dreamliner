@@ -75,6 +75,7 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // music
     "music.can_control_playback",
     "music.can_manage_queue",
+    "music.can_autoplay",
     // name_history
     "name_history.can_search",
     "name_history.can_view",

@@ -335,6 +335,13 @@
     "entries": [
       {
         "plugin": "music",
+        "permission": "can_autoplay",
+        "grantKey": "music.can_autoplay",
+        "title": "Autoplay",
+        "description": "Allow members to turn autoplay on or off with /autoplay."
+      },
+      {
+        "plugin": "music",
         "permission": "can_control_playback",
         "grantKey": "music.can_control_playback",
         "title": "Control Playback",

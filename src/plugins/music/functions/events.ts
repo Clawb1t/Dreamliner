@@ -13,6 +13,7 @@ import { getOrConnectPlayer } from "./player.js";
 import { saveSessionNow, scheduleSave, deleteSession } from "./sessionPersistence.js";
 import { hasAnnouncedWebPlayer, markWebPlayerAnnounced, clearWebPlayerAnnounced } from "./webPlayerAnnounce.js";
 import { logMusic } from "./musicLog.js";
+import { clearAutoplayHistory, ensureAutoplayQueueDepth, rememberAutoplaySeen } from "./autoplay.js";
 
 /** destroy() reasons issued by our own commands/bridge - playerDestroy already gets its own
  *  music_stop log at those call sites, so the generic handler below skips these to avoid a
@@ -82,9 +83,20 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
       log.error(`Failed to save music session for guild ${player.guildId}:`, error),
     );
 
+    // Every track that starts playing (however it got queued) is off-limits for a future
+    // autoplay pick - keeps a long autoplay run from eventually looping back through the same
+    // handful of "similar" tracks, or re-suggesting something the user queued themselves earlier.
+    rememberAutoplaySeen(player.guildId, track);
+
     void (async () => {
       const guildConfig = await configManager.getEffectiveConfig(player.guildId).catch(() => null);
       const config = guildConfig ? zMusicConfig.parse(getPluginSettings(guildConfig, "music")) : null;
+
+      // Proactively keeps the queue topped up the moment each track starts, rather than waiting
+      // for it to end - so a skip (or several in a row) always has something queued to land on.
+      if (config?.autoplay_enabled && guildConfig) {
+        void ensureAutoplayQueueDepth(client, player, guildConfig);
+      }
 
       if (config?.announce_now_playing) {
         const channelId = config.announce_channel_id || player.textChannelId;
@@ -109,6 +121,7 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
   manager.on("playerDestroy", (player, destroyReason) => {
     releaseVoiceSession(player.guildId, "music");
     clearWebPlayerAnnounced(player.guildId);
+    clearAutoplayHistory(player.guildId);
 
     void (async () => {
       const guildConfig = await configManager.getEffectiveConfig(player.guildId).catch(() => null);
