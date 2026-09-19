@@ -4,9 +4,9 @@ import { guildConfigs, guildSnapshots } from "../db/schema.js";
 import { loadDefaultConfig } from "./default.js";
 
 /** How many snapshots a guild keeps before the oldest are pruned automatically. */
-export const MAX_SNAPSHOTS_PER_GUILD = 25;
+export const MAX_SNAPSHOTS_PER_GUILD = 50;
 
-export type SnapshotReason = "manual" | "pre_rollback";
+export type SnapshotReason = "manual" | "pre_rollback" | "auto";
 
 export type SnapshotRow = {
   id: number;
@@ -31,7 +31,7 @@ function mapRow(row: {
 }): SnapshotRow {
   return {
     ...row,
-    reason: row.reason === "pre_rollback" ? "pre_rollback" : "manual",
+    reason: row.reason === "pre_rollback" || row.reason === "auto" ? row.reason : "manual",
   };
 }
 

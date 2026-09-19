@@ -10,6 +10,14 @@ import {
 import { rollbackToSnapshot, type RollbackResult } from "../config/snapshotRollback.js";
 import { computeUserOverrides, validateGuildConfig } from "../config/validator.js";
 import { loadDefaultConfig } from "../config/default.js";
+import {
+  clearSnapshotSchedule,
+  getSnapshotSchedule,
+  MAX_SNAPSHOT_INTERVAL_MINUTES,
+  MIN_SNAPSHOT_INTERVAL_MINUTES,
+  setSnapshotSchedule,
+  type SnapshotSchedule,
+} from "../config/snapshotSchedule.js";
 
 /** Uploaded snapshot files are tiny JSON config exports — anything bigger than this is rejected
  *  outright, before it's even parsed. */
@@ -114,4 +122,40 @@ export async function importWebSnapshot(
   });
 
   return { ok: true, snapshot: toView(row) };
+}
+
+export type SnapshotScheduleView = {
+  intervalMinutes: number;
+  enabled: boolean;
+  lastRunAt: string | null;
+};
+
+function scheduleToView(row: SnapshotSchedule): SnapshotScheduleView {
+  return { intervalMinutes: row.intervalMinutes, enabled: row.enabled, lastRunAt: row.lastRunAt?.toISOString() ?? null };
+}
+
+export async function getWebSnapshotSchedule(guildId: string): Promise<SnapshotScheduleView | null> {
+  const row = await getSnapshotSchedule(guildId);
+  return row ? scheduleToView(row) : null;
+}
+
+export async function setWebSnapshotSchedule(
+  guildId: string,
+  userId: string,
+  intervalMinutes: number,
+  enabled: boolean,
+): Promise<{ ok: true; schedule: SnapshotScheduleView } | { ok: false; error: string }> {
+  if (!Number.isFinite(intervalMinutes) || intervalMinutes < MIN_SNAPSHOT_INTERVAL_MINUTES) {
+    return { ok: false, error: `Automatic snapshots can't run more often than every ${MIN_SNAPSHOT_INTERVAL_MINUTES} minutes.` };
+  }
+  if (intervalMinutes > MAX_SNAPSHOT_INTERVAL_MINUTES) {
+    return { ok: false, error: "That interval is too long." };
+  }
+
+  const row = await setSnapshotSchedule({ guildId, intervalMinutes, enabled, updatedBy: userId });
+  return { ok: true, schedule: scheduleToView(row) };
+}
+
+export async function deleteWebSnapshotSchedule(guildId: string): Promise<void> {
+  await clearSnapshotSchedule(guildId);
 }

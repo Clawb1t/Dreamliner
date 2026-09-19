@@ -185,6 +185,15 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         log.error("[automod] Native AutoMod boot resync failed.", error);
       }),
     );
+    // Dashboard-configured automatic Snapshots (src/config/snapshotSchedule.ts) — no Discord
+    // client access needed, so a plain interval is enough.
+    void import("./config/snapshotSchedule.js").then(({ runDueSnapshotSchedules }) => {
+      setInterval(() => {
+        runDueSnapshotSchedules().catch((error) => {
+          log.error("[snapshots] Automatic snapshot sweep failed.", error);
+        });
+      }, 60_000);
+    });
   });
 
   client.on(Events.EntitlementCreate, (entitlement) => {

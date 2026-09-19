@@ -25,7 +25,7 @@ export const guildSnapshots = sqliteTable(
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
     guildId: text("guild_id").notNull(),
     label: text("label"),
-    // "manual" | "pre_rollback"
+    // "manual" | "pre_rollback" | "auto"
     reason: text("reason").notNull().default("manual"),
     createdBy: text("created_by"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
@@ -34,6 +34,18 @@ export const guildSnapshots = sqliteTable(
   },
   (table) => [index("guild_snapshots_guild_created").on(table.guildId, table.createdAt)],
 );
+
+/** Per-guild automatic-snapshot schedule, configured from the dashboard's Snapshots page — a
+ *  periodic sweep (see src/config/snapshotSchedule.ts) takes a snapshot for every guild whose
+ *  interval has elapsed since `lastRunAt`. */
+export const guildSnapshotSchedules = sqliteTable("guild_snapshot_schedules", {
+  guildId: text("guild_id").primaryKey(),
+  intervalMinutes: integer("interval_minutes", { mode: "number" }).notNull(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  lastRunAt: integer("last_run_at", { mode: "timestamp" }),
+  updatedBy: text("updated_by"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
 
 // --- Permission roles ----------------------------------------------------------
 // Replaces the old level+override permission model: named, Discord-role-style
@@ -1259,6 +1271,30 @@ export const globalWatchdogEntries = sqliteTable("global_watchdog_entries", {
   evidenceUrl: text("evidence_url"),
   addedBy: text("added_by").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+/**
+ * Site-wide announcement banners shown across the top of the website's home page, superuser-
+ * managed from the dashboard (src/bridge/bannerAnnouncements.ts). `kind` picks the banner's
+ * visual style on the website (info/success/warning/critical/promo/maintenance) — purely
+ * presentational, not validated bot-side beyond being a non-empty string. `startsAt`/`endsAt`
+ * schedule when a banner is live in addition to the manual `enabled` switch; both are optional.
+ */
+export const siteBannerAnnouncements = sqliteTable("site_banner_announcements", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  kind: text("kind").notNull().default("info"),
+  title: text("title").notNull(),
+  body: text("body"),
+  ctaLabel: text("cta_label"),
+  ctaUrl: text("cta_url"),
+  dismissible: integer("dismissible", { mode: "boolean" }).notNull().default(true),
+  priority: integer("priority", { mode: "number" }).notNull().default(0),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  startsAt: integer("starts_at", { mode: "timestamp" }),
+  endsAt: integer("ends_at", { mode: "timestamp" }),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
 // --- Raid Defense Mesh -------------------------------------------------------------

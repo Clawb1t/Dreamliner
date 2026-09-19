@@ -1911,6 +1911,113 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Site banner announcements: superuser-managed, shown on the website's home page -
+
+        if (url.pathname === "/bridge/platform/banners") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listAdminBanners } = await import("./bannerAnnouncements.js");
+            sendJson(res, 200, { ok: true, banners: await listAdminBanners() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: Record<string, unknown> & { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = body.userId?.trim();
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { createAdminBanner } = await import("./bannerAnnouncements.js");
+            try {
+              const banner = await createAdminBanner({
+                kind: body.kind,
+                title: body.title,
+                body: body.body,
+                ctaLabel: body.ctaLabel,
+                ctaUrl: body.ctaUrl,
+                dismissible: body.dismissible,
+                priority: body.priority,
+                enabled: body.enabled,
+                startsAt: body.startsAt,
+                endsAt: body.endsAt,
+                createdBy: actorId,
+              });
+              sendJson(res, 200, { ok: true, banner });
+            } catch (error) {
+              sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to create banner." });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformBannerMatch = /^\/bridge\/platform\/banners\/(\d+)$/.exec(url.pathname);
+        if (platformBannerMatch && (req.method === "PUT" || req.method === "DELETE")) {
+          let body: Record<string, unknown> & { userId?: string };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const bannerId = Number(platformBannerMatch[1]);
+
+          if (req.method === "DELETE") {
+            const { deleteAdminBanner } = await import("./bannerAnnouncements.js");
+            const ok = await deleteAdminBanner(bannerId);
+            if (!ok) {
+              sendJson(res, 404, { error: "Banner not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          const { updateAdminBanner } = await import("./bannerAnnouncements.js");
+          try {
+            const banner = await updateAdminBanner(bannerId, {
+              kind: body.kind,
+              title: body.title,
+              body: body.body,
+              ctaLabel: body.ctaLabel,
+              ctaUrl: body.ctaUrl,
+              dismissible: body.dismissible,
+              priority: body.priority,
+              enabled: body.enabled,
+              startsAt: body.startsAt,
+              endsAt: body.endsAt,
+            });
+            sendJson(res, 200, { ok: true, banner });
+          } catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to update banner." });
+          }
+          return;
+        }
+
+        // Public: enabled + in-schedule banners for the website's home page. No superuser check —
+        // this is marketing content meant to be visible to every visitor.
+        if (url.pathname === "/bridge/banners/active" && req.method === "GET") {
+          const { listActiveBanners } = await import("./bannerAnnouncements.js");
+          sendJson(res, 200, { ok: true, banners: await listActiveBanners() });
+          return;
+        }
+
         // --- Global Watchdog: platform-wide, superuser-curated bad-actor list --------------
 
         if (url.pathname === "/bridge/platform/global-watchdog") {
@@ -2283,6 +2390,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const snapshotsImportMatch = /^\/bridge\/guilds\/(\d+)\/snapshots\/import$/.exec(url.pathname);
+        const snapshotScheduleMatch = /^\/bridge\/guilds\/(\d+)\/snapshots\/schedule$/.exec(url.pathname);
         const botProfileRequestImageMatch = /^\/bridge\/guilds\/(\d+)\/bot-profile\/requests\/(\d+)\/image$/.exec(
           url.pathname,
         );
@@ -2385,6 +2493,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !permissionCatalogMatch &&
           !snapshotsMatch &&
           !snapshotsImportMatch &&
+          !snapshotScheduleMatch &&
           !botProfileRequestImageMatch &&
           !botProfileRequestCancelMatch &&
           !botProfileMediaMatch &&
@@ -2475,6 +2584,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           permissionCatalogMatch?.[1] ??
           snapshotsMatch?.[1] ??
           snapshotsImportMatch?.[1] ??
+          snapshotScheduleMatch?.[1] ??
           botProfileRequestImageMatch?.[1] ??
           botProfileRequestCancelMatch?.[1] ??
           botProfileMediaMatch?.[1] ??
@@ -3861,6 +3971,71 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             }
             const deleted = await deleteWebSnapshot(guildId, snapshotId);
             sendJson(res, deleted ? 200 : 404, { ok: deleted, error: deleted ? undefined : "Snapshot not found" });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (snapshotScheduleMatch) {
+          const { deleteWebSnapshotSchedule, getWebSnapshotSchedule, setWebSnapshotSchedule } = await import(
+            "./webSnapshots.js"
+          );
+
+          if (req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, schedule: await getWebSnapshotSchedule(guildId) });
+            return;
+          }
+
+          if (req.method === "PUT") {
+            let body: { userId?: string; intervalMinutes?: number; enabled?: boolean };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            if (typeof body.intervalMinutes !== "number" || typeof body.enabled !== "boolean") {
+              sendJson(res, 400, { error: "intervalMinutes and enabled are required" });
+              return;
+            }
+            const result = await setWebSnapshotSchedule(guildId, userId, body.intervalMinutes, body.enabled);
+            if (!result.ok) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: "Automatic snapshots updated",
+              summary: result.schedule.enabled
+                ? `Automatic snapshots set to every ${result.schedule.intervalMinutes} minutes.`
+                : "Automatic snapshots turned off.",
+              details: [],
+              payload: { intervalMinutes: result.schedule.intervalMinutes, enabled: result.schedule.enabled },
+            });
+            sendJson(res, 200, { ok: true, schedule: result.schedule });
+            return;
+          }
+
+          if (req.method === "DELETE") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            await deleteWebSnapshotSchedule(guildId);
+            sendJson(res, 200, { ok: true });
             return;
           }
 
