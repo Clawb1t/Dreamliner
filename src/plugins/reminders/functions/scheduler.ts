@@ -4,6 +4,8 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getDueReminders, removeReminder } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
 import { translatorFor } from "../../../i18n/index.js";
+import { baseEmbed } from "../../../core/embeds.js";
+import { containerReply, pingComponent } from "../../../core/responses.js";
 const log = getLogger("reminders");
 
 export async function processDueReminders(client: Client): Promise<void> {
@@ -24,16 +26,25 @@ export async function processDueReminders(client: Client): Promise<void> {
 
       const user = await client.users.fetch(reminder.userId).catch(() => null);
       const { t } = await translatorFor(reminder.userId);
-      const content = t("reminders.deliver.content", "Reminder: {message}", { message: reminder.message });
+      const embed = baseEmbed()
+        .setTitle(t("reminders.deliver.title", "Reminder"))
+        .setDescription(reminder.message);
+      const payload = containerReply(embed);
 
       const dmSent = user
-        ? await user.send({ content }).then(() => true).catch(() => false)
+        ? await user.send(payload).then(() => true).catch(() => false)
         : false;
 
       if (!dmSent) {
         const channel = await guild.channels.fetch(reminder.channelId).catch(() => null);
         if (channel?.isTextBased() && "send" in channel) {
-          await channel.send({ content: `<@${reminder.userId}> ${content}` });
+          // Ping only the reminder's owner — never let a reminder body containing
+          // "@everyone"/"@here" (or anyone else's mention) actually notify them.
+          await channel.send({
+            ...payload,
+            components: [pingComponent(`<@${reminder.userId}>`), ...payload.components],
+            allowedMentions: { users: [reminder.userId] },
+          });
         }
       }
     } catch (err) {

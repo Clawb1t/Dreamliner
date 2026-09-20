@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { SlashCommandBuilder, type GuildMember } from "discord.js";
+import { PermissionFlagsBits, SlashCommandBuilder, type GuildMember } from "discord.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { deferReplyOptions, resultReply, resultEdit, slashResultOptions } from "../../core/responses.js";
@@ -70,6 +70,27 @@ export const clippingCommands: SlashCommandDefinition[] = [
           return;
         }
 
+        const me = channel.guild.members.me;
+        if (me && !channel.permissionsFor(me).has([PermissionFlagsBits.Connect, PermissionFlagsBits.Speak])) {
+          await interaction.reply(
+            resultReply(
+              ctx.t("clipping.startTitle", "Start recording"),
+              ctx.t(
+                "clipping.missingVoicePermsBody",
+                "I need **Connect** and **Speak** permissions in **{channel}** to record there.",
+                { channel: channel.name },
+              ),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
+
+        // Joining voice can take several seconds (or the full 15s connect timeout on failure) —
+        // reply now so the interaction token doesn't expire before we know the outcome.
+        await interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+
         const maxBufferSeconds = pluginNumber(auth.pluginConfig, "clip_max_seconds", 300);
         const result = await startClipping(channel, interaction.user.id, maxBufferSeconds);
 
@@ -79,9 +100,12 @@ export const clippingCommands: SlashCommandDefinition[] = [
               ? ctx.t("clipping.busyElsewhereBody", "Already recording in another voice channel in this server.")
               : result.reason === "blocked_by_other"
                 ? blockedByMessage("clipping", result.ownedBy)
-                : ctx.t("clipping.joinFailedBody", "Couldn't join that voice channel.");
-          await interaction.reply(
-            resultReply(ctx.t("clipping.startTitle", "Start recording"), body, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+                : ctx.t(
+                    "clipping.joinFailedBody",
+                    "Couldn't join that voice channel. Make sure I have **Connect** and **Speak** permissions there and try again.",
+                  );
+          await interaction.editReply(
+            resultEdit(ctx.t("clipping.startTitle", "Start recording"), body, slashResultOptions(ctx, { tone: "error" })),
           );
           return;
         }
@@ -93,11 +117,10 @@ export const clippingCommands: SlashCommandDefinition[] = [
           : ctx.t("clipping.startedBody", "Now recording **{channel}**. Use /clip any time to export the last bit of it.", {
               channel: channel.name,
             });
-        await interaction.reply(
-          resultReply(
+        await interaction.editReply(
+          resultEdit(
             ctx.t("clipping.startTitle", "Start recording"),
             body,
-            ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_mic:1544417343252201552>" }),
           ),
         );

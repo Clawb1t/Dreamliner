@@ -19,7 +19,7 @@ import { archiveMessages, collectMessagesToHere, formatArchiveTranscript, serial
 import { DiscofySubmitError, submitDiscofyQuote } from "../functions/discofy.js";
 import { getLastfmUsername } from "../functions/lastfmConnection.js";
 import { LastfmError, getLastfmNowPlaying } from "../functions/lastfm.js";
-import { embedWithFilesEdit, embedEdit, resultEdit, guildResultOptions } from "../../../core/responses.js";
+import { embedWithFilesEdit, embedEdit, resultEdit, guildResultOptions, describeActionError } from "../../../core/responses.js";
 import { buildResultEmbed, baseEmbed } from "../../../core/embeds.js";
 import { buildCleanLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
@@ -213,7 +213,10 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           await replyContextMenuError(
             ctx,
             ctx.t("utility.contextMenu.couldntCreateStickerTitle", "Couldn't create sticker"),
-            ctx.t("utility.contextMenu.couldntCreateStickerBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers."),
+            describeActionError(
+              error,
+              ctx.t("utility.contextMenu.couldntCreateStickerBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers."),
+            ),
           );
         }
         return;
@@ -258,7 +261,10 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         await replyContextMenuError(
           ctx,
           ctx.t("utility.contextMenu.couldntCreateStickerTitle", "Couldn't create sticker"),
-          ctx.t("utility.contextMenu.couldntCreateStickerBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers."),
+          describeActionError(
+            error,
+            ctx.t("utility.contextMenu.couldntCreateStickerBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of stickers."),
+          ),
         );
       }
     },
@@ -302,7 +308,10 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
           await replyContextMenuError(
             ctx,
             ctx.t("utility.contextMenu.couldntCreateEmojiTitle", "Couldn't create emoji"),
-            ctx.t("utility.contextMenu.couldntCreateEmojiBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type."),
+            describeActionError(
+              error,
+              ctx.t("utility.contextMenu.couldntCreateEmojiBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type."),
+            ),
           );
         }
         return;
@@ -343,7 +352,10 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
         await replyContextMenuError(
           ctx,
           ctx.t("utility.contextMenu.couldntCreateEmojiTitle", "Couldn't create emoji"),
-          ctx.t("utility.contextMenu.couldntCreateEmojiBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type."),
+          describeActionError(
+            error,
+            ctx.t("utility.contextMenu.couldntCreateEmojiBody", "Dreamliner may be missing the Manage Expressions permission, or this server already has the maximum number of emoji slots for that type."),
+          ),
         );
       }
     },

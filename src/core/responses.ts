@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
+  DiscordAPIError,
   MessageFlags,
   type AttachmentBuilder,
   type MessageMentionOptions,
@@ -113,6 +114,24 @@ export function resultEdit(
   components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): InteractionEditReplyOptions {
   return containerEdit(buildResultEmbed(title, details, options), components);
+}
+
+/**
+ * Rewrites a caught error into a clearer message when Discord rejected the action because the
+ * bot itself is missing a permission — every command's generic catch block (and every button/
+ * select/modal handler's) funnels its error through this, so "I don't have Manage Roles" is
+ * never reported to the user as an opaque "unexpected error occurred".
+ */
+export function describeActionError(error: unknown, fallback: string): string {
+  if (error instanceof DiscordAPIError) {
+    if (error.code === 50013) {
+      return "I don't have the Discord permission needed to do that. Check that my role has the right permissions (and any channel-specific overwrites), then try again.";
+    }
+    if (error.code === 50001) {
+      return "I don't have access to do that here — check my role's permissions for this channel.";
+    }
+  }
+  return fallback;
 }
 
 /**

@@ -13,7 +13,7 @@ import {
 import type { ConfigManager } from "./config/manager.js";
 import { loadPlugins } from "./core/pluginLoader.js";
 import { availablePlugins } from "./plugins/availablePlugins.js";
-import { resultReply, guildResultOptions, replyWithError } from "./core/responses.js";
+import { resultReply, guildResultOptions, replyWithError, describeActionError } from "./core/responses.js";
 import { trackCommandUsage } from "./plugins/stats/functions/commandUsage.js";
 import { translatorFor } from "./i18n/index.js";
 import {
@@ -127,7 +127,7 @@ async function safeHandle<T extends RepliableInteraction>(
     return result !== false;
   } catch (error) {
     log.error(`${label} error:`, error);
-    await replyWithError(interaction, errorMessage);
+    await replyWithError(interaction, describeActionError(error, errorMessage));
     return true;
   }
 }
@@ -159,6 +159,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       GatewayIntentBits.AutoModerationExecution,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
+    // Global safety net: any message the bot sends without its own `allowedMentions` (raw
+    // `interaction.reply`/`channel.send`/etc. calls scattered across plugins — custom commands,
+    // tags, autoreplies, etc. — often forward admin- or user-authored text verbatim) falls back
+    // to this default instead of Discord's own "parse everything", so a body containing literal
+    // "@everyone"/"@here" can never actually mass-ping. User/role mentions still work by default;
+    // call sites that need to opt into an everyone/here ping (e.g. persist's `mention_everyone`)
+    // already pass their own explicit `allowedMentions` and are unaffected.
+    allowedMentions: { parse: ["users", "roles"] },
   });
 
   client.on(Events.Error, (error) => {
@@ -553,7 +561,7 @@ async function handleContextMenuCommand(
     log.error(`Error in context menu ${interaction.commandName}:`, error);
     await replyWithError(
       interaction,
-      "An unexpected error occurred. If this keeps happening, ask in the support server.",
+      describeActionError(error, "An unexpected error occurred. If this keeps happening, ask in the support server."),
       guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
     );
   }
@@ -674,7 +682,7 @@ async function handleSlashCommand(
     log.error(`Error in /${interaction.commandName}:`, error);
     await replyWithError(
       interaction,
-      "An unexpected error occurred. If this keeps happening, ask in the support server.",
+      describeActionError(error, "An unexpected error occurred. If this keeps happening, ask in the support server."),
       guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
     );
   }
