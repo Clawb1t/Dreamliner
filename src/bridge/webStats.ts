@@ -59,6 +59,7 @@ import {
   getGuildMessageCount,
 } from "../plugins/utility/functions/messageCounts.js";
 import { mapWithConcurrency } from "../core/concurrency.js";
+import { retryAsync } from "../core/retry.js";
 import { getLogger } from "../core/logger.js";
 
 const log = getLogger("stats");
@@ -129,10 +130,20 @@ function colorIntToHex(value: number): string {
  * every subsequent lookup (leaderboard revalidation, another guild's leaderboard, etc.) reuses
  * that same object and skips the network call. Without this, `user.bannerURL()` always
  * returns null, which is why leaderboard rows never showed a banner at all.
+ *
+ * A single failed fetch (rate limit, network blip) used to be final — the User object stays at
+ * `banner === undefined` forever after that, since nothing else re-triggers the fetch, so the
+ * row's banner would just silently never appear. Retries a few times with backoff first.
  */
 async function ensureBannerLoaded(user: User | null): Promise<User | null> {
   if (!user || user.banner !== undefined) return user;
-  return (await user.fetch(true).catch(() => user)) ?? user;
+  const fetched = await retryAsync(() => user.fetch(true), {
+    attempts: 4,
+    delayMs: 400,
+    onError: (error, attempt) =>
+      log.debug(`Banner fetch for user ${user.id} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
+  });
+  return fetched ?? user;
 }
 
 async function resolvePeople(
@@ -158,7 +169,11 @@ async function resolvePeople(
     if (!guild.members.cache.has(entry.userId)) apiFetches++;
     const member = await guild.members.fetch({ user: entry.userId }).catch(() => null);
     const user = await ensureBannerLoaded(
-      member?.user ?? (await guild.client.users.fetch(entry.userId).catch(() => null)),
+      member?.user ??
+        (await retryAsync(() => guild.client.users.fetch(entry.userId), {
+          onError: (error, attempt) =>
+            log.debug(`User fetch for ${entry.userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
+        })),
     );
     return {
       rank: index + 1,
@@ -256,7 +271,12 @@ async function resolveGlobalPeople(
   const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
     // Cache-first — see resolvePeople() above for why this normally never touches the network.
     if (!client.users.cache.has(entry.userId)) apiFetches++;
-    const user = await ensureBannerLoaded(await client.users.fetch(entry.userId).catch(() => null));
+    const user = await ensureBannerLoaded(
+      await retryAsync(() => client.users.fetch(entry.userId), {
+        onError: (error, attempt) =>
+          log.debug(`User fetch for ${entry.userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
+      }),
+    );
     return {
       rank: index + 1,
       id: entry.userId,

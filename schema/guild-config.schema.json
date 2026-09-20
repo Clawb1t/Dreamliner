@@ -355,6 +355,104 @@
       "description": "Which Stats tabs are visible on the public /server/:id/stats page. The messagers leaderboard page is always public.",
       "title": "Public Stats"
     },
+    "server_page": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "maxLength": 300,
+          "default": "",
+          "description": "A short description of the server, shown on its public Dreamliner home page.",
+          "title": "Description"
+        },
+        "show_description": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the description widget when a description is set below.",
+          "title": "Show Description"
+        },
+        "invite_url": {
+          "type": "string",
+          "maxLength": 300,
+          "default": "",
+          "description": "A permanent invite link (e.g. https://discord.gg/yourcode). Adds a Join server button to the public home page.",
+          "title": "Invite Url"
+        },
+        "show_voice_activity": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show who's currently in voice channels on the public home page.",
+          "title": "Show Voice Activity"
+        },
+        "show_active_channels": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the most active text channels from the last 24 hours on the public home page.",
+          "title": "Show Active Channels",
+          "x-dreamliner": {
+            "kind": "channel",
+            "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+          }
+        },
+        "show_boost_status": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show this server's boost tier and count on the public home page.",
+          "title": "Show Boost Status"
+        },
+        "show_emojis": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a gallery of this server's custom emojis on the public home page.",
+          "title": "Show Emojis",
+          "x-dreamliner": {
+            "kind": "emoji",
+            "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+          }
+        },
+        "show_leaderboard": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a top-5 messagers leaderboard preview on the public home page.",
+          "title": "Show Leaderboard"
+        },
+        "custom_links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Button label.",
+                "title": "Label"
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300,
+                "description": "https URL this button opens.",
+                "title": "Url"
+              }
+            },
+            "required": [
+              "label",
+              "url"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 5,
+          "default": [],
+          "description": "Custom link buttons on the public home page, like a website, rules, or socials.",
+          "title": "Custom Links"
+        }
+      },
+      "additionalProperties": false,
+      "default": {},
+      "description": "Description, widgets, and custom links shown on the public /server/:id home page.",
+      "title": "Server Page"
+    },
     "default_language": {
       "type": "string",
       "enum": [

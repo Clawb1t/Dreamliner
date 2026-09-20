@@ -38,6 +38,14 @@ export type SlashCommandDefinition = {
   permission?: string;
   manageServer?: boolean;
   discordPermissions?: bigint;
+  /**
+   * Set only on commands whose `data` also declares `UserInstall`/`BotDM`/`PrivateChannel`
+   * support (see e.g. `/avatar`). Lets the dispatcher run the command outside a guild — with a
+   * default `guildConfig`, no member, and none of the guild-only checks (plugin enabled, manage
+   * server, `can_*` permission, Discord permission bitfield) — instead of refusing it as
+   * server-only. Leave unset for anything that only makes sense in a server.
+   */
+  userInstallable?: boolean;
   execute: (ctx: SlashCommandContext) => Promise<void>;
 };
 
@@ -60,6 +68,8 @@ export type ContextMenuCommandDefinition = {
   permission?: string;
   manageServer?: boolean;
   discordPermissions?: bigint;
+  /** See `SlashCommandDefinition.userInstallable` — same behavior for context-menu commands. */
+  userInstallable?: boolean;
   execute: (ctx: ContextMenuCommandContext) => Promise<void>;
 };
 

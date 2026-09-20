@@ -93,7 +93,8 @@ import {
   PLANE_STATS_PREFIX,
 } from "./plugins/economy/index.js";
 import { applyBotPresence } from "./core/presence.js";
-import type { BotContext } from "./core/types.js";
+import { loadDefaultConfig } from "./config/default.js";
+import type { BotContext, ContextMenuCommandDefinition, SlashCommandDefinition } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
 import { startDashboardBridge } from "./bridge/dashboardBridge.js";
 import { startStatusMonitor } from "./core/statusMonitor.js";
@@ -436,6 +437,79 @@ async function ensurePluginEnabledForModal(
   return true;
 }
 
+/**
+ * Runs a `userInstallable` command outside a guild (DM/group DM via user-install, or a guild the
+ * app isn't installed to). There's no guild config, member, or Dreamliner permission system to
+ * consult there, so this skips every guild-only dispatch check (plugin enabled, manage server,
+ * config-required, `can_*` permission, Discord permission bitfield) and runs the command straight
+ * against the stock default config.
+ */
+async function runContextMenuCommandOutsideGuild(
+  ctx: BotContext,
+  configManager: ConfigManager,
+  interaction:
+    | import("discord.js").MessageContextMenuCommandInteraction
+    | import("discord.js").UserContextMenuCommandInteraction,
+  command: ContextMenuCommandDefinition,
+  locale: import("./i18n/index.js").Locale,
+  t: import("./i18n/index.js").Translator,
+) {
+  const guildConfig = loadDefaultConfig();
+  try {
+    await command.execute({
+      interaction,
+      guildConfig,
+      pluginConfig: {},
+      client: ctx.client,
+      configManager,
+      locale,
+      t,
+    });
+    trackCommandUsage(null, interaction.commandName);
+    cmdLog.info(`${interaction.commandName} (context menu) used by ${interaction.user.tag} outside a guild (user app)`);
+  } catch (error) {
+    log.error(`Error in context menu ${interaction.commandName} (user app):`, error);
+    await replyWithError(
+      interaction,
+      describeActionError(error, "An unexpected error occurred. If this keeps happening, ask in the support server."),
+      guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+    );
+  }
+}
+
+async function runSlashCommandOutsideGuild(
+  ctx: BotContext,
+  configManager: ConfigManager,
+  interaction: import("discord.js").ChatInputCommandInteraction,
+  command: SlashCommandDefinition,
+  locale: import("./i18n/index.js").Locale,
+  t: import("./i18n/index.js").Translator,
+) {
+  const guildConfig = loadDefaultConfig();
+  const ephemeral = resolveEphemeral(guildConfig);
+  try {
+    await command.execute({
+      interaction,
+      guildConfig,
+      pluginConfig: {},
+      client: ctx.client,
+      configManager,
+      ephemeral,
+      locale,
+      t,
+    });
+    trackCommandUsage(null, interaction.commandName);
+    cmdLog.info(`/${interaction.commandName} used by ${interaction.user.tag} outside a guild (user app)`);
+  } catch (error) {
+    log.error(`Error in /${interaction.commandName} (user app):`, error);
+    await replyWithError(
+      interaction,
+      describeActionError(error, "An unexpected error occurred. If this keeps happening, ask in the support server."),
+      guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
+    );
+  }
+}
+
 async function handleContextMenuCommand(
   ctx: BotContext,
   configManager: ConfigManager,
@@ -449,10 +523,14 @@ async function handleContextMenuCommand(
   const { locale, t } = await translatorFor(interaction.user.id);
 
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply({
-      content: t("common.guildOnlyCommand", "This command can only be used in a server."),
-      flags: MessageFlags.Ephemeral,
-    });
+    if (!command.userInstallable) {
+      await interaction.reply({
+        content: t("common.guildOnlyCommand", "This command can only be used in a server."),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    await runContextMenuCommandOutsideGuild(ctx, configManager, interaction, command, locale, t);
     return;
   }
 
@@ -588,10 +666,14 @@ async function handleSlashCommand(
   const { locale, t } = await translatorFor(interaction.user.id);
 
   if (!interaction.inGuild() || !interaction.guildId) {
-    await interaction.reply({
-      content: t("common.guildOnlyCommand", "This command can only be used in a server."),
-      flags: MessageFlags.Ephemeral,
-    });
+    if (!command.userInstallable) {
+      await interaction.reply({
+        content: t("common.guildOnlyCommand", "This command can only be used in a server."),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    await runSlashCommandOutsideGuild(ctx, configManager, interaction, command, locale, t);
     return;
   }
 

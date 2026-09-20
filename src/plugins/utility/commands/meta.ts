@@ -1,4 +1,10 @@
-import { DiscordAPIError, MessageFlags, SlashCommandBuilder } from "discord.js";
+import {
+  ApplicationIntegrationType,
+  DiscordAPIError,
+  InteractionContextType,
+  MessageFlags,
+  SlashCommandBuilder,
+} from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resolveDocsUrl, siteLinkRow } from "../../../core/docsUrl.js";
 import { buildVotePayload } from "../functions/vote.js";
@@ -112,9 +118,15 @@ export const metaCommands: SlashCommandDefinition[] = [
   {
     plugin: "utility",
     permission: "can_avatar",
+    // Also installable as a user app, so it works in DMs/group DMs and servers Dreamliner isn't
+    // in — those contexts have no Dreamliner permission system, so `execute` below skips the
+    // `can_avatar` gate whenever there's no guild.
+    userInstallable: true,
     data: new SlashCommandBuilder()
       .setName("avatar")
       .setDescription("Show a user's avatar")
+      .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+      .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel)
       .addUserOption((o) => o.setName("user").setDescription("User"))
       .addStringOption((o) =>
         o
@@ -123,8 +135,10 @@ export const metaCommands: SlashCommandDefinition[] = [
           .addChoices({ name: "Global", value: "global" }, { name: "Server", value: "server" }),
       ),
     execute: async (ctx) => {
-      const auth = await requireUtilityPermission(ctx, "can_avatar");
-      if (!auth) return;
+      if (ctx.interaction.inGuild()) {
+        const auth = await requireUtilityPermission(ctx, "can_avatar");
+        if (!auth) return;
+      }
       const user = ctx.interaction.options.getUser("user") ?? ctx.interaction.user;
       const scope = ctx.interaction.options.getString("scope") ?? "global";
 

@@ -40,6 +40,16 @@ public_stats:
   patterns: false
   leaders: false
   table: false
+server_page:
+  description: ""
+  show_description: true
+  invite_url: ""
+  show_voice_activity: false
+  show_active_channels: false
+  show_boost_status: false
+  show_emojis: false
+  show_leaderboard: false
+  custom_links: []
 default_language: en
 content_retention_days: 30
 plugins:

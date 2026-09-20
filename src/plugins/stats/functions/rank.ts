@@ -11,6 +11,7 @@ import {
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
+import { retryAsync } from "../../../core/retry.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("stats");
 
@@ -34,11 +35,12 @@ export async function renderUserRankCard(
   t: Translator = defaultTranslator,
 ): Promise<RankResult> {
   // Banners aren't included on cached User objects — a forced fetch is required to see one.
+  // Retried a few times: a single rate limit or network blip here used to mean the card just
+  // rendered with no banner, since there was nothing to fall back to and nothing that retried.
   const [member, bannerUser, profile, badges] = await Promise.all([
     guild.members.fetch(user.id).catch(() => null),
-    guild.client.users.fetch(user.id, { force: true }).catch((err) => {
-      log.warn(`[rank card] forced user fetch failed for ${user.id}:`, err);
-      return null;
+    retryAsync(() => guild.client.users.fetch(user.id, { force: true }), {
+      onError: (err, attempt) => log.debug(`[rank card] forced user fetch failed for ${user.id} (attempt ${attempt}):`, err),
     }),
     getUserProfile(user.id),
     listDisplayedUserBadges(user.id),

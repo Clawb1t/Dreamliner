@@ -1,7 +1,9 @@
 import {
   ApplicationCommandType,
+  ApplicationIntegrationType,
   AttachmentBuilder,
   ContextMenuCommandBuilder,
+  InteractionContextType,
   MessageFlags,
   StickerFormatType,
   escapeMarkdown,
@@ -408,9 +410,14 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
   {
     plugin: "utility",
     permission: "can_listening_to",
+    // Also installable as a user app — works in DMs/group DMs and servers Dreamliner isn't in.
+    // `can_listening_to` is only enforced when the dispatcher has a guild to check it against.
+    userInstallable: true,
     data: new ContextMenuCommandBuilder()
       .setName("Listening to")
-      .setType(ApplicationCommandType.User),
+      .setType(ApplicationCommandType.User)
+      .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+      .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel),
     execute: async (ctx) => {
       const { interaction, client } = ctx;
       if (!interaction.isUserContextMenuCommand()) return;

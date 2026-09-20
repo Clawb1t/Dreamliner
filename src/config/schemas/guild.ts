@@ -187,6 +187,57 @@ export const zPublicStatsConfig = z
   })
   .default({});
 
+export const zServerPageLink = z.strictObject({
+  label: z.string().min(1).max(40).describe("Button label."),
+  url: z.string().min(1).max(300).describe("https URL this button opens."),
+});
+
+export const zPublicServerPageConfig = z
+  .strictObject({
+    description: z
+      .string()
+      .max(300)
+      .default("")
+      .describe("A short description of the server, shown on its public Dreamliner home page."),
+    show_description: z
+      .boolean()
+      .default(true)
+      .describe("Show the description widget when a description is set below."),
+    invite_url: z
+      .string()
+      .max(300)
+      .default("")
+      .describe(
+        "A permanent invite link (e.g. https://discord.gg/yourcode). Adds a Join server button to the public home page.",
+      ),
+    show_voice_activity: z
+      .boolean()
+      .default(false)
+      .describe("Show who's currently in voice channels on the public home page."),
+    show_active_channels: z
+      .boolean()
+      .default(false)
+      .describe("Show the most active text channels from the last 24 hours on the public home page."),
+    show_boost_status: z
+      .boolean()
+      .default(false)
+      .describe("Show this server's boost tier and count on the public home page."),
+    show_emojis: z
+      .boolean()
+      .default(false)
+      .describe("Show a gallery of this server's custom emojis on the public home page."),
+    show_leaderboard: z
+      .boolean()
+      .default(false)
+      .describe("Show a top-5 messagers leaderboard preview on the public home page."),
+    custom_links: z
+      .array(zServerPageLink)
+      .max(5)
+      .default([])
+      .describe("Custom link buttons on the public home page, like a website, rules, or socials."),
+  })
+  .default({});
+
 export const zGuildConfig = z.strictObject({
   emojis: zEmojisConfig.default({}).describe("Response embed title emoji prefixes."),
   /** @deprecated Use moderation_log_channel_id */
@@ -222,6 +273,9 @@ export const zGuildConfig = z.strictObject({
     ),
   public_stats: zPublicStatsConfig.describe(
     "Which Stats tabs are visible on the public /server/:id/stats page. The messagers leaderboard page is always public.",
+  ),
+  server_page: zPublicServerPageConfig.describe(
+    "Description, widgets, and custom links shown on the public /server/:id home page.",
   ),
   default_language: zDefaultLanguage,
   content_retention_days: z
