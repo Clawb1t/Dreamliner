@@ -2,10 +2,20 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChannelSelectMenuBuilder,
+  CheckboxBuilder,
+  CheckboxGroupBuilder,
+  FileUploadBuilder,
+  LabelBuilder,
+  MentionableSelectMenuBuilder,
   ModalBuilder,
+  RadioGroupBuilder,
+  RoleSelectMenuBuilder,
   StringSelectMenuBuilder,
+  TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
+  UserSelectMenuBuilder,
   type ButtonInteraction,
   type Client,
   type GuildMember,
@@ -35,6 +45,7 @@ import {
 import { canCloseTicket, createTicketForMember, performClaim, performClose, performUnclaim, ticketActionRow } from "./actions.js";
 import { deleteContainer } from "./channels.js";
 import { buildTicketClaimedEmbed } from "./embeds.js";
+import { formatQuestionAnswer } from "./formAnswers.js";
 import type { TicketFormAnswer } from "./tickets.js";
 import { getLogger } from "../../../core/logger.js";
 import { defaultTranslator, translatorFor, type Translator } from "../../../i18n/index.js";
@@ -186,14 +197,90 @@ async function openOrPromptModal(
   if (category.form_questions.length > 0) {
     const modal = new ModalBuilder().setCustomId(ticketModalId(panelId, categoryId)).setTitle(category.label.slice(0, 45));
     for (const [index, question] of category.form_questions.slice(0, 5).entries()) {
-      const field = new TextInputBuilder()
-        .setCustomId(ticketQuestionFieldId(index))
-        .setLabel(question.label)
-        .setStyle(question.style === "paragraph" ? TextInputStyle.Paragraph : TextInputStyle.Short)
-        .setRequired(question.required)
-        .setMaxLength(question.max_length);
-      if (question.placeholder) field.setPlaceholder(question.placeholder);
-      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(field));
+      const fieldId = ticketQuestionFieldId(index);
+
+      // Unchanged from before modal component support existed. Every question saved before
+      // that point has no `type` and defaults to "text", so this branch (and only this branch)
+      // handles it exactly as it always has.
+      if (question.type === "text") {
+        const field = new TextInputBuilder()
+          .setCustomId(fieldId)
+          .setLabel(question.label)
+          .setStyle(question.style === "paragraph" ? TextInputStyle.Paragraph : TextInputStyle.Short)
+          .setRequired(question.required)
+          .setMaxLength(question.max_length);
+        if (question.placeholder) field.setPlaceholder(question.placeholder);
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(field));
+        continue;
+      }
+
+      // Purely informational: no customId, no answer, not wrapped in a Label.
+      if (question.type === "text_display") {
+        modal.addTextDisplayComponents(new TextDisplayBuilder().setContent((question.content?.trim() || question.label).slice(0, 4000)));
+        continue;
+      }
+
+      const label = new LabelBuilder().setLabel(question.label.slice(0, 45));
+      const min = question.min_values ?? (question.required ? 1 : 0);
+      const max = question.max_values ?? 1;
+      const options = (question.options ?? []).slice(0, 25).map((option) => ({
+        label: option.label.slice(0, 100),
+        value: option.value.slice(0, 100),
+        ...(option.description ? { description: option.description.slice(0, 100) } : {}),
+      }));
+
+      switch (question.type) {
+        case "string_select":
+          label.setStringSelectMenuComponent(
+            new StringSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required).addOptions(options),
+          );
+          break;
+        case "user_select":
+          label.setUserSelectMenuComponent(
+            new UserSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
+          );
+          break;
+        case "role_select":
+          label.setRoleSelectMenuComponent(
+            new RoleSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
+          );
+          break;
+        case "mentionable_select":
+          label.setMentionableSelectMenuComponent(
+            new MentionableSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
+          );
+          break;
+        case "channel_select":
+          label.setChannelSelectMenuComponent(
+            new ChannelSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
+          );
+          break;
+        case "radio_group":
+          label.setRadioGroupComponent(
+            new RadioGroupBuilder().setCustomId(fieldId).addOptions(options).setRequired(question.required),
+          );
+          break;
+        case "checkbox_group":
+          label.setCheckboxGroupComponent(
+            new CheckboxGroupBuilder().setCustomId(fieldId).addOptions(options).setMinValues(min).setMaxValues(max).setRequired(question.required),
+          );
+          break;
+        case "checkbox":
+          // No .setRequired() on CheckboxBuilder: a single checkbox has no "required" concept
+          // in Discord's own component API.
+          label.setCheckboxComponent(new CheckboxBuilder().setCustomId(fieldId));
+          break;
+        case "file_upload":
+          label.setFileUploadComponent(
+            new FileUploadBuilder()
+              .setCustomId(fieldId)
+              .setMinValues(question.min_values ?? 0)
+              .setMaxValues(question.max_values ?? 1)
+              .setRequired(question.required),
+          );
+          break;
+      }
+      modal.addLabelComponents(label);
     }
     await interaction.showModal(modal);
     return;
@@ -384,11 +471,10 @@ export async function handleTicketModalSubmit(interaction: ModalSubmitInteractio
       return true;
     }
     const { panel, category } = found;
-    const answers: TicketFormAnswer[] = category.form_questions.slice(0, 5).map((q, index) => ({
-      questionId: q.id,
-      label: q.label,
-      answer: interaction.fields.getTextInputValue(ticketQuestionFieldId(index)).trim(),
-    }));
+    const answers: TicketFormAnswer[] = category.form_questions
+      .slice(0, 5)
+      .map((q, index) => formatQuestionAnswer(q, index, interaction.fields))
+      .filter((a): a is TicketFormAnswer => a !== null);
 
     await interaction.deferReply({ ephemeral: true });
     const result = await createTicketForMember({

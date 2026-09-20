@@ -19,6 +19,7 @@ const DASHBOARD_EVENT_EMOJI: Partial<Record<LogEventType, LogEmojiCategory>> = {
   dashboard_bot_brand: "edit",
   dashboard_economy: "serverUpdate",
   dashboard_ticket: "modDefault",
+  dashboard_giveaway: "modDefault",
 };
 
 export type DashboardAuditInput = {

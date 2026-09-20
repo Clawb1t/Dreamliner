@@ -61,6 +61,13 @@ import {
   handleTicketSelectMenuInteraction,
 } from "./plugins/tickets/functions/panels.js";
 import {
+  GIVEAWAY_CLAIM_PREFIX,
+  GIVEAWAY_ENTER_PREFIX,
+  handleGiveawayAutocomplete,
+  handleGiveawayClaimButton,
+  handleGiveawayEnterButton,
+} from "./plugins/giveaways/index.js";
+import {
   handleWelcomeWaveButtonInteraction,
   WELCOME_WAVE_CUSTOM_ID,
 } from "./plugins/welcome_message/functions/waveButton.js";
@@ -280,6 +287,11 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
           log.error("Time autocomplete error:", error);
         });
       }
+      if (interaction.commandName === "giveaway") {
+        await handleGiveawayAutocomplete(interaction).catch((error) => {
+          log.error("Giveaway autocomplete error:", error);
+        });
+      }
       return;
     }
     if (interaction.isChatInputCommand()) {
@@ -309,6 +321,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
         const handled = await safeHandle(interaction, "Ticket button", () => handleTicketButtonInteraction(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(GIVEAWAY_ENTER_PREFIX)) {
+        const handled = await safeHandle(interaction, "Giveaway enter button", () => handleGiveawayEnterButton(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(GIVEAWAY_CLAIM_PREFIX)) {
+        const handled = await safeHandle(interaction, "Giveaway claim button", () => handleGiveawayClaimButton(interaction));
         if (handled) return;
       }
       if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {

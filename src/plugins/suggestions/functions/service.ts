@@ -1,5 +1,8 @@
 import type { Client, Guild, GuildMember } from "discord.js";
+import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { SuggestionsConfig, SuggestionDisplayStatus } from "../../../config/schemas/suggestions.js";
+import { buildSuggestionApproveLog, buildSuggestionCreateLog, buildSuggestionDenyLog } from "../../../core/logging/format.js";
+import { sendModerationLog, sendServerLog } from "../../../core/logging/send.js";
 import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
@@ -53,13 +56,14 @@ export async function submitSuggestion(options: {
   client: Client;
   guild: Guild;
   author: GuildMember;
+  guildConfig: GuildConfig;
   config: SuggestionsConfig;
   content: string;
   attachmentUrl?: string | null;
   anonymous: boolean;
   t?: Translator;
 }): Promise<{ suggestion: Suggestion; error?: string }> {
-  const { client, guild, author, config, content, attachmentUrl, anonymous, t = defaultTranslator } = options;
+  const { client, guild, author, guildConfig, config, content, attachmentUrl, anonymous, t = defaultTranslator } = options;
 
   const status = config.mode === "autoapprove" ? "approved" : "awaiting_review";
   let suggestion = await createSuggestion({
@@ -70,6 +74,21 @@ export async function submitSuggestion(options: {
     anonymous: anonymous && config.anonymous,
     status,
   });
+
+  await sendServerLog(
+    client,
+    guildConfig,
+    buildSuggestionCreateLog({
+      suggestionNumber: suggestion.suggestionNumber,
+      author: { id: author.id, name: author.user.username, avatarUrl: author.user.displayAvatarURL({ size: 128 }) },
+      content,
+    }),
+    {
+      guildId: guild.id,
+      eventType: "suggestion_create",
+      actorId: author.id,
+    },
+  );
 
   if (status === "awaiting_review") {
     const channel = await resolveTextChannel(client, config.review_channel_id);
@@ -181,6 +200,7 @@ export async function refreshFeedMessage(
 export async function approveSuggestion(options: {
   client: Client;
   guild: Guild;
+  guildConfig: GuildConfig;
   config: SuggestionsConfig;
   suggestionId: number;
   staffId: string;
@@ -198,6 +218,22 @@ export async function approveSuggestion(options: {
   let updated =
     (await updateSuggestion(suggestion.id, { staffActorId: options.staffId, status: "approved" })) ??
     suggestion;
+
+  await sendModerationLog(
+    options.client,
+    options.guildConfig,
+    buildSuggestionApproveLog({
+      suggestionNumber: updated.suggestionNumber,
+      staff: { id: options.staffId },
+      content: updated.content,
+    }),
+    {
+      guildId: options.guild.id,
+      eventType: "suggestion_approve",
+      actorId: options.staffId,
+      targetId: updated.authorId,
+    },
+  );
 
   if (suggestion.reviewChannelId && suggestion.reviewMessageId) {
     const channel = await resolveTextChannel(options.client, suggestion.reviewChannelId);
@@ -227,6 +263,7 @@ export async function approveSuggestion(options: {
 export async function denySuggestion(options: {
   client: Client;
   guild: Guild;
+  guildConfig: GuildConfig;
   config: SuggestionsConfig;
   suggestionId: number;
   staffId: string;
@@ -249,6 +286,23 @@ export async function denySuggestion(options: {
       staffActorId: options.staffId,
       denialReason: options.reason?.trim() || null,
     })) ?? suggestion;
+
+  await sendModerationLog(
+    options.client,
+    options.guildConfig,
+    buildSuggestionDenyLog({
+      suggestionNumber: updated.suggestionNumber,
+      staff: { id: options.staffId },
+      content: updated.content,
+      reason: options.reason,
+    }),
+    {
+      guildId: options.guild.id,
+      eventType: "suggestion_deny",
+      actorId: options.staffId,
+      targetId: updated.authorId,
+    },
+  );
 
   if (suggestion.reviewChannelId && suggestion.reviewMessageId) {
     const channel = await resolveTextChannel(options.client, suggestion.reviewChannelId);

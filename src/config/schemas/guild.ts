@@ -7,6 +7,7 @@ import { zStarboardPluginSection } from "./starboard.js";
 import { zReviewsPluginSection } from "./reviews.js";
 import { zSuggestionsPluginSection } from "./suggestions.js";
 import { zTicketsPluginSection } from "./tickets.js";
+import { zGiveawaysPluginSection } from "./giveaways.js";
 import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
 import { zIncidentResponsePluginSection } from "./incidentResponse.js";
@@ -135,6 +136,12 @@ export const zLoggingConfig = z
       .default({})
       .describe(
         "Per-event log toggles. Missing keys default to enabled. Keys match dashboard Logging toggles.",
+      ),
+    channels: z
+      .record(z.string())
+      .default({})
+      .describe(
+        "Per-event channel overrides, keyed by the same event keys as `events`. Missing keys fall back to a plugin's own log channel (if any), then the moderation/server default channel.",
       ),
     emojis: zLogEmojisConfig
       .default({})
@@ -328,6 +335,7 @@ export const zGuildConfig = z.strictObject({
       reviews: zReviewsPluginSection.default({}),
       suggestions: zSuggestionsPluginSection.default({}),
       tickets: zTicketsPluginSection.default({}),
+      giveaways: zGiveawaysPluginSection.default({}),
       social: zSocialPluginSection.default({}),
     })
     .default({}),

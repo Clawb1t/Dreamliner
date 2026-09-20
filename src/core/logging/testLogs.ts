@@ -64,6 +64,23 @@ type TestCtx = {
   guild: Guild;
 };
 
+/** One case_create-shaped test card per infraction type, for the case_<type> test-log entries. */
+function caseTestBuilder(type: string) {
+  return (ctx: TestCtx) =>
+    buildCaseCreateLog(
+      {
+        id: 999999,
+        type,
+        userId: ctx.target.id,
+        modId: ctx.actor.id,
+        reason: TEST_REASON,
+        createdAt: new Date(),
+        expiresAt: null,
+      } as Parameters<typeof buildCaseCreateLog>[0],
+      { user: ctx.target, mod: ctx.actor, priorCaseCount: 2 },
+    );
+}
+
 function buildCtx(guild: Guild, actor: LogRef): TestCtx {
   const botMember = guild.members.me;
   const target: LogRef = botMember
@@ -158,6 +175,16 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
   case_update: (ctx) => buildCaseUpdateLog(999999, "warn", ctx.actor, "Updated the reason on this case."),
   case_delete: (ctx) => buildCaseDeleteLog(999999, ctx.actor, TEST_REASON),
   case_expire: (ctx) => buildMuteExpiredLog(ctx.target),
+  case_warn: caseTestBuilder("warn"),
+  case_note: caseTestBuilder("note"),
+  case_mute: caseTestBuilder("mute"),
+  case_tempmute: caseTestBuilder("tempmute"),
+  case_unmute: caseTestBuilder("unmute"),
+  case_kick: caseTestBuilder("kick"),
+  case_ban: caseTestBuilder("ban"),
+  case_tempban: caseTestBuilder("tempban"),
+  case_unban: caseTestBuilder("unban"),
+  case_softban: caseTestBuilder("softban"),
   automod: (ctx) => buildAutomodLog({ user: ctx.target, channel: ctx.channel, reason: "Spam detected", action: "Delete + Warn", content: "buy cheap discord nitro at bit.ly/totally-real" }),
   impersonation: (ctx) =>
     buildImpersonationLog({
@@ -244,6 +271,50 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
   ticket_close: (ctx) =>
     buildGenericServerLog("Ticket #1 Closed", [`Closed by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`, `Reason: ${TEST_REASON}`], ctx.actor.avatarUrl, "delete"),
 
+  suggestion_create: (ctx) =>
+    buildGenericServerLog(
+      "Suggestion Created",
+      [`By: <@${ctx.actor.id}>`, "Suggestion #12: **Add a suggestions leaderboard**"],
+      ctx.actor.avatarUrl,
+      "create",
+    ),
+  suggestion_approve: (ctx) =>
+    buildGenericServerLog(
+      "Suggestion Approved",
+      [`By: <@${ctx.actor.id}>`, "Suggestion #12: **Add a suggestions leaderboard**"],
+      ctx.actor.avatarUrl,
+      "modDefault",
+    ),
+  suggestion_deny: (ctx) =>
+    buildGenericServerLog(
+      "Suggestion Denied",
+      [`By: <@${ctx.actor.id}>`, "Suggestion #12: **Add a suggestions leaderboard**", `Reason: ${TEST_REASON}`],
+      ctx.actor.avatarUrl,
+      "modSevere",
+    ),
+
+  giveaway_start: (ctx) =>
+    buildGenericServerLog(
+      "Giveaway Started",
+      [`Prize: **A year of Discord Nitro**`, `Hosted by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`],
+      ctx.actor.avatarUrl,
+      "create",
+    ),
+  giveaway_end: (ctx) =>
+    buildGenericServerLog(
+      "Giveaway Ended",
+      [`Prize: **A year of Discord Nitro**`, `Winner: <@${ctx.target.id}>`, `Channel: <#${ctx.channel.id}>`],
+      ctx.target.avatarUrl,
+      "modDefault",
+    ),
+  giveaway_reroll: (ctx) =>
+    buildGenericServerLog(
+      "Giveaway Rerolled",
+      [`Prize: **A year of Discord Nitro**`, `New winner: <@${ctx.target.id}>`, `Rerolled by: <@${ctx.actor.id}>`],
+      ctx.target.avatarUrl,
+      "action",
+    ),
+
   dashboard_config: (ctx) =>
     buildGenericServerLog(
       "Config Update",
@@ -324,6 +395,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
     buildGenericServerLog(
       "TTS Admin",
       [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Updated the TTS blacklist."],
+      null,
+      "modDefault",
+    ),
+  dashboard_giveaway: (ctx) =>
+    buildGenericServerLog(
+      "Giveaway Admin",
+      [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Created a giveaway."],
       null,
       "modDefault",
     ),

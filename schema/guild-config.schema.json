@@ -112,6 +112,19 @@
           "description": "Per-event log toggles. Missing keys default to enabled. Keys match dashboard Logging toggles.",
           "title": "Events"
         },
+        "channels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "Per-event channel overrides, keyed by the same event keys as `events`. Missing keys fall back to a plugin's own log channel (if any), then the moderation/server default channel.",
+          "title": "Channels",
+          "x-dreamliner": {
+            "kind": "channel",
+            "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+          }
+        },
         "emojis": {
           "type": "object",
           "properties": {
@@ -10552,7 +10565,7 @@
                               "type": "string",
                               "maxLength": 2000,
                               "default": "Thanks for reaching out, {user}! Support will be with you shortly.",
-                              "description": "Message posted in the new ticket. Supports {user}, {guild}, {category}, plus each question's answer as {answer_1}, {answer_2}, ...",
+                              "description": "Message posted in the new ticket. Supports {user}, {guild}, {category}, plus each answered question's answer as {answer_1}, {answer_2}, ... (text_display questions have no answer and don't take a number).",
                               "title": "Welcome Message"
                             },
                             "support_role_ids": {
@@ -10591,6 +10604,25 @@
                                     "description": "Modal field label (Discord limit: 45 characters).",
                                     "title": "Label"
                                   },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "text",
+                                      "string_select",
+                                      "user_select",
+                                      "role_select",
+                                      "mentionable_select",
+                                      "channel_select",
+                                      "text_display",
+                                      "file_upload",
+                                      "radio_group",
+                                      "checkbox_group",
+                                      "checkbox"
+                                    ],
+                                    "default": "text",
+                                    "description": "Modal component type. Defaults to \"text\" so questions saved before this field existed keep working unchanged.",
+                                    "title": "Type"
+                                  },
                                   "style": {
                                     "type": "string",
                                     "enum": [
@@ -10598,7 +10630,7 @@
                                       "paragraph"
                                     ],
                                     "default": "short",
-                                    "description": "Short is a single line, paragraph is a multi-line box.",
+                                    "description": "Short is a single line, paragraph is a multi-line box. Only used when type is \"text\".",
                                     "title": "Style"
                                   },
                                   "required": {
@@ -10611,7 +10643,7 @@
                                     "type": "string",
                                     "maxLength": 100,
                                     "default": "",
-                                    "description": "Optional placeholder text shown in the empty field.",
+                                    "description": "Optional placeholder text shown in the empty field. Only used when type is \"text\".",
                                     "title": "Placeholder"
                                   },
                                   "max_length": {
@@ -10619,8 +10651,63 @@
                                     "minimum": 1,
                                     "maximum": 4000,
                                     "default": 1000,
-                                    "description": "Maximum answer length.",
+                                    "description": "Maximum answer length. Only used when type is \"text\".",
                                     "title": "Max Length"
+                                  },
+                                  "content": {
+                                    "type": "string",
+                                    "maxLength": 4000,
+                                    "description": "Markdown text shown to the member. Only used when type is \"text_display\", which has no answer.",
+                                    "title": "Content"
+                                  },
+                                  "options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 100,
+                                          "description": "Shown to the member.",
+                                          "title": "Label"
+                                        },
+                                        "value": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 100,
+                                          "description": "Stored in the answer.",
+                                          "title": "Value"
+                                        },
+                                        "description": {
+                                          "type": "string",
+                                          "maxLength": 100,
+                                          "title": "Description"
+                                        }
+                                      },
+                                      "required": [
+                                        "label",
+                                        "value"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "maxItems": 25,
+                                    "description": "Choices for string_select, radio_group, and checkbox_group. Discord caps this at 25.",
+                                    "title": "Options"
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 25,
+                                    "description": "Minimum selections (or files, for file_upload). Defaults to 1 if required, else 0.",
+                                    "title": "Min Values"
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Maximum selections (or files, for file_upload). Defaults to 1.",
+                                    "title": "Max Values"
                                   }
                                 },
                                 "required": [
@@ -10933,6 +11020,409 @@
           "additionalProperties": false,
           "default": {},
           "title": "Tickets"
+        },
+        "giveaways": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "log_channel_id": {
+                  "type": "string",
+                  "description": "Channel for giveaway start/end/reroll event logs. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "default_entry_method": {
+                  "type": "string",
+                  "enum": [
+                    "button",
+                    "reaction"
+                  ],
+                  "default": "button",
+                  "description": "Default entry mechanism for new giveaways when not overridden per-giveaway.",
+                  "title": "Default Entry Method"
+                },
+                "default_reaction_emoji": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "default": "<:icons_gift:1544417552627802212>",
+                  "description": "Default reaction emoji for reaction-entry giveaways.",
+                  "title": "Default Reaction Emoji",
+                  "x-dreamliner": {
+                    "kind": "emoji",
+                    "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                  }
+                },
+                "default_button_label": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "default": "Enter",
+                  "description": "Default entry button label.",
+                  "title": "Default Button Label"
+                },
+                "default_button_emoji": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "default": "<:icons_gift:1544417552627802212>",
+                  "description": "Default entry button emoji.",
+                  "title": "Default Button Emoji",
+                  "x-dreamliner": {
+                    "kind": "emoji",
+                    "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                  }
+                },
+                "default_button_style": {
+                  "type": "string",
+                  "enum": [
+                    "primary",
+                    "secondary",
+                    "success",
+                    "danger"
+                  ],
+                  "default": "primary",
+                  "description": "Default entry button color.",
+                  "title": "Default Button Style"
+                },
+                "default_winner_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 1,
+                  "description": "Default number of winners for a new giveaway.",
+                  "title": "Default Winner Count"
+                },
+                "default_embed": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Include a Discord embed.",
+                      "title": "Enabled"
+                    },
+                    "title": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "default": "",
+                      "description": "Embed title. Supports placeholders like {guild}.",
+                      "title": "Title"
+                    },
+                    "title_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Optional https URL the title links to.",
+                      "title": "Title Url"
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 4096,
+                      "default": "",
+                      "description": "Embed description. Supports placeholders.",
+                      "title": "Description"
+                    },
+                    "color": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215,
+                      "description": "Embed accent color as a decimal integer (0–16777215).",
+                      "default": 5661429,
+                      "title": "Color",
+                      "x-dreamliner": {
+                        "kind": "color",
+                        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                      }
+                    },
+                    "author_name": {
+                      "type": "string",
+                      "maxLength": 256,
+                      "default": "",
+                      "description": "Optional embed author name.",
+                      "title": "Author Name"
+                    },
+                    "author_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Optional https URL the author name links to.",
+                      "title": "Author Url"
+                    },
+                    "author_icon": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "guild",
+                        "bot",
+                        "url"
+                      ],
+                      "default": "none",
+                      "description": "Author icon source. none, guild icon, bot avatar, or a custom URL.",
+                      "title": "Author Icon"
+                    },
+                    "author_icon_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Author icon URL when source is url.",
+                      "title": "Author Icon Url"
+                    },
+                    "thumbnail": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "guild",
+                        "bot",
+                        "url"
+                      ],
+                      "default": "none",
+                      "description": "Thumbnail image source. none, guild icon, bot avatar, or a custom URL.",
+                      "title": "Thumbnail"
+                    },
+                    "thumbnail_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Thumbnail URL when source is url.",
+                      "title": "Thumbnail Url"
+                    },
+                    "image_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Large embed image URL (https). Leave empty for none.",
+                      "title": "Image Url"
+                    },
+                    "footer_text": {
+                      "type": "string",
+                      "maxLength": 2048,
+                      "default": "",
+                      "description": "Footer text. Supports placeholders.",
+                      "title": "Footer Text"
+                    },
+                    "footer_icon": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "guild",
+                        "bot",
+                        "url"
+                      ],
+                      "default": "none",
+                      "description": "Footer icon source. none, guild icon, bot avatar, or a custom URL.",
+                      "title": "Footer Icon"
+                    },
+                    "footer_icon_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Footer icon URL when source is url.",
+                      "title": "Footer Icon Url"
+                    },
+                    "timestamp": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Show the current time in the embed footer.",
+                      "title": "Timestamp"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "maxLength": 256,
+                            "default": "",
+                            "description": "Embed field name. Supports {guild} placeholders.",
+                            "title": "Name"
+                          },
+                          "value": {
+                            "type": "string",
+                            "maxLength": 1024,
+                            "default": "",
+                            "description": "Embed field value. Supports placeholders.",
+                            "title": "Value"
+                          },
+                          "inline": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Display the field inline.",
+                            "title": "Inline"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 25,
+                      "default": [],
+                      "description": "Optional embed fields (max 25).",
+                      "title": "Fields"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Default embed a new giveaway starts from.",
+                  "title": "Default Embed"
+                },
+                "default_dm_winner": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Default: DM the winner(s) when a giveaway ends.",
+                  "title": "Default Dm Winner"
+                },
+                "default_dm_non_winners": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Default: DM entrants who didn't win when a giveaway ends.",
+                  "title": "Default Dm Non Winners"
+                },
+                "default_claim_window_minutes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Default minutes a winner has to claim before an automatic reroll. 0 disables the claim window.",
+                  "title": "Default Claim Window Minutes"
+                },
+                "default_require_role_mode": {
+                  "type": "string",
+                  "enum": [
+                    "any",
+                    "all"
+                  ],
+                  "default": "any",
+                  "description": "Default match mode for required roles.",
+                  "title": "Default Require Role Mode"
+                },
+                "default_booster_bonus_weight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Default extra entry weight granted to server boosters.",
+                  "title": "Default Booster Bonus Weight"
+                },
+                "ping_role_id": {
+                  "type": "string",
+                  "description": "Default role pinged when a giveaway starts, if the giveaway has no override. Paste a Discord role ID (Developer Mode → right-click role → Copy Role ID).",
+                  "title": "Ping Role Id",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "can_create_via_dashboard": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to create giveaways from the dashboard.",
+                  "title": "Create Via Dashboard",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_reroll": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to manually reroll a giveaway's winner(s).",
+                  "title": "Reroll",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_end": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to end a giveaway immediately.",
+                  "title": "End",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_pause": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to pause or resume a giveaway.",
+                  "title": "Pause",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_cancel": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to cancel or delete a giveaway.",
+                  "title": "Cancel",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_view_all": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view all giveaways and entrants in the dashboard queue and /giveaway list.",
+                  "title": "View All",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "default_entry_method": "button",
+                "default_reaction_emoji": "<:icons_gift:1544417552627802212>",
+                "default_button_label": "Enter",
+                "default_button_emoji": "<:icons_gift:1544417552627802212>",
+                "default_button_style": "primary",
+                "default_winner_count": 1,
+                "default_embed": {
+                  "enabled": false,
+                  "title": "",
+                  "title_url": "",
+                  "description": "",
+                  "color": 5661429,
+                  "author_name": "",
+                  "author_url": "",
+                  "author_icon": "none",
+                  "author_icon_url": "",
+                  "thumbnail": "none",
+                  "thumbnail_url": "",
+                  "image_url": "",
+                  "footer_text": "",
+                  "footer_icon": "none",
+                  "footer_icon_url": "",
+                  "timestamp": false,
+                  "fields": []
+                },
+                "default_dm_winner": true,
+                "default_dm_non_winners": false,
+                "default_claim_window_minutes": 0,
+                "default_require_role_mode": "any",
+                "default_booster_bonus_weight": 0,
+                "can_create_via_dashboard": false,
+                "can_reroll": false,
+                "can_end": false,
+                "can_pause": false,
+                "can_cancel": false,
+                "can_view_all": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Giveaways"
         },
         "social": {
           "type": "object",

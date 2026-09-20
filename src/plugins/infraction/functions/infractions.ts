@@ -253,14 +253,22 @@ export async function postCaseLog(
 ) {
   const { buildCaseCreateLog } = await import("../../../core/logging/format.js");
   const { sendModerationLog } = await import("../../../core/logging/send.js");
+  const { isLogEventType } = await import("../../../core/logging/events.js");
   const content = buildCaseCreateLog(record, {
     durationLabel: options?.durationLabel,
     user: user ? { id: user.id, name: user.username, avatarUrl: user.displayAvatarURL({ size: 128 }) } : { id: record.userId },
     mod: mod ? { id: mod.id, name: mod.username, avatarUrl: mod.displayAvatarURL({ size: 128 }) } : { id: record.modId },
   });
+  // A specific "case_<type>" event (case_mute, case_ban, ...) when one exists, so each
+  // infraction type can be toggled/routed on its own. Falls back to the original generic
+  // "case_create" for any type that doesn't have its own key (isLogEventEnabled also falls
+  // back to case_create's own setting for these when the specific key was never touched, so
+  // existing configs that disabled case_create keep silencing every type exactly as before).
+  const perTypeEventType = `case_${record.type}`;
+  const eventType = isLogEventType(perTypeEventType) ? perTypeEventType : "case_create";
   await sendModerationLog(client, guildConfig, content, {
     guildId: record.guildId,
-    eventType: "case_create",
+    eventType,
     caseId: record.id,
     actorId: record.modId,
     targetId: record.userId,

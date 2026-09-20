@@ -153,9 +153,11 @@ export async function getWebSuggestionStats(guild: Guild) {
 
 export async function webApproveSuggestion(guild: Guild, suggestionId: number, staffId: string) {
   const config = await getSuggestionsConfig(guild.id);
+  const guildConfig = await configManager.getEffectiveConfig(guild.id);
   return approveSuggestion({
     client: guild.client,
     guild,
+    guildConfig,
     config,
     suggestionId,
     staffId,
@@ -170,9 +172,11 @@ export async function webDenySuggestion(
   silent?: boolean,
 ) {
   const config = await getSuggestionsConfig(guild.id);
+  const guildConfig = await configManager.getEffectiveConfig(guild.id);
   return denySuggestion({
     client: guild.client,
     guild,
+    guildConfig,
     config,
     suggestionId,
     staffId,

@@ -253,6 +253,7 @@ export async function handleSuggestModalSubmit(
     client: interaction.client,
     guild: interaction.guild,
     author: member,
+    guildConfig,
     config,
     content,
     attachmentUrl,

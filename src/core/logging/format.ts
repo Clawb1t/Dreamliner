@@ -1067,6 +1067,48 @@ export function buildTicketCloseLog(input: {
   );
 }
 
+export function buildSuggestionCreateLog(input: {
+  suggestionNumber: number;
+  author: LogRef;
+  content: string;
+}): LogCard {
+  return card(
+    `Suggestion #${input.suggestionNumber} Created`,
+    [`Time: ${logTimestamp()}`, userLine(input.author, "By"), `Suggestion: ${truncate(input.content, 400)}`],
+    { avatarUrl: input.author.avatarUrl, emojiCategory: "create" },
+  );
+}
+
+export function buildSuggestionApproveLog(input: {
+  suggestionNumber: number;
+  staff: LogRef;
+  content: string;
+}): LogCard {
+  return card(
+    `Suggestion #${input.suggestionNumber} Approved`,
+    [`Time: ${logTimestamp()}`, userLine(input.staff, "By"), `Suggestion: ${truncate(input.content, 400)}`],
+    { avatarUrl: input.staff.avatarUrl, emojiCategory: "modDefault" },
+  );
+}
+
+export function buildSuggestionDenyLog(input: {
+  suggestionNumber: number;
+  staff: LogRef;
+  content: string;
+  reason?: string | null;
+}): LogCard {
+  return card(
+    `Suggestion #${input.suggestionNumber} Denied`,
+    [
+      `Time: ${logTimestamp()}`,
+      userLine(input.staff, "By"),
+      `Suggestion: ${truncate(input.content, 400)}`,
+      input.reason?.trim() ? `Reason: ${truncate(input.reason, 400)}` : "Reason: *(none given)*",
+    ],
+    { avatarUrl: input.staff.avatarUrl, emojiCategory: "modSevere" },
+  );
+}
+
 export function buildGenericServerLog(
   title: string,
   lines: string[],

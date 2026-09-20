@@ -12,6 +12,7 @@ import { isDashboardSuperuser } from "./superuser.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
 import { getLogger } from "../core/logger.js";
 import type { WebMusicTrack } from "./webMusic.js";
+import type { CreateGiveawayInput } from "./webGiveaways.js";
 
 const log = getLogger("bridge");
 
@@ -2357,6 +2358,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ticketStatsMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/stats$/.exec(url.pathname);
         const ticketOneMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)$/.exec(url.pathname);
         const ticketsMatch = /^\/bridge\/guilds\/(\d+)\/tickets$/.exec(url.pathname);
+        const giveawayActionMatch =
+          /^\/bridge\/guilds\/(\d+)\/giveaways\/(\d+)\/(end|reroll|pause|resume|cancel)$/.exec(url.pathname);
+        const giveawayTemplateOneMatch = /^\/bridge\/guilds\/(\d+)\/giveaways\/templates\/(\d+)$/.exec(url.pathname);
+        const giveawayTemplatesMatch = /^\/bridge\/guilds\/(\d+)\/giveaways\/templates$/.exec(url.pathname);
+        const giveawayPreviewMatch = /^\/bridge\/guilds\/(\d+)\/giveaways\/preview$/.exec(url.pathname);
+        const giveawayOneMatch = /^\/bridge\/guilds\/(\d+)\/giveaways\/(\d+)$/.exec(url.pathname);
+        const giveawaysMatch = /^\/bridge\/guilds\/(\d+)\/giveaways$/.exec(url.pathname);
         const scamProtectMatch = /^\/bridge\/guilds\/(\d+)\/scam-protect(?:\/(setup|disable))?$/.exec(
           url.pathname,
         );
@@ -2477,6 +2485,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !ticketStatsMatch &&
           !ticketOneMatch &&
           !ticketsMatch &&
+          !giveawayActionMatch &&
+          !giveawayTemplateOneMatch &&
+          !giveawayTemplatesMatch &&
+          !giveawayPreviewMatch &&
+          !giveawayOneMatch &&
+          !giveawaysMatch &&
           !scamProtectMatch &&
           !ttsBlacklistMatch &&
           !welcomeAssetMatch &&
@@ -2567,6 +2581,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           ticketStatsMatch?.[1] ??
           ticketOneMatch?.[1] ??
           ticketsMatch?.[1] ??
+          giveawayActionMatch?.[1] ??
+          giveawayTemplateOneMatch?.[1] ??
+          giveawayTemplatesMatch?.[1] ??
+          giveawayPreviewMatch?.[1] ??
+          giveawayOneMatch?.[1] ??
+          giveawaysMatch?.[1] ??
           scamProtectMatch?.[1] ??
           ttsBlacklistMatch?.[1] ??
           welcomeAssetMatch?.[1] ??
@@ -6059,6 +6079,271 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ticket: detail });
+          return;
+        }
+
+        if (
+          giveawaysMatch ||
+          giveawayOneMatch ||
+          giveawayActionMatch ||
+          giveawayTemplatesMatch ||
+          giveawayTemplateOneMatch ||
+          giveawayPreviewMatch
+        ) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+
+          const {
+            listGuildGiveaways,
+            getGuildGiveaway,
+            createGuildGiveaway,
+            updateGuildGiveaway,
+            deleteGuildGiveaway,
+            performGiveawayAction,
+            listGuildGiveawayTemplates,
+            createGuildGiveawayTemplate,
+            deleteGuildGiveawayTemplate,
+            buildGiveawayPreview,
+          } = await import("./webGiveaways.js");
+
+          if (giveawayPreviewMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            let body: unknown = {};
+            try {
+              body = JSON.parse(await readBody(req));
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const preview = await buildGiveawayPreview(client, guild, body);
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...preview });
+            return;
+          }
+
+          if (giveawayTemplatesMatch) {
+            if (req.method === "GET") {
+              if (!(await memberCanManage(guild, userId))) {
+                sendJson(res, 403, { error: "Missing Manage Server permission." });
+                return;
+              }
+              const result = await listGuildGiveawayTemplates(guild);
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+              return;
+            }
+            if (req.method === "POST") {
+              if (!(await memberCanManage(guild, userId))) {
+                sendJson(res, 403, { error: "Missing Manage Server permission." });
+                return;
+              }
+              let body: { name?: string; settings?: Record<string, unknown> } = {};
+              try {
+                body = JSON.parse(await readBody(req)) as typeof body;
+              } catch {
+                sendJson(res, 400, { error: "Invalid JSON body" });
+                return;
+              }
+              const result = await createGuildGiveawayTemplate(guild, userId, body.name ?? "", body.settings ?? {});
+              if ("error" in result) {
+                sendJson(res, 400, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_giveaway",
+                title: "Giveaway template saved",
+                summary: `Template \`${result.template.name}\` was saved from the dashboard.`,
+                targetId: String(result.template.id),
+                payload: { action: "template_create", templateId: result.template.id },
+              });
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+              return;
+            }
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+
+          if (giveawayTemplateOneMatch) {
+            if (req.method !== "DELETE") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const templateId = Number(giveawayTemplateOneMatch[2]);
+            const result = await deleteGuildGiveawayTemplate(guild, templateId);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_giveaway",
+              title: "Giveaway template deleted",
+              summary: `Template \`#${templateId}\` was deleted from the dashboard.`,
+              targetId: String(templateId),
+              payload: { action: "template_delete", templateId },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ok: true });
+            return;
+          }
+
+          if (giveawayActionMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const action = giveawayActionMatch[3] as "end" | "reroll" | "pause" | "resume" | "cancel";
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            let body: { winnerId?: string } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const giveawayId = Number(giveawayActionMatch[2]);
+            const result = await performGiveawayAction(guild, giveawayId, action, body);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            const actionSummary =
+              action === "end" ? "ended" : action === "cancel" ? "cancelled" : `${action}d`;
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_giveaway",
+              title: `Giveaway ${action}`,
+              summary: `Giveaway \`#${giveawayId}\` was ${actionSummary} from the dashboard.`,
+              targetId: String(giveawayId),
+              payload: { giveawayId, action },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, giveaway: result.giveaway });
+            return;
+          }
+
+          if (giveawaysMatch) {
+            if (req.method === "GET") {
+              if (!(await memberCanManage(guild, userId))) {
+                sendJson(res, 403, { error: "Missing Manage Server permission." });
+                return;
+              }
+              const result = await listGuildGiveaways(guild, { status: url.searchParams.get("status")?.trim() });
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+              return;
+            }
+            if (req.method === "POST") {
+              if (!(await memberCanManage(guild, userId))) {
+                sendJson(res, 403, { error: "Missing Manage Server permission." });
+                return;
+              }
+              let body: CreateGiveawayInput;
+              try {
+                body = JSON.parse(await readBody(req)) as CreateGiveawayInput;
+              } catch {
+                sendJson(res, 400, { error: "Invalid JSON body" });
+                return;
+              }
+              const result = await createGuildGiveaway(guild, userId, body);
+              if ("error" in result) {
+                sendJson(res, 400, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_giveaway",
+                title: "Giveaway created",
+                summary: `Giveaway \`${result.giveaway.title || result.giveaway.prize}\` was created from the dashboard.`,
+                targetId: String(result.giveaway.id),
+                payload: { action: "create", giveawayId: result.giveaway.id },
+              });
+              sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, giveaway: result.giveaway });
+              return;
+            }
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+
+          const giveawayId = Number(giveawayOneMatch![2]);
+          if (!Number.isFinite(giveawayId) || giveawayId <= 0) {
+            sendJson(res, 400, { error: "Invalid giveaway id" });
+            return;
+          }
+
+          if (req.method === "GET") {
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await getGuildGiveaway(guild, giveawayId);
+            if ("error" in result) {
+              sendJson(res, 404, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, giveaway: result.giveaway });
+            return;
+          }
+
+          if (req.method === "PATCH") {
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            let body: Partial<CreateGiveawayInput>;
+            try {
+              body = JSON.parse(await readBody(req)) as Partial<CreateGiveawayInput>;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const result = await updateGuildGiveaway(guild, giveawayId, body);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_giveaway",
+              title: "Giveaway updated",
+              summary: `Giveaway \`#${giveawayId}\` was updated from the dashboard.`,
+              targetId: String(giveawayId),
+              payload: { action: "update", giveawayId },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, giveaway: result.giveaway });
+            return;
+          }
+
+          if (req.method === "DELETE") {
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await deleteGuildGiveaway(guild, giveawayId);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_giveaway",
+              title: "Giveaway deleted",
+              summary: `Giveaway \`#${giveawayId}\` was deleted from the dashboard.`,
+              targetId: String(giveawayId),
+              payload: { action: "delete", giveawayId },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ok: true });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

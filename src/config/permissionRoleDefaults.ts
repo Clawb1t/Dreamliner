@@ -59,6 +59,10 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "dream_commands.can_edit",
     "dream_commands.can_list",
     "dream_commands.can_remove",
+    // giveaways
+    "giveaways.can_reroll",
+    "giveaways.can_end",
+    "giveaways.can_pause",
     // incident_response
     "incident_response.can_manage",
     // infractions
@@ -167,6 +171,10 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
 
   // Was level >= 75 OR level >= 100.
   admin: [
+    // giveaways
+    "giveaways.can_cancel",
+    "giveaways.can_view_all",
+    "giveaways.can_create_via_dashboard",
     // infractions
     "infractions.can_ban",
     "infractions.can_delete",

@@ -417,6 +417,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           const result = await approveSuggestion({
             client: ctx.interaction.client,
             guild,
+            guildConfig: ctx.guildConfig,
             config,
             suggestionId: suggestion.id,
             staffId: auth.member.id,
@@ -445,6 +446,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const result = await denySuggestion({
           client: ctx.interaction.client,
           guild,
+          guildConfig: ctx.guildConfig,
           config,
           suggestionId: suggestion.id,
           staffId: auth.member.id,
@@ -625,6 +627,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
               ? await approveSuggestion({
                   client: ctx.interaction.client,
                   guild,
+                  guildConfig: ctx.guildConfig,
                   config,
                   suggestionId: suggestion.id,
                   staffId: auth.member.id,
@@ -632,6 +635,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
               : await denySuggestion({
                   client: ctx.interaction.client,
                   guild,
+                  guildConfig: ctx.guildConfig,
                   config,
                   suggestionId: suggestion.id,
                   staffId: auth.member.id,

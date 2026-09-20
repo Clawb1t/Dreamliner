@@ -40,6 +40,7 @@ import { scamProtectPlugin } from "../plugins/scam_protect/index.js";
 import { passportPlugin } from "../plugins/passport/index.js";
 import { economyPlugin } from "../plugins/economy/index.js";
 import { ticketsPlugin } from "../plugins/tickets/index.js";
+import { giveawaysPlugin } from "../plugins/giveaways/index.js";
 import { socialPlugin } from "../plugins/social/index.js";
 import { ttsPlugin } from "../plugins/tts/index.js";
 import { clippingPlugin } from "../plugins/clipping/index.js";
@@ -89,6 +90,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   reviewsPlugin,
   suggestionsPlugin,
   ticketsPlugin,
+  giveawaysPlugin,
   socialPlugin,
   ttsPlugin,
   clippingPlugin,

@@ -1,6 +1,6 @@
 import type { Client, TextChannel } from "discord.js";
 import type { GuildConfig } from "../../config/schemas/guild.js";
-import { getModerationLogChannelId, getServerLogChannelId } from "./channels.js";
+import { getEventChannelOverride, getModerationLogChannelId, getServerLogChannelId } from "./channels.js";
 import { buildLogPayload } from "./container.js";
 import { LOG_EVENT_META, type LogEventType } from "./events.js";
 import { LOG_EMOJI, type LogEmojiCategory } from "./emojis.js";
@@ -162,9 +162,10 @@ export async function emitLog(
   }
 
   const channelId =
-    category === "moderation"
+    getEventChannelOverride(guildConfig, meta.eventType) ??
+    (category === "moderation"
       ? getModerationLogChannelId(guildConfig, meta.caseLogOverride)
-      : getServerLogChannelId(guildConfig);
+      : getServerLogChannelId(guildConfig));
 
   let discordMessageId: string | null = null;
   if (channelId) {

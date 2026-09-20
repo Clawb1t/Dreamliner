@@ -14,6 +14,7 @@ emojis:
   unchecked: <:icons_disable:1544417870652379277>
 logging:
   events: {}
+  channels: {}
   emojis:
     action_emoji: <:icons_slashcmd:1544417581765501059>
     create_emoji: <:icons_plus:1544417389872156732>
@@ -792,6 +793,44 @@ plugins:
       can_assign: false
       can_set_status: false
       can_view_stats: false
+  giveaways:
+    enabled: false
+    config:
+      default_entry_method: button
+      default_reaction_emoji: <:icons_gift:1544417552627802212>
+      default_button_label: Enter
+      default_button_emoji: <:icons_gift:1544417552627802212>
+      default_button_style: primary
+      default_winner_count: 1
+      default_embed:
+        enabled: false
+        title: ""
+        title_url: ""
+        description: ""
+        color: 5661429
+        author_name: ""
+        author_url: ""
+        author_icon: none
+        author_icon_url: ""
+        thumbnail: none
+        thumbnail_url: ""
+        image_url: ""
+        footer_text: ""
+        footer_icon: none
+        footer_icon_url: ""
+        timestamp: false
+        fields: []
+      default_dm_winner: true
+      default_dm_non_winners: false
+      default_claim_window_minutes: 0
+      default_require_role_mode: any
+      default_booster_bonus_weight: 0
+      can_create_via_dashboard: false
+      can_reroll: false
+      can_end: false
+      can_pause: false
+      can_cancel: false
+      can_view_all: false
   social:
     enabled: false
     config:

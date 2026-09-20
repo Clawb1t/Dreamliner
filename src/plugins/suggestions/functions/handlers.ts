@@ -55,6 +55,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
         ? await approveSuggestion({
             client: interaction.client,
             guild: interaction.guild,
+            guildConfig,
             config,
             suggestionId: parsed.id,
             staffId: member.id,
@@ -63,6 +64,7 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
         : await denySuggestion({
             client: interaction.client,
             guild: interaction.guild,
+            guildConfig,
             config,
             suggestionId: parsed.id,
             staffId: member.id,

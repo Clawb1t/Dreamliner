@@ -157,8 +157,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "fun",
     label: "Fun",
-    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, and counting channels.",
-    include: [{ plugin: "economy" }, { plugin: "counting" }],
+    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, and giveaways.",
+    include: [{ plugin: "economy" }, { plugin: "counting" }, { plugin: "giveaways" }],
   },
   {
     id: "support",
@@ -351,6 +351,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Tickets",
     description: "Support ticket panels, categories, staff claiming, and transcripts.",
   },
+  giveaways: {
+    key: "giveaways",
+    name: "Giveaways",
+    description:
+      "Dashboard-built giveaways with button or reaction entry, role requirements, bonus entries, a winner claim window, and reusable templates. Staff can reroll, end, pause, or cancel from Discord.",
+  },
   economy: {
     key: "economy",
     name: "Economy",
@@ -433,6 +439,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   tickets: "support",
   economy: "fun",
   counting: "fun",
+  giveaways: "fun",
   social: "social",
 };
 

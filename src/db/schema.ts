@@ -1546,3 +1546,99 @@ export const musicQueueItems = sqliteTable(
   },
   (table) => [index("music_queue_items_guild").on(table.guildId, table.position)],
 );
+
+export const giveaways = sqliteTable(
+  "giveaways",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    messageId: text("message_id"),
+    title: text("title").notNull(),
+    prize: text("prize").notNull(),
+    /** scheduled | active | ending | ended | cancelled | paused */
+    status: text("status").notNull().default("scheduled"),
+    /** button | reaction, resolved from the guild default at create time. */
+    entryMethod: text("entry_method").notNull().default("button"),
+    reactionEmoji: text("reaction_emoji").notNull().default("<:icons_gift:1544417552627802212>"),
+    buttonLabel: text("button_label").notNull().default("Enter"),
+    buttonEmoji: text("button_emoji").notNull().default("<:icons_gift:1544417552627802212>"),
+    buttonStyle: text("button_style").notNull().default("primary"),
+    /** JSON: PersistEmbedConfig */
+    embedConfig: text("embed_config").notNull().default("{}"),
+    winnerCount: integer("winner_count", { mode: "number" }).notNull().default(1),
+    /** JSON: string[] role ids */
+    requireRoleIds: text("require_role_ids").notNull().default("[]"),
+    /** any | all */
+    requireRoleMode: text("require_role_mode").notNull().default("any"),
+    blacklistRoleIds: text("blacklist_role_ids").notNull().default("[]"),
+    bypassRoleIds: text("bypass_role_ids").notNull().default("[]"),
+    minAccountAgeDays: integer("min_account_age_days", { mode: "number" }).notNull().default(0),
+    minJoinAgeDays: integer("min_join_age_days", { mode: "number" }).notNull().default(0),
+    /** JSON: [{roleId, weight}] */
+    bonusRoleWeights: text("bonus_role_weights").notNull().default("[]"),
+    boosterBonusWeight: real("booster_bonus_weight").notNull().default(0),
+    pingRoleId: text("ping_role_id"),
+    dmWinner: integer("dm_winner", { mode: "boolean" }).notNull().default(true),
+    dmNonWinners: integer("dm_non_winners", { mode: "boolean" }).notNull().default(false),
+    claimWindowMinutes: integer("claim_window_minutes", { mode: "number" }).notNull().default(0),
+    startsAt: integer("starts_at", { mode: "timestamp" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp" }).notNull(),
+    /** Non-null only while status = "paused". */
+    pausedAt: integer("paused_at", { mode: "timestamp" }),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    endedAt: integer("ended_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    index("giveaways_guild").on(table.guildId),
+    index("giveaways_status_end").on(table.status, table.endsAt),
+  ],
+);
+
+export const giveawayEntries = sqliteTable(
+  "giveaway_entries",
+  {
+    giveawayId: integer("giveaway_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    /** Resolved role-weight * booster bonus at entry time; not recalculated retroactively. */
+    weight: real("weight").notNull().default(1),
+    enteredAt: integer("entered_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.giveawayId, table.userId] }),
+    index("giveaway_entries_giveaway").on(table.giveawayId),
+  ],
+);
+
+export const giveawayWinners = sqliteTable(
+  "giveaway_winners",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    giveawayId: integer("giveaway_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    /** won | claimed | expired_unclaimed | rerolled */
+    status: text("status").notNull().default("won"),
+    selectedAt: integer("selected_at", { mode: "timestamp" }).notNull(),
+    claimedAt: integer("claimed_at", { mode: "timestamp" }),
+    rerolledAt: integer("rerolled_at", { mode: "timestamp" }),
+    /** Set when this row exists because it replaced a rerolled/expired winner. */
+    replacesWinnerId: integer("replaces_winner_id", { mode: "number" }),
+  },
+  (table) => [index("giveaway_winners_giveaway").on(table.giveawayId)],
+);
+
+export const giveawayTemplates = sqliteTable(
+  "giveaway_templates",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    name: text("name").notNull(),
+    /** JSON snapshot of every reusable giveaway field (excludes channel/schedule/message id). */
+    settings: text("settings").notNull().default("{}"),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("giveaway_templates_guild").on(table.guildId)],
+);
