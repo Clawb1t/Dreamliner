@@ -157,6 +157,24 @@ export async function replyWithError(
   }
 }
 
+/**
+ * Sends a resultReply/embedReply-shaped payload through whichever response method the
+ * interaction still supports — `reply` if it hasn't answered yet, `editReply` once it's been
+ * deferred or already replied. Lets permission/validation helpers shared across many commands
+ * (some of which defer before slow work, some of which never do) send their output without each
+ * call site branching on `interaction.deferred` itself.
+ */
+export async function replyOrEdit(
+  interaction: RepliableInteraction,
+  payload: InteractionReplyOptions,
+): Promise<void> {
+  if (interaction.deferred || interaction.replied) {
+    await interaction.editReply(payload as InteractionEditReplyOptions);
+  } else {
+    await interaction.reply(payload);
+  }
+}
+
 export function embedReply(
   container: ResultContainer,
   ephemeral = false,

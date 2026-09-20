@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { resultReply, slashResultOptions } from "../../../core/responses.js";
+import { resultReply, slashResultOptions, deferReplyOptions, replyOrEdit } from "../../../core/responses.js";
 import { requireInfractionPermission } from "../functions/commandHelpers.js";
 import { captureEvidence } from "../../../core/evidence.js";
 
@@ -30,6 +30,8 @@ export const evidenceCommands: SlashCommandDefinition[] = [
 
       if (ctx.interaction.options.getSubcommand() !== "add") return;
 
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+
       const user = ctx.interaction.options.getUser("user", true);
       const count = ctx.interaction.options.getInteger("count") ?? 20;
 
@@ -43,7 +45,8 @@ export const evidenceCommands: SlashCommandDefinition[] = [
       });
 
       if (captured === 0) {
-        await ctx.interaction.reply(
+        await replyOrEdit(
+          ctx.interaction,
           resultReply(
             ctx.t("infraction.evidenceTitle", "Evidence"),
             ctx.t("infraction.noRecentTrackedMessages", "No recent tracked messages found for {user}.", { user: String(user) }),
@@ -54,7 +57,8 @@ export const evidenceCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      await ctx.interaction.reply(
+      await replyOrEdit(
+        ctx.interaction,
         resultReply(
           ctx.t("infraction.evidenceTitle", "Evidence"),
           ctx.t(

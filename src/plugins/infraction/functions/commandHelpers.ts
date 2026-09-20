@@ -1,6 +1,6 @@
 import type { SlashCommandContext } from "../../../core/types.js";
 import { canUseInfractions, getInfractionPluginConfig } from "../../../core/guildHelpers.js";
-import { resultReply, guildResultOptions } from "../../../core/responses.js";
+import { resultReply, guildResultOptions, replyOrEdit } from "../../../core/responses.js";
 import type { GuildMember } from "discord.js";
 import type { InfractionConfig, ReasonRequirableType } from "../../../config/schemas/infraction.js";
 
@@ -10,7 +10,8 @@ export async function requireInfractionPermission(
 ): Promise<{ member: GuildMember; pluginConfig: InfractionConfig } | null> {
   const { interaction, guildConfig, t } = ctx;
   if (!interaction.inGuild() || !interaction.guild) {
-    await interaction.reply(
+    await replyOrEdit(
+      interaction,
       resultReply(
         t("infraction.serverOnlyTitle", "Server only"),
         t("infraction.serverOnlyBody", "This command can only be used in a server."),
@@ -23,7 +24,8 @@ export async function requireInfractionPermission(
 
   const member = interaction.member;
   if (!member || typeof member === "string") {
-    await interaction.reply(
+    await replyOrEdit(
+      interaction,
       resultReply(
         t("infraction.memberErrorTitle", "Member error"),
         t("infraction.couldNotResolveMember", "Could not resolve member."),
@@ -37,7 +39,8 @@ export async function requireInfractionPermission(
   const guildMember = member as GuildMember;
 
   if (!(await canUseInfractions(interaction.guildId, guildConfig, permission, guildMember))) {
-    await interaction.reply(
+    await replyOrEdit(
+      interaction,
       resultReply(
         t("infraction.permissionDeniedTitle", "Permission denied"),
         t("infraction.permissionDeniedBody", "You do not have permission to use this command."),
@@ -65,7 +68,8 @@ export async function replyIfReasonRequired(
   label: string,
 ): Promise<boolean> {
   if (!pluginConfig.require_reason[type] || rawReason?.trim()) return false;
-  await ctx.interaction.reply(
+  await replyOrEdit(
+    ctx.interaction,
     resultReply(
       label,
       ctx.t("infraction.reasonRequired", "This server requires a reason for this action."),
