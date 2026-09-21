@@ -27,6 +27,8 @@ export type PersistBuildContext = {
   channel: GuildTextBasedChannel;
   user?: User | null;
   member?: GuildMember | null;
+  /** Plugin-supplied dynamic vars (see `TemplateContext.extra`), merged into the rendered text. */
+  extra?: Record<string, string>;
 };
 
 function httpUrl(raw: string): string | undefined {
@@ -47,6 +49,7 @@ function templateCtx(ctx: PersistBuildContext): TemplateContext {
     channel: ctx.channel as TemplateContext["channel"],
     user: ctx.user ?? null,
     member: ctx.member ?? null,
+    extra: ctx.extra,
   };
 }
 

@@ -26,7 +26,7 @@ import { configManager } from "../../../config/manager.js";
 import { zTicketsConfig, type TicketCategory, type TicketPanel, type TicketsConfig } from "../../../config/schemas/tickets.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
-import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
+import { getPluginSettings, hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { containerEdit, containerReply, guildResultOptions, resultEdit, resultReply } from "../../../core/responses.js";
 import { renderTemplate } from "../../../core/templates.js";
@@ -70,14 +70,23 @@ function parseButtonStyle(style: string): ButtonStyle {
   }
 }
 
-/** Builds the {content, embeds, components} payload for a ticket panel, per its configured style. */
-export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js").Guild, t: Translator = defaultTranslator): BuiltPanelMessage {
+/** Builds the {content, embeds, components} payload for a ticket panel, per its configured style.
+ *  `extra` carries any dynamic placeholder values (e.g. the 7-day response/resolution time
+ *  stats from `panelStats.ts`) the caller already resolved, since this function itself stays
+ *  synchronous/pure and never hits the database. */
+export function buildPanelMessage(
+  panel: TicketPanel,
+  guild?: import("discord.js").Guild,
+  t: Translator = defaultTranslator,
+  extra?: Record<string, string>,
+): BuiltPanelMessage {
   const embed = buildEmbed(panel.embed, {
     client: guild?.client as Client,
     guild: guild as import("discord.js").Guild,
     channel: undefined as unknown as import("discord.js").GuildTextBasedChannel,
+    extra,
   });
-  const content = panel.content ? renderTemplate(panel.content, { guild }) : undefined;
+  const content = panel.content ? renderTemplate(panel.content, { guild, extra }) : undefined;
 
   const components: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = [];
   const enabledCategories = panel.categories;
@@ -128,17 +137,19 @@ export function buildPanelMessage(panel: TicketPanel, guild?: import("discord.js
 }
 
 /** Posts a panel's message to its configured channel. Returns the new message id, or null on failure. */
-export async function postPanel(client: Client, _guildId: string, panel: TicketPanel, t: Translator = defaultTranslator): Promise<string | null> {
+export async function postPanel(client: Client, guildId: string, panel: TicketPanel, t: Translator = defaultTranslator): Promise<string | null> {
   if (!panel.channel_id) return null;
   const channel = await client.channels.fetch(panel.channel_id).catch(() => null);
   if (!channel?.isTextBased() || !("send" in channel)) return null;
   const guild = "guild" in channel ? (channel.guild as import("discord.js").Guild) : undefined;
+  const { keysReferencedInPanel, buildPanelDynamicExtras } = await import("./panelStats.js");
+  const extra = await buildPanelDynamicExtras(guildId, keysReferencedInPanel(panel));
   let built: BuiltPanelMessage;
   try {
     // discord.js's component builders (setLabel, addOptions, etc.) validate synchronously and
     // throw on bad input — a malformed category (or embed) would otherwise crash out of this
     // function entirely instead of failing gracefully like everything else here does.
-    built = buildPanelMessage(panel, guild, t);
+    built = buildPanelMessage(panel, guild, t, extra);
   } catch (error) {
     log.error(`[tickets] Failed to build panel ${panel.id}'s message:`, error);
     return null;
@@ -157,6 +168,63 @@ export async function postPanel(client: Client, _guildId: string, panel: TicketP
       return null;
     });
   return message?.id ?? null;
+}
+
+/**
+ * Sweep entrypoint for the "every 30 minutes" refresh task: re-edits every already-posted panel
+ * whose message/embed text references one of `panelStats.ts`'s dynamic placeholders (7-day avg
+ * response/resolution time), so those numbers stay current without a full repost. Panels that
+ * don't reference any of them are skipped entirely, no stats query and no message edit, same
+ * "only do the work if it's actually used" shape as `templateExtras.ts`'s `keysReferencedIn`.
+ * Only edits an existing message (via the stored `message_id`); never posts a new one, that stays
+ * a deliberate dashboard-only action.
+ */
+export async function refreshDynamicTicketPanels(client: Client): Promise<void> {
+  const { keysReferencedInPanel, buildPanelDynamicExtras, TICKET_PANEL_DYNAMIC_KEYS } = await import("./panelStats.js");
+
+  for (const guild of client.guilds.cache.values()) {
+    try {
+      const guildConfig = await configManager.getEffectiveConfig(guild.id);
+      if (!pluginEnabled(guildConfig, "tickets")) continue;
+      const pluginConfig = zTicketsConfig.parse(getPluginSettings(guildConfig, "tickets"));
+
+      const panelsToRefresh = pluginConfig.panels.filter(
+        (panel) => panel.message_id && panel.channel_id && keysReferencedInPanel(panel).length > 0,
+      );
+      if (panelsToRefresh.length === 0) continue;
+
+      // One stats query covers every panel in this guild, since they all draw from the same
+      // guild-wide 7-day average regardless of which of the two placeholders each one uses.
+      const extra = await buildPanelDynamicExtras(guild.id, [...TICKET_PANEL_DYNAMIC_KEYS]);
+
+      for (const panel of panelsToRefresh) {
+        if (!panel.channel_id || !panel.message_id) continue;
+        const channel = await client.channels.fetch(panel.channel_id).catch(() => null);
+        if (!channel?.isTextBased() || !("messages" in channel)) continue;
+        const existing = await channel.messages.fetch(panel.message_id).catch(() => null);
+        if (!existing) continue; // deleted or never actually posted; the next manual repost will fix message_id
+
+        let built: BuiltPanelMessage;
+        try {
+          built = buildPanelMessage(panel, guild, defaultTranslator, extra);
+        } catch (error) {
+          log.error(`[tickets] Failed to rebuild panel ${panel.id} for its dynamic-var refresh:`, error);
+          continue;
+        }
+        await existing
+          .edit({
+            content: built.content ?? null,
+            embeds: built.embeds,
+            components: built.components,
+          })
+          .catch((error) => {
+            log.error(`[tickets] Failed to refresh panel ${panel.id}'s live message:`, error);
+          });
+      }
+    } catch (err) {
+      log.error(`[tickets] Dynamic panel refresh failed for guild ${guild.id}:`, err);
+    }
+  }
 }
 
 async function resolveTicketsConfig(guildConfig: import("../../../config/schemas/guild.js").GuildConfig, member: GuildMember, _channelId: string): Promise<TicketsConfig> {

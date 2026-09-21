@@ -10941,7 +10941,7 @@
                         },
                         "additionalProperties": false,
                         "default": {},
-                        "description": "The panel's embed. Supports {guild} placeholders.",
+                        "description": "The panel's embed. Supports {guild} placeholders, plus {avg_response_time} and {avg_resolution_time} for this server's 7-day averages (auto-refreshed every 30 minutes while the panel is posted).",
                         "title": "Embed"
                       },
                       "categories": {

@@ -255,7 +255,11 @@ export const zTicketPanel = z
       .default("buttons")
       .describe("Show each category as its own button (max 5) or as options in one select menu (max 25)."),
     content: z.string().max(2000).default("").describe("Optional message text above the embed."),
-    embed: zPersistEmbedConfig.default({}).describe("The panel's embed. Supports {guild} placeholders."),
+    embed: zPersistEmbedConfig
+      .default({})
+      .describe(
+        "The panel's embed. Supports {guild} placeholders, plus {avg_response_time} and {avg_resolution_time} for this server's 7-day averages (auto-refreshed every 30 minutes while the panel is posted).",
+      ),
     categories: z
       .array(zTicketCategory)
       .min(1, "Add at least one category.")

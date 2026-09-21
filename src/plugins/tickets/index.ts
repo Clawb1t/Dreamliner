@@ -6,6 +6,7 @@ import { zTicketsConfig, type TicketCategory, type TicketsConfig } from "../../c
 import { ticketCommands } from "./commands/ticket.js";
 import { processInactiveTickets } from "./functions/autoclose.js";
 import { processTicketEscalations } from "./functions/escalation.js";
+import { refreshDynamicTicketPanels } from "./functions/panels.js";
 import { getTicketByChannel, touchActivity, touchStaffReply } from "./functions/tickets.js";
 import { performSetStatus } from "./functions/actions.js";
 import { getLogger } from "../../core/logger.js";
@@ -13,6 +14,7 @@ const log = getLogger("tickets");
 
 const AUTOCLOSE_SWEEP_INTERVAL_MS = 5 * 60_000;
 const ESCALATION_SWEEP_INTERVAL_MS = 60_000;
+const PANEL_REFRESH_INTERVAL_MS = 30 * 60_000;
 
 /** Support roles for a ticket's category, falling back to the plugin-wide staff roles. */
 function staffRoleIdsFor(category: TicketCategory | undefined, pluginConfig: TicketsConfig): string[] {
@@ -35,6 +37,11 @@ export const ticketsPlugin = definePlugin({
         log.error("Ticket escalation sweep failed:", err);
       });
     }, ESCALATION_SWEEP_INTERVAL_MS);
+    setInterval(() => {
+      refreshDynamicTicketPanels(client).catch((err) => {
+        log.error("Ticket panel dynamic-var refresh failed:", err);
+      });
+    }, PANEL_REFRESH_INTERVAL_MS);
   },
   events: [
     {
