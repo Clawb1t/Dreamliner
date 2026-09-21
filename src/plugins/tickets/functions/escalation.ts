@@ -88,11 +88,34 @@ async function applyEscalationStep(
   }
 }
 
+/** Sub-statuses that mean the ticket is not currently waiting on staff, so the SLA ladder
+ *  shouldn't run: "on hold" is an explicit pause, and "awaiting response"/"awaiting further
+ *  information" both mean staff already asked for something and are waiting on the member. */
+const ESCALATION_BLOCKED_SUB_STATUSES = new Set(["on_hold", "awaiting_response", "awaiting_info"]);
+
+type EscalationTicketFields = Pick<TicketRecord, "subStatus" | "lastStaffReplyAt" | "lastActivityAt" | "createdAt">;
+
+/** True when staff's own last reply also bumps lastActivityAt (see touchStaffReply), so the two
+ *  being equal means nothing has come in since staff spoke: the ticket is waiting on the member,
+ *  not staff. Only when the member (or anyone else) has messaged again after staff's last reply,
+ *  i.e. lastActivityAt is newer, is staff actually the one being waited on. Exported standalone
+ *  so it's testable without a database or Discord client. */
+export function isAwaitingStaffReply(ticket: EscalationTicketFields): boolean {
+  if (ticket.subStatus && ESCALATION_BLOCKED_SUB_STATUSES.has(ticket.subStatus)) return false;
+  return ticket.lastStaffReplyAt === null || ticket.lastActivityAt.getTime() > ticket.lastStaffReplyAt.getTime();
+}
+
+/** When the ladder's silence clock should be measured from: the member's still-unanswered
+ *  message if staff has replied before, or ticket creation if staff has never replied at all. */
+export function escalationSilenceStart(ticket: EscalationTicketFields): Date {
+  return ticket.lastStaffReplyAt === null ? ticket.createdAt : ticket.lastActivityAt;
+}
+
 /**
  * SLA sweep: for every open ticket, checks its category's escalation ladder against how long
- * it's been since a staff member last replied (or since it opened, if staff never replied), and
- * fires the next unfired step once due. Steps fire in `after_minutes` order, one per tick, so a
- * long bot outage won't fire a burst of stale pings — it just catches up one step at a time.
+ * it's been since the member's most recent still-unanswered message, and fires the next unfired
+ * step once due. Steps fire in `after_minutes` order, one per tick, so a long bot outage won't
+ * fire a burst of stale pings, it just catches up one step at a time.
  */
 export async function processTicketEscalations(client: Client): Promise<void> {
   const openTickets = await listOpenTickets(2000);
@@ -120,14 +143,14 @@ export async function processTicketEscalations(client: Client): Promise<void> {
       const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
       const category = panel?.categories.find((c) => c.id === ticket.categoryId);
       if (!category || category.escalation.length === 0) continue;
+      if (!isAwaitingStaffReply(ticket)) continue;
 
       const nextIndex = ticket.escalationStep + 1;
       const sorted = [...category.escalation].sort((a, b) => a.after_minutes - b.after_minutes);
       if (nextIndex >= sorted.length) continue;
 
       const step = sorted[nextIndex]!;
-      const silenceStart = ticket.lastStaffReplyAt ?? ticket.createdAt;
-      const silenceMinutes = (Date.now() - silenceStart.getTime()) / 60_000;
+      const silenceMinutes = (Date.now() - escalationSilenceStart(ticket).getTime()) / 60_000;
       if (silenceMinutes < step.after_minutes) continue;
 
       try {
