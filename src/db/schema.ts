@@ -485,6 +485,55 @@ export const guildStatsChannelDaily = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.channelId, table.statDate] })],
 );
 
+/** Lifetime message count per guild for each UTC weekday x hour-of-day cell, backing the stats
+ *  panel's hour x weekday activity heatmap (168 cells max per guild). */
+export const guildStatsHourly = sqliteTable(
+  "guild_stats_hourly",
+  {
+    guildId: text("guild_id").notNull(),
+    weekdayUtc: integer("weekday_utc", { mode: "number" }).notNull(),
+    hourUtc: integer("hour_utc", { mode: "number" }).notNull(),
+    messages: integer("messages").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.weekdayUtc, table.hourUtc] })],
+);
+
+/** Per-guild daily voice-channel minutes, mirrors guildStatsDaily for the stats panel's voice
+ *  analytics section. Populated by src/plugins/stats/functions/voice.ts on session flush. */
+export const guildStatsVoiceDaily = sqliteTable(
+  "guild_stats_voice_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    statDate: text("stat_date").notNull(),
+    minutes: integer("minutes").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.statDate] })],
+);
+
+/** Per-user daily voice-channel minutes, mirrors guildStatsUserDaily. */
+export const guildStatsUserVoiceDaily = sqliteTable(
+  "guild_stats_user_voice_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    statDate: text("stat_date").notNull(),
+    minutes: integer("minutes").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.statDate] })],
+);
+
+/** Per-channel daily voice-channel minutes, mirrors guildStatsChannelDaily. */
+export const guildStatsChannelVoiceDaily = sqliteTable(
+  "guild_stats_channel_voice_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    statDate: text("stat_date").notNull(),
+    minutes: integer("minutes").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.channelId, table.statDate] })],
+);
+
 export const autoreactionState = sqliteTable(
   "autoreaction_state",
   {
@@ -1578,6 +1627,8 @@ export const giveaways = sqliteTable(
     /** JSON: [{roleId, weight}] */
     bonusRoleWeights: text("bonus_role_weights").notNull().default("[]"),
     boosterBonusWeight: real("booster_bonus_weight").notNull().default(0),
+    entryCost: real("entry_cost").notNull().default(0),
+    winBonus: real("win_bonus").notNull().default(0),
     pingRoleId: text("ping_role_id"),
     dmWinner: integer("dm_winner", { mode: "boolean" }).notNull().default(true),
     dmNonWinners: integer("dm_non_winners", { mode: "boolean" }).notNull().default(false),

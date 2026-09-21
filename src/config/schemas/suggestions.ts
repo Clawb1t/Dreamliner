@@ -116,6 +116,7 @@ export const zSuggestionsConfig = z.strictObject({
   can_suggest: boolPerm("submit suggestions"),
   can_vote: boolPerm("vote on suggestions"),
   can_follow: boolPerm("follow suggestions for updates"),
+  can_comment: boolPerm("comment on suggestions"),
   can_info: boolPerm("view suggestion info"),
   can_top: boolPerm("view top suggestions"),
   can_approve: boolPerm("approve suggestions"),

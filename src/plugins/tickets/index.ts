@@ -7,6 +7,7 @@ import { ticketCommands } from "./commands/ticket.js";
 import { processInactiveTickets } from "./functions/autoclose.js";
 import { processTicketEscalations } from "./functions/escalation.js";
 import { getTicketByChannel, touchActivity, touchStaffReply } from "./functions/tickets.js";
+import { performSetStatus } from "./functions/actions.js";
 import { getLogger } from "../../core/logger.js";
 const log = getLogger("tickets");
 
@@ -38,7 +39,7 @@ export const ticketsPlugin = definePlugin({
   events: [
     {
       name: Events.MessageCreate,
-      execute: async (_client, message: unknown) => {
+      execute: async (client, message: unknown) => {
         const msg = message as import("discord.js").Message;
         if (!msg.guild || msg.author.bot) return;
 
@@ -59,6 +60,15 @@ export const ticketsPlugin = definePlugin({
           await touchStaffReply(msg.guild.id, msg.channel.id, msg.author.id).catch(() => null);
         } else {
           await touchActivity(msg.guild.id, msg.channel.id).catch(() => null);
+        }
+
+        if (pluginConfig.auto_status_updates) {
+          const nextStatus = isStaff ? "awaiting_response" : "in_progress";
+          if (ticket.subStatus !== nextStatus) {
+            await performSetStatus(client, guildConfig, pluginConfig, ticket, nextStatus, msg.author.id).catch((err) => {
+              log.error("Auto status update failed:", err);
+            });
+          }
         }
       },
     },

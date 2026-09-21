@@ -97,7 +97,7 @@ export async function handleGiveawayClaimButton(interaction: ButtonInteraction):
     return true;
   }
 
-  const claimed = await claimWinner(giveaway.id, interaction.user.id);
+  const claimed = await claimWinner(giveaway, interaction.user.id);
   await interaction.reply(
     resultReply(
       claimed ? "Claimed" : "Cannot claim",

@@ -11,6 +11,7 @@ import type { InfractionConfig } from "../../../config/schemas/infraction.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { buildAutomodLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
+import { getLogger } from "../../../core/logger.js";
 import {
   applyTimeout,
   clampTimeoutMs,
@@ -21,6 +22,11 @@ import {
 import { formatReason } from "../../infraction/functions/moderation.js";
 import type { AutomodHit } from "./detectors/types.js";
 import { translatorFor } from "../../../i18n/index.js";
+
+const log = getLogger("automod");
+
+/** Real (non-note) infraction types that count as moderation history for the escalation bridge. */
+const REAL_INFRACTION_TYPES = ["warn", "mute", "tempmute", "kick", "softban", "tempban", "ban"] as const;
 
 function channelRef(message: Message) {
   const name = "name" in message.channel ? (message.channel.name ?? message.channel.id) : message.channel.id;
@@ -81,7 +87,32 @@ export async function applyAutomodHit(options: {
   if (!guild) return;
 
   const pointsPerHit = Math.max(1, rule.points ?? 1);
-  const score = hitCount * pointsPerHit;
+  let score = hitCount * pointsPerHit;
+
+  if (member) {
+    try {
+      const { getPassportDeescalationFactor } = await import("../../passport/functions/gate.js");
+      score = Math.round(score * (await getPassportDeescalationFactor(member)));
+    } catch {
+      // Passport unavailable or errored, keep the unadjusted score.
+    }
+  }
+
+  if (member && config.escalation_bridge.use_infraction_history) {
+    try {
+      const { countQualifyingInfractions } = await import("../../infraction/functions/escalation.js");
+      const priorCount = await countQualifyingInfractions(
+        guildId,
+        user.id,
+        REAL_INFRACTION_TYPES,
+        config.escalation_bridge.lookback_ms,
+      );
+      score += Math.round(priorCount * config.escalation_bridge.points_per_infraction);
+    } catch (err) {
+      log.error("Escalation bridge lookup error:", err);
+    }
+  }
+
   const reason = formatReason(
     rule.case_reason?.trim() ||
       `${hit.reason}${hit.detail ? ` (${hit.detail})` : ""} · rule \`${hit.ruleId}\` · ${score} pt${score === 1 ? "" : "s"}`,
@@ -99,6 +130,9 @@ export async function applyAutomodHit(options: {
   const modId = client.user!.id;
   const actionLabels: string[] = [];
   const { t } = await translatorFor(user.id);
+  const createdTypes: string[] = [];
+  let hadRealCase = false;
+  const hadSilentLadderAction = ladderActions.some((a) => a.type === "delete" || a.type === "none");
 
   for (const action of ladderActions) {
     if (action.type === "delete" || action.type === "none") {
@@ -128,6 +162,8 @@ export async function applyAutomodHit(options: {
         metadata,
       });
       await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
+      hadRealCase = true;
+      createdTypes.push(record.type);
       actionLabels.push(`note #${record.id}`);
       continue;
     }
@@ -153,6 +189,8 @@ export async function applyAutomodHit(options: {
           )
           .catch(() => null);
       }
+      hadRealCase = true;
+      createdTypes.push(record.type);
       actionLabels.push(`warn #${record.id}`);
       continue;
     }
@@ -185,6 +223,8 @@ export async function applyAutomodHit(options: {
           )
           .catch(() => null);
       }
+      hadRealCase = true;
+      createdTypes.push(record.type);
       actionLabels.push(`mute #${record.id}`);
       continue;
     }
@@ -211,6 +251,8 @@ export async function applyAutomodHit(options: {
           )
           .catch(() => null);
       }
+      hadRealCase = true;
+      createdTypes.push(record.type);
       actionLabels.push(`kick #${record.id}`);
       continue;
     }
@@ -231,6 +273,8 @@ export async function applyAutomodHit(options: {
         metadata,
       });
       await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
+      hadRealCase = true;
+      createdTypes.push(record.type);
       actionLabels.push(`softban #${record.id}`);
       continue;
     }
@@ -264,7 +308,38 @@ export async function applyAutomodHit(options: {
       await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user, {
         durationLabel: durationMs > 0 ? `${Math.round(durationMs / 3_600_000)}h` : null,
       }).catch(() => null);
+      hadRealCase = true;
+      createdTypes.push(record.type);
       actionLabels.push(`${action.type} #${record.id}`);
+    }
+  }
+
+  if (rule.log_silent_hits_as_cases && hadSilentLadderAction && !hadRealCase) {
+    const silentMetadata = { source: "automod", ruleId: hit.ruleId, hitCount, points: pointsPerHit, score, silent: true };
+    const record = await createInfraction({
+      guildId,
+      userId: user.id,
+      modId,
+      type: "note",
+      reason: formatReason(rule.case_reason?.trim() || `${reason} (automod log-only hit)`),
+      active: false,
+      metadata: silentMetadata,
+    });
+    await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
+    createdTypes.push(record.type);
+    actionLabels.push(`note #${record.id}`);
+  }
+
+  if (config.escalation_bridge.feed_real_escalation) {
+    for (const triggeringType of createdTypes) {
+      try {
+        const { maybeEscalate } = await import("../../infraction/functions/escalation.js");
+        await maybeEscalate({ client, guild, guildConfig, pluginConfig: infractionConfig, user, triggeringType }).catch(
+          (err) => log.error("Escalation error:", err),
+        );
+      } catch (err) {
+        log.error("Escalation bridge import error:", err);
+      }
     }
   }
 

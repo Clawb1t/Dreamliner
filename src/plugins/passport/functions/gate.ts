@@ -18,3 +18,20 @@ export async function hasMemberPassedPassport(member: GuildMember): Promise<bool
 
   return Boolean(await getPassportVerification(member.guild.id, member.id));
 }
+
+/**
+ * 0-1 multiplier for risk/suspicion weight, for detectors that want to treat a genuinely
+ * Passport-verified member as lower risk. Returns 1 (no reduction) when Passport is disabled,
+ * de-escalation is off, or the member hasn't actually verified. A bypass-role member already
+ * gets their own exemption elsewhere and isn't treated as de-escalated here.
+ */
+export async function getPassportDeescalationFactor(member: GuildMember): Promise<number> {
+  const guildConfig = await configManager.getEffectiveConfig(member.guild.id);
+  if (!isPassportEnabled(guildConfig)) return 1;
+
+  const config = getPassportConfig(guildConfig);
+  if (!config.deescalation.enabled) return 1;
+
+  const verified = await getPassportVerification(member.guild.id, member.id);
+  return verified ? config.deescalation.factor : 1;
+}

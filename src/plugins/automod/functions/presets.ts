@@ -41,6 +41,7 @@ function rule(
     ignored_roles: [],
     ladder: steps,
     settings,
+    log_silent_hits_as_cases: false,
   };
 }
 

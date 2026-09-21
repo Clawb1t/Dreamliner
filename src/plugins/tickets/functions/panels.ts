@@ -28,7 +28,7 @@ import { resolveEphemeral } from "../../../core/ephemeral.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
-import { containerReply, guildResultOptions, resultEdit, resultReply } from "../../../core/responses.js";
+import { containerEdit, containerReply, guildResultOptions, resultEdit, resultReply } from "../../../core/responses.js";
 import { renderTemplate } from "../../../core/templates.js";
 import { buildEmbed } from "../../persist/functions/messageBuilder.js";
 import {
@@ -44,7 +44,7 @@ import {
 } from "../constants.js";
 import { canCloseTicket, createTicketForMember, performClaim, performClose, performUnclaim, ticketActionRow } from "./actions.js";
 import { deleteContainer } from "./channels.js";
-import { buildTicketClaimedEmbed } from "./embeds.js";
+import { buildTicketClaimedEmbed, buildTicketOpenedEmbed } from "./embeds.js";
 import { formatQuestionAnswer } from "./formAnswers.js";
 import type { TicketFormAnswer } from "./tickets.js";
 import { getLogger } from "../../../core/logger.js";
@@ -342,14 +342,17 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       return true;
     }
     await interaction.deferUpdate();
+    const panel = config.panels.find((p) => p.id === ticket.panelId);
+    const category = panel?.categories.find((c) => c.id === ticket.categoryId);
+    const openedContainer = buildTicketOpenedEmbed(ticket, category, interaction.guild, interaction.client, guildConfig.emojis, t);
     if (parsed.kind === "claim") {
       await performClaim(interaction.client, guildConfig, config, ticket, member.id);
       const embed = buildTicketClaimedEmbed(ticket, member.id, interaction.client, guildConfig.emojis, t);
-      await interaction.message.edit({ components: [ticketActionRow(ticket.id, true, t)] }).catch(() => null);
+      await interaction.message.edit(containerEdit(openedContainer, [ticketActionRow(ticket.id, true, t)])).catch(() => null);
       if ("send" in interaction.channel!) await (interaction.channel as import("discord.js").TextChannel).send(containerReply(embed)).catch(() => null);
     } else {
       await performUnclaim(ticket);
-      await interaction.message.edit({ components: [ticketActionRow(ticket.id, false, t)] }).catch(() => null);
+      await interaction.message.edit(containerEdit(openedContainer, [ticketActionRow(ticket.id, false, t)])).catch(() => null);
     }
     return true;
   }

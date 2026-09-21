@@ -3,6 +3,7 @@ import { getDb } from "../../../db/client.js";
 import {
   guildStatsChannelDaily,
   guildStatsDaily,
+  guildStatsHourly,
   guildStatsUserDaily,
   userHourlyActivity,
 } from "../../../db/schema.js";
@@ -66,6 +67,28 @@ export function dateRangeInclusive(start: string, end: string): string[] {
     cur += 86_400_000;
   }
   return out;
+}
+
+/** The UTC-midnight `Date` boundary for `windowSince(days)`, for filtering a timestamp column
+ *  (`integer("...", { mode: "timestamp" })`) by the same window a `statDate` text column would
+ *  use. Null for the all-time window (no lower bound). */
+export function windowSinceTimestamp(days: number): Date | null {
+  const since = windowSince(days);
+  return since ? new Date(`${since}T00:00:00.000Z`) : null;
+}
+
+/**
+ * Resolves the zero-filled date list for a "filled" series query that (unlike the daily/user/
+ * channel stats tables) has no guaranteed row for every day: for a fixed window this is just
+ * `dateRange(days)`, but for the all-time window there's no fixed start, so it's derived from the
+ * earliest date actually present in `candidateDates` (e.g. the union of several source tables'
+ * distinct dates). Returns `[]` for the all-time window when nothing has ever been recorded.
+ */
+export function resolveFilledWindow(days: number, candidateDates: string[]): string[] {
+  if (!isAllTimeWindow(days)) return dateRange(days);
+  if (candidateDates.length === 0) return [];
+  const earliest = [...candidateDates].sort()[0]!;
+  return dateRangeInclusive(earliest, statDate());
 }
 
 function mapDailyRow(row: {
@@ -163,6 +186,23 @@ export async function incrementUserHourlyStat(userId: string): Promise<void> {
     });
 }
 
+/** Bumps the guild's lifetime message count for the current UTC weekday x hour-of-day cell,
+ *  used for the stats panel's hour x weekday activity heatmap. Separate from
+ *  incrementUserHourlyStat above, which tracks a per-user/global hour-of-day metric. */
+export async function incrementGuildHourlyStat(guildId: string): Promise<void> {
+  const db = getDb();
+  const now = new Date();
+  const weekdayUtc = now.getUTCDay();
+  const hourUtc = now.getUTCHours();
+  await db
+    .insert(guildStatsHourly)
+    .values({ guildId, weekdayUtc, hourUtc, messages: 1 })
+    .onConflictDoUpdate({
+      target: [guildStatsHourly.guildId, guildStatsHourly.weekdayUtc, guildStatsHourly.hourUtc],
+      set: { messages: sql`${guildStatsHourly.messages} + 1` },
+    });
+}
+
 export async function incrementChannelDailyStat(guildId: string, channelId: string): Promise<void> {
   const db = getDb();
   const date = statDate();
@@ -187,6 +227,7 @@ export async function recordMessageActivity(
     incrementUserDailyStat(guildId, userId),
     incrementChannelDailyStat(guildId, channelId),
     incrementUserHourlyStat(userId),
+    incrementGuildHourlyStat(guildId),
     recordUserTrail(guildId, userId, channelId, content),
   ];
   if (attachmentCount > 0) {
@@ -344,4 +385,22 @@ export async function getFilledChannelDailyStats(
 
   const byDate = new Map(rows.map((row) => [row.statDate, row.messages]));
   return dates.map((date) => ({ statDate: date, messages: byDate.get(date) ?? 0 }));
+}
+
+/** Zero-filled 7 (weekday, UTC) x 24 (hour, UTC) message activity grid for a guild, always 168
+ *  cells regardless of how many are actually populated. */
+export async function getGuildHourlyHeatmap(
+  guildId: string,
+): Promise<{ weekday: number; hour: number; messages: number }[]> {
+  const db = getDb();
+  const rows = await db.select().from(guildStatsHourly).where(eq(guildStatsHourly.guildId, guildId));
+  const byCell = new Map(rows.map((row) => [`${row.weekdayUtc}:${row.hourUtc}`, row.messages]));
+
+  const grid: { weekday: number; hour: number; messages: number }[] = [];
+  for (let weekday = 0; weekday < 7; weekday++) {
+    for (let hour = 0; hour < 24; hour++) {
+      grid.push({ weekday, hour, messages: byCell.get(`${weekday}:${hour}`) ?? 0 });
+    }
+  }
+  return grid;
 }

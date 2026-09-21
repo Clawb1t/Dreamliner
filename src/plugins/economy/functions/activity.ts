@@ -22,6 +22,10 @@ import {
  * global coins, server currency, both, or neither. Both rates are fixed
  * bot-wide constants — a server can only turn its own reward on/off
  * (`message_rewards_enabled`), not tune the amount or cooldown.
+ *
+ * Any future message-count-based economy feature should read counts via
+ * utility/functions/messageCounts.js's getGuildMessageCount/getGlobalMessageCount
+ * rather than introducing new counting state here.
  */
 export function grantMessageRewards(member: GuildMember, message: Message, config: EconomyConfig): void {
   if (!message.guild || message.author.bot) return;

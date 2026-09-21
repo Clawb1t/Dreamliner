@@ -3,14 +3,18 @@ import { configManager } from "../config/manager.js";
 import { zSuggestionsConfig, type SuggestionDisplayStatus } from "../config/schemas/suggestions.js";
 import { getPluginSettings } from "../core/permissionRoles.js";
 import {
+  deleteComment,
   getSuggestionById,
   getSuggestionByNumber,
   getVoteTotals,
+  listComments,
   listSuggestions,
   suggestionStats,
   type Suggestion,
+  type SuggestionComment,
 } from "../plugins/suggestions/functions/store.js";
 import {
+  addSuggestionComment,
   approveSuggestion,
   deleteSuggestion,
   denySuggestion,
@@ -211,4 +215,60 @@ export async function webDeleteSuggestion(guild: Guild, suggestionId: number, st
     suggestionId,
     staffId,
   });
+}
+
+export type WebSuggestionComment = {
+  id: number;
+  content: string;
+  anonymous: boolean;
+  createdAt: string;
+  author: WebPerson;
+};
+
+async function toWebComment(guild: Guild, comment: SuggestionComment): Promise<WebSuggestionComment> {
+  const author = comment.anonymous ? null : await resolvePerson(guild, comment.authorId);
+  return {
+    id: comment.id,
+    content: comment.content,
+    anonymous: comment.anonymous,
+    createdAt: toIso(comment.createdAt) ?? new Date(0).toISOString(),
+    author: author ?? { id: comment.authorId, name: "Anonymous", username: null, avatar: null },
+  };
+}
+
+export async function listWebSuggestionComments(guild: Guild, suggestionId: number) {
+  const comments = await listComments(suggestionId, 100);
+  return Promise.all(comments.map((c) => toWebComment(guild, c)));
+}
+
+/** Dashboard-authored comments are never anonymous. Staff commenting through the dashboard are
+ *  already acting in an identified, official capacity, unlike a member using `/suggestion comment`. */
+export async function addWebSuggestionComment(
+  guild: Guild,
+  suggestionId: number,
+  staffId: string,
+  content: string,
+): Promise<{ comment: WebSuggestionComment } | { error: string }> {
+  const config = await getSuggestionsConfig(guild.id);
+  const guildConfig = await configManager.getEffectiveConfig(guild.id);
+  const staff = await resolvePerson(guild, staffId);
+  const result = await addSuggestionComment({
+    client: guild.client,
+    guild,
+    guildConfig,
+    config,
+    suggestionId,
+    authorId: staffId,
+    authorName: staff?.username ?? staffId,
+    authorAvatarUrl: staff?.avatar ?? undefined,
+    content,
+    anonymous: false,
+  });
+  if ("error" in result) return result;
+  return { comment: await toWebComment(guild, result.comment) };
+}
+
+export async function deleteWebSuggestionComment(commentId: number): Promise<{ ok: boolean }> {
+  const ok = await deleteComment(commentId);
+  return { ok };
 }

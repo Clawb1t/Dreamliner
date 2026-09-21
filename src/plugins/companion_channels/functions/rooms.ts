@@ -10,6 +10,7 @@ import {
   type VoiceChannel,
 } from "discord.js";
 import type { CompanionChannelsConfig, CompanionSetup } from "../../../config/schemas/companion.js";
+import { isBoosting } from "../../../core/boosterStatus.js";
 import { renderTemplate } from "../../../core/templates.js";
 import { translatorFor } from "../../../i18n/index.js";
 import { featureEnabled } from "./config.js";
@@ -251,11 +252,17 @@ async function createVoiceChannel(opts: {
   const clonedBitrate = hub.isVoiceBased() ? hub.bitrate : null;
   const useClone = setup.type === "clone";
 
+  const baseUserLimit = voiceLimit(setup.user_limit, useClone ? clonedLimit : 0);
+  const userLimit =
+    member && isBoosting(member) && setup.booster_bonus_user_limit > 0 && baseUserLimit > 0
+      ? Math.min(99, baseUserLimit + setup.booster_bonus_user_limit)
+      : baseUserLimit;
+
   const created = await guild.channels.create({
     name,
     type: ChannelType.GuildVoice,
     parent: parentId ?? undefined,
-    userLimit: voiceLimit(setup.user_limit, useClone ? clonedLimit : 0),
+    userLimit,
     bitrate: bitrateBps(setup.bitrate, useClone ? clonedBitrate : null),
     nsfw: setup.default_nsfw,
     rtcRegion: setup.region.trim() || (useClone ? hub.rtcRegion ?? undefined : undefined),
@@ -365,6 +372,19 @@ export async function claimIdleRoom(
     locked: access.locked,
     ghosted: access.ghosted,
   });
+
+  if (
+    isBoosting(member) &&
+    setup.booster_bonus_user_limit > 0 &&
+    channel.type === ChannelType.GuildVoice
+  ) {
+    const voice = channel as VoiceChannel;
+    const baseUserLimit = voice.userLimit;
+    if (baseUserLimit > 0) {
+      const boostedLimit = Math.min(99, baseUserLimit + setup.booster_bonus_user_limit);
+      await voice.setUserLimit(boostedLimit).catch(() => null);
+    }
+  }
 
   const autoText = setup.auto_text || featureEnabled(config, "autotext");
   if (autoText && !room.textChannelId && channel.type === ChannelType.GuildVoice) {
@@ -488,6 +508,7 @@ export async function ensureLinkedText(
       default_status: "",
       region: "",
       dynamic_ready: 3,
+      booster_bonus_user_limit: 0,
     },
   });
   await updateRoom(member.guild.id, voice.id, { textChannelId: textId });

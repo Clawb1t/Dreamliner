@@ -2345,6 +2345,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const suggestionsMatch = /^\/bridge\/guilds\/(\d+)\/suggestions$/.exec(url.pathname);
+        const suggestionCommentOneMatch =
+          /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/comments\/(\d+)$/.exec(url.pathname);
+        const suggestionCommentsMatch =
+          /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/comments$/.exec(url.pathname);
         const ticketActionMatch =
           /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)\/(close|claim|unclaim|assign|unassign|status|reopen|add|remove|rename)$/.exec(
             url.pathname,
@@ -2476,6 +2480,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !reviewOneMatch &&
           !reviewsMatch &&
           !suggestionActionMatch &&
+          !suggestionCommentOneMatch &&
+          !suggestionCommentsMatch &&
           !suggestionOneMatch &&
           !suggestionStatsMatch &&
           !suggestionsMatch &&
@@ -2572,6 +2578,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           reviewOneMatch?.[1] ??
           reviewsMatch?.[1] ??
           suggestionActionMatch?.[1] ??
+          suggestionCommentOneMatch?.[1] ??
+          suggestionCommentsMatch?.[1] ??
           suggestionOneMatch?.[1] ??
           suggestionStatsMatch?.[1] ??
           suggestionsMatch?.[1] ??
@@ -5700,6 +5708,76 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             review: detail,
           });
+          return;
+        }
+
+        if (suggestionCommentsMatch || suggestionCommentOneMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          const { listWebSuggestionComments, addWebSuggestionComment, deleteWebSuggestionComment } =
+            await import("./webSuggestions.js");
+
+          if (suggestionCommentOneMatch) {
+            if (req.method !== "DELETE") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const commentId = Number(suggestionCommentOneMatch[3]);
+            const result = await deleteWebSuggestionComment(commentId);
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_suggestion",
+              title: "Suggestion comment deleted",
+              summary: `Comment \`#${commentId}\` was deleted from the dashboard.`,
+              targetId: String(commentId),
+              payload: { commentId, action: "comment_delete" },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+            return;
+          }
+
+          const suggestionId = Number(suggestionCommentsMatch![2]);
+          if (req.method === "GET") {
+            const comments = await listWebSuggestionComments(guild, suggestionId);
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, comments });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: { content?: string } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const content = body.content?.trim();
+            if (!content) {
+              sendJson(res, 400, { error: "content is required" });
+              return;
+            }
+            const result = await addWebSuggestionComment(guild, suggestionId, userId, content);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_suggestion",
+              title: "Suggestion comment added",
+              summary: `Commented on suggestion \`#${suggestionId}\` from the dashboard.`,
+              targetId: String(suggestionId),
+              payload: { suggestionId, action: "comment_add", commentId: result.comment.id },
+            });
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

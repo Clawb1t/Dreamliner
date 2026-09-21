@@ -40,6 +40,16 @@ export const zGiveawaysConfig = z.strictObject({
     .min(0)
     .default(0)
     .describe("Default extra entry weight granted to server boosters."),
+  default_entry_cost: z
+    .number()
+    .min(0)
+    .default(0)
+    .describe("Default server currency cost to enter a new giveaway. 0 disables."),
+  default_win_bonus: z
+    .number()
+    .min(0)
+    .default(0)
+    .describe("Default server currency awarded to a winner when they claim their prize. 0 disables."),
   ping_role_id: roleId("Default role pinged when a giveaway starts, if the giveaway has no override."),
   can_create_via_dashboard: boolPerm("create giveaways from the dashboard"),
   can_reroll: boolPerm("manually reroll a giveaway's winner(s)"),

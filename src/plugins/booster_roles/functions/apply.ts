@@ -1,17 +1,12 @@
 import type { GuildMember } from "discord.js";
 import type { BoosterRolesConfig } from "../../../config/schemas/boosterRoles.js";
+import { boostDurationDays } from "../../../core/boosterStatus.js";
 import { activeTiers } from "./config.js";
 
 export type BoosterRoleEvaluation = {
   toAdd: string[];
   toRemove: string[];
 };
-
-const DAY_MS = 86_400_000;
-
-export function boostDurationDays(premiumSince: Date): number {
-  return Math.floor((Date.now() - premiumSince.getTime()) / DAY_MS);
-}
 
 /**
  * Which tier role IDs a member should hold vs. currently held tier role IDs, given their
@@ -30,7 +25,7 @@ export function evaluateBoosterRoles(
     return { toAdd: [], toRemove: held.map((tier) => tier.role_id) };
   }
 
-  const days = boostDurationDays(premiumSince);
+  const days = boostDurationDays(premiumSince) ?? 0;
   const qualifying = tiers.filter((tier) => days >= tier.duration_days);
 
   if (qualifying.length === 0) {

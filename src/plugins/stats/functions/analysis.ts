@@ -102,3 +102,38 @@ export function formatSharePct(part: number, whole: number): string {
   if (value >= 10) return `${Math.round(value)}%`;
   return `${value.toFixed(1)}%`;
 }
+
+export type ServerPulseInput = { key: string; trend: TrendDirection; trendPct: number };
+
+export type ServerPulse = {
+  direction: "up" | "down" | "mixed" | "stable";
+  drivers: string[];
+};
+
+/**
+ * Rolls up a handful of already-computed trend analyses (messages, active users, engagement,
+ * moderation load, etc.) into one composite "is the server up or down right now" summary. Pure
+ * function, no DB access; callers pass in whichever `{ key, trend, trendPct }` triples they
+ * want represented.
+ */
+export function computeServerPulse(analyses: ServerPulseInput[]): ServerPulse {
+  if (analyses.length === 0) return { direction: "stable", drivers: [] };
+
+  const nonStable = analyses.filter((a) => a.trend !== "stable");
+  if (nonStable.length === 0) return { direction: "stable", drivers: [] };
+
+  const upCount = nonStable.filter((a) => a.trend === "up").length;
+  const downCount = nonStable.filter((a) => a.trend === "down").length;
+
+  const rankedByMagnitude = [...nonStable].sort((a, b) => Math.abs(b.trendPct) - Math.abs(a.trendPct));
+  const topDrivers = rankedByMagnitude.slice(0, 2).map((a) => a.key);
+
+  // "Roughly evenly split": neither direction has a clear majority of the moving metrics.
+  const total = upCount + downCount;
+  const majorityShare = Math.max(upCount, downCount) / total;
+  if (majorityShare < 0.65) {
+    return { direction: "mixed", drivers: topDrivers };
+  }
+
+  return { direction: upCount > downCount ? "up" : "down", drivers: topDrivers };
+}

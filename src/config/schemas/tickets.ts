@@ -292,6 +292,14 @@ export const zTicketsConfig = z.strictObject({
     .default(1)
     .describe("Plugin-wide default limit on how many tickets one member may have open at once."),
   blacklist_notify: z.boolean().default(true).describe("Tell blacklisted members why their ticket attempt was blocked."),
+  sync_status_to_topic: z
+    .boolean()
+    .default(false)
+    .describe("Reflect a ticket's status on its channel: the channel topic for a channel-mode ticket, or a prefix on the thread name for a thread-mode ticket (threads have no topic field)."),
+  auto_status_updates: z
+    .boolean()
+    .default(false)
+    .describe("Automatically set a ticket's status: Awaiting Response when staff reply, In Progress when the member replies. Off by default; manual status changes via /ticket status or the dashboard still always work."),
   panels: z.array(zTicketPanel).default([]).describe("Ticket panels for this server."),
   can_claim: boolPerm("claim tickets"),
   can_close: boolPerm("close their own tickets"),

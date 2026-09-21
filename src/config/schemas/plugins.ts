@@ -523,6 +523,10 @@ export const zStatsConfig = z.strictObject({
   can_server: boolPerm("view server stats"),
   can_user: boolPerm("view user stats"),
   can_channel: boolPerm("view channel stats"),
+  track_voice_activity: z
+    .boolean()
+    .default(false)
+    .describe("Track voice channel minutes for the stats dashboard's voice analytics. Off by default even when stats is otherwise enabled, since this is a new kind of tracking (presence/duration in voice channels) beyond message activity."),
 });
 
 export const zDreamCommandsConfig = z.strictObject({
@@ -566,6 +570,7 @@ export const zUsernameSaverPluginSection = zPluginSection(zUsernameSaverConfig.s
 export const zMemberIdentityPluginSection = zPluginSection(zMemberIdentityConfig.shape);
 export const zLocateUserPluginSection = zPluginSection(zLocateUserConfig.shape);
 export const zStatsPluginSection = zPluginSection(zStatsConfig.shape);
+export type StatsConfig = z.infer<typeof zStatsConfig>;
 export const zDreamCommandsPluginSection = zPluginSection(zDreamCommandsConfig.shape);
 export const zBotCustomisationPluginSection = zPluginSection(zBotCustomisationConfig.shape);
 

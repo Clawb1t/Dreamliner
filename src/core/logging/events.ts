@@ -85,6 +85,7 @@ export const LOG_EVENT_TYPES = [
   "suggestion_create",
   "suggestion_approve",
   "suggestion_deny",
+  "suggestion_comment",
   // Giveaways
   "giveaway_start",
   "giveaway_end",
@@ -206,6 +207,7 @@ export const LOG_EVENT_META: Record<
   suggestion_create: { label: "Suggestion created", category: "server", group: "Suggestions" },
   suggestion_approve: { label: "Suggestion approved", category: "moderation", group: "Suggestions" },
   suggestion_deny: { label: "Suggestion denied", category: "moderation", group: "Suggestions" },
+  suggestion_comment: { label: "Suggestion comment", category: "server", group: "Suggestions" },
   giveaway_start: { label: "Giveaway started", category: "server", group: "Giveaways" },
   giveaway_end: { label: "Giveaway ended", category: "moderation", group: "Giveaways" },
   giveaway_reroll: { label: "Giveaway rerolled", category: "moderation", group: "Giveaways" },

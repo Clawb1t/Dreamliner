@@ -3,6 +3,7 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
 import { renderTemplate } from "../../core/templates.js";
+import { buildDynamicExtras, keysReferencedIn } from "../../core/templateExtras.js";
 import { createTag, deleteTag, getTag, listTags, updateTag } from "./functions/store.js";
 
 export const tagsCommands: SlashCommandDefinition[] = [
@@ -145,10 +146,12 @@ export const tagsCommands: SlashCommandDefinition[] = [
         }
 
         const channel = ctx.interaction.channel?.isTextBased() ? ctx.interaction.channel : null;
+        const extra = await buildDynamicExtras(auth.member, keysReferencedIn(tag.content));
         const rendered = renderTemplate(tag.content, {
           member: auth.member,
           guild,
           channel: channel?.isTextBased() ? (channel as import("discord.js").TextChannel) : null,
+          extra,
         });
 
         await ctx.interaction.reply({ content: rendered, ephemeral: false });

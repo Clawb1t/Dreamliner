@@ -63,6 +63,44 @@ plugins:
       expand_message_links_max_length: 0
       info_on_single_result: true
       global_watchdog_action: off
+      watchdog:
+        tiers:
+          watch: 25
+          elevated: 50
+          critical: 75
+        weights:
+          account_age_new: 30
+          account_age_week: 22
+          account_age_month: 12
+          account_age_6_months: 5
+          join_gap_hour: 20
+          join_gap_day: 10
+          default_avatar: 6
+          suspicious_username: 8
+          no_extra_roles: 5
+          automod_hit_per_hit: 12
+          automod_hit_cap: 35
+          mod_case_active: 18
+          mod_case_past: 6
+          mod_case_cap: 40
+          join_burst_heavy: 25
+          join_burst_moderate: 12
+          duplicate_content_heavy: 22
+          duplicate_content_moderate: 12
+          scam_keyword_hit: 28
+          profanity_repeated: 15
+          profanity_single: 6
+          low_global_standing: 10
+          open_incident: 18
+          convergence_2_categories: 15
+          convergence_3_plus_categories: 20
+        decay:
+          mod_case_full_weight_days: 30
+          mod_case_floor_days: 165
+          mod_case_floor_percent: 20
+          automod_hit_full_weight_days: 7
+          automod_hit_floor_days: 30
+          automod_hit_floor_percent: 40
       can_search: false
       can_clean: false
       can_userinfo: false
@@ -188,6 +226,11 @@ plugins:
         enabled: false
         spam_detection: true
         timeout_seconds: 0
+      escalation_bridge:
+        feed_real_escalation: false
+        use_infraction_history: false
+        points_per_infraction: 0
+        lookback_ms: 0
   impersonation:
     enabled: false
     config:
@@ -345,6 +388,9 @@ plugins:
       timeout_seconds: 0
       timeout_dm: ""
       can_test: false
+      deescalation:
+        enabled: false
+        factor: 0.5
   economy:
     enabled: false
     config:
@@ -694,6 +740,7 @@ plugins:
       can_server: false
       can_user: false
       can_channel: false
+      track_voice_activity: false
   dream_commands:
     enabled: false
     config:
@@ -764,6 +811,7 @@ plugins:
       can_suggest: false
       can_vote: false
       can_follow: false
+      can_comment: false
       can_info: false
       can_top: false
       can_approve: false
@@ -780,6 +828,8 @@ plugins:
       feedback_enabled: false
       max_open_tickets_per_user: 1
       blacklist_notify: true
+      sync_status_to_topic: false
+      auto_status_updates: false
       panels: []
       can_claim: false
       can_close: false
@@ -825,6 +875,8 @@ plugins:
       default_claim_window_minutes: 0
       default_require_role_mode: any
       default_booster_bonus_weight: 0
+      default_entry_cost: 0
+      default_win_bonus: 0
       can_create_via_dashboard: false
       can_reroll: false
       can_end: false

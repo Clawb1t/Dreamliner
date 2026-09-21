@@ -11,7 +11,7 @@ const notifyActionSchema = z.strictObject({
 export const REASON_REQUIRABLE_TYPES = ["warn", "mute", "kick", "ban", "tempban", "softban"] as const;
 
 /** Infraction types that can feed the auto-escalation strike count. */
-export const ESCALATION_COUNT_TYPES = ["warn", "mute", "tempmute", "kick", "softban", "tempban", "ban"] as const;
+export const ESCALATION_COUNT_TYPES = ["warn", "note", "mute", "tempmute", "kick", "softban", "tempban", "ban"] as const;
 
 /** Punishments an escalation step can apply automatically. */
 export const ESCALATION_STEP_TYPES = ["mute", "kick", "softban", "tempban", "ban"] as const;

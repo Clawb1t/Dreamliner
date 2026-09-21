@@ -172,6 +172,21 @@ export const zPassportConfig = z.strictObject({
     .default("")
     .describe("Optional DM sent before a timeout kick. Supports placeholders."),
   can_test: boolPerm("check a member's Passport verification status"),
+  deescalation: z
+    .strictObject({
+      enabled: z
+        .boolean()
+        .default(false)
+        .describe("Treat genuinely Passport-verified members as lower risk in Automod and Incident Response."),
+      factor: z
+        .number()
+        .min(0)
+        .max(1)
+        .default(0.5)
+        .describe("Multiplier applied to risk weight for verified members (0 = ignore entirely, 1 = no reduction)."),
+    })
+    .default({})
+    .describe("Reduce automated suspicion for members who have actually completed verification."),
 });
 
 export const zPassportPluginSection = zPluginSection(zPassportConfig.shape, false);

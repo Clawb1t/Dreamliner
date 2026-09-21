@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, like, or, sql, type SQL } from "drizzle-orm"
 import { getDb } from "../../../db/client.js";
 import {
   suggestionBlocks,
+  suggestionComments,
   suggestionFollows,
   suggestions,
   suggestionVotes,
@@ -412,4 +413,67 @@ export async function countAwaitingReview(guildId: string): Promise<number> {
     .where(and(eq(suggestions.guildId, guildId), eq(suggestions.status, "awaiting_review")))
     .get();
   return Number(row?.value ?? 0);
+}
+
+export type SuggestionComment = {
+  id: number;
+  suggestionId: number;
+  authorId: string;
+  content: string;
+  anonymous: boolean;
+  createdAt: Date;
+};
+
+function mapComment(row: typeof suggestionComments.$inferSelect): SuggestionComment {
+  return {
+    id: row.id,
+    suggestionId: row.suggestionId,
+    authorId: row.authorId,
+    content: row.content,
+    anonymous: row.anonymous,
+    createdAt: row.createdAt,
+  };
+}
+
+export async function addComment(input: {
+  suggestionId: number;
+  authorId: string;
+  content: string;
+  anonymous: boolean;
+}): Promise<SuggestionComment> {
+  const inserted = await getDb()
+    .insert(suggestionComments)
+    .values({
+      suggestionId: input.suggestionId,
+      authorId: input.authorId,
+      content: input.content,
+      anonymous: input.anonymous,
+      createdAt: new Date(),
+    })
+    .returning();
+  return mapComment(inserted[0]!);
+}
+
+export async function listComments(suggestionId: number, limit = 25): Promise<SuggestionComment[]> {
+  const rows = await getDb()
+    .select()
+    .from(suggestionComments)
+    .where(eq(suggestionComments.suggestionId, suggestionId))
+    .orderBy(asc(suggestionComments.createdAt))
+    .limit(limit);
+  return rows.map(mapComment);
+}
+
+export async function countComments(suggestionId: number): Promise<number> {
+  const row = await getDb()
+    .select({ value: count() })
+    .from(suggestionComments)
+    .where(eq(suggestionComments.suggestionId, suggestionId))
+    .get();
+  return Number(row?.value ?? 0);
+}
+
+export async function deleteComment(id: number): Promise<boolean> {
+  const deleted = await getDb().delete(suggestionComments).where(eq(suggestionComments.id, id)).returning();
+  return deleted.length > 0;
 }

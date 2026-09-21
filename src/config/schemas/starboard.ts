@@ -78,6 +78,11 @@ export const zStarboardBoard = z.strictObject({
     .max(0xffffff)
     .optional()
     .describe("Override global embed color for this board. Omit to inherit."),
+  economy_bonus: z
+    .number()
+    .min(0)
+    .default(0)
+    .describe("Server currency awarded to the message author when it first reaches the star threshold."),
 });
 
 export const zStarboardConfig = z.strictObject({

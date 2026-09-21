@@ -6,7 +6,7 @@ import {
   type TextChannel,
   type ThreadChannel,
 } from "discord.js";
-import type { TicketCategory } from "../../../config/schemas/tickets.js";
+import { TICKET_STATUS_LABELS, type TicketCategory, type TicketStatus } from "../../../config/schemas/tickets.js";
 import type { TicketRecord } from "./tickets.js";
 
 const VIEW = PermissionFlagsBits.ViewChannel;
@@ -90,6 +90,32 @@ export async function createTicketContainer(
     .catch(() => null);
   if (!channel) return null;
   return { channelId: channel.id, threadId: null, mode: "channel" };
+}
+
+/**
+ * Reflects a ticket's status on its channel. A channel-mode ticket's status goes in the channel
+ * topic; threads have no topic field at all, so a thread-mode ticket's status is prefixed onto
+ * the thread name instead, stripping any previous status prefix first so it doesn't keep growing.
+ * Best-effort, never throws. Losing this sync is not worth risking the actual status change.
+ */
+export async function syncTicketStatusToChannel(guild: Guild, ticket: TicketRecord, status: TicketStatus): Promise<void> {
+  const label = TICKET_STATUS_LABELS[status];
+  try {
+    if (ticket.threadId) {
+      const thread = await guild.channels.fetch(ticket.threadId).catch(() => null);
+      if (!thread?.isThread()) return;
+      const baseName = (thread as ThreadChannel).name.replace(/^\[[^\]]+\]\s*/, "");
+      const nextName = status === "open" ? baseName : `[${label}] ${baseName}`;
+      await (thread as ThreadChannel).setName(nextName.slice(0, 100)).catch(() => null);
+      return;
+    }
+    const channel = await guild.channels.fetch(ticket.channelId).catch(() => null);
+    if (channel && "setTopic" in channel) {
+      await (channel as TextChannel).setTopic(status === "open" ? null : `Status: ${label}`).catch(() => null);
+    }
+  } catch {
+    // Best-effort: a failed sync should never block the actual status change.
+  }
 }
 
 export async function addMemberOverwrite(guild: Guild, ticket: TicketRecord, userId: string): Promise<void> {

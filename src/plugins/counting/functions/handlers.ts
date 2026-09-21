@@ -222,6 +222,14 @@ export async function handleCountingMessage(message: Message): Promise<void> {
     if (channelConfig.pin_milestones) {
       await message.pin().catch(() => null);
     }
+    if (channelConfig.economy_milestone_bonus > 0) {
+      try {
+        const { creditServer } = await import("../../economy/functions/money.js");
+        creditServer(guildId, message.author.id, channelConfig.economy_milestone_bonus);
+      } catch {
+        // Economy unavailable, disabled, or errored - never let this break counting.
+      }
+    }
   }
 
   const hadPreviousReset = (state?.totalResets ?? 0) > 0;

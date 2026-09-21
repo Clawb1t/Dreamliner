@@ -335,6 +335,15 @@ async function processBoard(
       starboardMessageId: posted.id,
       starCount,
     });
+
+    if (!existing && board.economy_bonus > 0 && message.author && !message.author.bot) {
+      try {
+        const { creditServer } = await import("../../economy/functions/money.js");
+        creditServer(message.guild!.id, message.author.id, board.economy_bonus);
+      } catch {
+        // Economy unavailable, disabled, or errored - never block the starboard post on it.
+      }
+    }
   });
 }
 

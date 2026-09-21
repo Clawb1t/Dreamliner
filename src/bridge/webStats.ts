@@ -1,10 +1,12 @@
 import type { Client, Guild, User } from "discord.js";
 import {
   analyzeSeries,
+  computeServerPulse,
   formatSharePct,
   sharePctValue,
   weekdayName,
   type SeriesAnalysis,
+  type ServerPulse,
 } from "../plugins/stats/functions/analysis.js";
 import {
   formatStatsWindowLong,
@@ -12,11 +14,30 @@ import {
   getFilledChannelDailyStats,
   getFilledDailyStats,
   getFilledUserDailyStats,
+  getGuildHourlyHeatmap,
   isAllTimeWindow,
   isValidStatsWindow,
   shortDateLabel,
   type StatsWindow,
 } from "../plugins/stats/functions/daily.js";
+import {
+  getFilledVoiceDailyStats,
+  getTopVoiceChannels,
+  getTopVoiceUsers,
+} from "../plugins/stats/functions/voice.js";
+import {
+  AUTOMOD_HIT_RETENTION_DAYS,
+  getFilledAutomodHitDaily,
+  getFilledModCaseDaily,
+  getModCaseTypeBreakdown,
+  getTopAutomodRules,
+} from "../plugins/stats/functions/moderationStats.js";
+import { getRetentionCohorts } from "../plugins/stats/functions/retention.js";
+import {
+  getFilledGiveawayDaily,
+  getFilledReviewDaily,
+  getFilledSuggestionDaily,
+} from "../plugins/stats/functions/communityStats.js";
 import {
   getFilledGlobalCommandDailyUses,
   getFilledGuildCommandDailyUses,
@@ -82,6 +103,10 @@ function resolveCommandLeaders(
 }
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Rotating color palette for pie-style breakdowns whose category set is dynamic (e.g. mod case
+ *  types), unlike the fixed-category mixes above that hand-pick a color per field. */
+const PIE_PALETTE = ["#5662f5", "#22c55e", "#ef4444", "#EAB308", "#f97316", "#EC4899", "#14b8a6", "#8b5cf6"];
 
 export type WebStatsQuery = {
   days: StatsWindow;
@@ -608,6 +633,18 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     commandUsesWindow,
     topCommandsAllTime,
     topCommandsWindow,
+    heatmapGrid,
+    voiceDaily,
+    voiceTopChannels,
+    voiceTopUsers,
+    modCaseDaily,
+    automodHitDaily,
+    topAutomodRules,
+    modCaseTypeBreakdown,
+    retentionCohorts,
+    giveawayDaily,
+    suggestionDaily,
+    reviewDaily,
   ] = await Promise.all([
     getFilledDailyStats(guildId, query.days),
     getDailyTotals(guildId),
@@ -625,6 +662,18 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     getGuildCommandUsesInWindow(guildId, query.days),
     getTopGuildCommands(guildId, 15),
     allTime ? getTopGuildCommands(guildId, 15) : getTopGuildCommandsByDaily(guildId, query.days, 15),
+    getGuildHourlyHeatmap(guildId),
+    getFilledVoiceDailyStats(guildId, query.days),
+    getTopVoiceChannels(guildId, query.days, 15),
+    getTopVoiceUsers(guildId, query.days, 15),
+    getFilledModCaseDaily(guildId, query.days),
+    getFilledAutomodHitDaily(guildId, query.days),
+    getTopAutomodRules(guildId, query.days, 5),
+    getModCaseTypeBreakdown(guildId, query.days),
+    getRetentionCohorts(guildId, 7),
+    getFilledGiveawayDaily(guildId, query.days),
+    getFilledSuggestionDaily(guildId, query.days),
+    getFilledReviewDaily(guildId, query.days),
   ]);
 
   const dates = daily.map((r) => r.statDate);
@@ -668,6 +717,62 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
   const activeUserDates = activeDaily.map((r) => r.statDate);
   const activeUserAnalysis = analyzeSeries(activeUserCounts, activeUserDates);
 
+  const voiceDates = voiceDaily.map((r) => r.statDate);
+  const voiceAnalysis = analyzeSeries(
+    voiceDaily.map((r) => r.minutes),
+    voiceDates,
+  );
+
+  const modCaseDates = modCaseDaily.map((r) => r.statDate);
+  const modCaseAnalysis = analyzeSeries(
+    modCaseDaily.map((r) => r.total),
+    modCaseDates,
+  );
+  const automodHitDates = automodHitDaily.map((r) => r.statDate);
+  const automodHitAnalysis = analyzeSeries(
+    automodHitDaily.map((r) => r.hits),
+    automodHitDates,
+  );
+
+  const giveawayDates = giveawayDaily.map((r) => r.statDate);
+  const giveawayCreatedAnalysis = analyzeSeries(
+    giveawayDaily.map((r) => r.created),
+    giveawayDates,
+  );
+  const giveawayEntriesAnalysis = analyzeSeries(
+    giveawayDaily.map((r) => r.entries),
+    giveawayDates,
+  );
+
+  const suggestionDates = suggestionDaily.map((r) => r.statDate);
+  const suggestionCreatedAnalysis = analyzeSeries(
+    suggestionDaily.map((r) => r.created),
+    suggestionDates,
+  );
+  const suggestionVotesAnalysis = analyzeSeries(
+    suggestionDaily.map((r) => r.votes),
+    suggestionDates,
+  );
+
+  const reviewDates = reviewDaily.map((r) => r.statDate);
+  const reviewCountAnalysis = analyzeSeries(
+    reviewDaily.map((r) => r.count),
+    reviewDates,
+  );
+  // Weighted by day (daily average * daily count), not a plain average-of-daily-averages, so a
+  // quiet day with one 1-star review doesn't outweigh a busy day of mostly 5-star reviews.
+  const reviewRatingWeightedSum = reviewDaily.reduce((sum, row) => sum + (row.avgRating ?? 0) * row.count, 0);
+  const reviewRatingCount = reviewDaily.reduce((sum, row) => sum + row.count, 0);
+  const reviewOverallAvgRating =
+    reviewRatingCount > 0 ? Number((reviewRatingWeightedSum / reviewRatingCount).toFixed(2)) : null;
+
+  const pulse: ServerPulse = computeServerPulse([
+    { key: "messages", trend: msgAnalysis.trend, trendPct: msgAnalysis.trendPct },
+    { key: "activeUsers", trend: activeUserAnalysis.trend, trendPct: activeUserAnalysis.trendPct },
+    { key: "engagement", trend: engagementVolume.trend, trendPct: engagementVolume.trendPct },
+    { key: "moderationLoad", trend: modCaseAnalysis.trend, trendPct: modCaseAnalysis.trendPct },
+  ]);
+
   const netMembers = joinAnalysis.total - leaveAnalysis.total;
   let cumulativeNet = 0;
   const seriesDaily = daily.map((row) => {
@@ -701,10 +806,35 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     };
   });
 
-  const [topRecentResolved, topAllTimeResolved] = await Promise.all([
+  const [topRecentResolved, topAllTimeResolved, voiceTopUsersResolved] = await Promise.all([
     resolvePeople(guild, topRecent, windowTrafficTotal),
     resolvePeople(guild, topAllTime, allTimeTrafficTotal),
+    resolvePeople(
+      guild,
+      voiceTopUsers.map((row) => ({ userId: row.userId, count: row.minutes })),
+      voiceAnalysis.total,
+    ),
   ]);
+  const voiceTopChannelsResolved = resolveChannels(
+    guild,
+    voiceTopChannels.map((row) => ({ channelId: row.channelId, count: row.minutes })),
+    voiceAnalysis.total,
+  );
+
+  const automodHitsTotal = automodHitAnalysis.total;
+  const topAutomodRulesResolved = topAutomodRules.map((entry, index) => ({
+    rank: index + 1,
+    ruleId: entry.ruleId,
+    count: entry.count,
+    sharePct: sharePctValue(entry.count, automodHitsTotal),
+    shareLabel: formatSharePct(entry.count, automodHitsTotal),
+  }));
+
+  const modCaseTypePie = modCaseTypeBreakdown.map((entry, index) => ({
+    name: entry.type,
+    value: entry.count,
+    color: PIE_PALETTE[index % PIE_PALETTE.length]!,
+  }));
 
   const commandDates = commandDaily.map((r) => r.statDate);
   const commandAnalysis = analyzeSeries(
@@ -822,6 +952,88 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
         { name: "Attachments", value: totals.attachments, color: "#14b8a6" },
       ],
     },
+    /** Message activity by UTC weekday (0=Sun..6=Sat) x UTC hour-of-day (0-23), always all 168
+     *  cells, zero-filled. Lifetime counts, not scoped to `days`. */
+    heatmap: heatmapGrid,
+    voice: {
+      analysis: toAnalysis(voiceAnalysis, voiceDates),
+      series: voiceDaily.map((row) => ({
+        date: row.statDate,
+        label: shortDateLabel(row.statDate),
+        minutes: row.minutes,
+      })),
+      // `count` on these leader rows is voice minutes, not messages, using the same StatsLeaderRow
+      // shape (rank/id/name/count/sharePct/shareLabel) as topMessagersWindow/topChannels above.
+      topChannels: voiceTopChannelsResolved,
+      topUsers: voiceTopUsersResolved,
+    },
+    moderation: {
+      cases: {
+        series: modCaseDaily.map((row) => ({
+          date: row.statDate,
+          label: shortDateLabel(row.statDate),
+          total: row.total,
+          byType: row.byType,
+        })),
+        analysis: toAnalysis(modCaseAnalysis, modCaseDates),
+        typeBreakdown: modCaseTypePie,
+      },
+      automod: {
+        series: automodHitDaily.map((row) => ({
+          date: row.statDate,
+          label: shortDateLabel(row.statDate),
+          hits: row.hits,
+        })),
+        analysis: toAnalysis(automodHitAnalysis, automodHitDates),
+        topRules: topAutomodRulesResolved,
+        // automod_hits rows are hard-pruned past this many days, so "all time" for this metric
+        // genuinely only covers this window, unlike every other all-time series in this payload.
+        retentionDays: AUTOMOD_HIT_RETENTION_DAYS,
+      },
+    },
+    retention: {
+      cohortDays: 7,
+      cohorts: retentionCohorts,
+    },
+    community: {
+      giveaways: {
+        series: giveawayDaily.map((row) => ({
+          date: row.statDate,
+          label: shortDateLabel(row.statDate),
+          created: row.created,
+          entries: row.entries,
+        })),
+        analysis: {
+          created: toAnalysis(giveawayCreatedAnalysis, giveawayDates),
+          entries: toAnalysis(giveawayEntriesAnalysis, giveawayDates),
+        },
+      },
+      suggestions: {
+        series: suggestionDaily.map((row) => ({
+          date: row.statDate,
+          label: shortDateLabel(row.statDate),
+          created: row.created,
+          votes: row.votes,
+        })),
+        analysis: {
+          created: toAnalysis(suggestionCreatedAnalysis, suggestionDates),
+          votes: toAnalysis(suggestionVotesAnalysis, suggestionDates),
+        },
+      },
+      reviews: {
+        series: reviewDaily.map((row) => ({
+          date: row.statDate,
+          label: shortDateLabel(row.statDate),
+          count: row.count,
+          avgRating: row.avgRating,
+        })),
+        analysis: {
+          count: toAnalysis(reviewCountAnalysis, reviewDates),
+        },
+        overallAvgRating: reviewOverallAvgRating,
+      },
+    },
+    pulse,
   };
 }
 

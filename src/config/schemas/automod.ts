@@ -128,6 +128,10 @@ export const zAutomodRuleConfig = z.strictObject({
     .max(400)
     .optional()
     .describe("Optional case reason override for infractions created by this rule."),
+  log_silent_hits_as_cases: z
+    .boolean()
+    .default(false)
+    .describe("Create a lightweight note case for delete/log-only ladder hits, so they show up in /modlogs and can feed escalation."),
   ignored_channels: z
     .array(z.string())
     .default([])
@@ -198,6 +202,31 @@ export const zAutomodConfig = z.strictObject({
     .describe("Per-rule configuration keyed by rule id."),
   migrations: zAutomodMigrations.default({}).describe("Internal one-time migration flags."),
   native: zAutomodNativeConfig.default({}).describe("Discord native AutoMod sync settings."),
+  escalation_bridge: z
+    .strictObject({
+      feed_real_escalation: z
+        .boolean()
+        .default(false)
+        .describe("Let a real case Automod creates (warn/mute/kick/ban/etc, or a silent-hit note) count toward Infraction's own auto-escalation ladder, same as a manually issued case would."),
+      use_infraction_history: z
+        .boolean()
+        .default(false)
+        .describe("Add extra points to a rule's ladder score based on the member's existing real infraction history."),
+      points_per_infraction: z
+        .number()
+        .min(0)
+        .max(20)
+        .default(0)
+        .describe("Extra points added per qualifying real infraction on file. Only applies when use_infraction_history is on."),
+      lookback_ms: z
+        .number()
+        .int()
+        .min(0)
+        .default(0)
+        .describe("Only count real infractions within this window (0 = all-time). Only applies when use_infraction_history is on."),
+    })
+    .default({})
+    .describe("Lets a member's real moderation history make Automod's own ladder more sensitive."),
 });
 
 export type AutomodLadderAction = z.infer<typeof zAutomodLadderAction>;

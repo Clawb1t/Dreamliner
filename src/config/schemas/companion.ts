@@ -121,6 +121,13 @@ export const zCompanionSetup = z.strictObject({
     .max(15)
     .default(3)
     .describe("For dynamic setups, how many empty rooms to keep ready."),
+  booster_bonus_user_limit: z
+    .number()
+    .int()
+    .min(0)
+    .max(99)
+    .default(0)
+    .describe("Extra slots added to the user limit for a room's owner if they're currently boosting the server. 0 disables."),
 });
 
 export const zCompanionChannelsConfig = z.strictObject({

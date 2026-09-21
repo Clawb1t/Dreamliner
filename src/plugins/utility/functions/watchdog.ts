@@ -46,11 +46,16 @@ export async function buildWatchdogEmbed(
     embedField(
       t("utility.watchdog.riskAssessmentLabel", "Risk assessment"),
       trimLines(
-        t("utility.watchdog.riskAssessmentBody", "Member: <@!{id}>\nScore: **{score}/100**\nTier: **{tier}**", {
-          id: member.id,
-          score: result.score,
-          tier: tierLabel(t, result.tier),
-        }),
+        t(
+          "utility.watchdog.riskAssessmentBody",
+          "Member: <@!{id}>\nScore: **{score}/100**\nTier: **{tier}**\nConfidence: **{confidence}**",
+          {
+            id: member.id,
+            score: result.score,
+            tier: tierLabel(t, result.tier),
+            confidence: result.confidence.label,
+          },
+        ),
       ),
     ),
   );

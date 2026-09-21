@@ -4,9 +4,10 @@ import {
   ButtonStyle,
   ChannelType,
   type Client,
+  type Guild,
   type GuildTextBasedChannel,
 } from "discord.js";
-import { baseEmbed, embedField, setEmbedAuthor } from "../../../core/embeds.js";
+import { baseEmbed, embedField, setEmbedAuthor, trimLines, type EmbedTone, type ResultContainer } from "../../../core/embeds.js";
 import type { SuggestionsConfig } from "../../../config/schemas/suggestions.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
@@ -16,7 +17,7 @@ import {
   suggestQueueDenyId,
   suggestVoteId,
 } from "../constants.js";
-import type { Suggestion, VoteTotals } from "./store.js";
+import type { Suggestion, SuggestionComment, VoteTotals } from "./store.js";
 
 /** Translated display-status label — falls back to the English label from constants.ts. */
 export function displayStatusLabel(t: Translator, value: string): string {
@@ -50,9 +51,10 @@ export function buildSuggestionEmbed(options: {
   config: SuggestionsConfig;
   votes?: VoteTotals;
   titlePrefix?: string;
+  commentCount?: number;
   t?: Translator;
 }) {
-  const { client, suggestion, config, votes, titlePrefix, t = defaultTranslator } = options;
+  const { client, suggestion, config, votes, titlePrefix, commentCount, t = defaultTranslator } = options;
   const authorLabel = suggestion.anonymous ? t("suggestions.anonymous", "Anonymous") : `<@${suggestion.authorId}>`;
   const statusLabel =
     suggestion.status === "awaiting_review"
@@ -100,6 +102,12 @@ export function buildSuggestionEmbed(options: {
 
   if (suggestion.denialReason) {
     embed.addFields(embedField(t("suggestions.field.reason", "Reason"), suggestion.denialReason));
+  }
+
+  if (commentCount) {
+    embed.addFields(
+      embedField(t("suggestions.field.comments", "Comments"), String(commentCount), true),
+    );
   }
 
   if (suggestion.anonymous) {
@@ -185,4 +193,63 @@ export function disabledQueueRow(t: Translator = defaultTranslator): ActionRowBu
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
   );
+}
+
+/** A link button to the suggestion's public post (feed message if it has one, otherwise the
+ *  review queue message), for DM notifications where there's no channel to jump from directly.
+ *  Returns undefined when neither message has been posted yet (nothing to link to). */
+export function suggestionJumpRow(
+  guild: Guild,
+  suggestion: Suggestion,
+  t: Translator = defaultTranslator,
+): ActionRowBuilder<ButtonBuilder> | undefined {
+  const channelId = suggestion.feedChannelId ?? suggestion.reviewChannelId;
+  const messageId = suggestion.feedMessageId ?? suggestion.reviewMessageId;
+  if (!channelId || !messageId) return undefined;
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setStyle(ButtonStyle.Link)
+      .setLabel(t("suggestions.viewSuggestion", "View suggestion"))
+      .setURL(`https://discord.com/channels/${guild.id}/${channelId}/${messageId}`),
+  );
+}
+
+/**
+ * The container sent for a suggestion DM notification (approved, denied, marked, deleted,
+ * commented on). Replaces the old plain-text `user.send(string)` with the same Components V2
+ * container style every other suggestion message already uses, carrying real suggestion info
+ * (content, server, status) instead of one flattened sentence.
+ */
+export function buildSuggestionDmContainer(options: {
+  client: Client;
+  guild: Guild;
+  suggestion: Suggestion;
+  title: string;
+  tone: EmbedTone;
+  extraField?: { label: string; value: string };
+  t?: Translator;
+}): ResultContainer {
+  const { client, guild, suggestion, title, tone, extraField, t = defaultTranslator } = options;
+  const container = setEmbedAuthor(baseEmbed(), title, client, { tone })
+    .setDescription(trimLines(suggestion.content).slice(0, 500))
+    .addFields(
+      embedField(t("suggestions.field.server", "Server"), guild.name, true),
+      embedField(t("suggestions.field.suggestion", "Suggestion"), `#${suggestion.suggestionNumber}`, true),
+    );
+  if (extraField) {
+    container.addFields(embedField(extraField.label, extraField.value));
+  }
+  return container;
+}
+
+/** Formats a suggestion's comments for display under `/suggestion info`. Empty string when there are none. */
+export function formatCommentsList(comments: SuggestionComment[], t: Translator = defaultTranslator): string {
+  if (!comments.length) return "";
+  return comments
+    .map((c) => {
+      const author = c.anonymous ? t("suggestions.anonymous", "Anonymous") : `<@${c.authorId}>`;
+      const when = `<t:${Math.floor(c.createdAt.getTime() / 1000)}:R>`;
+      return `${author} ${when}\n${trimLines(c.content)}`;
+    })
+    .join("\n\n");
 }

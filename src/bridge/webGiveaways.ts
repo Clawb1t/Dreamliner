@@ -53,6 +53,8 @@ export type WebGiveaway = {
   minJoinAgeDays: number;
   bonusRoleWeights: BonusRoleWeight[];
   boosterBonusWeight: number;
+  entryCost: number;
+  winBonus: number;
   pingRoleId: string | null;
   dmWinner: boolean;
   dmNonWinners: boolean;
@@ -105,6 +107,8 @@ export type CreateGiveawayInput = {
   minJoinAgeDays?: number;
   bonusRoleWeights?: BonusRoleWeight[];
   boosterBonusWeight?: number;
+  entryCost?: number;
+  winBonus?: number;
   pingRoleId?: string | null;
   dmWinner?: boolean;
   dmNonWinners?: boolean;
@@ -158,6 +162,8 @@ async function toWebGiveaway(giveaway: Giveaway): Promise<WebGiveaway> {
     minJoinAgeDays: giveaway.minJoinAgeDays,
     bonusRoleWeights: giveaway.bonusRoleWeights,
     boosterBonusWeight: giveaway.boosterBonusWeight,
+    entryCost: giveaway.entryCost,
+    winBonus: giveaway.winBonus,
     pingRoleId: giveaway.pingRoleId,
     dmWinner: giveaway.dmWinner,
     dmNonWinners: giveaway.dmNonWinners,
@@ -308,6 +314,8 @@ export async function createGuildGiveaway(
     minJoinAgeDays: input.minJoinAgeDays ?? 0,
     bonusRoleWeights: input.bonusRoleWeights ?? [],
     boosterBonusWeight: input.boosterBonusWeight ?? config.default_booster_bonus_weight,
+    entryCost: input.entryCost ?? config.default_entry_cost,
+    winBonus: input.winBonus ?? config.default_win_bonus,
     pingRoleId: input.pingRoleId !== undefined ? input.pingRoleId : (config.ping_role_id ?? null),
     dmWinner: input.dmWinner ?? config.default_dm_winner,
     dmNonWinners: input.dmNonWinners ?? config.default_dm_non_winners,
@@ -378,6 +386,8 @@ export async function updateGuildGiveaway(
     ...(patch.minJoinAgeDays !== undefined ? { minJoinAgeDays: patch.minJoinAgeDays } : {}),
     ...(patch.bonusRoleWeights !== undefined ? { bonusRoleWeights: patch.bonusRoleWeights } : {}),
     ...(patch.boosterBonusWeight !== undefined ? { boosterBonusWeight: patch.boosterBonusWeight } : {}),
+    ...(patch.entryCost !== undefined ? { entryCost: patch.entryCost } : {}),
+    ...(patch.winBonus !== undefined ? { winBonus: patch.winBonus } : {}),
     ...(patch.pingRoleId !== undefined ? { pingRoleId: patch.pingRoleId } : {}),
     ...(patch.dmWinner !== undefined ? { dmWinner: patch.dmWinner } : {}),
     ...(patch.dmNonWinners !== undefined ? { dmNonWinners: patch.dmNonWinners } : {}),
@@ -576,6 +586,8 @@ export async function buildGiveawayPreview(
     minJoinAgeDays: typeof raw.minJoinAgeDays === "number" ? raw.minJoinAgeDays : 0,
     bonusRoleWeights: [],
     boosterBonusWeight: 0,
+    entryCost: 0,
+    winBonus: 0,
     pingRoleId: null,
     dmWinner: true,
     dmNonWinners: false,

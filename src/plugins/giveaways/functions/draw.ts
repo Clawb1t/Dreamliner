@@ -103,11 +103,21 @@ export async function rerollWinner(
   return { oldWinnerIds, newWinnerIds };
 }
 
-export async function claimWinner(giveawayId: number, userId: string): Promise<boolean> {
-  const wonWinners = await store.listWinnersByStatus(giveawayId, "won");
+export async function claimWinner(giveaway: Giveaway, userId: string): Promise<boolean> {
+  const wonWinners = await store.listWinnersByStatus(giveaway.id, "won");
   const winner = wonWinners.find((w) => w.userId === userId);
   if (!winner) return false;
   await store.updateWinner(winner.id, { status: "claimed", claimedAt: new Date() });
+
+  if (giveaway.winBonus > 0) {
+    try {
+      const { creditServer } = await import("../../economy/functions/money.js");
+      creditServer(giveaway.guildId, userId, giveaway.winBonus);
+    } catch {
+      // Economy unavailable, disabled, or errored - never block a successful claim on it.
+    }
+  }
+
   return true;
 }
 

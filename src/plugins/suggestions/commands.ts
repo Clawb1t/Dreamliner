@@ -13,6 +13,7 @@ import { parseDuration } from "../infraction/functions/duration.js";
 import { DISPLAY_STATUS_LABELS } from "./constants.js";
 import { buildSuggestModal } from "./functions/modal.js";
 import {
+  addSuggestionComment,
   approveSuggestion,
   deleteSuggestion,
   denySuggestion,
@@ -20,19 +21,21 @@ import {
 } from "./functions/service.js";
 import {
   blockUser,
+  countComments,
   followSuggestion,
   getLastSuggestionAt,
   getSuggestionByNumber,
   getVoteTotals,
   isBlocked,
   listBlocks,
+  listComments,
   listFollowedByUser,
   listSuggestions,
   topSuggestions,
   unblockUser,
   unfollowSuggestion,
 } from "./functions/store.js";
-import { buildSuggestionEmbed, displayStatusLabel } from "./functions/embeds.js";
+import { buildSuggestionEmbed, displayStatusLabel, formatCommentsList } from "./functions/embeds.js";
 
 function parseIds(raw: string): number[] {
   return [
@@ -206,6 +209,20 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       )
       .addSubcommand((sub) =>
         sub
+          .setName("comment")
+          .setDescription("Add a comment to a suggestion")
+          .addIntegerOption((o) =>
+            o.setName("id").setDescription("Suggestion number").setRequired(true).setMinValue(1),
+          )
+          .addStringOption((o) =>
+            o.setName("text").setDescription("Your comment").setRequired(true).setMaxLength(1000),
+          )
+          .addBooleanOption((o) =>
+            o.setName("anonymous").setDescription("Post anonymously (if enabled)"),
+          ),
+      )
+      .addSubcommand((sub) =>
+        sub
           .setName("delete")
           .setDescription("Delete a suggestion from Discord feeds")
           .addIntegerOption((o) =>
@@ -332,14 +349,25 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           return;
         }
         const votes = await getVoteTotals(suggestion.id);
+        const comments = await listComments(suggestion.id, 10);
+        const commentCount = await countComments(suggestion.id);
         const embed = buildSuggestionEmbed({
           client: ctx.interaction.client,
           suggestion,
           config,
           votes,
+          commentCount,
         });
         if (suggestion.anonymous) {
           embed.addFields(embedField(ctx.t("suggestions.authorStaffLabel", "Author (staff)"), `<@${suggestion.authorId}>`, true));
+        }
+        if (comments.length) {
+          embed.addFields(
+            embedField(
+              ctx.t("suggestions.field.recentComments", "Recent comments"),
+              formatCommentsList(comments, ctx.t).slice(0, 1000),
+            ),
+          );
         }
         await ctx.interaction.reply(embedReply(embed, ctx.ephemeral));
         return;
@@ -495,6 +523,46 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
             slashResultOptions(ctx, {
               tone: result.error ? "error" : "success",
               emoji: result.error ? undefined : "<:icons_flag:1544417544251772999>",
+            }),
+          ),
+        );
+        return;
+      }
+
+      if (sub === "comment") {
+        const auth = await requirePluginPermission(ctx, "suggestions", "can_comment");
+        if (!auth) return;
+        const config = zSuggestionsConfig.parse(auth.pluginConfig);
+        const num = ctx.interaction.options.getInteger("id", true);
+        const text = ctx.interaction.options.getString("text", true);
+        const anonymous = ctx.interaction.options.getBoolean("anonymous") ?? false;
+        const suggestion = await getSuggestionByNumber(guildId, num);
+        if (!suggestion) {
+          await ctx.interaction.reply(
+            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
+          );
+          return;
+        }
+        await ctx.interaction.deferReply({ ephemeral: ctx.ephemeral });
+        const result = await addSuggestionComment({
+          client: ctx.interaction.client,
+          guild,
+          guildConfig: ctx.guildConfig,
+          config,
+          suggestionId: suggestion.id,
+          authorId: auth.member.id,
+          authorName: auth.member.user.username,
+          authorAvatarUrl: auth.member.user.displayAvatarURL({ size: 128 }),
+          content: text,
+          anonymous,
+        });
+        await ctx.interaction.editReply(
+          resultEdit(
+            "error" in result ? ctx.t("suggestions.errorTitle", "Error") : ctx.t("suggestions.commentAddedTitle", "Comment added"),
+            "error" in result ? result.error : ctx.t("suggestions.commentAddedBody", "Added your comment to #{num}.", { num }),
+            slashResultOptions(ctx, {
+              tone: "error" in result ? "error" : "success",
+              emoji: "error" in result ? undefined : "<:icons_message:1544417564447350804>",
             }),
           ),
         );

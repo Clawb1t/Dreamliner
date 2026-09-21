@@ -1,5 +1,6 @@
 import type { Guild, GuildMember } from "discord.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
+import { isBoosting } from "../../../core/boosterStatus.js";
 import * as store from "./store.js";
 import type { Giveaway } from "./store.js";
 
@@ -48,7 +49,7 @@ export function checkEntryRequirements(member: GuildMember, giveaway: Giveaway):
 export function computeEntryWeight(member: GuildMember, giveaway: Giveaway, _guildConfig?: GuildConfig): number {
   const matches = giveaway.bonusRoleWeights.filter((bw) => member.roles.cache.has(bw.roleId));
   const base = matches.length > 0 ? Math.max(...matches.map((bw) => bw.weight)) : 1;
-  const boosterBonus = member.premiumSinceTimestamp != null ? giveaway.boosterBonusWeight : 0;
+  const boosterBonus = isBoosting(member) ? giveaway.boosterBonusWeight : 0;
   return base + boosterBonus;
 }
 
@@ -70,6 +71,22 @@ export async function enterGiveaway(guild: Guild, giveaway: Giveaway, userId: st
   const existing = await store.getEntry(giveaway.id, userId);
   if (existing) {
     return { ok: true, entered: false };
+  }
+
+  if (giveaway.entryCost > 0) {
+    try {
+      const { spendServer, InsufficientFundsError } = await import("../../economy/functions/money.js");
+      try {
+        spendServer(guild.id, userId, giveaway.entryCost);
+      } catch (error) {
+        if (error instanceof InsufficientFundsError) {
+          return { ok: false, reason: `You need ${giveaway.entryCost} to enter this giveaway.` };
+        }
+        throw error;
+      }
+    } catch {
+      // Economy unavailable, disabled, or errored for an unrelated reason - never block entry on it.
+    }
   }
 
   const weight = computeEntryWeight(member, giveaway);

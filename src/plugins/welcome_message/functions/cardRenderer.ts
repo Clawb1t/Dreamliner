@@ -14,6 +14,8 @@ export type CardRenderContext = {
   member?: GuildMember | null;
   user?: User | null;
   guild?: Guild | null;
+  /** Plugin-supplied dynamic template vars, see src/core/templateExtras.ts. */
+  extra?: Record<string, string>;
 };
 
 function colorCss(n: number | undefined, fallback: number): string {
@@ -259,6 +261,7 @@ export async function renderWelcomeCard(
     member: ctx.member ?? null,
     user: ctx.user ?? ctx.member?.user ?? null,
     guild: ctx.guild ?? ctx.member?.guild ?? null,
+    extra: ctx.extra,
   };
   const greeting = renderTemplate(card.greeting_text || "Welcome!", templateCtx);
   const subtitle = renderTemplate(card.subtitle_text || "", templateCtx);

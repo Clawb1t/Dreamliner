@@ -587,6 +587,289 @@
                   "description": "What to do when a member on Dreamliner's platform-wide Global Watchdog list (confirmed bad actors, added by platform superusers) joins this server: off, alert staff in the mod log, kick, or ban. Off by default.",
                   "title": "Global Watchdog Action"
                 },
+                "watchdog": {
+                  "type": "object",
+                  "properties": {
+                    "tiers": {
+                      "type": "object",
+                      "properties": {
+                        "watch": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 25,
+                          "description": "Score needed to reach the Watch tier.",
+                          "title": "Watch"
+                        },
+                        "elevated": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 50,
+                          "description": "Score needed to reach the Elevated tier.",
+                          "title": "Elevated"
+                        },
+                        "critical": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 75,
+                          "description": "Score needed to reach the Critical tier.",
+                          "title": "Critical"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "description": "Score thresholds for each Watchdog risk tier.",
+                      "title": "Tiers"
+                    },
+                    "weights": {
+                      "type": "object",
+                      "properties": {
+                        "account_age_new": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 30,
+                          "description": "Points for an account created within the last 24 hours.",
+                          "title": "Account Age New"
+                        },
+                        "account_age_week": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 22,
+                          "description": "Points for an account less than a week old.",
+                          "title": "Account Age Week"
+                        },
+                        "account_age_month": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 12,
+                          "description": "Points for an account less than a month old.",
+                          "title": "Account Age Month"
+                        },
+                        "account_age_6_months": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 5,
+                          "description": "Points for an account less than 6 months old.",
+                          "title": "Account Age 6 Months"
+                        },
+                        "join_gap_hour": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 20,
+                          "description": "Points for joining this server within an hour of account creation.",
+                          "title": "Join Gap Hour"
+                        },
+                        "join_gap_day": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 10,
+                          "description": "Points for joining this server within a day of account creation.",
+                          "title": "Join Gap Day"
+                        },
+                        "default_avatar": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 6,
+                          "description": "Points for still using the default Discord avatar.",
+                          "title": "Default Avatar"
+                        },
+                        "suspicious_username": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 8,
+                          "description": "Points for a username matching a bulk-generated handle pattern.",
+                          "title": "Suspicious Username"
+                        },
+                        "no_extra_roles": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 5,
+                          "description": "Points for having no roles beyond the default @everyone.",
+                          "title": "No Extra Roles",
+                          "x-dreamliner": {
+                            "kind": "role",
+                            "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                          }
+                        },
+                        "automod_hit_per_hit": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 12,
+                          "description": "Points per automod hit in the last 30 days, before decay and the cap below.",
+                          "title": "Automod Hit Per Hit"
+                        },
+                        "automod_hit_cap": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 35,
+                          "description": "Maximum points the automod-hits signal can contribute.",
+                          "title": "Automod Hit Cap"
+                        },
+                        "mod_case_active": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 18,
+                          "description": "Points per active moderation case, before decay and the cap below.",
+                          "title": "Mod Case Active"
+                        },
+                        "mod_case_past": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 6,
+                          "description": "Points per resolved moderation case, before decay and the cap below.",
+                          "title": "Mod Case Past"
+                        },
+                        "mod_case_cap": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 40,
+                          "description": "Maximum points the moderation-case signal can contribute.",
+                          "title": "Mod Case Cap"
+                        },
+                        "join_burst_heavy": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 25,
+                          "description": "Points for sending 15+ messages within 5 minutes of joining.",
+                          "title": "Join Burst Heavy"
+                        },
+                        "join_burst_moderate": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 12,
+                          "description": "Points for sending 6+ messages within 5 minutes of joining.",
+                          "title": "Join Burst Moderate"
+                        },
+                        "duplicate_content_heavy": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 22,
+                          "description": "Points for posting identical content across 3+ channels.",
+                          "title": "Duplicate Content Heavy"
+                        },
+                        "duplicate_content_moderate": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 12,
+                          "description": "Points for posting identical content across 2+ channels.",
+                          "title": "Duplicate Content Moderate"
+                        },
+                        "scam_keyword_hit": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 28,
+                          "description": "Points for scam-style phrasing in recent messages.",
+                          "title": "Scam Keyword Hit"
+                        },
+                        "profanity_repeated": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 15,
+                          "description": "Points for 3+ distinct profane/slur words in recent messages.",
+                          "title": "Profanity Repeated"
+                        },
+                        "profanity_single": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 6,
+                          "description": "Points for any profanity in recent messages.",
+                          "title": "Profanity Single"
+                        },
+                        "low_global_standing": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 10,
+                          "description": "Points for a very new account with almost no message history anywhere on the platform.",
+                          "title": "Low Global Standing"
+                        },
+                        "open_incident": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 18,
+                          "description": "Points for currently having an open Incident Response case.",
+                          "title": "Open Incident"
+                        },
+                        "convergence_2_categories": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 15,
+                          "description": "Bonus points when signals from 2 distinct risk categories (identity, history, behavior, standing) both fire.",
+                          "title": "Convergence 2 Categories"
+                        },
+                        "convergence_3_plus_categories": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 20,
+                          "description": "Bonus points when signals from 3 or more distinct risk categories all fire.",
+                          "title": "Convergence 3 Plus Categories"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "description": "Point value of each Watchdog risk signal.",
+                      "title": "Weights"
+                    },
+                    "decay": {
+                      "type": "object",
+                      "properties": {
+                        "mod_case_full_weight_days": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 30,
+                          "description": "Moderation cases within this many days count at full weight.",
+                          "title": "Mod Case Full Weight Days"
+                        },
+                        "mod_case_floor_days": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 165,
+                          "description": "Moderation cases at or beyond this many days old taper down to the floor weight below.",
+                          "title": "Mod Case Floor Days"
+                        },
+                        "mod_case_floor_percent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 20,
+                          "description": "Minimum percent weight a very old moderation case still counts for.",
+                          "title": "Mod Case Floor Percent"
+                        },
+                        "automod_hit_full_weight_days": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 7,
+                          "description": "Automod hits within this many days count at full weight.",
+                          "title": "Automod Hit Full Weight Days"
+                        },
+                        "automod_hit_floor_days": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 30,
+                          "description": "Automod hits at or beyond this many days old taper down to the floor weight below (the underlying table is pruned at 30 days anyway).",
+                          "title": "Automod Hit Floor Days"
+                        },
+                        "automod_hit_floor_percent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 40,
+                          "description": "Minimum percent weight an automod hit nearing 30 days old still counts for.",
+                          "title": "Automod Hit Floor Percent"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "description": "How quickly moderation history loses weight as it ages.",
+                      "title": "Decay"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Tier cutoffs, per-signal point values, and recency-decay curve for the Watchdog risk score.",
+                  "title": "Watchdog"
+                },
                 "can_search": {
                   "type": "boolean",
                   "default": false,
@@ -946,6 +1229,48 @@
                 "expand_message_links_max_length": 0,
                 "info_on_single_result": true,
                 "global_watchdog_action": "off",
+                "watchdog": {
+                  "tiers": {
+                    "watch": 25,
+                    "elevated": 50,
+                    "critical": 75
+                  },
+                  "weights": {
+                    "account_age_new": 30,
+                    "account_age_week": 22,
+                    "account_age_month": 12,
+                    "account_age_6_months": 5,
+                    "join_gap_hour": 20,
+                    "join_gap_day": 10,
+                    "default_avatar": 6,
+                    "suspicious_username": 8,
+                    "no_extra_roles": 5,
+                    "automod_hit_per_hit": 12,
+                    "automod_hit_cap": 35,
+                    "mod_case_active": 18,
+                    "mod_case_past": 6,
+                    "mod_case_cap": 40,
+                    "join_burst_heavy": 25,
+                    "join_burst_moderate": 12,
+                    "duplicate_content_heavy": 22,
+                    "duplicate_content_moderate": 12,
+                    "scam_keyword_hit": 28,
+                    "profanity_repeated": 15,
+                    "profanity_single": 6,
+                    "low_global_standing": 10,
+                    "open_incident": 18,
+                    "convergence_2_categories": 15,
+                    "convergence_3_plus_categories": 20
+                  },
+                  "decay": {
+                    "mod_case_full_weight_days": 30,
+                    "mod_case_floor_days": 165,
+                    "mod_case_floor_percent": 20,
+                    "automod_hit_full_weight_days": 7,
+                    "automod_hit_floor_days": 30,
+                    "automod_hit_floor_percent": 40
+                  }
+                },
                 "can_search": false,
                 "can_clean": false,
                 "can_userinfo": false,
@@ -1234,6 +1559,7 @@
                         "type": "string",
                         "enum": [
                           "warn",
+                          "note",
                           "mute",
                           "tempmute",
                           "kick",
@@ -1930,6 +2256,13 @@
                           "kind": "color",
                           "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
                         }
+                      },
+                      "economy_bonus": {
+                        "type": "number",
+                        "minimum": 0,
+                        "default": 0,
+                        "description": "Server currency awarded to the message author when it first reaches the star threshold.",
+                        "title": "Economy Bonus"
                       }
                     },
                     "required": [
@@ -2086,6 +2419,12 @@
                         "maxLength": 400,
                         "description": "Optional case reason override for infractions created by this rule.",
                         "title": "Case Reason"
+                      },
+                      "log_silent_hits_as_cases": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Create a lightweight note case for delete/log-only ladder hits, so they show up in /modlogs and can feed escalation.",
+                        "title": "Log Silent Hits As Cases"
                       },
                       "ignored_channels": {
                         "type": "array",
@@ -2286,6 +2625,46 @@
                   "default": {},
                   "description": "Discord native AutoMod sync settings.",
                   "title": "Native"
+                },
+                "escalation_bridge": {
+                  "type": "object",
+                  "properties": {
+                    "feed_real_escalation": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Let a real case Automod creates (warn/mute/kick/ban/etc, or a silent-hit note) count toward Infraction's own auto-escalation ladder, same as a manually issued case would.",
+                      "title": "Feed Real Escalation"
+                    },
+                    "use_infraction_history": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Add extra points to a rule's ladder score based on the member's existing real infraction history.",
+                      "title": "Use Infraction History"
+                    },
+                    "points_per_infraction": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 20,
+                      "default": 0,
+                      "description": "Extra points added per qualifying real infraction on file. Only applies when use_infraction_history is on.",
+                      "title": "Points Per Infraction"
+                    },
+                    "lookback_ms": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "default": 0,
+                      "description": "Only count real infractions within this window (0 = all-time). Only applies when use_infraction_history is on.",
+                      "title": "Lookback Ms",
+                      "x-dreamliner": {
+                        "kind": "ms",
+                        "setup": "Enter milliseconds. 1,000 = 1 second · 60,000 = 1 minute · 3,600,000 = 1 hour."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Lets a member's real moderation history make Automod's own ladder more sensitive.",
+                  "title": "Escalation Bridge"
                 }
               },
               "additionalProperties": false,
@@ -2299,6 +2678,12 @@
                   "enabled": false,
                   "spam_detection": true,
                   "timeout_seconds": 0
+                },
+                "escalation_bridge": {
+                  "feed_real_escalation": false,
+                  "use_infraction_history": false,
+                  "points_per_infraction": 0,
+                  "lookback_ms": 0
                 }
               },
               "title": "Config"
@@ -3898,6 +4283,29 @@
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
+                },
+                "deescalation": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Treat genuinely Passport-verified members as lower risk in Automod and Incident Response.",
+                      "title": "Enabled"
+                    },
+                    "factor": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "default": 0.5,
+                      "description": "Multiplier applied to risk weight for verified members (0 = ignore entirely, 1 = no reduction).",
+                      "title": "Factor"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Reduce automated suspicion for members who have actually completed verification.",
+                  "title": "Deescalation"
                 }
               },
               "additionalProperties": false,
@@ -3990,7 +4398,11 @@
                 "timeout_action": "none",
                 "timeout_seconds": 0,
                 "timeout_dm": "",
-                "can_test": false
+                "can_test": false,
+                "deescalation": {
+                  "enabled": false,
+                  "factor": 0.5
+                }
               },
               "title": "Config"
             }
@@ -8172,6 +8584,13 @@
                         "description": "Celebrate every Nth count (e.g. 100). 0 disables milestones.",
                         "title": "Milestone Every"
                       },
+                      "economy_milestone_bonus": {
+                        "type": "number",
+                        "minimum": 0,
+                        "default": 0,
+                        "description": "Server currency awarded when a milestone is reached. 0 disables.",
+                        "title": "Economy Milestone Bonus"
+                      },
                       "announce_milestones": {
                         "type": "boolean",
                         "default": true,
@@ -8461,6 +8880,14 @@
                         "default": 3,
                         "description": "For dynamic setups, how many empty rooms to keep ready.",
                         "title": "Dynamic Ready"
+                      },
+                      "booster_bonus_user_limit": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 99,
+                        "default": 0,
+                        "description": "Extra slots added to the user limit for a room's owner if they're currently boosting the server. 0 disables.",
+                        "title": "Booster Bonus User Limit"
                       }
                     },
                     "required": [
@@ -9358,13 +9785,20 @@
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
+                },
+                "track_voice_activity": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Track voice channel minutes for the stats dashboard's voice analytics. Off by default even when stats is otherwise enabled, since this is a new kind of tracking (presence/duration in voice channels) beyond message activity.",
+                  "title": "Track Voice Activity"
                 }
               },
               "additionalProperties": false,
               "default": {
                 "can_server": false,
                 "can_user": false,
-                "can_channel": false
+                "can_channel": false,
+                "track_voice_activity": false
               },
               "title": "Config"
             }
@@ -10070,6 +10504,16 @@
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
                 },
+                "can_comment": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to comment on suggestions.",
+                  "title": "Comment",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
                 "can_info": {
                   "type": "boolean",
                   "default": false,
@@ -10185,6 +10629,7 @@
                 "can_suggest": false,
                 "can_vote": false,
                 "can_follow": false,
+                "can_comment": false,
                 "can_info": false,
                 "can_top": false,
                 "can_approve": false,
@@ -10264,6 +10709,18 @@
                   "default": true,
                   "description": "Tell blacklisted members why their ticket attempt was blocked.",
                   "title": "Blacklist Notify"
+                },
+                "sync_status_to_topic": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Reflect a ticket's status on its channel: the channel topic for a channel-mode ticket, or a prefix on the thread name for a thread-mode ticket (threads have no topic field).",
+                  "title": "Sync Status To Topic"
+                },
+                "auto_status_updates": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Automatically set a ticket's status: Awaiting Response when staff reply, In Progress when the member replies. Off by default; manual status changes via /ticket status or the dashboard still always work.",
+                  "title": "Auto Status Updates"
                 },
                 "panels": {
                   "type": "array",
@@ -11000,6 +11457,8 @@
                 "feedback_enabled": false,
                 "max_open_tickets_per_user": 1,
                 "blacklist_notify": true,
+                "sync_status_to_topic": false,
+                "auto_status_updates": false,
                 "panels": [],
                 "can_claim": false,
                 "can_close": false,
@@ -11308,6 +11767,20 @@
                   "description": "Default extra entry weight granted to server boosters.",
                   "title": "Default Booster Bonus Weight"
                 },
+                "default_entry_cost": {
+                  "type": "number",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Default server currency cost to enter a new giveaway. 0 disables.",
+                  "title": "Default Entry Cost"
+                },
+                "default_win_bonus": {
+                  "type": "number",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Default server currency awarded to a winner when they claim their prize. 0 disables.",
+                  "title": "Default Win Bonus"
+                },
                 "ping_role_id": {
                   "type": "string",
                   "description": "Default role pinged when a giveaway starts, if the giveaway has no override. Paste a Discord role ID (Developer Mode → right-click role → Copy Role ID).",
@@ -11410,6 +11883,8 @@
                 "default_claim_window_minutes": 0,
                 "default_require_role_mode": "any",
                 "default_booster_bonus_weight": 0,
+                "default_entry_cost": 0,
+                "default_win_bonus": 0,
                 "can_create_via_dashboard": false,
                 "can_reroll": false,
                 "can_end": false,

@@ -97,7 +97,7 @@ function safeParseStringArray(raw: string): string[] {
 }
 
 /** Finds an open incident for this exact entity whose last signal is still within the
- * correlation window — the "same person/channel/server, recently" merge key. */
+ * correlation window: the "same person/channel/server, recently" merge key. */
 export async function findOpenIncidentForEntity(
   guildId: string,
   entityType: IncidentEntityType,
@@ -120,6 +120,38 @@ export async function findOpenIncidentForEntity(
     .orderBy(desc(incidents.lastSignalAt))
     .limit(1);
   return rows[0] ? toIncident(rows[0]) : null;
+}
+
+/**
+ * Every user with a still-open incident in this guild, regardless of how long ago the last
+ * signal landed. Unlike `findOpenIncidentForEntity`, which is deliberately scoped to the
+ * correlation window for its own "merge into the same incident" purpose, this is unscoped by
+ * time. Used by Watchdog to cross-reference members against Incident Response without
+ * re-running its correlation logic.
+ */
+export async function batchOpenIncidentUserIds(guildId: string): Promise<Set<string>> {
+  const rows = await getDb()
+    .select({ entityId: incidents.entityId })
+    .from(incidents)
+    .where(and(eq(incidents.guildId, guildId), eq(incidents.entityType, "user"), eq(incidents.status, "open")));
+  return new Set(rows.map((row) => row.entityId));
+}
+
+/** Single-user, unscoped-by-time version of `batchOpenIncidentUserIds`, for the `/watchdog` path. */
+export async function hasOpenIncidentForUser(guildId: string, userId: string): Promise<boolean> {
+  const rows = await getDb()
+    .select({ id: incidents.id })
+    .from(incidents)
+    .where(
+      and(
+        eq(incidents.guildId, guildId),
+        eq(incidents.entityType, "user"),
+        eq(incidents.entityId, userId),
+        eq(incidents.status, "open"),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
 }
 
 export async function createIncident(input: {

@@ -292,6 +292,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       ctx.actor.avatarUrl,
       "modSevere",
     ),
+  suggestion_comment: (ctx) =>
+    buildGenericServerLog(
+      "Suggestion Comment",
+      [`By: <@${ctx.actor.id}>`, "Suggestion #12: **Add a suggestions leaderboard**", "Comment: Great idea!"],
+      ctx.actor.avatarUrl,
+      "action",
+    ),
 
   giveaway_start: (ctx) =>
     buildGenericServerLog(

@@ -1109,6 +1109,18 @@ export function buildSuggestionDenyLog(input: {
   );
 }
 
+export function buildSuggestionCommentLog(input: {
+  suggestionNumber: number;
+  author: LogRef;
+  content: string;
+}): LogCard {
+  return card(
+    `Suggestion #${input.suggestionNumber} Comment`,
+    [`Time: ${logTimestamp()}`, userLine(input.author, "By"), `Comment: ${truncate(input.content, 400)}`],
+    { avatarUrl: input.author.avatarUrl, emojiCategory: "action" },
+  );
+}
+
 export function buildGenericServerLog(
   title: string,
   lines: string[],

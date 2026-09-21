@@ -25,6 +25,8 @@ export type WelcomeBuildContext = {
   member?: GuildMember | null;
   user?: User | null;
   guild?: Guild | null;
+  /** Plugin-supplied dynamic template vars, see src/core/templateExtras.ts. */
+  extra?: Record<string, string>;
 };
 
 function resolveIconUrl(
@@ -46,6 +48,7 @@ function buildEmbed(embed: WelcomeEmbedConfig, ctx: WelcomeBuildContext): EmbedB
     member: ctx.member ?? null,
     user: ctx.user ?? ctx.member?.user ?? null,
     guild: ctx.guild ?? ctx.member?.guild ?? null,
+    extra: ctx.extra,
   };
   const vars = buildTemplateVars(templateCtx);
   const builder = new EmbedBuilder();
@@ -114,6 +117,7 @@ export async function buildWelcomePayload(
     member: ctx.member ?? null,
     user: ctx.user ?? ctx.member?.user ?? null,
     guild: ctx.guild ?? ctx.member?.guild ?? null,
+    extra: ctx.extra,
   };
 
   const content = renderTemplate(event.content ?? "", templateCtx).trim();
@@ -159,6 +163,7 @@ export function previewEmbedJson(
     member: ctx.member ?? null,
     user: ctx.user ?? ctx.member?.user ?? null,
     guild: ctx.guild ?? ctx.member?.guild ?? null,
+    extra: ctx.extra,
   };
   const vars = buildTemplateVars(templateCtx);
   const fields = (embed.fields ?? [])

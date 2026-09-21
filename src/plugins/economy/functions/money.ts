@@ -135,6 +135,20 @@ export function creditServer(guildId: string, userId: string, amount: number): n
   return balance;
 }
 
+/** Guarded debit against a guild-scoped balance. Throws InsufficientFundsError rather than allowing a negative balance. */
+export function spendServer(guildId: string, userId: string, amount: number): number {
+  if (!(amount > 0)) throw new Error("amount must be positive");
+  const db = getDb();
+  const account = ensureServerAccount(guildId, userId);
+  if (account.balance < amount) throw new InsufficientFundsError();
+  const balance = round2(account.balance - amount);
+  db.update(economyServerAccounts)
+    .set({ balance, updatedAt: now() })
+    .where(and(eq(economyServerAccounts.guildId, guildId), eq(economyServerAccounts.userId, userId)))
+    .run();
+  return balance;
+}
+
 export function canClaimServerMessage(guildId: string, userId: string, cooldownSeconds: number): boolean {
   const account = ensureServerAccount(guildId, userId);
   if (!account.lastMessageAt) return true;

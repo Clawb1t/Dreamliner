@@ -6,6 +6,7 @@ import {
   guildStatsUserDaily,
   logMessages,
 } from "../../../db/schema.js";
+import { getTopMessageSenders, getTotalGuildMessages as getUtilityTotalGuildMessages } from "../../utility/functions/messageCounts.js";
 import { dateRange, dateRangeInclusive, getDailyTotals, getFilledDailyStats, isAllTimeWindow, statDate, windowSince } from "./daily.js";
 
 function dailySinceFilter(since: string | null, column: Parameters<typeof gte>[0]): SQL | undefined {
@@ -32,13 +33,7 @@ export async function getTrackedDailyMessagesTotal(guildId: string, days: number
 }
 
 export async function getTotalGuildMessages(guildId: string): Promise<number> {
-  const db = getDb();
-  const row = await db
-    .select({ total: sql<number>`coalesce(sum(${guildMessageCounts.count}), 0)` })
-    .from(guildMessageCounts)
-    .where(eq(guildMessageCounts.guildId, guildId))
-    .get();
-  return Number(row?.total ?? 0);
+  return getUtilityTotalGuildMessages(guildId);
 }
 
 export async function getChannelTrackedMessages(guildId: string, channelId: string): Promise<number> {
@@ -52,14 +47,7 @@ export async function getChannelTrackedMessages(guildId: string, channelId: stri
 }
 
 export async function getTopMessagers(guildId: string, limit = 5): Promise<{ userId: string; count: number }[]> {
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(guildMessageCounts)
-    .where(eq(guildMessageCounts.guildId, guildId))
-    .orderBy(sql`${guildMessageCounts.count} desc`)
-    .limit(limit);
-  return rows.map((row) => ({ userId: row.userId, count: row.count }));
+  return getTopMessageSenders(guildId, limit);
 }
 
 export async function getActiveMessagerCount(guildId: string): Promise<number> {

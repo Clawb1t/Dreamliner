@@ -49,12 +49,25 @@ export async function reportSignal(client: Client, input: ReportSignalInput): Pr
   const config = getPluginSettings(guildConfig, "incident_response") as IncidentResponseConfig;
   if (!config.sources[input.source]) return;
 
+  let weight = input.weight;
+  if (input.entityType === "user") {
+    const member = client.guilds.cache.get(input.guildId)?.members.cache.get(input.entityId);
+    if (member) {
+      try {
+        const { getPassportDeescalationFactor } = await import("../../passport/functions/gate.js");
+        weight = Math.round(weight * (await getPassportDeescalationFactor(member)));
+      } catch {
+        // Passport unavailable or errored, keep the unadjusted weight.
+      }
+    }
+  }
+
   const { incident, escalated, previousSeverity } = await correlateSignal(
     {
       guildId: input.guildId,
       source: input.source,
       signalType: input.signalType,
-      weight: input.weight,
+      weight,
       entityType: input.entityType,
       entityId: input.entityId,
       secondaryEntityType: input.secondaryEntityType,

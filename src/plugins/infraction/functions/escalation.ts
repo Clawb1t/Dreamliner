@@ -12,7 +12,9 @@ import {
   postCaseLog,
 } from "./infractions.js";
 
-async function countQualifyingInfractions(
+/** Exported so other plugins (e.g. Automod's escalation bridge) can count real infraction history
+ * with the same type-filter/time-window semantics maybeEscalate itself uses. */
+export async function countQualifyingInfractions(
   guildId: string,
   userId: string,
   types: readonly string[],

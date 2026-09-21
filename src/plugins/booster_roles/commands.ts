@@ -4,7 +4,8 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
 import { formatDuration } from "../../core/datetime.js";
 import { activeTiers, loadBoosterRolesConfig } from "./functions/config.js";
-import { boostDurationDays, syncBoosterRoles } from "./functions/apply.js";
+import { syncBoosterRoles } from "./functions/apply.js";
+import { boostDurationDays, boostDurationMs, isBoosting } from "../../core/boosterStatus.js";
 
 export const boosterRolesCommands: SlashCommandDefinition[] = [
   {
@@ -39,8 +40,8 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        const premiumSince = auth.member.premiumSince;
-        const days = premiumSince ? boostDurationDays(premiumSince) : null;
+        const days = boostDurationDays(auth.member);
+        const durationMs = boostDurationMs(auth.member);
 
         const lines = tiers.map((tier) => {
           const qualifies = days !== null && days >= tier.duration_days;
@@ -55,11 +56,11 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
           return `${mark} **${label}** — <@&${tier.role_id}> — ${boostingLabel}`;
         });
 
-        const status = premiumSince
+        const status = durationMs !== null
           ? t(
               "booster_roles.boostingFor",
               "You've been boosting for **{duration}**.",
-              { duration: formatDuration(Date.now() - premiumSince.getTime()) },
+              { duration: formatDuration(durationMs) },
             )
           : t("booster_roles.notBoosting", "You're not currently boosting this server.");
 
@@ -78,7 +79,7 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "booster_roles", "can_recheck");
         if (!auth) return;
 
-        if (!auth.member.premiumSince) {
+        if (!isBoosting(auth.member)) {
           await ctx.interaction.reply(
             resultReply(
               t("booster_roles.notBoostingTitle", "Not boosting"),

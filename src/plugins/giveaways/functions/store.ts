@@ -35,6 +35,8 @@ export type Giveaway = {
   minJoinAgeDays: number;
   bonusRoleWeights: BonusRoleWeight[];
   boosterBonusWeight: number;
+  entryCost: number;
+  winBonus: number;
   pingRoleId: string | null;
   dmWinner: boolean;
   dmNonWinners: boolean;
@@ -120,6 +122,8 @@ function mapGiveaway(row: typeof giveaways.$inferSelect): Giveaway {
     minJoinAgeDays: row.minJoinAgeDays,
     bonusRoleWeights: safeJsonArray<BonusRoleWeight>(row.bonusRoleWeights),
     boosterBonusWeight: row.boosterBonusWeight,
+    entryCost: row.entryCost,
+    winBonus: row.winBonus,
     pingRoleId: row.pingRoleId,
     dmWinner: row.dmWinner,
     dmNonWinners: row.dmNonWinners,
@@ -183,6 +187,8 @@ export type NewGiveawayInput = {
   minJoinAgeDays: number;
   bonusRoleWeights: BonusRoleWeight[];
   boosterBonusWeight: number;
+  entryCost: number;
+  winBonus: number;
   pingRoleId?: string | null;
   dmWinner: boolean;
   dmNonWinners: boolean;
@@ -224,6 +230,8 @@ export async function createGiveaway(input: NewGiveawayInput): Promise<Giveaway>
       minJoinAgeDays: input.minJoinAgeDays,
       bonusRoleWeights: JSON.stringify(input.bonusRoleWeights),
       boosterBonusWeight: input.boosterBonusWeight,
+      entryCost: input.entryCost,
+      winBonus: input.winBonus,
       pingRoleId: input.pingRoleId ?? null,
       dmWinner: input.dmWinner,
       dmNonWinners: input.dmNonWinners,
@@ -288,6 +296,8 @@ export async function updateGiveaway(id: number, patch: GiveawayPatch): Promise<
       ...(patch.minJoinAgeDays !== undefined ? { minJoinAgeDays: patch.minJoinAgeDays } : {}),
       ...(patch.bonusRoleWeights !== undefined ? { bonusRoleWeights: JSON.stringify(patch.bonusRoleWeights) } : {}),
       ...(patch.boosterBonusWeight !== undefined ? { boosterBonusWeight: patch.boosterBonusWeight } : {}),
+      ...(patch.entryCost !== undefined ? { entryCost: patch.entryCost } : {}),
+      ...(patch.winBonus !== undefined ? { winBonus: patch.winBonus } : {}),
       ...(patch.pingRoleId !== undefined ? { pingRoleId: patch.pingRoleId } : {}),
       ...(patch.dmWinner !== undefined ? { dmWinner: patch.dmWinner } : {}),
       ...(patch.dmNonWinners !== undefined ? { dmNonWinners: patch.dmNonWinners } : {}),

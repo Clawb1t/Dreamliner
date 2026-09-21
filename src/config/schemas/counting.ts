@@ -67,6 +67,11 @@ export const zCountingChannel = z
       .max(1_000_000)
       .default(0)
       .describe("Celebrate every Nth count (e.g. 100). 0 disables milestones."),
+    economy_milestone_bonus: z
+      .number()
+      .min(0)
+      .default(0)
+      .describe("Server currency awarded when a milestone is reached. 0 disables."),
     announce_milestones: z
       .boolean()
       .default(true)

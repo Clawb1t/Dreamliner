@@ -21,7 +21,7 @@ import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { containerReply } from "../../../core/responses.js";
 import { ticketClaimId, ticketCloseId, ticketDeleteId, ticketUnclaimId } from "../constants.js";
 import { isBlacklisted } from "./blacklist.js";
-import { addMemberOverwrite, archiveContainer, createTicketContainer, removeMemberOverwrite } from "./channels.js";
+import { addMemberOverwrite, archiveContainer, createTicketContainer, removeMemberOverwrite, syncTicketStatusToChannel } from "./channels.js";
 import { buildTicketClaimedEmbed, buildTicketClosedEmbed, buildTicketOpenedEmbed } from "./embeds.js";
 import { buildTranscript, dmTranscript, postTranscriptLog, saveTranscript } from "./transcripts.js";
 import {
@@ -279,6 +279,10 @@ export async function performSetStatus(
       caseLogOverride: pluginConfig.log_channel_id,
     },
   );
+  if (pluginConfig.sync_status_to_topic) {
+    const guild = client.guilds.cache.get(ticket.guildId);
+    if (guild) await syncTicketStatusToChannel(guild, ticket, status);
+  }
 }
 
 export async function performClose(

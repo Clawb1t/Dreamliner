@@ -643,6 +643,13 @@
       },
       {
         "plugin": "suggestions",
+        "permission": "can_comment",
+        "grantKey": "suggestions.can_comment",
+        "title": "Comment",
+        "description": "Allow members to comment on suggestions."
+      },
+      {
+        "plugin": "suggestions",
         "permission": "can_delete",
         "grantKey": "suggestions.can_delete",
         "title": "Delete",

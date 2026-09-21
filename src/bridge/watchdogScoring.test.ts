@@ -1,12 +1,16 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  WATCHDOG_SIGNAL_CATEGORIES,
+  convergenceBonus,
+  decayWeight,
   scoreAccountAge,
   scoreDuplicateContent,
   scoreJoinBurst,
   scoreJoinGap,
   scoreKeywordHits,
   scoreModCases,
+  scoreOpenIncident,
   scoreStrikes,
   scoreUsername,
   tierFor,
@@ -83,18 +87,92 @@ describe("username heuristic", () => {
   });
 });
 
-describe("strikes and mod-case signals", () => {
-  it("scales with strike count but caps out", () => {
-    assert.equal(scoreStrikes(0), null);
-    assert.equal(scoreStrikes(1)!.points, 12);
-    assert.equal(scoreStrikes(10)!.points, 35);
+describe("decay curve", () => {
+  it("is full weight up to the full-weight day", () => {
+    assert.equal(decayWeight(0, 7, 30, 40), 1);
+    assert.equal(decayWeight(7, 7, 30, 40), 1);
   });
 
-  it("weighs active cases heavier than resolved ones", () => {
-    assert.equal(scoreModCases(0, 0), null);
-    const activeOnly = scoreModCases(1, 1)!.points;
-    const resolvedOnly = scoreModCases(0, 1)!.points;
+  it("tapers linearly between the full-weight day and the floor day", () => {
+    // halfway between day 7 and day 30 (floor 40%) should be halfway between 100% and 40%
+    const midDay = 7 + (30 - 7) / 2;
+    const mid = decayWeight(midDay, 7, 30, 40);
+    assert.ok(Math.abs(mid - 0.7) < 1e-9);
+  });
+
+  it("clamps to the floor at and beyond the floor day", () => {
+    assert.equal(decayWeight(30, 7, 30, 40), 0.4);
+    assert.equal(decayWeight(365, 7, 30, 40), 0.4);
+  });
+});
+
+describe("automod-hits signal (fixed from the dead modStrikes read)", () => {
+  const now = Date.now();
+
+  it("is null with no hits", () => {
+    assert.equal(scoreStrikes([], now), null);
+  });
+
+  it("scores recent hits near full weight, capped at the automod_hit_cap default", () => {
+    const hits = Array.from({ length: 10 }, () => ({ createdAt: now - 1 * DAY_MS }));
+    const reason = scoreStrikes(hits, now);
+    assert.ok(reason);
+    assert.equal(reason!.points, 35); // capped
+    assert.match(reason!.label, /10 automod hits in the last 30 days/);
+  });
+
+  it("weighs a single recent hit at close to its full per-hit value", () => {
+    const reason = scoreStrikes([{ createdAt: now - 1 * DAY_MS }], now);
+    assert.ok(reason);
+    assert.equal(reason!.points, 12);
+  });
+
+  it("tapers older hits toward the 30-day floor", () => {
+    const recent = scoreStrikes([{ createdAt: now - 1 * DAY_MS }], now)!.points;
+    const old = scoreStrikes([{ createdAt: now - 29 * DAY_MS }], now)!.points;
+    assert.ok(old < recent);
+  });
+});
+
+describe("mod-case signal (decay-weighted)", () => {
+  const now = Date.now();
+
+  it("is null with no cases", () => {
+    assert.equal(scoreModCases([], now), null);
+  });
+
+  it("weighs a recent active case heavier than a recent resolved one", () => {
+    const activeOnly = scoreModCases([{ active: true, createdAt: now - 1 * DAY_MS }], now)!.points;
+    const resolvedOnly = scoreModCases([{ active: false, createdAt: now - 1 * DAY_MS }], now)!.points;
     assert.ok(activeOnly > resolvedOnly);
+  });
+
+  it("weighs a very old case much lighter than a recent one of the same kind", () => {
+    const recent = scoreModCases([{ active: false, createdAt: now - 1 * DAY_MS }], now)!.points;
+    const old = scoreModCases([{ active: false, createdAt: now - 400 * DAY_MS }], now)!.points;
+    assert.ok(old > 0);
+    assert.ok(old < recent);
+  });
+
+  it("labels using case counts, not the decayed point total", () => {
+    const cases = [
+      { active: true, createdAt: now - 1 * DAY_MS },
+      { active: false, createdAt: now - 2 * DAY_MS },
+    ];
+    const reason = scoreModCases(cases, now)!;
+    assert.match(reason.label, /1 active moderation case \(2 total\)/);
+  });
+});
+
+describe("open incident signal", () => {
+  it("is null when there is no open incident", () => {
+    assert.equal(scoreOpenIncident(false), null);
+  });
+
+  it("flags a flat bonus when there is an open incident", () => {
+    const reason = scoreOpenIncident(true);
+    assert.ok(reason);
+    assert.equal(reason!.points, 18);
   });
 });
 
@@ -153,5 +231,48 @@ describe("keyword content signals", () => {
     const { scam, profanity } = scoreKeywordHits([{ snippet: "excited for the event this weekend" }]);
     assert.equal(scam, null);
     assert.equal(profanity, null);
+  });
+});
+
+describe("convergence bonus", () => {
+  it("is null with 0 or 1 contributing categories", () => {
+    assert.equal(convergenceBonus(0), null);
+    assert.equal(convergenceBonus(1), null);
+  });
+
+  it("awards the 2-category bonus for exactly 2 categories", () => {
+    assert.equal(convergenceBonus(2)!.points, 15);
+  });
+
+  it("awards the larger 3+-category bonus for 3 or more categories", () => {
+    assert.equal(convergenceBonus(3)!.points, 20);
+    assert.equal(convergenceBonus(4)!.points, 20);
+  });
+
+  it("keeps the bonus modest relative to the strongest individual signals", () => {
+    const strongestSingleSignal = 30; // scoreAccountAge's brand-new-account points
+    assert.ok(convergenceBonus(2)!.points < strongestSingleSignal);
+    assert.ok(convergenceBonus(3)!.points < strongestSingleSignal);
+  });
+});
+
+describe("signal categories", () => {
+  it("covers every signal key with one of the four categories", () => {
+    const categories = new Set(Object.values(WATCHDOG_SIGNAL_CATEGORIES));
+    assert.deepEqual([...categories].sort(), ["behavior", "history", "identity", "standing"]);
+  });
+
+  it("groups history signals together (strikes, mod cases, open incident)", () => {
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.strikes, "history");
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.modCases, "history");
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.openIncident, "history");
+  });
+
+  it("groups identity signals together (account age, join gap, avatar, username, roles)", () => {
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.accountAge, "identity");
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.joinGap, "identity");
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.avatar, "identity");
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.username, "identity");
+    assert.equal(WATCHDOG_SIGNAL_CATEGORIES.roles, "identity");
   });
 });

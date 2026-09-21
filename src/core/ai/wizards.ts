@@ -3,6 +3,8 @@ import {
   COMPANION_SETUP_TYPES,
 } from "../../config/schemas/companion.js";
 import { AUTOMOD_PRESETS } from "../../config/schemas/automod.js";
+import { TICKET_BUTTON_STYLES, TICKET_CONTAINER_MODES, TICKET_PANEL_STYLES } from "../../config/schemas/tickets.js";
+import { SUGGESTION_MODES } from "../../config/schemas/suggestions.js";
 import { resolveEmojiByName } from "../emoji.js";
 
 /** Server-side registry of conversational AI setup wizards. Adding AI setup to a new dashboard
@@ -678,6 +680,137 @@ function validateWelcomeEvent(
     return `Autopilot didn't pick a real channel for the ${label} message. Please try again.`;
   }
   return null;
+}
+
+function giveawaysSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const textIdsOrEmpty = ["", ...ctx.textChannels.map((c) => c.id)];
+  const roleIdsOrEmpty = ["", ...ctx.roles.map((r) => r.id)];
+
+  return {
+    type: "object",
+    properties: {
+      log_channel_id: { type: "string", enum: textIdsOrEmpty },
+      default_entry_method: { type: "string", enum: ["button", "reaction"] },
+      default_reaction_emoji: { type: "string" },
+      default_button_label: { type: "string" },
+      default_button_emoji: { type: "string" },
+      default_button_style: { type: "string", enum: [...TICKET_BUTTON_STYLES] },
+      default_winner_count: { type: "integer" },
+      default_dm_winner: { type: "boolean" },
+      default_dm_non_winners: { type: "boolean" },
+      default_claim_window_minutes: { type: "integer" },
+      default_require_role_mode: { type: "string", enum: ["any", "all"] },
+      default_booster_bonus_weight: { type: "number" },
+      default_entry_cost: { type: "number" },
+      default_win_bonus: { type: "number" },
+      ping_role_id: { type: "string", enum: roleIdsOrEmpty },
+    },
+    required: [
+      "log_channel_id",
+      "default_entry_method",
+      "default_reaction_emoji",
+      "default_button_label",
+      "default_button_emoji",
+      "default_button_style",
+      "default_winner_count",
+      "default_dm_winner",
+      "default_dm_non_winners",
+      "default_claim_window_minutes",
+      "default_require_role_mode",
+      "default_booster_bonus_weight",
+      "default_entry_cost",
+      "default_win_bonus",
+      "ping_role_id",
+    ],
+    additionalProperties: false,
+  };
+}
+
+function suggestionsSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const textIds = ctx.textChannels.map((c) => c.id);
+  const textIdsOrEmpty = ["", ...textIds];
+
+  return {
+    type: "object",
+    properties: {
+      mode: { type: "string", enum: [...SUGGESTION_MODES] },
+      suggestions_channel_id: { type: "string", enum: textIds.length > 0 ? textIds : [""] },
+      review_channel_id: { type: "string", enum: textIdsOrEmpty },
+      anonymous: { type: "boolean" },
+      cooldown: { type: "string" },
+      min_messages: { type: "integer" },
+      min_account_age: { type: "string" },
+      voting_enabled: { type: "boolean" },
+      allow_attachments: { type: "boolean" },
+    },
+    required: [
+      "mode",
+      "suggestions_channel_id",
+      "review_channel_id",
+      "anonymous",
+      "cooldown",
+      "min_messages",
+      "min_account_age",
+      "voting_enabled",
+      "allow_attachments",
+    ],
+    additionalProperties: false,
+  };
+}
+
+function ticketsSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const roleIds = ctx.roles.map((r) => r.id);
+  const roleIdsForArray = roleIds.length > 0 ? roleIds : [""];
+  const textIds = ctx.textChannels.map((c) => c.id);
+  const textIdsOrEmpty = ["", ...textIds];
+  const categoryIdsOrEmpty = ["", ...ctx.categories.map((c) => c.id)];
+
+  return {
+    type: "object",
+    properties: {
+      staff_role_ids: { type: "array", items: { type: "string", enum: roleIdsForArray } },
+      log_channel_id: { type: "string", enum: textIdsOrEmpty },
+      default_transcript_channel_id: { type: "string", enum: textIdsOrEmpty },
+      dm_transcript_on_close: { type: "boolean" },
+      panel_name: { type: "string" },
+      panel_channel_id: { type: "string", enum: textIds.length > 0 ? textIds : [""] },
+      panel_style: { type: "string", enum: [...TICKET_PANEL_STYLES] },
+      panel_content: { type: "string" },
+      panel_embed_title: { type: "string" },
+      panel_embed_description: { type: "string" },
+      category_label: { type: "string" },
+      category_description: { type: "string" },
+      category_emoji: { type: "string" },
+      category_button_style: { type: "string", enum: [...TICKET_BUTTON_STYLES] },
+      category_channel_id: { type: "string", enum: categoryIdsOrEmpty },
+      category_mode: { type: "string", enum: [...TICKET_CONTAINER_MODES] },
+      category_naming_pattern: { type: "string" },
+      category_welcome_message: { type: "string" },
+      category_support_role_ids: { type: "array", items: { type: "string", enum: roleIdsForArray } },
+    },
+    required: [
+      "staff_role_ids",
+      "log_channel_id",
+      "default_transcript_channel_id",
+      "dm_transcript_on_close",
+      "panel_name",
+      "panel_channel_id",
+      "panel_style",
+      "panel_content",
+      "panel_embed_title",
+      "panel_embed_description",
+      "category_label",
+      "category_description",
+      "category_emoji",
+      "category_button_style",
+      "category_channel_id",
+      "category_mode",
+      "category_naming_pattern",
+      "category_welcome_message",
+      "category_support_role_ids",
+    ],
+    additionalProperties: false,
+  };
 }
 
 export const AI_WIZARDS: Record<string, AiWizardDefinition> = {
@@ -1417,6 +1550,242 @@ export const AI_WIZARDS: Record<string, AiWizardDefinition> = {
       "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
       "choices you made (leave question null). name and content always need real values, never " +
       "leave either empty.",
+  },
+
+  giveaways_setup: {
+    maxQuestions: 6,
+    buildResultSchema: (ctx) => turnSchema(giveawaysSetupSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const logChannelId = config.log_channel_id;
+      if (
+        typeof logChannelId !== "string" ||
+        (logChannelId && !ctx.textChannels.some((c) => c.id === logChannelId))
+      ) {
+        return "Autopilot picked a log channel that doesn't exist. Please try again.";
+      }
+      const pingRoleId = config.ping_role_id;
+      if (typeof pingRoleId !== "string" || (pingRoleId && !ctx.roles.some((r) => r.id === pingRoleId))) {
+        return "Autopilot picked a ping role that doesn't exist. Please try again.";
+      }
+      if (typeof config.default_reaction_emoji === "string" && config.default_reaction_emoji.trim()) {
+        config.default_reaction_emoji = resolveEmojiByName(config.default_reaction_emoji, ctx.emojis);
+      }
+      if (typeof config.default_button_emoji === "string" && config.default_button_emoji.trim()) {
+        config.default_button_emoji = resolveEmojiByName(config.default_button_emoji, ctx.emojis);
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Dreamliner's Giveaways defaults: the settings a " +
+      "new giveaway is pre-filled with when staff create one from the dashboard (giveaways themselves " +
+      "are created and run from the dashboard as separate entries, not by this wizard, you are only " +
+      `choosing sensible starting defaults). You are setting this up for the server "${ctx.guildName}". ` +
+      "Ask ONE short, plain-language question at a time. Never mention field names, JSON, or config, " +
+      "ask like a helpful person would. Cover: how members should enter a giveaway by default " +
+      "(clicking a button, with a label/emoji/color, or reacting with an emoji), how many winners a " +
+      "giveaway usually has, whether winners and/or non-winners should get a DM when it ends, and " +
+      "whether winners need to claim their prize within a time limit before an automatic reroll " +
+      "happens. As one optional advanced question, ask whether server boosters should get extra " +
+      "entry weight, whether entering or winning should cost or award server currency, and how a " +
+      "required-role list should be matched (any of the roles, or all of them), the user can skip " +
+      "this and keep the defaults. Finally ask which channel (if any) should log giveaway " +
+      "start/end/reroll events, and which role (if any) should be pinged by default when a giveaway " +
+      "starts. Don't interrogate on every option, use sensible defaults for anything not discussed " +
+      "(default_entry_method button, default_button_label \"Enter\", default_button_style primary, " +
+      "default_winner_count 1, default_dm_winner true, default_dm_non_winners false, " +
+      "default_claim_window_minutes 0, default_require_role_mode any, default_booster_bonus_weight " +
+      "0, default_entry_cost 0, default_win_bonus 0). " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting text channels (pick log_channel_id from these ids only, or \"\" for no log):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      "Existing roles (pick ping_role_id from these ids only, or \"\" for no default ping):\n" +
+      `${entityList(ctx.roles)}\n\n` +
+      "This server's custom emoji: " +
+      `${emojiList(ctx.emojis)}. If the user means one of these (even just by name), put its exact ` +
+      "name with no colons in default_reaction_emoji or default_button_emoji and Dreamliner will use " +
+      "the real custom emoji. Otherwise use a literal Unicode emoji, or keep a sensible default (a " +
+      "gift emoji) if the user has no preference.\n\n" +
+      "default_reaction_emoji is only used when default_entry_method is \"reaction\"; " +
+      "default_button_label, default_button_emoji, and default_button_style are only used when it is " +
+      "\"button\", but fill in all of them regardless. default_claim_window_minutes of 0 disables " +
+      "the claim window. default_booster_bonus_weight, default_entry_cost, and default_win_bonus of " +
+      "0 each disable that bonus/cost.\n\n" +
+      progressInstruction(questionsAsked, 6) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null).",
+  },
+
+  suggestions_setup: {
+    maxQuestions: 5,
+    requiresEntity: {
+      kind: "textChannels",
+      message: "This server has no text channels yet. Create one first, then try Autopilot setup again.",
+    },
+    buildResultSchema: (ctx) => turnSchema(suggestionsSetupSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const suggestionsChannelId = config.suggestions_channel_id;
+      if (
+        typeof suggestionsChannelId !== "string" ||
+        !suggestionsChannelId ||
+        !ctx.textChannels.some((c) => c.id === suggestionsChannelId)
+      ) {
+        return "Autopilot didn't pick a real suggestions channel. Please try again.";
+      }
+      const reviewChannelId = config.review_channel_id;
+      if (
+        typeof reviewChannelId !== "string" ||
+        (reviewChannelId && !ctx.textChannels.some((c) => c.id === reviewChannelId))
+      ) {
+        return "Autopilot picked a review channel that doesn't exist. Please try again.";
+      }
+      if (config.mode === "review" && !reviewChannelId) {
+        return "Autopilot set review mode but didn't pick a staff review channel. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Dreamliner's Suggestions feature: members submit " +
+      "ideas with /suggest, which either go straight to a public feed or through a staff review queue " +
+      `first. You are setting this up for the server "${ctx.guildName}". Ask ONE short, plain-language ` +
+      "question at a time. Never mention field names, JSON, or config, ask like a helpful person " +
+      "would. First find out whether suggestions should be reviewed by staff before they go public " +
+      "(review mode) or post straight to the public feed (autoapprove mode), and which channel the " +
+      "public feed should be in, this is required. Only if they pick review mode, also ask which " +
+      "channel staff should use to review incoming suggestions. Then ask about any submission limits " +
+      "worth setting (how long a member must wait between suggestions, how many of the server's " +
+      "messages they need to have sent first, and how old their Discord account needs to be), and " +
+      "whether suggestions should be anonymous, allow voting, and allow image attachments. Don't " +
+      "interrogate on every option, use sensible defaults for anything not discussed (anonymous " +
+      "false, cooldown \"1h\", min_messages 25, min_account_age \"7d\", voting_enabled true, " +
+      "allow_attachments true). " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting text channels (pick suggestions_channel_id and review_channel_id from these ids " +
+      "only; review_channel_id can be \"\" when mode is autoapprove):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      "cooldown and min_account_age are short durations like \"1h\", \"30m\", \"7d\", or an empty " +
+      "string to disable that limit entirely.\n\n" +
+      progressInstruction(questionsAsked, 5) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). suggestions_channel_id always needs a real id from " +
+      "the list above, never invent one, and review_channel_id must be a real id too whenever mode " +
+      "is review.",
+  },
+
+  tickets_setup: {
+    maxQuestions: 7,
+    requiresEntity: {
+      kind: "textChannels",
+      message: "This server has no text channels yet. Create one first, then try Autopilot setup again.",
+    },
+    buildResultSchema: (ctx) => turnSchema(ticketsSetupSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const panelChannelId = config.panel_channel_id;
+      if (
+        typeof panelChannelId !== "string" ||
+        !panelChannelId ||
+        !ctx.textChannels.some((c) => c.id === panelChannelId)
+      ) {
+        return "Autopilot didn't pick a real channel for the ticket panel. Please try again.";
+      }
+      const logChannelId = config.log_channel_id;
+      if (
+        typeof logChannelId !== "string" ||
+        (logChannelId && !ctx.textChannels.some((c) => c.id === logChannelId))
+      ) {
+        return "Autopilot picked a log channel that doesn't exist. Please try again.";
+      }
+      const transcriptChannelId = config.default_transcript_channel_id;
+      if (
+        typeof transcriptChannelId !== "string" ||
+        (transcriptChannelId && !ctx.textChannels.some((c) => c.id === transcriptChannelId))
+      ) {
+        return "Autopilot picked a transcript channel that doesn't exist. Please try again.";
+      }
+      const categoryChannelId = config.category_channel_id;
+      if (
+        typeof categoryChannelId !== "string" ||
+        (categoryChannelId && !ctx.categories.some((c) => c.id === categoryChannelId))
+      ) {
+        return "Autopilot picked a Discord category that doesn't exist. Please try again.";
+      }
+      const staffRoleIds = config.staff_role_ids;
+      if (!Array.isArray(staffRoleIds)) {
+        return "Autopilot's setup was inconsistent. Please try again.";
+      }
+      config.staff_role_ids = staffRoleIds.filter(
+        (id) => typeof id === "string" && ctx.roles.some((r) => r.id === id),
+      );
+      const supportRoleIds = config.category_support_role_ids;
+      if (!Array.isArray(supportRoleIds)) {
+        return "Autopilot's setup was inconsistent. Please try again.";
+      }
+      config.category_support_role_ids = supportRoleIds.filter(
+        (id) => typeof id === "string" && ctx.roles.some((r) => r.id === id),
+      );
+      if (typeof config.category_emoji === "string" && config.category_emoji.trim()) {
+        config.category_emoji = resolveEmojiByName(config.category_emoji, ctx.emojis);
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Dreamliner's Tickets feature: members open a " +
+      "private support ticket by clicking a panel in a channel, staff handle it, and it closes with " +
+      "an optional transcript. This wizard sets up the plugin-wide basics plus exactly one panel with " +
+      "one ticket category, enough to get a working support flow live today, more panels and " +
+      "categories, custom intake questions, and escalation rules can all be added afterward from the " +
+      `dashboard's own editor. You are setting this up for the server "${ctx.guildName}". Ask ONE ` +
+      "short, plain-language question at a time. Never mention field names, JSON, or config, ask " +
+      "like a helpful person would. Cover, roughly in this order: which role(s) should be able to " +
+      "see and manage tickets as staff, and which channel (if any) should log ticket " +
+      "open/claim/close events; which channel the ticket panel message should be posted in, and " +
+      "whether members pick a category with buttons or a dropdown select menu (only one category " +
+      "exists today so either works, buttons are simpler); the panel's embed title and description, " +
+      "written specifically for this server, explaining how to open a ticket, plus any short text " +
+      "above the embed if they want one; a short label shown on the category's button or option, a " +
+      "fitting emoji, and a button color; which Discord channel category (the folder tickets get " +
+      "created under) new ticket channels should live in, if any, whether a ticket should be its own " +
+      "channel or a private thread, and a naming pattern (default \"ticket-{number}\"); the message " +
+      "posted inside a new ticket welcoming the member, written specifically for this server's " +
+      "support context; and finally, which roles (if any, beyond the staff roles already chosen) " +
+      "should specifically handle this category, which channel transcripts should post to by " +
+      "default, and whether the opener should get their transcript by DM when the ticket closes. " +
+      "Don't interrogate on every option, use sensible defaults for anything not discussed " +
+      "(panel_style buttons, category_button_style primary, category_mode channel, " +
+      "category_naming_pattern \"ticket-{number}\", dm_transcript_on_close true, empty arrays or " +
+      "strings for anything left unaddressed). " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting roles (pick staff_role_ids and category_support_role_ids from these ids only, " +
+      "both can be left empty, category_support_role_ids falls back to staff_role_ids when empty so " +
+      "it's fine to leave it empty if staff_role_ids already covers this category):\n" +
+      `${entityList(ctx.roles)}\n\n` +
+      "Existing text channels (pick panel_channel_id, log_channel_id, and " +
+      "default_transcript_channel_id from these ids only; panel_channel_id is required, the others " +
+      "can be \"\"):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      "Existing Discord categories/folders (pick category_channel_id from these ids only, or \"\" " +
+      "for tickets to be created without a parent category):\n" +
+      `${entityList(ctx.categories)}\n\n` +
+      "This server's custom emoji: " +
+      `${emojiList(ctx.emojis)}. If the user means one of these (even just by name), put its exact ` +
+      "name with no colons in category_emoji and Dreamliner will use the real custom emoji. " +
+      "Otherwise use a literal Unicode emoji, or leave category_emoji empty if they don't want one.\n\n" +
+      "category_description is only shown on select-style panels and can be left empty. " +
+      "category_naming_pattern supports {number}, {username}, and {category} placeholders. " +
+      "category_welcome_message supports {user}, {guild}, and {category} placeholders and should " +
+      "actually welcome the member and set expectations, never generic filler.\n\n" +
+      progressInstruction(questionsAsked, 7) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). panel_channel_id always needs a real id from the " +
+      "text channel list above, never invent one.",
   },
 };
 

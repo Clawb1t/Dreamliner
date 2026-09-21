@@ -1,38 +1,32 @@
+import RE2 from "re2";
+
 /**
  * Defense against catastrophic backtracking (ReDoS) in user-supplied regular
  * expressions. Several plugins (automod custom filters, autoreactions,
  * autoreplies, autothreads, custom events, and utility clean/search) let
  * server managers type an arbitrary regex that then runs against every
- * message. A pattern like `(a+)+$` is syntactically valid but can take
- * exponential time on an adversarial input — since Node's regex engine runs
- * synchronously on the main thread, one bad pattern hangs message handling
- * for every guild the bot is in, not just the guild that configured it.
+ * message. A pattern like `(a+)+$` or `(b+){10}$` is syntactically valid but
+ * can take exponential time on an adversarial input under a normal
+ * backtracking engine, since Node's regex engine runs synchronously on the
+ * main thread, so one bad pattern hangs message handling for every guild the
+ * bot is in, not just the guild that configured it.
  *
- * This is defense in depth, not one trick:
- *  1. `findCatastrophicRegexRisk` — a fast, synchronous static scan for the
- *     textbook shapes that cause exponential blowup (a repeated group whose
- *     own body can also repeat or branch over the same characters, e.g.
- *     `(a+)+`, `(a*)*`, `([a-z]+)*`, `(a|a)+`, `(a|ab)*`). This is what
- *     actually protects the hot path — `compileUserRegex` runs it on every
- *     pattern before compiling, so nothing dangerous is ever compiled, and
- *     patterns saved before this shipped stop matching the moment it does.
- *  2. `probeRegexTiming` — an empirical check used only when a pattern is
- *     being saved (a rare, deliberate, already-async action): it runs the
- *     compiled pattern against a short ladder of adversarial strings and
- *     rejects it if any step is unexpectedly slow. This catches shapes the
- *     static scan doesn't recognise as well as the classic nested-quantifier
- *     case.
+ * The actual guarantee now comes from `compileUserRegex` (see core/userRegex.ts)
+ * compiling every user pattern with RE2 (Google's linear-time regex engine)
+ * instead of the native `RegExp`. RE2 cannot backtrack, so a match is bounded
+ * by pattern length times input length regardless of the pattern's shape. This
+ * module's own checks are additional, but no longer load-bearing for safety:
+ *  1. `findCatastrophicRegexRisk`, a fast, synchronous static scan for the
+ *     textbook backtracking shapes (`(a+)+`, `(a*)*`, `([a-z]+)*`, `(a|a)+`,
+ *     `(a|ab)*`). It's deliberately conservative and known to miss some risky
+ *     shapes (e.g. a *bounded* nested quantifier like `(b+){10}`); that's
+ *     fine now that RE2 makes every shape safe to execute either way, this is
+ *     just an early, clearer-error reject for the obvious cases.
+ *  2. `probeRegexTiming`, an empirical timing probe, currently unused by any
+ *     caller. Kept as an available utility; not part of the enforced path.
  *  3. Length caps on both the pattern itself and the content tested against
- *     it, applied by callers (`MAX_USER_PATTERN_LENGTH`,
- *     `MAX_TESTED_CONTENT_LENGTH`) — bounds worst-case work regardless of
- *     what slips past 1 and 2.
- *
- * The static scan is deliberately conservative: some safe patterns that
- * happen to have a repeated group inside a repeated group (e.g.
- * `(?:[\w-]+\.)+[\w-]+`, safe because `.` can't appear inside `[\w-]+`) will
- * be rejected too. That's an accepted trade-off shared by every practical
- * ReDoS static analyzer — proving a pattern safe in general is undecidable,
- * so when in doubt this errs toward rejecting rather than risking a hang.
+ *     it (`MAX_USER_PATTERN_LENGTH`, `MAX_TESTED_CONTENT_LENGTH`), which
+ *     bound worst-case work regardless of engine.
  */
 
 export const MAX_USER_PATTERN_LENGTH = 200;
@@ -164,6 +158,16 @@ export function validateRegexPatternSync(pattern: string, flags: string): RegexV
   try {
     // eslint-disable-next-line no-new -- syntax check only
     new RegExp(pattern, flags);
+  } catch {
+    return { ok: false, error: "Not a valid regular expression." };
+  }
+  try {
+    // RE2 is what actually compiles and runs this pattern at match time (see core/userRegex.ts);
+    // its syntax is a stricter subset of RegExp's (no backreferences, limited lookaround), so a
+    // pattern that only passes the RegExp check above would silently never match instead of
+    // saving cleanly. Reject it here instead, with the same message a syntax error gets.
+    // eslint-disable-next-line no-new -- syntax check only
+    new RE2(pattern, flags);
   } catch {
     return { ok: false, error: "Not a valid regular expression." };
   }

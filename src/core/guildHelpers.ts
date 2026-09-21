@@ -75,3 +75,10 @@ export async function ensureGuildConfigured(guildId: string): Promise<boolean> {
   const stored = await configManager.getGuildConfig(guildId);
   return stored !== null;
 }
+
+/** Whether the economy plugin is enabled for a guild, for cross-plugin hooks that only have a
+ * guildId in scope (event handlers, signal funnels) rather than an already-loaded guildConfig. */
+export async function isEconomyEnabledFor(guildId: string): Promise<boolean> {
+  const { loadEconomyConfig } = await import("../plugins/economy/functions/config.js");
+  return (await loadEconomyConfig(guildId)) !== null;
+}

@@ -31,12 +31,25 @@ export const LEADERBOARD_WHICH = [
   "channels",
 ] as const;
 
+export const MODERATION_METRICS = ["cases", "automodHits"] as const;
+
+export const COMMUNITY_METRICS = [
+  "giveawaysCreated",
+  "giveawaysEntries",
+  "suggestionsCreated",
+  "suggestionsVotes",
+  "reviewsCount",
+  "reviewsAvgRating",
+] as const;
+
 export const CHART_TYPES = ["line", "area", "bar", "pie"] as const;
 export const WINDOW_DAYS = [7, 14, 30, 0] as const;
 
 export type DailyMetric = (typeof DAILY_METRICS)[number];
 export type WeekdayMetric = (typeof WEEKDAY_METRICS)[number];
 export type LeaderboardWhich = (typeof LEADERBOARD_WHICH)[number];
+export type ModerationMetric = (typeof MODERATION_METRICS)[number];
+export type CommunityMetric = (typeof COMMUNITY_METRICS)[number];
 export type ChartType = (typeof CHART_TYPES)[number];
 export type WindowDays = (typeof WINDOW_DAYS)[number];
 
@@ -47,7 +60,11 @@ export type CustomChartSource =
   | { kind: "weekday"; metric: WeekdayMetric }
   | { kind: "engagementMix" }
   | { kind: "allTimeMix" }
-  | { kind: "leaderboard"; which: LeaderboardWhich };
+  | { kind: "leaderboard"; which: LeaderboardWhich }
+  | { kind: "moderationDaily"; metrics: ModerationMetric[] }
+  | { kind: "automodByRule" }
+  | { kind: "communityDaily"; metrics: CommunityMetric[] }
+  | { kind: "voiceDaily" };
 
 export type CustomChartDefinition = {
   id: string;
@@ -85,6 +102,14 @@ function isLeaderboardWhich(value: unknown): value is LeaderboardWhich {
   return typeof value === "string" && (LEADERBOARD_WHICH as readonly string[]).includes(value);
 }
 
+function isModerationMetric(value: unknown): value is ModerationMetric {
+  return typeof value === "string" && (MODERATION_METRICS as readonly string[]).includes(value);
+}
+
+function isCommunityMetric(value: unknown): value is CommunityMetric {
+  return typeof value === "string" && (COMMUNITY_METRICS as readonly string[]).includes(value);
+}
+
 function isChartType(value: unknown): value is ChartType {
   return typeof value === "string" && (CHART_TYPES as readonly string[]).includes(value);
 }
@@ -112,6 +137,21 @@ function parseSource(raw: unknown): CustomChartSource | null {
       return isWeekdayMetric(obj.metric) ? { kind: "weekday", metric: obj.metric } : null;
     case "leaderboard":
       return isLeaderboardWhich(obj.which) ? { kind: "leaderboard", which: obj.which } : null;
+    case "moderationDaily": {
+      if (!Array.isArray(obj.metrics)) return null;
+      const metrics = [...new Set(obj.metrics.filter(isModerationMetric))];
+      if (metrics.length === 0 || metrics.length > MAX_DAILY_METRICS) return null;
+      return { kind: "moderationDaily", metrics };
+    }
+    case "automodByRule":
+    case "voiceDaily":
+      return { kind: obj.kind };
+    case "communityDaily": {
+      if (!Array.isArray(obj.metrics)) return null;
+      const metrics = [...new Set(obj.metrics.filter(isCommunityMetric))];
+      if (metrics.length === 0 || metrics.length > MAX_DAILY_METRICS) return null;
+      return { kind: "communityDaily", metrics };
+    }
     default:
       return null;
   }
@@ -124,10 +164,14 @@ function chartTypeAllowed(chartType: ChartType, source: CustomChartSource): bool
       return chartType === "pie" || chartType === "bar";
     case "leaderboard":
     case "weekday":
+    case "automodByRule":
       return chartType === "bar";
     case "daily":
     case "activeUsers":
     case "messagesPerActiveUser":
+    case "moderationDaily":
+    case "communityDaily":
+    case "voiceDaily":
       return chartType === "line" || chartType === "area" || chartType === "bar";
     default:
       return false;
@@ -318,6 +362,8 @@ export function customChartCatalog() {
     dailyMetrics: [...DAILY_METRICS],
     weekdayMetrics: [...WEEKDAY_METRICS],
     leaderboards: [...LEADERBOARD_WHICH],
+    moderationMetrics: [...MODERATION_METRICS],
+    communityMetrics: [...COMMUNITY_METRICS],
     maxCharts: MAX_CHARTS_PER_GUILD,
     maxDailyMetrics: MAX_DAILY_METRICS,
   };

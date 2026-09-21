@@ -1,5 +1,6 @@
 import type { Client } from "discord.js";
 import { configManager } from "../../../config/manager.js";
+import { isBoosting } from "../../../core/boosterStatus.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { activeTiers, loadBoosterRolesConfig } from "./config.js";
 import { syncBoosterRoles } from "./apply.js";
@@ -22,7 +23,7 @@ export async function sweepBoosterRoles(client: Client): Promise<void> {
     if (!members) continue;
 
     for (const member of members.values()) {
-      if (!member.premiumSince) continue;
+      if (!isBoosting(member)) continue;
       await syncBoosterRoles(member, config).catch(() => null);
     }
   }

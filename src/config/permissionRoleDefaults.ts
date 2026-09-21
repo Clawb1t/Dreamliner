@@ -30,6 +30,7 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // reviews
     "reviews.can_review",
     // suggestions
+    "suggestions.can_comment",
     "suggestions.can_follow",
     "suggestions.can_info",
     "suggestions.can_suggest",

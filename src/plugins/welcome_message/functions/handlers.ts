@@ -1,5 +1,10 @@
 import type { GuildMember, PartialGuildMember, TextChannel, User } from "discord.js";
-import type { WelcomeMessageConfig } from "../../../config/schemas/welcome.js";
+import type {
+  WelcomeDmConfig,
+  WelcomeEventConfig,
+  WelcomeMessageConfig,
+} from "../../../config/schemas/welcome.js";
+import { buildDynamicExtras, keysReferencedIn } from "../../../core/templateExtras.js";
 import { hasMemberPassedPassport } from "../../passport/functions/gate.js";
 import { armFirstMessageReact, clearFirstMessageReact } from "./firstMessageReact.js";
 import { loadWelcomeConfig } from "./loadConfig.js";
@@ -17,6 +22,23 @@ import {
 import { EARLY_LEAVE_MS } from "./waveButton.js";
 
 export { loadWelcomeConfig };
+
+/** Collects every bit of user-configured template text for an event, so we know which dynamic
+ * extra keys (see src/core/templateExtras.ts) are actually worth looking up before rendering. */
+function collectTemplateText(event: WelcomeEventConfig | WelcomeDmConfig): string[] {
+  const texts: string[] = [event.content ?? ""];
+  texts.push(
+    event.embed.title,
+    event.embed.description,
+    event.embed.author_name,
+    event.embed.footer_text,
+  );
+  for (const field of event.embed.fields ?? []) {
+    texts.push(field.name, field.value);
+  }
+  texts.push(event.card.greeting_text, event.card.subtitle_text);
+  return texts;
+}
 
 async function deliverWelcome(
   target: WelcomeTarget,
@@ -38,6 +60,9 @@ async function deliverWelcome(
       ? options.config.wave_button
       : null;
 
+  const keys = keysReferencedIn(...collectTemplateText(event));
+  const extra = await buildDynamicExtras(options.member, keys);
+
   const built = await buildWelcomePayload(
     event,
     {
@@ -45,6 +70,7 @@ async function deliverWelcome(
       member: options.member ?? null,
       user: options.user ?? options.member?.user ?? null,
       guild: options.guild,
+      extra,
     },
     { waveButton },
   );

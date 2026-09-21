@@ -1,5 +1,13 @@
 import type { Guild, GuildMember, TextChannel, User } from "discord.js";
 
+/**
+ * `extra` is the sanctioned injection point for plugin-supplied dynamic data (things that need a
+ * DB lookup, like an economy balance or a message count) rather than the static Discord objects
+ * above. This file intentionally stays free of cross-plugin imports (it's pulled into low-level
+ * plugins widely, so importing economy/utility/suggestions here directly would risk import
+ * cycles) -- plugins that want dynamic vars should build their `extra` map with the shared
+ * helper in `src/core/templateExtras.ts` (`buildDynamicExtras`) and pass the result here.
+ */
 export type TemplateContext = {
   user?: User | null;
   member?: GuildMember | null;
@@ -8,6 +16,8 @@ export type TemplateContext = {
   extra?: Record<string, string>;
 };
 
+/** Merges `ctx.extra` last so plugin-supplied dynamic vars (see `TemplateContext` above) win
+ * over the static ones computed here. */
 export function buildTemplateVars(ctx: TemplateContext): Record<string, string> {
   const user = ctx.member?.user ?? ctx.user;
   const guild = ctx.guild ?? ctx.member?.guild ?? ctx.channel?.guild ?? null;

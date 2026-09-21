@@ -1,48 +1,69 @@
-import type { Client, Guild, GuildMember } from "discord.js";
+import type { Client, Guild, GuildMember, MessageCreateOptions } from "discord.js";
+import type { EmbedTone } from "../../../core/embeds.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { SuggestionsConfig, SuggestionDisplayStatus } from "../../../config/schemas/suggestions.js";
-import { buildSuggestionApproveLog, buildSuggestionCreateLog, buildSuggestionDenyLog } from "../../../core/logging/format.js";
+import {
+  buildSuggestionApproveLog,
+  buildSuggestionCommentLog,
+  buildSuggestionCreateLog,
+  buildSuggestionDenyLog,
+} from "../../../core/logging/format.js";
 import { sendModerationLog, sendServerLog } from "../../../core/logging/send.js";
 import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
+  addComment,
   createSuggestion,
   followSuggestion,
   getSuggestionById,
   getVoteTotals,
   listFollowers,
   type Suggestion,
+  type SuggestionComment,
   updateSuggestion,
 } from "./store.js";
 import {
+  buildSuggestionDmContainer,
   buildSuggestionEmbed,
   disabledQueueRow,
   displayStatusLabel,
   queueActionRow,
   resolveTextChannel,
+  suggestionJumpRow,
   voteActionRow,
 } from "./embeds.js";
 
-async function tryDm(client: Client, userId: string, content: string): Promise<void> {
+async function tryDm(client: Client, userId: string, payload: MessageCreateOptions): Promise<void> {
   try {
     const user = await client.users.fetch(userId);
-    await user.send(content);
+    await user.send(payload);
   } catch {
     // DMs closed
   }
 }
 
+/** DMs everyone watching a suggestion (author + followers, minus whoever just caused the
+ *  update) a Components V2 container carrying the suggestion's own info, not a plain-text
+ *  sentence, so a recipient can tell what was suggested and where without leaving their DMs. */
 async function notifyWatchers(
   client: Client,
+  guild: Guild,
   suggestion: Suggestion,
   config: SuggestionsConfig,
-  message: string,
+  title: string,
+  tone: EmbedTone,
+  extraField?: { label: string; value: string },
   actorId?: string,
 ): Promise<void> {
   if (!config.notify_author) return;
   const targets = new Set<string>([suggestion.authorId, ...(await listFollowers(suggestion.id))]);
   if (actorId) targets.delete(actorId);
-  await Promise.all([...targets].map((id) => tryDm(client, id, message)));
+  if (!targets.size) return;
+
+  const container = buildSuggestionDmContainer({ client, guild, suggestion, title, tone, extraField });
+  const jumpRow = suggestionJumpRow(guild, suggestion);
+  const payload = containerReply(container, false, jumpRow ? [jumpRow] : undefined);
+  await Promise.all([...targets].map((id) => tryDm(client, id, payload)));
 }
 
 async function maybeGrantRole(guild: Guild, userId: string, roleId?: string): Promise<void> {
@@ -165,12 +186,12 @@ export async function postToFeed(options: {
   await maybeGrantRole(guild, suggestion.authorId, config.approved_role);
   await notifyWatchers(
     client,
+    guild,
     suggestion,
     config,
-    t("suggestions.notify.approved", "Your suggestion #{num} in **{guild}** was approved.", {
-      num: suggestion.suggestionNumber,
-      guild: guild.name,
-    }),
+    t("suggestions.dm.approvedTitle", "Suggestion approved"),
+    "success",
+    undefined,
     suggestion.staffActorId ?? undefined,
   );
 
@@ -347,18 +368,14 @@ export async function denySuggestion(options: {
 
     await notifyWatchers(
       options.client,
+      options.guild,
       updated,
       options.config,
-      options.reason
-        ? t("suggestions.notify.deniedWithReason", "Your suggestion #{num} in **{guild}** was denied: {reason}", {
-            num: updated.suggestionNumber,
-            guild: options.guild.name,
-            reason: options.reason,
-          })
-        : t("suggestions.notify.denied", "Your suggestion #{num} in **{guild}** was denied.", {
-            num: updated.suggestionNumber,
-            guild: options.guild.name,
-          }),
+      t("suggestions.dm.deniedTitle", "Suggestion denied"),
+      "error",
+      options.reason?.trim()
+        ? { label: t("suggestions.field.reason", "Reason"), value: options.reason.trim() }
+        : undefined,
       options.staffId,
     );
   }
@@ -416,13 +433,12 @@ export async function markSuggestion(options: {
   await refreshFeedMessage(options.client, options.config, updated, t);
   await notifyWatchers(
     options.client,
+    options.guild,
     updated,
     options.config,
-    t("suggestions.notify.marked", "Suggestion #{num} in **{guild}** was marked **{status}**.", {
-      num: updated.suggestionNumber,
-      guild: options.guild.name,
-      status: displayStatusLabel(t, options.displayStatus),
-    }),
+    t("suggestions.dm.markedTitle", "Suggestion status updated"),
+    options.displayStatus === "implemented" ? "success" : "neutral",
+    { label: t("suggestions.field.status", "Status"), value: displayStatusLabel(t, options.displayStatus) },
     options.staffId,
   );
 
@@ -469,17 +485,79 @@ export async function deleteSuggestion(options: {
   if (!options.silent) {
     await notifyWatchers(
       options.client,
+      options.guild,
       updated,
       options.config,
-      t("suggestions.notify.deleted", "Suggestion #{num} in **{guild}** was deleted.", {
-        num: updated.suggestionNumber,
-        guild: options.guild.name,
-      }),
+      t("suggestions.dm.deletedTitle", "Suggestion deleted"),
+      "error",
+      undefined,
       options.staffId,
     );
   }
 
   return { suggestion: updated };
+}
+
+export async function addSuggestionComment(options: {
+  client: Client;
+  guild: Guild;
+  guildConfig: GuildConfig;
+  config: SuggestionsConfig;
+  suggestionId: number;
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl?: string;
+  content: string;
+  anonymous: boolean;
+  t?: Translator;
+}): Promise<{ comment: SuggestionComment; suggestion: Suggestion } | { error: string }> {
+  const { t = defaultTranslator } = options;
+  const suggestion = await getSuggestionById(options.suggestionId);
+  if (!suggestion || suggestion.guildId !== options.guild.id) {
+    return { error: t("suggestions.error.notFound", "Suggestion not found.") };
+  }
+
+  const content = options.content.trim();
+  if (!content) {
+    return { error: t("suggestions.error.emptyComment", "Comment can't be empty.") };
+  }
+
+  const comment = await addComment({
+    suggestionId: suggestion.id,
+    authorId: options.authorId,
+    content,
+    anonymous: options.anonymous && options.config.anonymous,
+  });
+
+  await sendServerLog(
+    options.client,
+    options.guildConfig,
+    buildSuggestionCommentLog({
+      suggestionNumber: suggestion.suggestionNumber,
+      author: { id: options.authorId, name: options.authorName, avatarUrl: options.authorAvatarUrl },
+      content,
+    }),
+    {
+      guildId: options.guild.id,
+      eventType: "suggestion_comment",
+      actorId: options.authorId,
+      targetId: suggestion.authorId,
+    },
+  );
+
+  const commenterLabel = comment.anonymous ? t("suggestions.anonymous", "Anonymous") : `<@${options.authorId}>`;
+  await notifyWatchers(
+    options.client,
+    options.guild,
+    suggestion,
+    options.config,
+    t("suggestions.dm.commentTitle", "New comment on your suggestion"),
+    "neutral",
+    { label: t("suggestions.field.comment", "Comment"), value: `**${commenterLabel}**\n${content}` },
+    options.authorId,
+  );
+
+  return { comment, suggestion };
 }
 
 export async function autoFollowOnUpvote(
