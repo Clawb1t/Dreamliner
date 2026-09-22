@@ -471,7 +471,12 @@ export const guildStatsUserDaily = sqliteTable(
     statDate: text("stat_date").notNull(),
     messages: integer("messages").notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.statDate] })],
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId, table.statDate] }),
+    // Cross-user aggregation within a date window (engagement concentration, top movers) needs to
+    // narrow by (guildId, statDate) first — the PK above is ordered by userId, not statDate.
+    index("guild_stats_user_daily_guild_date").on(table.guildId, table.statDate),
+  ],
 );
 
 export const guildStatsChannelDaily = sqliteTable(
@@ -482,7 +487,12 @@ export const guildStatsChannelDaily = sqliteTable(
     statDate: text("stat_date").notNull(),
     messages: integer("messages").notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.channelId, table.statDate] })],
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.channelId, table.statDate] }),
+    // Same reasoning as guild_stats_user_daily_guild_date, for cross-channel aggregation
+    // (channel growth/decline, emerging channels) within a date window.
+    index("guild_stats_channel_daily_guild_date").on(table.guildId, table.statDate),
+  ],
 );
 
 /** Lifetime message count per guild for each UTC weekday x hour-of-day cell, backing the stats
@@ -496,6 +506,27 @@ export const guildStatsHourly = sqliteTable(
     messages: integer("messages").notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.weekdayUtc, table.hourUtc] })],
+);
+
+/** Rolling-hour message/membership/engagement counts, UTC-bucketed (`bucketHour` = `YYYY-MM-DDTHH`).
+ *  Unlike guildStatsDaily (calendar-date bucketed) or guildStatsHourly (lifetime, no date at all),
+ *  this is the only table that can answer "the last 24 hours" as an actual trailing window rather
+ *  than "today since 00:00 UTC" or "this hour-of-day historically". Pruned to a short rolling
+ *  retention (see pruneOldHourlyBuckets) since only the last ~24-48h is ever queried from it. */
+export const guildStatsHourlyBucket = sqliteTable(
+  "guild_stats_hourly_bucket",
+  {
+    guildId: text("guild_id").notNull(),
+    bucketHour: text("bucket_hour").notNull(),
+    messages: integer("messages").notNull().default(0),
+    joins: integer("joins").notNull().default(0),
+    leaves: integer("leaves").notNull().default(0),
+    edits: integer("edits").notNull().default(0),
+    deletes: integer("deletes").notNull().default(0),
+    reactions: integer("reactions").notNull().default(0),
+    attachments: integer("attachments").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.bucketHour] })],
 );
 
 /** Per-guild daily voice-channel activity, mirrors guildStatsDaily for the stats panel's voice

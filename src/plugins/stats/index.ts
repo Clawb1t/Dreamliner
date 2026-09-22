@@ -3,8 +3,14 @@ import { definePlugin } from "../../core/plugin.js";
 import { zStatsConfig } from "../../config/schemas/plugins.js";
 import { configManager } from "../../config/manager.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
+import { registerIntervalTask } from "../../core/scheduler.js";
 import { statsCommands } from "./commands/stats.js";
-import { incrementDailyStat, recordMessageActivity } from "./functions/daily.js";
+import {
+  incrementDailyStat,
+  incrementHourlyBucketStat,
+  pruneOldHourlyBuckets,
+  recordMessageActivity,
+} from "./functions/daily.js";
 import { handleVoiceStateUpdate, snapshotActiveVoiceMembers, startVoiceHourlySampler } from "./functions/voice.js";
 
 async function statsActive(guildId: string): Promise<boolean> {
@@ -42,7 +48,10 @@ export const statsPlugin = definePlugin({
         const newContent = "content" in next ? next.content : null;
         if (oldContent === newContent) return;
         if (!(await statsActive(next.guild.id))) return;
-        await incrementDailyStat(next.guild.id, "edits").catch(() => null);
+        await Promise.all([
+          incrementDailyStat(next.guild.id, "edits").catch(() => null),
+          incrementHourlyBucketStat(next.guild.id, "edits").catch(() => null),
+        ]);
       },
     },
     {
@@ -51,7 +60,10 @@ export const statsPlugin = definePlugin({
         const msg = message as import("discord.js").Message | import("discord.js").PartialMessage;
         if (!msg.guild || !msg.author || msg.author.bot) return;
         if (!(await statsActive(msg.guild.id))) return;
-        await incrementDailyStat(msg.guild.id, "deletes").catch(() => null);
+        await Promise.all([
+          incrementDailyStat(msg.guild.id, "deletes").catch(() => null),
+          incrementHourlyBucketStat(msg.guild.id, "deletes").catch(() => null),
+        ]);
       },
     },
     {
@@ -63,7 +75,10 @@ export const statsPlugin = definePlugin({
         const message = react.message;
         if (!message.guild) return;
         if (!(await statsActive(message.guild.id))) return;
-        await incrementDailyStat(message.guild.id, "reactions").catch(() => null);
+        await Promise.all([
+          incrementDailyStat(message.guild.id, "reactions").catch(() => null),
+          incrementHourlyBucketStat(message.guild.id, "reactions").catch(() => null),
+        ]);
       },
     },
     {
@@ -72,7 +87,10 @@ export const statsPlugin = definePlugin({
         const m = member as import("discord.js").GuildMember;
         if (!m.guild || m.user.bot) return;
         if (!(await statsActive(m.guild.id))) return;
-        await incrementDailyStat(m.guild.id, "joins").catch(() => null);
+        await Promise.all([
+          incrementDailyStat(m.guild.id, "joins").catch(() => null),
+          incrementHourlyBucketStat(m.guild.id, "joins").catch(() => null),
+        ]);
       },
     },
     {
@@ -81,7 +99,10 @@ export const statsPlugin = definePlugin({
         const m = member as import("discord.js").GuildMember;
         if (!m.guild || m.user.bot) return;
         if (!(await statsActive(m.guild.id))) return;
-        await incrementDailyStat(m.guild.id, "leaves").catch(() => null);
+        await Promise.all([
+          incrementDailyStat(m.guild.id, "leaves").catch(() => null),
+          incrementHourlyBucketStat(m.guild.id, "leaves").catch(() => null),
+        ]);
       },
     },
     {
@@ -99,5 +120,12 @@ export const statsPlugin = definePlugin({
     // where possible. Voice tracking has no per-guild opt-out — see the VoiceStateUpdate handler.
     await snapshotActiveVoiceMembers(ctx.client);
     startVoiceHourlySampler();
+
+    await pruneOldHourlyBuckets().catch(() => null);
+    registerIntervalTask({
+      id: "stats:prune-hourly-buckets",
+      intervalMs: 60 * 60_000,
+      run: () => pruneOldHourlyBuckets(),
+    });
   },
 });

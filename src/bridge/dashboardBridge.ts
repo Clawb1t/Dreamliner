@@ -2293,6 +2293,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const entityStatsMatch = /^\/bridge\/guilds\/(\d+)\/stats\/(users|channels)\/(\d+)$/.exec(
           url.pathname,
         );
+        const statsIntelMatch =
+          /^\/bridge\/guilds\/(\d+)\/stats\/(insights|activity|members|channels|moderation|timeline|correlations)$/.exec(
+            url.pathname,
+          );
         const commandOneMatch = /^\/bridge\/guilds\/(\d+)\/commands\/([a-z0-9_]{1,32})$/i.exec(
           url.pathname,
         );
@@ -2463,6 +2467,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !customChartOneMatch &&
           !customChartsMatch &&
           !entityStatsMatch &&
+          !statsIntelMatch &&
           !commandOneMatch &&
           !commandsMatch &&
           !socialResolveMatch &&
@@ -2562,6 +2567,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           customChartOneMatch?.[1] ??
           customChartsMatch?.[1] ??
           entityStatsMatch?.[1] ??
+          statsIntelMatch?.[1] ??
           commandOneMatch?.[1] ??
           commandsMatch?.[1] ??
           socialResolveMatch?.[1] ??
@@ -7079,6 +7085,76 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
                 : await buildWebChannelStats(guild, entityId, query),
           );
           sendJson(res, 200, payload);
+          return;
+        }
+
+        if (statsIntelMatch && req.method === "GET") {
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const section = statsIntelMatch[2]!;
+          const {
+            parseWebStatsIntelQuery,
+            buildWebGuildInsights,
+            buildWebGuildActivityAnalytics,
+            buildWebGuildMemberAnalytics,
+            buildWebGuildChannelAnalytics,
+            buildWebGuildModerationAnalytics,
+            buildWebGuildCorrelations,
+          } = await import("./webStatsInsights.js");
+          const { cached } = await import("./responseCache.js");
+          const query = parseWebStatsIntelQuery(url);
+          const cacheKey = `stats-intel:${section}:${guild.id}:${JSON.stringify(query)}`;
+
+          if (section === "insights") {
+            const payload = await cached(cacheKey, 60_000, () => buildWebGuildInsights(guild, query));
+            sendJson(res, 200, payload);
+            return;
+          }
+          if (section === "activity") {
+            const payload = await cached(cacheKey, 30_000, () => buildWebGuildActivityAnalytics(guild, query));
+            sendJson(res, 200, payload);
+            return;
+          }
+          if (section === "members") {
+            const payload = await cached(cacheKey, 30_000, () => buildWebGuildMemberAnalytics(guild, query));
+            sendJson(res, 200, payload);
+            return;
+          }
+          if (section === "channels") {
+            const payload = await cached(cacheKey, 30_000, () => buildWebGuildChannelAnalytics(guild, query));
+            sendJson(res, 200, payload);
+            return;
+          }
+          if (section === "moderation") {
+            const payload = await cached(cacheKey, 30_000, () => buildWebGuildModerationAnalytics(guild, query));
+            sendJson(res, 200, payload);
+            return;
+          }
+          if (section === "correlations") {
+            const payload = await cached(cacheKey, 30_000, () => buildWebGuildCorrelations(guild, query));
+            sendJson(res, 200, payload);
+            return;
+          }
+          if (section === "timeline") {
+            const { getWebLogStats, listWebLogs, parseWebLogsQuery } = await import("./webLogs.js");
+            const logsQuery = parseWebLogsQuery(url);
+            const days = "days" in query ? (query.days === 0 ? 90 : Math.min(query.days, 90)) : 90;
+            const payload = await cached(cacheKey, 20_000, async () => {
+              const [stats, logs] = await Promise.all([getWebLogStats(guild, days), listWebLogs(guild, logsQuery)]);
+              return { ...stats, logs: logs.logs, logsTotal: logs.total };
+            });
+            sendJson(res, 200, payload);
+            return;
+          }
+
+          sendJson(res, 404, { error: "Not found" });
           return;
         }
 

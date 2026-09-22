@@ -1,9 +1,10 @@
-import { and, asc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, lt, lte, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import {
   guildStatsChannelDaily,
   guildStatsDaily,
   guildStatsHourly,
+  guildStatsHourlyBucket,
   guildStatsUserDaily,
   userHourlyActivity,
 } from "../../../db/schema.js";
@@ -32,23 +33,32 @@ export function shortDateLabel(isoDate: string): string {
 /** Use `0` in menus/state to mean every recorded day since tracking began. */
 export const ALL_TIME_WINDOW = 0;
 
-export type StatsWindow = 7 | 14 | 30 | typeof ALL_TIME_WINDOW;
+/** `1` means "today (UTC)" — a real 1-day window over the existing daily tables, not a true
+ *  trailing-24h figure (that needs guildStatsHourlyBucket; see getLast24hBucketStats below).
+ *  Labeled accordingly rather than as a misleading "24h". */
+export const TODAY_WINDOW = 1;
+
+export type StatsWindow = typeof TODAY_WINDOW | 7 | 14 | 30 | 90 | typeof ALL_TIME_WINDOW;
 
 export function isAllTimeWindow(days: number): boolean {
   return days === ALL_TIME_WINDOW;
 }
 
 export function isValidStatsWindow(days: number): days is StatsWindow {
-  return days === 7 || days === 14 || days === 30 || days === ALL_TIME_WINDOW;
+  return (
+    days === TODAY_WINDOW || days === 7 || days === 14 || days === 30 || days === 90 || days === ALL_TIME_WINDOW
+  );
 }
 
 export function formatStatsWindowLabel(days: StatsWindow, t: Translator = defaultTranslator): string {
   if (isAllTimeWindow(days)) return t("stats.windowLabelAllTime", "all time");
+  if (days === TODAY_WINDOW) return t("stats.windowLabelToday", "today");
   return t("stats.windowLabelDays", "{days}d", { days });
 }
 
 export function formatStatsWindowLong(days: StatsWindow, t: Translator = defaultTranslator): string {
   if (isAllTimeWindow(days)) return t("stats.windowLongAllTime", "All time");
+  if (days === TODAY_WINDOW) return t("stats.windowLongToday", "Today (UTC)");
   return t("stats.windowLongDays", "{days} days", { days });
 }
 
@@ -203,6 +213,108 @@ export async function incrementGuildHourlyStat(guildId: string): Promise<void> {
     });
 }
 
+function bucketHour(d = new Date()): string {
+  return d.toISOString().slice(0, 13); // "YYYY-MM-DDTHH"
+}
+
+/** UTC bucket-hour keys covering the trailing `hours` hours, oldest → newest, e.g. for summing the
+ *  last 24 rows of guildStatsHourlyBucket into a true rolling window. */
+export function hourBucketRange(hours: number, end = new Date()): string[] {
+  const out: string[] = [];
+  const endMs = end.getTime();
+  for (let i = hours - 1; i >= 0; i--) {
+    out.push(bucketHour(new Date(endMs - i * 3_600_000)));
+  }
+  return out;
+}
+
+type HourlyBucketField = DailyField;
+
+const HOURLY_BUCKET_COLUMNS = {
+  messages: guildStatsHourlyBucket.messages,
+  joins: guildStatsHourlyBucket.joins,
+  leaves: guildStatsHourlyBucket.leaves,
+  edits: guildStatsHourlyBucket.edits,
+  deletes: guildStatsHourlyBucket.deletes,
+  reactions: guildStatsHourlyBucket.reactions,
+  attachments: guildStatsHourlyBucket.attachments,
+} as const;
+
+/** Rolling-hour counterpart to incrementDailyStat, feeding guildStatsHourlyBucket so a true
+ *  trailing-24h window (not just "today since 00:00 UTC") is queryable. Called at the same sites
+ *  as incrementDailyStat, one new line alongside each existing call. */
+export async function incrementHourlyBucketStat(
+  guildId: string,
+  field: HourlyBucketField,
+  amount = 1,
+): Promise<void> {
+  const db = getDb();
+  const hour = bucketHour();
+  const base = {
+    guildId,
+    bucketHour: hour,
+    messages: 0,
+    joins: 0,
+    leaves: 0,
+    edits: 0,
+    deletes: 0,
+    reactions: 0,
+    attachments: 0,
+  };
+  base[field] = amount;
+
+  const column = HOURLY_BUCKET_COLUMNS[field];
+
+  await db
+    .insert(guildStatsHourlyBucket)
+    .values(base)
+    .onConflictDoUpdate({
+      target: [guildStatsHourlyBucket.guildId, guildStatsHourlyBucket.bucketHour],
+      set: { [field]: sql`${column} + ${amount}` },
+    });
+}
+
+/** Best-effort prune of hourly-bucket rows older than 8 days — only the trailing ~24-48h is ever
+ *  queried from this table, so it stays small regardless of guild age/size. */
+export async function pruneOldHourlyBuckets(): Promise<void> {
+  const cutoffHour = bucketHour(new Date(Date.now() - 8 * 86_400_000));
+  await getDb().delete(guildStatsHourlyBucket).where(lt(guildStatsHourlyBucket.bucketHour, cutoffHour));
+}
+
+export type HourlyBucketTotals = {
+  messages: number;
+  joins: number;
+  leaves: number;
+  edits: number;
+  deletes: number;
+  reactions: number;
+  attachments: number;
+};
+
+/** Sums guildStatsHourlyBucket rows across the trailing `hours` hours (default 24) — the actual
+ *  rolling-window figure the daily tables can't provide (see TODAY_WINDOW's doc comment above). */
+export async function getRollingHourlyTotals(guildId: string, hours = 24): Promise<HourlyBucketTotals> {
+  const bucketHours = hourBucketRange(hours);
+  const since = bucketHours[0]!;
+  const rows = await getDb()
+    .select()
+    .from(guildStatsHourlyBucket)
+    .where(and(eq(guildStatsHourlyBucket.guildId, guildId), gte(guildStatsHourlyBucket.bucketHour, since)));
+
+  return rows.reduce<HourlyBucketTotals>(
+    (acc, row) => ({
+      messages: acc.messages + row.messages,
+      joins: acc.joins + row.joins,
+      leaves: acc.leaves + row.leaves,
+      edits: acc.edits + row.edits,
+      deletes: acc.deletes + row.deletes,
+      reactions: acc.reactions + row.reactions,
+      attachments: acc.attachments + row.attachments,
+    }),
+    { messages: 0, joins: 0, leaves: 0, edits: 0, deletes: 0, reactions: 0, attachments: 0 },
+  );
+}
+
 export async function incrementChannelDailyStat(guildId: string, channelId: string): Promise<void> {
   const db = getDb();
   const date = statDate();
@@ -228,10 +340,12 @@ export async function recordMessageActivity(
     incrementChannelDailyStat(guildId, channelId),
     incrementUserHourlyStat(userId),
     incrementGuildHourlyStat(guildId),
+    incrementHourlyBucketStat(guildId, "messages"),
     recordUserTrail(guildId, userId, channelId, content),
   ];
   if (attachmentCount > 0) {
     tasks.push(incrementDailyStat(guildId, "attachments", attachmentCount));
+    tasks.push(incrementHourlyBucketStat(guildId, "attachments", attachmentCount));
   }
   await Promise.all(tasks);
 }
@@ -281,6 +395,26 @@ export async function getFilledDailyStats(guildId: string, days: number = 14): P
     .from(guildStatsDaily)
     .where(and(eq(guildStatsDaily.guildId, guildId), gte(guildStatsDaily.statDate, since)));
 
+  return fillDailyDates(dates, rows.map(mapDailyRow), emptyDailyRow);
+}
+
+/** Custom-range counterpart to getFilledDailyStats, for the `?from=&to=` query mode — same
+ *  zero-filled-by-date contract, just bounded by an explicit inclusive date range instead of a
+ *  trailing day count. */
+export async function getFilledDailyStatsInRange(
+  guildId: string,
+  from: string,
+  to: string,
+): Promise<DailyStatRow[]> {
+  const dates = dateRangeInclusive(from, to);
+  if (dates.length === 0) return [];
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(guildStatsDaily)
+    .where(
+      and(eq(guildStatsDaily.guildId, guildId), gte(guildStatsDaily.statDate, from), lte(guildStatsDaily.statDate, to)),
+    );
   return fillDailyDates(dates, rows.map(mapDailyRow), emptyDailyRow);
 }
 
