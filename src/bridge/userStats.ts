@@ -34,7 +34,9 @@ export type UserPersonalStats = {
   }>;
 };
 
-async function guildRank(guildId: string, userCount: number): Promise<number | null> {
+/** Exported for reuse by userActivity.ts's public "As seen in these servers" list, which wants
+ *  the same per-server rank/share figures as this file's own private stats builder below. */
+export async function guildRank(guildId: string, userCount: number): Promise<number | null> {
   if (userCount <= 0) return null;
   const higher = await getDb()
     .select({ total: count() })
@@ -46,7 +48,7 @@ async function guildRank(guildId: string, userCount: number): Promise<number | n
   return Number(higher?.total ?? 0) + 1;
 }
 
-async function guildTrafficTotal(guildId: string): Promise<number> {
+export async function guildTrafficTotal(guildId: string): Promise<number> {
   const row = await getDb()
     .select({ total: sql<number>`coalesce(sum(${guildMessageCounts.count}), 0)` })
     .from(guildMessageCounts)
@@ -59,15 +61,19 @@ async function guildTrafficTotal(guildId: string): Promise<number> {
 export async function getGlobalMessageStats(userId: string): Promise<{
   totalMessages: number;
   globalRank: number | null;
+  activeMessagers: number;
+  serverCount: number;
   lastActiveAt: Date | null;
 }> {
   const db = getDb();
-  const globalRow = await db
-    .select()
-    .from(userMessageCounts)
-    .where(eq(userMessageCounts.userId, userId))
-    .get();
+  const [globalRow, activeRow, serverRow] = await Promise.all([
+    db.select().from(userMessageCounts).where(eq(userMessageCounts.userId, userId)).get(),
+    db.select({ total: count() }).from(userMessageCounts).where(gte(userMessageCounts.count, 1)).get(),
+    db.select({ total: count() }).from(guildMessageCounts).where(eq(guildMessageCounts.userId, userId)).get(),
+  ]);
   const totalMessages = Number(globalRow?.count ?? 0);
+  const activeMessagers = Number(activeRow?.total ?? 0);
+  const serverCount = Number(serverRow?.total ?? 0);
 
   let globalRank: number | null = null;
   if (totalMessages > 0) {
@@ -79,7 +85,13 @@ export async function getGlobalMessageStats(userId: string): Promise<{
     globalRank = Number(higher?.total ?? 0) + 1;
   }
 
-  return { totalMessages, globalRank, lastActiveAt: globalRow?.lastMessageAt ?? null };
+  return {
+    totalMessages,
+    globalRank,
+    activeMessagers,
+    serverCount,
+    lastActiveAt: globalRow?.lastMessageAt ?? null,
+  };
 }
 
 export async function buildUserPersonalStats(

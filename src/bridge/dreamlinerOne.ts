@@ -15,10 +15,17 @@ export type DreamlinerOnePublicStatus = {
   active: boolean;
   forever: boolean;
   expiresAt: string | null;
+  /** When the current subscription started (manual grant date, or the Discord entitlement's
+   *  `startsAt`) — null if inactive or unknown. Public-safe: no admin identity, just a date.
+   *  Mirrors the admin status's `grantedAt` — see `toPublicStatus`. */
+  since: string | null;
   note: string | null;
 };
 
-export type DreamlinerOneAdminStatus = DreamlinerOnePublicStatus & {
+// Deliberately not `DreamlinerOnePublicStatus & {...}`: the admin shape already carries `since`'s
+// underlying value as `grantedAt` (plus who granted it), so `toPublicStatus` derives `since` from
+// that at the public boundary instead of every admin-status object needing its own redundant copy.
+export type DreamlinerOneAdminStatus = Omit<DreamlinerOnePublicStatus, "since"> & {
   status: "none" | "active" | "expired" | "revoked";
   grantedBy: string | null;
   grantedAt: string | null;
@@ -130,6 +137,7 @@ export function toPublicStatus(admin: DreamlinerOneAdminStatus): DreamlinerOnePu
     active: admin.active,
     forever: admin.forever,
     expiresAt: admin.expiresAt,
+    since: admin.grantedAt,
     note: admin.note,
   };
 }
@@ -161,19 +169,48 @@ export async function isDreamlinerOneActive(guildId: string): Promise<boolean> {
   return refreshGuildDiscordOne(guildId);
 }
 
-export async function listActiveOneGuildIds(): Promise<Set<string>> {
-  const ids = new Set<string>();
+/**
+ * Same "is it active" check as `isDreamlinerOneActive` (including the live-Discord-entitlement
+ * refresh fallback when nothing cached is active yet), but returns the full public status —
+ * including `since` — instead of just a boolean, in one call. Used by the public bridge endpoints
+ * (server-home/leaderboard payloads) so the website can show how long a server has had One
+ * without a second round trip.
+ */
+export async function getDreamlinerOnePublicStatusWithRefresh(guildId: string): Promise<DreamlinerOnePublicStatus> {
+  const [entitlement, row] = await Promise.all([
+    getActiveDiscordEntitlement(guildId),
+    getDreamlinerOneRow(guildId),
+  ]);
+  const manual = deriveStatus(row);
+  if (entitlement) return toPublicStatus(mergeOneStatus(manual, entitlement));
+  if (manual.active) return toPublicStatus(manual);
+
+  const refreshed = await refreshGuildDiscordOne(guildId);
+  if (!refreshed) return toPublicStatus(manual);
+  // refreshGuildDiscordOne persists whatever it found live, so re-reading picks that up.
+  const liveEntitlement = await getActiveDiscordEntitlement(guildId);
+  return toPublicStatus(mergeOneStatus(manual, liveEntitlement));
+}
+
+/**
+ * Every guild with an active subscription, mapped to when it started — used by the bridge status
+ * endpoint (dashboardBridge.ts's guildSnapshot) so the dashboard's server list/picker and sidebar
+ * can show the same "subscribed for X" One badge tooltip the public server/leaderboard pages do,
+ * without a second per-guild status call for each row.
+ */
+export async function listActiveOneGuildsSince(): Promise<Map<string, string>> {
+  const since = new Map<string, string>();
   for (const row of await listActiveDiscordEntitlements()) {
-    ids.add(row.guildId);
+    since.set(row.guildId, toIso(row.startsAt) ?? toIso(row.updatedAt) ?? new Date(0).toISOString());
   }
   const now = Date.now();
   const manuals = await getDb().select().from(guildOneSubscriptions).all();
   for (const row of manuals) {
-    if (!row.revokedAt && (row.expiresAt == null || row.expiresAt.getTime() > now)) {
-      ids.add(row.guildId);
+    if (!row.revokedAt && (row.expiresAt == null || row.expiresAt.getTime() > now) && !since.has(row.guildId)) {
+      since.set(row.guildId, toIso(row.grantedAt) ?? new Date(0).toISOString());
     }
   }
-  return ids;
+  return since;
 }
 
 export async function listPlatformDreamlinerOne(client: Client): Promise<{

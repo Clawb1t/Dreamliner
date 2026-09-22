@@ -287,13 +287,13 @@ function resolveChannels(
 export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25) {
   const capped = Math.min(50, Math.max(5, limit));
   const { configManager } = await import("../config/manager.js");
-  const { isDreamlinerOneActive } = await import("./dreamlinerOne.js");
-  const [top, allTimeTrafficTotal, activeMessagers, guildConfig, oneActive] = await Promise.all([
+  const { getDreamlinerOnePublicStatusWithRefresh } = await import("./dreamlinerOne.js");
+  const [top, allTimeTrafficTotal, activeMessagers, guildConfig, oneStatus] = await Promise.all([
     getTopMessagers(guild.id, capped),
     getTrackedMessagesTotal(guild.id, 0),
     getActiveMessagerCount(guild.id),
     configManager.getEffectiveConfig(guild.id),
-    isDreamlinerOneActive(guild.id),
+    getDreamlinerOnePublicStatusWithRefresh(guild.id),
   ]);
   const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
   const accentColor = colorIntToHex(guildConfig.server_accent_color);
@@ -318,7 +318,8 @@ export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25
       accentColor,
       overrideUserAccents,
     },
-    oneActive,
+    oneActive: oneStatus.active,
+    oneActiveSince: oneStatus.since,
     leaders,
   };
 }
@@ -328,13 +329,13 @@ export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25
 export async function buildWebPublicVoiceLeaderboard(guild: Guild, limit = 25) {
   const capped = Math.min(50, Math.max(5, limit));
   const { configManager } = await import("../config/manager.js");
-  const { isDreamlinerOneActive } = await import("./dreamlinerOne.js");
-  const [top, totalVoiceMinutes, activeVoiceMembers, guildConfig, oneActive] = await Promise.all([
+  const { getDreamlinerOnePublicStatusWithRefresh } = await import("./dreamlinerOne.js");
+  const [top, totalVoiceMinutes, activeVoiceMembers, guildConfig, oneStatus] = await Promise.all([
     getTopVoiceUsers(guild.id, 0, capped),
     getGuildTotalVoiceMinutes(guild.id),
     getActiveVoiceUserCount(guild.id),
     configManager.getEffectiveConfig(guild.id),
-    isDreamlinerOneActive(guild.id),
+    getDreamlinerOnePublicStatusWithRefresh(guild.id),
   ]);
   const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
   const accentColor = colorIntToHex(guildConfig.server_accent_color);
@@ -360,7 +361,8 @@ export async function buildWebPublicVoiceLeaderboard(guild: Guild, limit = 25) {
       accentColor,
       overrideUserAccents,
     },
-    oneActive,
+    oneActive: oneStatus.active,
+    oneActiveSince: oneStatus.since,
     leaders,
   };
 }

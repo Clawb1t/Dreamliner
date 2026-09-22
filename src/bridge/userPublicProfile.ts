@@ -35,6 +35,13 @@ export type PublicProfileIdentity = {
   /** Opt-in: show the plane/airline trading card collection section. Off by default. */
   showTradingCards: boolean;
   badges: UserBadge[];
+  /** True when this user owns at least one guild with an active Dreamliner One subscription —
+   *  powers the small One icon + "subscribed for X" tooltip next to their name on their public
+   *  profile (same OneBadge component/tooltip used next to server names). */
+  oneOwner: boolean;
+  /** ISO timestamp of the earliest-started active subscription among guilds they own, null if
+   *  `oneOwner` is false or unknown. */
+  oneOwnerSince: string | null;
 };
 
 /** Fast: one forced Discord user fetch (needed for banner) + one DB row + one badge join. */
@@ -50,9 +57,10 @@ export async function buildPublicProfileIdentity(
   }
   if (!discordUser) return null;
 
-  const [profile, badges] = await Promise.all([
+  const [profile, badges, oneOwnerSince] = await Promise.all([
     getUserProfile(userId),
     listDisplayedUserBadges(userId),
+    resolveOneOwnerSince(client, userId),
   ]);
 
   return {
@@ -68,12 +76,32 @@ export async function buildPublicProfileIdentity(
     profileVisible: profile.profileVisible,
     showTradingCards: profile.showTradingCards,
     badges,
+    oneOwner: oneOwnerSince != null,
+    oneOwnerSince,
   };
+}
+
+/** Earliest `since` among active Dreamliner One subscriptions on guilds this user owns, null if
+ *  they own none. `guild.ownerId` is read straight off the cache — no extra fetch needed. */
+async function resolveOneOwnerSince(client: Client, userId: string): Promise<string | null> {
+  const { listActiveOneGuildsSince } = await import("./dreamlinerOne.js");
+  const activeSince = await listActiveOneGuildsSince();
+  let earliest: string | null = null;
+  for (const [guildId, since] of activeSince) {
+    if (client.guilds.cache.get(guildId)?.ownerId !== userId) continue;
+    if (earliest == null || since < earliest) earliest = since;
+  }
+  return earliest;
 }
 
 export type PublicProfileStats = {
   totalMessages: number;
   globalRank: number | null;
+  /** Size of the global ranked pool `globalRank` is out of (everyone with >= 1 tracked message). */
+  activeMessagers: number;
+  /** How many servers this user has any tracked message activity in — always shown, independent
+   *  of the profile's `hideServersSection` setting, since it's just a count, not identifying. */
+  serverCount: number;
   /** ISO timestamp of the user's most recent tracked message, for "last seen". */
   lastActiveAt: string | null;
 };
@@ -83,6 +111,8 @@ export async function buildPublicProfileStats(userId: string): Promise<PublicPro
   return {
     totalMessages: stats.totalMessages,
     globalRank: stats.globalRank,
+    activeMessagers: stats.activeMessagers,
+    serverCount: stats.serverCount,
     lastActiveAt: stats.lastActiveAt ? stats.lastActiveAt.toISOString() : null,
   };
 }

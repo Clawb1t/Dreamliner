@@ -1,6 +1,6 @@
 import { ChannelType, GuildFeature, GuildVerificationLevel, type Guild } from "discord.js";
 import { configManager } from "../config/manager.js";
-import { isDreamlinerOneActive } from "./dreamlinerOne.js";
+import { getDreamlinerOnePublicStatusWithRefresh } from "./dreamlinerOne.js";
 import { getTopChannelsByDaily } from "../plugins/stats/functions/queries.js";
 import { buildWebPublicMessagerLeaderboard } from "./webStats.js";
 
@@ -157,10 +157,11 @@ async function buildServerInfo(guild: Guild) {
 }
 
 export async function buildPublicGuildHome(guild: Guild) {
-  const [config, oneActive] = await Promise.all([
+  const [config, oneStatus] = await Promise.all([
     configManager.getEffectiveConfig(guild.id),
-    isDreamlinerOneActive(guild.id),
+    getDreamlinerOnePublicStatusWithRefresh(guild.id),
   ]);
+  const oneActive = oneStatus.active;
   let ownerName: string | null = null;
   let ownerDisplayName: string | null = null;
   let ownerAvatar: string | null = null;
@@ -206,6 +207,7 @@ export async function buildPublicGuildHome(guild: Guild) {
     },
     leaderboardAlwaysPublic: true as const,
     oneActive,
+    oneActiveSince: oneStatus.since,
     serverInfo,
     serverPage: {
       description: serverPage.description,

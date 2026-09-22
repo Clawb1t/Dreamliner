@@ -33,6 +33,9 @@ export type BridgeGuildSnapshot = {
   ownerAvatar: string | null;
   memberCount: number;
   oneActive: boolean;
+  /** ISO timestamp of when the guild's current subscription started, null if inactive/unknown —
+   *  powers the One badge's "subscribed for X" tooltip on the dashboard sidebar/server picker. */
+  oneActiveSince: string | null;
 };
 
 export type BridgeStatusPayload = {
@@ -50,8 +53,8 @@ let server: http.Server | null = null;
 
 async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
   const guilds = [...client.guilds.cache.values()];
-  const { listActiveOneGuildIds } = await import("./dreamlinerOne.js");
-  const oneGuildIds = await listActiveOneGuildIds();
+  const { listActiveOneGuildsSince } = await import("./dreamlinerOne.js");
+  const oneSince = await listActiveOneGuildsSince();
   return Promise.all(
     guilds.map(async (guild) => {
       let ownerName: string | null = null;
@@ -79,7 +82,8 @@ async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
         ownerDisplayName,
         ownerAvatar,
         memberCount: guild.memberCount,
-        oneActive: oneGuildIds.has(guild.id),
+        oneActive: oneSince.has(guild.id),
+        oneActiveSince: oneSince.get(guild.id) ?? null,
       };
     }),
   );
