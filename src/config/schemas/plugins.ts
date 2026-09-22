@@ -523,10 +523,9 @@ export const zStatsConfig = z.strictObject({
   can_server: boolPerm("view server stats"),
   can_user: boolPerm("view user stats"),
   can_channel: boolPerm("view channel stats"),
-  track_voice_activity: z
-    .boolean()
-    .default(false)
-    .describe("Track voice channel minutes for the stats dashboard's voice analytics. Off by default even when stats is otherwise enabled, since this is a new kind of tracking (presence/duration in voice channels) beyond message activity."),
+  // No track_voice_activity toggle here on purpose: voice tracking is unconditional for every
+  // guild (see the VoiceStateUpdate handler in plugins/stats/index.ts) with no setting to turn
+  // it off, so there's deliberately nothing to expose in the dashboard for it.
 });
 
 export const zDreamCommandsConfig = z.strictObject({

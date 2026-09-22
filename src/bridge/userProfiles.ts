@@ -4,6 +4,8 @@ import {
   automodHits,
   guildMessageCounts,
   guildStatsUserDaily,
+  guildStatsUserVoiceDaily,
+  voiceActiveSessions,
   nameHistory,
   memberIdentity,
   reminders,
@@ -225,6 +227,18 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       ),
     },
     {
+      key: "guild_stats_user_voice_daily",
+      label: "Daily voice activity stats",
+      description: "Per-day voice channel time (including muted/deafened/streaming time) used for charts and leaderboards.",
+      total: countRows(() =>
+        db
+          .select({ total: count() })
+          .from(guildStatsUserVoiceDaily)
+          .where(eq(guildStatsUserVoiceDaily.userId, userId))
+          .get(),
+      ),
+    },
+    {
       key: "name_history",
       label: "Name history",
       description: "Past nicknames / display names Dreamliner recorded.",
@@ -402,6 +416,17 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   await wipe(
     "guild_stats_user_daily",
     db.delete(guildStatsUserDaily).where(eq(guildStatsUserDaily.userId, userId)).returning(),
+  );
+  await wipe(
+    "guild_stats_user_voice_daily",
+    db.delete(guildStatsUserVoiceDaily).where(eq(guildStatsUserVoiceDaily.userId, userId)).returning(),
+  );
+  // Doesn't touch a currently in-progress session in memory (src/plugins/stats/functions/voice.ts)
+  // — just the durable row used to recover it across a restart, so a redeploy mid-session can't
+  // resurrect time for a user who asked for their data erased.
+  await wipe(
+    "voice_active_sessions",
+    db.delete(voiceActiveSessions).where(eq(voiceActiveSessions.userId, userId)).returning(),
   );
   await wipe(
     "name_history",

@@ -82,3 +82,22 @@ export function buildDefaultSocialEmbedConfig(): SocialEmbedConfig {
 
 /** Default plain-text message for a newly created watcher, used when the embed is off. */
 export const DEFAULT_SOCIAL_MESSAGE_CONTENT = "**{channel_name}** has posted {video_url}";
+
+/** Default embed for a newly created Twitch watcher — off by default, see `enabled`. */
+export function buildDefaultTwitchEmbedConfig(): SocialEmbedConfig {
+  return zSocialEmbedConfig.parse({
+    enabled: false,
+    title: "{streamer_name} is live!",
+    description: "**{stream_title}**",
+    color: 0x9146ff,
+    author_name: "{streamer_name}",
+    author_url: "{streamer_url}",
+    author_icon: "channel",
+    image: "video",
+    timestamp: true,
+    buttons: [{ label: "Watch on Twitch", url: "{stream_url}" }],
+  });
+}
+
+/** Default plain-text message for a newly created Twitch watcher, used when the embed is off. */
+export const DEFAULT_TWITCH_MESSAGE_CONTENT = "**{streamer_name}** is live! {stream_url}";

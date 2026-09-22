@@ -45,6 +45,26 @@ function applyButtonEmoji(button: ButtonBuilder, emoji?: string) {
   return button.setEmoji(parsed);
 }
 
+/** How many "Comment #N" fields the live posted embed carries at once — older comments still
+ *  exist in the DB (and via `/suggestion info`) but drop off the live message to keep it from
+ *  growing without bound as a popular suggestion accumulates comments. */
+const MAX_LIVE_COMMENT_FIELDS = 15;
+/** Per-comment body length in the live embed, well short of the 1000-char `/suggestion comment`
+ *  input cap so several comment fields plus the rest of the embed stay comfortably inside the
+ *  container's overall text budget. */
+const LIVE_COMMENT_BODY_LIMIT = 400;
+
+/** Renders a comment as a Discord blockquote — one `>` per line, so a multi-line comment quotes
+ *  correctly instead of only the first line. */
+function quoteCommentBody(content: string): string {
+  const trimmed = trimLines(content);
+  const truncated = trimmed.length > LIVE_COMMENT_BODY_LIMIT ? `${trimmed.slice(0, LIVE_COMMENT_BODY_LIMIT)}…` : trimmed;
+  return truncated
+    .split("\n")
+    .map((line) => `> ${line}`)
+    .join("\n");
+}
+
 export function buildSuggestionEmbed(options: {
   client: Client;
   suggestion: Suggestion;
@@ -52,9 +72,12 @@ export function buildSuggestionEmbed(options: {
   votes?: VoteTotals;
   titlePrefix?: string;
   commentCount?: number;
+  /** Comments to render as individual "Comment #N" fields on the live posted embed (oldest
+   *  first) — distinct from `commentCount`, which is just the summary number shown above them. */
+  comments?: SuggestionComment[];
   t?: Translator;
 }) {
-  const { client, suggestion, config, votes, titlePrefix, commentCount, t = defaultTranslator } = options;
+  const { client, suggestion, config, votes, titlePrefix, commentCount, comments, t = defaultTranslator } = options;
   const authorLabel = suggestion.anonymous ? t("suggestions.anonymous", "Anonymous") : `<@${suggestion.authorId}>`;
   const statusLabel =
     suggestion.status === "awaiting_review"
@@ -108,6 +131,21 @@ export function buildSuggestionEmbed(options: {
     embed.addFields(
       embedField(t("suggestions.field.comments", "Comments"), String(commentCount), true),
     );
+  }
+
+  if (comments?.length) {
+    const shown = comments.slice(-MAX_LIVE_COMMENT_FIELDS);
+    const offset = comments.length - shown.length;
+    shown.forEach((comment, i) => {
+      const number = offset + i + 1;
+      const author = comment.anonymous ? t("suggestions.anonymous", "Anonymous") : `<@${comment.authorId}>`;
+      embed.addFields(
+        embedField(
+          t("suggestions.field.commentNumber", "Comment #{n}", { n: number }),
+          `${author}\n${quoteCommentBody(comment.content)}`,
+        ),
+      );
+    });
   }
 
   if (suggestion.anonymous) {

@@ -17,6 +17,10 @@ import { featureEnabled } from "./config.js";
 import { ensureCompanionInterface, postCompanionInterface } from "./panel.js";
 import { renderCompanionName } from "./names.js";
 import { setVoiceChannelStatus } from "../../../core/voiceChannelStatus.js";
+import { buildLogPayload } from "../../../core/logging/container.js";
+import { buildCompanionRoomCreatedLog, buildCompanionRoomRemovedLog } from "../../../core/logging/format.js";
+import { resolveLogEmoji } from "../../../core/logging/emojis.js";
+import type { LogCard, LogRef } from "../../../core/logging/types.js";
 import {
   getOwnedRoom,
   getRoomByChannel,
@@ -209,13 +213,30 @@ export async function removeJoinRoleIfIdle(
   await member.roles.remove(roleId, "Left companion channels").catch(() => null);
 }
 
-async function logRoom(guild: Guild, config: CompanionChannelsConfig, text: string): Promise<void> {
+function memberLogRef(member: GuildMember): LogRef {
+  return {
+    id: member.id,
+    name: member.user.username,
+    avatarUrl: member.displayAvatarURL({ size: 128 }),
+    createdAt: member.user.createdTimestamp,
+    joinedAt: member.joinedTimestamp ?? undefined,
+    bot: member.user.bot,
+  };
+}
+
+/** Same Components V2 "container" card format the logs plugin sends everywhere else (see
+ *  core/logging/container.ts), just delivered straight to companion channels' own dedicated
+ *  `log_channel_id` instead of going through the generic logs plugin's event-type/toggle/
+ *  dashboard-history pipeline (core/logging/send.ts) — companion channels manages its own log
+ *  channel setting separately and isn't one of that plugin's event types. */
+async function logRoom(guild: Guild, config: CompanionChannelsConfig, card: LogCard): Promise<void> {
   const channelId = config.log_channel_id.trim();
   if (!channelId) return;
   const channel = await guild.channels.fetch(channelId).catch(() => null);
-  if (channel?.isTextBased() && "send" in channel) {
-    await channel.send(text.slice(0, 2000)).catch(() => null);
-  }
+  if (!channel?.isTextBased() || !("send" in channel)) return;
+  const emoji = resolveLogEmoji(card.emojiCategory ?? "action");
+  const titledCard: LogCard = { ...card, title: `${emoji} ${card.title}` };
+  await channel.send(buildLogPayload(titledCard)).catch(() => null);
 }
 
 async function createVoiceChannel(opts: {
@@ -349,7 +370,14 @@ export async function assignOrCreateRoom(
   }
 
   await addJoinRole(member, config.join_role_id.trim());
-  await logRoom(member.guild, config, `Created companion room ${voice} for ${member}.`);
+  await logRoom(
+    member.guild,
+    config,
+    buildCompanionRoomCreatedLog({
+      member: memberLogRef(member),
+      channel: { id: voice.id, name: voice.name },
+    }),
+  );
   return voice;
 }
 
@@ -444,7 +472,15 @@ export async function resetOrDeleteRoom(
   await deleteLinkedText(guild, room.textChannelId);
   if (channel) await channel.delete("Companion channel empty").catch(() => null);
   await removeRoom(guild.id, room.channelId);
-  await logRoom(guild, config, `Removed companion room <#${room.channelId}>.`);
+  const owner = room.ownerId ? await guild.members.fetch(room.ownerId).catch(() => null) : null;
+  await logRoom(
+    guild,
+    config,
+    buildCompanionRoomRemovedLog({
+      channel: { id: room.channelId, name: channel && "name" in channel ? channel.name : undefined },
+      owner: owner ? memberLogRef(owner) : room.ownerId ? { id: room.ownerId } : null,
+    }),
+  );
 }
 
 export async function refillDynamicPool(

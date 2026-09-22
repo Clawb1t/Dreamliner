@@ -498,19 +498,29 @@ export const guildStatsHourly = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.weekdayUtc, table.hourUtc] })],
 );
 
-/** Per-guild daily voice-channel minutes, mirrors guildStatsDaily for the stats panel's voice
- *  analytics section. Populated by src/plugins/stats/functions/voice.ts on session flush. */
+/** Per-guild daily voice-channel activity, mirrors guildStatsDaily for the stats panel's voice
+ *  analytics section. Populated by src/plugins/stats/functions/voice.ts on session flush.
+ *  `minutes` is kept (rounded per session, legacy) alongside the exact `seconds` total so nothing
+ *  that already reads `minutes` breaks; all current aggregate queries read `seconds` instead,
+ *  since summing per-session-rounded minutes drifts low as sessions accumulate. `sessions` counts
+ *  completed joins (not just channel switches) and `peakConcurrent` is the most people tracked in
+ *  voice across the guild at once that day. */
 export const guildStatsVoiceDaily = sqliteTable(
   "guild_stats_voice_daily",
   {
     guildId: text("guild_id").notNull(),
     statDate: text("stat_date").notNull(),
     minutes: integer("minutes").notNull().default(0),
+    seconds: integer("seconds").notNull().default(0),
+    sessions: integer("sessions").notNull().default(0),
+    peakConcurrent: integer("peak_concurrent").notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.statDate] })],
 );
 
-/** Per-user daily voice-channel minutes, mirrors guildStatsUserDaily. */
+/** Per-user daily voice-channel activity, mirrors guildStatsUserDaily. `mutedSeconds`/
+ *  `deafenedSeconds`/`streamingSeconds` are segment-tracked within each session (self-mute,
+ *  self-deafen, camera or screen-share), not just a snapshot at join time. */
 export const guildStatsUserVoiceDaily = sqliteTable(
   "guild_stats_user_voice_daily",
   {
@@ -518,11 +528,16 @@ export const guildStatsUserVoiceDaily = sqliteTable(
     userId: text("user_id").notNull(),
     statDate: text("stat_date").notNull(),
     minutes: integer("minutes").notNull().default(0),
+    seconds: integer("seconds").notNull().default(0),
+    sessions: integer("sessions").notNull().default(0),
+    mutedSeconds: integer("muted_seconds").notNull().default(0),
+    deafenedSeconds: integer("deafened_seconds").notNull().default(0),
+    streamingSeconds: integer("streaming_seconds").notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.userId, table.statDate] })],
 );
 
-/** Per-channel daily voice-channel minutes, mirrors guildStatsChannelDaily. */
+/** Per-channel daily voice-channel activity, mirrors guildStatsChannelDaily. */
 export const guildStatsChannelVoiceDaily = sqliteTable(
   "guild_stats_channel_voice_daily",
   {
@@ -530,8 +545,46 @@ export const guildStatsChannelVoiceDaily = sqliteTable(
     channelId: text("channel_id").notNull(),
     statDate: text("stat_date").notNull(),
     minutes: integer("minutes").notNull().default(0),
+    seconds: integer("seconds").notNull().default(0),
+    sessions: integer("sessions").notNull().default(0),
+    peakConcurrent: integer("peak_concurrent").notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.channelId, table.statDate] })],
+);
+
+/** Zero-filled 7 (weekday, UTC) x 24 (hour, UTC) voice-activity grid, mirrors guildStatsHourly's
+ *  message heatmap. Fed by a periodic sampler (see startVoiceHourlySampler in
+ *  src/plugins/stats/functions/voice.ts) rather than session flush, since a single voice session
+ *  can span many hour buckets — polling active sessions every few minutes and crediting the
+ *  current bucket is simple and correct for that, where session-flush accounting is not. */
+export const guildStatsVoiceHourly = sqliteTable(
+  "guild_stats_voice_hourly",
+  {
+    guildId: text("guild_id").notNull(),
+    weekdayUtc: integer("weekday_utc", { mode: "number" }).notNull(),
+    hourUtc: integer("hour_utc", { mode: "number" }).notNull(),
+    minutes: integer("minutes").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.weekdayUtc, table.hourUtc] })],
+);
+
+/**
+ * Durable mirror of the in-memory active-voice-session map (src/plugins/stats/functions/voice.ts).
+ * Without this, a bot restart mid-session had no way to know when someone actually joined, so it
+ * just restarted the clock from the moment the process came back up — silently dropping whatever
+ * time they'd already spent in voice before the restart. Written on join/channel-switch, deleted
+ * on flush; on boot, anyone still connected to the same channel their row remembers gets their
+ * real `joinedAt` back instead of a reset one.
+ */
+export const voiceActiveSessions = sqliteTable(
+  "voice_active_sessions",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    joinedAt: integer("joined_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
 );
 
 export const autoreactionState = sqliteTable(
@@ -1152,6 +1205,34 @@ export const socialYoutubeWatchers = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [index("social_youtube_watchers_guild").on(table.guildId)],
+);
+
+export const socialTwitchWatchers = sqliteTable(
+  "social_twitch_watchers",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    discordChannelId: text("discord_channel_id").notNull(),
+    sourceUserId: text("source_user_id").notNull(),
+    sourceUserLogin: text("source_user_login").notNull(),
+    sourceUserDisplayName: text("source_user_display_name").notNull(),
+    sourceUserAvatarUrl: text("source_user_avatar_url"),
+    sourceUserUrl: text("source_user_url").notNull(),
+    messageContent: text("message_content").notNull().default(""),
+    /** JSON string[] of role IDs to ping. */
+    mentionRoleIds: text("mention_role_ids").notNull().default("[]"),
+    /** JSON-serialized SocialEmbedConfig. */
+    embedConfig: text("embed_config").notNull(),
+    /** Helix stream id of the last "went live" session we notified for. */
+    lastStreamId: text("last_stream_id"),
+    lastLiveAt: integer("last_live_at", { mode: "timestamp" }),
+    lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("social_twitch_watchers_guild").on(table.guildId)],
 );
 
 export const ticketBlacklist = sqliteTable(

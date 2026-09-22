@@ -4,6 +4,7 @@ import { embedReply, resultReply, slashResultOptions } from "../../core/response
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, setEmbedAuthor, trimLines } from "../../core/embeds.js";
 import { listWatchers, resolveMaxWatchers } from "./functions/store.js";
+import { listTwitchWatchers } from "./functions/storeTwitch.js";
 import { isDreamlinerOneActive } from "../../bridge/dreamlinerOne.js";
 
 export const socialCommands: SlashCommandDefinition[] = [
@@ -17,8 +18,10 @@ export const socialCommands: SlashCommandDefinition[] = [
       const auth = await requirePluginPermission(ctx, "social", "can_view");
       if (!auth) return;
 
-      const rows = await listWatchers(guildId);
-      if (!rows.length) {
+      const [youtubeRows, twitchRows] = await Promise.all([listWatchers(guildId), listTwitchWatchers(guildId)]);
+      const total = youtubeRows.length + twitchRows.length;
+
+      if (!total) {
         await ctx.interaction.reply(
           resultReply(
             ctx.t("social.title", "Social notifications"),
@@ -30,14 +33,20 @@ export const socialCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      const lines = rows.map((row) => {
-        const status = row.enabled ? ctx.t("social.statusLive", "live") : ctx.t("social.statusDisabled", "disabled");
-        return ctx.t("social.watcherLine", "**{name}** (YouTube) · <#{channelId}> · {status}", {
-          name: row.sourceChannelName,
-          channelId: row.discordChannelId,
+      const watcherLine = (name: string, platform: string, channelId: string, enabled: boolean) => {
+        const status = enabled ? ctx.t("social.statusLive", "live") : ctx.t("social.statusDisabled", "disabled");
+        return ctx.t("social.watcherLine", "**{name}** ({platform}) · <#{channelId}> · {status}", {
+          name,
+          platform,
+          channelId,
           status,
         });
-      });
+      };
+
+      const lines = [
+        ...youtubeRows.map((row) => watcherLine(row.sourceChannelName, "YouTube", row.discordChannelId, row.enabled)),
+        ...twitchRows.map((row) => watcherLine(row.sourceUserDisplayName, "Twitch", row.discordChannelId, row.enabled)),
+      ];
 
       const embed = setEmbedAuthor(
         baseEmbed(),
@@ -53,7 +62,7 @@ export const socialCommands: SlashCommandDefinition[] = [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
               .setCustomId("dl:social:stat:total")
-              .setLabel(ctx.t("social.watcherCountLabel", "{count}/{max} notifications", { count: rows.length, max: maxWatchers }))
+              .setLabel(ctx.t("social.watcherCountLabel", "{count}/{max} notifications", { count: total, max: maxWatchers }))
               .setStyle(ButtonStyle.Secondary)
               .setDisabled(true),
           ),

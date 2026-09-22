@@ -3,9 +3,11 @@ import { z } from "zod";
 import type { ConfigManager } from "../config/manager.js";
 import {
   buildDefaultSocialEmbedConfig,
+  buildDefaultTwitchEmbedConfig,
   validateSocialEmbedConfig,
   zSocialEmbedConfig,
   DEFAULT_SOCIAL_MESSAGE_CONTENT,
+  DEFAULT_TWITCH_MESSAGE_CONTENT,
   type SocialEmbedConfig,
 } from "../config/schemas/social.js";
 import {
@@ -14,6 +16,12 @@ import {
   resolveYoutubeChannel,
   type ResolvedYoutubeChannel,
 } from "../plugins/social/functions/youtube.js";
+import {
+  TwitchResolveError,
+  fetchLiveStream,
+  resolveTwitchUser,
+  type ResolvedTwitchUser,
+} from "../plugins/social/functions/twitch.js";
 import {
   ONE_WATCHERS_LIMIT,
   countWatchers,
@@ -25,13 +33,27 @@ import {
   updateWatcher,
   type SocialWatcherRow,
 } from "../plugins/social/functions/store.js";
+import {
+  countTwitchWatchers,
+  createTwitchWatcher,
+  deleteTwitchWatcher,
+  getTwitchWatcher,
+  listTwitchWatchers,
+  updateTwitchWatcher,
+  type SocialTwitchWatcherRow,
+} from "../plugins/social/functions/storeTwitch.js";
 import { sendNotification } from "../plugins/social/functions/notify.js";
+import { sendTwitchNotification } from "../plugins/social/functions/notifyTwitch.js";
 import { isDreamlinerOneActive } from "./dreamlinerOne.js";
 import { getLogger } from "../core/logger.js";
 const log = getLogger("bridge");
 
+export type SocialPlatform = "youtube" | "twitch";
+const zSocialPlatform = z.enum(["youtube", "twitch"]);
+
 export type BridgeSocialWatcher = {
   id: number;
+  platform: SocialPlatform;
   guildId: string;
   discordChannelId: string;
   sourceChannelId: string;
@@ -53,9 +75,10 @@ export type BridgeSocialWatcher = {
 
 type BridgeResult<T> = { ok: true } & T | { ok: false; error: string; status: number };
 
-function serializeWatcher(row: SocialWatcherRow): BridgeSocialWatcher {
+function serializeYoutubeWatcher(row: SocialWatcherRow): BridgeSocialWatcher {
   return {
     id: row.id,
+    platform: "youtube",
     guildId: row.guildId,
     discordChannelId: row.discordChannelId,
     sourceChannelId: row.sourceChannelId,
@@ -76,12 +99,41 @@ function serializeWatcher(row: SocialWatcherRow): BridgeSocialWatcher {
   };
 }
 
+function serializeTwitchWatcher(row: SocialTwitchWatcherRow): BridgeSocialWatcher {
+  return {
+    id: row.id,
+    platform: "twitch",
+    guildId: row.guildId,
+    discordChannelId: row.discordChannelId,
+    sourceChannelId: row.sourceUserId,
+    sourceChannelHandle: `@${row.sourceUserLogin}`,
+    sourceChannelName: row.sourceUserDisplayName,
+    sourceChannelAvatarUrl: row.sourceUserAvatarUrl,
+    sourceChannelUrl: row.sourceUserUrl,
+    messageContent: row.messageContent,
+    mentionRoleIds: row.mentionRoleIds,
+    embedConfig: row.embedConfig,
+    lastVideoId: row.lastStreamId,
+    lastVideoTitle: null,
+    lastCheckedAt: row.lastCheckedAt ? row.lastCheckedAt.toISOString() : null,
+    enabled: row.enabled,
+    createdBy: row.createdBy,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
 function resolveErrorToResult(error: unknown): { ok: false; error: string; status: number } {
-  if (error instanceof YoutubeResolveError) {
+  if (error instanceof YoutubeResolveError || error instanceof TwitchResolveError) {
     return { ok: false, error: error.message, status: 422 };
   }
-  log.error("[bridge] social YouTube resolve/poll error:", error);
-  return { ok: false, error: "YouTube lookup failed. Try again shortly.", status: 502 };
+  log.error("[bridge] social resolve/poll error:", error);
+  return { ok: false, error: "Lookup failed. Try again shortly.", status: 502 };
+}
+
+async function countAllWatchers(guildId: string): Promise<number> {
+  const [youtube, twitch] = await Promise.all([countWatchers(guildId), countTwitchWatchers(guildId)]);
+  return youtube + twitch;
 }
 
 export async function listBridgeSocialWatchers(
@@ -90,16 +142,17 @@ export async function listBridgeSocialWatchers(
 ): Promise<BridgeResult<{ watchers: BridgeSocialWatcher[]; count: number; maxWatchers: number }>> {
   // Dashboard management (list/create/edit/delete/test) is always available, same as
   // Autoreactions — the plugin's enabled flag only gates whether the bot actually acts on
-  // this at runtime (see pollAllWatchers), not whether you can configure it.
-  const [watchers, count, oneActive] = await Promise.all([
+  // this at runtime (see the poll*.ts modules), not whether you can configure it.
+  const [youtubeRows, twitchRows, oneActive] = await Promise.all([
     listWatchers(guildId),
-    countWatchers(guildId),
+    listTwitchWatchers(guildId),
     isDreamlinerOneActive(guildId),
   ]);
+  const watchers = [...youtubeRows.map(serializeYoutubeWatcher), ...twitchRows.map(serializeTwitchWatcher)];
   return {
     ok: true,
-    watchers: watchers.map(serializeWatcher),
-    count,
+    watchers,
+    count: watchers.length,
     maxWatchers: resolveMaxWatchers(oneActive),
   };
 }
@@ -107,17 +160,19 @@ export async function listBridgeSocialWatchers(
 export async function resolveBridgeSocialSource(
   _configManager: ConfigManager,
   _guildId: string,
+  platform: SocialPlatform,
   input: string,
-): Promise<BridgeResult<{ channel: ResolvedYoutubeChannel }>> {
+): Promise<BridgeResult<{ channel: ResolvedYoutubeChannel | ResolvedTwitchUser }>> {
   try {
-    const channel = await resolveYoutubeChannel(input);
-    return { ok: true, channel };
+    if (platform === "youtube") return { ok: true, channel: await resolveYoutubeChannel(input) };
+    return { ok: true, channel: await resolveTwitchUser(input) };
   } catch (error) {
     return resolveErrorToResult(error);
   }
 }
 
 const zCreateInput = z.object({
+  platform: zSocialPlatform,
   sourceInput: z.string().min(1),
   discordChannelId: z.string().min(1),
   embedConfig: zSocialEmbedConfig.partial().optional(),
@@ -133,10 +188,11 @@ export async function createBridgeSocialWatcher(
 ): Promise<BridgeResult<{ watcher: BridgeSocialWatcher }>> {
   const parsed = zCreateInput.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "sourceInput and discordChannelId are required.", status: 400 };
+    return { ok: false, error: "platform, sourceInput and discordChannelId are required.", status: 400 };
   }
+  const { platform } = parsed.data;
 
-  const [count, oneActive] = await Promise.all([countWatchers(guildId), isDreamlinerOneActive(guildId)]);
+  const [count, oneActive] = await Promise.all([countAllWatchers(guildId), isDreamlinerOneActive(guildId)]);
   const maxWatchers = resolveMaxWatchers(oneActive);
   if (count >= maxWatchers) {
     return {
@@ -148,57 +204,105 @@ export async function createBridgeSocialWatcher(
     };
   }
 
-  let channel: ResolvedYoutubeChannel;
+  if (platform === "youtube") {
+    let channel: ResolvedYoutubeChannel;
+    try {
+      channel = await resolveYoutubeChannel(parsed.data.sourceInput);
+    } catch (error) {
+      return resolveErrorToResult(error);
+    }
+
+    let seedVideoId: string | null = null;
+    let seedPublishedAt: Date | null = null;
+    try {
+      const latest = await fetchLatestUpload(channel.uploadsPlaylistId);
+      if (latest) {
+        seedVideoId = latest.videoId;
+        seedPublishedAt = latest.publishedAt;
+      }
+    } catch (error) {
+      // Don't block creation on a transient quota/API hiccup, just skip checkpoint seeding.
+      log.warn("[bridge] social: failed to seed YouTube checkpoint on create:", error);
+    }
+
+    let embedConfig: SocialEmbedConfig;
+    try {
+      embedConfig = parsed.data.embedConfig
+        ? validateSocialEmbedConfig({ ...buildDefaultSocialEmbedConfig(), ...parsed.data.embedConfig })
+        : buildDefaultSocialEmbedConfig();
+    } catch {
+      return { ok: false, error: "Invalid embed configuration.", status: 400 };
+    }
+
+    const created = await createWatcher({
+      guildId,
+      discordChannelId: parsed.data.discordChannelId,
+      sourceChannelId: channel.channelId,
+      sourceChannelHandle: channel.handle,
+      sourceChannelName: channel.name,
+      sourceChannelAvatarUrl: channel.avatarUrl,
+      sourceChannelUrl: channel.url,
+      uploadsPlaylistId: channel.uploadsPlaylistId,
+      messageContent: parsed.data.messageContent ?? DEFAULT_SOCIAL_MESSAGE_CONTENT,
+      mentionRoleIds: parsed.data.mentionRoleIds ?? [],
+      embedConfig,
+      lastVideoId: seedVideoId,
+      lastVideoPublishedAt: seedPublishedAt,
+      createdBy: actorId,
+    });
+    return { ok: true, watcher: serializeYoutubeWatcher(created) };
+  }
+
+  let user: ResolvedTwitchUser;
   try {
-    channel = await resolveYoutubeChannel(parsed.data.sourceInput);
+    user = await resolveTwitchUser(parsed.data.sourceInput);
   } catch (error) {
     return resolveErrorToResult(error);
   }
 
-  let seedVideoId: string | null = null;
-  let seedPublishedAt: Date | null = null;
+  // Seed the checkpoint to the current live stream (if any) so creating a watcher mid-stream
+  // doesn't immediately fire a notification for a stream that's already in progress.
+  let seedStreamId: string | null = null;
+  let seedLiveAt: Date | null = null;
   try {
-    const latest = await fetchLatestUpload(channel.uploadsPlaylistId);
-    if (latest) {
-      seedVideoId = latest.videoId;
-      seedPublishedAt = latest.publishedAt;
+    const stream = await fetchLiveStream(user.userId);
+    if (stream) {
+      seedStreamId = stream.streamId;
+      seedLiveAt = stream.startedAt;
     }
   } catch (error) {
-    // Don't block creation on a transient quota/API hiccup, just skip checkpoint seeding.
-    // The next poll could send the creator's current latest video once as a result.
-    log.warn("[bridge] social: failed to seed checkpoint on create:", error);
+    log.warn("[bridge] social: failed to seed Twitch checkpoint on create:", error);
   }
 
   let embedConfig: SocialEmbedConfig;
   try {
     embedConfig = parsed.data.embedConfig
-      ? validateSocialEmbedConfig({ ...buildDefaultSocialEmbedConfig(), ...parsed.data.embedConfig })
-      : buildDefaultSocialEmbedConfig();
+      ? validateSocialEmbedConfig({ ...buildDefaultTwitchEmbedConfig(), ...parsed.data.embedConfig })
+      : buildDefaultTwitchEmbedConfig();
   } catch {
     return { ok: false, error: "Invalid embed configuration.", status: 400 };
   }
 
-  const created = await createWatcher({
+  const created = await createTwitchWatcher({
     guildId,
     discordChannelId: parsed.data.discordChannelId,
-    sourceChannelId: channel.channelId,
-    sourceChannelHandle: channel.handle,
-    sourceChannelName: channel.name,
-    sourceChannelAvatarUrl: channel.avatarUrl,
-    sourceChannelUrl: channel.url,
-    uploadsPlaylistId: channel.uploadsPlaylistId,
-    messageContent: parsed.data.messageContent ?? DEFAULT_SOCIAL_MESSAGE_CONTENT,
+    sourceUserId: user.userId,
+    sourceUserLogin: user.login,
+    sourceUserDisplayName: user.displayName,
+    sourceUserAvatarUrl: user.avatarUrl,
+    sourceUserUrl: user.url,
+    messageContent: parsed.data.messageContent ?? DEFAULT_TWITCH_MESSAGE_CONTENT,
     mentionRoleIds: parsed.data.mentionRoleIds ?? [],
     embedConfig,
-    lastVideoId: seedVideoId,
-    lastVideoPublishedAt: seedPublishedAt,
+    lastStreamId: seedStreamId,
+    lastLiveAt: seedLiveAt,
     createdBy: actorId,
   });
-
-  return { ok: true, watcher: serializeWatcher(created) };
+  return { ok: true, watcher: serializeTwitchWatcher(created) };
 }
 
 const zUpdateInput = z.object({
+  platform: zSocialPlatform,
   discordChannelId: z.string().min(1).optional(),
   messageContent: z.string().max(2000).optional(),
   mentionRoleIds: z.array(z.string()).max(10).optional(),
@@ -212,54 +316,87 @@ export async function updateBridgeSocialWatcher(
   id: number,
   input: unknown,
 ): Promise<BridgeResult<{ watcher: BridgeSocialWatcher }>> {
-  const existing = await getWatcher(guildId, id);
-  if (!existing) return { ok: false, error: "No social notification with that ID.", status: 404 };
-
   const parsed = zUpdateInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid update payload.", status: 400 };
+  const { platform, ...patch } = parsed.data;
 
-  const updated = await updateWatcher(guildId, id, parsed.data);
+  if (platform === "youtube") {
+    const existing = await getWatcher(guildId, id);
+    if (!existing) return { ok: false, error: "No social notification with that ID.", status: 404 };
+    const updated = await updateWatcher(guildId, id, patch);
+    if (!updated) return { ok: false, error: "No social notification with that ID.", status: 404 };
+    return { ok: true, watcher: serializeYoutubeWatcher(updated) };
+  }
+
+  const existing = await getTwitchWatcher(guildId, id);
+  if (!existing) return { ok: false, error: "No social notification with that ID.", status: 404 };
+  const updated = await updateTwitchWatcher(guildId, id, patch);
   if (!updated) return { ok: false, error: "No social notification with that ID.", status: 404 };
-
-  return { ok: true, watcher: serializeWatcher(updated) };
+  return { ok: true, watcher: serializeTwitchWatcher(updated) };
 }
 
 export async function deleteBridgeSocialWatcher(
   _configManager: ConfigManager,
   guildId: string,
+  platform: SocialPlatform,
   id: number,
 ): Promise<BridgeResult<{ watcher: BridgeSocialWatcher }>> {
-  const deleted = await deleteWatcher(guildId, id);
+  if (platform === "youtube") {
+    const deleted = await deleteWatcher(guildId, id);
+    if (!deleted) return { ok: false, error: "No social notification with that ID.", status: 404 };
+    return { ok: true, watcher: serializeYoutubeWatcher(deleted) };
+  }
+  const deleted = await deleteTwitchWatcher(guildId, id);
   if (!deleted) return { ok: false, error: "No social notification with that ID.", status: 404 };
-
-  return { ok: true, watcher: serializeWatcher(deleted) };
+  return { ok: true, watcher: serializeTwitchWatcher(deleted) };
 }
 
 export async function testSendBridgeSocialWatcher(
   client: Client,
   _configManager: ConfigManager,
   guildId: string,
+  platform: SocialPlatform,
   id: number,
 ): Promise<BridgeResult<{ sent: boolean }>> {
-  const watcher = await getWatcher(guildId, id);
-  if (!watcher) return { ok: false, error: "No social notification with that ID.", status: 404 };
+  if (platform === "youtube") {
+    const watcher = await getWatcher(guildId, id);
+    if (!watcher) return { ok: false, error: "No social notification with that ID.", status: 404 };
+    let video;
+    try {
+      video = await fetchLatestUpload(watcher.uploadsPlaylistId);
+    } catch (error) {
+      return resolveErrorToResult(error);
+    }
+    const sampleVideo = video ?? {
+      videoId: "dQw4w9WgXcQ",
+      title: `${watcher.sourceChannelName} sample video`,
+      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      thumbnailUrl: watcher.sourceChannelAvatarUrl ?? "",
+      publishedAt: new Date(),
+    };
+    const sent = await sendNotification(client, watcher, sampleVideo);
+    if (!sent) return { ok: false, error: "Couldn't send to that channel. Check the bot's permissions there.", status: 502 };
+    return { ok: true, sent: true };
+  }
 
-  let video;
+  const watcher = await getTwitchWatcher(guildId, id);
+  if (!watcher) return { ok: false, error: "No social notification with that ID.", status: 404 };
+  let stream;
   try {
-    video = await fetchLatestUpload(watcher.uploadsPlaylistId);
+    stream = await fetchLiveStream(watcher.sourceUserId);
   } catch (error) {
     return resolveErrorToResult(error);
   }
-
-  const sampleVideo = video ?? {
-    videoId: "dQw4w9WgXcQ",
-    title: `${watcher.sourceChannelName} sample video`,
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    thumbnailUrl: watcher.sourceChannelAvatarUrl ?? "",
-    publishedAt: new Date(),
+  const sampleStream = stream ?? {
+    streamId: "sample",
+    title: `${watcher.sourceUserDisplayName} sample stream`,
+    url: watcher.sourceUserUrl,
+    thumbnailUrl: watcher.sourceUserAvatarUrl ?? "",
+    gameName: "Just Chatting",
+    viewerCount: 0,
+    startedAt: new Date(),
   };
-
-  const sent = await sendNotification(client, watcher, sampleVideo);
+  const sent = await sendTwitchNotification(client, watcher, sampleStream);
   if (!sent) return { ok: false, error: "Couldn't send to that channel. Check the bot's permissions there.", status: 502 };
   return { ok: true, sent: true };
 }

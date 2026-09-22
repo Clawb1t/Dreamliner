@@ -1,23 +1,15 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
-import { zStatsConfig, type StatsConfig } from "../../config/schemas/plugins.js";
+import { zStatsConfig } from "../../config/schemas/plugins.js";
 import { configManager } from "../../config/manager.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
-import { getPluginSettings } from "../../core/permissionRoles.js";
 import { statsCommands } from "./commands/stats.js";
 import { incrementDailyStat, recordMessageActivity } from "./functions/daily.js";
-import { handleVoiceStateUpdate, snapshotActiveVoiceMembers } from "./functions/voice.js";
+import { handleVoiceStateUpdate, snapshotActiveVoiceMembers, startVoiceHourlySampler } from "./functions/voice.js";
 
 async function statsActive(guildId: string): Promise<boolean> {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
   return pluginEnabled(guildConfig, "stats");
-}
-
-async function voiceTrackingActive(guildId: string): Promise<boolean> {
-  const guildConfig = await configManager.getEffectiveConfig(guildId);
-  if (!pluginEnabled(guildConfig, "stats")) return false;
-  const config = getPluginSettings(guildConfig, "stats") as StatsConfig;
-  return config.track_voice_activity === true;
 }
 
 export const statsPlugin = definePlugin({
@@ -97,15 +89,15 @@ export const statsPlugin = definePlugin({
       execute: async (_client, oldState: unknown, newState: unknown) => {
         const oldVoiceState = oldState as import("discord.js").VoiceState;
         const newVoiceState = newState as import("discord.js").VoiceState;
-        if (!(await voiceTrackingActive(newVoiceState.guild.id))) return;
         await handleVoiceStateUpdate(oldVoiceState, newVoiceState);
       },
     },
   ],
   onLoad: async (ctx) => {
-    // Restart recovery: seed a fresh in-memory session for anyone already sitting in a voice
-    // channel, since their original join happened before this process existed. Only seeds
-    // guilds that have voice tracking turned on, matching the VoiceStateUpdate handler's gate.
-    await snapshotActiveVoiceMembers(ctx.client, voiceTrackingActive);
+    // Restart recovery: seed an in-memory session for anyone already sitting in a voice channel
+    // in any guild the bot is in, recovering their real join time from the durable session table
+    // where possible. Voice tracking has no per-guild opt-out — see the VoiceStateUpdate handler.
+    await snapshotActiveVoiceMembers(ctx.client);
+    startVoiceHourlySampler();
   },
 });

@@ -9785,20 +9785,13 @@
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
-                },
-                "track_voice_activity": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "Track voice channel minutes for the stats dashboard's voice analytics. Off by default even when stats is otherwise enabled, since this is a new kind of tracking (presence/duration in voice channels) beyond message activity.",
-                  "title": "Track Voice Activity"
                 }
               },
               "additionalProperties": false,
               "default": {
                 "can_server": false,
                 "can_user": false,
-                "can_channel": false,
-                "track_voice_activity": false
+                "can_channel": false
               },
               "title": "Config"
             }

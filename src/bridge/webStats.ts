@@ -21,7 +21,9 @@ import {
   type StatsWindow,
 } from "../plugins/stats/functions/daily.js";
 import {
+  getActiveVoiceUserCount,
   getFilledVoiceDailyStats,
+  getGuildTotalVoiceMinutes,
   getTopVoiceChannels,
   getTopVoiceUsers,
 } from "../plugins/stats/functions/voice.js";
@@ -86,7 +88,7 @@ import { getLogger } from "../core/logger.js";
 const log = getLogger("stats");
 
 /** How many leaderboard rows to resolve (Discord fetch + profile lookups) at once. */
-const PEOPLE_RESOLVE_CONCURRENCY = 5;
+const PEOPLE_RESOLVE_CONCURRENCY = 10;
 
 function resolveCommandLeaders(
   entries: Array<{ commandName: string; count: number }>,
@@ -147,21 +149,18 @@ function colorIntToHex(value: number): string {
 }
 
 /**
- * A cached User (from a gateway member payload, or an un-forced fetch) never carries the
- * `banner` field — Discord only includes it on a full REST user fetch. `banner` sits at
- * `undefined` until that's happened; `null` means we already asked and confirmed there's no
- * banner. So this only pays for a forced re-fetch the first time we see a given user (or after
- * a process restart) — once fetched, discord.js updates the cached User object in place, so
- * every subsequent lookup (leaderboard revalidation, another guild's leaderboard, etc.) reuses
- * that same object and skips the network call. Without this, `user.bannerURL()` always
- * returns null, which is why leaderboard rows never showed a banner at all.
- *
- * A single failed fetch (rate limit, network blip) used to be final — the User object stays at
- * `banner === undefined` forever after that, since nothing else re-triggers the fetch, so the
- * row's banner would just silently never appear. Retries a few times with backoff first.
+ * Unconditionally forces a full REST user fetch so `user.bannerURL()` is reliable. This used to
+ * skip the re-fetch whenever `user.banner !== undefined`, on the assumption that only a genuine
+ * full user fetch ever populates that field — but a guild member's *embedded* user resource (from
+ * `guild.members.fetch()`, the leaderboard's main path) also carries a `banner` key, just always
+ * `null` regardless of the user's real profile, since Discord doesn't fully hydrate it there. That
+ * satisfied the `!== undefined` check and skipped the real fetch every time, so leaderboard rows
+ * for guild members never showed a banner even when the member had one set. Always forcing here
+ * costs one extra REST call — see `identityCache` below for how that cost is amortized across
+ * requests instead of paid on every single leaderboard render.
  */
 async function ensureBannerLoaded(user: User | null): Promise<User | null> {
-  if (!user || user.banner !== undefined) return user;
+  if (!user) return user;
   const fetched = await retryAsync(() => user.fetch(true), {
     attempts: 4,
     delayMs: 400,
@@ -171,9 +170,56 @@ async function ensureBannerLoaded(user: User | null): Promise<User | null> {
   return fetched ?? user;
 }
 
+type CachedIdentity = {
+  username: string | null;
+  globalName: string | null;
+  avatar: string | null;
+  bannerUrl: string | null;
+};
+
+/**
+ * Process-wide cache of resolved user identity (username/avatar/banner), independent of the
+ * bridge's own per-endpoint payload cache (`responseCache.ts`, keyed by guild+limit and much
+ * shorter-lived). `ensureBannerLoaded` above forces a real Discord REST call per user — without
+ * this, every leaderboard render (messages *and* voice, every guild, every repeat visit past the
+ * payload cache's TTL) re-forces that fetch for every single row, which is what actually made
+ * these pages slow to load. Usernames/avatars/banners don't change minute to minute, so caching
+ * them here for a while lets a request that misses the payload cache still skip the network round
+ * trip entirely for anyone resolved recently — including the same user showing up on both the
+ * messages and voice leaderboards in one page load.
+ */
+const identityCache = new Map<string, { value: CachedIdentity; expiresAt: number }>();
+const IDENTITY_CACHE_TTL_MS = 10 * 60 * 1000;
+
+async function resolveUserIdentity(
+  client: Client,
+  userId: string,
+  knownUser: User | null,
+): Promise<CachedIdentity & { apiFetch: boolean }> {
+  const cached = identityCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return { ...cached.value, apiFetch: false };
+  }
+  const user = await ensureBannerLoaded(
+    knownUser ??
+      (await retryAsync(() => client.users.fetch(userId), {
+        onError: (error, attempt) =>
+          log.debug(`User fetch for ${userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
+      })),
+  );
+  const value: CachedIdentity = {
+    username: user?.username ?? null,
+    globalName: user?.globalName ?? null,
+    avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
+    bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
+  };
+  identityCache.set(userId, { value, expiresAt: Date.now() + IDENTITY_CACHE_TTL_MS });
+  return { ...value, apiFetch: true };
+}
+
 async function resolvePeople(
   guild: Guild,
-  entries: Array<{ userId: string; count: number }>,
+  entries: Array<{ userId: string; count: number; seconds?: number }>,
   trafficTotal: number,
   options?: { includeAccents?: boolean },
 ) {
@@ -191,23 +237,21 @@ async function resolvePeople(
     // Cache-first: the gateway keeps guild member/user caches warm for anyone who's been
     // active, so this is normally an instant local lookup. Only genuinely uncached
     // entries (rare — a member who left, or a very first-time computation) hit the API.
-    if (!guild.members.cache.has(entry.userId)) apiFetches++;
     const member = await guild.members.fetch({ user: entry.userId }).catch(() => null);
-    const user = await ensureBannerLoaded(
-      member?.user ??
-        (await retryAsync(() => guild.client.users.fetch(entry.userId), {
-          onError: (error, attempt) =>
-            log.debug(`User fetch for ${entry.userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
-        })),
-    );
+    const identity = await resolveUserIdentity(guild.client, entry.userId, member?.user ?? null);
+    if (identity.apiFetch) apiFetches++;
     return {
       rank: index + 1,
       id: entry.userId,
-      name: member?.displayName ?? user?.username ?? entry.userId,
-      username: user?.username ?? null,
-      avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
-      bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
+      name: member?.displayName ?? identity.username ?? entry.userId,
+      username: identity.username,
+      avatar: identity.avatar,
+      bannerUrl: identity.bannerUrl,
       count: entry.count,
+      // Exact seconds, voice leaderboard rows only (undefined -> null for messages rows, which
+      // have no such concept) — lets the website show a precise "Xm Ys"/"Xh Ym" instead of just
+      // the rounded whole-minute count.
+      seconds: entry.seconds ?? null,
       sharePct: sharePctValue(entry.count, trafficTotal),
       shareLabel: formatSharePct(entry.count, trafficTotal),
       accentColor: accents.get(entry.userId) ?? null,
@@ -216,7 +260,7 @@ async function resolvePeople(
   });
   const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
   log.debug(
-    `Resolved ${entries.length} leaderboard row(s) for guild ${guild.id} in ${durationMs.toFixed(1)}ms (${apiFetches} uncached, batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
+    `Resolved ${entries.length} leaderboard row(s) for guild ${guild.id} in ${durationMs.toFixed(1)}ms (${apiFetches} identity cache miss(es), batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
   );
   return result;
 }
@@ -279,6 +323,48 @@ export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25
   };
 }
 
+/** Public all-time voice-time leaderboard for shareable website pages — the voice counterpart of
+ *  `buildWebPublicMessagerLeaderboard` just above, sharing the same `resolvePeople` plumbing. */
+export async function buildWebPublicVoiceLeaderboard(guild: Guild, limit = 25) {
+  const capped = Math.min(50, Math.max(5, limit));
+  const { configManager } = await import("../config/manager.js");
+  const { isDreamlinerOneActive } = await import("./dreamlinerOne.js");
+  const [top, totalVoiceMinutes, activeVoiceMembers, guildConfig, oneActive] = await Promise.all([
+    getTopVoiceUsers(guild.id, 0, capped),
+    getGuildTotalVoiceMinutes(guild.id),
+    getActiveVoiceUserCount(guild.id),
+    configManager.getEffectiveConfig(guild.id),
+    isDreamlinerOneActive(guild.id),
+  ]);
+  const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
+  const accentColor = colorIntToHex(guildConfig.server_accent_color);
+  const entries = top.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds }));
+  const leaders = await resolvePeople(guild, entries, totalVoiceMinutes, {
+    includeAccents: !overrideUserAccents,
+  });
+
+  return {
+    scope: "server" as const,
+    guild: {
+      id: guild.id,
+      name: guild.name,
+      icon: guild.icon,
+      memberCount: guild.memberCount,
+    },
+    title: "Top voice members",
+    subtitle: "All-time voice leaderboard",
+    windowLabel: "All time",
+    totalVoiceMinutes,
+    activeVoiceMembers,
+    theme: {
+      accentColor,
+      overrideUserAccents,
+    },
+    oneActive,
+    leaders,
+  };
+}
+
 async function resolveGlobalPeople(
   client: Client,
   entries: Array<{ userId: string; count: number }>,
@@ -294,21 +380,16 @@ async function resolveGlobalPeople(
   const startedAt = process.hrtime.bigint();
   let apiFetches = 0;
   const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
-    // Cache-first — see resolvePeople() above for why this normally never touches the network.
-    if (!client.users.cache.has(entry.userId)) apiFetches++;
-    const user = await ensureBannerLoaded(
-      await retryAsync(() => client.users.fetch(entry.userId), {
-        onError: (error, attempt) =>
-          log.debug(`User fetch for ${entry.userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
-      }),
-    );
+    // Cache-first — see resolveUserIdentity() above for why this normally never touches the network.
+    const identity = await resolveUserIdentity(client, entry.userId, null);
+    if (identity.apiFetch) apiFetches++;
     return {
       rank: index + 1,
       id: entry.userId,
-      name: user?.globalName ?? user?.username ?? entry.userId,
-      username: user?.username ?? null,
-      avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
-      bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
+      name: identity.globalName ?? identity.username ?? entry.userId,
+      username: identity.username,
+      avatar: identity.avatar,
+      bannerUrl: identity.bannerUrl,
       count: entry.count,
       sharePct: sharePctValue(entry.count, trafficTotal),
       shareLabel: formatSharePct(entry.count, trafficTotal),
@@ -318,7 +399,7 @@ async function resolveGlobalPeople(
   });
   const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
   log.debug(
-    `Resolved ${entries.length} global leaderboard row(s) in ${durationMs.toFixed(1)}ms (${apiFetches} uncached, batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
+    `Resolved ${entries.length} global leaderboard row(s) in ${durationMs.toFixed(1)}ms (${apiFetches} identity cache miss(es), batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
   );
   return result;
 }
@@ -811,7 +892,7 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     resolvePeople(guild, topAllTime, allTimeTrafficTotal),
     resolvePeople(
       guild,
-      voiceTopUsers.map((row) => ({ userId: row.userId, count: row.minutes })),
+      voiceTopUsers.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds })),
       voiceAnalysis.total,
     ),
   ]);

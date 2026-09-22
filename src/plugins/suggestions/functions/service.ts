@@ -13,10 +13,12 @@ import { containerEdit, containerReply, pingComponent } from "../../../core/resp
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
   addComment,
+  countComments,
   createSuggestion,
   followSuggestion,
   getSuggestionById,
   getVoteTotals,
+  listComments,
   listFollowers,
   type Suggestion,
   type SuggestionComment,
@@ -216,6 +218,54 @@ export async function refreshFeedMessage(
       ? [voteActionRow(suggestion.id, config, votes)]
       : [];
   await msg.edit(containerEdit(embed, components)).catch(() => null);
+}
+
+/** After a new comment is added, re-render whichever of the suggestion's live posted messages
+ *  currently exist — the public feed post once approved, and/or the review-queue post while
+ *  still awaiting review — so the comment shows up as a new "Comment #N" field immediately
+ *  instead of only being visible through `/suggestion info`. Denied/archived posts represent a
+ *  closed suggestion and are left as they were. */
+async function refreshMessagesWithComments(
+  client: Client,
+  config: SuggestionsConfig,
+  suggestion: Suggestion,
+  t: Translator,
+): Promise<void> {
+  const [comments, commentCount] = await Promise.all([
+    listComments(suggestion.id, 100),
+    countComments(suggestion.id),
+  ]);
+
+  if (suggestion.feedChannelId && suggestion.feedMessageId) {
+    const channel = await resolveTextChannel(client, suggestion.feedChannelId);
+    const msg = channel ? await channel.messages.fetch(suggestion.feedMessageId).catch(() => null) : null;
+    if (msg) {
+      const votes = await getVoteTotals(suggestion.id);
+      const embed = buildSuggestionEmbed({ client, suggestion, config, votes, commentCount, comments, t });
+      const components =
+        config.voting_enabled && suggestion.status === "approved"
+          ? [voteActionRow(suggestion.id, config, votes)]
+          : [];
+      await msg.edit(containerEdit(embed, components)).catch(() => null);
+    }
+  }
+
+  if (suggestion.status === "awaiting_review" && suggestion.reviewChannelId && suggestion.reviewMessageId) {
+    const channel = await resolveTextChannel(client, suggestion.reviewChannelId);
+    const msg = channel ? await channel.messages.fetch(suggestion.reviewMessageId).catch(() => null) : null;
+    if (msg) {
+      const embed = buildSuggestionEmbed({
+        client,
+        suggestion,
+        config,
+        commentCount,
+        comments,
+        titlePrefix: t("suggestions.titlePrefix.review", "Review"),
+        t,
+      });
+      await msg.edit(containerEdit(embed, [queueActionRow(suggestion.id, t)])).catch(() => null);
+    }
+  }
 }
 
 export async function approveSuggestion(options: {
@@ -528,6 +578,8 @@ export async function addSuggestionComment(options: {
     content,
     anonymous: options.anonymous && options.config.anonymous,
   });
+
+  await refreshMessagesWithComments(options.client, options.config, suggestion, t);
 
   await sendServerLog(
     options.client,

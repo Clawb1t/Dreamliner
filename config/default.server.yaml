@@ -740,7 +740,6 @@ plugins:
       can_server: false
       can_user: false
       can_channel: false
-      track_voice_activity: false
   dream_commands:
     enabled: false
     config:

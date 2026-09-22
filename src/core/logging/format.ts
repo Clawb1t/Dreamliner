@@ -396,6 +396,23 @@ export function buildVoiceMoveLog(input: {
   );
 }
 
+export function buildCompanionRoomCreatedLog(input: { member: LogRef; channel: LogRef }): LogCard {
+  return card(
+    "Companion Room Created",
+    [`Time: ${logTimestamp()}`, ...userLines(input.member), channelLine(input.channel)],
+    { avatarUrl: input.member.avatarUrl, emojiCategory: "create" },
+  );
+}
+
+export function buildCompanionRoomRemovedLog(input: { channel: LogRef; owner?: LogRef | null }): LogCard {
+  const information = [`Time: ${logTimestamp()}`, channelLine(input.channel)];
+  if (input.owner) information.push(...userLines(input.owner, "Last owner"));
+  return card("Companion Room Removed", information, {
+    avatarUrl: input.owner?.avatarUrl,
+    emojiCategory: "delete",
+  });
+}
+
 export function buildNicknameChangeLog(input: {
   user: LogRef;
   mod?: LogRef;

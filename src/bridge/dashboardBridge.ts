@@ -13,8 +13,14 @@ import { trackDashboardAction } from "./dashboardAudit.js";
 import { getLogger } from "../core/logger.js";
 import type { WebMusicTrack } from "./webMusic.js";
 import type { CreateGiveawayInput } from "./webGiveaways.js";
+import type { SocialPlatform } from "./social.js";
 
 const log = getLogger("bridge");
+
+const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = {
+  youtube: "YouTube",
+  twitch: "Twitch",
+};
 
 export type BridgeGuildSnapshot = {
   id: string;
@@ -2272,6 +2278,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         const publicLeaderboardMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
+        const publicVoiceLeaderboardMatch =
+          /^\/bridge\/guilds\/(\d+)\/stats\/public-voice-leaderboard$/.exec(url.pathname);
         const publicGuildMatch = /^\/bridge\/guilds\/(\d+)\/public$/.exec(url.pathname);
         const customChartOneMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
@@ -2446,6 +2454,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const aiActionMatch = /^\/bridge\/guilds\/(\d+)\/ai\/(generate|status|wizard)$/.exec(url.pathname);
         if (
           !publicLeaderboardMatch &&
+          !publicVoiceLeaderboardMatch &&
           !publicGuildMatch &&
           !customChartOneMatch &&
           !customChartsMatch &&
@@ -2544,6 +2553,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         const guildId = (
           publicLeaderboardMatch?.[1] ??
+          publicVoiceLeaderboardMatch?.[1] ??
           publicGuildMatch?.[1] ??
           customChartOneMatch?.[1] ??
           customChartsMatch?.[1] ??
@@ -5011,8 +5021,27 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { buildWebPublicMessagerLeaderboard } = await import("./webStats.js");
           const { cached } = await import("./responseCache.js");
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          const payload = await cached(`leaderboard:guild:${guild.id}:${limit}`, 30_000, () =>
+          // All-time rankings barely move minute to minute, and the expensive part
+          // (buildWebPublicMessagerLeaderboard's per-row Discord identity resolution) is now
+          // also cached on its own, longer-lived terms — see identityCache in webStats.ts — so
+          // this payload-level TTL mostly just saves repeat visitors the DB round trips.
+          const payload = await cached(`leaderboard:guild:${guild.id}:${limit}`, 60_000, () =>
             buildWebPublicMessagerLeaderboard(guild, limit),
+          );
+          sendJson(res, 200, payload);
+          return;
+        }
+
+        if (publicVoiceLeaderboardMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { buildWebPublicVoiceLeaderboard } = await import("./webStats.js");
+          const { cached } = await import("./responseCache.js");
+          const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
+          const payload = await cached(`leaderboard:voice:guild:${guild.id}:${limit}`, 60_000, () =>
+            buildWebPublicVoiceLeaderboard(guild, limit),
           );
           sendJson(res, 200, payload);
           return;
@@ -6809,7 +6838,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (socialResolveMatch && req.method === "POST") {
-          let body: { userId?: string; input?: string };
+          let body: { userId?: string; platform?: string; input?: string };
           try {
             body = JSON.parse(await readBody(req)) as typeof body;
           } catch {
@@ -6817,8 +6846,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const requesterId = body.userId?.trim();
-          if (!requesterId || typeof body.input !== "string" || !body.input.trim()) {
-            sendJson(res, 400, { error: "userId and input are required" });
+          const platform = body.platform;
+          if (
+            !requesterId ||
+            (platform !== "youtube" && platform !== "twitch") ||
+            typeof body.input !== "string" ||
+            !body.input.trim()
+          ) {
+            sendJson(res, 400, { error: "userId, platform, and input are required" });
             return;
           }
           if (!(await memberCanManage(guild, requesterId))) {
@@ -6826,7 +6861,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const { resolveBridgeSocialSource } = await import("./social.js");
-          const result = await resolveBridgeSocialSource(configManager, guildId, body.input);
+          const result = await resolveBridgeSocialSource(configManager, guildId, platform, body.input);
           if (!result.ok) {
             sendJson(res, result.status, { error: result.error });
             return;
@@ -6840,7 +6875,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 405, { error: "Method not allowed" });
             return;
           }
-          let body: { userId?: string };
+          let body: { userId?: string; platform?: string };
           try {
             body = JSON.parse(await readBody(req)) as typeof body;
           } catch {
@@ -6848,8 +6883,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const requesterId = body.userId?.trim();
-          if (!requesterId) {
-            sendJson(res, 400, { error: "userId is required" });
+          const platform = body.platform;
+          if (!requesterId || (platform !== "youtube" && platform !== "twitch")) {
+            sendJson(res, 400, { error: "userId and platform are required" });
             return;
           }
           if (!(await memberCanManage(guild, requesterId))) {
@@ -6861,6 +6897,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             client,
             configManager,
             guildId,
+            platform,
             Number(socialWatcherTestMatch[2]),
           );
           if (!result.ok) {
@@ -6927,7 +6964,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             trackDashboardAction(client, guildId, requesterId, {
               eventType: "dashboard_command",
               title: "Social notification created",
-              summary: `A YouTube notification for **${result.watcher.sourceChannelName}** was created from the dashboard.`,
+              summary: `A ${SOCIAL_PLATFORM_LABELS[result.watcher.platform]} notification for **${result.watcher.sourceChannelName}** was created from the dashboard.`,
               targetId: String(result.watcher.id),
               payload: { sourceChannelName: result.watcher.sourceChannelName },
             });
@@ -6966,7 +7003,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             trackDashboardAction(client, guildId, requesterId, {
               eventType: "dashboard_command",
               title: "Social notification updated",
-              summary: `A YouTube notification for **${result.watcher.sourceChannelName}** was updated from the dashboard.`,
+              summary: `A ${SOCIAL_PLATFORM_LABELS[result.watcher.platform]} notification for **${result.watcher.sourceChannelName}** was updated from the dashboard.`,
               targetId: String(result.watcher.id),
               payload: { sourceChannelName: result.watcher.sourceChannelName },
             });
@@ -6975,8 +7012,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           if (socialWatcherOneMatch && req.method === "DELETE") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
+            const platform = url.searchParams.get("platform");
+            if (!userId || (platform !== "youtube" && platform !== "twitch")) {
+              sendJson(res, 400, { error: "userId and platform are required" });
               return;
             }
             if (!(await memberCanManage(guild, userId))) {
@@ -6987,6 +7025,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const result = await deleteBridgeSocialWatcher(
               configManager,
               guildId,
+              platform,
               Number(socialWatcherOneMatch[2]),
             );
             if (!result.ok) {
@@ -6996,7 +7035,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             trackDashboardAction(client, guildId, userId, {
               eventType: "dashboard_command",
               title: "Social notification deleted",
-              summary: `A YouTube notification for **${result.watcher.sourceChannelName}** was deleted from the dashboard.`,
+              summary: `A ${SOCIAL_PLATFORM_LABELS[result.watcher.platform]} notification for **${result.watcher.sourceChannelName}** was deleted from the dashboard.`,
               targetId: String(result.watcher.id),
               payload: { sourceChannelName: result.watcher.sourceChannelName },
             });
