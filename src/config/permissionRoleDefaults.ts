@@ -12,7 +12,10 @@ export const BUILT_IN_ROLE_NAMES: Record<BuiltInTier, string> = {
  * "<pluginKey>.<permission>", matching src/core/permissionCatalog.ts's grantKeyFor().
  */
 export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
-  // Was level >= 0 (everyone).
+  // Everyone. Anything that only affects the member themselves, uses content staff already set
+  // up, or reads information the member could already see. Nothing here acts on other members,
+  // changes server-wide state, records anyone, or reveals staff-only data (bans, cases, name
+  // history, whereabouts, anonymous review authors, deleted messages).
   member: [
     // activity_rewards
     "activity_rewards.can_view",
@@ -22,6 +25,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "booster_roles.can_recheck",
     // counting
     "counting.can_stats",
+    // dream_commands
+    "dream_commands.can_list",
     // economy
     "economy.can_balance",
     "economy.can_buy_pack",
@@ -32,8 +37,18 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "economy.can_view",
     // images
     "images.can_use",
+    // reminders (a member only ever sees and cancels their own)
+    "reminders.can_create",
+    "reminders.can_list",
+    "reminders.can_cancel",
     // reviews
     "reviews.can_review",
+    // roles
+    "roles.can_list",
+    // stats
+    "stats.can_channel",
+    "stats.can_server",
+    "stats.can_user",
     // suggestions
     "suggestions.can_comment",
     "suggestions.can_follow",
@@ -41,14 +56,44 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "suggestions.can_suggest",
     "suggestions.can_top",
     "suggestions.can_vote",
+    // tags
+    "tags.can_list",
+    "tags.can_show",
+    // tickets (their own ticket only; closing others' is can_close_others)
+    "tickets.can_close",
+    // translation
+    "translation.can_translate",
     // tts
     "tts.can_speak",
     // music
     "music.can_play",
     "music.can_skip",
     "music.can_manage_playlists",
-    // utility
+    // utility (read-only lookups; /context, /source and message info only read the current channel)
+    "utility.can_about",
+    "utility.can_avatar",
+    "utility.can_channelinfo",
+    "utility.can_context",
+    "utility.can_convert_gif",
+    "utility.can_discofy",
+    "utility.can_emojiinfo",
+    "utility.can_help",
+    "utility.can_info",
+    "utility.can_inviteinfo",
+    "utility.can_jumbo",
+    "utility.can_level",
+    "utility.can_listening_to",
+    "utility.can_messageinfo",
     "utility.can_one",
+    "utility.can_ping",
+    "utility.can_quote_to_discofy",
+    "utility.can_roleinfo",
+    "utility.can_roles",
+    "utility.can_server",
+    "utility.can_snowflake",
+    "utility.can_source",
+    "utility.can_time",
+    "utility.can_userinfo",
   ],
 
   // Was level >= 25 OR level >= 50.
@@ -65,7 +110,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "bot_customisation.can_nickname",
     // dream_commands
     "dream_commands.can_edit",
-    "dream_commands.can_list",
     "dream_commands.can_remove",
     // giveaways
     "giveaways.can_reroll",
@@ -96,10 +140,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // reaction_roles
     "reaction_roles.can_create",
     "reaction_roles.can_delete",
-    // reminders
-    "reminders.can_cancel",
-    "reminders.can_create",
-    "reminders.can_list",
     // reviews
     "reviews.can_delete",
     "reviews.can_list",
@@ -109,7 +149,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "role_buttons.can_delete",
     // roles
     "roles.can_give",
-    "roles.can_list",
     "roles.can_remove",
     // slowmode
     "slowmode.can_clear",
@@ -118,10 +157,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // social
     "social.can_manage",
     "social.can_view",
-    // stats
-    "stats.can_channel",
-    "stats.can_server",
-    "stats.can_user",
     // suggestions
     "suggestions.can_approve",
     "suggestions.can_block",
@@ -133,45 +168,22 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "tags.can_create",
     "tags.can_delete",
     "tags.can_edit",
-    "tags.can_list",
-    "tags.can_show",
     // tickets (was >=25)
     "tickets.can_add_remove_members",
     "tickets.can_claim",
-    "tickets.can_close",
     "tickets.can_close_others",
     "tickets.can_reopen",
-    // translation
-    "translation.can_translate",
     // tts
     "tts.can_blacklist",
     "tts.can_manage_channel",
     "tts.can_skip",
     // utility
-    "utility.can_avatar",
-    "utility.can_channelinfo",
     "utility.can_clean",
-    "utility.can_context",
-    "utility.can_convert_gif",
     "utility.can_create_emoji",
     "utility.can_create_sticker",
-    "utility.can_emojiinfo",
-    "utility.can_help",
-    "utility.can_info",
-    "utility.can_inviteinfo",
-    "utility.can_jumbo",
-    "utility.can_level",
-    "utility.can_messageinfo",
     "utility.can_nickname",
-    "utility.can_roleinfo",
-    "utility.can_roles",
     "utility.can_search",
-    "utility.can_server",
-    "utility.can_snowflake",
-    "utility.can_source",
     "utility.can_stealemoji",
-    "utility.can_time",
-    "utility.can_userinfo",
     "utility.can_vckick",
     "utility.can_vcmove",
     "utility.can_watchdog",
@@ -200,8 +212,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "tickets.can_manage_panels",
     "tickets.can_view_all",
     // utility
-    "utility.can_about",
-    "utility.can_ping",
     "utility.can_reload_guild",
   ],
 };

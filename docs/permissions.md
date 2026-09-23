@@ -63,6 +63,8 @@ Every server starts with three built-in roles:
 | **Moderator** | Nobody                 | Assign your mod role(s)/users to it. |
 | **Admin**     | Nobody                 | Assign your admin role(s)/users to it. |
 
+Member starts with every everyday, low-risk permission: using features (economy, music, suggestions, reviews, tags, reminders, translation, TTS), closing your own ticket, and read-only lookups (`/help`, info commands, stats, `/rolelist`). Nothing on it can act on other members, change server-wide settings, record voice, or reveal staff-only data such as bans, cases, name history, or deleted messages. Remove anything you'd rather keep staff-only.
+
 Moderator and Admin ship with **zero assigned targets** — a server admin must assign their own Discord roles/users into them before anyone gets access through them. You can also create your own custom roles (e.g. "Support", "Trial Mod") with any name and permission set.
 
 A member's effective permission for a given `can_*` flag is the **OR** across every Dreamliner Role they belong to: if they're in the Member role (always) plus any others (via a directly-assigned user, or a Discord role that's assigned), they have the flag if **any one** of those roles grants it. There is no more channel/category-scoped permission grant, and no more numeric levels anywhere.
@@ -119,8 +121,8 @@ Every other plugin uses the same pattern: its own set of `can_*` flags, granted 
 
 On the dashboard **Roles** page:
 
-1. Open **Moderator**, assign your `@Moderator` Discord role, then grant search/clean/info/nicknames/voice/help-tier flags (`can_search`, `can_clean`, `can_userinfo`, `can_help`, ...).
-2. Open **Admin**, assign your `@Admin` Discord role, then grant everything Moderator has plus meta/admin flags (`can_reload_guild`, `can_ping`, `can_about`, ...).
+1. Open **Moderator**, assign your `@Moderator` Discord role, then grant search/clean/nicknames/voice flags (`can_search`, `can_clean`, `can_nickname`, `can_vcmove`, ...).
+2. Open **Admin**, assign your `@Admin` Discord role, then grant everything Moderator has plus admin flags (`can_reload_guild`, `can_ban`, ...).
 
 The same setup with `/permissions role`:
 
@@ -128,22 +130,17 @@ The same setup with `/permissions role`:
 /permissions role assign role:Moderator discord_role:@Moderator
 /permissions role grant role:Moderator command:search allow:true
 /permissions role grant role:Moderator command:clean allow:true
-/permissions role grant role:Moderator command:user allow:true
-/permissions role grant role:Moderator command:help allow:true
 
 /permissions role assign role:Admin discord_role:@Admin
 /permissions role grant role:Admin command:reload allow:true
-/permissions role grant role:Admin command:ping allow:true
-/permissions role grant role:Admin command:about allow:true
 ```
 
 ### Grant a command to everyone
 
-Grant the flag on the built-in **Member** role — it applies to every member of the server:
+Grant the flag on the built-in **Member** role, which applies to every member of the server. Everyday commands like `/help` and `/user` are already on it; for example, to let everyone export voice clips:
 
 ```
-/permissions role grant role:Member command:help allow:true
-/permissions role grant role:Member command:user allow:true
+/permissions role grant role:Member command:clip allow:true
 ```
 
 ### Per-user access

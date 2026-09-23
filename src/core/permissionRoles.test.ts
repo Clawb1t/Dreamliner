@@ -92,15 +92,15 @@ describe("permission role manager", () => {
   it("ORs grants across every role a member belongs to", async () => {
     const roleA = await permissionRoleManager.createRole(guildId, "RoleA", "tester");
     const roleB = await permissionRoleManager.createRole(guildId, "RoleB", "tester");
-    await permissionRoleManager.setGrant(guildId, roleA.id, grantKeyFor("stats", "can_server"), true, "tester");
-    await permissionRoleManager.setGrant(guildId, roleB.id, grantKeyFor("stats", "can_user"), true, "tester");
+    await permissionRoleManager.setGrant(guildId, roleA.id, grantKeyFor("infractions", "can_warn"), true, "tester");
+    await permissionRoleManager.setGrant(guildId, roleB.id, grantKeyFor("infractions", "can_note"), true, "tester");
     await permissionRoleManager.setTargets(guildId, roleA.id, [{ type: "user", id: "u3" }], "tester");
     await permissionRoleManager.setTargets(guildId, roleB.id, [{ type: "user", id: "u3" }], "tester");
 
     const member = fakeMember({ id: "u3" });
-    assert.equal(await hasPermission(guildId, "stats", "can_server", member, guildConfig), true);
-    assert.equal(await hasPermission(guildId, "stats", "can_user", member, guildConfig), true);
-    assert.equal(await hasPermission(guildId, "stats", "can_channel", member, guildConfig), false);
+    assert.equal(await hasPermission(guildId, "infractions", "can_warn", member, guildConfig), true);
+    assert.equal(await hasPermission(guildId, "infractions", "can_note", member, guildConfig), true);
+    assert.equal(await hasPermission(guildId, "infractions", "can_view", member, guildConfig), false);
 
     const memberRoles = await getMemberPermissionRoles(guildId, member);
     const names = memberRoles.map((r) => r.name);
