@@ -2,20 +2,10 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ChannelSelectMenuBuilder,
-  CheckboxBuilder,
-  CheckboxGroupBuilder,
-  FileUploadBuilder,
-  LabelBuilder,
-  MentionableSelectMenuBuilder,
   ModalBuilder,
-  RadioGroupBuilder,
-  RoleSelectMenuBuilder,
   StringSelectMenuBuilder,
-  TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
-  UserSelectMenuBuilder,
   type ButtonInteraction,
   type Client,
   type GuildMember,
@@ -25,6 +15,7 @@ import {
 import { configManager } from "../../../config/manager.js";
 import { zTicketsConfig, type TicketCategory, type TicketPanel, type TicketsConfig } from "../../../config/schemas/tickets.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
+import { buildFormModal } from "../../../core/formModal.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
 import { getPluginSettings, hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
@@ -263,93 +254,12 @@ async function openOrPromptModal(
   const { category, panel } = found;
 
   if (category.form_questions.length > 0) {
-    const modal = new ModalBuilder().setCustomId(ticketModalId(panelId, categoryId)).setTitle(category.label.slice(0, 45));
-    for (const [index, question] of category.form_questions.slice(0, 5).entries()) {
-      const fieldId = ticketQuestionFieldId(index);
-
-      // Unchanged from before modal component support existed. Every question saved before
-      // that point has no `type` and defaults to "text", so this branch (and only this branch)
-      // handles it exactly as it always has.
-      if (question.type === "text") {
-        const field = new TextInputBuilder()
-          .setCustomId(fieldId)
-          .setLabel(question.label)
-          .setStyle(question.style === "paragraph" ? TextInputStyle.Paragraph : TextInputStyle.Short)
-          .setRequired(question.required)
-          .setMaxLength(question.max_length);
-        if (question.placeholder) field.setPlaceholder(question.placeholder);
-        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(field));
-        continue;
-      }
-
-      // Purely informational: no customId, no answer, not wrapped in a Label.
-      if (question.type === "text_display") {
-        modal.addTextDisplayComponents(new TextDisplayBuilder().setContent((question.content?.trim() || question.label).slice(0, 4000)));
-        continue;
-      }
-
-      const label = new LabelBuilder().setLabel(question.label.slice(0, 45));
-      const min = question.min_values ?? (question.required ? 1 : 0);
-      const max = question.max_values ?? 1;
-      const options = (question.options ?? []).slice(0, 25).map((option) => ({
-        label: option.label.slice(0, 100),
-        value: option.value.slice(0, 100),
-        ...(option.description ? { description: option.description.slice(0, 100) } : {}),
-      }));
-
-      switch (question.type) {
-        case "string_select":
-          label.setStringSelectMenuComponent(
-            new StringSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required).addOptions(options),
-          );
-          break;
-        case "user_select":
-          label.setUserSelectMenuComponent(
-            new UserSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
-          );
-          break;
-        case "role_select":
-          label.setRoleSelectMenuComponent(
-            new RoleSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
-          );
-          break;
-        case "mentionable_select":
-          label.setMentionableSelectMenuComponent(
-            new MentionableSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
-          );
-          break;
-        case "channel_select":
-          label.setChannelSelectMenuComponent(
-            new ChannelSelectMenuBuilder().setCustomId(fieldId).setMinValues(min).setMaxValues(max).setRequired(question.required),
-          );
-          break;
-        case "radio_group":
-          label.setRadioGroupComponent(
-            new RadioGroupBuilder().setCustomId(fieldId).addOptions(options).setRequired(question.required),
-          );
-          break;
-        case "checkbox_group":
-          label.setCheckboxGroupComponent(
-            new CheckboxGroupBuilder().setCustomId(fieldId).addOptions(options).setMinValues(min).setMaxValues(max).setRequired(question.required),
-          );
-          break;
-        case "checkbox":
-          // No .setRequired() on CheckboxBuilder: a single checkbox has no "required" concept
-          // in Discord's own component API.
-          label.setCheckboxComponent(new CheckboxBuilder().setCustomId(fieldId));
-          break;
-        case "file_upload":
-          label.setFileUploadComponent(
-            new FileUploadBuilder()
-              .setCustomId(fieldId)
-              .setMinValues(question.min_values ?? 0)
-              .setMaxValues(question.max_values ?? 1)
-              .setRequired(question.required),
-          );
-          break;
-      }
-      modal.addLabelComponents(label);
-    }
+    const modal = buildFormModal({
+      customId: ticketModalId(panelId, categoryId),
+      title: category.label,
+      questions: category.form_questions,
+      fieldId: ticketQuestionFieldId,
+    });
     await interaction.showModal(modal);
     return;
   }

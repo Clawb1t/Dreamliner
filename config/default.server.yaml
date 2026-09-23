@@ -592,6 +592,54 @@ plugins:
         label: Wave
         emoji: 👋
       require_passport_verification: false
+      member_milestones:
+        enabled: false
+        content: "🎉 We just hit **{milestone} members**! Welcome {user}, you're member
+          #{milestone}."
+        embed:
+          enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
+        card:
+          enabled: false
+          background_type: color
+          background_color: 1974050
+          background_url: ""
+          background_asset_id: ""
+          avatar_layout: left
+          text_layout: beside
+          avatar_style: circle
+          show_avatar: true
+          show_accent_bar: true
+          greeting_text: "{milestone} members!"
+          subtitle_text: Thanks for being here, {user_display}
+          text_color: 16777215
+          accent_color: 5661429
+          border_color: 5661429
+          border_width: 0
+          border_radius: 24
+          avatar_size: 180
+          avatar_offset_x: 0
+          avatar_offset_y: 0
+          text_offset_x: 0
+          text_offset_y: 0
+          greeting_size: 44
+          subtitle_size: 24
+          avatar_ring_width: 6
+        milestones: []
   tags:
     enabled: false
     config:
@@ -892,3 +940,70 @@ plugins:
     config:
       can_use: false
       daily: []
+  activity_rewards:
+    enabled: false
+    config:
+      stacking: true
+      milestones: []
+      announcement:
+        enabled: true
+        destination: current
+        content: 🎉 {user} just reached **{milestone}**!
+        embed:
+          enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
+        card:
+          enabled: false
+          background_type: color
+          background_color: 1974050
+          background_url: ""
+          background_asset_id: ""
+          avatar_layout: left
+          text_layout: beside
+          avatar_style: circle
+          show_avatar: true
+          show_accent_bar: true
+          greeting_text: Milestone unlocked!
+          subtitle_text: "{user_display} reached {milestone}"
+          text_color: 16777215
+          accent_color: 5661429
+          border_color: 5661429
+          border_width: 0
+          border_radius: 24
+          avatar_size: 180
+          avatar_offset_x: 0
+          avatar_offset_y: 0
+          text_offset_x: 0
+          text_offset_y: 0
+          greeting_size: 44
+          subtitle_size: 24
+          avatar_ring_width: 6
+      message_cooldown_seconds: 30
+      min_message_length: 0
+      ignored_channels: []
+      ignored_roles: []
+      voice_require_others: true
+      voice_ignore_muted: true
+      voice_ignore_afk: true
+      can_view: false
+      can_sync: false
+      can_manage: false
+  applications:
+    enabled: false
+    config:
+      openings: []
+      can_review: false

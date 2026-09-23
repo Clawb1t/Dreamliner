@@ -55,6 +55,11 @@ import {
 import { handleSuggestModalSubmit } from "./plugins/suggestions/functions/modal.js";
 import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functions/handlers.js";
 import { TICKET_PREFIX } from "./plugins/tickets/constants.js";
+import { APPLICATION_PREFIX } from "./plugins/applications/constants.js";
+import {
+  handleApplicationButtonInteraction,
+  handleApplicationModalSubmit,
+} from "./plugins/applications/functions/interactions.js";
 import { IMAGE_ANOTHER_PREFIX } from "./plugins/images/functions/render.js";
 import { handleImageAnotherButton } from "./plugins/images/functions/buttons.js";
 import {
@@ -325,6 +330,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Ticket button", () => handleTicketButtonInteraction(interaction));
         if (handled) return;
       }
+      if (interaction.customId.startsWith(APPLICATION_PREFIX)) {
+        const handled = await safeHandle(interaction, "Application button", () => handleApplicationButtonInteraction(interaction));
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(GIVEAWAY_ENTER_PREFIX)) {
         const handled = await safeHandle(interaction, "Giveaway enter button", () => handleGiveawayEnterButton(interaction));
         if (handled) return;
@@ -409,6 +418,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
         const handled = await safeHandle(interaction, "Ticket modal", () => handleTicketModalSubmit(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(APPLICATION_PREFIX)) {
+        const handled = await safeHandle(interaction, "Application modal", () => handleApplicationModalSubmit(interaction));
         if (handled) return;
       }
       if (interaction.customId === REVIEW_MODAL_ID) {

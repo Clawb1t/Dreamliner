@@ -1819,3 +1819,77 @@ export const imageDailySends = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.guildId, table.sendId] })],
 );
+
+/** Activity Rewards progress: what each member has earned towards message/voice milestones.
+ *  Tracked separately from the stats tables so it's unaffected by the Stats plugin being off,
+ *  and so staff can adjust/reset a member without touching server analytics. */
+export const activityRewardsProgress = sqliteTable(
+  "activity_rewards_progress",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    messages: integer("messages").notNull().default(0),
+    voiceSeconds: integer("voice_seconds").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    index("activity_rewards_progress_guild_messages").on(table.guildId, table.messages),
+    index("activity_rewards_progress_guild_voice").on(table.guildId, table.voiceSeconds),
+  ],
+);
+
+/** Milestones a member has already been awarded, so each one's announcement fires exactly once. */
+export const activityRewardsAwarded = sqliteTable(
+  "activity_rewards_awarded",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    /** `plugins.activity_rewards.config.milestones[].id` */
+    milestoneId: integer("milestone_id", { mode: "number" }).notNull(),
+    awardedAt: integer("awarded_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.milestoneId] })],
+);
+
+/** Member-count milestones the welcomer has already celebrated, so dipping below and crossing a
+ *  count again never re-announces it. */
+export const welcomeMemberMilestones = sqliteTable(
+  "welcome_member_milestones",
+  {
+    guildId: text("guild_id").notNull(),
+    memberCount: integer("member_count", { mode: "number" }).notNull(),
+    reachedAt: integer("reached_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.memberCount] })],
+);
+
+/** Submitted applications (Applications plugin). Answers are snapshotted with their question
+ *  labels so edits to an opening's form never rewrite what an applicant actually answered. */
+export const applications = sqliteTable(
+  "applications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    /** `plugins.applications.config.openings[].id` */
+    openingId: text("opening_id").notNull(),
+    /** The opening's name when submitted, kept if the opening is later renamed or deleted. */
+    openingName: text("opening_name").notNull(),
+    userId: text("user_id").notNull(),
+    /** "pending" | "accepted" | "denied" */
+    status: text("status").notNull().default("pending"),
+    /** JSON: FormAnswer[] */
+    answersJson: text("answers_json").notNull(),
+    reviewChannelId: text("review_channel_id"),
+    reviewMessageId: text("review_message_id"),
+    threadId: text("thread_id"),
+    reviewerId: text("reviewer_id"),
+    reason: text("reason"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    decidedAt: integer("decided_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    index("applications_guild_status").on(table.guildId, table.status),
+    index("applications_guild_user").on(table.guildId, table.userId, table.openingId),
+  ],
+);

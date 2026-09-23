@@ -136,6 +136,62 @@ export const zWelcomeDmConfig = z.strictObject({
   card: zWelcomeCardConfig.default({}),
 });
 
+/** A message body with no enable switch or channel of its own, used for per-milestone custom
+ *  messages (here and in Activity Rewards), where the owning milestone decides where it goes. */
+export const zWelcomeRichMessage = z.strictObject({
+  content: z
+    .string()
+    .max(2000)
+    .default("")
+    .describe("Optional message content above the embed/card. Supports placeholders."),
+  embed: zWelcomeEmbedConfig.default({}),
+  card: zWelcomeCardConfig.default({}),
+});
+
+export const WELCOME_MILESTONE_MESSAGE_MODES = ["default", "custom"] as const;
+
+export const zWelcomeMemberMilestone = z.strictObject({
+  enabled: z.boolean().default(true).describe("Turn this milestone on or off without deleting it."),
+  count: z
+    .number()
+    .int()
+    .min(2)
+    .max(100_000_000)
+    .describe("Member count that triggers this milestone, e.g. 1000."),
+  name: z.string().max(80).default("").describe("Optional label shown in the dashboard and as {milestone_name}."),
+  channel_id: channelId("Optional channel for this milestone only. Leave empty to use the default channel."),
+  message_mode: z
+    .enum(WELCOME_MILESTONE_MESSAGE_MODES)
+    .default("default")
+    .describe("default = post the shared milestone message, custom = post this milestone's own message."),
+  message: zWelcomeRichMessage.default({}).describe("This milestone's own message, used when message_mode is custom."),
+});
+
+export const zWelcomeMemberMilestones = z.strictObject({
+  enabled: z
+    .boolean()
+    .default(false)
+    .describe("Celebrate when the server reaches a member count milestone, e.g. 1,000 members."),
+  channel_id: channelId("Default channel milestone announcements are posted in."),
+  content: z
+    .string()
+    .max(2000)
+    .default("🎉 We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}.")
+    .describe(
+      "Default milestone message. Supports placeholders plus {milestone} (e.g. 1,000) and {milestone_name}.",
+    ),
+  embed: zWelcomeEmbedConfig.default({}),
+  card: zWelcomeCardConfig.default({
+    greeting_text: "{milestone} members!",
+    subtitle_text: "Thanks for being here, {user_display}",
+  }),
+  milestones: z
+    .array(zWelcomeMemberMilestone)
+    .max(50)
+    .default([])
+    .describe("Member counts to celebrate. Each one fires once, the moment a join reaches it."),
+});
+
 export const zWelcomeFirstMessageReact = z.strictObject({
   enabled: z
     .boolean()
@@ -180,8 +236,12 @@ export const zWelcomeMessageConfig = z.strictObject({
     .describe(
       "Hold the join and DM welcome until the member passes Dreamliner Passport verification, instead of sending right away when they join. Has no effect if Passport isn't enabled for this server.",
     ),
+  member_milestones: zWelcomeMemberMilestones.default({}),
 });
 
+export type WelcomeRichMessage = z.infer<typeof zWelcomeRichMessage>;
+export type WelcomeMemberMilestone = z.infer<typeof zWelcomeMemberMilestone>;
+export type WelcomeMemberMilestones = z.infer<typeof zWelcomeMemberMilestones>;
 export type WelcomeEmbedField = z.infer<typeof zWelcomeEmbedField>;
 export type WelcomeEmbedConfig = z.infer<typeof zWelcomeEmbedConfig>;
 export type WelcomeCardConfig = z.infer<typeof zWelcomeCardConfig>;

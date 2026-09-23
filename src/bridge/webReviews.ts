@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, like, or, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull, like, or, sql, type SQL } from "drizzle-orm";
 import type { Guild } from "discord.js";
 import { getDb } from "../db/client.js";
 import { reviews } from "../db/schema.js";
@@ -31,7 +31,8 @@ export type WebReviewsQuery = {
   q: string;
   rating: number | null;
   userId: string | null;
-  includeDeleted: boolean;
+  /** "active" (default), "deleted" only, or "all". */
+  scope: "active" | "deleted" | "all";
   limit: number;
   offset: number;
 };
@@ -45,13 +46,14 @@ export function parseWebReviewsQuery(url: URL): WebReviewsQuery {
     q: (url.searchParams.get("q") ?? "").trim().slice(0, 120),
     rating: rating != null && rating >= 1 && rating <= 5 ? rating : null,
     userId: url.searchParams.get("user")?.trim() || null,
-    includeDeleted: url.searchParams.get("deleted") === "true",
+    // deleted=true keeps its original meaning (include deleted); deleted=only shows just those.
+    scope: url.searchParams.get("deleted") === "only" ? "deleted" : url.searchParams.get("deleted") === "true" ? "all" : "active",
     limit,
     offset,
   };
 }
 
-async function resolvePerson(guild: Guild, userId: string): Promise<WebPerson> {
+export async function resolvePerson(guild: Guild, userId: string): Promise<WebPerson> {
   const member = await guild.members.fetch(userId).catch(() => null);
   const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
   return {
@@ -69,7 +71,6 @@ function toIso(value: Date | null | undefined): string | null {
 
 export async function listWebReviews(guild: Guild, query: WebReviewsQuery) {
   const filters: SQL[] = [eq(reviews.guildId, guild.id)];
-  if (!query.includeDeleted) filters.push(isNull(reviews.deletedAt));
   if (query.rating != null) filters.push(eq(reviews.rating, query.rating));
   if (query.userId) filters.push(eq(reviews.userId, query.userId));
   if (query.q) {
@@ -78,8 +79,18 @@ export async function listWebReviews(guild: Guild, query: WebReviewsQuery) {
     else if (/^\d+$/.test(q)) filters.push(or(eq(reviews.id, Number(q)), like(reviews.content, `%${q}%`))!);
     else filters.push(like(reviews.content, `%${q}%`));
   }
-  const where = and(...filters)!;
   const db = getDb();
+  // Per-scope counts for the dashboard tabs, under every filter except the scope itself.
+  const [scopeCounts] = await db
+    .select({
+      active: sql<number>`sum(case when ${reviews.deletedAt} is null then 1 else 0 end)`,
+      deleted: sql<number>`sum(case when ${reviews.deletedAt} is not null then 1 else 0 end)`,
+    })
+    .from(reviews)
+    .where(and(...filters));
+  if (query.scope === "active") filters.push(isNull(reviews.deletedAt));
+  if (query.scope === "deleted") filters.push(isNotNull(reviews.deletedAt));
+  const where = and(...filters)!;
   const [totalRow] = await db.select({ value: count() }).from(reviews).where(where);
   const rows = await db
     .select()
@@ -121,6 +132,7 @@ export async function listWebReviews(guild: Guild, query: WebReviewsQuery) {
     offset: query.offset,
     average: Number(avgRow?.average ?? 0),
     ratedCount: Number(avgRow?.count ?? 0),
+    counts: { active: Number(scopeCounts?.active ?? 0), deleted: Number(scopeCounts?.deleted ?? 0) },
   };
 }
 

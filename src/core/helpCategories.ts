@@ -91,9 +91,10 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "engage",
     label: "Engagement",
-    blurb: "Welcomes, companion voice channels, and starboard.",
+    blurb: "Welcomes, activity rewards, companion voice channels, and starboard.",
     include: [
       { plugin: "welcome_message" },
+      { plugin: "activity_rewards" },
       { plugin: "companion_channels" },
       { plugin: "tts" },
       { plugin: "clipping" },
@@ -331,6 +332,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Custom Branding",
     description: "Per-server bot avatar, banner, nickname, and bio.",
   },
+  activity_rewards: {
+    key: "activity_rewards",
+    name: "Activity Rewards",
+    description:
+      "Reward members with roles and announcements when they hit message or voice-time milestones, with per-milestone channels and messages.",
+  },
   starboard: {
     key: "starboard",
     name: "Starboard",
@@ -345,6 +352,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     key: "suggestions",
     name: "Suggestions",
     description: "Community suggestions with staff review, voting, and statuses.",
+  },
+  applications: {
+    key: "applications",
+    name: "Applications",
+    description:
+      "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard.",
   },
   tickets: {
     key: "tickets",
@@ -422,6 +435,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   name_history: "info",
   username_saver: "info",
   welcome_message: "engage",
+  activity_rewards: "engage",
   companion_channels: "engage",
   starboard: "engage",
   tts: "engage",
@@ -442,6 +456,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   reviews: "feedback",
   suggestions: "feedback",
   tickets: "support",
+  applications: "support",
   economy: "fun",
   counting: "fun",
   giveaways: "fun",

@@ -6,6 +6,7 @@ import { AUTOMOD_PRESETS } from "../../config/schemas/automod.js";
 import { TICKET_BUTTON_STYLES, TICKET_CONTAINER_MODES, TICKET_PANEL_STYLES } from "../../config/schemas/tickets.js";
 import { SUGGESTION_MODES } from "../../config/schemas/suggestions.js";
 import { IMAGE_SOURCES, isValidTimeZone } from "../../config/schemas/images.js";
+import { ACTIVITY_ANNOUNCE_DESTINATIONS, ACTIVITY_METRICS } from "../../config/schemas/activityRewards.js";
 import { resolveEmojiByName } from "../emoji.js";
 
 /** Server-side registry of conversational AI setup wizards. Adding AI setup to a new dashboard
@@ -667,6 +668,53 @@ function boosterRoleTierSchema(ctx: AiWizardContext): Record<string, unknown> {
       duration_days: { type: "integer" },
     },
     required: ["stacking", "name", "role_id", "duration_days"],
+    additionalProperties: false,
+  };
+}
+
+/** Most milestones one Autopilot run proposes; staff can add more on the dashboard afterwards. */
+const ACTIVITY_WIZARD_MAX_MILESTONES = 8;
+
+function activityRewardsSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const roleIds = ctx.roles.map((r) => r.id);
+  const textIds = ["", ...ctx.textChannels.map((c) => c.id)];
+  return {
+    type: "object",
+    properties: {
+      stacking: { type: "boolean" },
+      milestones: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            metric: { type: "string", enum: [...ACTIVITY_METRICS] },
+            threshold: { type: "integer" },
+            roles: { type: "array", items: { type: "string", enum: roleIds.length > 0 ? roleIds : [""] } },
+          },
+          required: ["name", "metric", "threshold", "roles"],
+          additionalProperties: false,
+        },
+      },
+      announce: { type: "boolean" },
+      destination: { type: "string", enum: [...ACTIVITY_ANNOUNCE_DESTINATIONS] },
+      channel_id: { type: "string", enum: textIds },
+      content: { type: "string" },
+      message_cooldown_seconds: { type: "integer" },
+      voice_require_others: { type: "boolean" },
+      voice_ignore_muted: { type: "boolean" },
+    },
+    required: [
+      "stacking",
+      "milestones",
+      "announce",
+      "destination",
+      "channel_id",
+      "content",
+      "message_cooldown_seconds",
+      "voice_require_others",
+      "voice_ignore_muted",
+    ],
     additionalProperties: false,
   };
 }
@@ -1580,6 +1628,88 @@ export const AI_WIZARDS: Record<string, AiWizardDefinition> = {
       "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
       "choices you made (leave question null). role_id always needs a real id from the list above, " +
       "never invent one.",
+  },
+
+  activity_rewards_setup: {
+    maxQuestions: 6,
+    buildResultSchema: (ctx) => turnSchema(activityRewardsSetupSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const raw = Array.isArray(config.milestones) ? (config.milestones as Record<string, unknown>[]) : [];
+      if (raw.length === 0) {
+        return "Autopilot didn't suggest any milestones. Please try again.";
+      }
+      const roleIds = new Set(ctx.roles.map((r) => r.id));
+      // Normalize in place (like the emoji resolution in other wizards): clamp numbers, drop
+      // anything that isn't a real role, and de-duplicate identical requirements.
+      const seen = new Set<string>();
+      const milestones: Record<string, unknown>[] = [];
+      for (const m of raw.slice(0, ACTIVITY_WIZARD_MAX_MILESTONES)) {
+        const metric = m.metric === "voice_minutes" ? "voice_minutes" : "messages";
+        const threshold = Math.min(100_000_000, Math.max(1, Math.trunc(Number(m.threshold) || 0)));
+        const key = `${metric}:${threshold}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const roles = Array.isArray(m.roles)
+          ? [...new Set(m.roles.filter((id): id is string => typeof id === "string" && roleIds.has(id)))].slice(0, 10)
+          : [];
+        milestones.push({ name: typeof m.name === "string" ? m.name.trim().slice(0, 80) : "", metric, threshold, roles });
+      }
+      config.milestones = milestones;
+
+      const channelId = config.channel_id;
+      if (typeof channelId !== "string" || (channelId && !ctx.textChannels.some((c) => c.id === channelId))) {
+        return "Autopilot picked an announcement channel that doesn't exist. Please try again.";
+      }
+      if (config.announce === true && config.destination === "channel" && !channelId) {
+        return "Autopilot chose a fixed announcement channel but didn't pick one. Please try again.";
+      }
+      config.message_cooldown_seconds = Math.min(
+        3600,
+        Math.max(0, Math.trunc(Number(config.message_cooldown_seconds) || 0)),
+      );
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up Activity Rewards: as members chat and hang out " +
+      "in voice channels, Dreamliner counts their messages and voice time and, when they reach a " +
+      "milestone the admin sets up (for example 100 messages, 1,000 messages, or 10 hours in voice), " +
+      "gives them a role and posts a congratulations message. Messages and voice time are separate " +
+      `ladders. You are setting this up for the server "${ctx.guildName}". Ask ONE short, ` +
+      "plain-language question at a time. Never mention field names, JSON, or config, ask like a " +
+      "helpful person would. Cover, in roughly this order: what they want to reward (chatting, " +
+      "voice time, or both); the milestones and which role each one gives (suggest a sensible " +
+      "ladder like 100 / 500 / 1,000 / 5,000 messages or 1 / 10 / 50 hours in voice, and match " +
+      "roles by name when the server already has fitting ones, e.g. roles called Active, Regular, " +
+      "Veteran or Level 10; ask the user which role goes with which milestone when it's unclear); " +
+      "whether members should keep every milestone role they earn or only their highest one; and " +
+      "where the congratulations message should go (where the member was chatting, one fixed " +
+      "channel, their DMs, or not at all). Don't interrogate on the finer tracking rules, use " +
+      "sensible defaults (message_cooldown_seconds 30, voice_require_others true, " +
+      "voice_ignore_muted true) unless the user brings them up. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting roles (pick milestone roles from these ids only; never pick a role that sounds " +
+      "like a bot/managed role, e.g. named after a bot, or @everyone):\n" +
+      `${entityList(ctx.roles)}\n\n` +
+      "Existing text channels (pick channel_id from these ids only, or \"\" for none):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      "metric is \"messages\" (threshold = number of messages) or \"voice_minutes\" (threshold = " +
+      "minutes in voice, so 10 hours is 600). Propose between 1 and " +
+      `${ACTIVITY_WIZARD_MAX_MILESTONES} milestones. A milestone can have an empty roles list only ` +
+      "if the user explicitly wants it to just be announced. name is an optional short label (e.g. " +
+      "\"Regular\"), leave it empty to show the requirement instead. destination is \"current\" " +
+      "(where the member was active, falling back to channel_id), \"channel\" (always channel_id, " +
+      "which must then be set), or \"dm\". Set announce false if they don't want any messages. " +
+      "content is the congratulations message, one short, upbeat line specific to this server. " +
+      "Available placeholders in content (use naturally, at most a few): {user} (mention), " +
+      "{user_display}, {milestone} (the milestone's label, e.g. \"1,000 messages\"), " +
+      "{reward_roles} (the roles they got, listed without pinging), {messages}, {voice_time}, " +
+      "{guild}. Never invent other placeholders.\n\n" +
+      progressInstruction(questionsAsked, 6) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). milestones always needs at least one entry.",
   },
 
   tags_setup: {

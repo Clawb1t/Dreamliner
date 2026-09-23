@@ -35,7 +35,8 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 ## Engagement
 
-- [Welcome message](./welcome_message.md)
+- [Welcome message](./welcome_message.md): join/leave/DM messages and member-count milestones
+- [Activity Rewards](./activity_rewards.md): roles and announcements for message and voice milestones
 - [Companion channels](./companion_channels.md)
 - [Starboard](./starboard.md)
 - [Text-to-speech](./tts.md)
@@ -69,6 +70,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Reviews](./reviews.md) - star ratings and written server feedback
 - [Suggestions](./suggestions.md) - community suggestions with review queue, voting, and statuses
+- [Applications](./applications.md) - role applications with custom multi-page forms and a review queue
 
 ## Fun
 

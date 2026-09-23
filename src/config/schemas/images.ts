@@ -6,7 +6,13 @@ import { zPluginSection } from "./pluginSection.js";
 export const IMAGE_SOURCES = ["anime", "blahaj", "cat", "dog", "fox", "duck", "capybara", "bird"] as const;
 export type ImageSource = (typeof IMAGE_SOURCES)[number];
 
-export const MAX_IMAGE_DAILY_SENDS = 10;
+/** Free-tier cap. Dreamliner One servers get ONE_IMAGE_DAILY_SENDS instead (see resolveMaxDailySends). */
+export const FREE_IMAGE_DAILY_SENDS = 10;
+export const ONE_IMAGE_DAILY_SENDS = 50;
+
+export function resolveMaxDailySends(oneActive: boolean): number {
+  return oneActive ? ONE_IMAGE_DAILY_SENDS : FREE_IMAGE_DAILY_SENDS;
+}
 
 export function isValidTimeZone(value: string): boolean {
   try {
@@ -44,9 +50,12 @@ export const zImagesConfig = z.strictObject({
   can_use: boolPerm("use /image"),
   daily: z
     .array(zImageDailySend)
-    .max(MAX_IMAGE_DAILY_SENDS)
+    .max(ONE_IMAGE_DAILY_SENDS)
     .default([])
-    .describe(`Daily image sends (max ${MAX_IMAGE_DAILY_SENDS}). Each one posts a fresh image into its channel once a day.`),
+    .describe(
+      `Daily image sends. Each one posts a fresh image into its channel once a day. Free servers run the ` +
+        `first ${FREE_IMAGE_DAILY_SENDS}, Dreamliner One servers up to ${ONE_IMAGE_DAILY_SENDS}.`,
+    ),
 });
 
 export const zImagesPluginSection = zPluginSection(zImagesConfig.shape);

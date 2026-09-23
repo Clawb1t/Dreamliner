@@ -1,7 +1,13 @@
 import type { Client } from "discord.js";
 import { eq } from "drizzle-orm";
 import { configManager } from "../../../config/manager.js";
-import { zImagesConfig, type ImageDailySend } from "../../../config/schemas/images.js";
+import { isDreamlinerOneActive } from "../../../bridge/dreamlinerOne.js";
+import {
+  FREE_IMAGE_DAILY_SENDS,
+  resolveMaxDailySends,
+  zImagesConfig,
+  type ImageDailySend,
+} from "../../../config/schemas/images.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
@@ -75,7 +81,13 @@ export async function runDailyImageSends(client: Client): Promise<void> {
       if (!guildConfig || !pluginEnabled(guildConfig, "images")) continue;
 
       const config = parsePluginConfig(zImagesConfig, getPluginSettings(guildConfig, "images"));
+      // Sends past the free cap stay in config (so they come back if One is renewed) but only run with One.
+      const limit =
+        config.daily.length > FREE_IMAGE_DAILY_SENDS
+          ? resolveMaxDailySends(await isDreamlinerOneActive(guild.id).catch(() => false))
+          : FREE_IMAGE_DAILY_SENDS;
       const due = config.daily
+        .slice(0, limit)
         .filter((send) => send.enabled && send.channel_id)
         .map((send) => ({ send, date: dueDate(send, now) }))
         .filter((entry): entry is { send: ImageDailySend; date: string } => entry.date !== null);

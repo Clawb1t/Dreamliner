@@ -8,6 +8,7 @@ import { buildDynamicExtras, keysReferencedIn } from "../../../core/templateExtr
 import { hasMemberPassedPassport } from "../../passport/functions/gate.js";
 import { armFirstMessageReact, clearFirstMessageReact } from "./firstMessageReact.js";
 import { loadWelcomeConfig } from "./loadConfig.js";
+import { handleMemberMilestoneJoin } from "./memberMilestones.js";
 import {
   buildWelcomePayload,
   getWelcomeEventConfig,
@@ -140,10 +141,14 @@ export async function sendWelcomeEvent(
 }
 
 export async function handleWelcomeMemberAdd(member: GuildMember): Promise<void> {
-  if (!member.guild || member.user.bot) return;
+  if (!member.guild) return;
 
   const config = await loadWelcomeConfig(member.guild.id);
   if (!config) return;
+
+  // Before the bot check: a bot join moves the member count too, so it can land on a milestone.
+  await handleMemberMilestoneJoin(member, config.member_milestones);
+  if (member.user.bot) return;
 
   // When gated, hold the join/DM welcome until the member actually passes Passport —
   // sendWelcomeAfterPassportVerification sends them once that happens. Members who don't

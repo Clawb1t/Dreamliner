@@ -2350,6 +2350,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const watchdogMatch = /^\/bridge\/guilds\/(\d+)\/watchdog$/.exec(url.pathname);
         const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
         const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
+        const applicationsMatch =
+          /^\/bridge\/guilds\/(\d+)\/applications(?:\/(\d+)(\/decision)?|\/openings\/([0-9a-fA-F-]{36})\/publish)?$/.exec(
+            url.pathname,
+          );
         const suggestionActionMatch =
           /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/(approve|deny|mark)$/.exec(
             url.pathname,
@@ -2396,6 +2400,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const welcomePreviewMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/preview$/.exec(url.pathname);
         const welcomeTestMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/test$/.exec(url.pathname);
+        const activityRewardsMatch = /^\/bridge\/guilds\/(\d+)\/activity-rewards\/(preview|test|overview|import)$/.exec(
+          url.pathname,
+        );
         const rolePanelsPreviewMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/preview$/.exec(url.pathname);
         const rolePanelsTestMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/test$/.exec(url.pathname);
         const rolePanelsValidateMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/validate$/.exec(url.pathname);
@@ -2497,6 +2504,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !watchdogMatch &&
           !reviewOneMatch &&
           !reviewsMatch &&
+          !applicationsMatch &&
           !suggestionActionMatch &&
           !suggestionCommentOneMatch &&
           !suggestionCommentsMatch &&
@@ -2520,6 +2528,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !welcomeAssetMatch &&
           !welcomePreviewMatch &&
           !welcomeTestMatch &&
+          !activityRewardsMatch &&
           !rolePanelsPreviewMatch &&
           !rolePanelsTestMatch &&
           !rolePanelsValidateMatch &&
@@ -2597,6 +2606,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           watchdogMatch?.[1] ??
           reviewOneMatch?.[1] ??
           reviewsMatch?.[1] ??
+          applicationsMatch?.[1] ??
           suggestionActionMatch?.[1] ??
           suggestionCommentOneMatch?.[1] ??
           suggestionCommentsMatch?.[1] ??
@@ -2620,6 +2630,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           welcomeAssetMatch?.[1] ??
           welcomePreviewMatch?.[1] ??
           welcomeTestMatch?.[1] ??
+          activityRewardsMatch?.[1] ??
           rolePanelsPreviewMatch?.[1] ??
           rolePanelsTestMatch?.[1] ??
           rolePanelsValidateMatch?.[1] ??
@@ -3414,6 +3425,88 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (activityRewardsMatch) {
+          const action = activityRewardsMatch[2];
+          const {
+            getActivityOverview,
+            importActivityFromStats,
+            previewActivityAnnouncement,
+            sendActivityTest,
+          } = await import("./webActivityRewards.js");
+
+          if (action === "overview" && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await getActivityOverview(guild));
+            return;
+          }
+
+          if (req.method !== "POST" || action === "overview") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+
+          let body: { userId?: string; config?: unknown; milestoneId?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const userId = body.userId?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          if (action === "preview") {
+            try {
+              const preview = await previewActivityAnnouncement(client, guild, userId, body);
+              sendJson(res, 200, { ok: true, ...preview });
+            } catch (error) {
+              sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to build preview" });
+            }
+            return;
+          }
+
+          if (action === "test") {
+            const member = await guild.members.fetch(userId).catch(() => null);
+            if (!member) {
+              sendJson(res, 404, { error: "Could not find your member in this server." });
+              return;
+            }
+            const result = await sendActivityTest(guild, member, body);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+
+          // action === "import"
+          const result = await importActivityFromStats(guild);
+          trackDashboardAction(client, guildId, userId, {
+            eventType: "dashboard_config",
+            title: "Activity imported",
+            summary: "Activity Rewards progress was backfilled from Server Stats history.",
+            details: [
+              `Members imported: ${result.imported}`,
+              `Members newly rewarded: ${result.rewarded}`,
+            ],
+            payload: result,
+          });
+          sendJson(res, 200, { ok: true, ...result });
+          return;
+        }
+
         if (welcomeAssetMatch || welcomePreviewMatch || welcomeTestMatch) {
           const {
             buildWelcomePreview,
@@ -3424,7 +3517,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           } = await import("./webWelcome.js");
 
           if (welcomeTestMatch && req.method === "POST") {
-            let body: { userId?: string; target?: string; config?: unknown };
+            let body: { userId?: string; target?: string; config?: unknown; milestoneIndex?: unknown };
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
@@ -3441,8 +3534,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const targetRaw = (body.target ?? "join").trim();
-            if (targetRaw !== "join" && targetRaw !== "leave" && targetRaw !== "dm") {
-              sendJson(res, 400, { error: "target must be join, leave, or dm" });
+            if (targetRaw !== "join" && targetRaw !== "leave" && targetRaw !== "dm" && targetRaw !== "milestone") {
+              sendJson(res, 400, { error: "target must be join, leave, dm, or milestone" });
               return;
             }
             const member = await guild.members.fetch(userId).catch(() => null);
@@ -3450,7 +3543,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 404, { error: "Could not find your member in this server." });
               return;
             }
-            const result = await sendWelcomeTest(guild, member, targetRaw, body.config);
+            const milestoneIndex =
+              typeof body.milestoneIndex === "number" && Number.isInteger(body.milestoneIndex) && body.milestoneIndex >= 0
+                ? body.milestoneIndex
+                : undefined;
+            const result = await sendWelcomeTest(guild, member, targetRaw, body.config, milestoneIndex);
             sendJson(res, result.ok ? 200 : 400, { ok: result.ok, detail: result.detail });
             return;
           }
@@ -3462,6 +3559,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               embed?: unknown;
               content?: string;
               sampleUserId?: string;
+              memberMilestone?: { count?: unknown; name?: unknown };
+              extra?: Record<string, string>;
             };
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
@@ -5675,6 +5774,98 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { buildWebWatchdogList } = await import("./webWatchdog.js");
           const payload = await buildWebWatchdogList(guild);
           sendJson(res, 200, { ok: true, ...payload });
+          return;
+        }
+
+        if (applicationsMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { decideWebApplication, getWebApplication, listWebApplications, parseApplicationsQuery, publishOpening } =
+            await import("./webApplications.js");
+          const [, , applicationIdRaw, decisionPath, openingId] = applicationsMatch;
+
+          if (openingId) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const result = await publishOpening(guild, openingId, userId);
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: result.updated ? "Application post updated" : "Application opening published",
+              summary: `Opening \`${openingId}\` was ${result.updated ? "updated" : "posted"} from the dashboard.`,
+              targetId: openingId,
+              payload: { action: "application_publish", openingId, messageId: result.messageId },
+            });
+            sendJson(res, 200, { ok: true, ...result });
+            return;
+          }
+
+          if (!applicationIdRaw) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            sendJson(res, 200, await listWebApplications(guild, parseApplicationsQuery(url)));
+            return;
+          }
+
+          const applicationId = Number(applicationIdRaw);
+          if (decisionPath) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            let body: { decision?: string; reason?: string } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            if (body.decision !== "accepted" && body.decision !== "denied") {
+              sendJson(res, 400, { error: "decision must be accepted or denied" });
+              return;
+            }
+            const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 1000) || null : null;
+            const result = await decideWebApplication(guild, applicationId, body.decision, userId, reason);
+            if ("error" in result) {
+              sendJson(res, 409, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: body.decision === "accepted" ? "Application accepted" : "Application denied",
+              summary: `Application \`#${applicationId}\` was ${body.decision} from the dashboard.`,
+              targetId: String(applicationId),
+              details: reason ? [`Reason: ${reason}`] : [],
+              payload: { action: "application_decision", applicationId, decision: body.decision },
+            });
+            sendJson(res, 200, { ok: true, ...result });
+            return;
+          }
+
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const application = await getWebApplication(guild, applicationId);
+          if (!application) {
+            sendJson(res, 404, { error: "Application not found" });
+            return;
+          }
+          sendJson(res, 200, { application });
           return;
         }
 

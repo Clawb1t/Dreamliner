@@ -16,6 +16,8 @@ import { zMusicPluginSection } from "./music.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import { zSocialPluginSection } from "./social.js";
 import { zImagesPluginSection } from "./images.js";
+import { zActivityRewardsPluginSection } from "./activityRewards.js";
+import { zApplicationsPluginSection } from "./applications.js";
 import {
   zAutomodPluginSection,
   zImpersonationPluginSection,
@@ -339,6 +341,8 @@ export const zGuildConfig = z.strictObject({
       giveaways: zGiveawaysPluginSection.default({}),
       social: zSocialPluginSection.default({}),
       images: zImagesPluginSection.default({}),
+      activity_rewards: zActivityRewardsPluginSection.default({}),
+      applications: zApplicationsPluginSection.default({}),
     })
     .default({}),
 });

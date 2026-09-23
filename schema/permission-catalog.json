@@ -1,5 +1,47 @@
 [
   {
+    "plugin": "activity_rewards",
+    "pluginName": "Activity Rewards",
+    "pluginDescription": "Reward members with roles and announcements when they hit message or voice-time milestones, with per-milestone channels and messages.",
+    "entries": [
+      {
+        "plugin": "activity_rewards",
+        "permission": "can_manage",
+        "grantKey": "activity_rewards.can_manage",
+        "title": "Manage",
+        "description": "Allow members to adjust or reset a member's progress with /rewards adjust and /rewards reset."
+      },
+      {
+        "plugin": "activity_rewards",
+        "permission": "can_sync",
+        "grantKey": "activity_rewards.can_sync",
+        "title": "Sync",
+        "description": "Allow members to re-sync their own milestone roles with /rewards sync."
+      },
+      {
+        "plugin": "activity_rewards",
+        "permission": "can_view",
+        "grantKey": "activity_rewards.can_view",
+        "title": "View",
+        "description": "Allow members to view milestones, their own progress and the leaderboard with /rewards."
+      }
+    ]
+  },
+  {
+    "plugin": "applications",
+    "pluginName": "Applications",
+    "pluginDescription": "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard.",
+    "entries": [
+      {
+        "plugin": "applications",
+        "permission": "can_review",
+        "grantKey": "applications.can_review",
+        "title": "Review",
+        "description": "Allow members to accept or deny applications from the review channel."
+      }
+    ]
+  },
+  {
     "plugin": "booster_roles",
     "pluginName": "Booster Roles",
     "pluginDescription": "Reward server boosters with different roles based on how long they've been boosting.",

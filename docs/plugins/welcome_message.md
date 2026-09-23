@@ -82,6 +82,33 @@ Cards are PNG images rendered with `@napi-rs/canvas` and attached as files next 
 - Text layouts: `beside`, `below`, `overlay_center`, `overlay_bottom`
 - Fine controls: border color/width/radius, avatar size and offsets, text offsets, font sizes, accent bar toggle
 
+## Member milestones
+
+`member_milestones` celebrates member counts like 1,000 or 10,000. It has a default `channel_id` and a default
+message (`content` / `embed` / `card`), plus a `milestones` list (up to 50):
+
+```yaml
+member_milestones:
+  enabled: true
+  channel_id: "123456789012345678"
+  content: "🎉 We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}."
+  milestones:
+    - count: 1000
+    - count: 10000
+      name: "Ten thousand"
+      channel_id: "234567890123456789"   # optional per-milestone channel
+      message_mode: custom                # post this milestone's own message instead
+      message:
+        content: "🚀 {milestone_name}! Thank you all."
+```
+
+- A milestone fires when a join brings the member count **exactly** onto it, so adding a count the
+  server has already passed never triggers a stale celebration.
+- Each count is celebrated once, ever. Dropping below it and climbing back doesn't repeat it.
+- Bots count too, matching Discord's member count and `{member_count}`.
+- Extra placeholders: `{milestone}` (e.g. `1,000`) and `{milestone_name}` (the label, or `1,000 members`).
+  `{user}` is the member whose join hit the milestone.
+
 ## First message emoji
 
 When `first_message_react.enabled` is true and `emoji` is set (server emoji id or unicode), Dreamliner reacts to that member's first message after joining (within 7 days).

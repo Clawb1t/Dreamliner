@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-23T10:21:42.417Z",
+  "generatedAt": "2026-09-23T21:58:08.417Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -127,12 +127,17 @@
     {
       "id": "engage",
       "label": "Engagement",
-      "description": "Welcomes, companion voice channels, and starboard.",
+      "description": "Welcomes, activity rewards, companion voice channels, and starboard.",
       "plugins": [
         {
           "key": "welcome_message",
           "name": "Welcomer",
           "description": "Join, leave, and DM welcomes with embeds and image cards."
+        },
+        {
+          "key": "activity_rewards",
+          "name": "Activity Rewards",
+          "description": "Reward members with roles and announcements when they hit message or voice-time milestones, with per-milestone channels and messages."
         },
         {
           "key": "companion_channels",
@@ -309,6 +314,11 @@
           "key": "tickets",
           "name": "Tickets",
           "description": "Support ticket panels, categories, staff claiming, and transcripts."
+        },
+        {
+          "key": "applications",
+          "name": "Applications",
+          "description": "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard."
         }
       ]
     }
@@ -437,6 +447,13 @@
       "key": "welcome_message",
       "name": "Welcomer",
       "description": "Join, leave, and DM welcomes with embeds and image cards.",
+      "category": "Engagement",
+      "categoryId": "engage"
+    },
+    {
+      "key": "activity_rewards",
+      "name": "Activity Rewards",
+      "description": "Reward members with roles and announcements when they hit message or voice-time milestones, with per-milestone channels and messages.",
       "category": "Engagement",
       "categoryId": "engage"
     },
@@ -605,6 +622,13 @@
       "key": "tickets",
       "name": "Tickets",
       "description": "Support ticket panels, categories, staff claiming, and transcripts.",
+      "category": "Support",
+      "categoryId": "support"
+    },
+    {
+      "key": "applications",
+      "name": "Applications",
+      "description": "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard.",
       "category": "Support",
       "categoryId": "support"
     }

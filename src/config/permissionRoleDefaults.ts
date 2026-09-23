@@ -14,6 +14,9 @@ export const BUILT_IN_ROLE_NAMES: Record<BuiltInTier, string> = {
 export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
   // Was level >= 0 (everyone).
   member: [
+    // activity_rewards
+    "activity_rewards.can_view",
+    "activity_rewards.can_sync",
     // booster_roles
     "booster_roles.can_view",
     "booster_roles.can_recheck",
@@ -50,6 +53,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
 
   // Was level >= 25 OR level >= 50.
   moderator: [
+    // applications
+    "applications.can_review",
     // counting
     "counting.can_reset",
     // bot_customisation
@@ -174,6 +179,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
 
   // Was level >= 75 OR level >= 100.
   admin: [
+    // activity_rewards
+    "activity_rewards.can_manage",
     // giveaways
     "giveaways.can_cancel",
     "giveaways.can_view_all",
