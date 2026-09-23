@@ -1805,3 +1805,17 @@ export const giveawayTemplates = sqliteTable(
   },
   (table) => [index("giveaway_templates_guild").on(table.guildId)],
 );
+
+/** Last day each `images` daily send posted, so a restart never double-posts or skips a day. */
+export const imageDailySends = sqliteTable(
+  "image_daily_sends",
+  {
+    guildId: text("guild_id").notNull(),
+    /** `plugins.images.config.daily[].id` */
+    sendId: integer("send_id", { mode: "number" }).notNull(),
+    /** Local calendar date (YYYY-MM-DD, in the send's own timezone) of the last post. */
+    lastSentDate: text("last_sent_date").notNull(),
+    lastSentAt: integer("last_sent_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.sendId] })],
+);

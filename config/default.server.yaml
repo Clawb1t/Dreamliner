@@ -887,3 +887,8 @@ plugins:
     config:
       can_manage: false
       can_view: false
+  images:
+    enabled: false
+    config:
+      can_use: false
+      daily: []

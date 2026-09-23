@@ -55,6 +55,8 @@ import {
 import { handleSuggestModalSubmit } from "./plugins/suggestions/functions/modal.js";
 import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functions/handlers.js";
 import { TICKET_PREFIX } from "./plugins/tickets/constants.js";
+import { IMAGE_ANOTHER_PREFIX } from "./plugins/images/functions/render.js";
+import { handleImageAnotherButton } from "./plugins/images/functions/buttons.js";
 import {
   handleTicketButtonInteraction,
   handleTicketModalSubmit,
@@ -329,6 +331,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(GIVEAWAY_CLAIM_PREFIX)) {
         const handled = await safeHandle(interaction, "Giveaway claim button", () => handleGiveawayClaimButton(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(IMAGE_ANOTHER_PREFIX)) {
+        const handled = await safeHandle(interaction, "Image another button", () => handleImageAnotherButton(interaction));
         if (handled) return;
       }
       if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {

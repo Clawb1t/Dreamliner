@@ -5,6 +5,7 @@ import {
 import { AUTOMOD_PRESETS } from "../../config/schemas/automod.js";
 import { TICKET_BUTTON_STYLES, TICKET_CONTAINER_MODES, TICKET_PANEL_STYLES } from "../../config/schemas/tickets.js";
 import { SUGGESTION_MODES } from "../../config/schemas/suggestions.js";
+import { IMAGE_SOURCES, isValidTimeZone } from "../../config/schemas/images.js";
 import { resolveEmojiByName } from "../emoji.js";
 
 /** Server-side registry of conversational AI setup wizards. Adding AI setup to a new dashboard
@@ -509,6 +510,21 @@ function validateAutoRuleMatch(config: Record<string, unknown>, noun: string): s
     return `Autopilot's setup was inconsistent (needs a word or phrase to match, unless it ${noun} every message). Please try again.`;
   }
   return null;
+}
+
+function imageDailySendSchema(ctx: AiWizardContext): Record<string, unknown> {
+  const textIds = ctx.textChannels.map((c) => c.id);
+  return {
+    type: "object",
+    properties: {
+      channel_id: { type: "string", enum: textIds.length > 0 ? textIds : [""] },
+      source: { type: "string", enum: [...IMAGE_SOURCES] },
+      time: { type: "string" },
+      timezone: { type: "string" },
+    },
+    required: ["channel_id", "source", "time", "timezone"],
+    additionalProperties: false,
+  };
 }
 
 function slowmodeSetupSchema(ctx: AiWizardContext): Record<string, unknown> {
@@ -1113,6 +1129,53 @@ export const AI_WIZARDS: Record<string, AiWizardDefinition> = {
       "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
       "choices you made (leave question null). emoji always needs a real value, never leave it " +
       "empty.",
+  },
+
+  images_setup: {
+    maxQuestions: 4,
+    requiresEntity: {
+      kind: "textChannels",
+      message: "This server has no text channels yet. Create one first, then try Autopilot setup again.",
+    },
+    buildResultSchema: (ctx) => turnSchema(imageDailySendSchema(ctx)),
+    validateConfig: (config, ctx) => {
+      const channelId = config.channel_id;
+      if (typeof channelId !== "string" || !ctx.textChannels.some((c) => c.id === channelId)) {
+        return "Autopilot picked a channel that doesn't exist. Please try again.";
+      }
+      if (typeof config.time !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(config.time)) {
+        return "Autopilot picked a time that isn't valid. Please try again.";
+      }
+      if (typeof config.timezone !== "string" || !isValidTimeZone(config.timezone)) {
+        return "Autopilot picked a timezone that isn't valid. Please try again.";
+      }
+      return null;
+    },
+    buildSystemPrompt: (ctx, questionsAsked) =>
+      "You are helping a Discord server admin set up a Daily Image: once a day, Dreamliner posts a " +
+      "fresh random image into a chosen channel. The kinds are: \"anime\" (anime art: nekos, " +
+      "waifus, kitsunes, husbandos), \"blahaj\" (photos of the IKEA Blåhaj shark plush), and " +
+      "animal photos: \"cat\", \"dog\", \"fox\", \"duck\", \"capybara\", \"bird\". You are " +
+      "setting this up for the server " +
+      `"${ctx.guildName}". Ask ONE short, plain-language question at a time. Never mention field ` +
+      "names, JSON, or config, ask like a helpful person would. Find out which kind of image, which " +
+      "channel it should post in, and what time of day. If the channel name or the user's wording " +
+      "already makes the kind of image obvious, don't ask about it. " +
+      NEVER_EM_DASH_RULE +
+      " " +
+      ANSWER_KIND_RULE +
+      "\n\nExisting text channels (pick channel_id from these ids only):\n" +
+      `${entityList(ctx.textChannels)}\n\n` +
+      "time is 24-hour \"HH:MM\" (e.g. \"09:00\", \"18:30\"); turn answers like \"9am\" or " +
+      "\"evening\" into a sensible exact time, defaulting to \"12:00\". timezone is an IANA " +
+      "timezone name like \"Europe/London\", \"America/New_York\", or \"Asia/Tokyo\". When the user " +
+      "gives a time, ask which timezone (or city/country) they mean unless they already said, and " +
+      "map their answer to the matching IANA name. Use \"UTC\" if they have no preference.\n\n" +
+      progressInstruction(questionsAsked, 4) +
+      "Respond with action \"ask\" and a question (leave summary and config null), or action " +
+      "\"ready\" with a fully filled-in config and a short, friendly plain-language summary of the " +
+      "choices you made (leave question null). channel_id always needs a real channel id, never " +
+      "leave it empty.",
   },
 
   autothreads_setup: {

@@ -189,6 +189,20 @@
     ]
   },
   {
+    "plugin": "images",
+    "pluginName": "Images",
+    "pluginDescription": "Random anime, Blåhaj, and animal images (cats, dogs, foxes, ducks, capybaras, birds) with /image, plus daily image drops into any channel.",
+    "entries": [
+      {
+        "plugin": "images",
+        "permission": "can_use",
+        "grantKey": "images.can_use",
+        "title": "Use",
+        "description": "Allow members to use /image."
+      }
+    ]
+  },
+  {
     "plugin": "impersonation",
     "pluginName": "Impersonation Detection",
     "pluginDescription": "Flags members whose name or avatar closely matches a protected role holder or watchlist entry.",

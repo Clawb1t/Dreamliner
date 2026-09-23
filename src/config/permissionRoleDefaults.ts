@@ -27,6 +27,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "economy.can_give",
     "economy.can_sell",
     "economy.can_view",
+    // images
+    "images.can_use",
     // reviews
     "reviews.can_review",
     // suggestions

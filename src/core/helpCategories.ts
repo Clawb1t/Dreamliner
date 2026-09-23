@@ -157,8 +157,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "fun",
     label: "Fun",
-    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, and giveaways.",
-    include: [{ plugin: "economy" }, { plugin: "counting" }, { plugin: "giveaways" }],
+    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, and images.",
+    include: [{ plugin: "economy" }, { plugin: "counting" }, { plugin: "giveaways" }, { plugin: "images" }],
   },
   {
     id: "support",
@@ -363,6 +363,11 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description:
       "A global coin economy plus a customisable per-server currency, earned by chatting and daily claims, plus collectible plane and airline trading cards: buy packs with global coins, browse your hangar, and give cards to other members.",
   },
+  images: {
+    key: "images",
+    name: "Images",
+    description: "Random anime, Blåhaj, and animal images (cats, dogs, foxes, ducks, capybaras, birds) with /image, plus daily image drops into any channel.",
+  },
   social: {
     key: "social",
     name: "Social Notifications",
@@ -440,6 +445,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   economy: "fun",
   counting: "fun",
   giveaways: "fun",
+  images: "fun",
   social: "social",
 };
 

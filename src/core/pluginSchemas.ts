@@ -13,6 +13,7 @@ import { zMusicConfig } from "../config/schemas/music.js";
 import { zUtilityConfig } from "../config/schemas/utility.js";
 import { zImpersonationConfig } from "../config/schemas/impersonation.js";
 import { zIncidentResponseConfig } from "../config/schemas/incidentResponse.js";
+import { zImagesConfig } from "../config/schemas/images.js";
 import {
   zAutomodConfig,
   zDreamCommandsConfig,
@@ -87,6 +88,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   tts: zTtsConfig,
   clipping: zClippingConfig,
   music: zMusicConfig,
+  images: zImagesConfig,
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

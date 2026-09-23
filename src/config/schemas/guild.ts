@@ -15,6 +15,7 @@ import { zEconomyPluginSection } from "./economy.js";
 import { zMusicPluginSection } from "./music.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import { zSocialPluginSection } from "./social.js";
+import { zImagesPluginSection } from "./images.js";
 import {
   zAutomodPluginSection,
   zImpersonationPluginSection,
@@ -337,6 +338,7 @@ export const zGuildConfig = z.strictObject({
       tickets: zTicketsPluginSection.default({}),
       giveaways: zGiveawaysPluginSection.default({}),
       social: zSocialPluginSection.default({}),
+      images: zImagesPluginSection.default({}),
     })
     .default({}),
 });
