@@ -63,9 +63,19 @@ async function notifyWatchers(
   if (!targets.size) return;
 
   const container = buildSuggestionDmContainer({ client, guild, suggestion, title, tone, extraField });
-  const jumpRow = suggestionJumpRow(guild, suggestion);
+  // A denied (or deleted) suggestion has no live post left to jump to.
+  const jumpRow = suggestion.status === "denied" ? null : suggestionJumpRow(guild, suggestion);
   const payload = containerReply(container, false, jumpRow ? [jumpRow] : undefined);
   await Promise.all([...targets].map((id) => tryDm(client, id, payload)));
+}
+
+/** Every re-render of a suggestion post must carry its comments, or editing it (a vote, a
+ *  status mark, an approval) would silently drop the "Comment #N" fields. */
+async function loadCommentContext(
+  suggestionId: number,
+): Promise<{ comments: Awaited<ReturnType<typeof listComments>>; commentCount: number }> {
+  const [comments, commentCount] = await Promise.all([listComments(suggestionId, 100), countComments(suggestionId)]);
+  return { comments, commentCount };
 }
 
 async function maybeGrantRole(guild: Guild, userId: string, roleId?: string): Promise<void> {
@@ -167,7 +177,7 @@ export async function postToFeed(options: {
     (await updateSuggestion(input.id, { status: "approved", staffActorId: input.staffActorId })) ?? input;
 
   const votes = await getVoteTotals(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, t });
+  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, ...(await loadCommentContext(suggestion.id)), t });
   const rows = config.voting_enabled ? [voteActionRow(suggestion.id, config, votes)] : [];
   const feedPayload = containerReply(embed, false, rows);
   const msg = await channel.send({
@@ -212,7 +222,7 @@ export async function refreshFeedMessage(
   const msg = await channel.messages.fetch(suggestion.feedMessageId).catch(() => null);
   if (!msg) return;
   const votes = await getVoteTotals(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, t });
+  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, ...(await loadCommentContext(suggestion.id)), t });
   const components =
     config.voting_enabled && suggestion.status === "approved"
       ? [voteActionRow(suggestion.id, config, votes)]
@@ -231,10 +241,7 @@ async function refreshMessagesWithComments(
   suggestion: Suggestion,
   t: Translator,
 ): Promise<void> {
-  const [comments, commentCount] = await Promise.all([
-    listComments(suggestion.id, 100),
-    countComments(suggestion.id),
-  ]);
+  const { comments, commentCount } = await loadCommentContext(suggestion.id);
 
   if (suggestion.feedChannelId && suggestion.feedMessageId) {
     const channel = await resolveTextChannel(client, suggestion.feedChannelId);
@@ -314,6 +321,7 @@ export async function approveSuggestion(options: {
         client: options.client,
         suggestion: updated,
         config: options.config,
+        ...(await loadCommentContext(updated.id)),
         titlePrefix: t("suggestions.status.approved", "Approved"),
         t,
       });
@@ -383,6 +391,7 @@ export async function denySuggestion(options: {
         client: options.client,
         suggestion: updated,
         config: options.config,
+        ...(await loadCommentContext(updated.id)),
         titlePrefix: t("suggestions.status.denied", "Denied"),
         t,
       });
@@ -405,6 +414,7 @@ export async function denySuggestion(options: {
         client: options.client,
         suggestion: updated,
         config: options.config,
+        ...(await loadCommentContext(updated.id)),
         titlePrefix: t("suggestions.status.denied", "Denied"),
         t,
       });
@@ -468,6 +478,7 @@ export async function markSuggestion(options: {
         suggestion: updated,
         config: options.config,
         votes,
+        ...(await loadCommentContext(updated.id)),
         titlePrefix: t("suggestions.titlePrefix.implemented", "Implemented"),
         t,
       });
