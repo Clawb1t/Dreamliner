@@ -27,7 +27,7 @@ plugins:
               enabled: true
               title: "{opening} applications are open"
               description: "Think you'd be a great fit? Hit the button below to apply."
-          button: { label: "Apply", emoji: "📝", style: primary }
+          button: { label: "Apply", emoji: "<:icons_pen:1544417369709871224>", style: primary }
           questions:
             - id: "…"
               label: "Why do you want to join the team?"
@@ -43,7 +43,7 @@ plugins:
           accept_roles: ["456789012345678901"]
           accept_remove_roles: []
           dm_decision: true
-          accept_message: "🎉 Your application for **{opening}** in **{guild}** was accepted. Welcome aboard!"
+          accept_message: "<:icons_tada:1544417975472492594> Your application for **{opening}** in **{guild}** was accepted. Welcome aboard!"
           deny_message: "Thanks for applying for **{opening}** in **{guild}**. Unfortunately it wasn't accepted this time."
 ```
 

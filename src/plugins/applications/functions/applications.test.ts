@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { ComponentType } from "discord.js";
 import assert from "node:assert/strict";
 import { paginateQuestions } from "../../../core/formModal.js";
 import { zApplicationsConfig } from "../../../config/schemas/applications.js";
@@ -10,7 +11,7 @@ import {
   applicationModalId,
   parseApplicationCustomId,
 } from "../constants.js";
-import { buildReviewButtons, buildReviewEmbed } from "./review.js";
+import { buildDecisionDm, buildReviewButtons, buildReviewEmbed, buildVerdictContainer } from "./review.js";
 import type { ApplicationRecord } from "./store.js";
 
 const OPENING = "0b6f7a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b";
@@ -67,6 +68,14 @@ function record(overrides: Partial<ApplicationRecord> = {}): ApplicationRecord {
   };
 }
 
+/** Every TextDisplay's content in a Components V2 tree. */
+function allText(node: unknown): string[] {
+  if (!node || typeof node !== "object") return [];
+  const n = node as { type?: number; content?: unknown; components?: unknown[] };
+  const own = n.type === ComponentType.TextDisplay && typeof n.content === "string" ? [n.content] : [];
+  return [...own, ...(n.components ?? []).flatMap(allText)];
+}
+
 test("review embed stays under Discord's 6000 character limit with 20 long answers", () => {
   const answers = Array.from({ length: 20 }, (_, i) => ({
     questionId: String(i),
@@ -84,9 +93,36 @@ test("review embed stays under Discord's 6000 character limit with 20 long answe
   assert.ok((json.fields ?? []).length <= 25);
 });
 
+test("the thread verdict (formerly plain text) is a container in the status colour", () => {
+  const json = buildVerdictContainer(record({ status: "accepted", reviewerId: "9", decidedAt: new Date() })).toContainerComponent();
+  assert.equal(json.type, ComponentType.Container);
+  assert.equal(json.accentColor, 0x22c55e);
+  assert.match(allText(json).join(""), /<:icons_Correct:\d+> Accepted by <@9>/);
+});
+
+test("decision DMs (formerly plain text) are titled containers carrying the server's message", () => {
+  const guild = { client: {}, name: "Test Server", iconURL: () => null } as never;
+  const opening = zApplicationsConfig.parse({ openings: [{ id: OPENING, name: "Moderator" }] }).openings[0]!;
+  const json = buildDecisionDm(guild, "accepted", opening, "Welcome aboard!").toContainerComponent();
+  const text = allText(json).join(" ");
+  assert.equal(json.type, ComponentType.Container);
+  assert.match(text, /Application accepted/);
+  assert.match(text, /Welcome aboard!/);
+  assert.match(text, /Test Server · Moderator/);
+});
+
 test("review buttons disable once decided", () => {
   const pending = buildReviewButtons(record()).toJSON().components;
   const decided = buildReviewButtons(record({ status: "accepted" })).toJSON().components;
   assert.ok(pending.every((c) => !("disabled" in c) || !c.disabled));
   assert.ok(decided.every((c) => "disabled" in c && c.disabled));
+});
+
+test("review buttons use Dreamliner's app emojis, parsed into real custom emoji IDs", () => {
+  const ids = buildReviewButtons(record())
+    .toJSON()
+    .components.map((c) => ("emoji" in c ? c.emoji?.id : undefined));
+  assert.deepEqual(ids, ["1544417199798886530", "1544417460638457937"]);
+  const status = buildReviewEmbed(record(), null).toJSON().fields!.at(-1)!.value;
+  assert.match(status, /^<:icons_hoursglass:\d+> Waiting/);
 });

@@ -10,7 +10,7 @@ import {
   type MessageActionRowComponentBuilder,
   type ModalSubmitInteraction,
 } from "discord.js";
-import type { ApplicationOpening, ApplicationsConfig } from "../../../config/schemas/applications.js";
+import { APPLICATION_EMOJIS, type ApplicationOpening, type ApplicationsConfig } from "../../../config/schemas/applications.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { configManager } from "../../../config/manager.js";
 import { buildFormModal, paginateQuestions, readFormAnswer, readFormFiles, type FormAnswer } from "../../../core/formModal.js";
@@ -48,8 +48,9 @@ async function reply(
   body: string,
   tone: EmbedTone,
   components?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+  emoji?: string,
 ): Promise<void> {
-  const options = guildResultOptions(interaction.client, ctx.guildConfig, { tone });
+  const options = guildResultOptions(interaction.client, ctx.guildConfig, { tone, ...(emoji ? { emoji } : {}) });
   if (interaction.deferred || interaction.replied) {
     await interaction.editReply(resultEdit(title, body, options));
     return;
@@ -176,7 +177,15 @@ async function finishDecision(
     }),
     ...result.notes,
   ].join("\n");
-  await reply(interaction, ctx, title, body, decision === "accepted" ? "success" : "neutral");
+  await reply(
+    interaction,
+    ctx,
+    title,
+    body,
+    decision === "accepted" ? "success" : "neutral",
+    undefined,
+    decision === "accepted" ? APPLICATION_EMOJIS.accepted : APPLICATION_EMOJIS.denied,
+  );
 }
 
 export async function handleApplicationButtonInteraction(interaction: ButtonInteraction): Promise<boolean> {
@@ -224,7 +233,7 @@ async function handleFormPage(interaction: ModalSubmitInteraction, ctx: Ctx, ope
       new ButtonBuilder()
         .setCustomId(applicationContinueId(opening.id, page + 1))
         .setLabel(t("applications.continueButton", "Continue ({page}/{total})", { page: page + 2, total: pages.length }))
-        .setEmoji("➡️")
+        .setEmoji(APPLICATION_EMOJIS.next)
         .setStyle(ButtonStyle.Primary),
     );
     await reply(
@@ -236,6 +245,7 @@ async function handleFormPage(interaction: ModalSubmitInteraction, ctx: Ctx, ope
       }),
       "neutral",
       [row],
+      APPLICATION_EMOJIS.pageSaved,
     );
     return;
   }
@@ -265,6 +275,8 @@ async function handleFormPage(interaction: ModalSubmitInteraction, ctx: Ctx, ope
       opening: openingName(opening),
     }),
     "success",
+    undefined,
+    APPLICATION_EMOJIS.submitted,
   );
 }
 

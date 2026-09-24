@@ -4,6 +4,22 @@ import { zPluginSection } from "./pluginSection.js";
 import { TICKET_BUTTON_STYLES, zTicketFormQuestion } from "./tickets.js";
 import { zWelcomeEmbedConfig } from "./welcome.js";
 
+/**
+ * Dreamliner's own application emojis used across Applications (see app-emojis.txt). App emojis
+ * render in every server and in DMs, so these work regardless of which server the bot is in.
+ */
+export const APPLICATION_EMOJIS = {
+  /** Default apply-button emoji for new openings. */
+  apply: "<:icons_pen:1544417369709871224>",
+  pending: "<:icons_hoursglass:1544417711864549479>",
+  accepted: "<:icons_Correct:1544417199798886530>",
+  denied: "<:icons_Wrong:1544417460638457937>",
+  next: "<:icons_rightarrow:1544417401180000337>",
+  submitted: "<:icons_envelope:1544417793007681566>",
+  pageSaved: "<:icons_todolist:1544417596307279952>",
+  celebrate: "<:icons_tada:1544417975472492594>",
+} as const;
+
 /** Four modal pages of five questions each. Longer forms are asked page by page. */
 export const MAX_APPLICATION_QUESTIONS = 20;
 export const MAX_APPLICATION_OPENINGS = 25;
@@ -24,7 +40,7 @@ export const zApplicationPostMessage = z.strictObject({
 
 export const zApplicationButton = z.strictObject({
   label: z.string().max(80).default("Apply").describe("Text on the apply button."),
-  emoji: z.string().max(128).default("📝").describe("Button emoji (unicode, emoji id, or <:name:id>)."),
+  emoji: z.string().max(128).default(APPLICATION_EMOJIS.apply).describe("Button emoji (unicode, emoji id, or <:name:id>)."),
   style: z.enum(TICKET_BUTTON_STYLES).default("primary").describe("Button color."),
 });
 
@@ -98,7 +114,7 @@ export const zApplicationOpening = z.strictObject({
   accept_message: z
     .string()
     .max(2000)
-    .default("🎉 Your application for **{opening}** in **{guild}** was accepted. Welcome aboard!")
+    .default(`${APPLICATION_EMOJIS.celebrate} Your application for **{opening}** in **{guild}** was accepted. Welcome aboard!`)
     .describe("DM sent on acceptance. Supports {user}, {opening}, {guild} and {reason}."),
   deny_message: z
     .string()

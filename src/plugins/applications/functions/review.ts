@@ -8,8 +8,15 @@ import {
   type SendableChannels,
   type User,
 } from "discord.js";
-import type { ApplicationOpening, ApplicationStatus, ApplicationsConfig } from "../../../config/schemas/applications.js";
+import {
+  APPLICATION_EMOJIS,
+  type ApplicationOpening,
+  type ApplicationStatus,
+  type ApplicationsConfig,
+} from "../../../config/schemas/applications.js";
+import { baseEmbed, setEmbedAuthor, type ResultContainer } from "../../../core/embeds.js";
 import { getLogger } from "../../../core/logger.js";
+import { containerReply } from "../../../core/responses.js";
 import { renderTemplate } from "../../../core/templates.js";
 import { applicationAcceptId, applicationDenyId } from "../constants.js";
 import { findOpening, openingName, openingVars, reviewChannelFor } from "./config.js";
@@ -28,10 +35,13 @@ const EMBED_CHAR_LIMIT = 5900;
 const MAX_REVIEW_FILES = 10;
 
 function statusLine(app: ApplicationRecord): string {
-  if (app.status === "pending") return "⏳ Waiting for review";
+  if (app.status === "pending") return `${APPLICATION_EMOJIS.pending} Waiting for review`;
   const who = app.reviewerId ? ` by <@${app.reviewerId}>` : "";
   const when = app.decidedAt ? ` <t:${Math.floor(app.decidedAt.getTime() / 1000)}:R>` : "";
-  const verdict = app.status === "accepted" ? `✅ Accepted${who}${when}` : `❌ Denied${who}${when}`;
+  const verdict =
+    app.status === "accepted"
+      ? `${APPLICATION_EMOJIS.accepted} Accepted${who}${when}`
+      : `${APPLICATION_EMOJIS.denied} Denied${who}${when}`;
   return app.reason ? `${verdict}\n**Reason:** ${app.reason.slice(0, 800)}` : verdict;
 }
 
@@ -73,13 +83,13 @@ export function buildReviewButtons(app: ApplicationRecord): ActionRowBuilder<But
     new ButtonBuilder()
       .setCustomId(applicationAcceptId(app.id))
       .setLabel(app.status === "accepted" ? "Accepted" : "Accept")
-      .setEmoji("✅")
+      .setEmoji(APPLICATION_EMOJIS.accepted)
       .setStyle(ButtonStyle.Success)
       .setDisabled(decided),
     new ButtonBuilder()
       .setCustomId(applicationDenyId(app.id))
       .setLabel(app.status === "denied" ? "Denied" : "Deny")
-      .setEmoji("✖️")
+      .setEmoji(APPLICATION_EMOJIS.denied)
       .setStyle(ButtonStyle.Danger)
       .setDisabled(decided),
   );
@@ -141,9 +151,14 @@ async function refreshReviewMessage(guild: Guild, app: ApplicationRecord): Promi
   if (app.threadId) {
     const thread = await guild.channels.fetch(app.threadId).catch(() => null);
     if (thread?.isThread()) {
-      await thread.send({ content: statusLine(app), allowedMentions: { parse: [] } }).catch(() => null);
+      await thread.send(containerReply(buildVerdictContainer(app))).catch(() => null);
     }
   }
+}
+
+/** The verdict posted into the application's discussion thread once it's decided. */
+export function buildVerdictContainer(app: ApplicationRecord): ResultContainer {
+  return baseEmbed().setColor(STATUS_COLORS[app.status]).setDescription(statusLine(app));
 }
 
 function renderDecisionMessage(
@@ -161,6 +176,28 @@ function renderDecisionMessage(
   // Templates that don't place {reason} themselves still get it, on its own line.
   if (reason && !template.includes("{reason}")) return `${text}\n\n**Reason:** ${reason}`;
   return text;
+}
+
+/** The DM an applicant gets with the outcome: a titled container holding the server's message. */
+export function buildDecisionDm(
+  guild: Guild,
+  decision: "accepted" | "denied",
+  opening: ApplicationOpening,
+  text: string,
+): ResultContainer {
+  const container = setEmbedAuthor(
+    baseEmbed(),
+    decision === "accepted" ? "Application accepted" : "Application denied",
+    guild.client,
+    {
+      emoji: decision === "accepted" ? APPLICATION_EMOJIS.accepted : APPLICATION_EMOJIS.denied,
+      thumbnailURL: guild.iconURL({ size: 128 }),
+    },
+  );
+  return container
+    .setColor(STATUS_COLORS[decision])
+    .setDescription(text.slice(0, 3000))
+    .setFooter({ text: `${guild.name} · ${openingName(opening)}` });
 }
 
 export type DecisionResult = { ok: true; application: ApplicationRecord; notes: string[] } | { ok: false; error: string };
@@ -203,9 +240,8 @@ export async function decide(
     const user = member?.user ?? (await guild.client.users.fetch(app.userId).catch(() => null));
     const template = decision === "accepted" ? opening.accept_message : opening.deny_message;
     if (user && template.trim()) {
-      const sent = await user
-        .send({ content: renderDecisionMessage(template, guild, user, opening, app.reason).slice(0, 2000) })
-        .catch(() => null);
+      const text = renderDecisionMessage(template, guild, user, opening, app.reason);
+      const sent = await user.send(containerReply(buildDecisionDm(guild, decision, opening, text))).catch(() => null);
       if (!sent) notes.push("The applicant has DMs closed, so they weren't notified.");
     }
   }

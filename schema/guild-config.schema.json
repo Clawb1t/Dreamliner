@@ -14408,7 +14408,7 @@
                           "emoji": {
                             "type": "string",
                             "maxLength": 128,
-                            "default": "📝",
+                            "default": "<:icons_pen:1544417369709871224>",
                             "description": "Button emoji (unicode, emoji id, or <:name:id>).",
                             "title": "Emoji",
                             "x-dreamliner": {
@@ -14690,7 +14690,7 @@
                       "accept_message": {
                         "type": "string",
                         "maxLength": 2000,
-                        "default": "🎉 Your application for **{opening}** in **{guild}** was accepted. Welcome aboard!",
+                        "default": "<:icons_tada:1544417975472492594> Your application for **{opening}** in **{guild}** was accepted. Welcome aboard!",
                         "description": "DM sent on acceptance. Supports {user}, {opening}, {guild} and {reason}.",
                         "title": "Accept Message"
                       },
