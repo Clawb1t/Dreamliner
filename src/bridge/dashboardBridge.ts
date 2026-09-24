@@ -253,7 +253,25 @@ async function buildEntities(guild: Guild) {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return { channels, roles, members, emojis };
+  const { cached } = await import("./responseCache.js");
+  // Dreamliner's own application emojis are the same for every server, so they're fetched once
+  // and shared; the dashboard lists them after the server's own emojis.
+  const appEmojis = await cached("app-emojis", 10 * 60_000, () => fetchAppEmojis(guild.client));
+
+  return { channels, roles, members, emojis, appEmojis };
+}
+
+async function fetchAppEmojis(client: Client) {
+  const fetched = await client.application?.emojis.fetch().catch(() => null);
+  if (!fetched) return [];
+  return [...fetched.values()]
+    .map((emoji) => ({
+      id: emoji.id,
+      name: emoji.name ?? "emoji",
+      animated: Boolean(emoji.animated),
+      url: emoji.imageURL({ size: 64 }) ?? null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
 /**
