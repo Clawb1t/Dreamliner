@@ -5,7 +5,9 @@
  */
 import { getLogger } from "../../../core/logger.js";
 import { deleteAction, getAction, saveAction, type BlueskyActionKind } from "./accounts.js";
-import { getAgent } from "./oauth.js";
+import type { OAuthSession } from "@atproto/oauth-client-node";
+import { parseAtUri } from "./api.js";
+import { getSession } from "./oauth.js";
 const log = getLogger("bluesky");
 
 export type ActionFailure = "not_connected" | "expired" | "not_configured" | "unavailable" | "rate_limited" | "failed";
@@ -30,6 +32,54 @@ function throttled(discordUserId: string): boolean {
 
 type Subject = { uri: string; cid?: string; did?: string };
 
+const COLLECTION: Record<BlueskyActionKind, string> = {
+  like: "app.bsky.feed.like",
+  repost: "app.bsky.feed.repost",
+  follow: "app.bsky.graph.follow",
+};
+
+/**
+ * Plain XRPC through the member's DPoP-bound OAuth session. Deliberately not `@atproto/api`: its
+ * generated types are huge and pushed `tsc` past the panel host's memory cap, and these two
+ * record calls are all Dreamliner needs.
+ */
+async function repoCall(session: OAuthSession, method: string, body: Record<string, unknown>): Promise<unknown> {
+  const res = await session.fetchHandler(`/xrpc/${method}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`${method} failed (${res.status}): ${detail.slice(0, 200)}`);
+  }
+  return res.status === 204 ? null : res.json().catch(() => null);
+}
+
+async function createRecord(session: OAuthSession, kind: BlueskyActionKind, subject: Subject): Promise<string> {
+  const record =
+    kind === "follow"
+      ? { $type: COLLECTION.follow, subject: subject.did, createdAt: new Date().toISOString() }
+      : { $type: COLLECTION[kind], subject: { uri: subject.uri, cid: subject.cid }, createdAt: new Date().toISOString() };
+  const created = (await repoCall(session, "com.atproto.repo.createRecord", {
+    repo: session.did,
+    collection: COLLECTION[kind],
+    record,
+  })) as { uri?: string } | null;
+  if (!created?.uri) throw new Error("createRecord returned no uri");
+  return created.uri;
+}
+
+async function deleteRecord(session: OAuthSession, recordUri: string): Promise<void> {
+  const parsed = parseAtUri(recordUri);
+  if (!parsed) return;
+  await repoCall(session, "com.atproto.repo.deleteRecord", {
+    repo: parsed.did,
+    collection: parsed.collection,
+    rkey: parsed.rkey,
+  });
+}
+
 async function run(
   discordUserId: string,
   kind: BlueskyActionKind,
@@ -42,27 +92,22 @@ async function run(
   if (turnOff && !existing) return { ok: true, state: "off", handle: "" };
 
   if (throttled(discordUserId)) return { ok: false, reason: "rate_limited" };
-  const auth = await getAgent(discordUserId);
+  const auth = await getSession(discordUserId);
   if (!auth.ok) return { ok: false, reason: auth.reason };
-  const { agent, account } = auth;
+  const { session, account } = auth;
 
   try {
     if (turnOff) {
       if (existing) {
-        if (kind === "like") await agent.deleteLike(existing);
-        else if (kind === "repost") await agent.deleteRepost(existing);
-        else await agent.deleteFollow(existing);
+        await deleteRecord(session, existing);
         await deleteAction(discordUserId, subject.uri, kind);
       }
       return { ok: true, state: "off", handle: account.handle };
     }
     if (existing) return { ok: true, state: "on", handle: account.handle };
 
-    let created: { uri: string };
-    if (kind === "like") created = await agent.like(subject.uri, subject.cid!);
-    else if (kind === "repost") created = await agent.repost(subject.uri, subject.cid!);
-    else created = await agent.follow(subject.did!);
-    await saveAction(discordUserId, subject.uri, kind, created.uri);
+    const recordUri = await createRecord(session, kind, subject);
+    await saveAction(discordUserId, subject.uri, kind, recordUri);
     return { ok: true, state: "on", handle: account.handle };
   } catch (error) {
     log.warn(`[bluesky] ${kind} ${turnOff ? "undo" : "create"} failed for ${account.did}:`, error);

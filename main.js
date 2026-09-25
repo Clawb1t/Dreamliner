@@ -5,17 +5,16 @@
  * Always prefers fresh builds: if you upload new `src/` files, the next
  * restart rebuilds `dist/` instead of running stale compiled output.
  *
- * Caps the V8 heap so Node stays within small panel RAM plans (default 768MB
- * of ~1GB). Override with DREAMLINER_MAX_OLD_SPACE_MB.
+ * Sets the V8 heap cap (default 2048MB; the TypeScript build needs well over 1GB). Override with
+ * DREAMLINER_MAX_OLD_SPACE_MB, up to 8192.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-/** Leave headroom under a 1GB plan for OS / native addons / npm. */
 const MAX_OLD_SPACE_MB = Math.max(
   256,
-  Math.min(896, Number(process.env.DREAMLINER_MAX_OLD_SPACE_MB || 768) || 768),
+  Math.min(8192, Number(process.env.DREAMLINER_MAX_OLD_SPACE_MB || 2048) || 2048),
 );
 
 function withHeapLimit(env) {

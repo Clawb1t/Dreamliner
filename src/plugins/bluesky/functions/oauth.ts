@@ -10,10 +10,10 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, eq, lt } from "drizzle-orm";
-import { Agent } from "@atproto/api";
 import {
   JoseKey,
   NodeOAuthClient,
+  type OAuthSession,
   TokenInvalidError,
   TokenRefreshError,
   TokenRevokedError,
@@ -286,19 +286,19 @@ export async function disconnect(discordUserId: string): Promise<boolean> {
   return true;
 }
 
-export type AgentResult =
-  | { ok: true; agent: Agent; account: BlueskyAccountRow }
+export type SessionResult =
+  | { ok: true; session: OAuthSession; account: BlueskyAccountRow }
   | { ok: false; reason: "not_connected" | "expired" | "not_configured" | "unavailable" };
 
-/** An authenticated agent for a member, refreshing tokens as needed. */
-export async function getAgent(discordUserId: string): Promise<AgentResult> {
+/** A member's authenticated OAuth session, refreshing tokens as needed. */
+export async function getSession(discordUserId: string): Promise<SessionResult> {
   if (!isBlueskyOauthConfigured()) return { ok: false, reason: "not_configured" };
   const account = await getAccount(discordUserId);
   if (!account) return { ok: false, reason: "not_connected" };
   try {
     const client = await getOauthClient();
     const session = await client.restore(account.did);
-    return { ok: true, agent: new Agent(session), account };
+    return { ok: true, session, account };
   } catch (error) {
     const gone =
       error instanceof TokenRefreshError ||

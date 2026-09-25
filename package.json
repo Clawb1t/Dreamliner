@@ -26,7 +26,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@atproto/api": "^0.20.44",
     "@atproto/oauth-client-node": "^0.5.7",
     "@discordjs/voice": "^0.19.2",
     "@huggingface/transformers": "^4.3.0",
