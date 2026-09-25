@@ -62,6 +62,11 @@ export function getGuildSocialDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=plugin:social`;
 }
 
+/** Guild dashboard opened on the Bluesky plugin page. */
+export function getGuildBlueskyDashboardUrl(guildId: string): string {
+  return `${getGuildDashboardUrl(guildId)}?section=plugin:bluesky`;
+}
+
 /** Per-guild "Spotify-style" web music player - queue tracks, see album art, control playback. */
 export function getGuildMusicPlayerUrl(guildId: string): string {
   return `${resolveSiteUrl()}/dashboard/${guildId}/music`;
@@ -74,6 +79,11 @@ export function getAccountVoiceUrl(): string {
 
 /** Account page's Connections tab — connect a Last.fm username for the "Listening to" command. */
 export function getAccountLastfmUrl(): string {
+  return `${resolveSiteUrl()}/account?tab=connections`;
+}
+
+/** Account page's Connections tab, where a member connects their Bluesky account. */
+export function getAccountConnectionsUrl(): string {
   return `${resolveSiteUrl()}/account?tab=connections`;
 }
 

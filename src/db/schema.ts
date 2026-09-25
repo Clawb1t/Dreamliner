@@ -1266,6 +1266,99 @@ export const socialTwitchWatchers = sqliteTable(
   (table) => [index("social_twitch_watchers_guild").on(table.guildId)],
 );
 
+/** Dashboard-configured Bluesky accounts to post into a Discord channel (the Bluesky plugin). */
+export const blueskyFeeds = sqliteTable(
+  "bluesky_feeds",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    discordChannelId: text("discord_channel_id").notNull(),
+    did: text("did").notNull(),
+    handle: text("handle").notNull(),
+    displayName: text("display_name").notNull().default(""),
+    avatarUrl: text("avatar_url"),
+    messageContent: text("message_content").notNull().default(""),
+    /** JSON string[] of role IDs to ping. */
+    mentionRoleIds: text("mention_role_ids").notNull().default("[]"),
+    /** JSON-serialized BlueskyFeedOptions (filters + card look). */
+    options: text("options").notNull(),
+    lastPostAt: integer("last_post_at", { mode: "timestamp" }),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("bluesky_feeds_guild").on(table.guildId), index("bluesky_feeds_did").on(table.did)],
+);
+
+/** Every Bluesky post card the bot sent (feed notifications and pasted-link cards). Dedupes
+ *  deliveries and maps a Discord message or button back to the Bluesky post it shows. */
+export const blueskyDeliveries = sqliteTable(
+  "bluesky_deliveries",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    /** Null for pasted-link cards, which don't belong to a feed. */
+    feedId: integer("feed_id", { mode: "number" }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    messageId: text("message_id").notNull(),
+    postUri: text("post_uri").notNull(),
+    postCid: text("post_cid").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("bluesky_deliveries_feed_post").on(table.feedId, table.postUri),
+    index("bluesky_deliveries_message").on(table.messageId),
+    index("bluesky_deliveries_created").on(table.createdAt),
+  ],
+);
+
+/** Global per-account Bluesky connection (not per-guild), made through AT Protocol OAuth from the
+ *  website account page. Lets the member like, repost and follow from Discord. */
+export const blueskyAccounts = sqliteTable("bluesky_accounts", {
+  discordUserId: text("discord_user_id").primaryKey(),
+  did: text("did").notNull(),
+  handle: text("handle").notNull(),
+  displayName: text("display_name").notNull().default(""),
+  avatarUrl: text("avatar_url"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Backing store for the AT Protocol OAuth client (`kind` = "session" keyed by DID, or "state"
+ *  keyed by the pending authorization's state). Values are encrypted with core/secretBox.ts. */
+export const blueskyOauthStore = sqliteTable(
+  "bluesky_oauth_store",
+  {
+    kind: text("kind").notNull(),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.kind, table.key] })],
+);
+
+/** Likes, reposts and follows a member made from Discord, so pressing the button again (or
+ *  removing the reaction) can delete the exact record it created. */
+export const blueskyActions = sqliteTable(
+  "bluesky_actions",
+  {
+    discordUserId: text("discord_user_id").notNull(),
+    subjectUri: text("subject_uri").notNull(),
+    kind: text("kind").notNull(),
+    recordUri: text("record_uri").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.discordUserId, table.subjectUri, table.kind] })],
+);
+
+/** Single-row Jetstream resume point, so a restart picks up posts made while the bot was down. */
+export const blueskyStreamState = sqliteTable("bluesky_stream_state", {
+  id: text("id").primaryKey().default("global"),
+  cursor: integer("cursor", { mode: "number" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
 export const ticketBlacklist = sqliteTable(
   "ticket_blacklist",
   {

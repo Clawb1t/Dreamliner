@@ -1,6 +1,8 @@
 import { count, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import {
+  blueskyAccounts,
+  blueskyActions,
   automodHits,
   guildMessageCounts,
   guildStatsUserDaily,
@@ -247,6 +249,15 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       ),
     },
     {
+      key: "bluesky_account",
+      label: "Bluesky connection",
+      description:
+        "Your connected Bluesky account, plus the likes, reposts and follows Dreamliner made for you (kept so they can be undone). Erasing signs Dreamliner out of your Bluesky account.",
+      total: countRows(() =>
+        db.select({ total: count() }).from(blueskyAccounts).where(eq(blueskyAccounts.discordUserId, userId)).get(),
+      ),
+    },
+    {
       key: "username_snapshots",
       label: "Username snapshots",
       description: "Stored username snapshots for change tracking.",
@@ -472,6 +483,12 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     "welcome_join_messages",
     db.delete(welcomeJoinMessages).where(eq(welcomeJoinMessages.memberId, userId)).returning(),
   );
+
+  // Revokes the session on their Bluesky server too, not just the local rows.
+  const actions = await db.select({ total: count() }).from(blueskyActions).where(eq(blueskyActions.discordUserId, userId)).get();
+  const { disconnect: disconnectBluesky } = await import("../plugins/bluesky/functions/oauth.js");
+  deleted.bluesky_account = (await disconnectBluesky(userId)) ? 1 : 0;
+  deleted.bluesky_actions = Number(actions?.total ?? 0);
 
   return { ok: true, userId, deleted };
 }

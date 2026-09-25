@@ -935,6 +935,14 @@ plugins:
     config:
       can_manage: false
       can_view: false
+  bluesky:
+    enabled: false
+    config:
+      can_manage: false
+      can_view: false
+      can_use: false
+      reaction_likes: true
+      link_cards: false
   images:
     enabled: false
     config:

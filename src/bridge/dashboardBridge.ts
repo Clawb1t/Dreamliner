@@ -656,6 +656,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
         const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
+        const blueskyAccountMatch = /^\/bridge\/users\/(\d+)\/bluesky$/.exec(url.pathname);
+        const blueskyAuthorizeMatch = /^\/bridge\/users\/(\d+)\/bluesky\/authorize$/.exec(url.pathname);
+        const blueskyCallbackMatch = /^\/bridge\/users\/(\d+)\/bluesky\/callback$/.exec(url.pathname);
         const clipsGalleryMatch = /^\/bridge\/users\/(\d+)\/clips\/gallery$/.exec(url.pathname);
         const musicActiveMatch = /^\/bridge\/users\/(\d+)\/music\/active$/.exec(url.pathname);
         // A distinct path segment (not nested under /playlists/) so it can never collide with a
@@ -909,6 +912,66 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (req.method === "GET" && url.pathname === "/bridge/bluesky/oauth/documents") {
+          const { getBridgeBlueskyOauthDocuments } = await import("./bluesky.js");
+          const result = await getBridgeBlueskyOauthDocuments();
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true, metadata: result.metadata, jwks: result.jwks });
+          return;
+        }
+
+        if (blueskyAccountMatch && req.method === "GET") {
+          const { getBridgeBlueskyAccount } = await import("./bluesky.js");
+          sendJson(res, 200, await getBridgeBlueskyAccount(blueskyAccountMatch[1]!));
+          return;
+        }
+
+        if (blueskyAccountMatch && req.method === "DELETE") {
+          const { disconnectBridgeBlueskyAccount } = await import("./bluesky.js");
+          sendJson(res, 200, await disconnectBridgeBlueskyAccount(blueskyAccountMatch[1]!));
+          return;
+        }
+
+        if ((blueskyAuthorizeMatch || blueskyCallbackMatch) && req.method === "POST") {
+          let body: { handle?: unknown; params?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const bluesky = await import("./bluesky.js");
+          let result;
+          if (blueskyAuthorizeMatch) {
+            if (typeof body.handle !== "string" || !body.handle.trim()) {
+              sendJson(res, 400, { error: "handle is required." });
+              return;
+            }
+            result = await bluesky.startBridgeBlueskyConnect(blueskyAuthorizeMatch[1]!, body.handle.trim());
+          } else {
+            const params = body.params;
+            if (!params || typeof params !== "object" || Array.isArray(params)) {
+              sendJson(res, 400, { error: "params is required." });
+              return;
+            }
+            const flat = Object.fromEntries(
+              Object.entries(params as Record<string, unknown>).filter(
+                (entry): entry is [string, string] => typeof entry[1] === "string",
+              ),
+            );
+            result = await bluesky.completeBridgeBlueskyConnect(blueskyCallbackMatch![1]!, flat);
+          }
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
           return;
         }
 
@@ -2320,6 +2383,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const commandsMatch = /^\/bridge\/guilds\/(\d+)\/commands$/.exec(url.pathname);
         const socialResolveMatch = /^\/bridge\/guilds\/(\d+)\/social\/resolve$/.exec(url.pathname);
+        const blueskyResolveMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/resolve$/.exec(url.pathname);
+        const blueskyFeedTestMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds\/(\d+)\/test$/.exec(url.pathname);
+        const blueskyFeedOneMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds\/(\d+)$/.exec(url.pathname);
+        const blueskyFeedsMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds$/.exec(url.pathname);
         const socialWatcherTestMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers\/(\d+)\/test$/.exec(
           url.pathname,
         );
@@ -2499,6 +2566,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !socialWatcherTestMatch &&
           !socialWatcherOneMatch &&
           !socialWatchersMatch &&
+          !blueskyResolveMatch &&
+          !blueskyFeedTestMatch &&
+          !blueskyFeedOneMatch &&
+          !blueskyFeedsMatch &&
           !tagOneMatch &&
           !tagsMatch &&
           !dbRowMatch &&
@@ -2601,6 +2672,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           socialWatcherTestMatch?.[1] ??
           socialWatcherOneMatch?.[1] ??
           socialWatchersMatch?.[1] ??
+          blueskyResolveMatch?.[1] ??
+          blueskyFeedTestMatch?.[1] ??
+          blueskyFeedOneMatch?.[1] ??
+          blueskyFeedsMatch?.[1] ??
           tagOneMatch?.[1] ??
           tagsMatch?.[1] ??
           dbRowMatch?.[1] ??
@@ -7053,6 +7128,69 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (blueskyResolveMatch || blueskyFeedTestMatch || blueskyFeedOneMatch || blueskyFeedsMatch) {
+          const bluesky = await import("./bluesky.js");
+          let body: { userId?: string } & Record<string, unknown> = {};
+          if (req.method === "POST" || req.method === "PATCH") {
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+          }
+          const requesterId =
+            req.method === "GET" || req.method === "DELETE" ? url.searchParams.get("userId")?.trim() : body.userId?.trim();
+          if (!requesterId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const feedId = Number((blueskyFeedTestMatch ?? blueskyFeedOneMatch)?.[2]);
+          const track = (title: string, feed: { id: number; handle: string }, verb: string) =>
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_command",
+              title,
+              summary: `A Bluesky feed for **@${feed.handle}** was ${verb} from the dashboard.`,
+              targetId: String(feed.id),
+              payload: { handle: feed.handle },
+            });
+
+          let result;
+          if (blueskyResolveMatch && req.method === "POST") {
+            if (typeof body.input !== "string" || !body.input.trim()) {
+              sendJson(res, 400, { error: "input is required" });
+              return;
+            }
+            result = await bluesky.resolveBridgeBlueskyProfile(body.input);
+          } else if (blueskyFeedTestMatch && req.method === "POST") {
+            result = await bluesky.testSendBridgeBlueskyFeed(client, guildId, feedId);
+          } else if (blueskyFeedsMatch && req.method === "GET") {
+            result = await bluesky.listBridgeBlueskyFeeds(guildId);
+          } else if (blueskyFeedsMatch && req.method === "POST") {
+            result = await bluesky.createBridgeBlueskyFeed(guildId, requesterId, body);
+            if (result.ok) track("Bluesky feed created", result.feed, "created");
+          } else if (blueskyFeedOneMatch && req.method === "PATCH") {
+            result = await bluesky.updateBridgeBlueskyFeed(guildId, feedId, body);
+            if (result.ok) track("Bluesky feed updated", result.feed, "updated");
+          } else if (blueskyFeedOneMatch && req.method === "DELETE") {
+            result = await bluesky.deleteBridgeBlueskyFeed(guildId, feedId);
+            if (result.ok) track("Bluesky feed deleted", result.feed, "deleted");
+          } else {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
           return;
         }
 

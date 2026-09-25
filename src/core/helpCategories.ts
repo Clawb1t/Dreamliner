@@ -134,7 +134,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     id: "social",
     label: "Social",
     blurb: "Live notifications when your favorite creators post.",
-    include: [{ plugin: "social" }],
+    include: [{ plugin: "social" }, { plugin: "bluesky" }],
   },
   {
     id: "tools",
@@ -384,7 +384,13 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   social: {
     key: "social",
     name: "Social Notifications",
-    description: "Live YouTube upload notifications with fully customisable embeds, built on the dashboard.",
+    description: "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard.",
+  },
+  bluesky: {
+    key: "bluesky",
+    name: "Bluesky",
+    description:
+      "Real-time Bluesky post notifications with Like and Repost buttons. Members connect their Bluesky account to like posts with a 💙 reaction and follow people from Discord.",
   },
   tts: {
     key: "tts",
@@ -462,6 +468,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   giveaways: "fun",
   images: "fun",
   social: "social",
+  bluesky: "social",
 };
 
 /** Plugin categories for the website config editor (and schema meta), matching `/help` labels. */

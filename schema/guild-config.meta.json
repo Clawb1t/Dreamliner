@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-24T00:48:53.338Z",
+  "generatedAt": "2026-09-25T06:43:18.401Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -235,7 +235,12 @@
         {
           "key": "social",
           "name": "Social Notifications",
-          "description": "Live YouTube upload notifications with fully customisable embeds, built on the dashboard."
+          "description": "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard."
+        },
+        {
+          "key": "bluesky",
+          "name": "Bluesky",
+          "description": "Real-time Bluesky post notifications with Like and Repost buttons. Members connect their Bluesky account to like posts with a 💙 reaction and follow people from Discord."
         }
       ]
     },
@@ -551,7 +556,14 @@
     {
       "key": "social",
       "name": "Social Notifications",
-      "description": "Live YouTube upload notifications with fully customisable embeds, built on the dashboard.",
+      "description": "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard.",
+      "category": "Social",
+      "categoryId": "social"
+    },
+    {
+      "key": "bluesky",
+      "name": "Bluesky",
+      "description": "Real-time Bluesky post notifications with Like and Repost buttons. Members connect their Bluesky account to like posts with a 💙 reaction and follow people from Discord.",
       "category": "Social",
       "categoryId": "social"
     },

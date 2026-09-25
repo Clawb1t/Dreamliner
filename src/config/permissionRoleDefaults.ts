@@ -20,6 +20,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // activity_rewards
     "activity_rewards.can_view",
     "activity_rewards.can_sync",
+    // bluesky (profile cards and their own account link)
+    "bluesky.can_use",
     // booster_roles
     "booster_roles.can_view",
     "booster_roles.can_recheck",
@@ -154,6 +156,9 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "slowmode.can_clear",
     "slowmode.can_manage_rules",
     "slowmode.can_set",
+    // bluesky
+    "bluesky.can_manage",
+    "bluesky.can_view",
     // social
     "social.can_manage",
     "social.can_view",

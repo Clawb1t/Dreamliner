@@ -42,6 +42,7 @@ import { economyPlugin } from "../plugins/economy/index.js";
 import { ticketsPlugin } from "../plugins/tickets/index.js";
 import { giveawaysPlugin } from "../plugins/giveaways/index.js";
 import { socialPlugin } from "../plugins/social/index.js";
+import { blueskyPlugin } from "../plugins/bluesky/index.js";
 import { imagesPlugin } from "../plugins/images/index.js";
 import { activityRewardsPlugin } from "../plugins/activity_rewards/index.js";
 import { applicationsPlugin } from "../plugins/applications/index.js";
@@ -95,6 +96,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   ticketsPlugin,
   giveawaysPlugin,
   socialPlugin,
+  blueskyPlugin,
   imagesPlugin,
   activityRewardsPlugin,
   applicationsPlugin,

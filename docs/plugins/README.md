@@ -41,6 +41,11 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 - [Starboard](./starboard.md)
 - [Text-to-speech](./tts.md)
 
+## Social
+
+- [Social Notifications](./social.md): YouTube uploads and Twitch streams
+- [Bluesky](./bluesky.md): real-time post cards, plus liking, reposting and following from Discord
+
 ## Auto responses
 
 - [Tags](./tags.md)

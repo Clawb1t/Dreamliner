@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 5 September 2026
+**Last updated:** 25 September 2026
 
 This Privacy Policy explains, in detail, how **Dreamliner** ("we," "us," "our," or the "Service") collects, uses, stores, discloses, and protects information in connection with the Dreamliner Discord bot, the Dreamliner dashboard and website (**dreamliner.site**), and any related features (collectively, the "Service").
 
@@ -135,9 +135,11 @@ A small number of features send limited, feature-specific data to third-party AP
 |---|---|---|
 | **Translation** (`/translate`, auto-translate) | Google Translate (via an unofficial public API wrapper) | The specific text you asked to translate, or a message flagged for auto-translate; no Discord user ID or other identifying metadata is included in the translation request itself |
 | **Social Notifications** (YouTube uploads) | YouTube Data API v3 (Google) | The creator handle/channel URL your server configured, so we can poll for new public uploads; we do not send viewer or member data to YouTube |
+| **Bluesky** (feeds, profiles, link cards) | Bluesky's public API and Jetstream event stream | The Bluesky handles/accounts your server follows or that a member looks up; no Discord data is sent |
+| **Bluesky account connection** (likes, reposts, follows) | The member's own Bluesky server (PDS) and authorization server, via AT Protocol OAuth | Only the like, repost or follow the member asked for, sent from their connected account. Dreamliner stores the account's handle and DID, an encrypted session token, and a record of the likes/reposts/follows it made so they can be undone. It never sees the member's Bluesky password |
 | **Text-to-speech** (`/tts`) | None. Voice synthesis runs locally on our own infrastructure via the open-source Piper engine. Message text used for speech is **not** sent to any third-party voice/AI provider. | N/A |
 
-Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications.
+Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications, and Bluesky's privacy policy if you use the Bluesky plugin.
 
 ### 3.10 What we do not intentionally collect
 
@@ -220,6 +222,8 @@ Retention depends on the feature involved and on whether administrators or membe
 | **Impersonation Detection watchlist, alerts, and identity history** | Kept while the plugin remains enabled for that server and records are not cleared by staff/operators |
 | **Passport verification/session data** | Kept only as long as needed to complete verification and for a limited anti-abuse window afterward |
 | **Custom branding submissions under human review** | Kept for as long as needed to review, apply, or reject the submission, and to retain a record of that decision |
+| **Bluesky account connection** | Until the member disconnects it (Account → Connections or `/bluesky account`), erases their data, or the session expires on their Bluesky server. Disconnecting also revokes the session there |
+| **Bluesky post cards** (which Discord message shows which Bluesky post) | About **180 days**, then pruned |
 | **Dreamliner One subscription status** | Mirrors Discord's own subscription record; we do not separately retain historical billing data of our own |
 | **Publicly shared moderation cases** | A moderation case a server's staff explicitly marks public gets a shareable link showing that case's details, evidence, and any uploaded screenshots to anyone with the link, until staff unpublish it |
 

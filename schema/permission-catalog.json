@@ -42,6 +42,34 @@
     ]
   },
   {
+    "plugin": "bluesky",
+    "pluginName": "Bluesky",
+    "pluginDescription": "Real-time Bluesky post notifications with Like and Repost buttons. Members connect their Bluesky account to like posts with a 💙 reaction and follow people from Discord.",
+    "entries": [
+      {
+        "plugin": "bluesky",
+        "permission": "can_manage",
+        "grantKey": "bluesky.can_manage",
+        "title": "Manage",
+        "description": "Allow members to add, edit, and remove Bluesky feeds (dashboard)."
+      },
+      {
+        "plugin": "bluesky",
+        "permission": "can_use",
+        "grantKey": "bluesky.can_use",
+        "title": "Use",
+        "description": "Allow members to look up Bluesky profiles and manage their own connected account."
+      },
+      {
+        "plugin": "bluesky",
+        "permission": "can_view",
+        "grantKey": "bluesky.can_view",
+        "title": "View",
+        "description": "Allow members to list this server's Bluesky feeds with /bluesky feeds."
+      }
+    ]
+  },
+  {
     "plugin": "booster_roles",
     "pluginName": "Booster Roles",
     "pluginDescription": "Reward server boosters with different roles based on how long they've been boosting.",
@@ -647,6 +675,27 @@
         "grantKey": "slowmode.can_set",
         "title": "Set",
         "description": "Allow members to set channel slowmode."
+      }
+    ]
+  },
+  {
+    "plugin": "social",
+    "pluginName": "Social Notifications",
+    "pluginDescription": "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard.",
+    "entries": [
+      {
+        "plugin": "social",
+        "permission": "can_manage",
+        "grantKey": "social.can_manage",
+        "title": "Manage",
+        "description": "Allow members to create, edit, and delete social notifications (dashboard)."
+      },
+      {
+        "plugin": "social",
+        "permission": "can_view",
+        "grantKey": "social.can_view",
+        "title": "View",
+        "description": "Allow members to view social notifications and run /social commands."
       }
     ]
   },

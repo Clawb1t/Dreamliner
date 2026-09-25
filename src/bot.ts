@@ -56,6 +56,8 @@ import { handleSuggestModalSubmit } from "./plugins/suggestions/functions/modal.
 import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functions/handlers.js";
 import { TICKET_PREFIX } from "./plugins/tickets/constants.js";
 import { APPLICATION_PREFIX } from "./plugins/applications/constants.js";
+import { BLUESKY_PREFIX } from "./plugins/bluesky/constants.js";
+import { handleBlueskyButtonInteraction } from "./plugins/bluesky/functions/interactions.js";
 import {
   handleApplicationButtonInteraction,
   handleApplicationModalSubmit,
@@ -332,6 +334,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(APPLICATION_PREFIX)) {
         const handled = await safeHandle(interaction, "Application button", () => handleApplicationButtonInteraction(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(BLUESKY_PREFIX)) {
+        const handled = await safeHandle(interaction, "Bluesky button", () => handleBlueskyButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(GIVEAWAY_ENTER_PREFIX)) {

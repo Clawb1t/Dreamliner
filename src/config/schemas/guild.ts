@@ -15,6 +15,7 @@ import { zEconomyPluginSection } from "./economy.js";
 import { zMusicPluginSection } from "./music.js";
 import { zDefaultLanguage, zTranslationPluginSection } from "./translation.js";
 import { zSocialPluginSection } from "./social.js";
+import { zBlueskyPluginSection } from "./bluesky.js";
 import { zImagesPluginSection } from "./images.js";
 import { zActivityRewardsPluginSection } from "./activityRewards.js";
 import { zApplicationsPluginSection } from "./applications.js";
@@ -340,6 +341,7 @@ export const zGuildConfig = z.strictObject({
       tickets: zTicketsPluginSection.default({}),
       giveaways: zGiveawaysPluginSection.default({}),
       social: zSocialPluginSection.default({}),
+      bluesky: zBlueskyPluginSection.default({}),
       images: zImagesPluginSection.default({}),
       activity_rewards: zActivityRewardsPluginSection.default({}),
       applications: zApplicationsPluginSection.default({}),

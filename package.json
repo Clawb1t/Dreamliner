@@ -16,15 +16,18 @@
     "i18n:extract": "tsx scripts/extractI18nKeys.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/migrate.ts",
+    "bluesky:keys": "tsx src/scripts/bluesky-keys.ts",
     "migrate:autodelete": "tsx src/scripts/migrate-autodelete-to-config.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "license": "MIT",
   "dependencies": {
+    "@atproto/api": "^0.20.44",
+    "@atproto/oauth-client-node": "^0.5.7",
     "@discordjs/voice": "^0.19.2",
     "@huggingface/transformers": "^4.3.0",
     "@napi-rs/canvas": "^1.0.3",

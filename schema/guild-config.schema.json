@@ -12885,6 +12885,76 @@
           "default": {},
           "title": "Social"
         },
+        "bluesky": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to add, edit, and remove Bluesky feeds (dashboard).",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_view": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to list this server's Bluesky feeds with /bluesky feeds.",
+                  "title": "View",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_use": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to look up Bluesky profiles and manage their own connected account.",
+                  "title": "Use",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "reaction_likes": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Let members like a Bluesky post by reacting 💙 or 🩵 to any message that links it. Removing the reaction removes the like.",
+                  "title": "Reaction Likes"
+                },
+                "link_cards": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Reply to pasted bsky.app post links with an interactive post card that has Like and Repost buttons.",
+                  "title": "Link Cards"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "can_manage": false,
+                "can_view": false,
+                "can_use": false,
+                "reaction_likes": true,
+                "link_cards": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Bluesky"
+        },
         "images": {
           "type": "object",
           "properties": {

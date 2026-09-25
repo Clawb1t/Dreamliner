@@ -1,6 +1,8 @@
 import { eq, or } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import {
+  blueskyAccounts,
+  blueskyActions,
   automodHits,
   evidenceMessages,
   guildMessageCounts,
@@ -60,6 +62,20 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       description: "Your accent color, bio, and profile visibility preferences.",
       rows: serializable(
         await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).all(),
+      ),
+    },
+    bluesky_account: {
+      label: "Bluesky connection",
+      description: "Your connected Bluesky account (session tokens are encrypted and not included).",
+      rows: serializable(
+        await db.select().from(blueskyAccounts).where(eq(blueskyAccounts.discordUserId, userId)).all(),
+      ),
+    },
+    bluesky_actions: {
+      label: "Bluesky likes, reposts and follows",
+      description: "Records Dreamliner created on Bluesky for you from Discord, kept so they can be undone.",
+      rows: serializable(
+        await db.select().from(blueskyActions).where(eq(blueskyActions.discordUserId, userId)).all(),
       ),
     },
     guild_message_counts: {
