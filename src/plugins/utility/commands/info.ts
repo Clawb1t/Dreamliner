@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChannelType } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { getGuildServerPageUrl, siteLinkRow } from "../../../core/docsUrl.js";
-import { embedReply, embedEdit, resultReply, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
+import { embedReply, embedEdit, resultReply, resultEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
 import { requireUtilityPermission } from "../functions/commandHelpers.js";
 import {
   buildUserInfoEmbed,
@@ -15,6 +15,7 @@ import {
   buildRolesListEmbed,
   buildLevelEmbed,
   resolveInfoTarget,
+  ensureMembersCached,
 } from "../functions/info.js";
 import { buildWatchdogEmbed } from "../functions/watchdog.js";
 
@@ -30,12 +31,14 @@ export const infoCommands: SlashCommandDefinition[] = [
       const auth = await requireUtilityPermission(ctx, "can_info");
       if (!auth) return;
       const target = ctx.interaction.options.getString("target", true);
+      // Resolving a role fetches the member list for an accurate count, which can outlast the reply window.
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
       const resolved = await resolveInfoTarget(target, ctx.interaction.guild!, ctx.guildConfig, ctx.client, ctx.t);
       if (!resolved) {
-        await ctx.interaction.reply(resultReply(ctx.t("utility.info.infoTitle", "Info"), ctx.t("utility.info.couldNotResolveTarget", "Could not resolve target."), ctx.ephemeral, slashResultOptions(ctx)));
+        await ctx.interaction.editReply(resultEdit(ctx.t("utility.info.infoTitle", "Info"), ctx.t("utility.info.couldNotResolveTarget", "Could not resolve target."), slashResultOptions(ctx)));
         return;
       }
-      await ctx.interaction.reply(embedReply(resolved.embed, ctx.ephemeral));
+      await ctx.interaction.editReply(embedEdit(resolved.embed));
     },
   },
   {
@@ -172,7 +175,10 @@ export const infoCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(resultReply(ctx.t("utility.info.roleTitle", "Role"), ctx.t("utility.info.roleNotFound", "Role not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
-      await ctx.interaction.reply(embedReply(buildRoleInfoEmbed(guildRole, ctx.interaction.guild!, ctx.guildConfig, ctx.client, ctx.t), ctx.ephemeral));
+      // role.members only counts cached members, so load the full list first (can take a few seconds).
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+      await ensureMembersCached(ctx.interaction.guild!);
+      await ctx.interaction.editReply(embedEdit(buildRoleInfoEmbed(guildRole, ctx.interaction.guild!, ctx.guildConfig, ctx.client, ctx.t)));
     },
   },
   {
@@ -235,7 +241,7 @@ export const infoCommands: SlashCommandDefinition[] = [
       const auth = await requireUtilityPermission(ctx, "can_roles");
       if (!auth) return;
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
-      await ctx.interaction.guild!.members.fetch();
+      await ensureMembersCached(ctx.interaction.guild!);
       const roles = [...ctx.interaction.guild!.roles.cache.values()];
       await ctx.interaction.editReply(
         embedEdit(

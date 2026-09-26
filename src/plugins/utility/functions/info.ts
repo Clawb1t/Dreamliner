@@ -587,6 +587,17 @@ export function buildInviteInfoEmbed(invite: Invite, guildConfig: GuildConfig, c
   return embed;
 }
 
+/**
+ * `role.members` only sees members already in the cache, so load the full member list before
+ * counting. Like search.ts, only fetch when the cache is short, and let a failed fetch (opcode-8
+ * rate limit, chunk timeout) fall back to the cache rather than fail the command.
+ */
+export async function ensureMembersCached(guild: Guild): Promise<void> {
+  if (guild.members.cache.size < guild.memberCount) {
+    await guild.members.fetch().catch(() => null);
+  }
+}
+
 export function buildRoleInfoEmbed(role: Role, guild: Guild, guildConfig: GuildConfig, client: Client, t: Translator = defaultTranslator): ResultContainer {
   const totalRoles = guild.roles.cache.size - 1;
   const embed = setEmbedAuthor(
@@ -763,7 +774,10 @@ export async function resolveInfoTarget(
     if (channel) return { type: "channel", embed: buildChannelInfoEmbed(channel, guild, guildConfig, client, t) };
 
     const role = guild.roles.cache.get(trimmed);
-    if (role) return { type: "role", embed: buildRoleInfoEmbed(role, guild, guildConfig, client, t) };
+    if (role) {
+      await ensureMembersCached(guild);
+      return { type: "role", embed: buildRoleInfoEmbed(role, guild, guildConfig, client, t) };
+    }
 
     const emoji = guild.emojis.cache.get(trimmed);
     if (emoji) return { type: "emoji", embed: buildEmojiInfoEmbed(emoji, guildConfig, client, t) };
