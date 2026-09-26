@@ -915,6 +915,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (req.method === "GET" && url.pathname === "/bridge/switch/bots") {
+          const { getSwitchBots } = await import("./webSwitch.js");
+          sendJson(res, 200, { ok: true, bots: await getSwitchBots(client, null) });
+          return;
+        }
+
         if (req.method === "GET" && url.pathname === "/bridge/bluesky/oauth/documents") {
           const { getBridgeBlueskyOauthDocuments } = await import("./bluesky.js");
           const result = await getBridgeBlueskyOauthDocuments();
@@ -2552,6 +2558,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const aiActionMatch = /^\/bridge\/guilds\/(\d+)\/ai\/(generate|status|wizard)$/.exec(url.pathname);
+        const switchActionMatch = /^\/bridge\/guilds\/(\d+)\/switch\/(status|read|mee6-levels)$/.exec(url.pathname);
         if (
           !publicLeaderboardMatch &&
           !publicVoiceLeaderboardMatch &&
@@ -2652,7 +2659,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !musicActionMatch &&
           !musicMatch &&
           !guildMatch &&
-          !aiActionMatch
+          !aiActionMatch &&
+          !switchActionMatch
         ) {
           sendJson(res, 404, { error: "Not found" });
           return;
@@ -2759,7 +2767,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           musicActionMatch?.[1] ??
           musicMatch?.[1] ??
           guildMatch?.[1] ??
-          aiActionMatch?.[1]
+          aiActionMatch?.[1] ??
+          switchActionMatch?.[1]
         )!;
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
@@ -3774,6 +3783,81 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (switchActionMatch) {
+          const action = switchActionMatch[2];
+          let body: { userId?: string } & Record<string, unknown> = {};
+          if (req.method === "POST") {
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+          }
+          const userId = (req.method === "GET" ? url.searchParams.get("userId") : body.userId)?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          if (action === "status" && req.method === "GET") {
+            const [{ getSwitchBots }, { getAiGateStatus }] = await Promise.all([
+              import("./webSwitch.js"),
+              import("../core/ai/usage.js"),
+            ]);
+            const [bots, ai] = await Promise.all([getSwitchBots(client, guild), getAiGateStatus(guildId)]);
+            sendJson(res, 200, { ok: true, bots, ai });
+            return;
+          }
+
+          if (action === "read" && req.method === "POST") {
+            const { readSwitchPage } = await import("./webAi.js");
+            const result = await readSwitchPage(guild, guildId, {
+              source: body.source,
+              category: body.category,
+              images: body.images,
+              sessionToken: typeof body.sessionToken === "string" ? body.sessionToken : undefined,
+            });
+            sendJson(res, result.ok ? 200 : result.status, result);
+            return;
+          }
+
+          if (action === "mee6-levels") {
+            const { getMee6ImportJob, previewMee6Levels, startMee6Import } = await import("./webSwitch.js");
+            if (req.method === "GET") {
+              const job = getMee6ImportJob(guildId);
+              if (url.searchParams.get("jobOnly") === "1") {
+                sendJson(res, 200, { ok: true, job });
+                return;
+              }
+              const result = await previewMee6Levels(guild);
+              sendJson(res, result.ok ? 200 : result.status, result.ok ? { ok: true, preview: result.preview, job } : result);
+              return;
+            }
+            if (req.method === "POST") {
+              const result = startMee6Import(guild);
+              if (result.ok) {
+                trackDashboardAction(client, guildId, userId, {
+                  eventType: "dashboard_command",
+                  title: "MEE6 levels imported",
+                  summary: "Member levels were carried over from MEE6 into Activity Rewards from the dashboard's Switch page.",
+                  targetId: guildId,
+                  payload: {},
+                });
+              }
+              sendJson(res, result.ok ? 200 : result.status, result);
+              return;
+            }
+          }
+
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
         if (aiActionMatch) {
           const { generateAiCopy, getAiStatus, runAiWizard } = await import("./webAi.js");
           const action = aiActionMatch[2];
@@ -3820,8 +3904,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               userId?: string;
               wizard?: string;
               sessionToken?: string;
-              transcript?: { role: "system" | "user" | "assistant"; content: string }[];
+              transcript?: unknown;
               answer?: string;
+              importFrom?: unknown;
             };
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
@@ -3843,6 +3928,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sessionToken: body.sessionToken,
               transcript: body.transcript,
               answer: body.answer,
+              importFrom: body.importFrom,
             });
             sendJson(res, result.ok ? 200 : result.status, result);
             return;

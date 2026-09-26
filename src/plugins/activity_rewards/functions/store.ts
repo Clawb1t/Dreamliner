@@ -199,3 +199,25 @@ export function importFromStats(guildId: string): number {
   });
   return merged.size;
 }
+
+/**
+ * Raises members' message progress to at least the given totals (never lowers it), e.g. levels
+ * carried over from another bot during a Switch. Returns how many members were touched.
+ */
+export function seedMessageProgress(guildId: string, totals: Map<string, number>): number {
+  const updatedAt = new Date();
+  getDb().transaction((tx) => {
+    for (const [userId, messages] of totals) {
+      const value = Math.max(0, Math.trunc(messages));
+      if (!value) continue;
+      tx.insert(activityRewardsProgress)
+        .values({ guildId, userId, messages: value, voiceSeconds: 0, updatedAt })
+        .onConflictDoUpdate({
+          target: [activityRewardsProgress.guildId, activityRewardsProgress.userId],
+          set: { messages: sql`MAX(${activityRewardsProgress.messages}, ${value})`, updatedAt },
+        })
+        .run();
+    }
+  });
+  return totals.size;
+}

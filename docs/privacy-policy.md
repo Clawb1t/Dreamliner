@@ -135,11 +135,13 @@ A small number of features send limited, feature-specific data to third-party AP
 |---|---|---|
 | **Translation** (`/translate`, auto-translate) | Google Translate (via an unofficial public API wrapper) | The specific text you asked to translate, or a message flagged for auto-translate; no Discord user ID or other identifying metadata is included in the translation request itself |
 | **Social Notifications** (YouTube uploads) | YouTube Data API v3 (Google) | The creator handle/channel URL your server configured, so we can poll for new public uploads; we do not send viewer or member data to YouTube |
+| **Autopilot** (AI setup wizards and copywriting) | OpenAI | What an admin types into Autopilot, plus the server's channel, role and emoji names so it can pick the right ones; no member messages or member data |
+| **Switch** (importing a setup from MEE6 or Dyno) | OpenAI, and MEE6's public leaderboard | Screenshots an admin uploads of their MEE6 or Dyno dashboard are sent to OpenAI through Autopilot to read the settings, and are not stored by Dreamliner. For MEE6 Levels, Dreamliner reads the server's public MEE6 leaderboard (member IDs and XP) and keeps only the resulting message progress |
 | **Bluesky** (feeds, profiles, link cards) | Bluesky's public API and Jetstream event stream | The Bluesky handles/accounts your server follows or that a member looks up; no Discord data is sent |
 | **Bluesky account connection** (likes, reposts, follows) | The member's own Bluesky server (PDS) and authorization server, via AT Protocol OAuth | Only the like, repost or follow the member asked for, sent from their connected account. Dreamliner stores the account's handle and DID, an encrypted session token, and a record of the likes/reposts/follows it made so they can be undone. It never sees the member's Bluesky password |
 | **Text-to-speech** (`/tts`) | None. Voice synthesis runs locally on our own infrastructure via the open-source Piper engine. Message text used for speech is **not** sent to any third-party voice/AI provider. | N/A |
 
-Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications, and Bluesky's privacy policy if you use the Bluesky plugin.
+Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications, Bluesky's privacy policy if you use the Bluesky plugin, and OpenAI's privacy policy if you use Autopilot or Switch.
 
 ### 3.10 What we do not intentionally collect
 

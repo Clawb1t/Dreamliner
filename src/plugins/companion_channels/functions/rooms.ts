@@ -49,6 +49,12 @@ function voiceLimit(limit: number, fallback?: number | null): number {
   return 0;
 }
 
+/** A setup's region as a Discord rtcRegion id, or undefined for "let Discord pick" ("" or "automatic"). */
+export function explicitRegion(region: string | null | undefined): string | undefined {
+  const value = (region ?? "").trim();
+  return value && value.toLowerCase() !== "automatic" ? value : undefined;
+}
+
 function parentFor(setup: CompanionSetup, hub: VoiceBasedChannel): string | null {
   return setup.category_id.trim() || hub.parentId;
 }
@@ -286,7 +292,9 @@ async function createVoiceChannel(opts: {
     userLimit,
     bitrate: bitrateBps(setup.bitrate, useClone ? clonedBitrate : null),
     nsfw: setup.default_nsfw,
-    rtcRegion: setup.region.trim() || (useClone ? hub.rtcRegion ?? undefined : undefined),
+    // "automatic" (what the in-room region picker and older configs store) is not a real Discord
+    // region id: treat it like "" and let Discord pick, as setRTCRegion(null) does in actions.ts.
+    rtcRegion: explicitRegion(setup.region) ?? (useClone ? hub.rtcRegion ?? undefined : undefined),
     permissionOverwrites: overwrites,
     reason: member ? `Companion channel for ${member.user.tag}` : `Dynamic companion room #${seq}`,
   });

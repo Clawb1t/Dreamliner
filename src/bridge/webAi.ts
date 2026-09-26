@@ -12,7 +12,20 @@ import {
   type AiWizardTurn,
   type AnswerKind,
 } from "../core/ai/wizards.js";
-import { issueWizardSessionToken, verifyWizardSessionToken } from "../core/ai/wizardSession.js";
+import {
+  issueSwitchSessionToken,
+  issueWizardSessionToken,
+  verifySwitchSessionToken,
+  verifyWizardSessionToken,
+} from "../core/ai/wizardSession.js";
+import {
+  MAX_SWITCH_IMAGES,
+  buildImportDirective,
+  isSwitchSource,
+  readSwitchScreenshots,
+  withMoreToImport,
+  type SwitchSource,
+} from "../core/ai/switch.js";
 
 export async function getAiStatus(guildId: string) {
   return getAiGateStatus(guildId);
@@ -82,13 +95,37 @@ export type AiWizardResult =
       summary: string | null;
       sessionToken: string;
       freeUsesRemaining: number;
+      /** Switch imports only: whether the screenshot notes still have entries left to bring over. */
+      moreToImport?: boolean;
     }
   | { ok: false; error: string; status: number; freeUsesRemaining: number };
+
+/** Only plain text turns come from the browser; images are never accepted back through a transcript. */
+function sanitizeTranscript(raw: unknown): ChatTurn[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (turn): turn is { role: "user" | "assistant"; content: string } =>
+        Boolean(turn) &&
+        typeof turn === "object" &&
+        ((turn as { role?: unknown }).role === "user" || (turn as { role?: unknown }).role === "assistant") &&
+        typeof (turn as { content?: unknown }).content === "string",
+    )
+    .map((turn) => ({ role: turn.role, content: turn.content.slice(0, 12_000) }))
+    .slice(-40);
+}
+
+function parseImportFrom(raw: unknown): { source: SwitchSource; category: string } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const { source, category } = raw as { source?: unknown; category?: unknown };
+  if (!isSwitchSource(source) || typeof category !== "string" || !category.trim()) return null;
+  return { source, category: category.trim().slice(0, 80) };
+}
 
 export async function runAiWizard(
   guild: Guild,
   guildId: string,
-  body: { wizard?: string; sessionToken?: string; transcript?: ChatTurn[]; answer?: string },
+  body: { wizard?: string; sessionToken?: string; transcript?: unknown; answer?: string; importFrom?: unknown },
 ): Promise<AiWizardResult> {
   const wizardId = body.wizard?.trim() ?? "";
   if (!isKnownAiWizard(wizardId)) {
@@ -101,7 +138,9 @@ export async function runAiWizard(
     return { ok: false, error: definition.requiresEntity.message, status: 400, freeUsesRemaining: 0 };
   }
 
-  const hasValidSession = verifyWizardSessionToken(guildId, body.sessionToken);
+  const importFrom = parseImportFrom(body.importFrom);
+  const hasValidSession =
+    verifyWizardSessionToken(guildId, body.sessionToken) || verifySwitchSessionToken(guildId, body.sessionToken);
   let freeUsesRemaining = 0;
   if (!hasValidSession) {
     const gate = await consumeAiGate(guildId);
@@ -109,22 +148,28 @@ export async function runAiWizard(
     freeUsesRemaining = gate.freeUsesRemaining;
   }
 
-  const transcript = [...(body.transcript ?? [])];
+  const transcript = sanitizeTranscript(body.transcript);
   if (body.answer?.trim()) {
     transcript.push({ role: "user", content: body.answer.trim() });
   }
   const questionsAsked = transcript.filter((turn) => turn.role === "assistant").length;
 
   const messages: ChatTurn[] = [
-    { role: "system", content: definition.buildSystemPrompt(ctx, questionsAsked) },
+    {
+      role: "system",
+      content:
+        definition.buildSystemPrompt(ctx, questionsAsked) +
+        (importFrom ? buildImportDirective(importFrom.source, importFrom.category) : ""),
+    },
     ...transcript,
   ];
 
+  const baseSchema = definition.buildResultSchema(ctx);
   const raw = await generateStructured({
     messages,
     schemaName: `ai_wizard_${wizardId}`,
-    schema: definition.buildResultSchema(ctx),
-    maxTokens: 800,
+    schema: importFrom ? withMoreToImport(baseSchema) : baseSchema,
+    maxTokens: Math.max(definition.maxTokens ?? 1600, importFrom ? 3000 : 0),
   });
   const turn = raw as AiWizardTurn & { question?: string | null; summary?: string | null; config?: unknown };
 
@@ -149,6 +194,7 @@ export async function runAiWizard(
       summary: (turn as { summary?: string | null }).summary ?? "Setup ready.",
       sessionToken,
       freeUsesRemaining,
+      ...(importFrom ? { moreToImport: (turn as { more_to_import?: boolean }).more_to_import === true } : {}),
     };
   }
 
@@ -171,6 +217,89 @@ export async function runAiWizard(
     config: null,
     summary: null,
     sessionToken,
+    freeUsesRemaining,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Switch: reading MEE6 / Dyno dashboard screenshots
+// ---------------------------------------------------------------------------------------------
+
+const MAX_IMAGE_CHARS = 6_000_000;
+const SWITCH_READS_PER_WINDOW = 40;
+const SWITCH_READ_WINDOW_MS = 6 * 60 * 60_000;
+const switchReads = new Map<string, number[]>();
+
+function isImageDataUrl(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length <= MAX_IMAGE_CHARS &&
+    /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/.test(value)
+  );
+}
+
+export type SwitchReadResponse =
+  | {
+      ok: true;
+      looksRight: boolean;
+      notes: string;
+      problem: string | null;
+      sessionToken: string;
+      freeUsesRemaining: number;
+    }
+  | { ok: false; error: string; status: number; freeUsesRemaining: number };
+
+/**
+ * Reads 1 to 4 screenshots of one MEE6/Dyno dashboard page into setup notes. The first read of a
+ * Switch pays the Autopilot gate once and hands back a 6-hour switch token that every later read and
+ * import wizard in the same Switch reuses for free.
+ */
+export async function readSwitchPage(
+  guild: Guild,
+  guildId: string,
+  body: { source?: unknown; category?: unknown; images?: unknown; sessionToken?: string },
+): Promise<SwitchReadResponse> {
+  if (!isSwitchSource(body.source)) {
+    return { ok: false, error: "Pick MEE6 or Dyno first.", status: 400, freeUsesRemaining: 0 };
+  }
+  const category = typeof body.category === "string" ? body.category.trim().slice(0, 80) : "";
+  if (!category) return { ok: false, error: "Missing the page being imported.", status: 400, freeUsesRemaining: 0 };
+  const images = Array.isArray(body.images) ? body.images : [];
+  if (images.length === 0 || images.length > MAX_SWITCH_IMAGES || !images.every(isImageDataUrl)) {
+    return {
+      ok: false,
+      error: `Add between 1 and ${MAX_SWITCH_IMAGES} PNG, JPG or WebP screenshots.`,
+      status: 400,
+      freeUsesRemaining: 0,
+    };
+  }
+
+  const now = Date.now();
+  const recent = (switchReads.get(guildId) ?? []).filter((at) => now - at < SWITCH_READ_WINDOW_MS);
+  if (recent.length >= SWITCH_READS_PER_WINDOW) {
+    return {
+      ok: false,
+      error: "That's a lot of screenshots for one server. Give it a little while and try again.",
+      status: 429,
+      freeUsesRemaining: 0,
+    };
+  }
+
+  const hasValidSession = verifySwitchSessionToken(guildId, body.sessionToken);
+  let freeUsesRemaining = 0;
+  if (!hasValidSession) {
+    const gate = await consumeAiGate(guildId);
+    if (!gate.ok) return gate;
+    freeUsesRemaining = gate.freeUsesRemaining;
+  }
+  recent.push(now);
+  switchReads.set(guildId, recent);
+
+  const result = await readSwitchScreenshots({ source: body.source, categoryName: category, images, ctx: resolveWizardContext(guild) });
+  return {
+    ok: true,
+    ...result,
+    sessionToken: hasValidSession ? body.sessionToken! : issueSwitchSessionToken(guildId),
     freeUsesRemaining,
   };
 }

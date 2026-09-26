@@ -4,6 +4,7 @@
 - [Configuration](./configuration.md)
 - [Permissions](./permissions.md)
 - [Plugins](./plugins/README.md)
+- [Switch to Dreamliner](./switch.md)
 - [Custom commands](./dreamcode/README.md)
 - [Privacy](./privacy-policy.md)
 - [Terms](./terms-of-service.md)
