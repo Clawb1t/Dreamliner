@@ -7,6 +7,9 @@ import { publicLeaderboardUrl } from "../../../core/publicLeaderboard.js";
 import { ALL_TIME_WINDOW, isValidStatsWindow, type StatsWindow } from "../functions/daily.js";
 import { buildStatsMessage, type StatsState } from "../functions/ui/index.js";
 import { renderUserRankCard, type RankScope } from "../functions/rank.js";
+import { getLogger } from "../../../core/logger.js";
+
+const log = getLogger("stats");
 
 function daysOption(): SlashCommandIntegerOption {
   return new SlashCommandIntegerOption()
@@ -132,8 +135,14 @@ export const statsCommands: SlashCommandDefinition[] = [
       const user = ctx.interaction.options.getUser("user") ?? ctx.interaction.user;
       const guild = ctx.interaction.guild!;
 
-      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+      const started = Date.now();
+      await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral)).catch((error: unknown) => {
+        log.error(`[rank] defer failed after ${Date.now() - started}ms (Discord never got the "thinking..." reply)`);
+        throw error;
+      });
+      const deferredMs = Date.now() - started;
       const result = await renderUserRankCard(scope, guild, user, ctx.t);
+      const renderedMs = Date.now() - started;
 
       const leaderboardUrl =
         scope === "global"
@@ -144,16 +153,35 @@ export const statsCommands: SlashCommandDefinition[] = [
           ? ctx.t("stats.globalLeaderboard", "Global Leaderboard")
           : ctx.t("stats.serverLeaderboard", "Server Leaderboard");
       const scopeLabel = scope === "global" ? ctx.t("stats.scopeGlobal", "global") : ctx.t("stats.scopeServer", "server");
+      const content = ctx.t(
+        "stats.rankCardContent",
+        "<:icons_trophy:1544418249721126922> <:dreamlinerlogo:1536010087468892161> This is your {scope} rank. View [{leaderboardLabel}](<{leaderboardUrl}>)",
+        { scope: scopeLabel, leaderboardLabel, leaderboardUrl },
+      );
 
-      await ctx.interaction.editReply({
-        content: ctx.t(
-          "stats.rankCardContent",
-          "<:icons_trophy:1544418249721126922> <:dreamlinerlogo:1536010087468892161> This is your {scope} rank. View [{leaderboardLabel}](<{leaderboardUrl}>)",
-          { scope: scopeLabel, leaderboardLabel, leaderboardUrl },
-        ),
-        files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
-        allowedMentions: { parse: [] },
-      });
+      try {
+        await ctx.interaction.editReply({
+          content,
+          files: [new AttachmentBuilder(result.buffer, { name: "rank.webp" })],
+          allowedMentions: { parse: [] },
+        });
+      } catch (error) {
+        // Never leave the member staring at "thinking...": if the card upload fails, still answer
+        // with the numbers, and log where the time went so a slow step is easy to spot.
+        log.error(
+          `[rank] card upload failed (defer ${deferredMs}ms, render ${renderedMs - deferredMs}ms, upload ${Date.now() - started - renderedMs}ms, ${result.buffer.length} bytes):`,
+          error,
+        );
+        await ctx.interaction.editReply({
+          content: `${content}\n**#${result.rank.toLocaleString()}** of ${result.totalRanked.toLocaleString()} · ${result.count.toLocaleString()} msgs`,
+          files: [],
+          allowedMentions: { parse: [] },
+        });
+        return;
+      }
+      if (Date.now() - started > 5_000) {
+        log.warn(`[rank] slow reply: defer ${deferredMs}ms, render ${renderedMs - deferredMs}ms, upload ${Date.now() - started - renderedMs}ms`);
+      }
     },
   },
 ];

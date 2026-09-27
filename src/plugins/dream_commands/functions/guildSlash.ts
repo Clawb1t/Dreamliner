@@ -1,4 +1,5 @@
 import { REST, Routes, SlashCommandBuilder, type Client } from "discord.js";
+import { discordRestAgent } from "../../../core/discordRest.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
 import { listEnabledDreamCommands, type DreamCommandRow } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
@@ -55,7 +56,7 @@ export async function syncGuildDreamSlashCommands(client: Client, guildId: strin
 
   const rows = await listEnabledDreamCommands(guildId);
   const body = buildGuildCommandBody(rows);
-  const rest = new REST({ version: "10" }).setToken(token);
+  const rest = new REST({ version: "10", agent: discordRestAgent }).setToken(token);
   await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
   return body.length;
 }

@@ -697,12 +697,17 @@ export type RankCardOptions = {
   scale?: number;
 };
 
+const IMAGE_FETCH_TIMEOUT_MS = 6_000;
+
+// loadImage(url) has no timeout of its own, so a slow CDN response could stall a whole card.
 async function loadImageMaybeDataUri(url: string) {
   if (url.startsWith("data:")) {
     const base64 = url.split(",", 2)[1] ?? "";
     return loadImage(Buffer.from(base64, "base64"));
   }
-  return loadImage(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`Image request failed with ${res.status}`);
+  return loadImage(Buffer.from(await res.arrayBuffer()));
 }
 
 function drawRoundedAvatar(ctx: SKRSContext2D, image: import("@napi-rs/canvas").Image, x: number, y: number, size: number, radius: number) {
@@ -958,5 +963,7 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     subY,
   );
 
-  return canvas.toBuffer("image/png");
+  // WebP instead of PNG: a photo banner made the PNG 350KB+, slow enough to upload from the host
+  // that Discord's REST timeout aborted the reply. WebP 90 is about a tenth of the size.
+  return canvas.toBuffer("image/webp", 90);
 }

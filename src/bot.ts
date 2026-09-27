@@ -10,6 +10,7 @@ import {
   Routes,
   type RepliableInteraction,
 } from "discord.js";
+import { discordRestAgent } from "./core/discordRest.js";
 import type { ConfigManager } from "./config/manager.js";
 import { loadPlugins } from "./core/pluginLoader.js";
 import { availablePlugins } from "./plugins/availablePlugins.js";
@@ -184,6 +185,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     // call sites that need to opt into an everyone/here ping (e.g. persist's `mention_everyone`)
     // already pass their own explicit `allowedMentions` and are unaffected.
     allowedMentions: { parse: ["users", "roles"] },
+    rest: { agent: discordRestAgent },
   });
 
   client.on(Events.Error, (error) => {
@@ -980,7 +982,7 @@ export async function registerApplicationCommands(token: string, clientId: strin
   );
   const body = [...slashBody, ...contextBody];
 
-  const rest = new REST({ version: "10" }).setToken(token);
+  const rest = new REST({ version: "10", agent: discordRestAgent }).setToken(token);
   await rest.put(Routes.applicationCommands(clientId), { body });
   log.info(`Registered ${slashBody.length} slash commands and ${contextBody.length} context menu commands.`);
 }

@@ -24,6 +24,17 @@ export type RankResult = {
   count: number;
 };
 
+// The banner is decoration: never let a slow Discord fetch hold the whole reply hostage.
+const BANNER_FETCH_BUDGET_MS = 5_000;
+
+function withinBudget<T>(promise: Promise<T | null>, ms: number): Promise<T | null> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 function displayName(member: import("discord.js").GuildMember | null, user: User): string {
   return member?.displayName ?? user.username;
 }
@@ -38,10 +49,13 @@ export async function renderUserRankCard(
   // Retried a few times: a single rate limit or network blip here used to mean the card just
   // rendered with no banner, since there was nothing to fall back to and nothing that retried.
   const [member, bannerUser, profile, badges] = await Promise.all([
-    guild.members.fetch(user.id).catch(() => null),
-    retryAsync(() => guild.client.users.fetch(user.id, { force: true }), {
-      onError: (err, attempt) => log.debug(`[rank card] forced user fetch failed for ${user.id} (attempt ${attempt}):`, err),
-    }),
+    withinBudget(guild.members.fetch(user.id).catch(() => null), BANNER_FETCH_BUDGET_MS),
+    withinBudget(
+      retryAsync(() => guild.client.users.fetch(user.id, { force: true }), {
+        onError: (err, attempt) => log.debug(`[rank card] forced user fetch failed for ${user.id} (attempt ${attempt}):`, err),
+      }),
+      BANNER_FETCH_BUDGET_MS,
+    ),
     getUserProfile(user.id),
     listDisplayedUserBadges(user.id),
   ]);
