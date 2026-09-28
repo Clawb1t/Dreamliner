@@ -12,6 +12,7 @@ import { checkFeedbackEligibility } from "../feedback/eligibility.js";
 import { parseDuration } from "../infraction/functions/duration.js";
 import { DISPLAY_STATUS_LABELS } from "./constants.js";
 import { buildSuggestModal } from "./functions/modal.js";
+import { suggestionImageUrl } from "./functions/image.js";
 import {
   addSuggestionComment,
   approveSuggestion,
@@ -101,7 +102,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         );
         return;
       }
-      await ctx.interaction.showModal(buildSuggestModal(anon, ctx.t));
+      await ctx.interaction.showModal(buildSuggestModal(anon, ctx.t, config.allow_attachments));
     },
   },
   {
@@ -357,6 +358,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           config,
           votes,
           commentCount,
+          // This reply doesn't carry the uploaded file, so link to it on the suggestion's post.
+          image: await suggestionImageUrl(ctx.interaction.client, suggestion),
         });
         if (suggestion.anonymous) {
           embed.addFields(embedField(ctx.t("suggestions.authorStaffLabel", "Author (staff)"), `<@${suggestion.authorId}>`, true));

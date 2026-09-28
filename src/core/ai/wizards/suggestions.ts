@@ -42,6 +42,7 @@ const TOGGLES = [
   "mid_vote_enabled",
   "allow_self_vote",
   "show_vote_count",
+  "public_votes",
   "notify_author",
   "follow_on_upvote",
 ] as const;
@@ -163,7 +164,8 @@ export const suggestionsWizard: AiWizardDefinition = {
     "(suggestion text length, 1 to 2000), anonymous (allow anonymous suggestions, staff still see " +
     "the author), allow_attachments (image attachments).\n" +
     "- Voting: voting_enabled, mid_vote_enabled (a neutral middle button), allow_self_vote, " +
-    "show_vote_count (live totals on the buttons), button labels (upvote_label, midvote_label, " +
+    "show_vote_count (live totals on the buttons), public_votes (a View votes button that shows " +
+    "anyone who voted and how), button labels (upvote_label, midvote_label, " +
     "downvote_label, max 80 characters) and emojis (upvote_emoji, midvote_emoji, downvote_emoji: a " +
     "unicode emoji or a server emoji name from the list below), color_change_threshold (net upvotes " +
     "that recolor the embed, 0 = off) and color_change_color.\n" +

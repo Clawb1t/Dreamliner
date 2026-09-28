@@ -14,6 +14,7 @@ import {
 import { matchWordPack } from "./wordMatch.js";
 import { detectImageScan } from "./imageScan.js";
 import { detectDomainIntel } from "./domainIntel.js";
+import { detectAiText } from "./aiText/index.js";
 
 const MESSAGE_RULE_ORDER: AutomodRuleId[] = [
   "slurs",
@@ -36,6 +37,8 @@ const MESSAGE_RULE_ORDER: AutomodRuleId[] = [
   "repeated_chars",
   "excessive_caps",
   "zalgo",
+  // Scores writing style, so it runs after every cheaper content check.
+  "ai_text",
   // Last: the only check that downloads anything, and only ever does anything on
   // messages with image attachments in the first place. domain_intel above also makes a
   // network call, but only a small threat-feed lookup, not a file download.
@@ -318,6 +321,7 @@ const DETECTORS: Record<AutomodRuleId, Detector> = {
   domain_intel: detectDomainIntel,
   excessive_caps: detectExcessiveCaps,
   zalgo: detectZalgo,
+  ai_text: detectAiText,
   image_scan: detectImageScan,
   raid: detectRaid,
 };

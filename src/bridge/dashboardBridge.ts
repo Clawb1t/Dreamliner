@@ -656,6 +656,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
         const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
+        const storeMatch = /^\/bridge\/users\/(\d+)\/store(?:\/(claim|servers|purchase|reminders))?$/.exec(url.pathname);
+        const storeVoteMatch = url.pathname === "/bridge/store/votes";
         const blueskyAccountMatch = /^\/bridge\/users\/(\d+)\/bluesky$/.exec(url.pathname);
         const blueskyAuthorizeMatch = /^\/bridge\/users\/(\d+)\/bluesky\/authorize$/.exec(url.pathname);
         const blueskyCallbackMatch = /^\/bridge\/users\/(\d+)\/bluesky\/callback$/.exec(url.pathname);
@@ -973,6 +975,83 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             );
             result = await bluesky.completeBridgeBlueskyConnect(blueskyCallbackMatch![1]!, flat);
           }
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
+        if (storeVoteMatch && req.method === "POST") {
+          let body: { userId?: unknown; votedAt?: unknown; topggVoteId?: unknown; weight?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const votedAt = typeof body.votedAt === "string" ? new Date(body.votedAt) : new Date();
+          if (typeof body.userId !== "string" || !/^\d{15,25}$/.test(body.userId) || !Number.isFinite(votedAt.getTime())) {
+            sendJson(res, 400, { error: "userId and a valid votedAt are required." });
+            return;
+          }
+          const { recordWebhookVote } = await import("./webStore.js");
+          sendJson(res, 200, {
+            ok: true,
+            ...recordWebhookVote({
+              userId: body.userId,
+              votedAt,
+              topggVoteId: typeof body.topggVoteId === "string" ? body.topggVoteId : null,
+              weight: typeof body.weight === "number" ? body.weight : 1,
+            }),
+          });
+          return;
+        }
+
+        if (storeMatch) {
+          const userId = storeMatch[1]!;
+          const action = storeMatch[2];
+          const store = await import("./webStore.js");
+          if (!action && req.method === "GET") {
+            sendJson(res, 200, store.getWebStoreOverview(client, userId));
+            return;
+          }
+          if (req.method !== "POST" || !action) {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> = {};
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as Record<string, unknown>;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (action === "claim") {
+            sendJson(res, 200, await store.claimWebStoreVotes(client, userId));
+            return;
+          }
+          if (action === "reminders") {
+            if (typeof body.enabled !== "boolean") {
+              sendJson(res, 400, { error: "enabled is required." });
+              return;
+            }
+            sendJson(res, 200, store.setWebVoteReminders(client, userId, body.enabled));
+            return;
+          }
+          if (action === "servers") {
+            const guildIds = Array.isArray(body.guildIds)
+              ? body.guildIds.filter((id): id is string => typeof id === "string" && /^\d{15,25}$/.test(id))
+              : [];
+            sendJson(res, 200, { servers: await store.listWebStoreServers(client, guildIds) });
+            return;
+          }
+          if (typeof body.guildId !== "string" || typeof body.days !== "number") {
+            sendJson(res, 400, { error: "guildId and days are required." });
+            return;
+          }
+          const result = await store.purchaseWebStoreOne(client, userId, body.guildId, body.days);
           if (!result.ok) {
             sendJson(res, result.status, { error: result.error });
             return;
@@ -2532,6 +2611,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const automodTestMatch = /^\/bridge\/guilds\/(\d+)\/automod\/test$/.exec(url.pathname);
+        const automodAiTextMatch = /^\/bridge\/guilds\/(\d+)\/automod\/ai-text$/.exec(url.pathname);
+        const boosterBoostsMatch = /^\/bridge\/guilds\/(\d+)\/booster-roles\/boosts(\/backfill)?$/.exec(url.pathname);
         const automodNativeSyncMatch = /^\/bridge\/guilds\/(\d+)\/automod\/native-sync$/.exec(url.pathname);
         const automodMatch = /^\/bridge\/guilds\/(\d+)\/automod$/.exec(url.pathname);
         const impersonationTestMatch = /^\/bridge\/guilds\/(\d+)\/impersonation\/test$/.exec(url.pathname);
@@ -2643,6 +2724,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !botProfileActionMatch &&
           !automodPresetMatch &&
           !automodTestMatch &&
+          !automodAiTextMatch &&
+          !boosterBoostsMatch &&
           !automodNativeSyncMatch &&
           !automodMatch &&
           !impersonationTestMatch &&
@@ -2751,6 +2834,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           botProfileActionMatch?.[1] ??
           automodPresetMatch?.[1] ??
           automodTestMatch?.[1] ??
+          automodAiTextMatch?.[1] ??
+          boosterBoostsMatch?.[1] ??
           automodNativeSyncMatch?.[1] ??
           automodMatch?.[1] ??
           impersonationTestMatch?.[1] ??
@@ -2776,11 +2861,41 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (automodMatch || automodTestMatch || automodPresetMatch || automodNativeSyncMatch) {
+        if (boosterBoostsMatch) {
+          const { getWebBoostCounting, startWebBoostBackfill } = await import("./webBoosterRoles.js");
+          const backfill = Boolean(boosterBoostsMatch[2]);
+          let userId: string | undefined;
+          if (req.method === "GET" && !backfill) {
+            userId = url.searchParams.get("userId")?.trim();
+          } else if (req.method === "POST" && backfill) {
+            try {
+              userId = (JSON.parse(await readBody(req)) as { userId?: string }).userId?.trim();
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+          } else {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          sendJson(res, 200, backfill ? startWebBoostBackfill(guild) : await getWebBoostCounting(guild));
+          return;
+        }
+
+        if (automodMatch || automodTestMatch || automodAiTextMatch || automodPresetMatch || automodNativeSyncMatch) {
           const {
             applyWebAutomodPreset,
             getWebAutomodState,
             saveWebAutomod,
+            scoreWebAiText,
             syncWebAutomodNative,
             testWebAutomod,
           } = await import("./webAutomod.js");
@@ -2857,6 +2972,27 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             sendJson(res, 200, await testWebAutomod(client, guildId, body.sample));
+            return;
+          }
+
+          if (automodAiTextMatch && req.method === "POST") {
+            let body: { userId?: string; sample?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as { userId?: string; sample?: string };
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId || typeof body.sample !== "string") {
+              sendJson(res, 400, { error: "userId and sample are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, scoreWebAiText(body.sample));
             return;
           }
 

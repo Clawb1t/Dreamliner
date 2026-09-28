@@ -17,6 +17,7 @@ export const AUTOMOD_RULE_WEIGHTS: Partial<Record<AutomodRuleId, number>> = {
   mass_mentions: 3,
   everyone_here: 3,
   zalgo: 2,
+  ai_text: 1,
   profanity: 2,
   excessive_swearing: 2,
   spam: 2,

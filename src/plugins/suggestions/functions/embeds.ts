@@ -10,14 +10,17 @@ import {
 import { baseEmbed, embedField, setEmbedAuthor, trimLines, type EmbedTone, type ResultContainer } from "../../../core/embeds.js";
 import type { SuggestionsConfig } from "../../../config/schemas/suggestions.js";
 import { parseComponentEmoji } from "../../../core/emoji.js";
+import { paginationRow } from "../../../core/responses.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
   DISPLAY_STATUS_LABELS,
   suggestQueueApproveId,
   suggestQueueDenyId,
   suggestVoteId,
+  suggestVotersId,
+  type VoteValue,
 } from "../constants.js";
-import type { Suggestion, SuggestionComment, VoteTotals } from "./store.js";
+import type { Suggestion, SuggestionComment, SuggestionVoter, VoteTotals } from "./store.js";
 
 /** Translated display-status label — falls back to the English label from constants.ts. */
 export function displayStatusLabel(t: Translator, value: string): string {
@@ -75,6 +78,9 @@ export function buildSuggestionEmbed(options: {
   /** Comments to render as individual "Comment #N" fields on the live posted embed (oldest
    *  first) — distinct from `commentCount`, which is just the summary number shown above them. */
   comments?: SuggestionComment[];
+  /** Image to show instead of the stored one: null for none (a new post that couldn't get a copy
+   *  of the uploaded file), or a fresh link (a reply that doesn't carry the file). */
+  image?: string | null;
   t?: Translator;
 }) {
   const { client, suggestion, config, votes, titlePrefix, commentCount, comments, t = defaultTranslator } = options;
@@ -119,8 +125,9 @@ export function buildSuggestionEmbed(options: {
       ),
     );
 
-  if (suggestion.attachmentUrl) {
-    embed.setImage(suggestion.attachmentUrl);
+  const image = options.image === undefined ? suggestion.attachmentUrl : options.image;
+  if (image) {
+    embed.setImage(image);
   }
 
   if (suggestion.denialReason) {
@@ -216,6 +223,77 @@ export function voteActionRow(
   );
 
   return new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
+}
+
+const VIEW_VOTES_EMOJI = "<:icons_people:1544417371215626262>";
+
+/** Every button row a live, approved suggestion post carries: the vote buttons, plus the View votes
+ *  button when the server made votes public. Shared by the first post and every later re-render. */
+export function feedActionRows(
+  suggestionId: number,
+  config: SuggestionsConfig,
+  votes?: VoteTotals,
+  t: Translator = defaultTranslator,
+): ActionRowBuilder<ButtonBuilder>[] {
+  if (!config.voting_enabled) return [];
+  const rows = [voteActionRow(suggestionId, config, votes)];
+  if (config.public_votes) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        applyButtonEmoji(
+          new ButtonBuilder()
+            .setCustomId(suggestVotersId(suggestionId))
+            .setLabel(t("suggestions.button.viewVotes", "View votes"))
+            .setStyle(ButtonStyle.Secondary),
+          VIEW_VOTES_EMOJI,
+        ),
+      ),
+    );
+  }
+  return rows;
+}
+
+export const VOTERS_PAGE_SIZE = 15;
+
+/** The ephemeral "who voted" page for public votes: one line per voter with their vote. */
+export function buildVotersContainer(options: {
+  client: Client;
+  suggestion: Suggestion;
+  config: SuggestionsConfig;
+  voters: SuggestionVoter[];
+  votes: VoteTotals;
+  page: number;
+  totalPages: number;
+  t?: Translator;
+}): { container: ResultContainer; rows: ActionRowBuilder<ButtonBuilder>[] } {
+  const { client, suggestion, config, voters, votes, page, totalPages, t = defaultTranslator } = options;
+  const voteLabel: Record<VoteValue, string> = {
+    up: `${config.upvote_emoji} ${config.upvote_label}`.trim(),
+    mid: `${config.midvote_emoji} ${config.midvote_label}`.trim(),
+    down: `${config.downvote_emoji} ${config.downvote_label}`.trim(),
+  };
+  const totals = [
+    `${voteLabel.up} **${votes.up}**`,
+    ...(config.mid_vote_enabled || votes.mid > 0 ? [`${voteLabel.mid} **${votes.mid}**`] : []),
+    `${voteLabel.down} **${votes.down}**`,
+  ].join("  ·  ");
+  const lines = voters.map(
+    (voter) => `${voteLabel[voter.value] ?? voter.value} · <@${voter.userId}> · <t:${Math.floor(voter.votedAt.getTime() / 1000)}:R>`,
+  );
+
+  const container = setEmbedAuthor(
+    baseEmbed(),
+    t("suggestions.votersTitle", "Votes on suggestion #{num}", { num: suggestion.suggestionNumber }),
+    client,
+    { tone: "neutral" },
+  ).setDescription(
+    `${totals}\n\n${lines.length ? lines.join("\n") : t("suggestions.noVotesYet", "Nobody has voted yet.")}`,
+  );
+  if (totalPages > 1) {
+    container.setFooter({ text: t("suggestions.votersPage", "Page {page} of {total}", { page, total: totalPages }) });
+  }
+  const rows = totalPages > 1 ? [paginationRow(suggestVotersId(suggestion.id), page, totalPages)] : [];
+  return { container, rows };
 }
 
 export function disabledQueueRow(t: Translator = defaultTranslator): ActionRowBuilder<ButtonBuilder> {

@@ -34,8 +34,23 @@ test("keeps several tiers, drops unknown roles, clamps days, keeps null stacking
   assert.equal(boosterRolesWizard.validateConfig!(config, ctx), null);
   assert.equal(config.stacking, null);
   assert.deepEqual(config.tiers, [
-    { role_id: "1", duration_days: 0, name: null, enabled: null },
-    { role_id: "2", duration_days: 3650, name: "Veteran", enabled: false },
+    { role_id: "1", requirement: "duration", duration_days: 0, boost_count: null, name: null, enabled: null },
+    { role_id: "2", requirement: "duration", duration_days: 3650, boost_count: null, name: "Veteran", enabled: false },
+  ]);
+});
+
+test("boost-count tiers keep a clamped boost count and ignore days", () => {
+  const config: Record<string, unknown> = {
+    stacking: null,
+    tiers: [
+      { role_id: "1", requirement: "boosts", duration_days: 30, boost_count: 500, name: "Mega", enabled: null },
+      { role_id: "2", requirement: "boosts", duration_days: 0, boost_count: null, name: null, enabled: null },
+    ],
+  };
+  assert.equal(boosterRolesWizard.validateConfig!(config, ctx), null);
+  assert.deepEqual(config.tiers, [
+    { role_id: "1", requirement: "boosts", duration_days: 0, boost_count: 100, name: "Mega", enabled: null },
+    { role_id: "2", requirement: "boosts", duration_days: 0, boost_count: 2, name: null, enabled: null },
   ]);
 });
 

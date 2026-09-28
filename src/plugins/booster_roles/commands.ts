@@ -3,8 +3,9 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
 import { formatDuration } from "../../core/datetime.js";
-import { activeTiers, loadBoosterRolesConfig } from "./functions/config.js";
-import { syncBoosterRoles } from "./functions/apply.js";
+import { activeTiers, hasBoostCountTiers, loadBoosterRolesConfig } from "./functions/config.js";
+import { syncBoosterRoles, tierQualifies } from "./functions/apply.js";
+import { effectiveBoostCount } from "./functions/boostCounts.js";
 import { boostDurationDays, boostDurationMs, isBoosting } from "../../core/boosterStatus.js";
 
 export const boosterRolesCommands: SlashCommandDefinition[] = [
@@ -13,9 +14,9 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
     data: new SlashCommandBuilder()
       .setName("booster")
       .setDescription("Server booster role tiers")
-      .addSubcommand((sub) => sub.setName("roles").setDescription("List the boost-duration role tiers"))
+      .addSubcommand((sub) => sub.setName("roles").setDescription("List the booster role tiers"))
       .addSubcommand((sub) =>
-        sub.setName("recheck").setDescription("Recheck your own boost duration against the tiers now"),
+        sub.setName("recheck").setDescription("Recheck your own boosting against the tiers now"),
       ),
     execute: async (ctx) => {
       const { t } = ctx;
@@ -42,27 +43,45 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
 
         const days = boostDurationDays(auth.member);
         const durationMs = boostDurationMs(auth.member);
+        const countTiers = hasBoostCountTiers(config);
+        const boosts = await effectiveBoostCount(auth.member);
 
         const lines = tiers.map((tier) => {
-          const qualifies = days !== null && days >= tier.duration_days;
+          const qualifies = tierQualifies(tier, { days, boosts });
+          const mark = qualifies ? "✅" : "▫️";
+          if (tier.requirement === "boosts") {
+            const label =
+              tier.name.trim() || t("booster_roles.boostTierFallbackLabel", "{count} boost tier", { count: tier.boost_count });
+            const need =
+              tier.boost_count === 1
+                ? t("booster_roles.boostSingular", "{count} boost", { count: tier.boost_count })
+                : t("booster_roles.boostPlural", "{count} boosts", { count: tier.boost_count });
+            return `${mark} **${label}** · <@&${tier.role_id}> · ${need}`;
+          }
           const label =
             tier.name.trim() ||
             t("booster_roles.tierFallbackLabel", "{days} day tier", { days: tier.duration_days });
-          const mark = qualifies ? "✅" : "▫️";
           const boostingLabel =
             tier.duration_days === 1
               ? t("booster_roles.boostingDaySingular", "{days} day boosting", { days: tier.duration_days })
               : t("booster_roles.boostingDayPlural", "{days} days boosting", { days: tier.duration_days });
-          return `${mark} **${label}** — <@&${tier.role_id}> — ${boostingLabel}`;
+          return `${mark} **${label}** · <@&${tier.role_id}> · ${boostingLabel}`;
         });
 
-        const status = durationMs !== null
+        let status = durationMs !== null
           ? t(
               "booster_roles.boostingFor",
               "You've been boosting for **{duration}**.",
               { duration: formatDuration(durationMs) },
             )
           : t("booster_roles.notBoosting", "You're not currently boosting this server.");
+        if (countTiers && durationMs !== null) {
+          status += ` ${
+            boosts === 1
+              ? t("booster_roles.boostsGivenOne", "You've given **1** boost.")
+              : t("booster_roles.boostsGivenMany", "You've given **{count}** boosts.", { count: boosts })
+          }`;
+        }
 
         await ctx.interaction.reply(
           resultReply(
@@ -129,7 +148,7 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
               ? parts.join("\n")
               : t(
                   "booster_roles.alreadyCorrect",
-                  "You already have the correct booster role for your boost duration.",
+                  "You already have the correct booster roles.",
                 ),
             ctx.ephemeral,
             slashResultOptions(ctx, { tone: "success" }),

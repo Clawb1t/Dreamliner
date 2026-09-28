@@ -126,6 +126,38 @@ In addition to server defaults, a rule can ignore specific channels and roles.
 | Excessive caps | High % of capital letters |
 | Zalgo / obfuscation | Abuse of combining marks |
 
+### AI detection
+
+| Rule | Description |
+| --- | --- |
+| AI-written text | Messages that read like ChatGPT or another AI wrote them |
+
+**How it works:** Dreamliner's own writing-style model reads each long enough message and gives
+it a 0 to 100% likelihood of being AI-written. It runs entirely on the bot: no message is sent to
+an outside service. The model looks at signals like chat-assistant phrasing ("I hope this
+helps"), vocabulary AI models overuse, unusually even sentence lengths, textbook-perfect
+punctuation, list and heading formatting, and the absence of casual chat habits (slang,
+emoji, lowercase shortcuts, typing slips). It was trained on thousands of older Reddit comments
+written before AI chatbots were around, against answers from several ChatGPT-family models,
+including replies they were asked to make sound casual.
+
+**Settings:**
+
+- **Confidence needed** (default 85%): how sure the model must be before the rule fires. The
+  sensitivity preset shifts it (Lenient +7, Strict -10).
+- **Minimum words** (default 40): shorter messages are skipped, since there isn't enough writing
+  to judge.
+
+Code blocks, quotes, links and mentions are ignored. The automod log shows the likelihood and
+the top reasons for every hit, and the rule editor has a **Try a message** box that scores any
+text with the same model.
+
+**It is a likelihood, not proof.** Careful human writers can score high and lightly edited AI
+text can score low, so the rule starts as log-only (no delete, no punishment) for staff to
+review. Consider ignoring roles like staff who write formal announcements.
+
+Off by default. Enable it explicitly per rule the same as any other.
+
 ### Image scanning
 
 | Rule | Description |

@@ -8,7 +8,7 @@ import {
 import { PROFANITY_WORDS } from "./functions/packs/profanity.js";
 import { SLUR_WORDS } from "./functions/packs/slurs.js";
 
-export type AutomodRuleGroup = "content" | "spam" | "mentions_links" | "presentation" | "images" | "raid";
+export type AutomodRuleGroup = "content" | "spam" | "mentions_links" | "presentation" | "ai_detection" | "images" | "raid";
 
 export type AutomodRuleMeta = {
   id: AutomodRuleId;
@@ -161,6 +161,14 @@ export const AUTOMOD_RULE_META: AutomodRuleMeta[] = [
     event: "message",
   },
   {
+    id: "ai_text",
+    name: "AI-written text",
+    description:
+      "Spots messages that read like they were written by ChatGPT or another AI, using Dreamliner's own writing-style model. Runs on the bot, only judges messages long enough to tell, and shows staff why a message was flagged.",
+    group: "ai_detection",
+    event: "message",
+  },
+  {
     id: "image_scan",
     name: "Image scanning",
     description:
@@ -182,6 +190,7 @@ export const AUTOMOD_GROUP_LABELS: Record<AutomodRuleGroup, string> = {
   spam: "Spam & noise",
   mentions_links: "Mentions & links",
   presentation: "Presentation",
+  ai_detection: "AI detection",
   images: "Image scanning",
   raid: "Join protection",
 };

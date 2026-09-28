@@ -92,6 +92,10 @@ export const zSuggestionsConfig = z.strictObject({
   mid_vote_enabled: z.boolean().default(true).describe("Include a neutral / mid vote button."),
   allow_self_vote: z.boolean().default(false).describe("Allow authors to vote on their own suggestion."),
   show_vote_count: z.boolean().default(true).describe("Show live vote totals on the vote buttons."),
+  public_votes: z
+    .boolean()
+    .default(false)
+    .describe("Make votes public: suggestion posts get a View votes button listing who voted and how."),
   color_change_threshold: z
     .number()
     .int()

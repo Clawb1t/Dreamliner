@@ -395,6 +395,11 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
           "The edit/delete audit trail staff use to investigate reports is retained for 42 days regardless of the server's content retention setting.",
       },
       {
+        label: "Store credits",
+        description:
+          "Your top.gg votes, credits and Dreamliner One purchases are kept as transaction records, so the same vote can never be paid out twice.",
+      },
+      {
         label: "Message content retention",
         description:
           "How long message content is kept is now a per-server setting (Server → Data retention), not a personal one. This deletion doesn't change it.",

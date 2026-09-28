@@ -7,6 +7,7 @@ import {
 import { configManager } from "../config/manager.js";
 import { getAutomodCatalog } from "../plugins/automod/catalog.js";
 import { testAutomodRules } from "../plugins/automod/functions/handlers.js";
+import { scoreAiText, type AiTextScore } from "../plugins/automod/functions/detectors/aiText/index.js";
 import {
   mergeCensorDbRulesIntoConfig,
   parseAutomodConfig,
@@ -126,6 +127,11 @@ export async function applyWebAutomodPreset(
 export async function testWebAutomod(client: Client, guildId: string, sample: string): Promise<{ lines: string[] }> {
   const state = await getWebAutomodState(client, guildId);
   return { lines: await testAutomodRules(sample, state.config) };
+}
+
+/** Scores a pasted sample with the AI-written text model (the rule editor's "Try a message" box). */
+export function scoreWebAiText(sample: string): AiTextScore {
+  return scoreAiText(sample.slice(0, 4000));
 }
 
 export async function syncWebAutomodNative(client: Client, guildId: string): Promise<WebAutomodPayload> {

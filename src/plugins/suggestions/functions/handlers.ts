@@ -3,9 +3,10 @@ import { configManager } from "../../../config/manager.js";
 import { zSuggestionsConfig } from "../../../config/schemas/suggestions.js";
 import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
 import { resolveEphemeral } from "../../../core/ephemeral.js";
-import { resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
+import { containerEdit, containerReply, resultEdit, resultReply, guildResultOptions } from "../../../core/responses.js";
 import { parseSuggestCustomId, SUGGEST_PREFIX } from "../constants.js";
-import { getSuggestionById, setVote } from "./store.js";
+import { getSuggestionById, getVoteTotals, listVoters, setVote } from "./store.js";
+import { buildVotersContainer, VOTERS_PAGE_SIZE } from "./embeds.js";
 import { approveSuggestion, autoFollowOnUpvote, denySuggestion, refreshFeedMessage } from "./service.js";
 import { translatorFor } from "../../../i18n/index.js";
 
@@ -93,6 +94,56 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
         }),
       ),
     );
+    return true;
+  }
+
+  if (parsed.kind === "voters") {
+    if (!config.public_votes) {
+      await interaction.reply(
+        resultReply(
+          t("suggestions.votesPrivateTitle", "Votes are private"),
+          t("suggestions.votesPrivateBody", "This server keeps suggestion votes private."),
+          true,
+          guildResultOptions(interaction.client, guildConfig),
+        ),
+      );
+      return true;
+    }
+    const suggestion = await getSuggestionById(parsed.id);
+    if (!suggestion || suggestion.guildId !== interaction.guildId) {
+      await interaction.reply(
+        resultReply(
+          t("suggestions.unavailableTitle", "Unavailable"),
+          t("suggestions.voterSuggestionGoneBody", "That suggestion no longer exists."),
+          true,
+          guildResultOptions(interaction.client, guildConfig),
+        ),
+      );
+      return true;
+    }
+
+    const votes = await getVoteTotals(suggestion.id);
+    const totalVotes = votes.up + votes.mid + votes.down;
+    const totalPages = Math.max(1, Math.ceil(totalVotes / VOTERS_PAGE_SIZE));
+    const page = Math.min(parsed.page, totalPages);
+    const voters = await listVoters(suggestion.id, (page - 1) * VOTERS_PAGE_SIZE, VOTERS_PAGE_SIZE);
+    const { container, rows } = buildVotersContainer({
+      client: interaction.client,
+      suggestion,
+      config,
+      voters,
+      votes,
+      page,
+      totalPages,
+      t,
+    });
+
+    // The first press opens a private page; Previous/Next then flip that same page in place.
+    if (/:(prev|next):\d+$/.test(interaction.customId)) {
+      await interaction.update({ ...containerEdit(container, rows), allowedMentions: { parse: [] } });
+    } else {
+      await interaction.reply({ ...containerReply(container, true, rows), allowedMentions: { parse: [] } });
+    }
     return true;
   }
 

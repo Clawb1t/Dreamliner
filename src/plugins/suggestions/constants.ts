@@ -25,11 +25,17 @@ export function suggestVoteId(id: number, value: VoteValue): string {
   return `${SUGGEST_PREFIX}v:${value}:${id}`;
 }
 
+/** "View votes" on a suggestion post (page 1); pagination buttons append `:prev:N` / `:next:N`. */
+export function suggestVotersId(id: number): string {
+  return `${SUGGEST_PREFIX}vl:${id}`;
+}
+
 export function parseSuggestCustomId(
   customId: string,
 ):
   | { kind: "queue"; action: "approve" | "deny"; id: number }
   | { kind: "vote"; value: VoteValue; id: number }
+  | { kind: "voters"; id: number; page: number }
   | null {
   if (!customId.startsWith(SUGGEST_PREFIX)) return null;
   const rest = customId.slice(SUGGEST_PREFIX.length);
@@ -40,6 +46,12 @@ export function parseSuggestCustomId(
       action: queue[1] === "qa" ? "approve" : "deny",
       id: Number(queue[2]),
     };
+  }
+  const voters = /^vl:(\d+)(?::(prev|next):(\d+))?$/.exec(rest);
+  if (voters) {
+    const from = Number(voters[3] ?? 1);
+    const page = voters[2] === "prev" ? from - 1 : voters[2] === "next" ? from + 1 : 1;
+    return { kind: "voters", id: Number(voters[1]), page: Math.max(1, page) };
   }
   const vote = /^v:(up|mid|down):(\d+)$/.exec(rest);
   if (vote) {

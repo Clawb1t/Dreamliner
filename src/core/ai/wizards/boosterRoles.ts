@@ -9,6 +9,7 @@ import {
   int,
   nullable,
   obj,
+  oneOf,
   progressInstruction,
   str,
   turnSchemaWithIds,
@@ -27,7 +28,9 @@ export function boosterRolesConfigSchema(): Record<string, unknown> {
       type: "array",
       items: obj({
         role_id: idRef("role"),
+        requirement: oneOf(["duration", "boosts"]),
         duration_days: int(),
+        boost_count: nullable(int()),
         name: nullable(str()),
         enabled: nullable(bool()),
       }),
@@ -46,9 +49,12 @@ export function validateBoosterRolesConfig(config: Record<string, unknown>, ctx:
   const byRole = new Map<string, Record<string, unknown>>();
   for (const t of raw) {
     if (typeof t.role_id !== "string" || !roleIds.has(t.role_id)) continue;
+    const requirement = t.requirement === "boosts" ? "boosts" : "duration";
     byRole.set(t.role_id, {
       role_id: t.role_id,
-      duration_days: clampInt(t.duration_days, 0, 3650) ?? 0,
+      requirement,
+      duration_days: requirement === "duration" ? (clampInt(t.duration_days, 0, 3650) ?? 0) : 0,
+      boost_count: requirement === "boosts" ? (clampInt(t.boost_count, 1, 100) ?? 2) : null,
       name: typeof t.name === "string" ? t.name.trim().slice(0, 80) : null,
       enabled: typeof t.enabled === "boolean" ? t.enabled : null,
     });
@@ -66,17 +72,21 @@ export const boosterRolesWizard: AiWizardDefinition = {
   buildResultSchema: (ctx) => turnSchemaWithIds(boosterRolesConfigSchema(), ctx),
   validateConfig: validateBoosterRolesConfig,
   buildSystemPrompt: (ctx, questionsAsked) =>
-    "You are helping a Discord server admin set up Booster Roles: as a member continuously boosts " +
-    "the server for longer, Dreamliner automatically promotes them through role \"tiers\" (for " +
-    "example, a role at 30 days of boosting, a fancier one at 90 days). You are setting this up for " +
+    "You are helping a Discord server admin set up Booster Roles: Dreamliner automatically gives " +
+    "boosters role \"tiers\", earned either by how long they have been boosting (requirement " +
+    "\"duration\", for example a role at 30 days, a fancier one at 90 days) or by how many boosts " +
+    "they have given the server (requirement \"boosts\", for example a role for 2 boosts). You are " +
+    "setting this up for " +
     `the server "${ctx.guildName}". Ask ONE short, plain-language question at a time. Never mention ` +
     "field names, JSON, or config, ask like a helpful person would. Find out which tiers they want " +
     `(one or several, up to ${MAX_BOOSTER_TIERS_PER_RUN} in one go): for each, which role it grants ` +
-    "and how many days of continuous boosting are needed first (0 means as soon as they start " +
-    "boosting, max 3650), plus an optional short label (max 80 characters) and whether it starts " +
+    "and what earns it: for a duration tier, how many days of continuous boosting are needed first " +
+    "(duration_days, 0 means as soon as they start boosting, max 3650, boost_count null); for a " +
+    "boost-count tier, how many boosts the member must have given (boost_count, 1 to 100, " +
+    "duration_days 0). Plus an optional short label (max 80 characters) and whether it starts " +
     "switched on (enabled, null = on). Also, only if it comes up or is unclear, whether a member who " +
     "reaches a higher tier keeps every earlier tier's role too (stacking true) or only ever has " +
-    "their single highest tier's role (stacking false); stacking is one server-wide setting, null " +
+    "their single highest tier's role of each kind (stacking false); stacking is one server-wide setting, null " +
     "keeps the current choice. A tier for a role that already has one updates that tier. " +
     NULL_MEANS_UNCHANGED_RULE +
     " " +

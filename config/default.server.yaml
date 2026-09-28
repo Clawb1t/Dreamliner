@@ -851,6 +851,7 @@ plugins:
       mid_vote_enabled: true
       allow_self_vote: false
       show_vote_count: true
+      public_votes: false
       color_change_threshold: 10
       color_change_color: 5763719
       notify_author: true

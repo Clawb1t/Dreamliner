@@ -50,6 +50,8 @@ function emptyRules(): Record<string, AutomodRuleConfig> {
   for (const id of AUTOMOD_RULE_IDS) {
     out[id] = rule(false, "balanced", 3_600_000, ladder([{ after: 1, types: ["delete"] }]));
   }
+  // AI-written text is a likelihood, not proof: it starts as log-only for staff to review.
+  out.ai_text = { ...out.ai_text!, delete_message: false, ladder: [{ after: 1, actions: [{ type: "none" }] }] };
   return out;
 }
 

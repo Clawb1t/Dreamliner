@@ -7,9 +7,21 @@ export function loadBoosterRolesConfig(guildConfig: GuildConfig): BoosterRolesCo
   return parsePluginConfig(zBoosterRolesConfig, getPluginSettings(guildConfig, "booster_roles"));
 }
 
-/** Enabled tiers with a role set, sorted ascending by the duration required to earn them. */
+/** The number a tier is earned at: days boosting, or boosts given. */
+export function tierThreshold(tier: BoosterRoleTier): number {
+  return tier.requirement === "boosts" ? tier.boost_count : tier.duration_days;
+}
+
+/** Enabled tiers with a role set: duration tiers first, then boost-count tiers, each ascending. */
 export function activeTiers(config: BoosterRolesConfig): BoosterRoleTier[] {
   return config.tiers
     .filter((tier) => tier.enabled !== false && tier.role_id.trim().length > 0)
-    .sort((a, b) => a.duration_days - b.duration_days);
+    .sort(
+      (a, b) =>
+        Number(a.requirement === "boosts") - Number(b.requirement === "boosts") || tierThreshold(a) - tierThreshold(b),
+    );
+}
+
+export function hasBoostCountTiers(config: BoosterRolesConfig): boolean {
+  return activeTiers(config).some((tier) => tier.requirement === "boosts");
 }

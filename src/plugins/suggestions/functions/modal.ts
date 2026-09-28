@@ -1,8 +1,12 @@
 import {
   ActionRowBuilder,
+  FileUploadBuilder,
+  LabelBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  type Attachment,
+  type ModalSubmitFields,
   type ModalSubmitInteraction,
 } from "discord.js";
 import type { ConfigManager } from "../../../config/manager.js";
@@ -14,9 +18,26 @@ import { checkFeedbackEligibility } from "../../feedback/eligibility.js";
 import { SUGGEST_ANON_MODAL_ID, SUGGEST_MODAL_ID } from "../constants.js";
 import { countOpenApproved, getLastSuggestionAt, isBlocked } from "./store.js";
 import { submitSuggestion } from "./service.js";
+import { imageFromUpload, type SuggestionImageFile } from "./image.js";
 import { defaultTranslator, translatorFor, type Translator } from "../../../i18n/index.js";
 
-export function buildSuggestModal(anonymous: boolean, t: Translator = defaultTranslator): ModalBuilder {
+const IMAGE_FIELD_ID = "dl:suggest:image";
+
+/** The image uploaded in the modal, if any. Missing when the server doesn't allow images, and a
+ *  modal opened before uploads existed still has the old text box here, so neither throws. */
+function readUploadedImage(fields: ModalSubmitFields): Attachment | null {
+  try {
+    return fields.getUploadedFiles(IMAGE_FIELD_ID)?.first() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function buildSuggestModal(
+  anonymous: boolean,
+  t: Translator = defaultTranslator,
+  allowImages = true,
+): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId(anonymous ? SUGGEST_ANON_MODAL_ID : SUGGEST_MODAL_ID)
     .setTitle(anonymous ? t("suggestions.modal.anonymousTitle", "Anonymous suggestion") : t("suggestions.modal.title", "Suggestion"));
@@ -32,16 +53,18 @@ export function buildSuggestModal(anonymous: boolean, t: Translator = defaultTra
         .setMaxLength(1000)
         .setPlaceholder(t("suggestions.modal.contentPlaceholder", "Describe your idea...")),
     ),
-    new ActionRowBuilder<TextInputBuilder>().addComponents(
-      new TextInputBuilder()
-        .setCustomId("dl:suggest:image")
-        .setLabel(t("suggestions.modal.imageLabel", "Image URL (optional)"))
-        .setStyle(TextInputStyle.Short)
-        .setRequired(false)
-        .setMaxLength(500)
-        .setPlaceholder(t("suggestions.modal.imagePlaceholder", "https://...")),
-    ),
   );
+
+  if (allowImages) {
+    modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel(t("suggestions.modal.imageUploadLabel", "Image (optional)"))
+        .setDescription(t("suggestions.modal.imageUploadHint", "PNG, JPG, GIF or WebP, up to 10 MB."))
+        .setFileUploadComponent(
+          new FileUploadBuilder().setCustomId(IMAGE_FIELD_ID).setMinValues(0).setMaxValues(1).setRequired(false),
+        ),
+    );
+  }
 
   return modal;
 }
@@ -219,9 +242,9 @@ export async function handleSuggestModalSubmit(
     return;
   }
 
-  let attachmentUrl: string | null = null;
-  const imageRaw = interaction.fields.getTextInputValue("dl:suggest:image")?.trim() || "";
-  if (imageRaw) {
+  let imageFile: SuggestionImageFile | null = null;
+  const upload = readUploadedImage(interaction.fields);
+  if (upload) {
     if (!config.allow_attachments) {
       await interaction.reply(
         resultReply(
@@ -233,18 +256,21 @@ export async function handleSuggestModalSubmit(
       );
       return;
     }
-    if (!/^https:\/\/\S+$/i.test(imageRaw)) {
+    const checked = imageFromUpload(upload);
+    if ("error" in checked) {
       await interaction.reply(
         resultReply(
-          t("suggestions.invalidImageUrlTitle", "Invalid image URL"),
-          t("suggestions.invalidImageUrlBody", "Provide a valid `https://` image URL."),
+          t("suggestions.invalidImageTitle", "Image not supported"),
+          checked.error === "size"
+            ? t("suggestions.imageTooLargeBody", "That image is over 10 MB. Try a smaller one.")
+            : t("suggestions.imageWrongTypeBody", "Upload a PNG, JPG, GIF or WebP image."),
           ephemeral,
           guildResultOptions(interaction.client, guildConfig, { tone: "error" }),
         ),
       );
       return;
     }
-    attachmentUrl = imageRaw;
+    imageFile = checked.file;
   }
 
   await interaction.deferReply({ ephemeral });
@@ -256,7 +282,7 @@ export async function handleSuggestModalSubmit(
     guildConfig,
     config,
     content,
-    attachmentUrl,
+    imageFile,
     anonymous,
     t,
   });

@@ -2,6 +2,8 @@ import { eq, or } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import {
   blueskyAccounts,
+  storeCreditLedger,
+  storeVotes,
   blueskyActions,
   automodHits,
   evidenceMessages,
@@ -62,6 +64,18 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       description: "Your accent color, bio, and profile visibility preferences.",
       rows: serializable(
         await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).all(),
+      ),
+    },
+    store_votes: {
+      label: "Store votes",
+      description: "Your top.gg votes for Dreamliner, and whether their store credits have been paid.",
+      rows: serializable(await db.select().from(storeVotes).where(eq(storeVotes.userId, userId)).all()),
+    },
+    store_credits: {
+      label: "Store credits",
+      description: "Credits you earned from votes and spent on Dreamliner One.",
+      rows: serializable(
+        await db.select().from(storeCreditLedger).where(eq(storeCreditLedger.userId, userId)).all(),
       ),
     },
     bluesky_account: {

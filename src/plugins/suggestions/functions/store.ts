@@ -227,6 +227,24 @@ export async function getVoteTotals(suggestionId: number): Promise<VoteTotals> {
   return totals;
 }
 
+export type SuggestionVoter = { userId: string; value: VoteValue; votedAt: Date };
+
+/** One page of who voted and how (oldest vote first), for public votes. */
+export async function listVoters(
+  suggestionId: number,
+  offset: number,
+  limit: number,
+): Promise<SuggestionVoter[]> {
+  const rows = await getDb()
+    .select({ userId: suggestionVotes.userId, value: suggestionVotes.value, createdAt: suggestionVotes.createdAt })
+    .from(suggestionVotes)
+    .where(eq(suggestionVotes.suggestionId, suggestionId))
+    .orderBy(asc(suggestionVotes.createdAt), asc(suggestionVotes.userId))
+    .limit(limit)
+    .offset(offset);
+  return rows.map((row) => ({ userId: row.userId, value: row.value as VoteValue, votedAt: row.createdAt }));
+}
+
 export async function setVote(
   suggestionId: number,
   userId: string,

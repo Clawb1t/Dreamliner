@@ -50,6 +50,7 @@ plugins:
       mid_vote_enabled: true
       allow_self_vote: false
       show_vote_count: true
+      public_votes: false
       color_change_threshold: 10
       color_change_color: 5763719
       notify_author: true
@@ -84,7 +85,7 @@ plugins:
 | `min_account_age` / `min_member_age` | Age gates. Empty string disables |
 | `command_channels` | If non-empty, `/suggest` may only be used in these channels |
 | `ignored_channels` | Channels where suggestion commands are refused |
-| `allow_attachments` | Allow image attachments on suggestions |
+| `allow_attachments` | Show an optional image upload in the `/suggest` form (PNG, JPG, GIF or WebP, up to 10 MB). The image is posted as a file on the suggestion, so it keeps working through votes, approval, denial and archiving |
 | `min_length` / `max_length` | Suggestion text length bounds |
 
 ### Voting and notifications
@@ -97,6 +98,7 @@ plugins:
 | `mid_vote_enabled` | Include a neutral mid vote button |
 | `allow_self_vote` | Allow authors to vote on their own suggestion |
 | `show_vote_count` | Show live vote totals on the vote buttons |
+| `public_votes` | Add a **View votes** button to suggestion posts. Anyone can press it to see, privately, a paged list of who voted and how. Off by default |
 | `color_change_threshold` | Net upvotes needed to recolor the embed. `0` disables |
 | `color_change_color` | Embed color (decimal 0-16777215) once the threshold is met |
 | `notify_author` | DM the author on approve, deny, and mark when possible |

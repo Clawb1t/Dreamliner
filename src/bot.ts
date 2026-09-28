@@ -11,6 +11,7 @@ import {
   type RepliableInteraction,
 } from "discord.js";
 import { discordRestAgent } from "./core/discordRest.js";
+import { VOTE_REMINDER_PREFIX, handleVoteReminderButton } from "./core/store/voteReminders.js";
 import type { ConfigManager } from "./config/manager.js";
 import { loadPlugins } from "./core/pluginLoader.js";
 import { availablePlugins } from "./plugins/availablePlugins.js";
@@ -199,6 +200,29 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     log.info(`Dreamliner ready as ${c.user.tag}`);
     startStatusMonitor(c);
     startDashboardBridge(c, configManager);
+    // Store credits: import top.gg vote history (past votes to claim, and any the webhook missed).
+    void Promise.all([import("./core/store/topggVotes.js"), import("./core/scheduler.js")]).then(
+      ([{ isVoteHistoryConfigured, syncVoteHistory }, { registerIntervalTask }]) => {
+        // "You can vote again" DMs, 12 hours after each member's latest vote.
+        registerIntervalTask({
+          id: "store:vote-reminders",
+          intervalMs: 60_000,
+          run: async (client) => {
+            const { sendDueVoteReminders } = await import("./core/store/voteReminders.js");
+            await sendDueVoteReminders(client);
+          },
+        });
+        if (!isVoteHistoryConfigured()) return;
+        setTimeout(() => void syncVoteHistory({ force: true }), 30_000);
+        registerIntervalTask({
+          id: "store:vote-history",
+          intervalMs: 15 * 60_000,
+          run: async () => {
+            await syncVoteHistory();
+          },
+        });
+      },
+    );
     void import("./bridge/oneEntitlements.js").then(({ startDreamlinerOneEntitlements }) =>
       startDreamlinerOneEntitlements(c).catch((error) => {
         log.error("[dreamliner-one] Failed to start entitlement sync.", error);
@@ -318,6 +342,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isButton()) {
+      if (interaction.customId.startsWith(VOTE_REMINDER_PREFIX)) {
+        const handled = await safeHandle(interaction, "Vote reminder button", () =>
+          handleVoteReminderButton(interaction),
+        );
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(BOT_AVATAR_PREFIX)) {
         const handled = await safeHandle(interaction, "Bot avatar button", () => handleBotAvatarButtonInteraction(interaction));
         if (handled) return;

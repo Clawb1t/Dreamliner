@@ -1986,3 +1986,90 @@ export const applications = sqliteTable(
     index("applications_guild_user").on(table.guildId, table.userId, table.openingId),
   ],
 );
+
+/** Boosts each member has given, counted from Discord's boost announcements (the API doesn't
+ *  expose a per-member boost count). Reset when the member stops boosting. Used by Booster Roles'
+ *  boost-count tiers. */
+export const boosterBoostCounts = sqliteTable(
+  "booster_boost_counts",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    boosts: integer("boosts").notNull().default(0),
+    /** Newest boost announcement counted, so a backfill never counts one twice. */
+    lastMessageId: text("last_message_id"),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+/** The last "count past boosts" scan of a guild's boost announcements. */
+export const boosterBoostBackfills = sqliteTable("booster_boost_backfills", {
+  guildId: text("guild_id").primaryKey(),
+  channelId: text("channel_id").notNull(),
+  scannedMessages: integer("scanned_messages").notNull().default(0),
+  boostMessages: integer("boost_messages").notNull().default(0),
+  oldestMessageAt: integer("oldest_message_at", { mode: "timestamp" }),
+  finishedAt: integer("finished_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Every top.gg vote Dreamliner knows about, from the vote webhook or the vote history sync.
+ *  `credited_at` is set once the vote's store credits are paid (live votes at once, history
+ *  votes when the member claims them on the account page). One vote per user per moment. */
+export const storeVotes = sqliteTable(
+  "store_votes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    votedAt: integer("voted_at", { mode: "timestamp_ms" }).notNull(),
+    topggVoteId: text("topgg_vote_id"),
+    weight: integer("weight").notNull().default(1),
+    /** webhook | history */
+    source: text("source").notNull(),
+    creditedAt: integer("credited_at", { mode: "timestamp_ms" }),
+    /** When the "you can vote again" DM for this vote went out (or was skipped). */
+    reminderSentAt: integer("reminder_sent_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("store_votes_user_time").on(table.userId, table.votedAt),
+    index("store_votes_user_credited").on(table.userId, table.creditedAt),
+  ],
+);
+
+/** Store credit movements. A member's balance is the sum of their `delta`s. */
+export const storeCreditLedger = sqliteTable(
+  "store_credit_ledger",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    delta: integer("delta").notNull(),
+    /** vote | purchase */
+    kind: text("kind").notNull(),
+    /** The credited vote, so no vote can ever pay out twice. */
+    voteId: integer("vote_id"),
+    /** Purchases: the server that got Dreamliner One, and for how many days. */
+    guildId: text("guild_id"),
+    days: integer("days"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("store_credit_ledger_user").on(table.userId, table.createdAt),
+    uniqueIndex("store_credit_ledger_vote").on(table.voteId),
+  ],
+);
+
+/** Progress of the top.gg vote history sync (a single row, id 1). */
+export const storeVoteSync = sqliteTable("store_vote_sync", {
+  id: integer("id").primaryKey(),
+  lastVoteAt: integer("last_vote_at", { mode: "timestamp_ms" }),
+  lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }),
+  lastError: text("last_error"),
+});
+
+/** Whether a member gets the "you can vote again" DM. No row means on (the default). */
+export const voteReminderPrefs = sqliteTable("vote_reminder_prefs", {
+  userId: text("user_id").primaryKey(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

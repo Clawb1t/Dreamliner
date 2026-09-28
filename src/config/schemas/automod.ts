@@ -22,6 +22,7 @@ export const AUTOMOD_RULE_IDS = [
   "domain_intel",
   "excessive_caps",
   "zalgo",
+  "ai_text",
   "image_scan",
   "raid",
 ] as const;

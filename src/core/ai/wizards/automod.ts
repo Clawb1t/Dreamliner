@@ -43,13 +43,14 @@ import {
 const MAX_QUESTIONS = 5;
 
 /** Mirrors AUTOMOD_GROUP_LABELS / AUTOMOD_RULE_META groups in src/plugins/automod/catalog.ts. */
-export const AUTOMOD_WIZARD_GROUPS = ["content", "spam", "mentions_links", "presentation", "images", "raid"] as const;
+export const AUTOMOD_WIZARD_GROUPS = ["content", "spam", "mentions_links", "presentation", "ai_detection", "images", "raid"] as const;
 
 const GROUP_LABELS: Record<(typeof AUTOMOD_WIZARD_GROUPS)[number], string> = {
   content: "Content filters (profanity, slurs, excessive swearing, custom word/phrase filters)",
   spam: "Spam and noise (message spam, emoji, duplicates, copypasta, stickers/GIFs, attachments, newlines, walls of text, repeated characters)",
   mentions_links: "Mentions and links (mass mentions, @everyone/@here, invite links, link spam, scam domain checks)",
   presentation: "Presentation (excessive caps, zalgo text)",
+  ai_detection: "AI detection (messages that read like ChatGPT or another AI wrote them)",
   images: "Image scanning (known scam-image reposts)",
   raid: "Join protection (raid-like bursts of new members)",
 };
@@ -78,6 +79,7 @@ export const RULE_NUMERIC_SETTINGS: Partial<Record<AutomodRuleId, Record<string,
   zalgo: { max_marks: { min: 3, max: 50 } },
   excessive_swearing: { min_words: { min: 2, max: 20 } },
   raid: { join_count: { min: 3, max: 100 }, join_window_ms: { min: 5_000, max: 600_000 } },
+  ai_text: { min_score: { min: 50, max: 99 }, min_words: { min: 25, max: 300 } },
   image_scan: { phash_max_distance: { min: 0, max: 20 } },
 };
 
@@ -117,6 +119,8 @@ const RULE_HELP: Record<AutomodRuleId, string> = {
     "known malware and phishing links plus scam-domain heuristics; settings.min_score (lower is stricter), settings.check_feeds, settings.trusted_domains (never flagged)",
   excessive_caps: "shouting; settings.max_percent (caps percent) and settings.min_length (minimum letters)",
   zalgo: "zalgo or obfuscated text; settings.max_marks",
+  ai_text:
+    "messages that read as AI-written (Dreamliner's own style model); settings.min_score (confidence percent needed, higher is safer, default 85) and settings.min_words (shorter messages are skipped, default 40). Best as log-only or delete, since it is a likelihood, not proof",
   image_scan: "images matching known scam-image fingerprints; settings.phash_max_distance",
   raid: "bursts of new members joining; settings.join_count within settings.join_window_ms",
 };

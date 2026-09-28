@@ -32,8 +32,21 @@ import {
   queueActionRow,
   resolveTextChannel,
   suggestionJumpRow,
-  voteActionRow,
+  feedActionRows,
 } from "./embeds.js";
+import { attachedImageRef, copySuggestionImage, isAttachedImage, type SuggestionImageFile } from "./image.js";
+
+/** What a brand-new post should show for the suggestion's image: its own copy of an uploaded file
+ *  (as `files` plus the stored `attachment://` reference), a plain legacy link, or nothing. */
+async function imageForNewPost(
+  client: Client,
+  suggestion: Suggestion,
+  copy?: SuggestionImageFile | null,
+): Promise<{ files?: SuggestionImageFile[]; image?: null }> {
+  if (!isAttachedImage(suggestion.attachmentUrl)) return {};
+  const file = copy === undefined ? await copySuggestionImage(client, suggestion) : copy;
+  return file ? { files: [file] } : { image: null };
+}
 
 async function tryDm(client: Client, userId: string, payload: MessageCreateOptions): Promise<void> {
   try {
@@ -92,11 +105,15 @@ export async function submitSuggestion(options: {
   guildConfig: GuildConfig;
   config: SuggestionsConfig;
   content: string;
+  /** A legacy image link. */
   attachmentUrl?: string | null;
+  /** An image uploaded in the /suggest modal, posted as a file on the suggestion. */
+  imageFile?: SuggestionImageFile | null;
   anonymous: boolean;
   t?: Translator;
 }): Promise<{ suggestion: Suggestion; error?: string }> {
-  const { client, guild, author, guildConfig, config, content, attachmentUrl, anonymous, t = defaultTranslator } = options;
+  const { client, guild, author, guildConfig, config, content, imageFile, anonymous, t = defaultTranslator } = options;
+  const attachmentUrl = imageFile ? attachedImageRef(imageFile.name) : options.attachmentUrl;
 
   const status = config.mode === "autoapprove" ? "approved" : "awaiting_review";
   let suggestion = await createSuggestion({
@@ -141,6 +158,7 @@ export async function submitSuggestion(options: {
     const payload = containerReply(embed, false, [queueActionRow(suggestion.id, t)]);
     const msg = await channel.send({
       ...payload,
+      ...(imageFile ? { files: [imageFile] } : {}),
       components: config.review_ping_role
         ? [pingComponent(`<@&${config.review_ping_role}>`), ...payload.components!]
         : payload.components,
@@ -154,7 +172,7 @@ export async function submitSuggestion(options: {
     return { suggestion };
   }
 
-  return postToFeed({ client, guild, config, suggestion, t });
+  return postToFeed({ client, guild, config, suggestion, imageFile, t });
 }
 
 export async function postToFeed(options: {
@@ -162,6 +180,8 @@ export async function postToFeed(options: {
   guild: Guild;
   config: SuggestionsConfig;
   suggestion: Suggestion;
+  /** The uploaded image when posting straight from /suggest; otherwise it's copied from the review post. */
+  imageFile?: SuggestionImageFile | null;
   t?: Translator;
 }): Promise<{ suggestion: Suggestion; error?: string }> {
   const { client, guild, config, suggestion: input, t = defaultTranslator } = options;
@@ -177,11 +197,13 @@ export async function postToFeed(options: {
     (await updateSuggestion(input.id, { status: "approved", staffActorId: input.staffActorId })) ?? input;
 
   const votes = await getVoteTotals(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, ...(await loadCommentContext(suggestion.id)), t });
-  const rows = config.voting_enabled ? [voteActionRow(suggestion.id, config, votes)] : [];
+  const { files, image } = await imageForNewPost(client, suggestion, options.imageFile ?? undefined);
+  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, ...(await loadCommentContext(suggestion.id)), image, t });
+  const rows = feedActionRows(suggestion.id, config, votes, t);
   const feedPayload = containerReply(embed, false, rows);
   const msg = await channel.send({
     ...feedPayload,
+    ...(files ? { files } : {}),
     components: config.feed_ping_role
       ? [pingComponent(`<@&${config.feed_ping_role}>`), ...feedPayload.components!]
       : feedPayload.components,
@@ -224,9 +246,7 @@ export async function refreshFeedMessage(
   const votes = await getVoteTotals(suggestion.id);
   const embed = buildSuggestionEmbed({ client, suggestion, config, votes, ...(await loadCommentContext(suggestion.id)), t });
   const components =
-    config.voting_enabled && suggestion.status === "approved"
-      ? [voteActionRow(suggestion.id, config, votes)]
-      : [];
+    suggestion.status === "approved" ? feedActionRows(suggestion.id, config, votes, t) : [];
   await msg.edit(containerEdit(embed, components)).catch(() => null);
 }
 
@@ -250,9 +270,7 @@ async function refreshMessagesWithComments(
       const votes = await getVoteTotals(suggestion.id);
       const embed = buildSuggestionEmbed({ client, suggestion, config, votes, commentCount, comments, t });
       const components =
-        config.voting_enabled && suggestion.status === "approved"
-          ? [voteActionRow(suggestion.id, config, votes)]
-          : [];
+        suggestion.status === "approved" ? feedActionRows(suggestion.id, config, votes, t) : [];
       await msg.edit(containerEdit(embed, components)).catch(() => null);
     }
   }
@@ -358,6 +376,11 @@ export async function denySuggestion(options: {
   if (suggestion.status === "denied") {
     return { suggestion, error: t("suggestions.error.alreadyDenied", "This suggestion is already denied.") };
   }
+  // Copy an uploaded image now: the feed post holding it may be deleted below.
+  const deniedImage =
+    !options.silent && options.config.denied_channel_id && isAttachedImage(suggestion.attachmentUrl)
+      ? await copySuggestionImage(options.client, suggestion)
+      : undefined;
 
   let updated =
     (await updateSuggestion(suggestion.id, {
@@ -417,8 +440,9 @@ export async function denySuggestion(options: {
         ...(await loadCommentContext(updated.id)),
         titlePrefix: t("suggestions.status.denied", "Denied"),
         t,
+        ...(isAttachedImage(updated.attachmentUrl) && !deniedImage ? { image: null } : {}),
       });
-      const msg = await deniedChannel.send(containerReply(embed));
+      const msg = await deniedChannel.send({ ...containerReply(embed), ...(deniedImage ? { files: [deniedImage] } : {}) });
       updated =
         (await updateSuggestion(updated.id, {
           deniedChannelId: deniedChannel.id,
@@ -473,6 +497,7 @@ export async function markSuggestion(options: {
     const archive = await resolveTextChannel(options.client, options.config.archive_channel_id);
     if (archive) {
       const votes = await getVoteTotals(updated.id);
+      const { files, image } = await imageForNewPost(options.client, updated);
       const embed = buildSuggestionEmbed({
         client: options.client,
         suggestion: updated,
@@ -480,9 +505,10 @@ export async function markSuggestion(options: {
         votes,
         ...(await loadCommentContext(updated.id)),
         titlePrefix: t("suggestions.titlePrefix.implemented", "Implemented"),
+        image,
         t,
       });
-      const msg = await archive.send(containerReply(embed));
+      const msg = await archive.send({ ...containerReply(embed), ...(files ? { files } : {}) });
       updated =
         (await updateSuggestion(updated.id, {
           archiveChannelId: archive.id,
