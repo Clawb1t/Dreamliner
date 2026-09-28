@@ -16,6 +16,7 @@ import { VOTE_URL } from "../core/docsUrl.js";
 import { getActiveDiscordEntitlement } from "./oneEntitlements.js";
 import { getDreamlinerOneRow } from "./dreamlinerOne.js";
 import { getLogger } from "../core/logger.js";
+import { isDashboardSuperuser } from "./superuser.js";
 import { setVoteReminders, voteRemindersEnabled } from "../core/store/voteReminders.js";
 
 const log = getLogger("store");
@@ -125,7 +126,8 @@ export type WebStoreServer = {
 export async function listWebStoreServers(client: Client, guildIds: string[]): Promise<WebStoreServer[]> {
   const now = Date.now();
   const servers: WebStoreServer[] = [];
-  for (const guildId of [...new Set(guildIds)].slice(0, 250)) {
+  // Superusers pick from every server the bot is in, so the cap is generous.
+  for (const guildId of [...new Set(guildIds)].slice(0, 5000)) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) continue;
     const [entitlement, row] = await Promise.all([getActiveDiscordEntitlement(guildId), getDreamlinerOneRow(guildId)]);
@@ -144,8 +146,10 @@ export async function listWebStoreServers(client: Client, guildIds: string[]): P
   return servers.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Same rule as the dashboard: the owner, or a member with Administrator or Manage Server. */
+/** Same rule as the dashboard (memberCanManage in dashboardBridge.ts): platform superusers, the
+ *  owner, or a member with Administrator or Manage Server. */
 async function canManage(guild: Guild, userId: string): Promise<boolean> {
+  if (isDashboardSuperuser(userId)) return true;
   if (guild.ownerId === userId) return true;
   const member = await guild.members.fetch(userId).catch(() => null);
   return Boolean(
