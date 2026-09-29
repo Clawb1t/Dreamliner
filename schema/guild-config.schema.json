@@ -14227,6 +14227,1292 @@
           "default": {},
           "title": "Activity Rewards"
         },
+        "birthdays": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "announcement": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Post a birthday announcement in a channel.",
+                      "title": "Enabled"
+                    },
+                    "channel_id": {
+                      "type": "string",
+                      "description": "Channel birthday announcements are posted in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "<:icons_bday:1544418010796924988> Happy birthday {user}! Have an amazing day.",
+                      "description": "Announcement text. Supports placeholders plus {age}, {age_ordinal}, {birthday}, {birthday_date} and {birthdays_today}.",
+                      "title": "Content"
+                    },
+                    "embed": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Include a Discord embed in the message.",
+                          "title": "Enabled"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Embed title. Supports placeholders.",
+                          "title": "Title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 4096,
+                          "default": "",
+                          "description": "Embed description. Supports placeholders.",
+                          "title": "Description"
+                        },
+                        "color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Embed accent color as a decimal integer (0–16777215).",
+                          "default": 5661429,
+                          "title": "Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Optional embed author name.",
+                          "title": "Author Name"
+                        },
+                        "author_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Author icon source.",
+                          "title": "Author Icon"
+                        },
+                        "author_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Author icon URL when mode is url.",
+                          "title": "Author Icon Url"
+                        },
+                        "thumbnail": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "avatar",
+                          "description": "Thumbnail image source.",
+                          "title": "Thumbnail"
+                        },
+                        "thumbnail_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Thumbnail URL when mode is url.",
+                          "title": "Thumbnail Url"
+                        },
+                        "image": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Large embed image. Image cards attach as files, not embed images.",
+                          "title": "Image"
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Image URL when mode is url.",
+                          "title": "Image Url"
+                        },
+                        "footer_text": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "default": "",
+                          "description": "Footer text. Supports placeholders.",
+                          "title": "Footer Text"
+                        },
+                        "footer_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Footer icon source.",
+                          "title": "Footer Icon"
+                        },
+                        "footer_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Footer icon URL when mode is url.",
+                          "title": "Footer Icon Url"
+                        },
+                        "timestamp": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Show the current time in the embed footer.",
+                          "title": "Timestamp"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "default": "",
+                                "description": "Embed field name.",
+                                "title": "Name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 1024,
+                                "default": "",
+                                "description": "Embed field value. Supports placeholders.",
+                                "title": "Value"
+                              },
+                              "inline": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "Display the field inline.",
+                                "title": "Inline"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 25,
+                          "default": [],
+                          "description": "Optional embed fields.",
+                          "title": "Fields"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Embed"
+                    },
+                    "card": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Generate and attach a welcome/leave image card.",
+                          "title": "Enabled"
+                        },
+                        "background_type": {
+                          "type": "string",
+                          "enum": [
+                            "color",
+                            "url",
+                            "asset"
+                          ],
+                          "default": "color",
+                          "description": "Card background source.",
+                          "title": "Background Type"
+                        },
+                        "background_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Solid background color when type is color.",
+                          "default": 1974050,
+                          "title": "Background Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "background_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Background image URL when type is url.",
+                          "title": "Background Url"
+                        },
+                        "background_asset_id": {
+                          "type": "string",
+                          "maxLength": 128,
+                          "default": "",
+                          "description": "Uploaded background asset id when type is asset.",
+                          "title": "Background Asset Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "avatar_layout": {
+                          "type": "string",
+                          "enum": [
+                            "left",
+                            "center",
+                            "right"
+                          ],
+                          "default": "left",
+                          "description": "Preset position for the member avatar.",
+                          "title": "Avatar Layout"
+                        },
+                        "text_layout": {
+                          "type": "string",
+                          "enum": [
+                            "beside",
+                            "below",
+                            "overlay_center",
+                            "overlay_bottom"
+                          ],
+                          "default": "beside",
+                          "description": "Preset position for greeting and subtitle text.",
+                          "title": "Text Layout"
+                        },
+                        "avatar_style": {
+                          "type": "string",
+                          "enum": [
+                            "circle",
+                            "rounded_square"
+                          ],
+                          "default": "circle",
+                          "description": "Avatar shape.",
+                          "title": "Avatar Style"
+                        },
+                        "show_avatar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the member avatar on the card.",
+                          "title": "Show Avatar"
+                        },
+                        "show_accent_bar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the left accent bar.",
+                          "title": "Show Accent Bar"
+                        },
+                        "greeting_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Welcome {user_display}!",
+                          "description": "Primary card text. Supports placeholders.",
+                          "title": "Greeting Text"
+                        },
+                        "subtitle_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Member #{guild_member_count}",
+                          "description": "Secondary card text. Supports placeholders.",
+                          "title": "Subtitle Text"
+                        },
+                        "text_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card text color.",
+                          "default": 16777215,
+                          "title": "Text Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "accent_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Accent bar / avatar ring color.",
+                          "default": 5661429,
+                          "title": "Accent Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card border color.",
+                          "default": 5661429,
+                          "title": "Border Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 32,
+                          "default": 0,
+                          "description": "Card border thickness in pixels.",
+                          "title": "Border Width"
+                        },
+                        "border_radius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 80,
+                          "default": 24,
+                          "description": "Card corner radius in pixels.",
+                          "title": "Border Radius"
+                        },
+                        "avatar_size": {
+                          "type": "integer",
+                          "minimum": 64,
+                          "maximum": 240,
+                          "default": 180,
+                          "description": "Avatar size in pixels.",
+                          "title": "Avatar Size"
+                        },
+                        "avatar_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal avatar nudge in pixels.",
+                          "title": "Avatar Offset X"
+                        },
+                        "avatar_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical avatar nudge in pixels.",
+                          "title": "Avatar Offset Y"
+                        },
+                        "text_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal text nudge in pixels.",
+                          "title": "Text Offset X"
+                        },
+                        "text_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical text nudge in pixels.",
+                          "title": "Text Offset Y"
+                        },
+                        "greeting_size": {
+                          "type": "integer",
+                          "minimum": 18,
+                          "maximum": 72,
+                          "default": 44,
+                          "description": "Greeting font size in pixels.",
+                          "title": "Greeting Size"
+                        },
+                        "subtitle_size": {
+                          "type": "integer",
+                          "minimum": 12,
+                          "maximum": 48,
+                          "default": 24,
+                          "description": "Subtitle font size in pixels.",
+                          "title": "Subtitle Size"
+                        },
+                        "avatar_ring_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16,
+                          "default": 6,
+                          "description": "Avatar ring thickness in pixels.",
+                          "title": "Avatar Ring Width"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "greeting_text": "Happy birthday, {user_display}!",
+                        "subtitle_text": "Have an amazing day!"
+                      },
+                      "title": "Card"
+                    },
+                    "ping_member": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Ping the birthday member (when {user} is in the message).",
+                      "title": "Ping Member"
+                    },
+                    "ping_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 5,
+                      "default": [],
+                      "description": "Roles to ping with the announcement.",
+                      "title": "Ping Roles",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    },
+                    "wish_button": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Add a button members press to wish the birthday member a happy birthday.",
+                          "title": "Enabled"
+                        },
+                        "label": {
+                          "type": "string",
+                          "maxLength": 60,
+                          "default": "Wish happy birthday",
+                          "description": "Button label before the tally.",
+                          "title": "Label"
+                        },
+                        "emoji": {
+                          "type": "string",
+                          "maxLength": 128,
+                          "default": "<:icons_bday:1544418010796924988>",
+                          "description": "Button emoji (unicode, emoji id, or <:name:id>).",
+                          "title": "Emoji",
+                          "x-dreamliner": {
+                            "kind": "emoji",
+                            "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                          }
+                        },
+                        "show_count": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Show how many people have sent wishes on the button.",
+                          "title": "Show Count"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Wish Button"
+                    },
+                    "link_buttons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string",
+                            "maxLength": 80,
+                            "default": "",
+                            "description": "Button label.",
+                            "title": "Label"
+                          },
+                          "url": {
+                            "type": "string",
+                            "maxLength": 512,
+                            "default": "",
+                            "description": "Where the button goes (https://...).",
+                            "title": "Url"
+                          },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 128,
+                            "default": "",
+                            "description": "Optional button emoji.",
+                            "title": "Emoji",
+                            "x-dreamliner": {
+                              "kind": "emoji",
+                              "setup": "Use a Unicode emoji or a custom emoji like <:name:id>. The bot must be able to use custom emojis."
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
+                      "default": [],
+                      "description": "Link buttons shown under the announcement.",
+                      "title": "Link Buttons"
+                    },
+                    "reactions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "maxItems": 5,
+                      "default": [],
+                      "description": "Emojis Dreamliner reacts to the announcement with.",
+                      "title": "Reactions"
+                    },
+                    "thread": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Open a thread on the announcement for birthday wishes.",
+                          "title": "Enabled"
+                        },
+                        "name": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "default": "Happy birthday {user_display}!",
+                          "description": "Thread name. Supports placeholders.",
+                          "title": "Name"
+                        },
+                        "auto_archive_minutes": {
+                          "type": "number",
+                          "enum": [
+                            60,
+                            1440,
+                            4320,
+                            10080
+                          ],
+                          "default": 1440,
+                          "description": "Archive the thread after this long without messages (1 hour, 1 day, 3 days or 1 week).",
+                          "title": "Auto Archive Minutes"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Thread"
+                    },
+                    "delete_after_hours": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 168,
+                      "default": 0,
+                      "description": "Delete the announcement this many hours after it's posted. 0 keeps it.",
+                      "title": "Delete After Hours"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Announcement"
+                },
+                "dm": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Send the birthday member a private message too.",
+                      "title": "Enabled"
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Happy birthday from everyone at **{guild}**! <:icons_bday:1544418010796924988>",
+                      "description": "DM text. Supports the same placeholders as the announcement.",
+                      "title": "Content"
+                    },
+                    "embed": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Include a Discord embed in the message.",
+                          "title": "Enabled"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Embed title. Supports placeholders.",
+                          "title": "Title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 4096,
+                          "default": "",
+                          "description": "Embed description. Supports placeholders.",
+                          "title": "Description"
+                        },
+                        "color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Embed accent color as a decimal integer (0–16777215).",
+                          "default": 5661429,
+                          "title": "Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 256,
+                          "default": "",
+                          "description": "Optional embed author name.",
+                          "title": "Author Name"
+                        },
+                        "author_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Author icon source.",
+                          "title": "Author Icon"
+                        },
+                        "author_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Author icon URL when mode is url.",
+                          "title": "Author Icon Url"
+                        },
+                        "thumbnail": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "avatar",
+                          "description": "Thumbnail image source.",
+                          "title": "Thumbnail"
+                        },
+                        "thumbnail_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Thumbnail URL when mode is url.",
+                          "title": "Thumbnail Url"
+                        },
+                        "image": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Large embed image. Image cards attach as files, not embed images.",
+                          "title": "Image"
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Image URL when mode is url.",
+                          "title": "Image Url"
+                        },
+                        "footer_text": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "default": "",
+                          "description": "Footer text. Supports placeholders.",
+                          "title": "Footer Text"
+                        },
+                        "footer_icon": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "avatar",
+                            "guild",
+                            "url"
+                          ],
+                          "default": "none",
+                          "description": "Footer icon source.",
+                          "title": "Footer Icon"
+                        },
+                        "footer_icon_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Footer icon URL when mode is url.",
+                          "title": "Footer Icon Url"
+                        },
+                        "timestamp": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Show the current time in the embed footer.",
+                          "title": "Timestamp"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "maxLength": 256,
+                                "default": "",
+                                "description": "Embed field name.",
+                                "title": "Name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 1024,
+                                "default": "",
+                                "description": "Embed field value. Supports placeholders.",
+                                "title": "Value"
+                              },
+                              "inline": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "Display the field inline.",
+                                "title": "Inline"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "maxItems": 25,
+                          "default": [],
+                          "description": "Optional embed fields.",
+                          "title": "Fields"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Embed"
+                    },
+                    "card": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Generate and attach a welcome/leave image card.",
+                          "title": "Enabled"
+                        },
+                        "background_type": {
+                          "type": "string",
+                          "enum": [
+                            "color",
+                            "url",
+                            "asset"
+                          ],
+                          "default": "color",
+                          "description": "Card background source.",
+                          "title": "Background Type"
+                        },
+                        "background_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Solid background color when type is color.",
+                          "default": 1974050,
+                          "title": "Background Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "background_url": {
+                          "type": "string",
+                          "maxLength": 512,
+                          "default": "",
+                          "description": "Background image URL when type is url.",
+                          "title": "Background Url"
+                        },
+                        "background_asset_id": {
+                          "type": "string",
+                          "maxLength": 128,
+                          "default": "",
+                          "description": "Uploaded background asset id when type is asset.",
+                          "title": "Background Asset Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "avatar_layout": {
+                          "type": "string",
+                          "enum": [
+                            "left",
+                            "center",
+                            "right"
+                          ],
+                          "default": "left",
+                          "description": "Preset position for the member avatar.",
+                          "title": "Avatar Layout"
+                        },
+                        "text_layout": {
+                          "type": "string",
+                          "enum": [
+                            "beside",
+                            "below",
+                            "overlay_center",
+                            "overlay_bottom"
+                          ],
+                          "default": "beside",
+                          "description": "Preset position for greeting and subtitle text.",
+                          "title": "Text Layout"
+                        },
+                        "avatar_style": {
+                          "type": "string",
+                          "enum": [
+                            "circle",
+                            "rounded_square"
+                          ],
+                          "default": "circle",
+                          "description": "Avatar shape.",
+                          "title": "Avatar Style"
+                        },
+                        "show_avatar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the member avatar on the card.",
+                          "title": "Show Avatar"
+                        },
+                        "show_accent_bar": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Draw the left accent bar.",
+                          "title": "Show Accent Bar"
+                        },
+                        "greeting_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Welcome {user_display}!",
+                          "description": "Primary card text. Supports placeholders.",
+                          "title": "Greeting Text"
+                        },
+                        "subtitle_text": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "default": "Member #{guild_member_count}",
+                          "description": "Secondary card text. Supports placeholders.",
+                          "title": "Subtitle Text"
+                        },
+                        "text_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card text color.",
+                          "default": 16777215,
+                          "title": "Text Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "accent_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Accent bar / avatar ring color.",
+                          "default": 5661429,
+                          "title": "Accent Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_color": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777215,
+                          "description": "Card border color.",
+                          "default": 5661429,
+                          "title": "Border Color",
+                          "x-dreamliner": {
+                            "kind": "color",
+                            "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                          }
+                        },
+                        "border_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 32,
+                          "default": 0,
+                          "description": "Card border thickness in pixels.",
+                          "title": "Border Width"
+                        },
+                        "border_radius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 80,
+                          "default": 24,
+                          "description": "Card corner radius in pixels.",
+                          "title": "Border Radius"
+                        },
+                        "avatar_size": {
+                          "type": "integer",
+                          "minimum": 64,
+                          "maximum": 240,
+                          "default": 180,
+                          "description": "Avatar size in pixels.",
+                          "title": "Avatar Size"
+                        },
+                        "avatar_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal avatar nudge in pixels.",
+                          "title": "Avatar Offset X"
+                        },
+                        "avatar_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical avatar nudge in pixels.",
+                          "title": "Avatar Offset Y"
+                        },
+                        "text_offset_x": {
+                          "type": "integer",
+                          "minimum": -400,
+                          "maximum": 400,
+                          "default": 0,
+                          "description": "Horizontal text nudge in pixels.",
+                          "title": "Text Offset X"
+                        },
+                        "text_offset_y": {
+                          "type": "integer",
+                          "minimum": -200,
+                          "maximum": 200,
+                          "default": 0,
+                          "description": "Vertical text nudge in pixels.",
+                          "title": "Text Offset Y"
+                        },
+                        "greeting_size": {
+                          "type": "integer",
+                          "minimum": 18,
+                          "maximum": 72,
+                          "default": 44,
+                          "description": "Greeting font size in pixels.",
+                          "title": "Greeting Size"
+                        },
+                        "subtitle_size": {
+                          "type": "integer",
+                          "minimum": 12,
+                          "maximum": 48,
+                          "default": 24,
+                          "description": "Subtitle font size in pixels.",
+                          "title": "Subtitle Size"
+                        },
+                        "avatar_ring_width": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16,
+                          "default": 6,
+                          "description": "Avatar ring thickness in pixels.",
+                          "title": "Avatar Ring Width"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "greeting_text": "Happy birthday!",
+                        "subtitle_text": "From everyone at {guild}"
+                      },
+                      "title": "Card"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Dm"
+                },
+                "role": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Give the birthday member a role for their birthday.",
+                      "title": "Enabled"
+                    },
+                    "role_id": {
+                      "type": "string",
+                      "default": "",
+                      "description": "The birthday role.",
+                      "title": "Role Id",
+                      "x-dreamliner": {
+                        "kind": "snowflake",
+                        "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                      }
+                    },
+                    "duration_hours": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 168,
+                      "default": 24,
+                      "description": "How long they keep the role, in hours from when their birthday starts.",
+                      "title": "Duration Hours"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Role"
+                },
+                "timezone": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "default": "UTC",
+                  "description": "The server's timezone, e.g. Europe/London. Birthdays start at the time below in this timezone.",
+                  "title": "Timezone"
+                },
+                "timezone_mode": {
+                  "type": "string",
+                  "enum": [
+                    "server",
+                    "member"
+                  ],
+                  "default": "member",
+                  "description": "server = everyone's birthday starts in the server's timezone, member = in their own timezone when they set one.",
+                  "title": "Timezone Mode"
+                },
+                "celebrate_time": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "default": "00:00",
+                  "description": "Time of day birthdays are celebrated, as 24-hour HH:MM.",
+                  "title": "Celebrate Time"
+                },
+                "leap_day": {
+                  "type": "string",
+                  "enum": [
+                    "feb28",
+                    "mar1"
+                  ],
+                  "default": "feb28",
+                  "description": "When to celebrate 29 February birthdays in years without one.",
+                  "title": "Leap Day"
+                },
+                "show_age": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show ages (from birth years members chose to share).",
+                  "title": "Show Age"
+                },
+                "require_year": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Make members include their birth year in /birthday set.",
+                  "title": "Require Year"
+                },
+                "allowed_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "If set, only members with one of these roles are celebrated.",
+                  "title": "Allowed Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "ignored_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "description": "Members with any of these roles are never celebrated.",
+                  "title": "Ignored Roles",
+                  "x-dreamliner": {
+                    "kind": "role",
+                    "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                  }
+                },
+                "can_set": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to set, change or remove their own birthday with /birthday set and /birthday remove.",
+                  "title": "Set",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_view": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to see members' birthdays and upcoming birthdays with /birthday view and /birthday upcoming.",
+                  "title": "View",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to set or remove other members' birthdays with /birthday manage.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "announcement": {
+                  "enabled": true,
+                  "content": "<:icons_bday:1544418010796924988> Happy birthday {user}! Have an amazing day.",
+                  "embed": {
+                    "enabled": false,
+                    "title": "",
+                    "description": "",
+                    "color": 5661429,
+                    "author_name": "",
+                    "author_icon": "none",
+                    "author_icon_url": "",
+                    "thumbnail": "avatar",
+                    "thumbnail_url": "",
+                    "image": "none",
+                    "image_url": "",
+                    "footer_text": "",
+                    "footer_icon": "none",
+                    "footer_icon_url": "",
+                    "timestamp": false,
+                    "fields": []
+                  },
+                  "card": {
+                    "enabled": false,
+                    "background_type": "color",
+                    "background_color": 1974050,
+                    "background_url": "",
+                    "background_asset_id": "",
+                    "avatar_layout": "left",
+                    "text_layout": "beside",
+                    "avatar_style": "circle",
+                    "show_avatar": true,
+                    "show_accent_bar": true,
+                    "greeting_text": "Happy birthday, {user_display}!",
+                    "subtitle_text": "Have an amazing day!",
+                    "text_color": 16777215,
+                    "accent_color": 5661429,
+                    "border_color": 5661429,
+                    "border_width": 0,
+                    "border_radius": 24,
+                    "avatar_size": 180,
+                    "avatar_offset_x": 0,
+                    "avatar_offset_y": 0,
+                    "text_offset_x": 0,
+                    "text_offset_y": 0,
+                    "greeting_size": 44,
+                    "subtitle_size": 24,
+                    "avatar_ring_width": 6
+                  },
+                  "ping_member": true,
+                  "ping_roles": [],
+                  "wish_button": {
+                    "enabled": true,
+                    "label": "Wish happy birthday",
+                    "emoji": "<:icons_bday:1544418010796924988>",
+                    "show_count": true
+                  },
+                  "link_buttons": [],
+                  "reactions": [],
+                  "thread": {
+                    "enabled": false,
+                    "name": "Happy birthday {user_display}!",
+                    "auto_archive_minutes": 1440
+                  },
+                  "delete_after_hours": 0
+                },
+                "dm": {
+                  "enabled": false,
+                  "content": "Happy birthday from everyone at **{guild}**! <:icons_bday:1544418010796924988>",
+                  "embed": {
+                    "enabled": false,
+                    "title": "",
+                    "description": "",
+                    "color": 5661429,
+                    "author_name": "",
+                    "author_icon": "none",
+                    "author_icon_url": "",
+                    "thumbnail": "avatar",
+                    "thumbnail_url": "",
+                    "image": "none",
+                    "image_url": "",
+                    "footer_text": "",
+                    "footer_icon": "none",
+                    "footer_icon_url": "",
+                    "timestamp": false,
+                    "fields": []
+                  },
+                  "card": {
+                    "enabled": false,
+                    "background_type": "color",
+                    "background_color": 1974050,
+                    "background_url": "",
+                    "background_asset_id": "",
+                    "avatar_layout": "left",
+                    "text_layout": "beside",
+                    "avatar_style": "circle",
+                    "show_avatar": true,
+                    "show_accent_bar": true,
+                    "greeting_text": "Happy birthday!",
+                    "subtitle_text": "From everyone at {guild}",
+                    "text_color": 16777215,
+                    "accent_color": 5661429,
+                    "border_color": 5661429,
+                    "border_width": 0,
+                    "border_radius": 24,
+                    "avatar_size": 180,
+                    "avatar_offset_x": 0,
+                    "avatar_offset_y": 0,
+                    "text_offset_x": 0,
+                    "text_offset_y": 0,
+                    "greeting_size": 44,
+                    "subtitle_size": 24,
+                    "avatar_ring_width": 6
+                  }
+                },
+                "role": {
+                  "enabled": false,
+                  "role_id": "",
+                  "duration_hours": 24
+                },
+                "timezone": "UTC",
+                "timezone_mode": "member",
+                "celebrate_time": "00:00",
+                "leap_day": "feb28",
+                "show_age": true,
+                "require_year": false,
+                "allowed_roles": [],
+                "ignored_roles": [],
+                "can_set": false,
+                "can_view": false,
+                "can_manage": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Birthdays"
+        },
         "applications": {
           "type": "object",
           "properties": {

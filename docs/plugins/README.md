@@ -37,6 +37,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Welcome message](./welcome_message.md): join/leave/DM messages and member-count milestones
 - [Activity Rewards](./activity_rewards.md): roles and announcements for message and voice milestones
+- [Birthdays](./birthdays.md): members set their birthday, and the server celebrates it with announcements, a role, a DM and wish buttons
 - [Companion channels](./companion_channels.md)
 - [Starboard](./starboard.md)
 - [Text-to-speech](./tts.md)

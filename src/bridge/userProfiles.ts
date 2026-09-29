@@ -9,6 +9,10 @@ import {
   guildStatsUserVoiceDaily,
   voiceActiveSessions,
   nameHistory,
+  birthdayCelebrations,
+  birthdayOptouts,
+  birthdayWishes,
+  userBirthdays,
   memberIdentity,
   reminders,
   reviews,
@@ -249,6 +253,15 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       ),
     },
     {
+      key: "birthday",
+      label: "Birthday",
+      description:
+        "The birthday (and optional birth year and timezone) you set with /birthday, the servers you asked not to celebrate it in, past celebrations and the birthday wishes you sent.",
+      total: countRows(() =>
+        db.select({ total: count() }).from(userBirthdays).where(eq(userBirthdays.userId, userId)).get(),
+      ),
+    },
+    {
       key: "bluesky_account",
       label: "Bluesky connection",
       description:
@@ -447,6 +460,19 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   await wipe(
     "name_history",
     db.delete(nameHistory).where(eq(nameHistory.userId, userId)).returning(),
+  );
+  await wipe("birthday", db.delete(userBirthdays).where(eq(userBirthdays.userId, userId)).returning());
+  await wipe(
+    "birthday_optouts",
+    db.delete(birthdayOptouts).where(eq(birthdayOptouts.userId, userId)).returning(),
+  );
+  await wipe(
+    "birthday_celebrations",
+    db.delete(birthdayCelebrations).where(eq(birthdayCelebrations.userId, userId)).returning(),
+  );
+  await wipe(
+    "birthday_wishes",
+    db.delete(birthdayWishes).where(eq(birthdayWishes.userId, userId)).returning(),
   );
   await wipe(
     "username_snapshots",

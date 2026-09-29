@@ -2073,3 +2073,65 @@ export const voteReminderPrefs = sqliteTable("vote_reminder_prefs", {
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+/** Members' birthdays, set once with /birthday set and used by every server with Birthdays on. */
+export const userBirthdays = sqliteTable(
+  "user_birthdays",
+  {
+    userId: text("user_id").primaryKey(),
+    month: integer("month").notNull(),
+    day: integer("day").notNull(),
+    /** Optional: only used to show ages. */
+    year: integer("year"),
+    /** Optional: the member's own timezone, for servers that celebrate in members' timezones. */
+    timezone: text("timezone"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("user_birthdays_date").on(table.month, table.day)],
+);
+
+/** Servers a member asked not to be celebrated in (/birthday privacy). */
+export const birthdayOptouts = sqliteTable(
+  "birthday_optouts",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+/** One row per member per server per year: makes each birthday celebrate once, and tracks the
+ *  birthday role and announcement so they can be cleaned up on time. */
+export const birthdayCelebrations = sqliteTable(
+  "birthday_celebrations",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    year: integer("year").notNull(),
+    celebratedAt: integer("celebrated_at", { mode: "timestamp_ms" }).notNull(),
+    channelId: text("channel_id"),
+    messageId: text("message_id"),
+    roleId: text("role_id"),
+    roleExpiresAt: integer("role_expires_at", { mode: "timestamp_ms" }),
+    roleRemovedAt: integer("role_removed_at", { mode: "timestamp_ms" }),
+    deleteAt: integer("delete_at", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId, table.year] }),
+    index("birthday_celebrations_message").on(table.messageId),
+  ],
+);
+
+/** Who pressed "Wish happy birthday" on which announcement. */
+export const birthdayWishes = sqliteTable(
+  "birthday_wishes",
+  {
+    messageId: text("message_id").notNull(),
+    userId: text("user_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.messageId, table.userId] })],
+);

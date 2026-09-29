@@ -9,6 +9,8 @@ import type { Client } from "discord.js";
 // Isolated scratch DB, set before any getDb() call (see permissionRoles.test.ts).
 const scratchDir = mkdtempSync(join(tmpdir(), "dreamliner-reminders-test-"));
 process.env.DATABASE_URL = `file:${join(scratchDir, "test.db")}`;
+// Reminders only go out from the production bot.
+process.env.DREAMLINER_ENV = "prod";
 
 const { runMigrations } = await import("../../scripts/migrate.js");
 runMigrations();
@@ -75,6 +77,23 @@ describe("vote reminders", () => {
 
     const second = fakeClient();
     assert.equal(await sendDueVoteReminders(second.client, now + 60_000), 0, "never sent twice");
+  });
+
+  it("are never sent by a local development bot", async () => {
+    const now = Date.UTC(2026, 9, 1, 12);
+    recordVote({ userId: "u-local", votedAt: new Date(now - 12 * HOUR - 60_000), source: "webhook" });
+    process.env.DREAMLINER_ENV = "local";
+    try {
+      const { client, sent } = fakeClient();
+      assert.equal(await sendDueVoteReminders(client, now), 0);
+      assert.deepEqual(sent, []);
+    } finally {
+      process.env.DREAMLINER_ENV = "prod";
+    }
+    // Nothing was marked as sent locally, so production would still remind this member.
+    const { client, sent } = fakeClient();
+    assert.equal(await sendDueVoteReminders(client, now), 1);
+    assert.deepEqual(sent, ["u-local"]);
   });
 
   it("have a vote button and a stop button, and no em dashes", () => {

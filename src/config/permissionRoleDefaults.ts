@@ -20,6 +20,9 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // activity_rewards
     "activity_rewards.can_view",
     "activity_rewards.can_sync",
+    // birthdays
+    "birthdays.can_set",
+    "birthdays.can_view",
     // bluesky (profile cards and their own account link)
     "bluesky.can_use",
     // booster_roles
@@ -102,6 +105,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
   moderator: [
     // applications
     "applications.can_review",
+    // birthdays
+    "birthdays.can_manage",
     // counting
     "counting.can_reset",
     // bot_customisation

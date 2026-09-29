@@ -18,6 +18,7 @@ import { zSocialPluginSection } from "./social.js";
 import { zBlueskyPluginSection } from "./bluesky.js";
 import { zImagesPluginSection } from "./images.js";
 import { zActivityRewardsPluginSection } from "./activityRewards.js";
+import { zBirthdaysPluginSection } from "./birthdays.js";
 import { zApplicationsPluginSection } from "./applications.js";
 import {
   zAutomodPluginSection,
@@ -344,6 +345,7 @@ export const zGuildConfig = z.strictObject({
       bluesky: zBlueskyPluginSection.default({}),
       images: zImagesPluginSection.default({}),
       activity_rewards: zActivityRewardsPluginSection.default({}),
+      birthdays: zBirthdaysPluginSection.default({}),
       applications: zApplicationsPluginSection.default({}),
     })
     .default({}),

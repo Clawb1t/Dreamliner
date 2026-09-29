@@ -2570,6 +2570,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         const welcomePreviewMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/preview$/.exec(url.pathname);
         const welcomeTestMatch = /^\/bridge\/guilds\/(\d+)\/welcome\/test$/.exec(url.pathname);
+        const birthdaysMatch = /^\/bridge\/guilds\/(\d+)\/birthdays\/(preview|test|overview)$/.exec(url.pathname);
         const activityRewardsMatch = /^\/bridge\/guilds\/(\d+)\/activity-rewards\/(preview|test|overview|import)$/.exec(
           url.pathname,
         );
@@ -2706,6 +2707,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !welcomePreviewMatch &&
           !welcomeTestMatch &&
           !activityRewardsMatch &&
+          !birthdaysMatch &&
           !rolePanelsPreviewMatch &&
           !rolePanelsTestMatch &&
           !rolePanelsValidateMatch &&
@@ -2815,6 +2817,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           welcomePreviewMatch?.[1] ??
           welcomeTestMatch?.[1] ??
           activityRewardsMatch?.[1] ??
+          birthdaysMatch?.[1] ??
           rolePanelsPreviewMatch?.[1] ??
           rolePanelsTestMatch?.[1] ??
           rolePanelsValidateMatch?.[1] ??
@@ -3660,6 +3663,55 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (birthdaysMatch) {
+          const action = birthdaysMatch[2];
+          const { getBirthdayOverview, previewBirthdayMessage, sendBirthdayTest } = await import("./webBirthdays.js");
+          let userId: string | undefined;
+          let body: { userId?: string; config?: unknown; target?: unknown } = {};
+          if (action === "overview" && req.method === "GET") {
+            userId = url.searchParams.get("userId")?.trim();
+          } else if (action !== "overview" && req.method === "POST") {
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            userId = body.userId?.trim();
+          } else {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          if (action === "overview") {
+            sendJson(res, 200, await getBirthdayOverview(guild));
+            return;
+          }
+          if (action === "preview") {
+            try {
+              sendJson(res, 200, { ok: true, ...(await previewBirthdayMessage(client, guild, userId, body)) });
+            } catch (error) {
+              sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to build preview" });
+            }
+            return;
+          }
+          const member = await guild.members.fetch(userId).catch(() => null);
+          if (!member) {
+            sendJson(res, 404, { error: "Could not find your member in this server." });
+            return;
+          }
+          const result = await sendBirthdayTest(guild, member, body);
+          sendJson(res, result.ok ? 200 : 400, result);
           return;
         }
 

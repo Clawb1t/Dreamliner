@@ -158,8 +158,14 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "fun",
     label: "Fun",
-    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, and images.",
-    include: [{ plugin: "economy" }, { plugin: "counting" }, { plugin: "giveaways" }, { plugin: "images" }],
+    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, and images.",
+    include: [
+      { plugin: "economy" },
+      { plugin: "counting" },
+      { plugin: "giveaways" },
+      { plugin: "birthdays" },
+      { plugin: "images" },
+    ],
   },
   {
     id: "support",
@@ -332,6 +338,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Custom Branding",
     description: "Per-server bot avatar, banner, nickname, and bio.",
   },
+  birthdays: {
+    key: "birthdays",
+    name: "Birthdays",
+    description:
+      "Members set their birthday with /birthday, and the server celebrates it with an announcement, a birthday role, a DM, wish buttons and more.",
+  },
   activity_rewards: {
     key: "activity_rewards",
     name: "Activity Rewards",
@@ -466,6 +478,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   economy: "fun",
   counting: "fun",
   giveaways: "fun",
+  birthdays: "fun",
   images: "fun",
   social: "social",
   bluesky: "social",

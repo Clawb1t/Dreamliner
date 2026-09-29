@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-28T17:31:32.527Z",
+  "generatedAt": "2026-09-29T20:09:56.558Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -286,7 +286,7 @@
     {
       "id": "fun",
       "label": "Fun",
-      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, and images.",
+      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, and images.",
       "plugins": [
         {
           "key": "economy",
@@ -302,6 +302,11 @@
           "key": "giveaways",
           "name": "Giveaways",
           "description": "Dashboard-built giveaways with button or reaction entry, role requirements, bonus entries, a winner claim window, and reusable templates. Staff can reroll, end, pause, or cancel from Discord."
+        },
+        {
+          "key": "birthdays",
+          "name": "Birthdays",
+          "description": "Members set their birthday with /birthday, and the server celebrates it with an announcement, a birthday role, a DM, wish buttons and more."
         },
         {
           "key": "images",
@@ -620,6 +625,13 @@
       "key": "giveaways",
       "name": "Giveaways",
       "description": "Dashboard-built giveaways with button or reaction entry, role requirements, bonus entries, a winner claim window, and reusable templates. Staff can reroll, end, pause, or cancel from Discord.",
+      "category": "Fun",
+      "categoryId": "fun"
+    },
+    {
+      "key": "birthdays",
+      "name": "Birthdays",
+      "description": "Members set their birthday with /birthday, and the server celebrates it with an announcement, a birthday role, a DM, wish buttons and more.",
       "category": "Fun",
       "categoryId": "fun"
     },

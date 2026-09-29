@@ -80,6 +80,7 @@ Depending on which plugins a server has enabled, we may create and store:
 - **Suggestion and review** submissions, votes, statuses, and moderator responses
 - **Economy** balances, transaction history, and collectible card inventories, where the Economy plugin is enabled
 - **Custom voice preferences** (a chosen TTS voice) tied to a Discord user ID, where TTS is used
+- **Birthdays** a member chooses to share with `/birthday set` (day and month, and optionally birth year and timezone), the servers they asked not to be celebrated in, a record of each celebration (to celebrate once a year and remove the birthday role on time), and who pressed the birthday wish button
 - **Image and avatar fingerprints** (16-character perceptual hashes, see 3.4), never the underlying image
 - **Impersonation Detection watchlist entries** (a label, optionally a real member's Discord user ID kept live-synced, or a manual name and/or avatar fingerprint for a persona with no real account)
 - **Impersonation Detection alerts** (the flagged member's ID/username, which protected identity or watchlist entry it resembled, a name-similarity score and/or avatar fingerprint distance, what triggered the check, any automatic action taken, and staff resolution status)
@@ -218,6 +219,7 @@ Retention depends on the feature involved and on whether administrators or membe
 | **Moderation cases & strikes** | Kept until deleted by authorized commands/operators; expired actions may remain as inactive history |
 | **Clean/source archives** | Kept until deleted by operators (no automatic short TTL); message *content* inside them is redacted per the server's content retention setting above |
 | **Name / username history** | Kept while the related plugins remain in use and records are not cleared |
+| **Birthdays** | Until the member removes it with `/birthday remove` or erases their data. Celebration records are kept per server until the member erases their data |
 | **Member identity snapshots** | Kept while Member Identity is in use (latest snapshot per member per server) until overwritten or deleted |
 | **Stats & counters** | Kept as aggregate history until cleared or removed |
 | **Tags, reminders, panels, stickies, aliases, tickets, suggestions, reviews, economy records, etc.** | Until removed by commands or operators |

@@ -1011,6 +1011,132 @@ plugins:
       can_view: false
       can_sync: false
       can_manage: false
+  birthdays:
+    enabled: false
+    config:
+      announcement:
+        enabled: true
+        content: <:icons_bday:1544418010796924988> Happy birthday {user}! Have an
+          amazing day.
+        embed:
+          enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
+        card:
+          enabled: false
+          background_type: color
+          background_color: 1974050
+          background_url: ""
+          background_asset_id: ""
+          avatar_layout: left
+          text_layout: beside
+          avatar_style: circle
+          show_avatar: true
+          show_accent_bar: true
+          greeting_text: Happy birthday, {user_display}!
+          subtitle_text: Have an amazing day!
+          text_color: 16777215
+          accent_color: 5661429
+          border_color: 5661429
+          border_width: 0
+          border_radius: 24
+          avatar_size: 180
+          avatar_offset_x: 0
+          avatar_offset_y: 0
+          text_offset_x: 0
+          text_offset_y: 0
+          greeting_size: 44
+          subtitle_size: 24
+          avatar_ring_width: 6
+        ping_member: true
+        ping_roles: []
+        wish_button:
+          enabled: true
+          label: Wish happy birthday
+          emoji: <:icons_bday:1544418010796924988>
+          show_count: true
+        link_buttons: []
+        reactions: []
+        thread:
+          enabled: false
+          name: Happy birthday {user_display}!
+          auto_archive_minutes: 1440
+        delete_after_hours: 0
+      dm:
+        enabled: false
+        content: Happy birthday from everyone at **{guild}**!
+          <:icons_bday:1544418010796924988>
+        embed:
+          enabled: false
+          title: ""
+          description: ""
+          color: 5661429
+          author_name: ""
+          author_icon: none
+          author_icon_url: ""
+          thumbnail: avatar
+          thumbnail_url: ""
+          image: none
+          image_url: ""
+          footer_text: ""
+          footer_icon: none
+          footer_icon_url: ""
+          timestamp: false
+          fields: []
+        card:
+          enabled: false
+          background_type: color
+          background_color: 1974050
+          background_url: ""
+          background_asset_id: ""
+          avatar_layout: left
+          text_layout: beside
+          avatar_style: circle
+          show_avatar: true
+          show_accent_bar: true
+          greeting_text: Happy birthday!
+          subtitle_text: From everyone at {guild}
+          text_color: 16777215
+          accent_color: 5661429
+          border_color: 5661429
+          border_width: 0
+          border_radius: 24
+          avatar_size: 180
+          avatar_offset_x: 0
+          avatar_offset_y: 0
+          text_offset_x: 0
+          text_offset_y: 0
+          greeting_size: 44
+          subtitle_size: 24
+          avatar_ring_width: 6
+      role:
+        enabled: false
+        role_id: ""
+        duration_hours: 24
+      timezone: UTC
+      timezone_mode: member
+      celebrate_time: 00:00
+      leap_day: feb28
+      show_age: true
+      require_year: false
+      allowed_roles: []
+      ignored_roles: []
+      can_set: false
+      can_view: false
+      can_manage: false
   applications:
     enabled: false
     config:

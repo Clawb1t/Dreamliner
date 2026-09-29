@@ -12,6 +12,9 @@ import {
 } from "discord.js";
 import { discordRestAgent } from "./core/discordRest.js";
 import { VOTE_REMINDER_PREFIX, handleVoteReminderButton } from "./core/store/voteReminders.js";
+import { BIRTHDAY_WISH_CUSTOM_ID } from "./plugins/birthdays/functions/celebrate.js";
+import { handleBirthdayWishButton } from "./plugins/birthdays/functions/wish.js";
+import { getDreamlinerEnv } from "./bridge/env.js";
 import type { ConfigManager } from "./config/manager.js";
 import { loadPlugins } from "./core/pluginLoader.js";
 import { availablePlugins } from "./plugins/availablePlugins.js";
@@ -203,15 +206,18 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     // Store credits: import top.gg vote history (past votes to claim, and any the webhook missed).
     void Promise.all([import("./core/store/topggVotes.js"), import("./core/scheduler.js")]).then(
       ([{ isVoteHistoryConfigured, syncVoteHistory }, { registerIntervalTask }]) => {
-        // "You can vote again" DMs, 12 hours after each member's latest vote.
-        registerIntervalTask({
-          id: "store:vote-reminders",
-          intervalMs: 60_000,
-          run: async (client) => {
-            const { sendDueVoteReminders } = await import("./core/store/voteReminders.js");
-            await sendDueVoteReminders(client);
-          },
-        });
+        // "You can vote again" DMs, 12 hours after each member's latest vote. Production only, so a
+        // local development bot never DMs real members.
+        if (getDreamlinerEnv() === "prod") {
+          registerIntervalTask({
+            id: "store:vote-reminders",
+            intervalMs: 60_000,
+            run: async (client) => {
+              const { sendDueVoteReminders } = await import("./core/store/voteReminders.js");
+              await sendDueVoteReminders(client);
+            },
+          });
+        }
         if (!isVoteHistoryConfigured()) return;
         setTimeout(() => void syncVoteHistory({ force: true }), 30_000);
         registerIntervalTask({
@@ -382,6 +388,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(IMAGE_ANOTHER_PREFIX)) {
         const handled = await safeHandle(interaction, "Image another button", () => handleImageAnotherButton(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId === BIRTHDAY_WISH_CUSTOM_ID) {
+        const handled = await safeHandle(interaction, "Birthday wish button", () => handleBirthdayWishButton(interaction));
         if (handled) return;
       }
       if (interaction.customId === WELCOME_WAVE_CUSTOM_ID) {

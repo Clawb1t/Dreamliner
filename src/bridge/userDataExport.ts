@@ -14,6 +14,10 @@ import {
   modCases,
   modStrikes,
   nameHistory,
+  birthdayCelebrations,
+  birthdayOptouts,
+  birthdayWishes,
+  userBirthdays,
   reminders,
   reviews,
   suggestionBlocks,
@@ -117,6 +121,22 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       label: "Name history",
       description: "Past nicknames / display names Dreamliner recorded.",
       rows: serializable(await db.select().from(nameHistory).where(eq(nameHistory.userId, userId)).all()),
+    },
+    birthday: {
+      label: "Birthday",
+      description: "The birthday you set with /birthday, and the servers you asked not to celebrate it in.",
+      rows: serializable([
+        ...(await db.select().from(userBirthdays).where(eq(userBirthdays.userId, userId)).all()),
+        ...(await db.select().from(birthdayOptouts).where(eq(birthdayOptouts.userId, userId)).all()),
+      ]),
+    },
+    birthday_celebrations: {
+      label: "Birthday celebrations",
+      description: "Your birthdays Dreamliner celebrated, and the birthday wishes you sent others.",
+      rows: serializable([
+        ...(await db.select().from(birthdayCelebrations).where(eq(birthdayCelebrations.userId, userId)).all()),
+        ...(await db.select().from(birthdayWishes).where(eq(birthdayWishes.userId, userId)).all()),
+      ]),
     },
     username_snapshots: {
       label: "Username snapshots",

@@ -12,6 +12,7 @@ import { storeVotes, voteReminderPrefs } from "../../db/schema.js";
 import { DREAMLINER_ACCENT } from "../embeds.js";
 import { VOTE_URL, getAccountStoreUrl } from "../docsUrl.js";
 import { getLogger } from "../logger.js";
+import { getDreamlinerEnv } from "../../bridge/env.js";
 import { defaultTranslator, translatorFor, type Translator } from "../../i18n/index.js";
 import { getCreditBalance } from "./credits.js";
 import { STORE_PRICING } from "./pricing.js";
@@ -20,6 +21,9 @@ import { STORE_PRICING } from "./pricing.js";
  * "You can vote again" DMs: 12 hours after a member's latest vote (top.gg's cooldown), Dreamliner
  * DMs them a reminder with a vote button and a button to stop reminders. On by default; members
  * turn it off from the DM itself or from Account → Store.
+ *
+ * Production only: a local development bot (DREAMLINER_ENV=local) never sends them, so testing
+ * locally can't DM real members.
  */
 
 const log = getLogger("store");
@@ -174,8 +178,14 @@ function dueReminders(now: number): DueVote[] {
     .all();
 }
 
-/** Sends every reminder that's due. Runs every minute. */
+/** Whether this bot sends vote reminder DMs at all: only the production bot does. */
+export function voteRemindersActive(): boolean {
+  return getDreamlinerEnv() === "prod";
+}
+
+/** Sends every reminder that's due. Runs every minute, in production only. */
 export async function sendDueVoteReminders(client: Client, now = Date.now()): Promise<number> {
+  if (!voteRemindersActive()) return 0;
   let sent = 0;
   for (const vote of dueReminders(now)) {
     // Marked first, so a reminder is never sent twice even if the DM fails (DMs closed, etc.).
