@@ -238,6 +238,101 @@ export async function loadBadgeImage(key: string): Promise<{ buffer: Buffer; con
   return { buffer: readBadgeImage(image), contentType: image.contentType };
 }
 
+// --- Public badge info (the site's badge modal) ----------------------------------------------
+
+export type PublicBadgeTier = {
+  position: number;
+  threshold: number;
+  /** The tier's name, or an automatic one like "1,000+ messages". */
+  label: string | null;
+  /** What it takes, e.g. "Send 1,000 messages". */
+  requirement: string;
+  imageKey: string | null;
+  imageVersion: string | null;
+  /** People on exactly this tier right now, null when it can't be counted. */
+  holders: number | null;
+};
+
+export type PublicBadgeInfo = {
+  key: string;
+  name: string;
+  description: string;
+  builtIn: boolean;
+  /** The tracked stat, null for built-ins and assigned-only badges. */
+  metric: { id: string; label: string; unit: string; description: string } | null;
+  assignedOnly: boolean;
+  tiers: PublicBadgeTier[];
+};
+
+const INFO_CACHE_TTL_MS = 5 * 60_000;
+const infoCache = new Map<string, { at: number; info: PublicBadgeInfo | null }>();
+
+/** Every tier of a badge and what it takes, for anyone viewing it on the site. Hidden (turned
+ *  off) badges aren't described. Cached briefly, since holder counts scan the stat tables. */
+export async function getPublicBadgeInfo(client: Client, key: string): Promise<PublicBadgeInfo | null> {
+  const cached = infoCache.get(key);
+  if (cached && Date.now() - cached.at < INFO_CACHE_TTL_MS) return cached.info;
+
+  let info: PublicBadgeInfo | null = null;
+  const builtIn = BUILT_IN_BADGES.find((badge) => badge.key === key);
+  if (builtIn) {
+    const image = findBadgeImage(builtIn.key, null);
+    const holders = builtIn.key === "dreamliner_one" ? (await oneOwnerSinceByUser(client).catch(() => null))?.size ?? null : null;
+    info = {
+      key: builtIn.key,
+      name: builtIn.name,
+      description: builtIn.description,
+      builtIn: true,
+      metric: null,
+      assignedOnly: false,
+      tiers: [
+        {
+          position: 1,
+          threshold: 1,
+          label: null,
+          requirement:
+            builtIn.key === "dreamliner_one" ? "Own a server with an active Dreamliner One subscription" : builtIn.description,
+          imageKey: image?.key ?? null,
+          imageVersion: image?.version ?? null,
+          holders,
+        },
+      ],
+    };
+  } else {
+    const badge = (await listStoredBadges()).find((entry) => entry.key === key && entry.enabled);
+    if (badge && badge.tiers.length > 0) {
+      const metric = getMetric(badge.metric);
+      const assignedOnly = badge.metric === MANUAL_METRIC_ID;
+      let reached: number[] | null = null;
+      if (!assignedOnly && metric?.countAtLeast) {
+        reached = await metric.countAtLeast(client, badge.tiers.map((tier) => tier.threshold)).catch(() => null);
+      }
+      info = {
+        key: badge.key,
+        name: badge.name,
+        description: badge.description,
+        builtIn: false,
+        metric: assignedOnly || !metric ? null : { id: metric.id, label: metric.label, unit: metric.unit, description: metric.description },
+        assignedOnly,
+        tiers: badge.tiers.map((tier, index) => ({
+          position: tier.position,
+          threshold: tier.threshold,
+          label: tierLabel(badge.metric, tier),
+          requirement:
+            assignedOnly || !metric
+              ? "Assigned by the Dreamliner team"
+              : `Reach ${tier.threshold.toLocaleString("en-US")} ${metric.unit}`,
+          imageKey: `t/${tier.id}`,
+          imageVersion: tier.imageVersion,
+          holders: reached ? reached[index]! - (reached[index + 1] ?? 0) : null,
+        })),
+      };
+    }
+  }
+  infoCache.set(key, { at: Date.now(), info });
+  return info;
+}
+
 // --- Superuser dashboard ---------------------------------------------------------------------
 
 export type AdminBadgeTier = {

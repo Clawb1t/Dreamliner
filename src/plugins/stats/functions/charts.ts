@@ -783,7 +783,7 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     badgeMetrics.reduce((sum, metrics) => sum + metrics.w, 0) + chipGap * Math.max(0, badgeMetrics.length - 1);
 
   // Progression badges: bare icons right after the name, like the One glyph on the site.
-  const progressionIconSize = 17;
+  const progressionIconSize = 11;
   const progressionIconGap = 5;
   const progressionImages: import("@napi-rs/canvas").Image[] = [];
   for (const icon of row.progressionIcons ?? []) {
@@ -793,11 +793,15 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
       // unreadable art: skip that one icon
     }
   }
+  // The icons sit in a frosted pill, the same style as the profile card's "last seen" pill.
+  const iconPillPadX = 8;
+  const iconPillPadY = 3;
+  const iconPillHeight = progressionIconSize + iconPillPadY * 2;
   const iconsWidth =
     progressionImages.length > 0
-      ? progressionImages.length * (progressionIconSize + progressionIconGap) - progressionIconGap
+      ? progressionImages.length * (progressionIconSize + progressionIconGap) - progressionIconGap + iconPillPadX * 2
       : 0;
-  const iconsToChipsGap = 10;
+  const iconsToChipsGap = 8;
   const nameToBadgesGap = 8;
   const badgesWidth = iconsWidth + (iconsWidth > 0 && chipsWidth > 0 ? iconsToChipsGap : 0) + chipsWidth;
 
@@ -809,7 +813,8 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   const nameLine = 24;
   const lineGap = 6;
   const subLine = 20;
-  const identityHeight = nameLine + lineGap + (badgesOnOwnLine ? chipHeight + lineGap : 0) + subLine;
+  const badgeLine = Math.max(badgeMetrics.length > 0 ? chipHeight : 0, progressionImages.length > 0 ? iconPillHeight : 0);
+  const identityHeight = nameLine + lineGap + (badgesOnOwnLine ? badgeLine + lineGap : 0) + subLine;
   const height = padY * 2 + Math.max(avatarSize, identityHeight);
   const identityTop = (height - identityHeight) / 2;
 
@@ -855,6 +860,12 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     }
   }
   ctx.restore();
+
+  // A blurred copy of the background, for frosted pills (CSS backdrop-filter: blur(4px)).
+  const frosted = createCanvas(canvas.width, canvas.height);
+  const frostedCtx = frosted.getContext("2d");
+  frostedCtx.filter = `blur(${4 * scale}px)`;
+  frostedCtx.drawImage(canvas, 0, 0);
 
   const avatarX = padX;
   const avatarY = (height - avatarSize) / 2;
@@ -933,22 +944,35 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
 
   // Badges sit on the name's own visual center, or centered on their own line below it.
   const badgesCenterY = badgesOnOwnLine
-    ? identityTop + nameLine + lineGap + chipHeight / 2
+    ? identityTop + nameLine + lineGap + badgeLine / 2
     : nameY - nameSize * 0.36;
   let badgeCursorX = badgesOnOwnLine ? textX : textX + nameWidth + nameToBadgesGap;
 
-  for (const image of progressionImages) {
-    if (badgeCursorX + progressionIconSize > textRight) break;
-    ctx.drawImage(
-      image,
-      badgeCursorX,
-      badgesCenterY - progressionIconSize / 2,
-      progressionIconSize,
-      progressionIconSize,
-    );
-    badgeCursorX += progressionIconSize + progressionIconGap;
+  // Only as many icons as fit, inside their frosted pill.
+  let shownIcons = 0;
+  while (
+    shownIcons < progressionImages.length &&
+    badgeCursorX + iconPillPadX * 2 + (shownIcons + 1) * progressionIconSize + shownIcons * progressionIconGap <= textRight
+  ) {
+    shownIcons++;
   }
-  if (progressionImages.length > 0) badgeCursorX += iconsToChipsGap - progressionIconGap;
+  if (shownIcons > 0) {
+    const pillWidth = iconPillPadX * 2 + shownIcons * progressionIconSize + (shownIcons - 1) * progressionIconGap;
+    const pillTop = badgesCenterY - iconPillHeight / 2;
+    ctx.save();
+    roundRect(ctx, badgeCursorX, pillTop, pillWidth, iconPillHeight, 999);
+    ctx.clip();
+    ctx.drawImage(frosted, 0, 0, width, height);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.fillRect(badgeCursorX, pillTop, pillWidth, iconPillHeight);
+    ctx.restore();
+    let iconX = badgeCursorX + iconPillPadX;
+    for (const image of progressionImages.slice(0, shownIcons)) {
+      ctx.drawImage(image, iconX, badgesCenterY - progressionIconSize / 2, progressionIconSize, progressionIconSize);
+      iconX += progressionIconSize + progressionIconGap;
+    }
+    badgeCursorX += pillWidth + iconsToChipsGap;
+  }
 
   for (const metrics of badgeMetrics) {
     if (badgeCursorX + metrics.w > textRight) break;

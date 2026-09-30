@@ -309,7 +309,14 @@ export async function renderProfileCard(data: ProfileCardData, options: { width?
   }
   const rowGap = 0.4 * REM; // .lb-hero-name-row gap
   const iconsGap = 0.3 * REM; // .progression-badges gap
-  const iconsWidth = icons.reduce((sum, icon) => sum + icon.size, 0) + Math.max(0, icons.length - 1) * iconsGap;
+  // The icons sit in a frosted pill, the same style as the "last seen" pill (.lb-hero-stat).
+  const iconPillPadX = pillPadX;
+  const iconPillPadY = pillPadY;
+  const iconsWidth =
+    icons.length > 0
+      ? icons.reduce((sum, icon) => sum + icon.size, 0) + (icons.length - 1) * iconsGap + iconPillPadX * 2
+      : 0;
+  const iconPillHeight = Math.max(0, ...icons.map((icon) => icon.size)) + iconPillPadY * 2;
 
   ctx.font = siteFont(750, nameSize);
   ctx.fillStyle = "#ffffff";
@@ -319,10 +326,21 @@ export async function renderProfileCard(data: ProfileCardData, options: { width?
   ctx.fillText(name, textX, nameCenterY + 0.5);
   ctx.textBaseline = "alphabetic";
 
-  let iconX = textX + ctx.measureText(name).width + rowGap;
-  for (const icon of icons) {
-    ctx.drawImage(icon.draw, iconX, nameCenterY - icon.size / 2, icon.size, icon.size);
-    iconX += icon.size + iconsGap;
+  if (icons.length > 0) {
+    const pillX = textX + ctx.measureText(name).width + rowGap;
+    const pillTop = nameCenterY - iconPillHeight / 2;
+    ctx.save();
+    roundRect(ctx, pillX, pillTop, iconsWidth, iconPillHeight, 999);
+    ctx.clip();
+    ctx.drawImage(frosted, 0, 0, width, height);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.fillRect(pillX, pillTop, iconsWidth, iconPillHeight);
+    ctx.restore();
+    let iconX = pillX + iconPillPadX;
+    for (const icon of icons) {
+      ctx.drawImage(icon.draw, iconX, nameCenterY - icon.size / 2, icon.size, icon.size);
+      iconX += icon.size + iconsGap;
+    }
   }
 
   const pills: Array<{ text: string; dot?: string }> = [{ text: `@${data.username}` }];
@@ -445,11 +463,11 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
     const art = await loadBadgeImage(badge.imageKey).catch(() => null);
     if (!art) continue;
     // The site draws Dreamliner One as its own bolt glyph (0.8rem, accent colored) and every
-    // other badge as its art at 1.2rem (.progression-badges-lg).
+    // other badge as its art at 13.2px (.lb-hero-name-row .progression-badge-img).
     progressionIcons.push(
       badge.id === "dreamliner_one"
         ? { image: art.buffer, tint: toHex(accent), sizeRem: 0.8 }
-        : { image: art.buffer, sizeRem: 1.2 },
+        : { image: art.buffer, sizeRem: 13.2 / REM },
     );
   }
 

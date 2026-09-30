@@ -185,6 +185,24 @@ describe("dashboard badges", () => {
     );
   });
 
+  it("describes every tier of a badge for the site's badge modal", async () => {
+    const messages = await badges.getPublicBadgeInfo(client, "messages");
+    assert.ok(messages);
+    assert.equal(messages.metric?.id, "messages");
+    assert.deepEqual(
+      messages.tiers.map((tier) => [tier.position, tier.requirement, tier.label]),
+      [
+        [1, "Reach 100 messages", "Chatty"],
+        [2, "Reach 1,000 messages", "1,000+ messages"],
+      ],
+    );
+    const staff = await badges.getPublicBadgeInfo(client, "staff");
+    assert.ok(staff?.assignedOnly);
+    assert.equal(staff?.tiers[0]?.requirement, "Assigned by the Dreamliner team");
+    assert.ok((await badges.getPublicBadgeInfo(client, "dreamliner_one"))?.builtIn);
+    assert.equal(await badges.getPublicBadgeInfo(client, "does_not_exist"), null);
+  });
+
   it("badges a user hides are left out everywhere but their own settings", async () => {
     store.setHiddenBadges("111111111111111111", ["staff", "../bad key"]);
     assert.deepEqual(

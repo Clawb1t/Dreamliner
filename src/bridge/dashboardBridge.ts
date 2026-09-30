@@ -1641,6 +1641,20 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Everything about one progression badge (every tier, what it takes, how many hold it), for
+        // the badge modal on the site. Public: it describes the badge, not any one user.
+        const progressionBadgeInfoMatch = /^\/bridge\/progression-badges\/info\/([a-z0-9_]{2,32})$/.exec(url.pathname);
+        if (progressionBadgeInfoMatch && req.method === "GET") {
+          const { getPublicBadgeInfo } = await import("../core/progressionBadges/index.js");
+          const badge = await getPublicBadgeInfo(client, progressionBadgeInfoMatch[1]!);
+          if (!badge) {
+            sendJson(res, 404, { error: "Badge not found." });
+            return;
+          }
+          sendJson(res, 200, { ok: true, badge });
+          return;
+        }
+
         // Progression badge art: dashboard uploads ("t/<tierId>") or built-in files from
         // assets/badges/progression/. Only known tiers and files the folder scan found are served,
         // so the key can't point anywhere else.
