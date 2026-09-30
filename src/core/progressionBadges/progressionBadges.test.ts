@@ -178,6 +178,23 @@ describe("dashboard badges", () => {
     );
   });
 
+  it("badges a user hides are left out everywhere but their own settings", async () => {
+    store.setHiddenBadges("111111111111111111", ["staff", "../bad key"]);
+    assert.deepEqual(
+      (await badges.getProgressionBadges(client, "111111111111111111")).map((b) => b.id),
+      ["dreamliner_one"],
+    );
+    assert.deepEqual(
+      (await badges.getProgressionBadges(client, "111111111111111111", { includeHidden: true })).map((b) => [b.id, b.hidden]),
+      [
+        ["dreamliner_one", false],
+        ["staff", true],
+      ],
+    );
+    store.setHiddenBadges("111111111111111111", []);
+    assert.equal((await badges.getProgressionBadges(client, "111111111111111111")).length, 2);
+  });
+
   it("editing keeps existing art, and the dashboard counts holders per tier", async () => {
     const before = (await store.listStoredBadges()).find((b) => b.key === "messages")!;
     await store.updateStoredBadge(messagesId, {

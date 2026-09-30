@@ -26,6 +26,7 @@ import {
   suggestionVotes,
   userBadges,
   userProgressionBadgeGrants,
+  userProgressionBadgeHidden,
   userMessageCounts,
   usernameSnapshots,
   userProfiles,
@@ -207,6 +208,17 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       label: "Badges",
       description: "Platform badges assigned to your account.",
       rows: serializable(await db.select().from(userBadges).where(eq(userBadges.userId, userId)).all()),
+    },
+    hidden_progression_badges: {
+      label: "Hidden progression badges",
+      description: "Progression badges you chose not to show on your profile, /rank and leaderboards.",
+      rows: serializable(
+        await db
+          .select()
+          .from(userProgressionBadgeHidden)
+          .where(eq(userProgressionBadgeHidden.userId, userId))
+          .all(),
+      ),
     },
     progression_badges: {
       label: "Assigned progression badges",

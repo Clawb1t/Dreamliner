@@ -2198,3 +2198,14 @@ export const userProgressionBadgeGrants = sqliteTable(
     index("user_progression_badge_grants_badge").on(table.badgeKey),
   ],
 );
+
+/** Progression badges a user chose to hide (profile, /rank, leaderboards). They still hold them. */
+export const userProgressionBadgeHidden = sqliteTable(
+  "user_progression_badge_hidden",
+  {
+    userId: text("user_id").notNull(),
+    badgeKey: text("badge_key").notNull(),
+    hiddenAt: integer("hidden_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.badgeKey] })],
+);

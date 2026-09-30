@@ -2,7 +2,12 @@ import { randomBytes } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { loadImage } from "@napi-rs/canvas";
 import { getDb } from "../../db/client.js";
-import { progressionBadges, progressionBadgeTiers, userProgressionBadgeGrants } from "../../db/schema.js";
+import {
+  progressionBadges,
+  progressionBadgeTiers,
+  userProgressionBadgeGrants,
+  userProgressionBadgeHidden,
+} from "../../db/schema.js";
 import { getMetric, MANUAL_METRIC_ID } from "./metrics.js";
 
 /** Progression badges made on the superuser dashboard, their tier art, and hand assignments. */
@@ -362,4 +367,35 @@ export function countGrantsByBadge(): Map<string, number> {
     counts.set(row.key, (counts.get(row.key) ?? 0) + 1);
   }
   return counts;
+}
+
+// --- Badges users chose to hide ------------------------------------------------------------------
+
+export async function listHiddenForUsers(userIds: string[]): Promise<Map<string, Set<string>>> {
+  const result = new Map<string, Set<string>>();
+  if (userIds.length === 0) return result;
+  const rows = getDb()
+    .select({ userId: userProgressionBadgeHidden.userId, badgeKey: userProgressionBadgeHidden.badgeKey })
+    .from(userProgressionBadgeHidden)
+    .where(inArray(userProgressionBadgeHidden.userId, userIds))
+    .all();
+  for (const row of rows) {
+    const keys = result.get(row.userId) ?? new Set<string>();
+    keys.add(row.badgeKey);
+    result.set(row.userId, keys);
+  }
+  return result;
+}
+
+/** Replaces the set of badges a user hides. */
+export function setHiddenBadges(userId: string, badgeKeys: string[]): void {
+  const keys = [...new Set(badgeKeys.filter((key) => /^[a-z0-9_]{2,32}$/.test(key)))].slice(0, 100);
+  const db = getDb();
+  const hiddenAt = new Date();
+  db.transaction(() => {
+    db.delete(userProgressionBadgeHidden).where(eq(userProgressionBadgeHidden.userId, userId)).run();
+    for (const badgeKey of keys) {
+      db.insert(userProgressionBadgeHidden).values({ userId, badgeKey, hiddenAt }).run();
+    }
+  });
 }

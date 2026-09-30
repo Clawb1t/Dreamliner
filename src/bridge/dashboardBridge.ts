@@ -1905,6 +1905,34 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Progression badges on the user's own settings page: everything they hold, and which to hide.
+        const ownProgressionMatch = /^\/bridge\/users\/(\d+)\/progression-badges(\/hidden)?$/.exec(url.pathname);
+        if (ownProgressionMatch && !ownProgressionMatch[2] && req.method === "GET") {
+          const { getProgressionBadges } = await import("../core/progressionBadges/index.js");
+          const badges = await getProgressionBadges(client, ownProgressionMatch[1]!, { includeHidden: true });
+          sendJson(res, 200, { ok: true, badges });
+          return;
+        }
+        if (ownProgressionMatch && ownProgressionMatch[2] && req.method === "PUT") {
+          let body: { hiddenKeys?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          if (!Array.isArray(body.hiddenKeys) || body.hiddenKeys.some((key) => typeof key !== "string")) {
+            sendJson(res, 400, { error: "hiddenKeys must be an array of badge keys." });
+            return;
+          }
+          const { getProgressionBadges } = await import("../core/progressionBadges/index.js");
+          const { setHiddenBadges } = await import("../core/progressionBadges/store.js");
+          setHiddenBadges(ownProgressionMatch[1]!, body.hiddenKeys as string[]);
+          const badges = await getProgressionBadges(client, ownProgressionMatch[1]!, { includeHidden: true });
+          sendJson(res, 200, { ok: true, badges });
+          return;
+        }
+
         const userBadgeMatch = /^\/bridge\/users\/(\d+)\/badges\/(\d+)$/.exec(url.pathname);
         if (userBadgeMatch && req.method === "DELETE") {
           let body: { userId?: string };

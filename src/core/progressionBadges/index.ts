@@ -5,6 +5,7 @@ import {
   countGrantsByBadge,
   getTierImage,
   listGrantsForUsers,
+  listHiddenForUsers,
   listStoredBadges,
   type BadgeGrant,
   type StoredBadge,
@@ -38,6 +39,8 @@ export type ProgressionBadge = {
   imageKey: string;
   /** Changes whenever the art changes. */
   imageVersion: string;
+  /** Only present when asked for hidden badges too: true when the user chose to hide it. */
+  hidden?: boolean;
 };
 
 // --- Built-ins -------------------------------------------------------------------------------
@@ -106,22 +109,30 @@ export function shownTier(badge: Pick<StoredBadge, "metric" | "tiers">, value: n
   return Math.max(earned, assigned);
 }
 
-/** Every user's progression badges, in display order. A badge or stat that fails to resolve is
- *  skipped rather than failing the whole card or leaderboard. */
-export async function getProgressionBadgesForUsers(client: Client, userIds: string[]): Promise<Map<string, ProgressionBadge[]>> {
+/** Every user's progression badges, in display order. Badges a user chose to hide are left out
+ *  unless `includeHidden` (their own settings, the superuser view), where they're flagged instead.
+ *  A badge or stat that fails to resolve is skipped rather than failing the whole card or leaderboard. */
+export async function getProgressionBadgesForUsers(
+  client: Client,
+  userIds: string[],
+  options: { includeHidden?: boolean } = {},
+): Promise<Map<string, ProgressionBadge[]>> {
   const unique = [...new Set(userIds.filter(Boolean))];
   const result = new Map<string, ProgressionBadge[]>();
   if (unique.length === 0) return result;
-  const push = (userId: string, badge: ProgressionBadge) => {
-    const list = result.get(userId) ?? [];
-    list.push(badge);
-    result.set(userId, list);
-  };
 
-  const [stored, grants] = await Promise.all([
+  const [stored, grants, hiddenByUser] = await Promise.all([
     listStoredBadges().catch(() => [] as StoredBadge[]),
     listGrantsForUsers(unique).catch(() => new Map<string, Map<string, BadgeGrant>>()),
+    listHiddenForUsers(unique).catch(() => new Map<string, Set<string>>()),
   ]);
+  const push = (userId: string, badge: ProgressionBadge) => {
+    const hidden = hiddenByUser.get(userId)?.has(badge.id) ?? false;
+    if (hidden && !options.includeHidden) return;
+    const list = result.get(userId) ?? [];
+    list.push(options.includeHidden ? { ...badge, hidden } : badge);
+    result.set(userId, list);
+  };
   const active = stored.filter((badge) => badge.enabled && badge.tiers.length > 0);
   const metricIds = [...new Set(active.map((badge) => badge.metric).filter((id) => id !== MANUAL_METRIC_ID))];
   const [builtInEarned, metricValues] = await Promise.all([
@@ -176,8 +187,12 @@ export async function getProgressionBadgesForUsers(client: Client, userIds: stri
   return result;
 }
 
-export async function getProgressionBadges(client: Client, userId: string): Promise<ProgressionBadge[]> {
-  return (await getProgressionBadgesForUsers(client, [userId])).get(userId) ?? [];
+export async function getProgressionBadges(
+  client: Client,
+  userId: string,
+  options: { includeHidden?: boolean } = {},
+): Promise<ProgressionBadge[]> {
+  return (await getProgressionBadgesForUsers(client, [userId], options)).get(userId) ?? [];
 }
 
 /** Art for an image key: "t/<tierId>" for dashboard uploads, otherwise a file in the assets
@@ -285,14 +300,17 @@ export async function listAdminBadges(client: Client): Promise<{ badges: AdminBa
 }
 
 export type AdminUserBadges = {
-  /** What the user shows right now (earned and assigned). */
+  /** What the user holds right now (earned and assigned); `hidden` marks ones they chose to hide. */
   shown: ProgressionBadge[];
   /** Hand assignments. */
   assigned: Array<{ badgeKey: string; tier: number | null; grantedAt: string }>;
 };
 
 export async function getAdminUserBadges(client: Client, userId: string): Promise<AdminUserBadges> {
-  const [shown, grants] = await Promise.all([getProgressionBadges(client, userId), listGrantsForUsers([userId])]);
+  const [shown, grants] = await Promise.all([
+    getProgressionBadges(client, userId, { includeHidden: true }),
+    listGrantsForUsers([userId]),
+  ]);
   return {
     shown,
     assigned: [...(grants.get(userId)?.values() ?? [])].map((grant) => ({

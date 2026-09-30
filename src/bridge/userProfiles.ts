@@ -23,6 +23,7 @@ import {
   userMessageCounts,
   usernameSnapshots,
   userProfiles,
+  userProgressionBadgeHidden,
   welcomeJoinMessages,
 } from "../db/schema.js";
 
@@ -191,10 +192,19 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
     {
       key: "user_profiles",
       label: "Profile accent",
-      description: "Your chosen leaderboard color and profile preference.",
-      total: countRows(() =>
-        db.select({ total: count() }).from(userProfiles).where(eq(userProfiles.userId, userId)).get(),
-      ),
+      description: "Your chosen leaderboard color and profile preferences, including which progression badges you hide.",
+      total: Promise.all([
+        countRows(() =>
+          db.select({ total: count() }).from(userProfiles).where(eq(userProfiles.userId, userId)).get(),
+        ),
+        countRows(() =>
+          db
+            .select({ total: count() })
+            .from(userProgressionBadgeHidden)
+            .where(eq(userProgressionBadgeHidden.userId, userId))
+            .get(),
+        ),
+      ]).then(([profile, hidden]) => profile + hidden),
     },
     {
       key: "guild_message_counts",
@@ -434,6 +444,11 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     "user_profiles",
     db.delete(userProfiles).where(eq(userProfiles.userId, userId)).returning(),
   );
+  deleted.user_profiles! += db
+    .delete(userProgressionBadgeHidden)
+    .where(eq(userProgressionBadgeHidden.userId, userId))
+    .returning()
+    .all().length;
   await wipe(
     "guild_message_counts",
     db.delete(guildMessageCounts).where(eq(guildMessageCounts.userId, userId)).returning(),
