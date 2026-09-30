@@ -10,7 +10,7 @@ let emojiFontReady = false;
 let hasEmojiFont = false;
 
 /** Best-effort emoji glyph support for badge icons — falls back silently (name-only chip) if unavailable. */
-function ensureEmojiFont(): boolean {
+export function ensureEmojiFont(): boolean {
   if (emojiFontReady) return hasEmojiFont;
   emojiFontReady = true;
   for (const path of [
@@ -222,7 +222,7 @@ function drawBars(
   });
 }
 
-function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, r: number) {
   const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -471,7 +471,7 @@ function drawInitialAvatar(ctx: SKRSContext2D, initial: string, x: number, y: nu
   ctx.textBaseline = "alphabetic";
 }
 
-function hexToRgba(hex: string, alpha: number): string {
+export function hexToRgba(hex: string, alpha: number): string {
   const normalized = hex.replace("#", "");
   const r = Number.parseInt(normalized.slice(0, 2), 16);
   const g = Number.parseInt(normalized.slice(2, 4), 16);
@@ -659,7 +659,7 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 /** CSS `color-mix(in srgb, a aPct%, b)` */
-function colorMix(a: string, aPct: number, b: string): string {
+export function colorMix(a: string, aPct: number, b: string): string {
   const [ar, ag, ab] = hexToRgb(a);
   const [br, bg, bb] = hexToRgb(b);
   const t = aPct / 100;
@@ -702,7 +702,7 @@ export type RankCardOptions = {
 const IMAGE_FETCH_TIMEOUT_MS = 6_000;
 
 // loadImage(url) has no timeout of its own, so a slow CDN response could stall a whole card.
-async function loadImageMaybeDataUri(url: string) {
+export async function loadImageMaybeDataUri(url: string) {
   if (url.startsWith("data:")) {
     const base64 = url.split(",", 2)[1] ?? "";
     return loadImage(Buffer.from(base64, "base64"));
@@ -755,9 +755,63 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   const subSize = 14.5;
   const badgeSize = 11.5;
 
-  const identityHeight = 24 + 6 + 20; // name line + row-gap + subtitle line
-  const rowHeight = padY * 2 + Math.max(avatarSize, identityHeight);
-  const height = rowHeight;
+  // --- Identity column layout, measured before drawing: whether the badges fit beside the name
+  // decides the card's height.
+  const measure = createCanvas(1, 1).getContext("2d");
+  const ringX = width - padX - ringSize;
+  const textX = padX + avatarColW + colGap;
+  const textRight = ringX - colGap;
+  const textMaxWidth = textRight - textX;
+
+  // Badge chips, matching the site's flex layout.
+  const badges = (row.badges ?? []).slice(0, 3);
+  const hasEmojiGlyphs = ensureEmojiFont();
+  const chipPadX = 6;
+  const chipIconGap = 5;
+  const chipIconSize = 14;
+  const chipHeight = 19;
+  const chipGap = 8;
+  const badgeMetrics: { text: string; icon: string; showIcon: boolean; w: number; badge: RankCardBadge }[] = [];
+  measure.font = cardFont(700, badgeSize);
+  for (const badge of badges) {
+    const showIcon = Boolean(badge.iconImageUrl) || hasEmojiGlyphs;
+    const textW = measure.measureText(badge.name).width;
+    const iconPart = showIcon ? chipIconSize + chipIconGap : 0;
+    badgeMetrics.push({ text: badge.name, icon: badge.icon, showIcon, w: chipPadX + iconPart + textW + chipPadX, badge });
+  }
+  const chipsWidth =
+    badgeMetrics.reduce((sum, metrics) => sum + metrics.w, 0) + chipGap * Math.max(0, badgeMetrics.length - 1);
+
+  // Progression badges: bare icons right after the name, like the One glyph on the site.
+  const progressionIconSize = 17;
+  const progressionIconGap = 5;
+  const progressionImages: import("@napi-rs/canvas").Image[] = [];
+  for (const icon of row.progressionIcons ?? []) {
+    try {
+      progressionImages.push(await loadImage(icon));
+    } catch {
+      // unreadable art: skip that one icon
+    }
+  }
+  const iconsWidth =
+    progressionImages.length > 0
+      ? progressionImages.length * (progressionIconSize + progressionIconGap) - progressionIconGap
+      : 0;
+  const iconsToChipsGap = 10;
+  const nameToBadgesGap = 8;
+  const badgesWidth = iconsWidth + (iconsWidth > 0 && chipsWidth > 0 ? iconsToChipsGap : 0) + chipsWidth;
+
+  // The username comes first: when it and its badges don't fit on one line, the badges move to a
+  // line of their own instead of the name being cut short.
+  measure.font = cardFont(700, nameSize);
+  const badgesOnOwnLine = badgesWidth > 0 && measure.measureText(row.name).width + nameToBadgesGap + badgesWidth > textMaxWidth;
+
+  const nameLine = 24;
+  const lineGap = 6;
+  const subLine = 20;
+  const identityHeight = nameLine + lineGap + (badgesOnOwnLine ? chipHeight + lineGap : 0) + subLine;
+  const height = padY * 2 + Math.max(avatarSize, identityHeight);
+  const identityTop = (height - identityHeight) / 2;
 
   const canvas = createCanvas(width * scale, height * scale);
   const ctx = canvas.getContext("2d");
@@ -844,7 +898,6 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   ctx.textBaseline = "alphabetic";
 
   // Right-side share ring
-  const ringX = width - padX - ringSize;
   const ringY = (height - ringSize) / 2;
   const ringCx = ringX + ringSize / 2;
   const ringCy = ringY + ringSize / 2;
@@ -865,78 +918,42 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   }
 
   // Identity column
-  const textX = padX + avatarColW + colGap;
-  const textRight = ringX - colGap;
-  const textMaxWidth = textRight - textX;
-
-  const nameY = height / 2 - 11;
   ctx.font = cardFont(700, nameSize);
   ctx.fillStyle = RANK_CARD.foreground;
   let name = row.name;
-  const badges = (row.badges ?? []).slice(0, 3);
-  const hasEmojiGlyphs = ensureEmojiFont();
-
-  // Chip layout constants — inner padding around the icon and text.
-  const chipPadX = 6;
-  const chipIconGap = 5;
-  const chipIconSize = 14;
-  const chipHeight = 19;
-  // Visual center of the name text above its baseline (nameY), so the chip can be centered
-  // on the same line as the name instead of a hand-picked offset.
-  const nameVisualCenterOffset = nameSize * 0.36;
-
-  // Reserve space for badge chips on the name row, matching the site's flex layout.
-  let badgeTotalWidth = 0;
-  const badgeMetrics: { text: string; icon: string; showIcon: boolean; w: number; badge: RankCardBadge }[] = [];
-  if (badges.length > 0) {
-    ctx.font = cardFont(700, badgeSize);
-    for (const badge of badges) {
-      const showIcon = Boolean(badge.iconImageUrl) || hasEmojiGlyphs;
-      const textW = ctx.measureText(badge.name).width;
-      const iconPart = showIcon ? chipIconSize + chipIconGap : 0;
-      const chipW = chipPadX + iconPart + textW + chipPadX;
-      badgeMetrics.push({ text: badge.name, icon: badge.icon, showIcon, w: chipW, badge });
-      badgeTotalWidth += chipW + 8; // gap between chips
-    }
-  }
-  // Progression badges: bare icons hugging the name, like the One glyph on the site.
-  const progressionIconSize = 17;
-  const progressionIconGap = 5;
-  const progressionImages: import("@napi-rs/canvas").Image[] = [];
-  for (const icon of row.progressionIcons ?? []) {
-    try {
-      progressionImages.push(await loadImage(icon));
-    } catch {
-      // unreadable art: skip that one icon
-    }
-  }
-  const progressionWidth =
-    progressionImages.length > 0 ? 7 + progressionImages.length * (progressionIconSize + progressionIconGap) - progressionIconGap : 0;
-
-  ctx.font = cardFont(700, nameSize);
-  let nameMaxWidth = Math.max(
-    20,
-    textMaxWidth - progressionWidth - (badgeTotalWidth > 0 ? badgeTotalWidth + 10 : 0),
-  );
+  // Only a name too long for the whole column on its own is shortened.
+  const nameMaxWidth =
+    badgesOnOwnLine || badgesWidth === 0 ? textMaxWidth : textMaxWidth - nameToBadgesGap - badgesWidth;
   while (name.length > 1 && ctx.measureText(name).width > nameMaxWidth) {
     name = `${name.slice(0, -2)}…`;
   }
+  const nameY = identityTop + 14; // baseline within the name line
   ctx.fillText(name, textX, nameY);
   const nameWidth = ctx.measureText(name).width;
 
-  let iconCursorX = textX + nameWidth + 7;
-  for (const image of progressionImages) {
-    if (iconCursorX + progressionIconSize > textRight) break;
-    const iconTop = nameY - nameVisualCenterOffset - progressionIconSize / 2;
-    ctx.drawImage(image, iconCursorX, iconTop, progressionIconSize, progressionIconSize);
-    iconCursorX += progressionIconSize + progressionIconGap;
-  }
+  // Badges sit on the name's own visual center, or centered on their own line below it.
+  const badgesCenterY = badgesOnOwnLine
+    ? identityTop + nameLine + lineGap + chipHeight / 2
+    : nameY - nameSize * 0.36;
+  let badgeCursorX = badgesOnOwnLine ? textX : textX + nameWidth + nameToBadgesGap;
 
-  let badgeCursorX = textX + nameWidth + progressionWidth + 10;
+  for (const image of progressionImages) {
+    if (badgeCursorX + progressionIconSize > textRight) break;
+    ctx.drawImage(
+      image,
+      badgeCursorX,
+      badgesCenterY - progressionIconSize / 2,
+      progressionIconSize,
+      progressionIconSize,
+    );
+    badgeCursorX += progressionIconSize + progressionIconGap;
+  }
+  if (progressionImages.length > 0) badgeCursorX += iconsToChipsGap - progressionIconGap;
+
   for (const metrics of badgeMetrics) {
     if (badgeCursorX + metrics.w > textRight) break;
     const chipColor = metrics.badge.colorHex || accent;
-    const pillCenterY = nameY - nameVisualCenterOffset; // aligned with the name text's own visual center
+    const pillCenterY = badgesCenterY;
     const pillTop = pillCenterY - chipHeight / 2;
     ctx.fillStyle = colorMix(chipColor, 14, RANK_CARD.dashTrack);
     roundRect(ctx, badgeCursorX, pillTop, metrics.w, chipHeight, 999);
@@ -974,11 +991,11 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     ctx.fillText(metrics.text, cursor, pillCenterY);
     ctx.textBaseline = "alphabetic";
 
-    badgeCursorX += metrics.w + 8;
+    badgeCursorX += metrics.w + chipGap;
   }
 
   // Subtitle: "{share}% of server traffic" (accent, bold) + " · {count} msgs" (muted)
-  const subY = height / 2 + 17;
+  const subY = identityTop + identityHeight - 8; // baseline within the subtitle line
   ctx.font = cardFont(700, subSize);
   ctx.fillStyle = accent;
   const shareText = t("stats.shareOfServerTraffic", "{share} of server traffic", { share: row.shareLabel });

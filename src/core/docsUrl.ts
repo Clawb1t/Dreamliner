@@ -106,6 +106,11 @@ export function getGlobalStatsUrl(): string {
   return `${resolveSiteUrl()}/stats`;
 }
 
+/** A user's public profile page on the site. */
+export function getPublicProfileUrl(userId: string): string {
+  return `${resolveSiteUrl()}/profile/${userId}`;
+}
+
 export function getGlobalLeaderboardUrl(): string {
   return `${resolveSiteUrl()}/leaderboard/global`;
 }

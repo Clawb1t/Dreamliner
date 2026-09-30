@@ -1,0 +1,8 @@
+Plus Jakarta Sans (the dreamliner.site typeface), used by the /profile card.
+
+PlusJakartaSans-500/650/750.ttf are static weights cut from the site's variable font
+(axis wght 200-800) with fontTools, so the card can match the site's CSS weights exactly.
+
+Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans)
+
+Licensed under the SIL Open Font License, Version 1.1: https://scripts.sil.org/OFL

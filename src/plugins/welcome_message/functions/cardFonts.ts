@@ -51,3 +51,31 @@ export function cardFont(weight: 400 | 500 | 600 | 700, sizePx: number): string 
   }
   return `${weight} ${sizePx}px "Segoe UI", "DejaVu Sans", Arial, sans-serif`;
 }
+
+// Plus Jakarta Sans, the website's own typeface, as static weights cut from the site's variable
+// font (the CSS weights the site uses). Registered under private names so a system copy of the
+// family can't shadow them. For cards that mirror a site component exactly (/profile).
+const SITE_WEIGHTS = [500, 650, 750] as const;
+let siteFontsReady = false;
+let hasSiteFont = false;
+
+function ensureSiteFonts(): void {
+  if (siteFontsReady) return;
+  siteFontsReady = true;
+  ensureFonts();
+  const dir = join(ROOT, "assets", "fonts");
+  for (const weight of SITE_WEIGHTS) {
+    if (tryRegister(join(dir, `PlusJakartaSans-${weight}.ttf`), `DL Jakarta ${weight}`)) hasSiteFont = true;
+  }
+}
+
+/** CSS font shorthand in the site's typeface, falling back to the card fonts (and an emoji face
+ *  when one is registered) for anything it doesn't cover. */
+export function siteFont(weight: (typeof SITE_WEIGHTS)[number], sizePx: number): string {
+  ensureSiteFonts();
+  const fallback = cardFont(weight >= 650 ? 700 : 500, sizePx).replace(`${sizePx}px `, "");
+  const emoji = `"Rank Card Emoji", "Segoe UI Emoji", "Noto Color Emoji"`;
+  return hasSiteFont
+    ? `${sizePx}px "DL Jakarta ${weight}", ${fallback.replace(/, sans-serif$/, "")}, ${emoji}, sans-serif`
+    : `${sizePx}px ${fallback.replace(/, sans-serif$/, "")}, ${emoji}, sans-serif`;
+}
