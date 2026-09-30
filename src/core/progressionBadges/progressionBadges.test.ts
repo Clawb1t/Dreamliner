@@ -133,6 +133,13 @@ describe("dashboard badges", () => {
     const top = result.get("333333333333333333")![0]!;
     assert.equal(top.tier, 2);
     assert.equal(top.tierName, "1,000+ messages");
+    assert.deepEqual(top.progress, { value: 5000, unit: "messages", current: 1000, next: null });
+    assert.deepEqual(result.get("222222222222222222")![0]!.progress, {
+      value: 150,
+      unit: "messages",
+      current: 100,
+      next: { tier: 2, threshold: 1000, name: "1,000+ messages" },
+    });
     const art = await badges.loadBadgeImage(top.imageKey);
     assert.equal(art?.contentType, "image/png");
   });

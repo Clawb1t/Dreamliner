@@ -41,7 +41,38 @@ export type ProgressionBadge = {
   imageVersion: string;
   /** Only present when asked for hidden badges too: true when the user chose to hide it. */
   hidden?: boolean;
+  /** How far along the tracked stat they are, for badges earned from a stat. Null for built-ins
+   *  and assigned-only badges. */
+  progress: BadgeProgress | null;
 };
+
+export type BadgeProgress = {
+  /** Their current value of the tracked stat. */
+  value: number;
+  /** Plural unit, e.g. "messages". */
+  unit: string;
+  /** Goal of the tier they're on (the start of the progress bar). */
+  current: number;
+  /** The next tier, or null at the top tier. */
+  next: { tier: number; threshold: number; name: string | null } | null;
+};
+
+/** Progress from the tier a user shows toward the one after it. */
+export function badgeProgress(
+  badge: Pick<StoredBadge, "metric" | "tiers">,
+  value: number,
+  tierNumber: number,
+): BadgeProgress | null {
+  const metric = getMetric(badge.metric);
+  if (!metric || badge.metric === MANUAL_METRIC_ID) return null;
+  const nextTier = badge.tiers[tierNumber];
+  return {
+    value,
+    unit: metric.unit,
+    current: badge.tiers[tierNumber - 1]?.threshold ?? 0,
+    next: nextTier ? { tier: tierNumber + 1, threshold: nextTier.threshold, name: tierLabel(badge.metric, nextTier) } : null,
+  };
+}
 
 // --- Built-ins -------------------------------------------------------------------------------
 
@@ -159,6 +190,7 @@ export async function getProgressionBadgesForUsers(
         since,
         imageKey: image.key,
         imageVersion: image.version,
+        progress: null,
       });
     }
   });
@@ -181,6 +213,7 @@ export async function getProgressionBadgesForUsers(
         since: grant && earnedTier < tierNumber ? grant.grantedAt.toISOString() : null,
         imageKey: `t/${tier.id}`,
         imageVersion: tier.imageVersion,
+        progress: badgeProgress(badge, value, tierNumber),
       });
     }
   }
