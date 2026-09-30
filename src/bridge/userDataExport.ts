@@ -25,6 +25,7 @@ import {
   suggestionFollows,
   suggestionVotes,
   userBadges,
+  userProgressionBadgeGrants,
   userMessageCounts,
   usernameSnapshots,
   userProfiles,
@@ -206,6 +207,17 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       label: "Badges",
       description: "Platform badges assigned to your account.",
       rows: serializable(await db.select().from(userBadges).where(eq(userBadges.userId, userId)).all()),
+    },
+    progression_badges: {
+      label: "Assigned progression badges",
+      description: "Progression badges assigned to your account by the Dreamliner team.",
+      rows: serializable(
+        await db
+          .select()
+          .from(userProgressionBadgeGrants)
+          .where(eq(userProgressionBadgeGrants.userId, userId))
+          .all(),
+      ),
     },
     activity_trail: {
       label: "Activity trail",

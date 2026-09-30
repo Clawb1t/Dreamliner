@@ -689,6 +689,8 @@ export type RankCardRow = {
   accentColor?: string | null;
   /** Displayed badges, in order — at most 3 are drawn, matching the site. */
   badges?: RankCardBadge[];
+  /** Progression badge art (SVG/PNG buffers), drawn as bare icons right after the name. */
+  progressionIcons?: Buffer[];
 };
 
 export type RankCardOptions = {
@@ -737,7 +739,8 @@ function drawRoundedFallbackAvatar(ctx: SKRSContext2D, initial: string, x: numbe
 export async function renderRankCard(options: RankCardOptions, t: Translator = defaultTranslator): Promise<Buffer> {
   const row = options.row;
   const width = options.width ?? 460;
-  const scale = options.scale ?? 3;
+  // 4x: a crisp 1840px-wide card, sharp even when Discord shows it full size.
+  const scale = options.scale ?? 4;
   const accent = row.accentColor || RANK_CARD.defaultAccent;
 
   const padX = 20;
@@ -759,6 +762,8 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   const canvas = createCanvas(width * scale, height * scale);
   const ctx = canvas.getContext("2d");
   ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
   // Card background (clipped to the rounded card so the banner can't bleed past the corners)
   ctx.save();
@@ -894,15 +899,40 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
       badgeTotalWidth += chipW + 8; // gap between chips
     }
   }
+  // Progression badges: bare icons hugging the name, like the One glyph on the site.
+  const progressionIconSize = 17;
+  const progressionIconGap = 5;
+  const progressionImages: import("@napi-rs/canvas").Image[] = [];
+  for (const icon of row.progressionIcons ?? []) {
+    try {
+      progressionImages.push(await loadImage(icon));
+    } catch {
+      // unreadable art: skip that one icon
+    }
+  }
+  const progressionWidth =
+    progressionImages.length > 0 ? 7 + progressionImages.length * (progressionIconSize + progressionIconGap) - progressionIconGap : 0;
+
   ctx.font = cardFont(700, nameSize);
-  let nameMaxWidth = Math.max(20, textMaxWidth - (badgeTotalWidth > 0 ? badgeTotalWidth + 10 : 0));
+  let nameMaxWidth = Math.max(
+    20,
+    textMaxWidth - progressionWidth - (badgeTotalWidth > 0 ? badgeTotalWidth + 10 : 0),
+  );
   while (name.length > 1 && ctx.measureText(name).width > nameMaxWidth) {
     name = `${name.slice(0, -2)}…`;
   }
   ctx.fillText(name, textX, nameY);
   const nameWidth = ctx.measureText(name).width;
 
-  let badgeCursorX = textX + nameWidth + 10;
+  let iconCursorX = textX + nameWidth + 7;
+  for (const image of progressionImages) {
+    if (iconCursorX + progressionIconSize > textRight) break;
+    const iconTop = nameY - nameVisualCenterOffset - progressionIconSize / 2;
+    ctx.drawImage(image, iconCursorX, iconTop, progressionIconSize, progressionIconSize);
+    iconCursorX += progressionIconSize + progressionIconGap;
+  }
+
+  let badgeCursorX = textX + nameWidth + progressionWidth + 10;
   for (const metrics of badgeMetrics) {
     if (badgeCursorX + metrics.w > textRight) break;
     const chipColor = metrics.badge.colorHex || accent;
@@ -963,7 +993,6 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     subY,
   );
 
-  // WebP instead of PNG: a photo banner made the PNG 350KB+, slow enough to upload from the host
-  // that Discord's REST timeout aborted the reply. WebP 90 is about a tenth of the size.
-  return canvas.toBuffer("image/webp", 90);
+  // Lossless PNG: no compression artefacts on text, gradients or the banner.
+  return canvas.toBuffer("image/png");
 }

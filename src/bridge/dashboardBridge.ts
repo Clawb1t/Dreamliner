@@ -1641,6 +1641,21 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Progression badge art: dashboard uploads ("t/<tierId>") or built-in files from
+        // assets/badges/progression/. Only known tiers and files the folder scan found are served,
+        // so the key can't point anywhere else.
+        const progressionBadgeImageMatch = /^\/bridge\/progression-badges\/image\/(.+)$/.exec(url.pathname);
+        if (progressionBadgeImageMatch && req.method === "GET") {
+          const { loadBadgeImage } = await import("../core/progressionBadges/index.js");
+          const image = await loadBadgeImage(decodeURIComponent(progressionBadgeImageMatch[1]!)).catch(() => null);
+          if (!image) {
+            sendJson(res, 404, { error: "Image not found." });
+            return;
+          }
+          sendBinary(res, 200, image.buffer, image.contentType);
+          return;
+        }
+
         // Plane/airline trading card art. Not per-guild, not per-user — the same public art
         // file (assets/planes/<imageKey>) backs every card of that type across the whole bot.
         const planeCardImageMatch = /^\/bridge\/plane-cards\/image\/([^/]+)$/.exec(url.pathname);
@@ -1926,6 +1941,106 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { setDisplayedBadges } = await import("./userBadges.js");
           const badges = await setDisplayedBadges(badgeDisplayMatch[1]!, body.badgeIds as number[]);
           sendJson(res, 200, { ok: true, badges });
+          return;
+        }
+
+        // --- Progression badges (platform superusers only) ---------------------------------------
+        // GET carries the requester in ?userId=, writes carry it as `userId` in the JSON body.
+
+        if (url.pathname.startsWith("/bridge/platform/progression-badges")) {
+          const pb = await import("../core/progressionBadges/index.js");
+          const pbStore = await import("../core/progressionBadges/store.js");
+          let body: Record<string, unknown> = {};
+          if (req.method !== "GET") {
+            try {
+              body = JSON.parse((await readBody(req)) || "{}") as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+          }
+          const actorId = String((req.method === "GET" ? url.searchParams.get("userId") : body.userId) ?? "").trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const fail = (error: unknown, fallback: string) => {
+            if (error instanceof pbStore.BadgeInputError) sendJson(res, 400, { error: error.message });
+            else {
+              log.error(`[progression badges] ${fallback}:`, error);
+              sendJson(res, 500, { error: fallback });
+            }
+          };
+          const path = url.pathname.slice("/bridge/platform/progression-badges".length);
+
+          if (path === "" && req.method === "GET") {
+            sendJson(res, 200, { ok: true, ...(await pb.listAdminBadges(client)) });
+            return;
+          }
+          if (path === "" && req.method === "POST") {
+            try {
+              const id = await pbStore.createStoredBadge(body.badge as Parameters<typeof pbStore.createStoredBadge>[0], actorId, pb.BUILT_IN_KEYS);
+              sendJson(res, 200, { ok: true, id, ...(await pb.listAdminBadges(client)) });
+            } catch (error) {
+              fail(error, "Failed to create badge.");
+            }
+            return;
+          }
+          if (path === "/order" && req.method === "PUT") {
+            const ids = Array.isArray(body.ids) ? body.ids.map(Number).filter(Number.isInteger) : [];
+            pbStore.reorderStoredBadges(ids);
+            sendJson(res, 200, { ok: true, ...(await pb.listAdminBadges(client)) });
+            return;
+          }
+          const badgeMatch = /^\/(\d+)$/.exec(path);
+          if (badgeMatch) {
+            const id = Number(badgeMatch[1]);
+            try {
+              let found: boolean;
+              if (req.method === "PUT") found = await pbStore.updateStoredBadge(id, body.badge as Parameters<typeof pbStore.createStoredBadge>[0]);
+              else if (req.method === "PATCH") found = pbStore.setStoredBadgeEnabled(id, body.enabled !== false);
+              else if (req.method === "DELETE") found = pbStore.deleteStoredBadge(id);
+              else {
+                sendJson(res, 405, { error: "Method not allowed" });
+                return;
+              }
+              if (!found) {
+                sendJson(res, 404, { error: "Badge not found." });
+                return;
+              }
+              sendJson(res, 200, { ok: true, ...(await pb.listAdminBadges(client)) });
+            } catch (error) {
+              fail(error, "Failed to save badge.");
+            }
+            return;
+          }
+          const userMatch = /^\/users\/(\d{15,22})(?:\/([a-z0-9_]{2,32}))?$/.exec(path);
+          if (userMatch) {
+            const targetId = userMatch[1]!;
+            const badgeKey = userMatch[2];
+            if (!badgeKey && req.method === "GET") {
+              sendJson(res, 200, { ok: true, ...(await pb.getAdminUserBadges(client, targetId)) });
+              return;
+            }
+            if (badgeKey && req.method === "PUT") {
+              const stored = (await pbStore.listStoredBadges()).find((badge) => badge.key === badgeKey);
+              if (!stored && !pb.BUILT_IN_KEYS.includes(badgeKey)) {
+                sendJson(res, 404, { error: "Badge not found." });
+                return;
+              }
+              const tiers = stored?.tiers.length ?? 1;
+              const tier = tiers > 1 ? Math.min(Math.max(Math.floor(Number(body.tier) || 1), 1), tiers) : null;
+              pbStore.grantBadge(targetId, badgeKey, tier, actorId);
+              sendJson(res, 200, { ok: true, ...(await pb.getAdminUserBadges(client, targetId)) });
+              return;
+            }
+            if (badgeKey && req.method === "DELETE") {
+              pbStore.revokeBadge(targetId, badgeKey);
+              sendJson(res, 200, { ok: true, ...(await pb.getAdminUserBadges(client, targetId)) });
+              return;
+            }
+          }
+          sendJson(res, 404, { error: "Not found" });
           return;
         }
 

@@ -2,6 +2,7 @@ import type { Client } from "discord.js";
 import { getGlobalMessageStats } from "./userStats.js";
 import { getUserProfile } from "./userProfiles.js";
 import { listDisplayedUserBadges, type UserBadge } from "./userBadges.js";
+import { getProgressionBadges, type ProgressionBadge } from "../core/progressionBadges/index.js";
 import {
   getUserDailyActivity,
   getUserHourlyActivity,
@@ -42,6 +43,8 @@ export type PublicProfileIdentity = {
   /** ISO timestamp of the earliest-started active subscription among guilds they own, null if
    *  `oneOwner` is false or unknown. */
   oneOwnerSince: string | null;
+  /** Automatic progression badges (Dreamliner One included), shown right after the name. */
+  progressionBadges: ProgressionBadge[];
 };
 
 /** Fast: one forced Discord user fetch (needed for banner) + one DB row + one badge join. */
@@ -57,10 +60,11 @@ export async function buildPublicProfileIdentity(
   }
   if (!discordUser) return null;
 
-  const [profile, badges, oneOwnerSince] = await Promise.all([
+  const [profile, badges, oneOwnerSince, progressionBadges] = await Promise.all([
     getUserProfile(userId),
     listDisplayedUserBadges(userId),
     resolveOneOwnerSince(client, userId),
+    getProgressionBadges(client, userId).catch(() => []),
   ]);
 
   return {
@@ -78,6 +82,7 @@ export async function buildPublicProfileIdentity(
     badges,
     oneOwner: oneOwnerSince != null,
     oneOwnerSince,
+    progressionBadges,
   };
 }
 

@@ -10,6 +10,7 @@ import {
 } from "./globalQueries.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
+import { getProgressionBadges, loadBadgeImage } from "../../../core/progressionBadges/index.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { retryAsync } from "../../../core/retry.js";
 import { getLogger } from "../../../core/logger.js";
@@ -35,6 +36,12 @@ function withinBudget<T>(promise: Promise<T | null>, ms: number): Promise<T | nu
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+async function progressionIconBuffers(badges: Array<{ imageKey: string }>): Promise<Buffer[]> {
+  const images = await Promise.all(badges.map((badge) => loadBadgeImage(badge.imageKey).catch(() => null)));
+  // Art that has gone missing since the badge list was read is just left off the card.
+  return images.filter((image) => image != null).map((image) => image.buffer);
+}
+
 function displayName(member: import("discord.js").GuildMember | null, user: User): string {
   return member?.displayName ?? user.username;
 }
@@ -48,7 +55,7 @@ export async function renderUserRankCard(
   // Banners aren't included on cached User objects — a forced fetch is required to see one.
   // Retried a few times: a single rate limit or network blip here used to mean the card just
   // rendered with no banner, since there was nothing to fall back to and nothing that retried.
-  const [member, bannerUser, profile, badges] = await Promise.all([
+  const [member, bannerUser, profile, badges, progression] = await Promise.all([
     withinBudget(guild.members.fetch(user.id).catch(() => null), BANNER_FETCH_BUDGET_MS),
     withinBudget(
       retryAsync(() => guild.client.users.fetch(user.id, { force: true }), {
@@ -58,16 +65,19 @@ export async function renderUserRankCard(
     ),
     getUserProfile(user.id),
     listDisplayedUserBadges(user.id),
+    getProgressionBadges(guild.client, user.id).catch(() => []),
   ]);
   const name = displayName(member, user);
-  const avatarURL = user.displayAvatarURL({ size: 128, extension: "png" });
-  const bannerURL = bannerUser?.bannerURL({ size: 512, extension: "png" }) ?? null;
+  // Sized for the 4x card: the avatar draws at 256px and the banner spans 1840px.
+  const avatarURL = user.displayAvatarURL({ size: 512, extension: "png" });
+  const bannerURL = bannerUser?.bannerURL({ size: 2048, extension: "png" }) ?? null;
   const rowBadges = badges.slice(0, 3).map((badge) => ({
     name: badge.name,
     icon: badge.icon,
     iconImageUrl: badge.iconImageUrl,
     colorHex: badge.colorHex,
   }));
+  const progressionIcons = await progressionIconBuffers(progression);
 
   if (scope === "global") {
     const [count, total, activeUsers] = await Promise.all([
@@ -86,6 +96,7 @@ export async function renderUserRankCard(
       shareLabel: formatSharePct(count, total),
       accentColor: profile.accentColor,
       badges: rowBadges,
+      progressionIcons,
     };
     const buffer = await renderRankCard({ row }, t);
     return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count };
@@ -107,6 +118,7 @@ export async function renderUserRankCard(
     shareLabel: formatSharePct(count, total),
     accentColor: profile.accentColor,
     badges: rowBadges,
+    progressionIcons,
   };
   const buffer = await renderRankCard({ row }, t);
   return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count };

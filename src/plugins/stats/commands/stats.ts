@@ -162,7 +162,7 @@ export const statsCommands: SlashCommandDefinition[] = [
       try {
         await ctx.interaction.editReply({
           content,
-          files: [new AttachmentBuilder(result.buffer, { name: "rank.webp" })],
+          files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
           allowedMentions: { parse: [] },
         });
       } catch (error) {

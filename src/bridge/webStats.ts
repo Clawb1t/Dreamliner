@@ -227,9 +227,11 @@ async function resolvePeople(
   const userIds = entries.map((entry) => entry.userId);
   const { getAccentColorsForUsers } = await import("./userProfiles.js");
   const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
-  const [accents, badgesByUser] = await Promise.all([
+  const { getProgressionBadgesForUsers } = await import("../core/progressionBadges/index.js");
+  const [accents, badgesByUser, progressionByUser] = await Promise.all([
     includeAccents ? getAccentColorsForUsers(userIds) : Promise.resolve(new Map<string, string>()),
     getDisplayedBadgesForUsers(userIds),
+    getProgressionBadgesForUsers(guild.client, userIds).catch(() => new Map()),
   ]);
   const startedAt = process.hrtime.bigint();
   let apiFetches = 0;
@@ -256,6 +258,7 @@ async function resolvePeople(
       shareLabel: formatSharePct(entry.count, trafficTotal),
       accentColor: accents.get(entry.userId) ?? null,
       badges: badgesByUser.get(entry.userId) ?? [],
+      progressionBadges: progressionByUser.get(entry.userId) ?? [],
     };
   });
   const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
@@ -375,9 +378,11 @@ async function resolveGlobalPeople(
   const userIds = entries.map((entry) => entry.userId);
   const { getAccentColorsForUsers } = await import("./userProfiles.js");
   const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
-  const [accents, badgesByUser] = await Promise.all([
+  const { getProgressionBadgesForUsers } = await import("../core/progressionBadges/index.js");
+  const [accents, badgesByUser, progressionByUser] = await Promise.all([
     getAccentColorsForUsers(userIds),
     getDisplayedBadgesForUsers(userIds),
+    getProgressionBadgesForUsers(client, userIds).catch(() => new Map()),
   ]);
   const startedAt = process.hrtime.bigint();
   let apiFetches = 0;
@@ -397,6 +402,7 @@ async function resolveGlobalPeople(
       shareLabel: formatSharePct(entry.count, trafficTotal),
       accentColor: accents.get(entry.userId) ?? null,
       badges: badgesByUser.get(entry.userId) ?? [],
+      progressionBadges: progressionByUser.get(entry.userId) ?? [],
     };
   });
   const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;

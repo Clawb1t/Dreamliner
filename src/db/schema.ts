@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, blob, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const guildConfigs = sqliteTable("guild_configs", {
   guildId: text("guild_id").primaryKey(),
@@ -234,7 +234,7 @@ export const guildMessageCounts = sqliteTable(
     userId: text("user_id").notNull(),
     count: integer("count").notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] }), index("guild_message_counts_user").on(table.userId)],
 );
 
 export const userMessageCounts = sqliteTable("user_message_counts", {
@@ -565,7 +565,10 @@ export const guildStatsUserVoiceDaily = sqliteTable(
     deafenedSeconds: integer("deafened_seconds").notNull().default(0),
     streamingSeconds: integer("streaming_seconds").notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.statDate] })],
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId, table.statDate] }),
+    index("guild_stats_user_voice_daily_user").on(table.userId),
+  ],
 );
 
 /** Per-channel daily voice-channel activity, mirrors guildStatsChannelDaily. */
@@ -786,7 +789,7 @@ export const reviews = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
   },
-  (table) => [index("reviews_guild").on(table.guildId)],
+  (table) => [index("reviews_guild").on(table.guildId), index("reviews_user").on(table.userId)],
 );
 
 /** Community suggestions with staff review and voting. */
@@ -818,7 +821,10 @@ export const suggestions = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
     implementedAt: integer("implemented_at", { mode: "timestamp" }),
   },
-  (table) => [index("suggestions_guild_number").on(table.guildId, table.suggestionNumber)],
+  (table) => [
+    index("suggestions_guild_number").on(table.guildId, table.suggestionNumber),
+    index("suggestions_author").on(table.authorId),
+  ],
 );
 
 export const suggestionVotes = sqliteTable(
@@ -2134,4 +2140,61 @@ export const birthdayWishes = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.messageId, table.userId] })],
+);
+
+/** Progression badges built on the superuser dashboard: small icons next to a user's name, earned
+ *  automatically from a tracked stat (`metric`) and/or assigned by a superuser. */
+export const progressionBadges = sqliteTable(
+  "progression_badges",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    /** A metric id from core/progressionBadges/metrics.ts ("manual" = assigned only). */
+    metric: text("metric").notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    displayOrder: integer("display_order", { mode: "number" }).notNull().default(0),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [uniqueIndex("progression_badges_key").on(table.key)],
+);
+
+/** The looks a progression badge evolves through. A badge with one look has one tier. */
+export const progressionBadgeTiers = sqliteTable(
+  "progression_badge_tiers",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    badgeId: integer("badge_id", { mode: "number" }).notNull(),
+    /** 1-based, in threshold order. */
+    position: integer("position", { mode: "number" }).notNull(),
+    /** Stat value needed to reach this tier. */
+    threshold: integer("threshold", { mode: "number" }).notNull().default(0),
+    name: text("name").notNull().default(""),
+    image: blob("image", { mode: "buffer" }).notNull(),
+    contentType: text("content_type").notNull(),
+    /** Changes whenever the image does, for cache busting. */
+    imageVersion: text("image_version").notNull(),
+  },
+  (table) => [uniqueIndex("progression_badge_tiers_badge_position").on(table.badgeId, table.position)],
+);
+
+/** Progression badges a superuser assigned by hand. `badgeKey` also covers built-ins
+ *  (e.g. "dreamliner_one"). The shown tier is the higher of this and the earned one. */
+export const userProgressionBadgeGrants = sqliteTable(
+  "user_progression_badge_grants",
+  {
+    userId: text("user_id").notNull(),
+    badgeKey: text("badge_key").notNull(),
+    /** Tier to show at least (1-based), null for badges with one look. */
+    tier: integer("tier", { mode: "number" }),
+    grantedBy: text("granted_by").notNull(),
+    grantedAt: integer("granted_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.badgeKey] }),
+    index("user_progression_badge_grants_badge").on(table.badgeKey),
+  ],
 );
