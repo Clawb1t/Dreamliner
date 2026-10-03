@@ -96,6 +96,19 @@ export const zSuggestionsConfig = z.strictObject({
     .boolean()
     .default(false)
     .describe("Make votes public: suggestion posts get a View votes button listing who voted and how."),
+  auto_thread: z
+    .boolean()
+    .default(false)
+    .describe("Start a discussion thread on each suggestion when it's posted to the suggestions channel."),
+  thread_name: z
+    .string()
+    .max(100)
+    .default("Suggestion #{number}")
+    .describe("Name for those threads. Placeholders: {number}, {author} (Anonymous for anonymous suggestions), {content}."),
+  thread_auto_archive_minutes: z
+    .union([z.literal(60), z.literal(1440), z.literal(4320), z.literal(10080)])
+    .default(1440)
+    .describe("Minutes of inactivity before a suggestion thread archives: 60 (1 hour), 1440 (1 day), 4320 (3 days) or 10080 (1 week)."),
   color_change_threshold: z
     .number()
     .int()

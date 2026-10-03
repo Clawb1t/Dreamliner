@@ -80,5 +80,5 @@ Staff with `staff_role_id` can always manage any room.
 ## Requirements
 
 - **Manage Channels**, **Move Members**, **Connect**, **Send Messages**. Status needs **Set Voice Channel Status**. LFM posts need **Create Instant Invite**.
-- Empty rooms are deleted when the last person leaves. Dynamic rooms reset into the ready pool instead when possible.
+- Empty rooms are deleted once the last person leaves and the hub's grace period passes (`delete_after_seconds`, 15 seconds by default, 0 for straight away). Anyone rejoining in that time keeps the room, so a disconnect or switching devices doesn't lose it. Dynamic rooms reset into the ready pool instead when possible.
 - If someone already owns a room, joining a hub moves them back to it.

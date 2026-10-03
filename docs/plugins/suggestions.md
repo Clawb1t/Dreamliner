@@ -51,6 +51,9 @@ plugins:
       allow_self_vote: false
       show_vote_count: true
       public_votes: false
+      auto_thread: false
+      thread_name: "Suggestion #{number}"
+      thread_auto_archive_minutes: 1440
       color_change_threshold: 10
       color_change_color: 5763719
       notify_author: true
@@ -98,6 +101,9 @@ plugins:
 | `mid_vote_enabled` | Include a neutral mid vote button |
 | `allow_self_vote` | Allow authors to vote on their own suggestion |
 | `show_vote_count` | Show live vote totals on the vote buttons |
+| `auto_thread` | Start a discussion thread on each suggestion when it's posted to the suggestions channel. If a suggestion is denied its thread is locked and archived; if it's deleted, the thread goes too. Off by default |
+| `thread_name` | Name for those threads, up to 100 characters. Placeholders: `{number}`, `{author}` (shows "Anonymous" for anonymous suggestions) and `{content}` (the start of the suggestion). Default `Suggestion #{number}` |
+| `thread_auto_archive_minutes` | How long a quiet thread stays open: `60`, `1440` (1 day, the default), `4320` or `10080` minutes |
 | `public_votes` | Add a **View votes** button to suggestion posts. Anyone can press it to see, privately, a paged list of who voted and how. Off by default |
 | `color_change_threshold` | Net upvotes needed to recolor the embed. `0` disables |
 | `color_change_color` | Embed color (decimal 0-16777215) once the threshold is met |

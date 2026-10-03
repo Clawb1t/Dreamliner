@@ -425,6 +425,7 @@ plugins:
   roles:
     enabled: false
     config:
+      rules: []
       can_give: false
       can_remove: false
       can_list: false
@@ -852,6 +853,9 @@ plugins:
       allow_self_vote: false
       show_vote_count: true
       public_votes: false
+      auto_thread: false
+      thread_name: "Suggestion #{number}"
+      thread_auto_archive_minutes: 1440
       color_change_threshold: 10
       color_change_color: 5763719
       notify_author: true

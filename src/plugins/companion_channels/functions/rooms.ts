@@ -553,6 +553,7 @@ export async function ensureLinkedText(
       region: "",
       dynamic_ready: 3,
       booster_bonus_user_limit: 0,
+      delete_after_seconds: 15,
     },
   });
   await updateRoom(member.guild.id, voice.id, { textChannelId: textId });

@@ -5,6 +5,7 @@ import { zAutomodConfig } from "./automod.js";
 import { zImpersonationConfig } from "./impersonation.js";
 import { zRaidMeshConfig } from "./raidMesh.js";
 import { zWelcomeMessageConfig } from "./welcome.js";
+import { MAX_ROLE_RULES, zRoleRule } from "./roleRules.js";
 import { MAX_USER_PATTERN_LENGTH } from "../../core/regexSafety.js";
 
 export {
@@ -167,6 +168,11 @@ export const zSlowmodeConfig = z.strictObject({
 });
 
 export const zRolesConfig = z.strictObject({
+  rules: z
+    .array(zRoleRule)
+    .max(MAX_ROLE_RULES)
+    .default([])
+    .describe("If-then role rules: when a member has certain roles, give and remove others."),
   can_give: boolPerm("give roles with /role"),
   can_remove: boolPerm("remove roles with /role"),
   can_list: boolPerm("list roles"),

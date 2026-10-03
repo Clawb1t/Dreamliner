@@ -243,7 +243,7 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Slowmode",
     description: "Per-channel and individual slowmode.",
   },
-  roles: { key: "roles", name: "Roles", description: "Give, remove, and list roles." },
+  roles: { key: "roles", name: "Roles", description: "Give, remove, and list roles, plus if-then role rules." },
   reaction_roles: {
     key: "reaction_roles",
     name: "Reaction roles",

@@ -35,6 +35,7 @@ import {
   feedActionRows,
 } from "./embeds.js";
 import { attachedImageRef, copySuggestionImage, isAttachedImage, type SuggestionImageFile } from "./image.js";
+import { closeSuggestionThread, startSuggestionThread } from "./thread.js";
 
 /** What a brand-new post should show for the suggestion's image: its own copy of an uploaded file
  *  (as `files` plus the stored `attachment://` reference), a plain legacy link, or nothing. */
@@ -216,6 +217,8 @@ export async function postToFeed(options: {
       feedChannelId: channel.id,
       feedMessageId: msg.id,
     })) ?? suggestion;
+
+  await startSuggestionThread(client, msg, suggestion, config);
 
   await maybeGrantRole(guild, suggestion.authorId, config.approved_role);
   await notifyWatchers(
@@ -423,6 +426,8 @@ export async function denySuggestion(options: {
   }
 
   if (suggestion.feedChannelId && suggestion.feedMessageId) {
+    // Its discussion thread outlives the feed post: lock it so the conversation stays readable.
+    await closeSuggestionThread(options.client, suggestion.feedChannelId, suggestion.feedMessageId, "lock");
     const channel = await resolveTextChannel(options.client, suggestion.feedChannelId);
     const msg = channel ? await channel.messages.fetch(suggestion.feedMessageId).catch(() => null) : null;
     if (msg) await msg.delete().catch(() => null);
@@ -547,6 +552,7 @@ export async function deleteSuggestion(options: {
     return { suggestion: null, error: t("suggestions.error.notFound", "Suggestion not found.") };
   }
 
+  await closeSuggestionThread(options.client, suggestion.feedChannelId, suggestion.feedMessageId, "delete");
   for (const [channelId, messageId] of [
     [suggestion.feedChannelId, suggestion.feedMessageId],
     [suggestion.reviewChannelId, suggestion.reviewMessageId],

@@ -130,7 +130,8 @@ export const EDITOR_URL = getEditorUrl();
 
 export const SUPPORT_URL = "https://discord.gg/cGzfZbtrpR";
 
-export const VOTE_URL = "https://top.gg/bot/1524053555114151946";
+/** Dreamliner's top.gg vote page itself (not the bot listing), for every "vote" button and link. */
+export const VOTE_URL = "https://top.gg/bot/1524053555114151946/vote";
 
 /** @deprecated Prefer DOCS_URL — kept for call sites that still resolve a base. */
 export const DEFAULT_DOCS_URL = DOCS_URL;

@@ -95,6 +95,7 @@ export function companionConfigSchema(): Record<string, unknown> {
     region: nullable(oneOf(COMPANION_WIZARD_REGIONS)),
     dynamic_ready: nullable(int()),
     booster_bonus_user_limit: nullable(int()),
+    delete_after_seconds: nullable(int()),
     // Server-wide Companion settings (apply to every hub), null = leave as is.
     features: nullable(obj(features)),
     log_channel_id: nullable(idOrEmpty("text_channel")),
@@ -124,6 +125,7 @@ export function validateCompanionConfig(config: Record<string, unknown>, ctx: Ai
   config.bitrate = clampInt(config.bitrate, 0, 384);
   config.dynamic_ready = clampInt(config.dynamic_ready, 1, 15);
   config.booster_bonus_user_limit = clampInt(config.booster_bonus_user_limit, 0, 99);
+  config.delete_after_seconds = clampInt(config.delete_after_seconds, 0, 3600);
   config.default_status = text(config.default_status, 500);
   if (!validId(config.category_id, ctx, "category")) config.category_id = null;
   if (typeof config.region === "string") {
@@ -184,7 +186,8 @@ export const companionWizard: AiWizardDefinition = {
     "feature), default_lock, default_ghost (hidden), default_nsfw, default_status (voice status set " +
     "on new rooms, max 500), region (\"\" lets Discord pick automatically, otherwise one of the listed " +
     "region ids), booster_bonus_user_limit (0 to 99 extra slots when the room owner boosts the " +
-    "server, 0 = off).\n" +
+    "server, 0 = off), delete_after_seconds (0 to 3600: how long an empty room waits before " +
+    "it's removed, so a disconnect or device switch doesn't lose it, default 15, 0 = straight away).\n" +
     "Server-wide settings (apply to every hub, null = leave as is): features, a set of on/off " +
     "switches for what room owners can do (" +
     COMPANION_FEATURE_KEYS.map((k) => `${k}: ${FEATURE_LABELS[k]}`).join("; ") +

@@ -5,7 +5,14 @@
  *
  * Posts are hydrated through the public AppView before sending, which also gives the author's
  * current name/avatar and embed views (images, quotes, link cards).
+ *
+ * The socket is pinged every 30 seconds. A filtered stream can be silent for hours, so silence
+ * alone says nothing; a missed pong does. Without it, a connection that died without closing
+ * (network blip, idle NAT timeout, a stalled server) left the bot waiting on it forever and new
+ * posts stopped arriving. On reconnect it resumes from the last event seen, so posts made while
+ * the connection was dead are replayed (deliveries are de-duplicated per feed and post).
  */
+import WebSocket from "ws";
 import type { Client } from "discord.js";
 import { eq } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
@@ -30,8 +37,13 @@ const CURSOR_SAVE_MS = 30_000;
 const RESUBSCRIBE_DEBOUNCE_MS = 3_000;
 /** Posts claiming to be older than this (backdated imports) aren't announced as new. */
 const MAX_POST_AGE_MS = 24 * 60 * 60_000;
-/** A post can reach Jetstream a moment before the AppView has indexed it. */
-const HYDRATE_RETRY_DELAYS_MS = [1_000, 3_000, 8_000];
+/** A post can reach Jetstream before the AppView has indexed it; under load that takes a while,
+ *  so keep trying for about a minute and a half before giving up on it. */
+const HYDRATE_RETRY_DELAYS_MS = [1_000, 3_000, 8_000, 20_000, 60_000];
+/** Liveness: ping this often, and treat the connection as dead if the last ping got no pong. */
+const PING_INTERVAL_MS = 30_000;
+/** A handshake that hangs this long is given up on and retried. */
+const HANDSHAKE_TIMEOUT_MS = 15_000;
 
 export type StreamCommit = {
   did: string;
@@ -124,6 +136,8 @@ let backoffMs = 1_000;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let resubscribeTimer: NodeJS.Timeout | null = null;
 let cursorTimer: NodeJS.Timeout | null = null;
+let heartbeatTimer: NodeJS.Timeout | null = null;
+let awaitingPong = false;
 
 async function loadFeeds(): Promise<void> {
   const next = new Map<string, BlueskyFeedRow[]>();
@@ -135,15 +149,21 @@ async function loadFeeds(): Promise<void> {
   feedsByDid = next;
 }
 
+function stopHeartbeat(): void {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+  awaitingPong = false;
+}
+
 function closeSocket(): void {
+  stopHeartbeat();
   if (!socket) return;
   const old = socket;
   socket = null;
-  old.onclose = null;
-  old.onmessage = null;
-  old.onerror = null;
+  old.removeAllListeners();
+  old.on("error", () => undefined); // a late error from the old socket mustn't crash anything
   try {
-    old.close();
+    old.terminate();
   } catch {
     // already closed
   }
@@ -165,33 +185,61 @@ function connect(): void {
   const dids = [...feedsByDid.keys()];
   if (!dids.length) return; // nothing to follow; refreshStreamSubscription reconnects once there is
 
-  const ws = new WebSocket(buildSubscribeUrl(HOSTS[hostIndex]!, dids.length <= MAX_URL_DIDS ? dids : [], cursor));
+  const host = HOSTS[hostIndex]!;
+  const ws = new WebSocket(buildSubscribeUrl(host, dids.length <= MAX_URL_DIDS ? dids : [], cursor), {
+    handshakeTimeout: HANDSHAKE_TIMEOUT_MS,
+  });
   socket = ws;
-  ws.onopen = () => {
+
+  ws.on("open", () => {
     backoffMs = 1_000;
-    log.info(`[bluesky] Jetstream connected (${HOSTS[hostIndex]}, ${dids.length} accounts).`);
-  };
-  ws.onmessage = (event) => {
-    if (typeof event.data !== "string") return;
+    log.info(`[bluesky] Jetstream connected (${host}, ${dids.length} accounts${cursor !== null ? `, resuming after ${cursor}` : ""}).`);
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      if (socket !== ws) return;
+      if (awaitingPong) {
+        log.warn(`[bluesky] Jetstream (${host}) stopped answering pings; reconnecting.`);
+        ws.terminate(); // fires "close", which reconnects
+        return;
+      }
+      awaitingPong = true;
+      try {
+        ws.ping();
+      } catch {
+        ws.terminate();
+      }
+    }, PING_INTERVAL_MS);
+    heartbeatTimer.unref?.();
+  });
+  ws.on("pong", () => {
+    awaitingPong = false;
+  });
+  ws.on("message", (data, isBinary) => {
+    awaitingPong = false; // any traffic proves the connection is alive
+    if (isBinary) return;
     try {
-      const envelope = JSON.parse(event.data) as { payload?: StreamCommit & { $type?: string } };
+      const envelope = JSON.parse(data.toString()) as { payload?: StreamCommit & { $type?: string } };
       const payload = envelope.payload;
       if (!payload?.$type?.endsWith("#commit")) return;
       cursor = payload.seq;
-      void handleCommit(payload);
+      handleCommit(payload).catch((error: unknown) => {
+        log.error(`[bluesky] failed to deliver at://${payload.did}/${payload.collection}/${payload.rkey}:`, error);
+      });
     } catch (error) {
       log.warn("[bluesky] unreadable Jetstream message:", error);
     }
-  };
-  ws.onerror = () => {
-    // onclose follows; reconnect happens there.
-  };
-  ws.onclose = (event) => {
+  });
+  ws.on("error", (error) => {
+    // "close" follows; reconnect happens there.
+    log.debug(`[bluesky] Jetstream (${host}) error:`, error);
+  });
+  ws.on("close", (code) => {
     if (socket !== ws) return;
     socket = null;
-    log.warn(`[bluesky] Jetstream closed (${event.code}); reconnecting.`);
+    stopHeartbeat();
+    log.warn(`[bluesky] Jetstream closed (${code}); reconnecting.`);
     scheduleReconnect();
-  };
+  });
 }
 
 /** Re-reads feeds and reconnects with the new DID list. Debounced; call after any feed change. */

@@ -625,7 +625,7 @@
   {
     "plugin": "roles",
     "pluginName": "Roles",
-    "pluginDescription": "Give, remove, and list roles.",
+    "pluginDescription": "Give, remove, and list roles, plus if-then role rules.",
     "entries": [
       {
         "plugin": "roles",

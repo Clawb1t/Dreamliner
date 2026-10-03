@@ -5123,6 +5123,108 @@
             "config": {
               "type": "object",
               "properties": {
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Turn this rule off without deleting it.",
+                        "title": "Enabled"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "A label for the dashboard and the audit log.",
+                        "title": "Name"
+                      },
+                      "match": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "any"
+                        ],
+                        "default": "all",
+                        "description": "all: the member needs every role in if_roles. any: one of them is enough.",
+                        "title": "Match"
+                      },
+                      "if_roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d{15,22}$"
+                        },
+                        "maxItems": 10,
+                        "default": [],
+                        "description": "The roles that trigger this rule.",
+                        "title": "If Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "unless_roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d{15,22}$"
+                        },
+                        "maxItems": 10,
+                        "default": [],
+                        "description": "Members with any of these roles are skipped.",
+                        "title": "Unless Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "give_roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d{15,22}$"
+                        },
+                        "maxItems": 10,
+                        "default": [],
+                        "description": "Roles given when the rule triggers.",
+                        "title": "Give Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "remove_roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d{15,22}$"
+                        },
+                        "maxItems": 10,
+                        "default": [],
+                        "description": "Roles taken away when the rule triggers.",
+                        "title": "Remove Roles",
+                        "x-dreamliner": {
+                          "kind": "role",
+                          "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                        }
+                      },
+                      "remove_matched": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Also take away the if_roles the member had that triggered the rule.",
+                        "title": "Remove Matched"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "maxItems": 25,
+                  "default": [],
+                  "description": "If-then role rules: when a member has certain roles, give and remove others.",
+                  "title": "Rules"
+                },
                 "can_give": {
                   "type": "boolean",
                   "default": false,
@@ -5156,6 +5258,7 @@
               },
               "additionalProperties": false,
               "default": {
+                "rules": [],
                 "can_give": false,
                 "can_remove": false,
                 "can_list": false
@@ -9854,6 +9957,18 @@
                         "default": 0,
                         "description": "Extra slots added to the user limit for a room's owner if they're currently boosting the server. 0 disables.",
                         "title": "Booster Bonus User Limit"
+                      },
+                      "delete_after_seconds": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3600,
+                        "default": 15,
+                        "description": "How long an empty room waits before it's removed, in seconds, so a disconnect or switching devices doesn't lose it. 0 removes it straight away.",
+                        "title": "Delete After Seconds",
+                        "x-dreamliner": {
+                          "kind": "seconds",
+                          "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                        }
                       }
                     },
                     "required": [
@@ -11408,6 +11523,31 @@
                   "description": "Make votes public: suggestion posts get a View votes button listing who voted and how.",
                   "title": "Public Votes"
                 },
+                "auto_thread": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Start a discussion thread on each suggestion when it's posted to the suggestions channel.",
+                  "title": "Auto Thread"
+                },
+                "thread_name": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "default": "Suggestion #{number}",
+                  "description": "Name for those threads. Placeholders: {number}, {author} (Anonymous for anonymous suggestions), {content}.",
+                  "title": "Thread Name"
+                },
+                "thread_auto_archive_minutes": {
+                  "type": "number",
+                  "enum": [
+                    60,
+                    1440,
+                    4320,
+                    10080
+                  ],
+                  "default": 1440,
+                  "description": "Minutes of inactivity before a suggestion thread archives: 60 (1 hour), 1440 (1 day), 4320 (3 days) or 10080 (1 week).",
+                  "title": "Thread Auto Archive Minutes"
+                },
                 "color_change_threshold": {
                   "type": "integer",
                   "minimum": 0,
@@ -11588,6 +11728,9 @@
                 "allow_self_vote": false,
                 "show_vote_count": true,
                 "public_votes": false,
+                "auto_thread": false,
+                "thread_name": "Suggestion #{number}",
+                "thread_auto_archive_minutes": 1440,
                 "color_change_threshold": 10,
                 "color_change_color": 5763719,
                 "notify_author": true,

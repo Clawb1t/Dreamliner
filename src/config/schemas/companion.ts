@@ -128,6 +128,15 @@ export const zCompanionSetup = z.strictObject({
     .max(99)
     .default(0)
     .describe("Extra slots added to the user limit for a room's owner if they're currently boosting the server. 0 disables."),
+  delete_after_seconds: z
+    .number()
+    .int()
+    .min(0)
+    .max(3600)
+    .default(15)
+    .describe(
+      "How long an empty room waits before it's removed, in seconds, so a disconnect or switching devices doesn't lose it. 0 removes it straight away.",
+    ),
 });
 
 export const zCompanionChannelsConfig = z.strictObject({

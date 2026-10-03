@@ -62,6 +62,66 @@ async function adoptHubWaiters(
   }
 }
 
+// --- Grace period for empty rooms ----------------------------------------------------------------
+// An empty room isn't removed straight away: it waits its hub's delete_after_seconds, so someone
+// who disconnects or rejoins from another device comes back to the same room. Anyone joining the
+// room cancels the wait. Timers live in memory only; on a restart syncGuildCompanion schedules a
+// fresh wait for every empty room.
+
+const pendingRemovals = new Map<string, NodeJS.Timeout>();
+const pendingKey = (guildId: string, channelId: string) => `${guildId}:${channelId}`;
+
+export function cancelPendingRemoval(guildId: string, channelId: string): void {
+  const key = pendingKey(guildId, channelId);
+  const timer = pendingRemovals.get(key);
+  if (!timer) return;
+  clearTimeout(timer);
+  pendingRemovals.delete(key);
+}
+
+function hasPendingRemoval(guildId: string, channelId: string): boolean {
+  return pendingRemovals.has(pendingKey(guildId, channelId));
+}
+
+function graceSecondsFor(setups: ReturnType<typeof enabledSetups>, setupId: string): number {
+  return setups.find((item) => item.hub_channel_id === setupId)?.delete_after_seconds ?? 15;
+}
+
+/** Removes (or, for dynamic hubs, resets) a room once its wait is over, if nobody came back. */
+async function removeRoomIfStillEmpty(guild: Guild, channelId: string): Promise<void> {
+  const loaded = await guildCompanion(guild);
+  if (!loaded) return;
+  const room = await getRoomByChannel(guild.id, channelId);
+  if (!room) return;
+  const { channel, gone } = await fetchTrackedChannel(guild, channelId);
+  if (gone) {
+    await forgetMissingRoom(guild, room);
+    return;
+  }
+  if (!channel || channel.members.filter((member) => !member.user.bot).size > 0) return;
+  await resetOrDeleteRoom(guild, room, loaded.config, loaded.setups);
+  const setup = loaded.setups.find((item) => item.hub_channel_id === room.setupId);
+  if (setup) await refillDynamicPool(guild, setup, loaded.config);
+}
+
+/** Starts (or restarts) the wait before an empty room is removed; 0 seconds removes it now. */
+async function scheduleEmptyRoom(guild: Guild, channelId: string, seconds: number): Promise<void> {
+  cancelPendingRemoval(guild.id, channelId);
+  if (seconds <= 0) {
+    await removeRoomIfStillEmpty(guild, channelId);
+    return;
+  }
+  const key = pendingKey(guild.id, channelId);
+  const timer = setTimeout(() => {
+    pendingRemovals.delete(key);
+    removeRoomIfStillEmpty(guild, channelId).catch((error: unknown) => {
+      log.error(`[companion] Failed to remove empty room ${channelId} in ${guild.id}:`, error);
+    });
+  }, seconds * 1000);
+  timer.unref?.();
+  pendingRemovals.set(key, timer);
+}
+
 export async function handleCompanionVoiceStateUpdate(oldState: VoiceState, newState: VoiceState): Promise<void> {
   const guild = newState.guild ?? oldState.guild;
   if (!guild) return;
@@ -87,6 +147,8 @@ export async function handleCompanionVoiceStateUpdate(oldState: VoiceState, newS
 
     const joinedRoom = await getRoomByChannel(guild.id, joinedId);
     if (joinedRoom) {
+      // Someone's back: the room stays.
+      cancelPendingRemoval(guild.id, joinedId);
       if (!joinedRoom.ownerId && newState.channel?.isVoiceBased()) {
         const setup = setups.find((item) => item.hub_channel_id === joinedRoom.setupId);
         if (setup) {
@@ -107,9 +169,7 @@ export async function handleCompanionVoiceStateUpdate(oldState: VoiceState, newS
       if (channel?.isVoiceBased()) {
         await syncTextAccess(guild, leftRoom, channel);
         if (channel.members.filter((item) => !item.user.bot).size === 0) {
-          await resetOrDeleteRoom(guild, leftRoom, config, setups);
-          const setup = setups.find((item) => item.hub_channel_id === leftRoom.setupId);
-          if (setup) await refillDynamicPool(guild, setup, config);
+          await scheduleEmptyRoom(guild, leftRoom.channelId, graceSecondsFor(setups, leftRoom.setupId));
         }
       } else {
         await resetOrDeleteRoom(guild, leftRoom, config, setups);
@@ -121,6 +181,7 @@ export async function handleCompanionVoiceStateUpdate(oldState: VoiceState, newS
 export async function handleCompanionChannelDelete(channel: { id: string; guild?: { id: string } | null }): Promise<void> {
   const guildId = channel.guild?.id;
   if (!guildId) return;
+  cancelPendingRemoval(guildId, channel.id);
   const room = await getRoomByChannel(guildId, channel.id);
   if (room) await removeRoom(guildId, channel.id);
 }
@@ -155,13 +216,17 @@ export async function syncGuildCompanion(client: Client, guildId: string, guildC
 
     const occupants = channel.members.filter((member) => !member.user.bot);
     if (occupants.size > 0) {
+      cancelPendingRemoval(guild.id, room.channelId);
       await restoreLiveRoom(guild, room, channel, config);
       continue;
     }
 
     const setup = setups.find((item) => item.hub_channel_id === room.setupId);
     if (setup?.type === "dynamic" && !room.ownerId) continue;
-    await resetOrDeleteRoom(guild, room, config, setups);
+    // Runs on boot and on every dashboard save: an empty room still gets its grace period (and
+    // one already waiting keeps its timer) rather than vanishing the moment config is saved.
+    if (hasPendingRemoval(guild.id, room.channelId)) continue;
+    await scheduleEmptyRoom(guild, room.channelId, graceSecondsFor(setups, room.setupId));
   }
 
   for (const setup of setups) {

@@ -35,6 +35,8 @@ const OPTIONAL_ROLES = ["review_ping_role", "feed_ping_role", "approved_role", "
 const DURATIONS = ["cooldown", "min_account_age", "min_member_age"] as const;
 const LABELS = ["upvote_label", "midvote_label", "downvote_label"] as const;
 const EMOJIS = ["upvote_emoji", "midvote_emoji", "downvote_emoji"] as const;
+/** Discord's thread auto-archive choices, in minutes. */
+const THREAD_ARCHIVE_MINUTES = [60, 1440, 4320, 10080] as const;
 const TOGGLES = [
   "anonymous",
   "allow_attachments",
@@ -43,6 +45,7 @@ const TOGGLES = [
   "allow_self_vote",
   "show_vote_count",
   "public_votes",
+  "auto_thread",
   "notify_author",
   "follow_on_upvote",
 ] as const;
@@ -65,6 +68,8 @@ export function suggestionsConfigSchema(): Record<string, unknown> {
   for (const key of EMOJIS) props[key] = nullable(str());
   props.color_change_threshold = nullable(int());
   props.color_change_color = nullable(int());
+  props.thread_name = nullable(str());
+  props.thread_auto_archive_minutes = nullable(oneOf(THREAD_ARCHIVE_MINUTES.map(String)));
   for (const key of TOGGLES) props[key] = nullable(bool());
   return obj(props);
 }
@@ -120,6 +125,10 @@ export function validateSuggestionsConfig(config: Record<string, unknown>, ctx: 
   config.color_change_threshold = clampInt(config.color_change_threshold, 0, 1_000_000);
   config.color_change_color = clampInt(config.color_change_color, 0, 0xffffff);
   for (const key of TOGGLES) if (typeof config[key] !== "boolean") config[key] = null;
+  const threadName = config.thread_name;
+  config.thread_name = typeof threadName === "string" && threadName.trim() ? threadName.trim().slice(0, 100) : null;
+  const archive = Number(config.thread_auto_archive_minutes);
+  config.thread_auto_archive_minutes = (THREAD_ARCHIVE_MINUTES as readonly number[]).includes(archive) ? archive : null;
   return null;
 }
 
@@ -165,7 +174,10 @@ export const suggestionsWizard: AiWizardDefinition = {
     "the author), allow_attachments (image attachments).\n" +
     "- Voting: voting_enabled, mid_vote_enabled (a neutral middle button), allow_self_vote, " +
     "show_vote_count (live totals on the buttons), public_votes (a View votes button that shows " +
-    "anyone who voted and how), button labels (upvote_label, midvote_label, " +
+    "anyone who voted and how), auto_thread (start a discussion thread on each suggestion when it's " +
+    "posted), thread_name (name for those threads, max 100, placeholders {number}, {author}, " +
+    "{content}), thread_auto_archive_minutes (\"60\", \"1440\", \"4320\" or \"10080\": quiet time " +
+    "before a thread archives), button labels (upvote_label, midvote_label, " +
     "downvote_label, max 80 characters) and emojis (upvote_emoji, midvote_emoji, downvote_emoji: a " +
     "unicode emoji or a server emoji name from the list below), color_change_threshold (net upvotes " +
     "that recolor the embed, 0 = off) and color_change_color.\n" +

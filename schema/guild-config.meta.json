@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-30T16:18:16.492Z",
+  "generatedAt": "2026-10-03T14:17:16.588Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -76,7 +76,7 @@
         {
           "key": "roles",
           "name": "Roles",
-          "description": "Give, remove, and list roles."
+          "description": "Give, remove, and list roles, plus if-then role rules."
         },
         {
           "key": "autorole",
@@ -407,7 +407,7 @@
     {
       "key": "roles",
       "name": "Roles",
-      "description": "Give, remove, and list roles.",
+      "description": "Give, remove, and list roles, plus if-then role rules.",
       "category": "Role management",
       "categoryId": "roles"
     },
