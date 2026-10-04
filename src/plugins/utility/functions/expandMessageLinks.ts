@@ -2,15 +2,13 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   MessageFlags,
-  PermissionFlagsBits,
   type Client,
-  type Guild,
-  type GuildBasedChannel,
   type Message,
   type MessageCreateOptions,
   type WebhookMessageCreateOptions,
 } from "discord.js";
 import { extractMessageLinks, type ParsedMessageLink } from "../../../core/messageLink.js";
+import { memberCanReadChannel } from "../../../core/channelAccess.js";
 import { getExpandMessageWebhook } from "./expandWebhook.js";
 import { buildExpandDeleteButton } from "./expandDeleteButton.js";
 import { translatorFor, type Translator } from "../../../i18n/index.js";
@@ -81,21 +79,6 @@ function buildFallbackPayload(source: Message, requesterId: string, t: Translato
   };
 }
 
-/** Poster must be a member of the linked guild with access to the linked channel. */
-async function posterCanViewChannel(
-  guild: Guild,
-  channel: GuildBasedChannel,
-  posterId: string,
-): Promise<boolean> {
-  const member =
-    guild.members.cache.get(posterId) ?? (await guild.members.fetch(posterId).catch(() => null));
-  if (!member) return false;
-
-  const perms = channel.permissionsFor(member);
-  if (!perms) return false;
-  return perms.has(PermissionFlagsBits.ViewChannel) && perms.has(PermissionFlagsBits.ReadMessageHistory);
-}
-
 async function fetchLinkedMessage(
   client: Client,
   link: ParsedMessageLink,
@@ -109,7 +92,8 @@ async function fetchLinkedMessage(
     (await guild.channels.fetch(link.channelId).catch(() => null));
   if (!channel || !channel.isTextBased() || !("messages" in channel)) return null;
 
-  if (!(await posterCanViewChannel(guild, channel, posterId))) return null;
+  // The poster must be able to read the linked channel themselves (see core/channelAccess).
+  if (!(await memberCanReadChannel(channel, posterId))) return null;
 
   return channel.messages.fetch(link.messageId).catch(() => null);
 }

@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, ChannelType } from "discord.js";
+import { SlashCommandBuilder, ChannelType, PermissionFlagsBits } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { getGuildServerPageUrl, siteLinkRow } from "../../../core/docsUrl.js";
 import { embedReply, embedEdit, resultReply, resultEdit, slashResultOptions, deferReplyOptions } from "../../../core/responses.js";
 import { requireUtilityPermission } from "../functions/commandHelpers.js";
+import { memberCanReadChannel } from "../../../core/channelAccess.js";
 import {
   buildUserInfoEmbed,
   buildServerInfoEmbed,
@@ -108,7 +109,13 @@ export const infoCommands: SlashCommandDefinition[] = [
         await ctx.interaction.reply(resultReply(ctx.t("utility.info.channelTitle", "Channel"), ctx.t("utility.info.channelNotFound", "Channel not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
-      const guildChannel = await ctx.interaction.guild!.channels.fetch(channel.id);
+      const fetchedChannel = await ctx.interaction.guild!.channels.fetch(channel.id).catch(() => null);
+      // Even a channel's name can be private: only describe channels the member can see.
+      const member = await ctx.interaction.guild!.members.fetch(ctx.interaction.user.id).catch(() => null);
+      const guildChannel =
+        fetchedChannel && member && fetchedChannel.permissionsFor(member)?.has(PermissionFlagsBits.ViewChannel)
+          ? fetchedChannel
+          : null;
       if (!guildChannel) {
         await ctx.interaction.reply(resultReply(ctx.t("utility.info.channelTitle", "Channel"), ctx.t("utility.info.channelNotFound", "Channel not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
@@ -132,7 +139,8 @@ export const infoCommands: SlashCommandDefinition[] = [
         return;
       }
       const id = ctx.interaction.options.getString("message_id", true);
-      const message = await channel.messages.fetch(id).catch(() => null);
+      const readable = await memberCanReadChannel(channel, ctx.interaction.user.id);
+      const message = readable ? await channel.messages.fetch(id).catch(() => null) : null;
       if (!message) {
         await ctx.interaction.reply(resultReply(ctx.t("utility.info.messageTitle", "Message"), ctx.t("utility.info.messageNotFoundInChannel", "Message not found in this channel."), ctx.ephemeral, slashResultOptions(ctx)));
         return;

@@ -3,6 +3,7 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import { resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { parseMessageLink } from "../../core/messageLink.js";
+import { memberCanReadChannel } from "../../core/channelAccess.js";
 import {
   DEFAULT_LANGUAGE_CODE,
   languageChoices,
@@ -88,7 +89,10 @@ async function resolveMessageTarget(
     };
   }
 
-  const message = await channel.messages.fetch(messageId).catch(() => null);
+  // The bot can see channels the member can't: only fetch from one they can read themselves.
+  // Same reply as a missing message, so it doesn't confirm what's in a channel they can't see.
+  const readable = "guild" in channel && channel.guild ? await memberCanReadChannel(channel, ctx.interaction.user.id) : false;
+  const message = readable ? await channel.messages.fetch(messageId).catch(() => null) : null;
   if (!message) {
     return {
       ok: false,

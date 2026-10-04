@@ -17,6 +17,7 @@ import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { createInfraction, postCaseLog } from "../../infraction/functions/infractions.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
 import { buildContextNavPayload, fetchMessageAtOffset } from "../functions/contextNav.js";
+import { memberCanReadChannel } from "../../../core/channelAccess.js";
 
 export const moderationCommands: SlashCommandDefinition[] = [
   {
@@ -134,7 +135,8 @@ export const moderationCommands: SlashCommandDefinition[] = [
       if (!channel?.isTextBased() || channel.isDMBased()) return;
 
       const messageId = ctx.interaction.options.getString("message_id", true);
-      const anchor = await channel.messages.fetch(messageId).catch(() => null);
+      const readable = await memberCanReadChannel(channel, ctx.interaction.user.id);
+      const anchor = readable ? await channel.messages.fetch(messageId).catch(() => null) : null;
       if (!anchor) {
         await ctx.interaction.reply(resultReply(ctx.t("utility.moderation.contextTitle", "Context"), ctx.t("utility.moderation.messageNotFound", "Message not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
@@ -168,7 +170,8 @@ export const moderationCommands: SlashCommandDefinition[] = [
       if (!channel?.isTextBased() || channel.isDMBased()) return;
 
       const messageId = ctx.interaction.options.getString("message_id", true);
-      const message = await channel.messages.fetch(messageId).catch(() => null);
+      const readable = await memberCanReadChannel(channel, ctx.interaction.user.id);
+      const message = readable ? await channel.messages.fetch(messageId).catch(() => null) : null;
       if (!message) {
         await ctx.interaction.reply(resultReply(ctx.t("utility.moderation.sourceTitle", "Source"), ctx.t("utility.moderation.messageNotFound", "Message not found."), ctx.ephemeral, slashResultOptions(ctx)));
         return;
