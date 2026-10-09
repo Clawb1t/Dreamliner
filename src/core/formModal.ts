@@ -58,6 +58,7 @@ export function buildFormModal(options: {
         .setStyle(question.style === "paragraph" ? TextInputStyle.Paragraph : TextInputStyle.Short)
         .setRequired(question.required)
         .setMaxLength(question.max_length);
+      if (question.min_length > 0) field.setMinLength(Math.min(question.min_length, question.max_length));
       if (question.placeholder) field.setPlaceholder(question.placeholder);
       modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(field));
       continue;

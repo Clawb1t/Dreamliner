@@ -2209,3 +2209,58 @@ export const userProgressionBadgeHidden = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.badgeKey] })],
 );
+
+/** Appeals against infractions (plugins/appeals), submitted from the website. */
+export const appeals = sqliteTable(
+  "appeals",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    /** The mod_cases id appealed, null for a manual appeal. */
+    caseId: integer("case_id"),
+    /** "case" | "manual" */
+    kind: text("kind").notNull(),
+    /** The appealed infraction's type ("ban", "mute", ...), or "ban" for a manual appeal by a banned user. */
+    infractionType: text("infraction_type"),
+    /** JSON: the infraction as it was when appealed (type, reason, dates), so later edits don't rewrite it. */
+    caseSnapshotJson: text("case_snapshot_json"),
+    formId: text("form_id").notNull().default(""),
+    formName: text("form_name").notNull().default(""),
+    /** JSON: FormAnswer[] */
+    answersJson: text("answers_json").notNull(),
+    /** "pending" | "needs_info" | "approved" | "denied" | "withdrawn" */
+    status: text("status").notNull().default("pending"),
+    reviewerId: text("reviewer_id"),
+    decisionReason: text("decision_reason"),
+    /** Whether approving lifted the punishment, and what happened ("Unbanned", "Couldn't unban: ..."). */
+    reversed: integer("reversed", { mode: "boolean" }).notNull().default(false),
+    reversalNote: text("reversal_note"),
+    reviewChannelId: text("review_channel_id"),
+    reviewMessageId: text("review_message_id"),
+    threadId: text("thread_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    decidedAt: integer("decided_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("appeals_guild_status").on(table.guildId, table.status),
+    index("appeals_guild_user").on(table.guildId, table.userId),
+    index("appeals_case").on(table.caseId),
+  ],
+);
+
+/** Everything that happened to an appeal, oldest first: its timeline and audit trail. */
+export const appealEvents = sqliteTable(
+  "appeal_events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    appealId: integer("appeal_id").notNull(),
+    /** "submitted" | "info_requested" | "info_replied" | "note" (staff only) | "approved" | "denied" | "withdrawn" | "reversed" */
+    kind: text("kind").notNull(),
+    actorId: text("actor_id"),
+    body: text("body"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("appeal_events_appeal").on(table.appealId)],
+);

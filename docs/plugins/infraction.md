@@ -65,6 +65,13 @@ Grant `can_warn`, `can_note`, `can_mute`, `can_kick`, `can_ban`, `can_unban`, `c
 requires the same `can_edit_reason`/`can_edit_duration` permission as editing your own — there's no separate
 elevated threshold.
 
+## DMs and appeals
+
+With `notify.<action>.dm` on, the target is DMed about their infraction. Ban, tempban, softban and kick
+DMs go out **before** the action, while the bot still shares a server with them; if the action then
+fails, the new case is removed again. When the [Appeals](./appeals.md) plugin is on and that infraction
+type is appealable, the DM carries an **Appeal** button linking straight to the appeal page for that case.
+
 ## Auto-escalation
 
 When `escalation.enabled` is `true`, Dreamliner counts a member's qualifying infractions (`escalation.count_types`, within `escalation.window_ms` if set) after every punishment command. If the new total exactly matches a step's `after` value, that step's punishment is applied automatically and logged as its own case with reason `Auto-escalation: reached N infractions`. Steps only fire on an exact match, so keep `after` values strictly increasing (e.g. 3, 5, 8).

@@ -17,7 +17,9 @@ import {
   dmUser,
   isTimedOut,
   isUserMuted,
+  deleteInfraction,
   postCaseLog,
+  unbanUser,
 } from "../functions/infractions.js";
 import { buildActionConfirmLine } from "../functions/embeds.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
@@ -38,27 +40,19 @@ const ACTION_EMOJI: Record<string, string> = {
   softban: "<:icons_clean:1544417689320034304>",
 };
 
-async function finishAction(
+/**
+ * DMs the target about their infraction (with an Appeal button when the Appeals plugin allows it)
+ * and logs a failed DM. Bans and kicks call this *before* acting, while the bot still shares a
+ * server with the user; everything else gets it from finishAction.
+ */
+async function notifyTarget(
   ctx: Parameters<SlashCommandDefinition["execute"]>[0],
   pluginConfig: InfractionConfig,
   type: string,
   user: import("discord.js").User,
   reason: string,
   record: Awaited<ReturnType<typeof createInfraction>>,
-  durationLabel?: string | null,
 ) {
-  await postCaseLog(ctx.client, ctx.guildConfig, pluginConfig, record, user, ctx.interaction.user, { durationLabel: durationLabel ?? null });
-
-  const { maybeEscalate } = await import("../functions/escalation.js");
-  await maybeEscalate({
-    client: ctx.client,
-    guild: ctx.interaction.guild!,
-    guildConfig: ctx.guildConfig,
-    pluginConfig,
-    user,
-    triggeringType: record.type,
-  }).catch((err) => log.error("Escalation error:", err));
-
   const { translatorFor } = await import("../../../i18n/index.js");
   const { t: userT } = await translatorFor(user.id);
   const notifyKey = type.replace("temp", "") as keyof InfractionConfig["notify"];
@@ -75,7 +69,9 @@ async function finishAction(
     userT,
   );
   if (notifyMsg) {
-    const sent = await dmUser(user, pluginConfig, notifyKey in pluginConfig.notify ? notifyKey : "warn", notifyMsg);
+    const { appealDmComponents } = await import("../../appeals/functions/links.js");
+    const appealRow = appealDmComponents(ctx.guildConfig, ctx.interaction.guildId!, record);
+    const sent = await dmUser(user, pluginConfig, notifyKey in pluginConfig.notify ? notifyKey : "warn", notifyMsg, appealRow);
     if (!sent) {
       const { buildDmFailedLog } = await import("../../../core/logging/format.js");
       const { sendModerationLog } = await import("../../../core/logging/send.js");
@@ -96,6 +92,32 @@ async function finishAction(
       );
     }
   }
+}
+
+async function finishAction(
+  ctx: Parameters<SlashCommandDefinition["execute"]>[0],
+  pluginConfig: InfractionConfig,
+  type: string,
+  user: import("discord.js").User,
+  reason: string,
+  record: Awaited<ReturnType<typeof createInfraction>>,
+  durationLabel?: string | null,
+  /** The target was already DMed (bans and kicks DM before acting). */
+  alreadyNotified = false,
+) {
+  await postCaseLog(ctx.client, ctx.guildConfig, pluginConfig, record, user, ctx.interaction.user, { durationLabel: durationLabel ?? null });
+
+  const { maybeEscalate } = await import("../functions/escalation.js");
+  await maybeEscalate({
+    client: ctx.client,
+    guild: ctx.interaction.guild!,
+    guildConfig: ctx.guildConfig,
+    pluginConfig,
+    user,
+    triggeringType: record.type,
+  }).catch((err) => log.error("Escalation error:", err));
+
+  if (!alreadyNotified) await notifyTarget(ctx, pluginConfig, type, user, reason, record);
 
   const line = buildActionConfirmLine(type, user.id, reason, durationLabel, ctx.t);
   const emoji = ACTION_EMOJI[type];
@@ -346,7 +368,6 @@ export const actionCommands: SlashCommandDefinition[] = [
       const rawReason = ctx.interaction.options.getString("reason");
       if (await replyIfReasonRequired(ctx, auth.pluginConfig, "kick", rawReason, ctx.t("infraction.kickTitle", "Kick"))) return;
       const reason = formatReason(rawReason);
-      await target.kick(reason);
 
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
@@ -356,7 +377,16 @@ export const actionCommands: SlashCommandDefinition[] = [
         reason,
         active: false,
       });
-      await finishAction(ctx, auth.pluginConfig, "kick", user, reason, record);
+      // DM first, while the bot still shares a server with them (so the DM, and its Appeal
+      // button, actually arrive). If the kick then fails, the case is taken back off their record.
+      await notifyTarget(ctx, auth.pluginConfig, "kick", user, reason, record);
+      try {
+        await target.kick(reason);
+      } catch (error) {
+        await deleteInfraction(ctx.interaction.guildId!, record.id);
+        throw error;
+      }
+      await finishAction(ctx, auth.pluginConfig, "kick", user, reason, record, null, true);
     },
   },
   {
@@ -390,8 +420,6 @@ export const actionCommands: SlashCommandDefinition[] = [
       if (await replyIfReasonRequired(ctx, auth.pluginConfig, "ban", rawReason, ctx.t("infraction.banTitle", "Ban"))) return;
       const reason = formatReason(rawReason);
 
-      await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
-
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
         userId: user.id,
@@ -399,8 +427,16 @@ export const actionCommands: SlashCommandDefinition[] = [
         type: "ban",
         reason,
       });
+      // DM first (see /kick), then ban.
+      await notifyTarget(ctx, auth.pluginConfig, "ban", user, reason, record);
+      try {
+        await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
+      } catch (error) {
+        await deleteInfraction(ctx.interaction.guildId!, record.id);
+        throw error;
+      }
 
-      await finishAction(ctx, auth.pluginConfig, "ban", user, reason, record);
+      await finishAction(ctx, auth.pluginConfig, "ban", user, reason, record, null, true);
     },
   },
   {
@@ -454,8 +490,6 @@ export const actionCommands: SlashCommandDefinition[] = [
       if (await replyIfReasonRequired(ctx, auth.pluginConfig, "tempban", rawReason, ctx.t("infraction.tempbanTitle", "Tempban"))) return;
       const reason = formatReason(rawReason);
 
-      await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
-
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
         userId: user.id,
@@ -464,8 +498,16 @@ export const actionCommands: SlashCommandDefinition[] = [
         reason,
         expiresAt: new Date(Date.now() + durationMs),
       });
+      // DM first (see /kick), then ban.
+      await notifyTarget(ctx, auth.pluginConfig, "tempban", user, reason, record);
+      try {
+        await ctx.interaction.guild!.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
+      } catch (error) {
+        await deleteInfraction(ctx.interaction.guildId!, record.id);
+        throw error;
+      }
 
-      await finishAction(ctx, auth.pluginConfig, "tempban", user, reason, record, formatDurationShort(durationMs));
+      await finishAction(ctx, auth.pluginConfig, "tempban", user, reason, record, formatDurationShort(durationMs), true);
     },
   },
   {
@@ -486,18 +528,8 @@ export const actionCommands: SlashCommandDefinition[] = [
       const userId = ctx.interaction.options.getString("user_id", true);
       const reason = formatReason(ctx.interaction.options.getString("reason"));
 
-      await ctx.interaction.guild!.members.unban(userId, reason);
-      await deactivateInfractions(ctx.interaction.guildId!, userId, ["ban", "tempban"]);
-
+      const record = await unbanUser(ctx.interaction.guild!, userId, ctx.interaction.user.id, reason);
       const user = await ctx.client.users.fetch(userId).catch(() => null);
-      const record = await createInfraction({
-        guildId: ctx.interaction.guildId!,
-        userId,
-        modId: ctx.interaction.user.id,
-        type: "unban",
-        reason,
-        active: false,
-      });
       await finishAction(ctx, auth.pluginConfig, "unban", user ?? { id: userId, tag: userId } as import("discord.js").User, reason, record);
     },
   },
@@ -530,9 +562,6 @@ export const actionCommands: SlashCommandDefinition[] = [
       const reason = formatReason(rawReason);
       const guild = ctx.interaction.guild!;
 
-      await guild.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
-      await guild.members.unban(user.id, "Softban");
-
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
         userId: user.id,
@@ -541,7 +570,16 @@ export const actionCommands: SlashCommandDefinition[] = [
         reason,
         active: false,
       });
-      await finishAction(ctx, auth.pluginConfig, "softban", user, reason, record);
+      // DM first (see /kick), then softban.
+      await notifyTarget(ctx, auth.pluginConfig, "softban", user, reason, record);
+      try {
+        await guild.members.ban(user.id, { deleteMessageSeconds: deleteDays * 86400, reason });
+      } catch (error) {
+        await deleteInfraction(ctx.interaction.guildId!, record.id);
+        throw error;
+      }
+      await guild.members.unban(user.id, "Softban");
+      await finishAction(ctx, auth.pluginConfig, "softban", user, reason, record, null, true);
     },
   },
 ];

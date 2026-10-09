@@ -47,6 +47,8 @@ export type WebModCase = {
   publishedAt?: string | null;
   evidenceCaptures?: EvidenceCapture[];
   evidenceFiles?: WebCaseEvidenceFile[];
+  /** Appeals filed against this case (detail view only). */
+  appeals?: Array<{ id: number; status: string; createdAt: string }>;
 };
 
 const CASE_TYPES = [...INFRACTION_TYPES, "clean"] as const;
@@ -214,6 +216,9 @@ export async function getWebModCase(guild: Guild, caseId: number) {
     db.select().from(caseEvidenceFiles).where(eq(caseEvidenceFiles.caseId, caseId)).all(),
   ]);
 
+  const { appealsForCases } = await import("./webAppeals.js");
+  const appeals = await appealsForCases(guild, [row.id]).catch(() => []);
+
   const detail: WebModCase = {
     id: row.id,
     type: row.type,
@@ -238,6 +243,7 @@ export async function getWebModCase(guild: Guild, caseId: number) {
       uploadedBy: file.uploadedBy,
       uploadedAt: toIso(file.uploadedAt) ?? new Date(0).toISOString(),
     })),
+    appeals: appeals.map(({ id, status, createdAt }) => ({ id, status, createdAt })),
   };
 
   return detail;
@@ -401,6 +407,8 @@ export type PublicCaseDetail = {
     mod: WebPerson;
     evidenceCaptures: EvidenceCapture[];
     evidenceFiles: Array<Omit<WebCaseEvidenceFile, "uploadedBy">>;
+    /** Set when the server takes appeals for this kind of case: the appeal page for it. */
+    appealUrl: string | null;
   };
 };
 
@@ -424,6 +432,7 @@ export async function getPublicCase(client: Client, token: string): Promise<Publ
     listEvidenceForCase(guild, row.id),
     db.select().from(caseEvidenceFiles).where(eq(caseEvidenceFiles.caseId, row.id)).all(),
   ]);
+  const appealUrl = await publicAppealUrl(guild, row.id, row.type);
 
   return {
     guild: { id: guild.id, name: guild.name, icon: guild.icon },
@@ -444,8 +453,25 @@ export async function getPublicCase(client: Client, token: string): Promise<Publ
         caption: file.caption,
         uploadedAt: toIso(file.uploadedAt) ?? new Date(0).toISOString(),
       })),
+      appealUrl,
     },
   };
+}
+
+/** The appeal link for a public case page, or null when Appeals is off or the type isn't appealable. */
+async function publicAppealUrl(guild: Guild, caseId: number, type: string): Promise<string | null> {
+  try {
+    const [{ configManager }, { activeAppealsConfig, ruleFor }, { getAppealsUrl }] = await Promise.all([
+      import("../config/manager.js"),
+      import("../plugins/appeals/functions/config.js"),
+      import("../core/docsUrl.js"),
+    ]);
+    const config = activeAppealsConfig(await configManager.getEffectiveConfig(guild.id));
+    if (!config?.accepting || !ruleFor(config, type)?.enabled) return null;
+    return getAppealsUrl(guild.id, caseId);
+  } catch {
+    return null;
+  }
 }
 
 /** Token-scoped file read for the public case page. Verifies the file actually belongs to

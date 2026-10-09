@@ -61,6 +61,8 @@ import { handleSuggestModalSubmit } from "./plugins/suggestions/functions/modal.
 import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functions/handlers.js";
 import { TICKET_PREFIX } from "./plugins/tickets/constants.js";
 import { APPLICATION_PREFIX } from "./plugins/applications/constants.js";
+import { APPEAL_PREFIX } from "./plugins/appeals/constants.js";
+import { handleAppealButtonInteraction, handleAppealModalSubmit } from "./plugins/appeals/functions/interactions.js";
 import { BLUESKY_PREFIX } from "./plugins/bluesky/constants.js";
 import { handleBlueskyButtonInteraction } from "./plugins/bluesky/functions/interactions.js";
 import {
@@ -374,6 +376,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Application button", () => handleApplicationButtonInteraction(interaction));
         if (handled) return;
       }
+      if (interaction.customId.startsWith(APPEAL_PREFIX)) {
+        const handled = await safeHandle(interaction, "Appeal button", () => handleAppealButtonInteraction(interaction));
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(BLUESKY_PREFIX)) {
         const handled = await safeHandle(interaction, "Bluesky button", () => handleBlueskyButtonInteraction(interaction));
         if (handled) return;
@@ -470,6 +476,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(APPLICATION_PREFIX)) {
         const handled = await safeHandle(interaction, "Application modal", () => handleApplicationModalSubmit(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(APPEAL_PREFIX)) {
+        const handled = await safeHandle(interaction, "Appeal modal", () => handleAppealModalSubmit(interaction));
         if (handled) return;
       }
       if (interaction.customId === REVIEW_MODAL_ID) {

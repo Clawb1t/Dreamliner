@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import http from "node:http";
 import type { Client, Guild } from "discord.js";
 import { ChannelType, PermissionFlagsBits } from "discord.js";
@@ -10,6 +11,7 @@ import {
 } from "./env.js";
 import { isDashboardSuperuser } from "./superuser.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
+import { bridgeRateLimit, clipPasswordFailures } from "./rateLimit.js";
 import { getLogger } from "../core/logger.js";
 import type { WebMusicTrack } from "./webMusic.js";
 import type { CreateGiveawayInput } from "./webGiveaways.js";
@@ -105,7 +107,11 @@ async function buildStatus(client: Client): Promise<BridgeStatusPayload> {
 function authorized(req: http.IncomingMessage, secret: string): boolean {
   const header = req.headers.authorization ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
-  return Boolean(match && match[1] === secret);
+  if (!match) return false;
+  // Constant-time compare, so response timing can't reveal the secret a character at a time.
+  const given = Buffer.from(match[1]!);
+  const expected = Buffer.from(secret);
+  return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 function sendJson(res: http.ServerResponse, status: number, body: unknown): void {
@@ -321,6 +327,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         if (!authorized(req, secret)) {
           sendJson(res, 401, { error: "Unauthorized" });
+          return;
+        }
+
+        const retryAfter = bridgeRateLimit(req.method ?? "GET", url);
+        if (retryAfter !== null) {
+          res.setHeader("Retry-After", String(retryAfter));
+          sendJson(res, 429, { error: `Too many requests. Try again in ${retryAfter}s.`, retryAfter });
           return;
         }
 
@@ -1429,16 +1442,23 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 400, { error: "Invalid JSON body" });
             return;
           }
-          if (typeof body.password !== "string" || !body.password) {
+          if (typeof body.password !== "string" || !body.password || body.password.length > 256) {
             sendJson(res, 400, { error: "password is required." });
             return;
           }
+          // Guessing a clip's password is capped per clip, whichever IPs the guesses come from.
+          const clipKey = clipVerifyPasswordMatch[1]!;
+          if (!clipPasswordFailures.check(clipKey)) {
+            sendJson(res, 429, { error: "Too many wrong passwords for this clip. Try again in a few minutes." });
+            return;
+          }
           const { verifyClipPassword } = await import("./webClips.js");
-          const result = await verifyClipPassword(clipVerifyPasswordMatch[1]!, body.password);
+          const result = await verifyClipPassword(clipKey, body.password);
           if (!result.ok) {
             sendJson(res, result.status, { error: result.error });
             return;
           }
+          if (!result.valid) clipPasswordFailures.take(clipKey);
           sendJson(res, 200, result);
           return;
         }
@@ -2677,6 +2697,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const watchdogMatch = /^\/bridge\/guilds\/(\d+)\/watchdog$/.exec(url.pathname);
         const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
         const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
+        // Appeals: /page, /stats, /diagnostics, /assets (upload) and /background/:assetId (public
+        // image); the appellant's /mine/:id[/reply|/withdraw];
+        // staff /:id[/decision|/info|/note]; and the bare path (GET list, POST submit).
+        const appealsMatch =
+          /^\/bridge\/guilds\/(\d+)\/appeals(?:\/(page|stats|diagnostics|assets)|\/background\/([a-zA-Z0-9_-]{1,64})|\/mine\/(\d+)(?:\/(reply|withdraw))?|\/(\d+)(?:\/(decision|info|note))?)?$/.exec(
+            url.pathname,
+          );
         const applicationsMatch =
           /^\/bridge\/guilds\/(\d+)\/applications(?:\/(\d+)(\/decision)?|\/openings\/([0-9a-fA-F-]{36})\/publish)?$/.exec(
             url.pathname,
@@ -2840,6 +2867,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !reviewOneMatch &&
           !reviewsMatch &&
           !applicationsMatch &&
+          !appealsMatch &&
           !suggestionActionMatch &&
           !suggestionCommentOneMatch &&
           !suggestionCommentsMatch &&
@@ -2950,6 +2978,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           reviewOneMatch?.[1] ??
           reviewsMatch?.[1] ??
           applicationsMatch?.[1] ??
+          appealsMatch?.[1] ??
           suggestionActionMatch?.[1] ??
           suggestionCommentOneMatch?.[1] ??
           suggestionCommentsMatch?.[1] ??
@@ -6298,6 +6327,181 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { buildWebWatchdogList } = await import("./webWatchdog.js");
           const payload = await buildWebWatchdogList(guild);
           sendJson(res, 200, { ok: true, ...payload });
+          return;
+        }
+
+        if (appealsMatch) {
+          const web = await import("./webAppeals.js");
+          const [, , sub, backgroundId, mineIdRaw, mineAction, staffIdRaw, staffAction] = appealsMatch;
+          const readJson = async (): Promise<Record<string, unknown> | null> => {
+            try {
+              return JSON.parse((await readBody(req)) || "{}") as Record<string, unknown>;
+            } catch {
+              return null;
+            }
+          };
+
+          // --- The appellant (public page). Members or not: banned users can't be members. The
+          // website sends the signed-in Discord user's id; nothing here needs Manage Server.
+          if (sub === "page" && req.method === "GET") {
+            sendJson(res, 200, await web.buildAppealsPagePayload(guild, url.searchParams.get("userId")));
+            return;
+          }
+          // The uploaded page background: public (appellants may be banned), addressed by its
+          // unguessable id, and only ever a PNG the bot re-encoded itself.
+          if (backgroundId) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const { readPageAsset } = await import("../core/pageAssets.js");
+            const buf = readPageAsset(guild.id, "appeals", backgroundId);
+            if (!buf) {
+              sendJson(res, 404, { error: "Image not found" });
+              return;
+            }
+            sendBinary(res, 200, buf, "image/png");
+            return;
+          }
+          if (sub === "assets") {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const body = await readJson();
+            const userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+            if (!body || !userId || typeof body.imageBase64 !== "string") {
+              sendJson(res, 400, { error: "userId and imageBase64 are required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            try {
+              const { decodeBase64Upload, savePageAsset } = await import("../core/pageAssets.js");
+              const saved = await savePageAsset(guild.id, "appeals", decodeBase64Upload(body.imageBase64));
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Appeals background uploaded",
+                summary: "An Appeals page background was uploaded from the dashboard.",
+                details: [`Asset: \`${saved.assetId}\``],
+                payload: { assetId: saved.assetId },
+              });
+              sendJson(res, 200, { ok: true, ...saved });
+            } catch (error) {
+              sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to upload image" });
+            }
+            return;
+          }
+          if (!sub && !mineIdRaw && !staffIdRaw && req.method === "POST") {
+            const body = await readJson();
+            const userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+            if (!body || !/^\d{17,20}$/.test(userId)) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!web.publicWriteAllowed(userId)) {
+              sendJson(res, 429, { error: "Slow down a little and try again in a minute." });
+              return;
+            }
+            const result = await web.submitWebAppeal(guild, userId, body);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          if (mineIdRaw) {
+            const appealId = Number(mineIdRaw);
+            if (!mineAction && req.method === "GET") {
+              const userId = url.searchParams.get("userId")?.trim() ?? "";
+              const appeal = userId ? await web.getMyAppeal(guild, appealId, userId) : null;
+              if (!appeal) {
+                sendJson(res, 404, { error: "Appeal not found" });
+                return;
+              }
+              sendJson(res, 200, { ok: true, ...appeal });
+              return;
+            }
+            if (mineAction && req.method === "POST") {
+              const body = await readJson();
+              const userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+              if (!body || !userId) {
+                sendJson(res, 400, { error: "userId is required" });
+                return;
+              }
+              if (!web.publicWriteAllowed(userId)) {
+                sendJson(res, 429, { error: "Slow down a little and try again in a minute." });
+                return;
+              }
+              const result =
+                mineAction === "reply"
+                  ? await web.replyToWebAppeal(guild, appealId, userId, typeof body.reply === "string" ? body.reply : "")
+                  : await web.withdrawWebAppeal(guild, appealId, userId);
+              sendJson(res, result.ok ? 200 : 400, result.ok ? { ok: true } : result);
+              return;
+            }
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+
+          // --- Staff (View Appeals). Server managers, or anyone with the Appeals permission.
+          const body = req.method === "POST" ? await readJson() : {};
+          if (body === null) {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const staffId = (url.searchParams.get("userId") ?? (typeof body.userId === "string" ? body.userId : ""))?.trim();
+          if (!staffId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          const canManage = await memberCanManage(guild, staffId);
+          const needs = staffAction ? "can_review" : "can_view";
+          if (!(await web.staffCan(guild, staffId, needs, canManage))) {
+            sendJson(res, 403, { error: "You don't have permission to see appeals in this server." });
+            return;
+          }
+          if (req.method === "GET" && !sub && !staffIdRaw) {
+            sendJson(res, 200, await web.listWebAppeals(guild, web.parseAppealsQuery(url)));
+            return;
+          }
+          if (req.method === "GET" && sub === "stats") {
+            sendJson(res, 200, web.webAppealStats(guild, Number(url.searchParams.get("days")) || 30));
+            return;
+          }
+          if (req.method === "GET" && sub === "diagnostics") {
+            sendJson(res, 200, await web.appealDiagnostics(guild));
+            return;
+          }
+          if (staffIdRaw && !staffAction && req.method === "GET") {
+            const appeal = await web.getWebAppeal(guild, Number(staffIdRaw), staffId);
+            if (!appeal) {
+              sendJson(res, 404, { error: "Appeal not found" });
+              return;
+            }
+            sendJson(res, 200, { appeal });
+            return;
+          }
+          if (staffIdRaw && staffAction && req.method === "POST") {
+            const appealId = Number(staffIdRaw);
+            const result = await web.staffAppealAction(guild, appealId, staffId, staffAction as "decision" | "info" | "note", body);
+            if (!result.ok) {
+              sendJson(res, 409, { error: result.error });
+              return;
+            }
+            if (staffAction === "decision") {
+              trackDashboardAction(client, guildId, staffId, {
+                eventType: "dashboard_config",
+                title: result.appeal.status === "approved" ? "Appeal approved" : "Appeal denied",
+                summary: `Appeal \`#${appealId}\` was ${result.appeal.status} from the dashboard.`,
+                targetId: String(appealId),
+                details: result.appeal.decisionReason ? [`Reason: ${result.appeal.decisionReason}`] : [],
+                payload: { action: "appeal_decision", appealId, decision: result.appeal.status },
+              });
+            }
+            sendJson(res, 200, { ok: true, notes: result.notes, appeal: await web.getWebAppeal(guild, appealId, staffId) });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

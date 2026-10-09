@@ -1146,3 +1146,34 @@ export function buildGenericServerLog(
 ): LogCard {
   return card(title, [`Time: ${logTimestamp()}`, ...lines], { avatarUrl, emojiCategory });
 }
+
+/** Appeals plugin events: submitted, decided, info requested or replied, reversal failed. */
+export function buildAppealLog(input: {
+  title: string;
+  appealId: number;
+  user: LogRef;
+  actor?: LogRef | null;
+  /** e.g. "Ban (case #42)" or "Manual appeal" */
+  subject: string;
+  reason?: string | null;
+  note?: string | null;
+  url?: string | null;
+}): LogCard {
+  return card(
+    input.title,
+    [
+      `Time: ${logTimestamp()}`,
+      `Appeal: ${bold(`#${input.appealId}`)}`,
+      ...userLines(input.user, "User"),
+      input.actor ? userLine(input.actor, "Staff") : "",
+      `Appealing: ${bold(input.subject)}`,
+      input.reason ? `Reason: ${escapeInline(input.reason.slice(0, 500))}` : "",
+      input.note ? `Note: ${escapeInline(input.note.slice(0, 300))}` : "",
+    ],
+    {
+      avatarUrl: input.user.avatarUrl,
+      emojiCategory: "modDefault",
+      buttons: input.url ? [{ label: "View appeal", url: input.url, style: "link" }] : undefined,
+    },
+  );
+}

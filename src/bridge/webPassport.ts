@@ -19,15 +19,14 @@ import {
   savePassportBackgroundAsset,
 } from "../plugins/passport/functions/assets.js";
 import { isDashboardSuperuser } from "./superuser.js";
+import { decodeBase64Upload } from "../core/pageAssets.js";
 import type { PassportPageConfig } from "../config/schemas/passport.js";
 
 export async function uploadPassportBackground(
   guildId: string,
   base64: string,
 ): Promise<{ assetId: string; bytes: number }> {
-  const cleaned = base64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "");
-  const raw = Buffer.from(cleaned, "base64");
-  return savePassportBackgroundAsset(guildId, raw);
+  return savePassportBackgroundAsset(guildId, decodeBase64Upload(base64));
 }
 
 export function getPassportBackground(guildId: string, assetId: string): Buffer | null {

@@ -10,6 +10,7 @@ import { zTicketsPluginSection } from "./tickets.js";
 import { zGiveawaysPluginSection } from "./giveaways.js";
 import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
+import { zAppealsPluginSection } from "./appeals.js";
 import { zIncidentResponsePluginSection } from "./incidentResponse.js";
 import { zEconomyPluginSection } from "./economy.js";
 import { zMusicPluginSection } from "./music.js";
@@ -347,6 +348,7 @@ export const zGuildConfig = z.strictObject({
       activity_rewards: zActivityRewardsPluginSection.default({}),
       birthdays: zBirthdaysPluginSection.default({}),
       applications: zApplicationsPluginSection.default({}),
+      appeals: zAppealsPluginSection.default({}),
     })
     .default({}),
 });

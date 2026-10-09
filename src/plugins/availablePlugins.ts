@@ -47,6 +47,7 @@ import { imagesPlugin } from "../plugins/images/index.js";
 import { activityRewardsPlugin } from "../plugins/activity_rewards/index.js";
 import { birthdaysPlugin } from "../plugins/birthdays/index.js";
 import { applicationsPlugin } from "../plugins/applications/index.js";
+import { appealsPlugin } from "../plugins/appeals/index.js";
 import { ttsPlugin } from "../plugins/tts/index.js";
 import { clippingPlugin } from "../plugins/clipping/index.js";
 import { musicPlugin } from "../plugins/music/index.js";
@@ -102,6 +103,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   activityRewardsPlugin,
   birthdaysPlugin,
   applicationsPlugin,
+  appealsPlugin,
   ttsPlugin,
   clippingPlugin,
   musicPlugin,

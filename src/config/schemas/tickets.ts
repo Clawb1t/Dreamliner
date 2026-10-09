@@ -75,6 +75,13 @@ export const zTicketFormQuestion = z
       .max(100)
       .default("")
       .describe("Optional placeholder text shown in the empty field. Only used when type is \"text\"."),
+    min_length: z
+      .number()
+      .int()
+      .min(0)
+      .max(4000)
+      .default(0)
+      .describe("Minimum answer length (0 = no minimum). Only used when type is \"text\"."),
     max_length: z
       .number()
       .int()
@@ -119,6 +126,9 @@ export const zTicketFormQuestion = z
     }
     if (question.type === "text_display" && !question.content?.trim()) {
       ctx.addIssue({ code: "custom", message: "Give this text block some content.", path: ["content"] });
+    }
+    if (question.min_length > question.max_length) {
+      ctx.addIssue({ code: "custom", message: "Minimum length cannot be longer than the maximum.", path: ["min_length"] });
     }
     if (question.min_values !== undefined && question.max_values !== undefined && question.min_values > question.max_values) {
       ctx.addIssue({ code: "custom", message: "Minimum cannot be greater than maximum.", path: ["min_values"] });

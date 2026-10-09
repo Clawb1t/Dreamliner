@@ -22,6 +22,7 @@ import {
 import { formatReason } from "../../infraction/functions/moderation.js";
 import type { AutomodHit } from "./detectors/types.js";
 import { translatorFor } from "../../../i18n/index.js";
+import { appealDmComponents } from "../../appeals/functions/links.js";
 
 const log = getLogger("automod");
 
@@ -128,6 +129,11 @@ export async function applyAutomodHit(options: {
 
   const infractionConfig = getPluginSettings(guildConfig, "infractions") as InfractionConfig;
   const modId = client.user!.id;
+  // Automod DMs carry the same Appeal button as moderators' (when the Appeals plugin allows it).
+  const withAppeal = (record: { id: number; type: string }, text: string) => {
+    const components = appealDmComponents(guildConfig, guildId, record);
+    return components.length > 0 ? { content: text, components } : text;
+  };
   const actionLabels: string[] = [];
   const { t } = await translatorFor(user.id);
   const createdTypes: string[] = [];
@@ -182,10 +188,10 @@ export async function applyAutomodHit(options: {
       if (notify) {
         await user
           .send(
-            t("automod.dmWarn", "You were warned by Automod in **{guild}**: {reason}", {
+            withAppeal(record, t("automod.dmWarn", "You were warned by Automod in **{guild}**: {reason}", {
               guild: guild.name,
               reason: actionReason,
-            }),
+            })),
           )
           .catch(() => null);
       }
@@ -216,10 +222,10 @@ export async function applyAutomodHit(options: {
       if (notify) {
         await user
           .send(
-            t("automod.dmMute", "You were timed out by Automod in **{guild}**: {reason}", {
+            withAppeal(record, t("automod.dmMute", "You were timed out by Automod in **{guild}**: {reason}", {
               guild: guild.name,
               reason: actionReason,
-            }),
+            })),
           )
           .catch(() => null);
       }
@@ -244,10 +250,10 @@ export async function applyAutomodHit(options: {
       if (notify) {
         await user
           .send(
-            t("automod.dmKick", "You were kicked by Automod from **{guild}**: {reason}", {
+            withAppeal(record, t("automod.dmKick", "You were kicked by Automod from **{guild}**: {reason}", {
               guild: guild.name,
               reason: actionReason,
-            }),
+            })),
           )
           .catch(() => null);
       }

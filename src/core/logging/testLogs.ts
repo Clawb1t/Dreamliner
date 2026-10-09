@@ -3,6 +3,7 @@ import type { GuildConfig } from "../../config/schemas/guild.js";
 import { getModerationLogChannelId, getServerLogChannelId } from "./channels.js";
 import { LOG_EVENT_META, LOG_EVENT_TYPES, type LogEventType } from "./events.js";
 import {
+  buildAppealLog,
   buildAutomodLog,
   buildCaseCreateLog,
   buildCaseDeleteLog,
@@ -243,6 +244,45 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       ctx.target.avatarUrl,
       "modSevere",
     ),
+  appeal_submitted: (ctx) =>
+    buildAppealLog({ title: "Appeal Submitted", appealId: 12, user: ctx.target, subject: "Ban (case #42)" }),
+  appeal_approved: (ctx) =>
+    buildAppealLog({
+      title: "Appeal Approved",
+      appealId: 12,
+      user: ctx.target,
+      actor: ctx.actor,
+      subject: "Ban (case #42)",
+      reason: "Apologised and understands the rules.",
+      note: "Unbanned",
+    }),
+  appeal_denied: (ctx) =>
+    buildAppealLog({
+      title: "Appeal Denied",
+      appealId: 12,
+      user: ctx.target,
+      actor: ctx.actor,
+      subject: "Ban (case #42)",
+      reason: "Second offence for the same thing.",
+    }),
+  appeal_info: (ctx) =>
+    buildAppealLog({
+      title: "Appeal Needs Info",
+      appealId: 12,
+      user: ctx.target,
+      actor: ctx.actor,
+      subject: "Ban (case #42)",
+      reason: "Which account did you use to evade?",
+    }),
+  appeal_reversal_failed: (ctx) =>
+    buildAppealLog({
+      title: "Appeal Couldn't Lift Punishment",
+      appealId: 12,
+      user: ctx.target,
+      actor: ctx.actor,
+      subject: "Ban (case #42)",
+      note: "Couldn't unban: missing Ban Members",
+    }),
   economy_admin_change: (ctx) =>
     buildGenericServerLog(
       "Economy Settings Change",

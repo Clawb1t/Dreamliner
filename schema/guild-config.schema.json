@@ -12212,6 +12212,14 @@
                                     "description": "Optional placeholder text shown in the empty field. Only used when type is \"text\".",
                                     "title": "Placeholder"
                                   },
+                                  "min_length": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 4000,
+                                    "default": 0,
+                                    "description": "Minimum answer length (0 = no minimum). Only used when type is \"text\".",
+                                    "title": "Min Length"
+                                  },
                                   "max_length": {
                                     "type": "integer",
                                     "minimum": 1,
@@ -16024,6 +16032,14 @@
                               "description": "Optional placeholder text shown in the empty field. Only used when type is \"text\".",
                               "title": "Placeholder"
                             },
+                            "min_length": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4000,
+                              "default": 0,
+                              "description": "Minimum answer length (0 = no minimum). Only used when type is \"text\".",
+                              "title": "Min Length"
+                            },
                             "max_length": {
                               "type": "integer",
                               "minimum": 1,
@@ -16258,6 +16274,1181 @@
           "additionalProperties": false,
           "default": {},
           "title": "Applications"
+        },
+        "appeals": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "accepting": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether new appeals are accepted. Turn off to pause appeals without losing the setup.",
+                  "title": "Accepting"
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "headline": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "Appeal a punishment in {guild}",
+                      "description": "Page headline. Supports {guild}.",
+                      "title": "Headline"
+                    },
+                    "body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Sign in with Discord to see what's on file for you and ask the staff team to take another look.",
+                      "description": "Text under the headline. Supports {guild}.",
+                      "title": "Body"
+                    },
+                    "guidelines": {
+                      "type": "string",
+                      "maxLength": 4000,
+                      "default": "",
+                      "description": "Optional guidelines shown before the form, e.g. how appeals are reviewed. Markdown.",
+                      "title": "Guidelines"
+                    },
+                    "login_button_label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Continue with Discord",
+                      "description": "Sign-in button label.",
+                      "title": "Login Button Label"
+                    },
+                    "inherit_accent": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Use this server's public accent color on the page.",
+                      "title": "Inherit Accent"
+                    },
+                    "accent_color": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215,
+                      "default": 5661429,
+                      "description": "Page accent when inherit_accent is off.",
+                      "title": "Accent Color",
+                      "x-dreamliner": {
+                        "kind": "color",
+                        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                      }
+                    },
+                    "background": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "color",
+                        "url",
+                        "asset",
+                        "guild_banner"
+                      ],
+                      "default": "none",
+                      "description": "Page background source. asset is an image uploaded from the dashboard.",
+                      "title": "Background"
+                    },
+                    "background_color": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215,
+                      "default": 16053751,
+                      "description": "Solid background when the background is color.",
+                      "title": "Background Color",
+                      "x-dreamliner": {
+                        "kind": "color",
+                        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                      }
+                    },
+                    "background_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "pattern": "^(https:\\/\\/\\S+)?$",
+                      "default": "",
+                      "description": "Background image URL (https) when the background is url.",
+                      "title": "Background Url"
+                    },
+                    "background_asset_id": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "pattern": "^[a-zA-Z0-9_-]*$",
+                      "default": "",
+                      "description": "Uploaded background image. Set by the dashboard, do not edit by hand.",
+                      "title": "Background Asset Id",
+                      "x-dreamliner": {
+                        "kind": "snowflake",
+                        "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                      }
+                    },
+                    "show_server_icon": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the server icon on the page.",
+                      "title": "Show Server Icon"
+                    },
+                    "show_moderator": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Show which moderator issued each infraction. Off keeps staff anonymous.",
+                      "title": "Show Moderator"
+                    },
+                    "show_case_reason": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the reason recorded on each infraction.",
+                      "title": "Show Case Reason"
+                    },
+                    "submitted_title": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "Appeal sent",
+                      "description": "Title once an appeal is submitted.",
+                      "title": "Submitted Title"
+                    },
+                    "submitted_body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Thanks. The staff team will review it and you'll get a DM when there's an answer. You can check on it here any time.",
+                      "description": "Text once an appeal is submitted.",
+                      "title": "Submitted Body"
+                    },
+                    "closed_title": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "default": "Appeals are closed",
+                      "description": "Title when appeals are turned off.",
+                      "title": "Closed Title"
+                    },
+                    "closed_body": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "This server isn't taking appeals right now.",
+                      "description": "Text when appeals are turned off.",
+                      "title": "Closed Body"
+                    },
+                    "link_on_server_page": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show an \"Appeal a punishment\" link on the server's public page.",
+                      "title": "Link On Server Page"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Page"
+                },
+                "types": {
+                  "type": "object",
+                  "properties": {
+                    "ban": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Whether this kind of infraction can be appealed.",
+                          "title": "Enabled"
+                        },
+                        "form_id": {
+                          "type": "string",
+                          "maxLength": 64,
+                          "default": "",
+                          "description": "Which appeal form to use. Empty uses the first form.",
+                          "title": "Form Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "min_wait": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long after the infraction before it can be appealed, e.g. 24h. Empty for straight away.",
+                          "title": "Min Wait"
+                        },
+                        "window": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long the infraction stays appealable, e.g. 90d. Empty for forever.",
+                          "title": "Window"
+                        },
+                        "allow_inactive": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Allow appeals against infractions that have expired or already been lifted.",
+                          "title": "Allow Inactive"
+                        },
+                        "auto_reverse": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "When an appeal is approved, lift the punishment: unban, remove the timeout, or revoke the case.",
+                          "title": "Auto Reverse"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "enabled": true
+                      },
+                      "title": "Ban"
+                    },
+                    "tempban": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Whether this kind of infraction can be appealed.",
+                          "title": "Enabled"
+                        },
+                        "form_id": {
+                          "type": "string",
+                          "maxLength": 64,
+                          "default": "",
+                          "description": "Which appeal form to use. Empty uses the first form.",
+                          "title": "Form Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "min_wait": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long after the infraction before it can be appealed, e.g. 24h. Empty for straight away.",
+                          "title": "Min Wait"
+                        },
+                        "window": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long the infraction stays appealable, e.g. 90d. Empty for forever.",
+                          "title": "Window"
+                        },
+                        "allow_inactive": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Allow appeals against infractions that have expired or already been lifted.",
+                          "title": "Allow Inactive"
+                        },
+                        "auto_reverse": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "When an appeal is approved, lift the punishment: unban, remove the timeout, or revoke the case.",
+                          "title": "Auto Reverse"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "enabled": true
+                      },
+                      "title": "Tempban"
+                    },
+                    "softban": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Whether this kind of infraction can be appealed.",
+                          "title": "Enabled"
+                        },
+                        "form_id": {
+                          "type": "string",
+                          "maxLength": 64,
+                          "default": "",
+                          "description": "Which appeal form to use. Empty uses the first form.",
+                          "title": "Form Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "min_wait": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long after the infraction before it can be appealed, e.g. 24h. Empty for straight away.",
+                          "title": "Min Wait"
+                        },
+                        "window": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long the infraction stays appealable, e.g. 90d. Empty for forever.",
+                          "title": "Window"
+                        },
+                        "allow_inactive": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Allow appeals against infractions that have expired or already been lifted.",
+                          "title": "Allow Inactive"
+                        },
+                        "auto_reverse": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "When an appeal is approved, lift the punishment: unban, remove the timeout, or revoke the case.",
+                          "title": "Auto Reverse"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "enabled": false
+                      },
+                      "title": "Softban"
+                    },
+                    "kick": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Whether this kind of infraction can be appealed.",
+                          "title": "Enabled"
+                        },
+                        "form_id": {
+                          "type": "string",
+                          "maxLength": 64,
+                          "default": "",
+                          "description": "Which appeal form to use. Empty uses the first form.",
+                          "title": "Form Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "min_wait": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long after the infraction before it can be appealed, e.g. 24h. Empty for straight away.",
+                          "title": "Min Wait"
+                        },
+                        "window": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long the infraction stays appealable, e.g. 90d. Empty for forever.",
+                          "title": "Window"
+                        },
+                        "allow_inactive": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Allow appeals against infractions that have expired or already been lifted.",
+                          "title": "Allow Inactive"
+                        },
+                        "auto_reverse": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "When an appeal is approved, lift the punishment: unban, remove the timeout, or revoke the case.",
+                          "title": "Auto Reverse"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "enabled": false
+                      },
+                      "title": "Kick"
+                    },
+                    "mute": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Whether this kind of infraction can be appealed.",
+                          "title": "Enabled"
+                        },
+                        "form_id": {
+                          "type": "string",
+                          "maxLength": 64,
+                          "default": "",
+                          "description": "Which appeal form to use. Empty uses the first form.",
+                          "title": "Form Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "min_wait": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long after the infraction before it can be appealed, e.g. 24h. Empty for straight away.",
+                          "title": "Min Wait"
+                        },
+                        "window": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long the infraction stays appealable, e.g. 90d. Empty for forever.",
+                          "title": "Window"
+                        },
+                        "allow_inactive": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Allow appeals against infractions that have expired or already been lifted.",
+                          "title": "Allow Inactive"
+                        },
+                        "auto_reverse": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "When an appeal is approved, lift the punishment: unban, remove the timeout, or revoke the case.",
+                          "title": "Auto Reverse"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "enabled": true
+                      },
+                      "title": "Mute"
+                    },
+                    "tempmute": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Whether this kind of infraction can be appealed.",
+                          "title": "Enabled"
+                        },
+                        "form_id": {
+                          "type": "string",
+                          "maxLength": 64,
+                          "default": "",
+                          "description": "Which appeal form to use. Empty uses the first form.",
+                          "title": "Form Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "min_wait": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long after the infraction before it can be appealed, e.g. 24h. Empty for straight away.",
+                          "title": "Min Wait"
+                        },
+                        "window": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long the infraction stays appealable, e.g. 90d. Empty for forever.",
+                          "title": "Window"
+                        },
+                        "allow_inactive": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Allow appeals against infractions that have expired or already been lifted.",
+                          "title": "Allow Inactive"
+                        },
+                        "auto_reverse": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "When an appeal is approved, lift the punishment: unban, remove the timeout, or revoke the case.",
+                          "title": "Auto Reverse"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "enabled": true
+                      },
+                      "title": "Tempmute"
+                    },
+                    "warn": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Whether this kind of infraction can be appealed.",
+                          "title": "Enabled"
+                        },
+                        "form_id": {
+                          "type": "string",
+                          "maxLength": 64,
+                          "default": "",
+                          "description": "Which appeal form to use. Empty uses the first form.",
+                          "title": "Form Id",
+                          "x-dreamliner": {
+                            "kind": "snowflake",
+                            "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                          }
+                        },
+                        "min_wait": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long after the infraction before it can be appealed, e.g. 24h. Empty for straight away.",
+                          "title": "Min Wait"
+                        },
+                        "window": {
+                          "type": "string",
+                          "pattern": "^(\\d+[smhdw])?$",
+                          "default": "",
+                          "description": "How long the infraction stays appealable, e.g. 90d. Empty for forever.",
+                          "title": "Window"
+                        },
+                        "allow_inactive": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Allow appeals against infractions that have expired or already been lifted.",
+                          "title": "Allow Inactive"
+                        },
+                        "auto_reverse": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "When an appeal is approved, lift the punishment: unban, remove the timeout, or revoke the case.",
+                          "title": "Auto Reverse"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "enabled": true
+                      },
+                      "title": "Warn"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Which infractions can be appealed, and the rules for each.",
+                  "title": "Types"
+                },
+                "manual": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Allow appeals with no infraction on file, e.g. a ban made by hand or by another bot.",
+                      "title": "Enabled"
+                    },
+                    "form_id": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "default": "",
+                      "description": "Which appeal form manual appeals use. Empty uses the first form.",
+                      "title": "Form Id",
+                      "x-dreamliner": {
+                        "kind": "snowflake",
+                        "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                      }
+                    },
+                    "label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Something else",
+                      "description": "Title of the manual appeal option.",
+                      "title": "Label"
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 300,
+                      "default": "Not listed here? Tell us what happened.",
+                      "description": "Text under the manual appeal option.",
+                      "title": "Description"
+                    },
+                    "require_ban": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Only allow manual appeals from users who really are banned from this server.",
+                      "title": "Require Ban"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Manual"
+                },
+                "forms": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Stable form ID. Generated by the dashboard, do not edit by hand.",
+                        "title": "Id"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "Appeal form",
+                        "description": "Shown on the dashboard and to reviewers.",
+                        "title": "Name"
+                      },
+                      "intro": {
+                        "type": "string",
+                        "maxLength": 2000,
+                        "default": "",
+                        "description": "Optional text shown above the questions.",
+                        "title": "Intro"
+                      },
+                      "questions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "Stable question ID. Generated by the dashboard, do not edit by hand.",
+                              "title": "Id"
+                            },
+                            "label": {
+                              "type": "string",
+                              "maxLength": 45,
+                              "default": "",
+                              "description": "Modal field label (Discord limit: 45 characters).",
+                              "title": "Label"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "text",
+                                "string_select",
+                                "user_select",
+                                "role_select",
+                                "mentionable_select",
+                                "channel_select",
+                                "text_display",
+                                "file_upload",
+                                "radio_group",
+                                "checkbox_group",
+                                "checkbox"
+                              ],
+                              "default": "text",
+                              "description": "Modal component type. Defaults to \"text\" so questions saved before this field existed keep working unchanged.",
+                              "title": "Type"
+                            },
+                            "style": {
+                              "type": "string",
+                              "enum": [
+                                "short",
+                                "paragraph"
+                              ],
+                              "default": "short",
+                              "description": "Short is a single line, paragraph is a multi-line box. Only used when type is \"text\".",
+                              "title": "Style"
+                            },
+                            "required": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Block ticket creation until this question is answered.",
+                              "title": "Required"
+                            },
+                            "placeholder": {
+                              "type": "string",
+                              "maxLength": 100,
+                              "default": "",
+                              "description": "Optional placeholder text shown in the empty field. Only used when type is \"text\".",
+                              "title": "Placeholder"
+                            },
+                            "min_length": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4000,
+                              "default": 0,
+                              "description": "Minimum answer length (0 = no minimum). Only used when type is \"text\".",
+                              "title": "Min Length"
+                            },
+                            "max_length": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4000,
+                              "default": 1000,
+                              "description": "Maximum answer length. Only used when type is \"text\".",
+                              "title": "Max Length"
+                            },
+                            "content": {
+                              "type": "string",
+                              "maxLength": 4000,
+                              "description": "Markdown text shown to the member. Only used when type is \"text_display\", which has no answer.",
+                              "title": "Content"
+                            },
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "description": "Shown to the member.",
+                                    "title": "Label"
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "description": "Stored in the answer.",
+                                    "title": "Value"
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "title": "Description"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "maxItems": 25,
+                              "description": "Choices for string_select, radio_group, and checkbox_group. Discord caps this at 25.",
+                              "title": "Options"
+                            },
+                            "min_values": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 25,
+                              "description": "Minimum selections (or files, for file_upload). Defaults to 1 if required, else 0.",
+                              "title": "Min Values"
+                            },
+                            "max_values": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 25,
+                              "description": "Maximum selections (or files, for file_upload). Defaults to 1.",
+                              "title": "Max Values"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 20,
+                        "default": [],
+                        "description": "Up to 20 questions.",
+                        "title": "Questions"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 10,
+                  "default": [
+                    {
+                      "id": "00000000-0000-4000-8000-0000000a9fe1",
+                      "name": "Appeal form",
+                      "intro": "",
+                      "questions": [
+                        {
+                          "id": "00000000-0000-4000-8000-0000000a9f01",
+                          "label": "What happened?",
+                          "type": "text",
+                          "style": "paragraph",
+                          "required": true,
+                          "placeholder": "In your own words, what led to this?",
+                          "min_length": 20,
+                          "max_length": 1500
+                        },
+                        {
+                          "id": "00000000-0000-4000-8000-0000000a9f02",
+                          "label": "Why should we lift it?",
+                          "type": "text",
+                          "style": "paragraph",
+                          "required": true,
+                          "placeholder": "What would you do differently?",
+                          "min_length": 50,
+                          "max_length": 2000
+                        },
+                        {
+                          "id": "00000000-0000-4000-8000-0000000a9f03",
+                          "label": "Anything else we should know?",
+                          "type": "text",
+                          "style": "paragraph",
+                          "required": false,
+                          "placeholder": "",
+                          "min_length": 0,
+                          "max_length": 1000
+                        }
+                      ]
+                    }
+                  ],
+                  "description": "Appeal forms. Each infraction type, and manual appeals, can use a different one.",
+                  "title": "Forms"
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "max_per_case": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10,
+                      "default": 2,
+                      "description": "How many times the same infraction can be appealed.",
+                      "title": "Max Per Case"
+                    },
+                    "deny_cooldown": {
+                      "type": "string",
+                      "pattern": "^(\\d+[smhdw])?$",
+                      "default": "30d",
+                      "description": "How long after a denied appeal before the same infraction can be appealed again.",
+                      "title": "Deny Cooldown"
+                    },
+                    "max_open_per_user": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10,
+                      "default": 1,
+                      "description": "How many appeals one person can have waiting at once.",
+                      "title": "Max Open Per User"
+                    },
+                    "min_account_age": {
+                      "type": "string",
+                      "pattern": "^(\\d+[smhdw])?$",
+                      "default": "",
+                      "description": "Minimum Discord account age to appeal, e.g. 7d. Empty for none.",
+                      "title": "Min Account Age"
+                    },
+                    "blocked_users": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 100,
+                      "default": [],
+                      "description": "Users who can't appeal.",
+                      "title": "Blocked Users"
+                    },
+                    "blocked_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 25,
+                      "default": [],
+                      "description": "Members with any of these roles can't appeal (only checked for people still in the server).",
+                      "title": "Blocked Roles",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Limits"
+                },
+                "review": {
+                  "type": "object",
+                  "properties": {
+                    "channel_id": {
+                      "type": "string",
+                      "description": "Where new appeals are posted for staff to review. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "ping_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 10,
+                      "default": [],
+                      "description": "Roles pinged when a new appeal arrives.",
+                      "title": "Ping Roles",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    },
+                    "thread": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Start a thread on each appeal so staff can discuss it.",
+                      "title": "Thread"
+                    },
+                    "require_deny_reason": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Staff must give a reason when denying (it's sent to the user).",
+                      "title": "Require Deny Reason"
+                    },
+                    "show_history": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the user's other infractions and appeals on the review message.",
+                      "title": "Show History"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Review"
+                },
+                "decisions": {
+                  "type": "object",
+                  "properties": {
+                    "dm_user": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "DM the user when their appeal is decided or needs more info.",
+                      "title": "Dm User"
+                    },
+                    "approve_message": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Your appeal in **{guild}** was approved. {lifted}",
+                      "description": "DM on approval. Supports {user}, {guild}, {case}, {type}, {reason}, {lifted} and {link}.",
+                      "title": "Approve Message"
+                    },
+                    "deny_message": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "Your appeal in **{guild}** was denied.",
+                      "description": "DM on denial. Supports {user}, {guild}, {case}, {type}, {reason} and {link}. The reason is added if the template doesn't use {reason}.",
+                      "title": "Deny Message"
+                    },
+                    "needs_info_message": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "default": "The staff team in **{guild}** has a question about your appeal. Answer it on your appeal page.",
+                      "description": "DM when staff ask for more information. Supports {user}, {guild}, {case}, {type}, {reason} (the question) and {link}.",
+                      "title": "Needs Info Message"
+                    },
+                    "invite_on_unban": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "When an approved appeal unbans someone, include a single-use invite back in the DM.",
+                      "title": "Invite On Unban"
+                    },
+                    "invite_channel_id": {
+                      "type": "string",
+                      "description": "Channel the invite points to. Empty uses the server's first text channel the bot can invite to. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Invite Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Decisions"
+                },
+                "dm_button": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Add an Appeal button to infraction DMs, linking straight to this infraction's appeal.",
+                      "title": "Enabled"
+                    },
+                    "label": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Appeal",
+                      "description": "Button label.",
+                      "title": "Label"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Dm Button"
+                },
+                "can_review": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to approve, deny, or ask for more information on appeals.",
+                  "title": "Review",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_view": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to view appeals on the dashboard.",
+                  "title": "View",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "accepting": true,
+                "page": {
+                  "headline": "Appeal a punishment in {guild}",
+                  "body": "Sign in with Discord to see what's on file for you and ask the staff team to take another look.",
+                  "guidelines": "",
+                  "login_button_label": "Continue with Discord",
+                  "inherit_accent": true,
+                  "accent_color": 5661429,
+                  "background": "none",
+                  "background_color": 16053751,
+                  "background_url": "",
+                  "background_asset_id": "",
+                  "show_server_icon": true,
+                  "show_moderator": false,
+                  "show_case_reason": true,
+                  "submitted_title": "Appeal sent",
+                  "submitted_body": "Thanks. The staff team will review it and you'll get a DM when there's an answer. You can check on it here any time.",
+                  "closed_title": "Appeals are closed",
+                  "closed_body": "This server isn't taking appeals right now.",
+                  "link_on_server_page": true
+                },
+                "types": {
+                  "ban": {
+                    "enabled": true,
+                    "form_id": "",
+                    "min_wait": "",
+                    "window": "",
+                    "allow_inactive": false,
+                    "auto_reverse": true
+                  },
+                  "tempban": {
+                    "enabled": true,
+                    "form_id": "",
+                    "min_wait": "",
+                    "window": "",
+                    "allow_inactive": false,
+                    "auto_reverse": true
+                  },
+                  "softban": {
+                    "enabled": false,
+                    "form_id": "",
+                    "min_wait": "",
+                    "window": "",
+                    "allow_inactive": false,
+                    "auto_reverse": true
+                  },
+                  "kick": {
+                    "enabled": false,
+                    "form_id": "",
+                    "min_wait": "",
+                    "window": "",
+                    "allow_inactive": false,
+                    "auto_reverse": true
+                  },
+                  "mute": {
+                    "enabled": true,
+                    "form_id": "",
+                    "min_wait": "",
+                    "window": "",
+                    "allow_inactive": false,
+                    "auto_reverse": true
+                  },
+                  "tempmute": {
+                    "enabled": true,
+                    "form_id": "",
+                    "min_wait": "",
+                    "window": "",
+                    "allow_inactive": false,
+                    "auto_reverse": true
+                  },
+                  "warn": {
+                    "enabled": true,
+                    "form_id": "",
+                    "min_wait": "",
+                    "window": "",
+                    "allow_inactive": false,
+                    "auto_reverse": true
+                  }
+                },
+                "manual": {
+                  "enabled": false,
+                  "form_id": "",
+                  "label": "Something else",
+                  "description": "Not listed here? Tell us what happened.",
+                  "require_ban": true
+                },
+                "forms": [
+                  {
+                    "id": "00000000-0000-4000-8000-0000000a9fe1",
+                    "name": "Appeal form",
+                    "intro": "",
+                    "questions": [
+                      {
+                        "id": "00000000-0000-4000-8000-0000000a9f01",
+                        "label": "What happened?",
+                        "type": "text",
+                        "style": "paragraph",
+                        "required": true,
+                        "placeholder": "In your own words, what led to this?",
+                        "min_length": 20,
+                        "max_length": 1500
+                      },
+                      {
+                        "id": "00000000-0000-4000-8000-0000000a9f02",
+                        "label": "Why should we lift it?",
+                        "type": "text",
+                        "style": "paragraph",
+                        "required": true,
+                        "placeholder": "What would you do differently?",
+                        "min_length": 50,
+                        "max_length": 2000
+                      },
+                      {
+                        "id": "00000000-0000-4000-8000-0000000a9f03",
+                        "label": "Anything else we should know?",
+                        "type": "text",
+                        "style": "paragraph",
+                        "required": false,
+                        "placeholder": "",
+                        "min_length": 0,
+                        "max_length": 1000
+                      }
+                    ]
+                  }
+                ],
+                "limits": {
+                  "max_per_case": 2,
+                  "deny_cooldown": "30d",
+                  "max_open_per_user": 1,
+                  "min_account_age": "",
+                  "blocked_users": [],
+                  "blocked_roles": []
+                },
+                "review": {
+                  "ping_roles": [],
+                  "thread": true,
+                  "require_deny_reason": true,
+                  "show_history": true
+                },
+                "decisions": {
+                  "dm_user": true,
+                  "approve_message": "Your appeal in **{guild}** was approved. {lifted}",
+                  "deny_message": "Your appeal in **{guild}** was denied.",
+                  "needs_info_message": "The staff team in **{guild}** has a question about your appeal. Answer it on your appeal page.",
+                  "invite_on_unban": true
+                },
+                "dm_button": {
+                  "enabled": true,
+                  "label": "Appeal"
+                },
+                "can_review": false,
+                "can_view": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Appeals"
         }
       },
       "additionalProperties": false,

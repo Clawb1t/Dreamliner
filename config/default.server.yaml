@@ -1146,3 +1146,137 @@ plugins:
     config:
       openings: []
       can_review: false
+  appeals:
+    enabled: false
+    config:
+      accepting: true
+      page:
+        headline: Appeal a punishment in {guild}
+        body: Sign in with Discord to see what's on file for you and ask the staff team
+          to take another look.
+        guidelines: ""
+        login_button_label: Continue with Discord
+        inherit_accent: true
+        accent_color: 5661429
+        background: none
+        background_color: 16053751
+        background_url: ""
+        background_asset_id: ""
+        show_server_icon: true
+        show_moderator: false
+        show_case_reason: true
+        submitted_title: Appeal sent
+        submitted_body: Thanks. The staff team will review it and you'll get a DM when
+          there's an answer. You can check on it here any time.
+        closed_title: Appeals are closed
+        closed_body: This server isn't taking appeals right now.
+        link_on_server_page: true
+      types:
+        ban:
+          enabled: true
+          form_id: ""
+          min_wait: ""
+          window: ""
+          allow_inactive: false
+          auto_reverse: true
+        tempban:
+          enabled: true
+          form_id: ""
+          min_wait: ""
+          window: ""
+          allow_inactive: false
+          auto_reverse: true
+        softban:
+          enabled: false
+          form_id: ""
+          min_wait: ""
+          window: ""
+          allow_inactive: false
+          auto_reverse: true
+        kick:
+          enabled: false
+          form_id: ""
+          min_wait: ""
+          window: ""
+          allow_inactive: false
+          auto_reverse: true
+        mute:
+          enabled: true
+          form_id: ""
+          min_wait: ""
+          window: ""
+          allow_inactive: false
+          auto_reverse: true
+        tempmute:
+          enabled: true
+          form_id: ""
+          min_wait: ""
+          window: ""
+          allow_inactive: false
+          auto_reverse: true
+        warn:
+          enabled: true
+          form_id: ""
+          min_wait: ""
+          window: ""
+          allow_inactive: false
+          auto_reverse: true
+      manual:
+        enabled: false
+        form_id: ""
+        label: Something else
+        description: Not listed here? Tell us what happened.
+        require_ban: true
+      forms:
+        - id: 00000000-0000-4000-8000-0000000a9fe1
+          name: Appeal form
+          intro: ""
+          questions:
+            - id: 00000000-0000-4000-8000-0000000a9f01
+              label: What happened?
+              type: text
+              style: paragraph
+              required: true
+              placeholder: In your own words, what led to this?
+              min_length: 20
+              max_length: 1500
+            - id: 00000000-0000-4000-8000-0000000a9f02
+              label: Why should we lift it?
+              type: text
+              style: paragraph
+              required: true
+              placeholder: What would you do differently?
+              min_length: 50
+              max_length: 2000
+            - id: 00000000-0000-4000-8000-0000000a9f03
+              label: Anything else we should know?
+              type: text
+              style: paragraph
+              required: false
+              placeholder: ""
+              min_length: 0
+              max_length: 1000
+      limits:
+        max_per_case: 2
+        deny_cooldown: 30d
+        max_open_per_user: 1
+        min_account_age: ""
+        blocked_users: []
+        blocked_roles: []
+      review:
+        ping_roles: []
+        thread: true
+        require_deny_reason: true
+        show_history: true
+      decisions:
+        dm_user: true
+        approve_message: Your appeal in **{guild}** was approved. {lifted}
+        deny_message: Your appeal in **{guild}** was denied.
+        needs_info_message: The staff team in **{guild}** has a question about your
+          appeal. Answer it on your appeal page.
+        invite_on_unban: true
+      dm_button:
+        enabled: true
+        label: Appeal
+      can_review: false
+      can_view: false

@@ -3,6 +3,7 @@ import { configManager } from "../config/manager.js";
 import { getDreamlinerOnePublicStatusWithRefresh } from "./dreamlinerOne.js";
 import { getTopChannelsByDaily } from "../plugins/stats/functions/queries.js";
 import { buildWebPublicMessagerLeaderboard } from "./webStats.js";
+import { activeAppealsConfig } from "../plugins/appeals/functions/config.js";
 
 function colorIntToHex(value: number): string {
   return `#${Math.max(0, Math.min(0xffffff, Math.floor(value)))
@@ -186,6 +187,7 @@ export async function buildPublicGuildHome(guild: Guild) {
     serverPage.show_leaderboard ? buildLeaderboardPreview(guild) : Promise.resolve(undefined),
   ]);
   const emojis = serverPage.show_emojis ? buildEmojis(guild) : undefined;
+  const appeals = activeAppealsConfig(config);
 
   return {
     ok: true as const,
@@ -214,6 +216,8 @@ export async function buildPublicGuildHome(guild: Guild) {
       showDescription: serverPage.show_description,
       inviteUrl: serverPage.invite_url || null,
       customLinks: serverPage.custom_links.map((link) => ({ label: link.label, url: link.url })),
+      /** "Appeal a punishment" link: Appeals is on, taking appeals, and the server wants the link shown. */
+      appealsLink: Boolean(appeals?.accepting && appeals.page.link_on_server_page),
       widgets: {
         voiceActivity: serverPage.show_voice_activity,
         activeChannels: serverPage.show_active_channels,

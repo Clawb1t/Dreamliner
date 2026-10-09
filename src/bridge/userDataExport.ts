@@ -1,6 +1,8 @@
 import { eq, or } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import {
+  appealEvents,
+  appeals,
   blueskyAccounts,
   storeCreditLedger,
   storeVotes,
@@ -255,6 +257,35 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
           .where(or(eq(modCases.userId, userId), eq(modCases.modId, userId)))
           .all(),
       ),
+    },
+    appeals: {
+      label: "Appeals",
+      description:
+        "Appeals you filed against a punishment, with your answers. Kept with the server's moderation history regardless of account deletion, the same as cases.",
+      rows: serializable(await db.select().from(appeals).where(eq(appeals.userId, userId)).all()),
+    },
+    appeals_reviewed: {
+      label: "Appeals you decided",
+      description:
+        "Your decision on appeals you reviewed as staff. The appellant's own answers belong to them, so they aren't included here.",
+      rows: serializable(
+        await db
+          .select({
+            id: appeals.id,
+            guildId: appeals.guildId,
+            status: appeals.status,
+            decisionReason: appeals.decisionReason,
+            decidedAt: appeals.decidedAt,
+          })
+          .from(appeals)
+          .where(eq(appeals.reviewerId, userId))
+          .all(),
+      ),
+    },
+    appeal_events: {
+      label: "Appeal timeline entries",
+      description: "Replies, decisions and notes you wrote on appeals.",
+      rows: serializable(await db.select().from(appealEvents).where(eq(appealEvents.actorId, userId)).all()),
     },
     evidence_messages: {
       label: "Evidence mode captures",

@@ -24,6 +24,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     blurb: "Warns, mutes, bans, and cleanup.",
     include: [
       { plugin: "infractions" },
+      { plugin: "appeals" },
       { plugin: "slowmode" },
       { plugin: "utility", roots: ["clean", "bansearch"] },
     ],
@@ -365,6 +366,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Suggestions",
     description: "Community suggestions with staff review, voting, and statuses.",
   },
+  appeals: {
+    key: "appeals",
+    name: "Appeals",
+    description:
+      "An appeals page where punished members (even banned ones) can ask for an infraction to be reviewed, with custom forms, a staff review channel, and approvals that lift the punishment.",
+  },
   applications: {
     key: "applications",
     name: "Applications",
@@ -434,6 +441,7 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
  */
 const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   infractions: "mod",
+  appeals: "mod",
   slowmode: "mod",
   automod: "protect",
   impersonation: "protect",

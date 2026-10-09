@@ -4,6 +4,7 @@
  */
 import type { AiWizardDefinition } from "../wizardKit.js";
 import { activityRewardsWizard } from "./activityRewards.js";
+import { appealsWizard } from "./appeals.js";
 import { autodeleteWizard } from "./autodelete.js";
 import { automodWizard } from "./automod.js";
 import { autoreactionsWizard } from "./autoreactions.js";
@@ -29,6 +30,7 @@ import { welcomeWizard } from "./welcome.js";
 
 export const WIZARDS: Record<string, AiWizardDefinition> = {
   activity_rewards_setup: activityRewardsWizard,
+  appeals_setup: appealsWizard,
   autodelete_setup: autodeleteWizard,
   automod_setup: automodWizard,
   autoreactions_setup: autoreactionsWizard,

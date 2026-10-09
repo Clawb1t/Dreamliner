@@ -76,6 +76,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Reviews](./reviews.md) - star ratings and written server feedback
 - [Suggestions](./suggestions.md) - community suggestions with review queue, voting, and statuses
+- [Appeals](./appeals.md) - punishment appeals from the website with a Discord and dashboard review queue
 - [Applications](./applications.md) - role applications with custom multi-page forms and a review queue
 
 ## Fun

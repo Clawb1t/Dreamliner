@@ -1,5 +1,5 @@
 import { and, desc, eq, isNotNull, like, lte, or } from "drizzle-orm";
-import type { Client, Guild, GuildMember, User } from "discord.js";
+import type { ActionRowBuilder, Client, Guild, GuildMember, MessageActionRowComponentBuilder, User } from "discord.js";
 import { getDb } from "../../../db/client.js";
 import { modCases } from "../../../db/schema.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
@@ -195,6 +195,35 @@ export async function deactivateInfractions(guildId: string, userId: string, typ
     );
 }
 
+/** Marks one case lifted (active = false), e.g. a warning revoked by an approved appeal. */
+export async function setInfractionActive(guildId: string, id: number, active: boolean) {
+  await getDb()
+    .update(modCases)
+    .set({ active })
+    .where(and(eq(modCases.guildId, guildId), eq(modCases.id, id)));
+}
+
+/**
+ * Unbans a user and records it: lifts their ban cases and adds an unban case. Throws when Discord
+ * refuses (not banned, missing Ban Members). Shared by /unban and approved appeals.
+ */
+export async function unbanUser(guild: Guild, userId: string, modId: string, reason: string | null): Promise<InfractionRecord> {
+  await guild.members.unban(userId, reason ?? undefined);
+  await deactivateInfractions(guild.id, userId, ["ban", "tempban"]);
+  return createInfraction({ guildId: guild.id, userId, modId, type: "unban", reason, active: false });
+}
+
+/**
+ * Removes a member's timeout (if they're still in the server and timed out) and records it: lifts
+ * their mute cases and adds an unmute case. Throws when Discord refuses (missing Moderate Members).
+ */
+export async function unmuteUser(guild: Guild, userId: string, modId: string, reason: string | null): Promise<InfractionRecord> {
+  const member = await guild.members.fetch(userId).catch(() => null);
+  if (member && isTimedOut(member)) await clearTimeout(member, reason ?? "Dreamliner unmute");
+  await deactivateInfractions(guild.id, userId, ["mute", "tempmute"]);
+  return createInfraction({ guildId: guild.id, userId, modId, type: "unmute", reason, active: false });
+}
+
 export async function updateInfractionReason(guildId: string, id: number, reason: string) {
   const db = getDb();
   await db
@@ -280,11 +309,12 @@ export async function dmUser(
   pluginConfig: InfractionConfig,
   action: keyof InfractionConfig["notify"],
   message: string,
+  components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [],
 ): Promise<boolean> {
   const settings = pluginConfig.notify[action];
   if (!settings?.dm) return false;
   try {
-    await user.send(message);
+    await user.send(components.length > 0 ? { content: message, components } : message);
     return true;
   } catch {
     return false;

@@ -27,6 +27,21 @@ export function getGuildServerPageUrl(guildId: string): string {
   return `${resolveSiteUrl()}/server/${guildId}`;
 }
 
+/** Public appeals page for a guild, optionally opened on one infraction. */
+export function getAppealsUrl(guildId: string, caseId?: number | null): string {
+  return `${resolveSiteUrl()}/server/${guildId}/appeals${caseId ? `?case=${caseId}` : ""}`;
+}
+
+/** The appellant's own status page for one appeal. */
+export function getAppealStatusUrl(guildId: string, appealId: number): string {
+  return `${resolveSiteUrl()}/server/${guildId}/appeals/${appealId}`;
+}
+
+/** The dashboard's View Appeals page, optionally opened on one appeal. */
+export function getGuildAppealsDashboardUrl(guildId: string, appealId?: number | null): string {
+  return `${resolveSiteUrl()}/dashboard/${guildId}?section=appeals${appealId ? `&appeal=${appealId}` : ""}`;
+}
+
 /** Public Passport verification page for a guild. */
 export function getPassportUrl(guildId: string): string {
   return `${resolveSiteUrl()}/passport/${guildId}`;
