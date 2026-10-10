@@ -2264,3 +2264,77 @@ export const appealEvents = sqliteTable(
   },
   (table) => [index("appeal_events_appeal").on(table.appealId)],
 );
+
+// ---------------------------------------------------------------------------------------------
+// Tickets AI Responder (migration 0117)
+// ---------------------------------------------------------------------------------------------
+
+/** What the AI Responder knows about a server, beyond what it reads live. */
+export const ticketAiKnowledge = sqliteTable(
+  "ticket_ai_knowledge",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    /** "faq" | "note" (written on the dashboard) | "autotrain" (read from channels) | "learned" (from staff replies) */
+    kind: text("kind").notNull(),
+    /** "active" (used) | "pending" (awaiting approval) | "rejected" */
+    status: text("status").notNull().default("active"),
+    /** A question (faq), a topic (note/autotrain) or what the member asked (learned). */
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    /** Where it came from: a channel id (autotrain) or "ticket:<id>" (learned). */
+    source: text("source"),
+    createdBy: text("created_by"),
+    uses: integer("uses").notNull().default(0),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("ticket_ai_knowledge_guild_status").on(table.guildId, table.status),
+    index("ticket_ai_knowledge_guild_kind").on(table.guildId, table.kind),
+  ],
+);
+
+/** Who is handling a ticket the AI Responder took: the AI, staff (stopped or taken over), or escalated. */
+export const ticketAiState = sqliteTable(
+  "ticket_ai_state",
+  {
+    ticketId: integer("ticket_id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    /** "ai" | "staff" (stopped, or a staff member replied) | "escalated" (handed over by the AI) */
+    mode: text("mode").notNull().default("ai"),
+    aiReplies: integer("ai_replies").notNull().default(0),
+    /** Why it left AI mode (escalation reason, "Stopped by staff", ...). */
+    reason: text("reason"),
+    changedBy: text("changed_by"),
+    escalatedAt: integer("escalated_at", { mode: "timestamp_ms" }),
+    /** Set once lessons were extracted from the closed ticket, so it's only learned from once. */
+    learnedAt: integer("learned_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("ticket_ai_state_guild").on(table.guildId, table.mode)],
+);
+
+/** Per server, per UTC day: AI replies (the 20/1000 limit), background calls and outcomes. */
+export const ticketAiUsageDaily = sqliteTable(
+  "ticket_ai_usage_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    statDate: text("stat_date").notNull(),
+    replies: integer("replies").notNull().default(0),
+    background: integer("background").notNull().default(0),
+    escalations: integer("escalations").notNull().default(0),
+    resolved: integer("resolved").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.statDate] })],
+);
+
+export const ticketAiGuildState = sqliteTable("ticket_ai_guild_state", {
+  guildId: text("guild_id").primaryKey(),
+  autotrainLastRunAt: integer("autotrain_last_run_at", { mode: "timestamp_ms" }),
+  /** JSON: { ok, channels, messagesRead, factsAdded, factsUpdated, error? } */
+  autotrainLastResult: text("autotrain_last_result"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

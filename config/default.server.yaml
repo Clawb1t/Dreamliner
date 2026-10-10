@@ -883,6 +883,40 @@ plugins:
       sync_status_to_topic: false
       auto_status_updates: false
       panels: []
+      ai_responder:
+        enabled: false
+        category_ids: []
+        persona:
+          name: Support Assistant
+          tone: friendly
+          instructions: ""
+          greeting: Hi {user}, I'm {assistant}, the AI assistant here. Tell me what you
+            need help with and I'll do my best, or press **Talk to staff** any
+            time.
+        context:
+          server_info: true
+          member_profile: true
+          member_tickets: true
+          member_cases: false
+        replies:
+          max_length: 1000
+          max_per_ticket: 8
+          show_label: true
+          buttons: true
+          close_on_solved: true
+        escalation:
+          sensitive_topics: true
+          topics: []
+          on_low_confidence: true
+          message: I've passed this to the staff team, someone will be with you shortly.
+        learning:
+          from_staff: true
+          auto_approve: false
+        autotrain:
+          enabled: false
+          channel_ids: []
+          lookback_days: 30
+          interval_hours: 24
       can_claim: false
       can_close: false
       can_close_others: false
@@ -895,6 +929,7 @@ plugins:
       can_assign: false
       can_set_status: false
       can_view_stats: false
+      can_control_ai: false
   giveaways:
     enabled: false
     config:

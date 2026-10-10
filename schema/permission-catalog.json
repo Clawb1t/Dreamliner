@@ -944,6 +944,13 @@
       },
       {
         "plugin": "tickets",
+        "permission": "can_control_ai",
+        "grantKey": "tickets.can_control_ai",
+        "title": "Control Ai",
+        "description": "Allow members to stop or resume the AI Responder in a ticket."
+      },
+      {
+        "plugin": "tickets",
         "permission": "can_delete",
         "grantKey": "tickets.can_delete",
         "title": "Delete",

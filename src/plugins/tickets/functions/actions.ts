@@ -21,6 +21,8 @@ import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { containerReply } from "../../../core/responses.js";
 import { ticketClaimId, ticketCloseId, ticketDeleteId, ticketUnclaimId } from "../constants.js";
 import { isBlacklisted } from "./blacklist.js";
+import { aiHandlesCategory, startTicketAi } from "./ai/responder.js";
+import { learnFromClosedTicket } from "./ai/learn.js";
 import { addMemberOverwrite, archiveContainer, createTicketContainer, removeMemberOverwrite, syncTicketStatusToChannel } from "./channels.js";
 import { buildTicketClaimedEmbed, buildTicketClosedEmbed, buildTicketOpenedEmbed } from "./embeds.js";
 import { buildTranscript, dmTranscript, postTranscriptLog, saveTranscript } from "./transcripts.js";
@@ -126,7 +128,12 @@ export async function createTicketForMember(opts: {
     // then delete that message immediately — the notification already fired, but the
     // ticket channel doesn't keep a bare mention message cluttering its history, and
     // the persistent welcome embed below never re-pings on scroll-back/re-render.
-    const pingTargets = [`<@${member.id}>`, ...category.ping_role_ids.filter(Boolean).map((id) => `<@&${id}>`)];
+    // When the AI Responder takes the ticket, staff ping roles are held back until it hands over.
+    const aiFirst = aiHandlesCategory(pluginConfig.ai_responder, category.id);
+    const pingTargets = [
+      `<@${member.id}>`,
+      ...(aiFirst ? [] : category.ping_role_ids.filter(Boolean).map((id) => `<@&${id}>`)),
+    ];
     const pingMsg = await channel.send(pingTargets.join(" ")).catch(() => null);
     await pingMsg?.delete().catch(() => null);
 
@@ -134,6 +141,11 @@ export async function createTicketForMember(opts: {
     await channel
       .send(containerReply(embed, false, [ticketActionRow(ticket.id, false, t)]))
       .catch(() => null);
+
+    if (aiFirst) {
+      // Not awaited: the member shouldn't wait on the AI to see their new ticket.
+      void startTicketAi({ client, guild, guildConfig, pluginConfig, ticket, category }, member).catch(() => null);
+    }
   }
 
   await sendModerationLog(
@@ -304,6 +316,7 @@ export async function performClose(
     const messages = await buildTranscript(channel).catch(() => []);
     transcriptId = await saveTranscript(ticket.guildId, ticket.id, messages).catch(() => null);
   }
+  if (transcriptId) void learnFromClosedTicket(client, ticket.guildId, ticket.id);
 
   const closedAt = await closeTicketRow(ticket.guildId, ticket.id, actorId, reason ?? null);
   // `ticket` was fetched before the close landed, so its closedAt is still null — build an

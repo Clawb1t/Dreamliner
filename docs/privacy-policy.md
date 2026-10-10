@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 25 September 2026
+**Last updated:** 11 October 2026
 
 This Privacy Policy explains, in detail, how **Dreamliner** ("we," "us," "our," or the "Service") collects, uses, stores, discloses, and protects information in connection with the Dreamliner Discord bot, the Dreamliner dashboard and website (**dreamliner.site**), and any related features (collectively, the "Service").
 
@@ -137,13 +137,14 @@ A small number of features send limited, feature-specific data to third-party AP
 | **Translation** (`/translate`, auto-translate) | Google Translate (via an unofficial public API wrapper) | The specific text you asked to translate, or a message flagged for auto-translate; no Discord user ID or other identifying metadata is included in the translation request itself |
 | **Social Notifications** (YouTube uploads) | YouTube Data API v3 (Google) | The creator handle/channel URL your server configured, so we can poll for new public uploads; we do not send viewer or member data to YouTube |
 | **Autopilot** (AI setup wizards and copywriting) | OpenAI | What an admin types into Autopilot, plus the server's channel, role and emoji names so it can pick the right ones; no member messages or member data |
+| **Tickets AI Responder** (only on servers that turn it on) | OpenAI | For each AI reply: the ticket's messages and form answers, the opening member's display name, join date, account age and roles, their recent ticket history and (only if the server enables it) their recent moderation cases without the moderator's identity, plus the server's public channel, role and category names and its knowledge base. When a ticket closes, its transcript is sent once to extract reusable answers. If Autotrain is on, recent messages from the channels the server picked are sent to extract short facts; only the facts are stored by Dreamliner, not the messages |
 | **Switch** (importing a setup from MEE6 or Dyno) | OpenAI, and MEE6's public leaderboard | Screenshots an admin uploads of their MEE6 or Dyno dashboard are sent to OpenAI through Autopilot to read the settings, and are not stored by Dreamliner. For MEE6 Levels, Dreamliner reads the server's public MEE6 leaderboard (member IDs and XP) and keeps only the resulting message progress |
 | **Bluesky** (feeds, profiles, link cards) | Bluesky's public API and Jetstream event stream | The Bluesky handles/accounts your server follows or that a member looks up; no Discord data is sent |
 | **Store credits** (votes for Dreamliner, spent on Dreamliner One) | top.gg | Nothing is sent to top.gg. top.gg tells Dreamliner when someone votes (their Discord ID and the time), and Dreamliner reads its own vote history from top.gg so members can claim past votes. Dreamliner keeps each vote, the credits it paid, and any Dreamliner One days bought with them. 12 hours after a vote, Dreamliner DMs the voter a reminder that they can vote again, unless they turned reminders off (from the DM or Account → Store), and keeps that on/off choice |
 | **Bluesky account connection** (likes, reposts, follows) | The member's own Bluesky server (PDS) and authorization server, via AT Protocol OAuth | Only the like, repost or follow the member asked for, sent from their connected account. Dreamliner stores the account's handle and DID, an encrypted session token, and a record of the likes/reposts/follows it made so they can be undone. It never sees the member's Bluesky password |
 | **Text-to-speech** (`/tts`) | None. Voice synthesis runs locally on our own infrastructure via the open-source Piper engine. Message text used for speech is **not** sent to any third-party voice/AI provider. | N/A |
 
-Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications, Bluesky's privacy policy if you use the Bluesky plugin, and OpenAI's privacy policy if you use Autopilot or Switch.
+Each third party's own privacy policy governs how it separately handles any data sent to it; we encourage you to review Google's privacy policy if your server uses translation or social notifications, Bluesky's privacy policy if you use the Bluesky plugin, and OpenAI's privacy policy if you use Autopilot, Switch or the Tickets AI Responder.
 
 ### 3.10 What we do not intentionally collect
 

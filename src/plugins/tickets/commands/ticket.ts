@@ -4,6 +4,7 @@ import { resultEdit, resultReply, slashResultOptions } from "../../../core/respo
 import { hasPermission } from "../../../core/permissionRoles.js";
 import { getTicketsPluginConfig } from "../../../core/guildHelpers.js";
 import { requireTicketChannel, requireTicketPermission } from "../functions/commandHelpers.js";
+import { handleTicketAiCommand } from "../functions/ai/commands.js";
 import {
   addToBlacklist,
 } from "../functions/blacklist.js";
@@ -107,6 +108,14 @@ export const ticketCommands: SlashCommandDefinition[] = [
           ),
       )
       .addSubcommand((sub) => sub.setName("transcript").setDescription("Send this ticket's latest transcript to you"))
+      .addSubcommandGroup((group) =>
+        group
+          .setName("ai")
+          .setDescription("The AI Responder in tickets")
+          .addSubcommand((sub) => sub.setName("stop").setDescription("Stop the AI in this ticket so staff can take over"))
+          .addSubcommand((sub) => sub.setName("resume").setDescription("Hand this ticket back to the AI"))
+          .addSubcommand((sub) => sub.setName("usage").setDescription("See today's AI replies against the daily limit")),
+      )
       .addSubcommand((sub) =>
         sub
           .setName("blacklist")
@@ -119,6 +128,11 @@ export const ticketCommands: SlashCommandDefinition[] = [
       const guildId = interaction.guildId!;
       const group = interaction.options.getSubcommandGroup(false);
       const sub = interaction.options.getSubcommand();
+
+      if (group === "ai") {
+        await handleTicketAiCommand(ctx, sub);
+        return;
+      }
 
       if (sub === "new") {
         const guildConfig = ctx.guildConfig;

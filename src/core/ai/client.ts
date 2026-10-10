@@ -68,8 +68,10 @@ export async function generateStructured(input: {
   schemaName: string;
   schema: Record<string, unknown>;
   maxTokens?: number;
+  /** Overrides OPENAI_MODEL for this call (e.g. the tickets AI Responder's own model). */
+  model?: string;
 }): Promise<unknown> {
-  const model = process.env.OPENAI_MODEL?.trim() || DEFAULT_MODEL;
+  const model = input.model?.trim() || process.env.OPENAI_MODEL?.trim() || DEFAULT_MODEL;
   for (const temperature of [0.3, 0]) {
     const response = await getClient().chat.completions.create({
       model,

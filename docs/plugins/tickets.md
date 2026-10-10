@@ -96,14 +96,46 @@ Escalation re-arms whenever staff reply again.
 | `/ticket transcript` | — | DM yourself the ticket's latest transcript (posts to the log channel instead if your DMs are closed) |
 | `/ticket stats [member] [days]` | `can_view_stats` | Ticket handler performance stats — closed count, average resolution time, average first-response time |
 | `/ticket blacklist <target> [reason]` | `can_blacklist` | Block a member from opening tickets |
+| `/ticket ai stop` | Manage Server, a support role of the category, or `can_control_ai` | Stop the AI Responder in this ticket so staff can take over |
+| `/ticket ai resume` | Manage Server, a support role of the category, or `can_control_ai` | Hand the ticket back to the AI Responder |
+| `/ticket ai usage` | — | Today's AI replies against the server's daily limit |
 
 Also available: `can_reopen` (reopen closed tickets), `can_view_all` (view any ticket, not just ones you're part of), and `can_delete` (permanently delete tickets) — used by the dashboard's ticket view rather than a dedicated slash command.
 
 Grant these to a Dreamliner Role on the dashboard's **Roles** page (or `/permissions role grant`) — see [permissions.md](../permissions.md).
 
+## AI Responder
+
+An optional first line of support (`ai_responder` in the Tickets config, edited on **Support → Tickets → AI Responder**).
+When it's on, new tickets in the chosen categories (or every category) are answered by the AI first; staff are only
+pinged when it hands the ticket over.
+
+- **What it knows:** read live for every reply and never stored: server info (name, description, rules channel,
+  public channels, roles, ticket categories), the member (join date, account age, roles), their recent tickets and,
+  if turned on, their recent moderation cases (never who issued them). On top of that it uses the server's
+  **knowledge base**: FAQs and notes written on the dashboard, facts kept by Autotrain, and approved lessons learned
+  from staff. The 500 most relevant entries are searched per question.
+- **Hand-off:** it hands the ticket to staff when the member asks (or presses **Talk to staff**), on sensitive topics
+  (bans and appeals, payments and refunds, account access, harassment and safety reports, reports against members),
+  on the server's own topics, when it isn't sure, after the per-ticket reply limit, or when the daily limit runs out.
+  The hand-off posts a short summary for staff and pings the category's ping roles (or its support roles). Once staff
+  reply in the ticket the AI stops on its own; `/ticket ai resume` hands it back.
+- **Learning from staff:** when a ticket staff answered is closed, the AI extracts up to three reusable lessons from
+  the transcript. They wait in **Needs review** until approved (or are used straight away if *Use lessons without
+  review* is on).
+- **Autotrain:** reads recent messages (up to 300 per channel) in up to 10 chosen channels on a schedule (every 6 hours
+  or more) and keeps short facts, updating or removing the ones it kept before. The messages themselves are not stored.
+- **Limits:** 20 AI replies a day per server, or 1,000 with Dreamliner One. Each reply counts once; the greeting and
+  hand-offs don't. Learning and Autotrain have their own smaller daily budget (15, or 300 with One). Limits reset at
+  midnight UTC.
+- **Model:** `gpt-4.1-mini` by default; set `OPENAI_TICKET_MODEL` to change it. Replies are checked before posting:
+  pings are removed, links are only kept for Discord, Dreamliner, and sites found in the server's own knowledge, and
+  replies are cut to the configured length.
+
 ## Dashboard
 
-**Support → Tickets** is where panels and categories are built and edited, and where the **View Tickets** page shows every open/closed ticket with claim, assign, status, and delete actions.
+**Support → Tickets** is where panels and categories are built and edited, where the **View Tickets** page shows every open/closed ticket with claim, assign, status, and delete actions, and
+where the **AI Responder** page sets up the AI, its knowledge base, Autotrain, and a test chat.
 
 ## Requirements
 

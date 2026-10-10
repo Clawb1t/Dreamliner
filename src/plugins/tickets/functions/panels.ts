@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ModalBuilder,
+  PermissionFlagsBits,
   StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -35,6 +36,9 @@ import {
 } from "../constants.js";
 import { canCloseTicket, createTicketForMember, performClaim, performClose, performUnclaim, ticketActionRow } from "./actions.js";
 import { deleteContainer } from "./channels.js";
+import { staffRoleIdsFor } from "./ai/context.js";
+import { parseTicketAiButtonId } from "./ai/ids.js";
+import { handleTicketAiButton } from "./ai/responder.js";
 import { buildTicketClaimedEmbed, buildTicketOpenedEmbed } from "./embeds.js";
 import { formatQuestionAnswer } from "./formAnswers.js";
 import type { TicketFormAnswer } from "./tickets.js";
@@ -285,6 +289,21 @@ async function openOrPromptModal(
 
 export async function handleTicketButtonInteraction(interaction: ButtonInteraction): Promise<boolean> {
   if (!interaction.customId.startsWith(TICKET_PREFIX)) return false;
+  const aiButton = parseTicketAiButtonId(interaction.customId);
+  if (aiButton) {
+    await handleTicketAiButton(
+      interaction,
+      aiButton.action,
+      aiButton.ticketId,
+      (ctx, member) =>
+        member.permissions.has(PermissionFlagsBits.ManageGuild) ||
+        staffRoleIdsFor(ctx.category, ctx.pluginConfig).some((id) => member.roles.cache.has(id)),
+      async (ctx, actorId, reason) => {
+        await performClose(ctx.client, ctx.guild, ctx.guildConfig, ctx.pluginConfig, ctx.category, ctx.ticket, actorId, reason);
+      },
+    );
+    return true;
+  }
   const parsed = parseTicketCustomId(interaction.customId);
   if (!parsed) return false;
   const { t } = await translatorFor(interaction.user.id);

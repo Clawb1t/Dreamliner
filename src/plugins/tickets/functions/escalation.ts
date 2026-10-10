@@ -8,6 +8,7 @@ import { listOpenTickets, setEscalationStep, setPriority, type TicketRecord } fr
 import { performClose } from "./actions.js";
 import { getLogger } from "../../../core/logger.js";
 import { defaultTranslator as t } from "../../../i18n/index.js";
+import { ticketAiStatesFor } from "./ai/store.js";
 const log = getLogger("tickets");
 
 async function getTicketsConfigForGuild(guildId: string): Promise<TicketsConfig> {
@@ -139,7 +140,11 @@ export async function processTicketEscalations(client: Client): Promise<void> {
       continue;
     }
 
+    const aiStates = ticketAiStatesFor(guildTickets.map((t) => t.id));
     for (const ticket of guildTickets) {
+      // The AI Responder is handling it: staff aren't being waited on yet.
+      const aiState = aiStates.get(ticket.id);
+      if (aiState?.mode === "ai") continue;
       const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
       const category = panel?.categories.find((c) => c.id === ticket.categoryId);
       if (!category || category.escalation.length === 0) continue;
@@ -150,7 +155,9 @@ export async function processTicketEscalations(client: Client): Promise<void> {
       if (nextIndex >= sorted.length) continue;
 
       const step = sorted[nextIndex]!;
-      const silenceMinutes = (Date.now() - escalationSilenceStart(ticket).getTime()) / 60_000;
+      // After an AI hand-off, the clock starts at the hand-off, not when the ticket opened.
+      const silenceStart = Math.max(escalationSilenceStart(ticket).getTime(), aiState?.escalatedAt?.getTime() ?? 0);
+      const silenceMinutes = (Date.now() - silenceStart) / 60_000;
       if (silenceMinutes < step.after_minutes) continue;
 
       try {

@@ -1084,6 +1084,26 @@ export function buildTicketCloseLog(input: {
   );
 }
 
+export function buildTicketAiLog(input: {
+  title: string;
+  ticketNumber?: number;
+  channel?: LogRef;
+  user?: LogRef;
+  lines: string[];
+  emojiCategory: "action" | "create" | "delete";
+}): LogCard {
+  return card(
+    input.title,
+    [
+      `Time: ${logTimestamp()}`,
+      ...(input.user ? [userLine(input.user, "Member")] : []),
+      ...(input.channel ? [channelLine(input.channel)] : []),
+      ...input.lines.filter(Boolean).map((line) => truncate(line, 600)),
+    ],
+    { avatarUrl: input.user?.avatarUrl, emojiCategory: input.emojiCategory },
+  );
+}
+
 export function buildSuggestionCreateLog(input: {
   suggestionNumber: number;
   author: LogRef;

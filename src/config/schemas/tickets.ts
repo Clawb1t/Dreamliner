@@ -2,6 +2,7 @@ import { z } from "zod";
 import { boolPerm, channelId, roleId } from "../schemaHelp.js";
 import { zPersistEmbedConfig } from "./persist.js";
 import { zPluginSection } from "./pluginSection.js";
+import { zTicketAiConfig } from "./ticketAi.js";
 
 /** Discord modal text inputs max out at 5 per modal. */
 export const MAX_FORM_QUESTIONS = 5;
@@ -315,6 +316,7 @@ export const zTicketsConfig = z.strictObject({
     .default(false)
     .describe("Automatically set a ticket's status: Awaiting Response when staff reply, In Progress when the member replies. Off by default; manual status changes via /ticket status or the dashboard still always work."),
   panels: z.array(zTicketPanel).default([]).describe("Ticket panels for this server."),
+  ai_responder: zTicketAiConfig.default({}).describe("AI Responder: answers new tickets first and hands over to staff."),
   can_claim: boolPerm("claim tickets"),
   can_close: boolPerm("close their own tickets"),
   can_close_others: boolPerm("close tickets opened by other members"),
@@ -327,6 +329,7 @@ export const zTicketsConfig = z.strictObject({
   can_assign: boolPerm("assign or unassign another member to a ticket"),
   can_set_status: boolPerm("change a ticket's status (Awaiting Response, On Hold, etc.)"),
   can_view_stats: boolPerm("view ticket handler performance stats"),
+  can_control_ai: boolPerm("stop or resume the AI Responder in a ticket"),
 });
 
 export type TicketFormQuestion = z.infer<typeof zTicketFormQuestion>;

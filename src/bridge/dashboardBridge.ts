@@ -2736,6 +2736,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ticketStatsMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/stats$/.exec(url.pathname);
         const ticketOneMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)$/.exec(url.pathname);
         const ticketsMatch = /^\/bridge\/guilds\/(\d+)\/tickets$/.exec(url.pathname);
+        // AI Responder: overview, /knowledge[/:id], /autotrain (run now), /test (dashboard test chat).
+        const ticketAiMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/ai(?:\/(knowledge|autotrain|test)(?:\/(\d+))?)?$/.exec(url.pathname);
         const giveawayActionMatch =
           /^\/bridge\/guilds\/(\d+)\/giveaways\/(\d+)\/(end|reroll|pause|resume|cancel)$/.exec(url.pathname);
         const giveawayTemplateOneMatch = /^\/bridge\/guilds\/(\d+)\/giveaways\/templates\/(\d+)$/.exec(url.pathname);
@@ -2880,6 +2882,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !ticketStatsMatch &&
           !ticketOneMatch &&
           !ticketsMatch &&
+          !ticketAiMatch &&
           !giveawayActionMatch &&
           !giveawayTemplateOneMatch &&
           !giveawayTemplatesMatch &&
@@ -2991,6 +2994,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           ticketStatsMatch?.[1] ??
           ticketOneMatch?.[1] ??
           ticketsMatch?.[1] ??
+          ticketAiMatch?.[1] ??
           giveawayActionMatch?.[1] ??
           giveawayTemplateOneMatch?.[1] ??
           giveawayTemplatesMatch?.[1] ??
@@ -6906,6 +6910,86 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             suggestion: detail,
           });
+          return;
+        }
+
+        if (ticketAiMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const ai = await import("./webTicketAi.js");
+          const [, , area, idRaw] = ticketAiMatch;
+          const readJson = async (): Promise<Record<string, unknown> | null> => {
+            try {
+              return JSON.parse((await readBody(req)) || "{}") as Record<string, unknown>;
+            } catch {
+              return null;
+            }
+          };
+
+          if (!area && req.method === "GET") {
+            sendJson(res, 200, await ai.getTicketAiOverview(guild));
+            return;
+          }
+          if (area === "knowledge" && !idRaw && req.method === "GET") {
+            sendJson(res, 200, ai.listWebKnowledge(guild, url));
+            return;
+          }
+          if (area === "knowledge" && !idRaw && req.method === "POST") {
+            const body = await readJson();
+            if (!body) {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const result = ai.createWebKnowledge(guild, userId, body);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          if (area === "knowledge" && idRaw && req.method === "PATCH") {
+            const body = await readJson();
+            if (!body) {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const result = ai.updateWebKnowledge(guild, Number(idRaw), body);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          if (area === "knowledge" && idRaw && req.method === "DELETE") {
+            const removed = ai.deleteWebKnowledge(guild, Number(idRaw));
+            sendJson(res, removed ? 200 : 404, removed ? { ok: true } : { error: "That entry doesn't exist any more." });
+            return;
+          }
+          if (area === "autotrain" && req.method === "POST") {
+            const result = await ai.runWebAutotrain(client, guild);
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_ticket",
+              title: "AI Responder Autotrain run",
+              summary: result.ok
+                ? `Autotrain read ${result.messagesRead} messages and kept ${result.factsAdded} new facts.`
+                : `Autotrain didn't finish: ${result.error ?? "unknown error"}`,
+              payload: { action: "ticket_ai_autotrain", ...result },
+            });
+            sendJson(res, 200, result);
+            return;
+          }
+          if (area === "test" && req.method === "POST") {
+            const body = await readJson();
+            if (!body) {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const result = await ai.testTicketAi(guild, userId, body);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 

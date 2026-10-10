@@ -311,6 +311,28 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
   ticket_close: (ctx) =>
     buildGenericServerLog("Ticket #1 Closed", [`Closed by: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`, `Reason: ${TEST_REASON}`], ctx.actor.avatarUrl, "delete"),
 
+  ticket_ai_escalate: (ctx) =>
+    buildGenericServerLog(
+      "Ticket #1 Handed to Staff by AI",
+      [`Member: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`, "Reason: **Member asked for staff**", "Summary: Needs a refund for a purchase."],
+      ctx.actor.avatarUrl,
+      "action",
+    ),
+  ticket_ai_resolved: (ctx) =>
+    buildGenericServerLog(
+      "Ticket #1 Solved by AI",
+      [`Member: <@${ctx.actor.id}>`, `Channel: <#${ctx.channel.id}>`, "AI replies: **2**"],
+      ctx.actor.avatarUrl,
+      "create",
+    ),
+  ticket_ai_lesson: (ctx) =>
+    buildGenericServerLog(
+      "AI Responder Learned From Ticket #1",
+      ["Lessons waiting for review: **2**", "Review them on the dashboard's AI Responder page."],
+      ctx.actor.avatarUrl,
+      "create",
+    ),
+
   suggestion_create: (ctx) =>
     buildGenericServerLog(
       "Suggestion Created",

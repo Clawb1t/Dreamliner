@@ -26,6 +26,7 @@ import {
   suggestionComments,
   suggestionFollows,
   suggestionVotes,
+  ticketAiKnowledge,
   userBadges,
   userProgressionBadgeGrants,
   userProgressionBadgeHidden,
@@ -286,6 +287,13 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       label: "Appeal timeline entries",
       description: "Replies, decisions and notes you wrote on appeals.",
       rows: serializable(await db.select().from(appealEvents).where(eq(appealEvents.actorId, userId)).all()),
+    },
+    ticket_ai_knowledge: {
+      label: "AI Responder knowledge you wrote",
+      description: "FAQs and notes you added to a server's Tickets AI Responder knowledge base on the dashboard.",
+      rows: serializable(
+        await db.select().from(ticketAiKnowledge).where(eq(ticketAiKnowledge.createdBy, userId)).all(),
+      ),
     },
     evidence_messages: {
       label: "Evidence mode captures",

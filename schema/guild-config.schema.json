@@ -12446,6 +12446,244 @@
                   "description": "Ticket panels for this server.",
                   "title": "Panels"
                 },
+                "ai_responder": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Let the AI answer new tickets first.",
+                      "title": "Enabled"
+                    },
+                    "category_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 50,
+                      "default": [],
+                      "description": "Ticket categories the AI handles (by category id). Empty means every category.",
+                      "title": "Category Ids"
+                    },
+                    "persona": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "maxLength": 40,
+                          "default": "Support Assistant",
+                          "description": "What the AI calls itself.",
+                          "title": "Name"
+                        },
+                        "tone": {
+                          "type": "string",
+                          "enum": [
+                            "friendly",
+                            "professional",
+                            "casual",
+                            "concise"
+                          ],
+                          "default": "friendly",
+                          "description": "How it writes.",
+                          "title": "Tone"
+                        },
+                        "instructions": {
+                          "type": "string",
+                          "maxLength": 3000,
+                          "default": "",
+                          "description": "Extra instructions from the server, e.g. what to always mention or never promise.",
+                          "title": "Instructions"
+                        },
+                        "greeting": {
+                          "type": "string",
+                          "maxLength": 1000,
+                          "default": "Hi {user}, I'm {assistant}, the AI assistant here. Tell me what you need help with and I'll do my best, or press **Talk to staff** any time.",
+                          "description": "Posted when a ticket opens without form answers. Supports {user}, {assistant}, {guild} and {category}.",
+                          "title": "Greeting"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Persona"
+                    },
+                    "context": {
+                      "type": "object",
+                      "properties": {
+                        "server_info": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Server name, description, channels, roles and ticket categories.",
+                          "title": "Server Info"
+                        },
+                        "member_profile": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "The member's join date, roles and account age.",
+                          "title": "Member Profile"
+                        },
+                        "member_tickets": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "The member's recent tickets and how they ended.",
+                          "title": "Member Tickets"
+                        },
+                        "member_cases": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "The member's moderation history (counts and recent reasons).",
+                          "title": "Member Cases"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Context"
+                    },
+                    "replies": {
+                      "type": "object",
+                      "properties": {
+                        "max_length": {
+                          "type": "integer",
+                          "minimum": 200,
+                          "maximum": 1800,
+                          "default": 1000,
+                          "description": "Longest reply, in characters.",
+                          "title": "Max Length"
+                        },
+                        "max_per_ticket": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 30,
+                          "default": 8,
+                          "description": "AI replies in one ticket before it hands over to staff.",
+                          "title": "Max Per Ticket"
+                        },
+                        "show_label": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Mark AI replies as AI-written.",
+                          "title": "Show Label"
+                        },
+                        "buttons": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Add Talk to staff and This solved it buttons to AI replies.",
+                          "title": "Buttons"
+                        },
+                        "close_on_solved": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Close the ticket when the member says the AI solved it.",
+                          "title": "Close On Solved"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Replies"
+                    },
+                    "escalation": {
+                      "type": "object",
+                      "properties": {
+                        "sensitive_topics": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Always hand over bans, appeals, payments, refunds, account access, harassment and safety reports.",
+                          "title": "Sensitive Topics"
+                        },
+                        "topics": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "maxItems": 30,
+                          "default": [],
+                          "description": "Extra topics the AI should always hand to staff.",
+                          "title": "Topics"
+                        },
+                        "on_low_confidence": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Hand over when it isn't sure of the answer, instead of guessing.",
+                          "title": "On Low Confidence"
+                        },
+                        "message": {
+                          "type": "string",
+                          "maxLength": 1000,
+                          "default": "I've passed this to the staff team, someone will be with you shortly.",
+                          "description": "Posted when the AI hands the ticket to staff.",
+                          "title": "Message"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Escalation"
+                    },
+                    "learning": {
+                      "type": "object",
+                      "properties": {
+                        "from_staff": {
+                          "type": "boolean",
+                          "default": true,
+                          "description": "Learn from how staff answer tickets.",
+                          "title": "From Staff"
+                        },
+                        "auto_approve": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Use lessons from staff straight away instead of waiting for approval on the dashboard.",
+                          "title": "Auto Approve"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Learning"
+                    },
+                    "autotrain": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Regularly read recent messages in the chosen channels and keep useful facts.",
+                          "title": "Enabled"
+                        },
+                        "channel_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "maxItems": 10,
+                          "default": [],
+                          "description": "Channels Autotrain reads (announcements, FAQ, rules, info channels work best).",
+                          "title": "Channel Ids"
+                        },
+                        "lookback_days": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 90,
+                          "default": 30,
+                          "description": "How far back to read.",
+                          "title": "Lookback Days"
+                        },
+                        "interval_hours": {
+                          "type": "integer",
+                          "minimum": 6,
+                          "maximum": 168,
+                          "default": 24,
+                          "description": "How often to re-read.",
+                          "title": "Interval Hours"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Autotrain"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "AI Responder: answers new tickets first and hands over to staff.",
+                  "title": "Ai Responder"
+                },
                 "can_claim": {
                   "type": "boolean",
                   "default": false,
@@ -12565,6 +12803,16 @@
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
                   }
+                },
+                "can_control_ai": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to stop or resume the AI Responder in a ticket.",
+                  "title": "Control Ai",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
                 }
               },
               "additionalProperties": false,
@@ -12577,6 +12825,45 @@
                 "sync_status_to_topic": false,
                 "auto_status_updates": false,
                 "panels": [],
+                "ai_responder": {
+                  "enabled": false,
+                  "category_ids": [],
+                  "persona": {
+                    "name": "Support Assistant",
+                    "tone": "friendly",
+                    "instructions": "",
+                    "greeting": "Hi {user}, I'm {assistant}, the AI assistant here. Tell me what you need help with and I'll do my best, or press **Talk to staff** any time."
+                  },
+                  "context": {
+                    "server_info": true,
+                    "member_profile": true,
+                    "member_tickets": true,
+                    "member_cases": false
+                  },
+                  "replies": {
+                    "max_length": 1000,
+                    "max_per_ticket": 8,
+                    "show_label": true,
+                    "buttons": true,
+                    "close_on_solved": true
+                  },
+                  "escalation": {
+                    "sensitive_topics": true,
+                    "topics": [],
+                    "on_low_confidence": true,
+                    "message": "I've passed this to the staff team, someone will be with you shortly."
+                  },
+                  "learning": {
+                    "from_staff": true,
+                    "auto_approve": false
+                  },
+                  "autotrain": {
+                    "enabled": false,
+                    "channel_ids": [],
+                    "lookback_days": 30,
+                    "interval_hours": 24
+                  }
+                },
                 "can_claim": false,
                 "can_close": false,
                 "can_close_others": false,
@@ -12588,7 +12875,8 @@
                 "can_blacklist": false,
                 "can_assign": false,
                 "can_set_status": false,
-                "can_view_stats": false
+                "can_view_stats": false,
+                "can_control_ai": false
               },
               "title": "Config"
             }
