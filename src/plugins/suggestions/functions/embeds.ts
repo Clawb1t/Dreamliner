@@ -56,6 +56,14 @@ const MAX_LIVE_COMMENT_FIELDS = 15;
  *  input cap so several comment fields plus the rest of the embed stay comfortably inside the
  *  container's overall text budget. */
 const LIVE_COMMENT_BODY_LIMIT = 400;
+/**
+ * A Components V2 message may hold at most 4000 characters of text in total. A post over that is
+ * rejected by Discord, and with it every later edit (votes, status, new comments), so comments get
+ * whatever's left after the suggestion itself, newest first, with this much kept back for the
+ * title, fields, footer and the markdown around them.
+ */
+const POST_TEXT_LIMIT = 4000;
+const POST_TEXT_OVERHEAD = 450;
 
 /** Renders a comment as a Discord blockquote — one `>` per line, so a multi-line comment quotes
  *  correctly instead of only the first line. */
@@ -141,18 +149,21 @@ export function buildSuggestionEmbed(options: {
   }
 
   if (comments?.length) {
-    const shown = comments.slice(-MAX_LIVE_COMMENT_FIELDS);
-    const offset = comments.length - shown.length;
-    shown.forEach((comment, i) => {
-      const number = offset + i + 1;
+    let budget =
+      POST_TEXT_LIMIT - POST_TEXT_OVERHEAD - suggestion.content.length - (suggestion.denialReason?.length ?? 0);
+    const rendered: { label: string; value: string }[] = [];
+    // Newest first, so the latest discussion is what survives when space runs out.
+    for (let index = comments.length - 1; index >= 0 && rendered.length < MAX_LIVE_COMMENT_FIELDS; index--) {
+      const comment = comments[index]!;
       const author = comment.anonymous ? t("suggestions.anonymous", "Anonymous") : `<@${comment.authorId}>`;
-      embed.addFields(
-        embedField(
-          t("suggestions.field.commentNumber", "Comment #{n}", { n: number }),
-          `${author}\n${quoteCommentBody(comment.content)}`,
-        ),
-      );
-    });
+      const label = t("suggestions.field.commentNumber", "Comment #{n}", { n: index + 1 });
+      const value = `${author}\n${quoteCommentBody(comment.content)}`;
+      const cost = label.length + value.length + 8;
+      if (cost > budget) break;
+      budget -= cost;
+      rendered.push({ label, value });
+    }
+    for (const field of rendered.reverse()) embed.addFields(embedField(field.label, field.value));
   }
 
   if (suggestion.anonymous) {

@@ -222,6 +222,9 @@ export async function handleSuggestionButtonInteraction(interaction: ButtonInter
   if (parsed.value === "up" && voteResult.action !== "removed") {
     await autoFollowOnUpvote(config, suggestion.id, member.id);
   }
-  await refreshFeedMessage(interaction.client, config, suggestion, t);
+  // Edit the post that was clicked through the interaction itself: no channel permissions needed.
+  await refreshFeedMessage(interaction.client, config, suggestion, t, (payload) =>
+    interaction.editReply(payload as Parameters<typeof interaction.editReply>[0]),
+  );
   return true;
 }

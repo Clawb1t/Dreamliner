@@ -1,4 +1,4 @@
-import type { Client, Guild, GuildMember, MessageCreateOptions } from "discord.js";
+import type { Client, Guild, GuildMember, MessageCreateOptions, MessageEditOptions } from "discord.js";
 import type { EmbedTone } from "../../../core/embeds.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { SuggestionsConfig, SuggestionDisplayStatus } from "../../../config/schemas/suggestions.js";
@@ -9,6 +9,7 @@ import {
   buildSuggestionDenyLog,
 } from "../../../core/logging/format.js";
 import { sendModerationLog, sendServerLog } from "../../../core/logging/send.js";
+import { getLogger } from "../../../core/logger.js";
 import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import {
@@ -235,22 +236,88 @@ export async function postToFeed(options: {
   return { suggestion };
 }
 
+const log = getLogger("suggestions");
+
+/**
+ * Edits one of a suggestion's posts in place, by id: no fetch first, since fetching needs Read
+ * Message History and a missing permission used to fail silently, leaving votes and comments saved
+ * but never shown on the post. `render(safe)` builds the payload; if Discord rejects it, the error
+ * is logged and the post is re-rendered "safe" (no image, no comments) so votes and status still
+ * update. `edit` overrides how the edit is sent (a vote edits the clicked message through its
+ * interaction, which needs no channel permissions at all).
+ */
+async function editSuggestionPost(
+  client: Client,
+  channelId: string | null,
+  messageId: string | null,
+  render: (safe: boolean) => MessageEditOptions,
+  edit?: (payload: MessageEditOptions) => Promise<unknown>,
+): Promise<boolean> {
+  let send = edit;
+  if (!send) {
+    if (!channelId || !messageId) return false;
+    const channel = await resolveTextChannel(client, channelId);
+    if (!channel) return false;
+    send = (payload) => channel.messages.edit(messageId, payload);
+  }
+  try {
+    await send(render(false));
+    return true;
+  } catch (error) {
+    log.warn(`Couldn't update suggestion post ${messageId ?? "(interaction)"}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  try {
+    await send(render(true));
+    return true;
+  } catch (error) {
+    log.warn(`Couldn't update suggestion post ${messageId ?? "(interaction)"} even without image/comments: ${error instanceof Error ? error.message : String(error)}`);
+    return false;
+  }
+}
+
+/** Deletes one of a suggestion's posts by id (no fetch first, see editSuggestionPost). */
+async function deleteSuggestionPost(client: Client, channelId: string | null, messageId: string | null): Promise<void> {
+  if (!channelId || !messageId) return;
+  const channel = await resolveTextChannel(client, channelId);
+  await channel?.messages.delete(messageId).catch(() => null);
+}
+
+/** The feed post's payload: the full post, or (safe) one without its image and comments. */
+async function feedPostPayload(
+  client: Client,
+  config: SuggestionsConfig,
+  suggestion: Suggestion,
+  t: Translator,
+): Promise<(safe: boolean) => MessageEditOptions> {
+  const [votes, commentContext] = await Promise.all([getVoteTotals(suggestion.id), loadCommentContext(suggestion.id)]);
+  const components = suggestion.status === "approved" ? feedActionRows(suggestion.id, config, votes, t) : [];
+  return (safe) =>
+    containerEdit(
+      buildSuggestionEmbed({
+        client,
+        suggestion,
+        config,
+        votes,
+        commentCount: commentContext.commentCount,
+        comments: safe ? [] : commentContext.comments,
+        ...(safe ? { image: null } : {}),
+        t,
+      }),
+      components,
+    );
+}
+
 export async function refreshFeedMessage(
   client: Client,
   config: SuggestionsConfig,
   suggestion: Suggestion,
   t: Translator = defaultTranslator,
+  /** Send the edit another way, e.g. through the vote button's own interaction. */
+  edit?: (payload: MessageEditOptions) => Promise<unknown>,
 ): Promise<void> {
-  if (!suggestion.feedChannelId || !suggestion.feedMessageId) return;
-  const channel = await resolveTextChannel(client, suggestion.feedChannelId);
-  if (!channel) return;
-  const msg = await channel.messages.fetch(suggestion.feedMessageId).catch(() => null);
-  if (!msg) return;
-  const votes = await getVoteTotals(suggestion.id);
-  const embed = buildSuggestionEmbed({ client, suggestion, config, votes, ...(await loadCommentContext(suggestion.id)), t });
-  const components =
-    suggestion.status === "approved" ? feedActionRows(suggestion.id, config, votes, t) : [];
-  await msg.edit(containerEdit(embed, components)).catch(() => null);
+  if (!edit && (!suggestion.feedChannelId || !suggestion.feedMessageId)) return;
+  const render = await feedPostPayload(client, config, suggestion, t);
+  await editSuggestionPost(client, suggestion.feedChannelId, suggestion.feedMessageId, render, edit);
 }
 
 /** After a new comment is added, re-render whichever of the suggestion's live posted messages
@@ -264,35 +331,27 @@ async function refreshMessagesWithComments(
   suggestion: Suggestion,
   t: Translator,
 ): Promise<void> {
-  const { comments, commentCount } = await loadCommentContext(suggestion.id);
-
   if (suggestion.feedChannelId && suggestion.feedMessageId) {
-    const channel = await resolveTextChannel(client, suggestion.feedChannelId);
-    const msg = channel ? await channel.messages.fetch(suggestion.feedMessageId).catch(() => null) : null;
-    if (msg) {
-      const votes = await getVoteTotals(suggestion.id);
-      const embed = buildSuggestionEmbed({ client, suggestion, config, votes, commentCount, comments, t });
-      const components =
-        suggestion.status === "approved" ? feedActionRows(suggestion.id, config, votes, t) : [];
-      await msg.edit(containerEdit(embed, components)).catch(() => null);
-    }
+    await refreshFeedMessage(client, config, suggestion, t);
   }
 
   if (suggestion.status === "awaiting_review" && suggestion.reviewChannelId && suggestion.reviewMessageId) {
-    const channel = await resolveTextChannel(client, suggestion.reviewChannelId);
-    const msg = channel ? await channel.messages.fetch(suggestion.reviewMessageId).catch(() => null) : null;
-    if (msg) {
-      const embed = buildSuggestionEmbed({
-        client,
-        suggestion,
-        config,
-        commentCount,
-        comments,
-        titlePrefix: t("suggestions.titlePrefix.review", "Review"),
-        t,
-      });
-      await msg.edit(containerEdit(embed, [queueActionRow(suggestion.id, t)])).catch(() => null);
-    }
+    const { comments, commentCount } = await loadCommentContext(suggestion.id);
+    await editSuggestionPost(client, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
+      containerEdit(
+        buildSuggestionEmbed({
+          client,
+          suggestion,
+          config,
+          commentCount,
+          comments: safe ? [] : comments,
+          ...(safe ? { image: null } : {}),
+          titlePrefix: t("suggestions.titlePrefix.review", "Review"),
+          t,
+        }),
+        [queueActionRow(suggestion.id, t)],
+      ),
+    );
   }
 }
 
@@ -335,19 +394,22 @@ export async function approveSuggestion(options: {
   );
 
   if (suggestion.reviewChannelId && suggestion.reviewMessageId) {
-    const channel = await resolveTextChannel(options.client, suggestion.reviewChannelId);
-    const msg = channel ? await channel.messages.fetch(suggestion.reviewMessageId).catch(() => null) : null;
-    if (msg) {
-      const embed = buildSuggestionEmbed({
-        client: options.client,
-        suggestion: updated,
-        config: options.config,
-        ...(await loadCommentContext(updated.id)),
-        titlePrefix: t("suggestions.status.approved", "Approved"),
-        t,
-      });
-      await msg.edit(containerEdit(embed, [disabledQueueRow(t)])).catch(() => null);
-    }
+    const context = await loadCommentContext(updated.id);
+    await editSuggestionPost(options.client, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
+      containerEdit(
+        buildSuggestionEmbed({
+          client: options.client,
+          suggestion: updated,
+          config: options.config,
+          commentCount: context.commentCount,
+          comments: safe ? [] : context.comments,
+          ...(safe ? { image: null } : {}),
+          titlePrefix: t("suggestions.status.approved", "Approved"),
+          t,
+        }),
+        [disabledQueueRow(t)],
+      ),
+    );
   }
 
   const posted = await postToFeed({
@@ -410,27 +472,28 @@ export async function denySuggestion(options: {
   );
 
   if (suggestion.reviewChannelId && suggestion.reviewMessageId) {
-    const channel = await resolveTextChannel(options.client, suggestion.reviewChannelId);
-    const msg = channel ? await channel.messages.fetch(suggestion.reviewMessageId).catch(() => null) : null;
-    if (msg) {
-      const embed = buildSuggestionEmbed({
-        client: options.client,
-        suggestion: updated,
-        config: options.config,
-        ...(await loadCommentContext(updated.id)),
-        titlePrefix: t("suggestions.status.denied", "Denied"),
-        t,
-      });
-      await msg.edit(containerEdit(embed, [disabledQueueRow(t)])).catch(() => null);
-    }
+    const context = await loadCommentContext(updated.id);
+    await editSuggestionPost(options.client, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
+      containerEdit(
+        buildSuggestionEmbed({
+          client: options.client,
+          suggestion: updated,
+          config: options.config,
+          commentCount: context.commentCount,
+          comments: safe ? [] : context.comments,
+          ...(safe ? { image: null } : {}),
+          titlePrefix: t("suggestions.status.denied", "Denied"),
+          t,
+        }),
+        [disabledQueueRow(t)],
+      ),
+    );
   }
 
   if (suggestion.feedChannelId && suggestion.feedMessageId) {
     // Its discussion thread outlives the feed post: lock it so the conversation stays readable.
     await closeSuggestionThread(options.client, suggestion.feedChannelId, suggestion.feedMessageId, "lock");
-    const channel = await resolveTextChannel(options.client, suggestion.feedChannelId);
-    const msg = channel ? await channel.messages.fetch(suggestion.feedMessageId).catch(() => null) : null;
-    if (msg) await msg.delete().catch(() => null);
+    await deleteSuggestionPost(options.client, suggestion.feedChannelId, suggestion.feedMessageId);
     updated =
       (await updateSuggestion(updated.id, { feedChannelId: null, feedMessageId: null })) ?? updated;
   }
@@ -558,10 +621,7 @@ export async function deleteSuggestion(options: {
     [suggestion.reviewChannelId, suggestion.reviewMessageId],
     [suggestion.deniedChannelId, suggestion.deniedMessageId],
   ] as const) {
-    if (!channelId || !messageId) continue;
-    const channel = await resolveTextChannel(options.client, channelId);
-    const msg = channel ? await channel.messages.fetch(messageId).catch(() => null) : null;
-    if (msg) await msg.delete().catch(() => null);
+    await deleteSuggestionPost(options.client, channelId, messageId);
   }
 
   const deletedLabel = t("suggestions.deletedLabel", "Deleted");
