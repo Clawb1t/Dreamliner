@@ -25,24 +25,39 @@ function ageLabel(from: Date, now = new Date()): string {
   return `${Math.floor(days / 365)} years ago`;
 }
 
-export function buildServerContext(guild: Guild, guildConfig: GuildConfig, tickets: TicketsConfig): string {
+export type ChannelRef = { id: string; name: string };
+
+/**
+ * Text, announcement and forum channels the member can see (or @everyone, when there's no member),
+ * in sidebar order, leaving out ticket channels. Used both to tell the AI which channels exist and
+ * to turn a plain "#name" in its reply into a real channel mention.
+ */
+export function visibleChannels(guild: Guild, member: GuildMember | null, tickets: TicketsConfig, limit = 60): ChannelRef[] {
+  const viewer = member ?? guild.roles.everyone;
+  const ticketParents = new Set(
+    tickets.panels.flatMap((panel) => panel.categories.map((category) => category.category_channel_id)).filter(Boolean),
+  );
+  const parentPosition = (id: string | null) => (id ? (guild.channels.cache.get(id) as { position?: number } | undefined)?.position ?? 0 : -1);
+  return [...guild.channels.cache.values()]
+    .filter(
+      (c): c is Extract<typeof c, { position: number; parentId: string | null }> =>
+        (c.type === ChannelType.GuildText || c.type === ChannelType.GuildAnnouncement || c.type === ChannelType.GuildForum) &&
+        !(c.parentId && ticketParents.has(c.parentId)) &&
+        Boolean(c.permissionsFor(viewer)?.has("ViewChannel")),
+    )
+    .sort((a, b) => parentPosition(a.parentId) - parentPosition(b.parentId) || a.position - b.position)
+    .slice(0, limit)
+    .map((c) => ({ id: c.id, name: c.name }));
+}
+
+export function buildServerContext(guild: Guild, guildConfig: GuildConfig, tickets: TicketsConfig, channels: ChannelRef[]): string {
   const lines: string[] = [`Server: ${guild.name} (${guild.memberCount.toLocaleString("en-US")} members)`];
   const description = guildConfig.server_page?.description?.trim() || guild.description?.trim();
   if (description) lines.push(`About: ${description.slice(0, 400)}`);
   if (guild.rulesChannelId) lines.push(`Rules channel: <#${guild.rulesChannelId}>`);
 
-  // Public text channels members can see: names help the AI point people to the right place.
-  const everyone = guild.roles.everyone;
-  const channels = [...guild.channels.cache.values()]
-    .filter(
-      (c) =>
-        (c.type === ChannelType.GuildText || c.type === ChannelType.GuildAnnouncement || c.type === ChannelType.GuildForum) &&
-        c.permissionsFor(everyone)?.has("ViewChannel"),
-    )
-    .sort((a, b) => ("position" in a && "position" in b ? a.position - b.position : 0))
-    .slice(0, 40)
-    .map((c) => `<#${c.id}> (#${c.name})`);
-  if (channels.length) lines.push(`Public channels: ${channels.join(", ")}`);
+  // The channels this member can see: names help the AI point people to the right place.
+  if (channels.length) lines.push(`Channels (mention as written): ${channels.map((c) => `<#${c.id}> = #${c.name}`).join(", ")}`);
 
   const roles = [...guild.roles.cache.values()]
     .filter((r) => !r.managed && r.id !== guild.id)
@@ -137,10 +152,15 @@ export function messageText(message: Message): string {
   return parts.join("\n").trim();
 }
 
-/** True for the AI Responder's own replies (they carry its buttons or label). */
+/** Invisible character at the start of every AI post's footer (greeting, replies, hand-off), so
+ *  they're recognised even when the label and buttons are turned off. */
+export const AI_MARKER = "\u2063";
+
+/** True for the AI Responder's own posts (they carry its marker, buttons or label). */
 export function isAiReply(message: Message, client: Client): boolean {
   if (message.author.id !== client.user?.id) return false;
-  return JSON.stringify(message.components).includes(TICKET_AI_PREFIX) || messageText(message).includes(AI_LABEL_MARKER);
+  const text = messageText(message);
+  return text.includes(AI_MARKER) || JSON.stringify(message.components).includes(TICKET_AI_PREFIX) || text.includes(AI_LABEL_MARKER);
 }
 
 /** Shown on every AI reply (when labels are on), and used to recognise them later. */
@@ -164,7 +184,12 @@ export async function readConversation(
   for (const message of [...messages.values()].reverse()) {
     if (message.author.bot) {
       if (!isAiReply(message, client)) continue;
-      const text = messageText(message).replace(new RegExp(`-# .*${AI_LABEL_MARKER}.*`, "g"), "").trim();
+      // Drop the footer line (name, label, hand-off reason) and keep what the AI actually said.
+      const text = messageText(message)
+        .split("\n")
+        .filter((line) => !line.includes(AI_MARKER) && !line.includes(AI_LABEL_MARKER))
+        .join("\n")
+        .trim();
       if (text) turns.push({ speaker: "assistant", name: "you", text: text.slice(0, 2000) });
       continue;
     }

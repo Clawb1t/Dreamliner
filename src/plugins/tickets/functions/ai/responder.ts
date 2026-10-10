@@ -22,9 +22,26 @@ import { getPluginSettings } from "../../../../core/permissionRoles.js";
 import { containerReply } from "../../../../core/responses.js";
 import { renderTemplate } from "../../../../core/templates.js";
 import { getTicket, type TicketRecord } from "../tickets.js";
-import { AI_LABEL_MARKER, buildMemberContext, buildServerContext, readConversation, staffRoleIdsFor } from "./context.js";
+import {
+  AI_LABEL_MARKER,
+  AI_MARKER,
+  buildMemberContext,
+  buildServerContext,
+  readConversation,
+  staffRoleIdsFor,
+  visibleChannels,
+  type ChannelRef,
+} from "./context.js";
 import { ticketAiButtonId } from "./ids.js";
-import { buildDataMessage, buildSystemPrompt, decisionSchema, parseDecision, sanitizeReply } from "./prompt.js";
+import {
+  buildDataMessage,
+  buildSystemPrompt,
+  decisionSchema,
+  linkChannelMentions,
+  parseDecision,
+  sanitizeReply,
+  stripGreeting,
+} from "./prompt.js";
 import { refundUsage, takeReply } from "./quota.js";
 import { rankKnowledge } from "./retrieve.js";
 import {
@@ -44,7 +61,6 @@ export const AI_EMOJI = "<:icons_spark:1544417582986297466>";
 const STAFF_EMOJI = "<:icons_supportteam:1544417745406398504>";
 const SOLVED_EMOJI = "<:icons_Correct:1544417199798886530>";
 /** Invisible marker in every AI reply's footer, so its replies are recognised even with labels off. */
-const AI_MARKER = "⁣";
 
 /** The model for the responder: its own setting, so Autopilot's model can differ. */
 export function ticketAiModel(): string {
@@ -217,11 +233,17 @@ export async function runAiTurn(client: Client, guildId: string, ticketId: numbe
 
   let decision;
   let sources: string[] = [];
+  let channels: ChannelRef[] = [];
+  let continuing = false;
   try {
     const staffRoles = staffRoleIdsFor(ctx.category, ctx.pluginConfig);
     const conversation = await readConversation(channel, client, ctx.ticket.openerId, staffRoles);
+    continuing = conversation.some((turn) => turn.speaker !== "member");
     const member = await ctx.guild.members.fetch(ctx.ticket.openerId).catch(() => null);
-    const server = config.context.server_info ? buildServerContext(ctx.guild, ctx.guildConfig, ctx.pluginConfig) : `Server: ${ctx.guild.name}`;
+    channels = visibleChannels(ctx.guild, member, ctx.pluginConfig);
+    const server = config.context.server_info
+      ? buildServerContext(ctx.guild, ctx.guildConfig, ctx.pluginConfig, channels)
+      : `Server: ${ctx.guild.name}`;
     const memberText = await buildMemberContext(ctx.guild, member, ctx.ticket.openerId, config, ctx.ticket.id);
     const query = [
       ...ctx.ticket.formResponses.map((a) => `${a.label} ${a.answer}`),
@@ -265,7 +287,8 @@ export async function runAiTurn(client: Client, guildId: string, ticketId: numbe
     return;
   }
 
-  const reply = sanitizeReply(decision.reply, config.replies.max_length, sources);
+  const sanitized = sanitizeReply(decision.reply, config.replies.max_length, sources);
+  const reply = linkChannelMentions(continuing ? stripGreeting(sanitized) : sanitized, channels, (id) => ctx.guild.channels.cache.has(id));
   const lowConfidence = config.escalation.on_low_confidence && decision.confidence === "low";
   if (decision.action === "escalate" || lowConfidence || !reply) {
     await escalateTicket(ctx, {

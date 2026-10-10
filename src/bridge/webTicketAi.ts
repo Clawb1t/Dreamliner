@@ -8,8 +8,16 @@ import { getPluginSettings } from "../core/permissionRoles.js";
 import { getDb } from "../db/client.js";
 import { ticketAiState } from "../db/schema.js";
 import { runAutotrain } from "../plugins/tickets/functions/ai/autotrain.js";
-import { buildMemberContext, buildServerContext } from "../plugins/tickets/functions/ai/context.js";
-import { buildDataMessage, buildSystemPrompt, decisionSchema, parseDecision, sanitizeReply } from "../plugins/tickets/functions/ai/prompt.js";
+import { buildMemberContext, buildServerContext, visibleChannels } from "../plugins/tickets/functions/ai/context.js";
+import {
+  buildDataMessage,
+  buildSystemPrompt,
+  decisionSchema,
+  linkChannelMentions,
+  parseDecision,
+  sanitizeReply,
+  stripGreeting,
+} from "../plugins/tickets/functions/ai/prompt.js";
 import { refundUsage, takeReply, usageSummary, type UsageSummary } from "../plugins/tickets/functions/ai/quota.js";
 import { ticketAiModel } from "../plugins/tickets/functions/ai/responder.js";
 import { rankKnowledge } from "../plugins/tickets/functions/ai/retrieve.js";
@@ -177,6 +185,8 @@ export type TicketAiTestResult =
       ok: true;
       action: "reply" | "escalate";
       reply: string;
+      /** Names for the <#id> mentions in the reply, so the dashboard can show them like Discord. */
+      channels: Record<string, string>;
       staffSummary: string;
       confidence: "high" | "medium" | "low";
       knowledge: Array<{ id: number; title: string; kind: KnowledgeKind }>;
@@ -204,7 +214,8 @@ export async function testTicketAi(guild: Guild, userId: string, body: Record<st
   if (!(await takeReply(guild.id))) return { ok: false, error: "This server has used all of today's AI replies." };
   try {
     const member = await guild.members.fetch(userId).catch(() => null);
-    const server = config.context.server_info ? buildServerContext(guild, guildConfig, pluginConfig) : `Server: ${guild.name}`;
+    const channels = visibleChannels(guild, member, pluginConfig);
+    const server = config.context.server_info ? buildServerContext(guild, guildConfig, pluginConfig, channels) : `Server: ${guild.name}`;
     const memberText = await buildMemberContext(guild, member, userId, config, -1);
     const query = messages.filter((m) => m.role === "member").map((m) => m.text).join("\n");
     const knowledge = rankKnowledge(activeKnowledge(guild.id), query);
@@ -233,12 +244,24 @@ export async function testTicketAi(guild: Guild, userId: string, body: Record<st
       ],
     });
     const decision = parseDecision(raw, new Set(knowledge.map((k) => k.entry.id)));
-    const reply = sanitizeReply(decision.reply, config.replies.max_length, [server, ...knowledge.map((k) => `${k.entry.title} ${k.entry.content}`)]);
+    const sanitized = sanitizeReply(decision.reply, config.replies.max_length, [server, ...knowledge.map((k) => `${k.entry.title} ${k.entry.content}`)]);
+    const reply = linkChannelMentions(
+      messages.some((m) => m.role === "assistant") ? stripGreeting(sanitized) : sanitized,
+      channels,
+      (id) => guild.channels.cache.has(id),
+    );
+    // The dashboard shows <#id> mentions as #name, like Discord does.
+    const mentioned: Record<string, string> = {};
+    for (const match of reply.matchAll(/<#(\d+)>/g)) {
+      const channel = guild.channels.cache.get(match[1]!);
+      if (channel && "name" in channel) mentioned[channel.id] = channel.name;
+    }
     const lowConfidence = config.escalation.on_low_confidence && decision.confidence === "low";
     return {
       ok: true,
       action: decision.action === "escalate" || lowConfidence || !reply ? "escalate" : "reply",
       reply,
+      channels: mentioned,
       staffSummary: decision.staff_summary,
       confidence: decision.confidence,
       knowledge: knowledge

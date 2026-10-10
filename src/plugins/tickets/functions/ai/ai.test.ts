@@ -15,7 +15,7 @@ runMigrations();
 const { getDb } = await import("../../../../db/client.js");
 const store = await import("./store.js");
 const { rankKnowledge, tokenize } = await import("./retrieve.js");
-const { buildDataMessage, buildSystemPrompt, parseDecision, sanitizeReply } = await import("./prompt.js");
+const { buildDataMessage, buildSystemPrompt, linkChannelMentions, parseDecision, sanitizeReply, stripGreeting } = await import("./prompt.js");
 const { parseTicketAiButtonId, ticketAiButtonId } = await import("./ids.js");
 const { zTicketAiConfig } = await import("../../../../config/schemas/ticketAi.js");
 
@@ -151,5 +151,47 @@ describe("button ids", () => {
   it("round-trips", () => {
     assert.deepEqual(parseTicketAiButtonId(ticketAiButtonId("solved", 42)), { action: "solved", ticketId: 42 });
     assert.equal(parseTicketAiButtonId("dl:ticket:close:42"), null);
+  });
+});
+
+describe("linkChannelMentions", () => {
+  const channels = [
+    { id: "111111111111111111", name: "verify" },
+    { id: "222222222222222222", name: "📜・server-rules" },
+    { id: "333333333333333333", name: "general" },
+  ];
+  const exists = (id: string) => channels.some((c) => c.id === id);
+
+  it("turns plain #names into mentions, ignoring case and decorations", () => {
+    assert.equal(
+      linkChannelMentions("Head to #verify, then read `#Server-Rules`.", channels, exists),
+      "Head to <#111111111111111111>, then read <#222222222222222222>.",
+    );
+    assert.equal(linkChannelMentions("Ask in #general!", channels, exists), "Ask in <#333333333333333333>!");
+  });
+
+  it("keeps real mentions, drops invented ones and leaves unknown names alone", () => {
+    assert.equal(
+      linkChannelMentions("See <#111111111111111111> or <#999999999999999999> or #memes.", channels, exists),
+      "See <#111111111111111111> or or #memes.",
+    );
+  });
+
+  it("doesn't touch links, headings or ticket numbers", () => {
+    const text = "https://dreamliner.site/docs#verify and ticket #142";
+    assert.equal(linkChannelMentions(text, channels, exists), text);
+  });
+});
+
+describe("stripGreeting", () => {
+  it("removes an opening greeting and recapitalises", () => {
+    assert.equal(stripGreeting("Hi there! Head to the verify channel."), "Head to the verify channel.");
+    assert.equal(stripGreeting("Hey Sam, you'll need level 5 first."), "You'll need level 5 first.");
+    assert.equal(stripGreeting("Hello! Thanks for reaching out. Here's how."), "Here's how.");
+  });
+
+  it("leaves replies that don't start with a greeting", () => {
+    assert.equal(stripGreeting("Highlights are posted weekly."), "Highlights are posted weekly.");
+    assert.equal(stripGreeting("Hi!"), "Hi!");
   });
 });

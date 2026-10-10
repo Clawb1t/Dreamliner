@@ -85,9 +85,14 @@ export function buildSystemPrompt(config: TicketAiConfig, guildName: string): st
     "- staff need to do something only they can do, or the member is upset with staff or a decision.",
     "",
     "How to answer:",
+    "- This is a live chat. If <conversation> already has messages from you (\"you\") or staff, carry on from there " +
+      "like the next message in the chat: no greeting (no Hi, Hey or Hello), no re-introducing yourself, no " +
+      "\"Thanks for reaching out\". Get straight to the point. Only your very first message in a ticket may open with a " +
+      "short greeting.",
     `- Write ${TONE_GUIDE[config.persona.tone]}. Use the member's language if they don't write in English.`,
     `- Keep replies under ${config.replies.max_length} characters. Use short paragraphs or a short list; Discord markdown is fine.`,
-    "- Refer to channels with their <#id> mention from <server_data>. Never @mention anyone.",
+    "- Whenever you point the member to a channel, write its mention exactly as listed in <server_data> (like " +
+      "<#123456789012345678>), never a plain #name, and only mention channels listed there. Never @mention anyone.",
     "- Ask one clear follow-up question when you need more detail to help.",
     "- When escalating, \"reply\" is a short, friendly line to the member (staff will be with them soon; don't repeat " +
       "the hand-off notice word for word), and \"staff_summary\" briefly tells staff what the member needs and why you " +
@@ -185,6 +190,47 @@ export function sanitizeReply(text: string, maxLength: number, sources: string[]
     out = `${(lastBreak > maxLength * 0.6 ? cut.slice(0, lastBreak + 1) : cut).trim()}…`;
   }
   return out;
+}
+
+const GREETING =
+  /^\s*(?:(?:hi|hey|hello|hiya|heya|howdy|yo|greetings|good (?:morning|afternoon|evening))\b[^\n.!?]{0,40}?[!,.]|thanks? (?:you )?(?:so much )?for (?:reaching out|getting in touch|contacting us|your patience)[^\n.!?]{0,30}[!.])\s*/i;
+
+/** Removes an opening "Hi there!" / "Hey Sam," / "Thanks for reaching out!" from a reply that continues a conversation. */
+export function stripGreeting(text: string): string {
+  let out = text;
+  for (let i = 0; i < 2; i++) {
+    const next = out.replace(GREETING, "");
+    if (next === out || !next.trim()) break;
+    out = next;
+  }
+  return out === text ? text : out.charAt(0).toUpperCase() + out.slice(1);
+}
+
+const channelKey = (name: string) =>
+  name
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+
+/**
+ * Makes channel references real Discord mentions: a plain "#name" (or "`#name`") that matches a
+ * channel the member can see becomes <#id>, ignoring case, dashes and decorations like emoji, and a
+ * <#id> mention of a channel that doesn't exist is dropped.
+ */
+export function linkChannelMentions(text: string, channels: Array<{ id: string; name: string }>, exists: (id: string) => boolean): string {
+  const byKey = new Map<string, string>();
+  for (const channel of channels) {
+    const key = channelKey(channel.name);
+    if (key && !byKey.has(key)) byKey.set(key, channel.id);
+  }
+  return text
+    .replace(/<#(\d{15,25})>/g, (whole, id: string) => (exists(id) ? whole : ""))
+    .replace(/(`?)(?<![\w/&<])#([^\s#<>`*_~|()[\]{},;:!?"']+)\1/gu, (whole, _tick: string, raw: string) => {
+      const name = raw.replace(/[.\-]+$/u, "");
+      const id = byKey.get(channelKey(name));
+      return id ? `<#${id}>${raw.slice(name.length)}` : whole;
+    })
+    .replace(/ {2,}/g, " ");
 }
 
 /** Validates the model's answer; anything malformed is treated as "hand it to staff". */
