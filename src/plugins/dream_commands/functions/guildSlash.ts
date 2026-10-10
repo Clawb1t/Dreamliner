@@ -1,5 +1,4 @@
-import { REST, Routes, SlashCommandBuilder, type Client } from "discord.js";
-import { discordRestAgent } from "../../../core/discordRest.js";
+import { Routes, SlashCommandBuilder, type Client } from "discord.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
 import { listEnabledDreamCommands, type DreamCommandRow } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
@@ -56,8 +55,9 @@ export async function syncGuildDreamSlashCommands(client: Client, guildId: strin
 
   const rows = await listEnabledDreamCommands(guildId);
   const body = buildGuildCommandBody(rows);
-  const rest = new REST({ version: "10", agent: discordRestAgent }).setToken(token);
-  await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
+  // The client's own REST manager: a new REST per sync leaked two interval timers (and the whole
+  // instance) every time, once per guild at startup and on every custom-command edit.
+  await client.rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
   return body.length;
 }
 

@@ -3,6 +3,7 @@ import { getDb } from "../db/client.js";
 import { userLocales } from "../db/schema.js";
 import { DEFAULT_LOCALE, type Locale } from "./locale.js";
 import { isKnownEnabledLocale } from "./registry.js";
+import { capMap } from "../core/mapPrune.js";
 
 /**
  * A member's personal language preference — global to their Discord account (set with
@@ -10,6 +11,8 @@ import { isKnownEnabledLocale } from "./registry.js";
  * the pattern in ../plugins/tts/functions/userVoice.ts.
  */
 const cache = new Map<string, Locale>();
+/** Backed by the database, so evicting just means one more lookup later. */
+const MAX_CACHED_LOCALES = 20_000;
 
 export async function getUserLocale(userId: string): Promise<Locale> {
   const cached = cache.get(userId);
@@ -18,6 +21,7 @@ export async function getUserLocale(userId: string): Promise<Locale> {
   const row = await getDb().select().from(userLocales).where(eq(userLocales.userId, userId)).get();
   const locale = row?.locale ?? DEFAULT_LOCALE;
   cache.set(userId, locale);
+  capMap(cache, MAX_CACHED_LOCALES);
   return locale;
 }
 

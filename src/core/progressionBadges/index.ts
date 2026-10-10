@@ -329,7 +329,12 @@ export async function getPublicBadgeInfo(client: Client, key: string): Promise<P
       };
     }
   }
-  infoCache.set(key, { at: Date.now(), info });
+  if (info) {
+    for (const [cachedKey, entry] of infoCache) {
+      if (Date.now() - entry.at >= INFO_CACHE_TTL_MS) infoCache.delete(cachedKey);
+    }
+    infoCache.set(key, { at: Date.now(), info });
+  }
   return info;
 }
 

@@ -13,10 +13,12 @@ import { extractPostUrls, getPost, resolvePostUrl } from "./api.js";
 import { activeBlueskySettings } from "./guildSettings.js";
 import { connectPrompt } from "./messages.js";
 import { getDeliveryByMessage } from "./store.js";
+import { createPruner } from "../../../core/mapPrune.js";
 const log = getLogger("bluesky");
 
 const PROMPT_COOLDOWN_MS = 24 * 60 * 60_000;
 const lastPromptAt = new Map<string, number>();
+const pruneLastPromptAt = createPruner(lastPromptAt, (at, now) => now - at >= PROMPT_COOLDOWN_MS);
 
 async function resolveMessage(message: Message | PartialMessage): Promise<Message | null> {
   if (!message.partial) return message;
@@ -45,6 +47,7 @@ async function findPost(message: Message, needCid: boolean): Promise<{ uri: stri
 async function promptToConnect(client: Client, user: User, expired: boolean): Promise<void> {
   const last = lastPromptAt.get(user.id) ?? 0;
   if (Date.now() - last < PROMPT_COOLDOWN_MS) return;
+  pruneLastPromptAt();
   lastPromptAt.set(user.id, Date.now());
   const { t } = await translatorFor(user.id);
   const { container, rows } = connectPrompt(client, t, expired);

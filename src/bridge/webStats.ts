@@ -84,6 +84,7 @@ import {
 import { mapWithConcurrency } from "../core/concurrency.js";
 import { retryAsync } from "../core/retry.js";
 import { getLogger } from "../core/logger.js";
+import { createPruner } from "../core/mapPrune.js";
 
 const log = getLogger("stats");
 
@@ -190,6 +191,7 @@ type CachedIdentity = {
  */
 const identityCache = new Map<string, { value: CachedIdentity; expiresAt: number }>();
 const IDENTITY_CACHE_TTL_MS = 10 * 60 * 1000;
+const pruneIdentityCache = createPruner(identityCache, (entry, now) => entry.expiresAt <= now);
 
 async function resolveUserIdentity(
   client: Client,
@@ -213,6 +215,7 @@ async function resolveUserIdentity(
     avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
     bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
   };
+  pruneIdentityCache();
   identityCache.set(userId, { value, expiresAt: Date.now() + IDENTITY_CACHE_TTL_MS });
   return { ...value, apiFetch: true };
 }

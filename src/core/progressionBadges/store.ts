@@ -81,6 +81,7 @@ export async function listStoredBadges(): Promise<StoredBadge[]> {
 }
 
 const imageCache = new Map<number, { version: string; buffer: Buffer; contentType: string }>();
+const MAX_CACHED_TIER_IMAGES = 200;
 
 export async function getTierImage(tierId: number): Promise<{ buffer: Buffer; contentType: string } | null> {
   const row = getDb()
@@ -98,7 +99,10 @@ export async function getTierImage(tierId: number): Promise<{ buffer: Buffer; co
     .get();
   if (!full) return null;
   const entry = { version: row.version, buffer: Buffer.from(full.image), contentType: full.contentType };
+  imageCache.delete(tierId);
   imageCache.set(tierId, entry);
+  // Oldest out first; a dropped image is just read from the database again when needed.
+  while (imageCache.size > MAX_CACHED_TIER_IMAGES) imageCache.delete(imageCache.keys().next().value!);
   return entry;
 }
 

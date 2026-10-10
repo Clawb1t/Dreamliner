@@ -182,8 +182,13 @@ function bumpConcurrency(guildId: string, channelId: string, userId: string): vo
 }
 
 function dropConcurrency(guildId: string, channelId: string, userId: string): void {
-  guildVoiceMembers.get(guildId)?.delete(userId);
-  channelVoiceMembers.get(channelId)?.delete(userId);
+  const guildSet = guildVoiceMembers.get(guildId);
+  guildSet?.delete(userId);
+  if (guildSet?.size === 0) guildVoiceMembers.delete(guildId);
+  const channelSet = channelVoiceMembers.get(channelId);
+  channelSet?.delete(userId);
+  // Temporary voice rooms (companion channels) come and go: don't keep an empty set per room.
+  if (channelSet?.size === 0) channelVoiceMembers.delete(channelId);
 }
 
 async function persistActiveSession(guildId: string, userId: string, channelId: string, joinedAt: number): Promise<void> {
@@ -344,14 +349,21 @@ export async function handleVoiceStateUpdate(oldState: VoiceState, newState: Voi
  * they were connected during the outage isn't possible without a shutdown timestamp, so that
  * portion is accepted as lost, same as this feature's existing best-effort philosophy.
  */
-export async function snapshotActiveVoiceMembers(client: Client): Promise<void> {
+export async function snapshotActiveVoiceMembers(client: Client, onlyGuildIds?: string[]): Promise<void> {
   try {
     const db = getDb();
-    const persisted = await db.select().from(voiceActiveSessions);
+    // Only guilds the client can actually see right now. Before login (or for a guild that's
+    // still unavailable) there's nothing to scan, and its saved sessions must be left alone.
+    const guilds = [...client.guilds.cache.values()].filter(
+      (guild) => guild.available && (!onlyGuildIds || onlyGuildIds.includes(guild.id)),
+    );
+    if (guilds.length === 0) return;
+    const scanned = new Set(guilds.map((guild) => guild.id));
+    const persisted = (await db.select().from(voiceActiveSessions)).filter((row) => scanned.has(row.guildId));
     const persistedByKey = new Map(persisted.map((row) => [sessionKey(row.guildId, row.userId), row]));
     const seenKeys = new Set<string>();
 
-    for (const guild of client.guilds.cache.values()) {
+    for (const guild of guilds) {
       const afkChannelId = guild.afkChannelId;
       for (const channel of guild.channels.cache.values()) {
         if (!channel.isVoiceBased() || channel.id === afkChannelId) continue;
@@ -381,7 +393,8 @@ export async function snapshotActiveVoiceMembers(client: Client): Promise<void> 
       }
     }
 
-    // Durable rows for anyone who left voice entirely while the process was down.
+    // Durable rows for anyone who left voice entirely while the process was down (in the guilds
+    // just scanned only).
     const stale = persisted.filter((row) => !seenKeys.has(sessionKey(row.guildId, row.userId)));
     if (stale.length > 0) {
       await Promise.all(stale.map((row) => deletePersistedSession(row.guildId, row.userId)));

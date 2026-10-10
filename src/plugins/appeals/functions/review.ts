@@ -159,6 +159,12 @@ export function buildAppealButtons(guildId: string, appeal: AppealRecord): Actio
       .setEmoji(APPEAL_EMOJIS.needsInfo)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(appeal.status !== "pending"),
+    // Staff notes stay open after a decision: reviewers often want to record why afterwards.
+    new ButtonBuilder()
+      .setCustomId(appealButtonId("note", appeal.id))
+      .setLabel("Note")
+      .setEmoji(APPEAL_EMOJIS.note)
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setLabel("Dashboard").setStyle(ButtonStyle.Link).setURL(getGuildAppealsDashboardUrl(guildId, appeal.id)),
   );
 }

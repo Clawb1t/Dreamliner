@@ -35,6 +35,9 @@ pending / needs_info ──► withdrawn   (by the user)
   user.
 - **Needs info** asks the user a question. They answer on their appeal page, which puts the appeal
   back to pending and updates the review message.
+- **Note** (in Discord, or "Add note" on the dashboard) adds a staff-only note to the appeal's
+  timeline, and posts it in the appeal's discussion thread when there is one. The user never sees
+  notes. It stays available after a decision.
 - Lifting needs the same power as lifting it directly: Ban Members or the Infractions unban
   permission for bans, Moderate Members or the mute permission for timeouts, and Moderate Members
   or the warn permission to revoke a case (Manage Server always can). Without it, untick

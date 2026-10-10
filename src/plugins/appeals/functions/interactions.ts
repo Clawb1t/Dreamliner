@@ -24,7 +24,7 @@ import {
   type AppealAction,
 } from "../constants.js";
 import { loadAppealsConfig, PLUGIN, ruleFor } from "./config.js";
-import { decideAppeal, requestAppealInfo } from "./service.js";
+import { addAppealNote, decideAppeal, requestAppealInfo } from "./service.js";
 import { getAppeal } from "./store.js";
 
 type Ctx = { guildConfig: GuildConfig; config: AppealsConfig; member: GuildMember };
@@ -68,13 +68,15 @@ function buildActionModal(action: AppealAction, appealId: number, config: Appeal
     approve: `Approve appeal #${appealId}`,
     deny: `Deny appeal #${appealId}`,
     info: `Ask about appeal #${appealId}`,
+    note: `Note on appeal #${appealId}`,
   };
   const labels: Record<AppealAction, string> = {
     approve: "Note for the user (optional)",
     deny: config.review.require_deny_reason ? "Reason (sent to the user)" : "Reason (optional, sent to the user)",
     info: "Your question (sent to the user)",
+    note: "Staff note (the user never sees it)",
   };
-  const required = action === "info" || (action === "deny" && config.review.require_deny_reason);
+  const required = action === "info" || action === "note" || (action === "deny" && config.review.require_deny_reason);
   const modal = new ModalBuilder()
     .setCustomId(appealModalId(action, appealId))
     .setTitle(titles[action].slice(0, 45))
@@ -123,6 +125,13 @@ export async function handleAppealModalSubmit(interaction: ModalSubmitInteractio
 
   const text = interaction.fields.getTextInputValue(APPEAL_TEXT_FIELD_ID).trim() || null;
   const guild = interaction.guild!;
+
+  if (parsed.action === "note") {
+    const result = await addAppealNote(guild, ctx.config, parsed.appealId, interaction.user.id, text ?? "");
+    if (!result.ok) await reply(interaction, ctx, "Couldn't add the note", result.error, "warning");
+    else await reply(interaction, ctx, "Note added", "Saved to the appeal's timeline. Only staff can see it.", "neutral", APPEAL_EMOJIS.note);
+    return true;
+  }
 
   if (parsed.action === "info") {
     const result = await requestAppealInfo(guild, ctx.guildConfig, ctx.config, parsed.appealId, interaction.user.id, text ?? "");

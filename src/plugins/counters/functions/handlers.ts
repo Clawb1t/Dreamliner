@@ -142,7 +142,8 @@ export async function handleCounterMemberChange(member: GuildMember): Promise<vo
   );
   if (entries.length === 0) return;
 
-  await member.guild.members.fetch().catch(() => null);
+  // memberCount is kept current by the gateway on every join and leave; no need to download (and
+  // keep in memory) the server's whole member list each time.
   const count = member.guild.memberCount;
 
   for (const entry of entries) {

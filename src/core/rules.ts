@@ -1,6 +1,7 @@
 import type { GuildMember, Message } from "discord.js";
 import type { GuildConfig } from "../config/schemas/guild.js";
 import { userRegexMatches } from "./userRegex.js";
+import { createPruner } from "./mapPrune.js";
 
 export type RuleContext = {
   message: Message;
@@ -52,13 +53,23 @@ export function contentMatchesPattern(content: string, pattern: string, regex = 
 
 export type RateLimitState = {
   timestamps: number[];
+  /** The window this key is checked with, so idle keys can be pruned once it has passed. */
+  windowMs: number;
 };
 
+/** Keyed by automod detector keys, several of which include message text (duplicate and
+ *  copypasta detection), so a key per distinct message: idle keys must be pruned. */
 const rateBuckets = new Map<string, RateLimitState>();
+const pruneRateBuckets = createPruner(
+  rateBuckets,
+  (state, now) => state.timestamps.length === 0 || now - state.timestamps[state.timestamps.length - 1]! >= state.windowMs,
+);
 
 export function checkRateLimit(key: string, maxCount: number, windowMs: number): boolean {
   const now = Date.now();
-  const state = rateBuckets.get(key) ?? { timestamps: [] };
+  pruneRateBuckets(now);
+  const state = rateBuckets.get(key) ?? { timestamps: [], windowMs };
+  state.windowMs = windowMs;
   state.timestamps = state.timestamps.filter((t) => now - t < windowMs);
   if (state.timestamps.length >= maxCount) {
     rateBuckets.set(key, state);

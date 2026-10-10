@@ -4,6 +4,7 @@ import { getUserVoice, setUserVoice } from "../plugins/tts/functions/userVoice.j
 import { resolveDefaultVoice } from "../plugins/tts/functions/piperSetup.js";
 import { pcmToWav } from "../plugins/tts/functions/wav.js";
 import { addToTtsBlacklist, listTtsBlacklist, removeFromTtsBlacklist } from "../plugins/tts/functions/blacklist.js";
+import { createPruner } from "../core/mapPrune.js";
 
 export type TtsVoiceOption = { id: string; label: string; regionCode: string };
 
@@ -28,6 +29,7 @@ export async function setTtsVoiceForWeb(discordId: string, voice: string): Promi
 // real Piper process.
 const lastPreview = new Map<string, number>();
 const PREVIEW_COOLDOWN_MS = 2000;
+const pruneLastPreview = createPruner(lastPreview, (at, now) => now - at >= PREVIEW_COOLDOWN_MS);
 
 export type TtsPreviewResult = { wav: Buffer } | { error: string; status: number };
 
@@ -64,6 +66,7 @@ export async function synthesizeTtsPreviewForWeb(
     return { error: spoken.error, status: 502 };
   }
 
+  pruneLastPreview();
   lastPreview.set(discordId, Date.now());
   return { wav: pcmToWav(spoken.pcm, spoken.sampleRate, 1) };
 }

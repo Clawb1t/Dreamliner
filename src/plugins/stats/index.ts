@@ -106,6 +106,15 @@ export const statsPlugin = definePlugin({
       },
     },
     {
+      // A guild that becomes available after startup (an outage ending, or a newly joined server):
+      // pick up whoever is already sitting in its voice channels.
+      name: Events.GuildCreate,
+      execute: async (client, guild: unknown) => {
+        if (!client.isReady()) return;
+        await snapshotActiveVoiceMembers(client, [(guild as import("discord.js").Guild).id]);
+      },
+    },
+    {
       name: Events.VoiceStateUpdate,
       execute: async (_client, oldState: unknown, newState: unknown) => {
         const oldVoiceState = oldState as import("discord.js").VoiceState;
@@ -118,7 +127,11 @@ export const statsPlugin = definePlugin({
     // Restart recovery: seed an in-memory session for anyone already sitting in a voice channel
     // in any guild the bot is in, recovering their real join time from the durable session table
     // where possible. Voice tracking has no per-guild opt-out — see the VoiceStateUpdate handler.
-    await snapshotActiveVoiceMembers(ctx.client);
+    // Plugins load before login, when no guild or voice state is known yet, so this has to wait
+    // for the client to be ready (running it here used to find nobody, and then delete everyone's
+    // saved sessions as "stale").
+    if (ctx.client.isReady()) await snapshotActiveVoiceMembers(ctx.client);
+    else ctx.client.once(Events.ClientReady, (client) => void snapshotActiveVoiceMembers(client));
     startVoiceHourlySampler();
 
     await pruneOldHourlyBuckets().catch(() => null);

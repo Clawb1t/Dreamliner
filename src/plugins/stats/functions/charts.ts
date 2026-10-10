@@ -689,8 +689,10 @@ export type RankCardRow = {
   accentColor?: string | null;
   /** Displayed badges, in order — at most 3 are drawn, matching the site. */
   badges?: RankCardBadge[];
-  /** Progression badge art (SVG/PNG buffers), drawn as bare icons right after the name. */
-  progressionIcons?: Buffer[];
+  /** Progression badge art (SVG/PNG buffers), drawn as bare icons right after the name.
+   *  `accentTint` recolors single-color art (the Dreamliner One bolt) in the card's accent, the
+   *  same color as the "% of server traffic" text, as the site does. */
+  progressionIcons?: Array<{ image: Buffer; accentTint?: boolean }>;
 };
 
 export type RankCardOptions = {
@@ -710,6 +712,20 @@ export async function loadImageMaybeDataUri(url: string) {
   const res = await fetch(url, { signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`Image request failed with ${res.status}`);
   return loadImage(Buffer.from(await res.arrayBuffer()));
+}
+
+/** Single-color art (like the Dreamliner One bolt) redrawn in `color`, fitted into a square. */
+export function tintedImage(image: import("@napi-rs/canvas").Image, color: string, size: number): import("@napi-rs/canvas").Canvas {
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext("2d");
+  const fit = Math.min(size / image.width, size / image.height);
+  const w = image.width * fit;
+  const h = image.height * fit;
+  ctx.drawImage(image, (size - w) / 2, (size - h) / 2, w, h);
+  ctx.globalCompositeOperation = "source-in";
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, size, size);
+  return canvas;
 }
 
 function drawRoundedAvatar(ctx: SKRSContext2D, image: import("@napi-rs/canvas").Image, x: number, y: number, size: number, radius: number) {
@@ -785,10 +801,12 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   // Progression badges: bare icons right after the name, like the One glyph on the site.
   const progressionIconSize = 11;
   const progressionIconGap = 5;
-  const progressionImages: import("@napi-rs/canvas").Image[] = [];
+  const progressionImages: Array<import("@napi-rs/canvas").Image | import("@napi-rs/canvas").Canvas> = [];
   for (const icon of row.progressionIcons ?? []) {
     try {
-      progressionImages.push(await loadImage(icon));
+      const image = await loadImage(icon.image);
+      // Tinted at full card resolution so the recolored bolt stays crisp.
+      progressionImages.push(icon.accentTint ? tintedImage(image, accent, Math.ceil(progressionIconSize * scale)) : image);
     } catch {
       // unreadable art: skip that one icon
     }

@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { globalWatchdogEntries } from "../db/schema.js";
+import { createPruner } from "../core/mapPrune.js";
 
 export type GlobalWatchdogEntry = {
   userId: string;
@@ -67,6 +68,7 @@ export async function removeGlobalWatchdogEntry(userId: string): Promise<void> {
 
 const cache = new Map<string, { entry: GlobalWatchdogEntry | null; expiresAt: number }>();
 const CACHE_TTL_MS = 30_000;
+const pruneCache = createPruner(cache, (value, now) => value.expiresAt <= now);
 
 /** Cached briefly. Checked on every member join across every guild with enforcement on. */
 export async function checkGlobalWatchdog(userId: string): Promise<GlobalWatchdogEntry | null> {
@@ -79,6 +81,7 @@ export async function checkGlobalWatchdog(userId: string): Promise<GlobalWatchdo
     .where(eq(globalWatchdogEntries.userId, userId))
     .get();
   const entry = row ? toEntry(row) : null;
+  pruneCache();
   cache.set(userId, { entry, expiresAt: Date.now() + CACHE_TTL_MS });
   return entry;
 }

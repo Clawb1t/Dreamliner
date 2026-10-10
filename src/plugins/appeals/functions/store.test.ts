@@ -100,3 +100,29 @@ describe("appeals store", () => {
     assert.deepEqual(store.listCaseAppeals(GUILD, [4242]).map((row) => row.id), [appeal.id]);
   });
 });
+
+describe("staff notes", () => {
+  const guild = { id: GUILD, client: {} } as unknown as import("discord.js").Guild;
+  const config = {} as unknown as import("../../../config/schemas/appeals.js").AppealsConfig;
+
+  it("saves a staff note to the timeline, hidden from the appellant", async () => {
+    const { addAppealNote } = await import("./service.js");
+    const appeal = newAppeal();
+    const result = await addAppealNote(guild, config, appeal.id, "300000000000000009", "  Checked the logs, looks fine  ");
+    assert.equal(result.ok, true);
+    const staffView = store.listEvents(appeal.id, true).filter((e) => e.kind === "note");
+    assert.equal(staffView.length, 1);
+    assert.equal(staffView[0]!.body, "Checked the logs, looks fine");
+    assert.equal(store.listEvents(appeal.id, false).some((e) => e.kind === "note"), false);
+  });
+
+  it("refuses notes from the appellant and empty notes", async () => {
+    const { addAppealNote } = await import("./service.js");
+    const appeal = newAppeal();
+    const own = await addAppealNote(guild, config, appeal.id, USER, "about me");
+    assert.equal(own.ok, false);
+    assert.match(!own.ok ? own.error : "", /own appeal/);
+    const empty = await addAppealNote(guild, config, appeal.id, "300000000000000009", "   ");
+    assert.equal(empty.ok, false);
+  });
+});

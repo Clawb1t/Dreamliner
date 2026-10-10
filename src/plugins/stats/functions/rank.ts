@@ -36,10 +36,16 @@ function withinBudget<T>(promise: Promise<T | null>, ms: number): Promise<T | nu
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-async function progressionIconBuffers(badges: Array<{ imageKey: string }>): Promise<Buffer[]> {
+async function progressionIconBuffers(
+  badges: Array<{ id: string; imageKey: string }>,
+): Promise<Array<{ image: Buffer; accentTint?: boolean }>> {
   const images = await Promise.all(badges.map((badge) => loadBadgeImage(badge.imageKey).catch(() => null)));
-  // Art that has gone missing since the badge list was read is just left off the card.
-  return images.filter((image) => image != null).map((image) => image.buffer);
+  // Art that has gone missing since the badge list was read is just left off the card. The
+  // Dreamliner One bolt is drawn in the user's accent, like on the site (and /profile).
+  return badges.flatMap((badge, index) => {
+    const image = images[index];
+    return image ? [{ image: image.buffer, accentTint: badge.id === "dreamliner_one" }] : [];
+  });
 }
 
 function displayName(member: import("discord.js").GuildMember | null, user: User): string {

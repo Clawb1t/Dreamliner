@@ -1,4 +1,5 @@
 import type { Message } from "discord.js";
+import { createPruner } from "../../../core/mapPrune.js";
 
 /**
  * The last deleted message per channel, purely for /snipe. Deliberately separate from the logs
@@ -23,6 +24,7 @@ export type SnipedMessage = {
 export const SNIPE_WINDOW_MS = 5 * 60_000;
 
 const lastDeletedByChannel = new Map<string, SnipedMessage>();
+const pruneSnipes = createPruner(lastDeletedByChannel, (entry, now) => now - entry.deletedAt > SNIPE_WINDOW_MS);
 
 /** Called from the utility plugin's MessageDelete listener. Only records messages discord.js
  *  already had fully cached (non-partial) — a partial carries no content, and there's no
@@ -30,6 +32,7 @@ const lastDeletedByChannel = new Map<string, SnipedMessage>();
 export function recordDeletedMessage(message: Message): void {
   if (!message.guild || message.partial || message.author.bot) return;
 
+  pruneSnipes();
   lastDeletedByChannel.set(message.channelId, {
     authorId: message.author.id,
     authorTag: message.author.tag,

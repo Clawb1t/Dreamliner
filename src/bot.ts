@@ -11,6 +11,7 @@ import {
   type RepliableInteraction,
 } from "discord.js";
 import { discordRestAgent } from "./core/discordRest.js";
+import { clientCacheOptions } from "./core/clientCache.js";
 import { VOTE_REMINDER_PREFIX, handleVoteReminderButton } from "./core/store/voteReminders.js";
 import { BIRTHDAY_WISH_CUSTOM_ID } from "./plugins/birthdays/functions/celebrate.js";
 import { handleBirthdayWishButton } from "./plugins/birthdays/functions/wish.js";
@@ -192,6 +193,8 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     // already pass their own explicit `allowedMentions` and are unaffected.
     allowedMentions: { parse: ["users", "roles"] },
     rest: { agent: discordRestAgent },
+    // Bounded caches + periodic sweeps; without them memory grows for as long as the bot runs.
+    ...clientCacheOptions,
   });
 
   client.on(Events.Error, (error) => {
@@ -220,6 +223,15 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
             },
           });
         }
+        // Memory and cache sizes in the log every 30 minutes, so growth can be traced in production.
+        registerIntervalTask({
+          id: "memory:report",
+          intervalMs: 30 * 60_000,
+          run: async (client) => {
+            const { logMemoryReport } = await import("./core/memoryReport.js");
+            logMemoryReport(client);
+          },
+        });
         if (!isVoteHistoryConfigured()) return;
         setTimeout(() => void syncVoteHistory({ force: true }), 30_000);
         registerIntervalTask({

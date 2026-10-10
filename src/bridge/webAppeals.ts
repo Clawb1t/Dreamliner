@@ -408,6 +408,8 @@ export type WebAppealDetail = WebAppealRow & {
   reversed: boolean;
   reversalNote: string | null;
   liftByDefault: boolean;
+  /** The staff member looking at it is the appellant: they can read it but not decide or add notes. */
+  ownAppeal: boolean;
   events: { id: number; kind: AppealEvent["kind"]; actor: WebPerson | null; body: string | null; createdAt: string }[];
   history: WebAppealRow[];
   messageUrl: string | null;
@@ -450,6 +452,7 @@ export async function getWebAppeal(guild: Guild, appealId: number, viewerId?: st
     reversed: appeal.reversed,
     reversalNote: appeal.reversalNote,
     liftByDefault: appeal.kind === "manual" ? true : (rule?.auto_reverse ?? true),
+    ownAppeal,
     events,
     history,
     messageUrl:
@@ -470,7 +473,7 @@ export async function staffAppealAction(
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   const config = loadAppealsConfig(guildConfig);
   const text = (value: unknown) => (typeof value === "string" ? value.trim().slice(0, 1000) : "");
-  if (action === "note") return addAppealNote(guild, appealId, actorId, text(body.note));
+  if (action === "note") return addAppealNote(guild, config, appealId, actorId, text(body.note));
   if (action === "info") return requestAppealInfo(guild, guildConfig, config, appealId, actorId, text(body.question));
   if (body.decision !== "approved" && body.decision !== "denied") return { ok: false, error: "decision must be approved or denied" };
   return decideAppeal(guild, guildConfig, config, appealId, body.decision, actorId, text(body.reason) || null, body.reverse !== false);

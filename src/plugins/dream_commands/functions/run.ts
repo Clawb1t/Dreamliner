@@ -6,16 +6,19 @@ import { isReservedCommandName } from "./guildSlash.js";
 import { getDreamCommand, type DreamCommandRow } from "./store.js";
 import { translatorFor } from "../../../i18n/index.js";
 import { getLogger } from "../../../core/logger.js";
+import { createPruner } from "../../../core/mapPrune.js";
 const log = getLogger("dream_commands");
 
 const rateBuckets = new Map<string, number>();
 const RATE_MS = 1500;
+const pruneRateBuckets = createPruner(rateBuckets, (last, now) => now - last >= RATE_MS);
 
 function rateLimited(guildId: string, userId: string): boolean {
   const key = `${guildId}:${userId}`;
   const now = Date.now();
   const last = rateBuckets.get(key) ?? 0;
   if (now - last < RATE_MS) return true;
+  pruneRateBuckets(now);
   rateBuckets.set(key, now);
   return false;
 }

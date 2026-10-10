@@ -8,6 +8,7 @@ import { deleteAction, getAction, saveAction, type BlueskyActionKind } from "./a
 import type { OAuthSession } from "@atproto/oauth-client-node";
 import { parseAtUri } from "./api.js";
 import { getSession } from "./oauth.js";
+import { createPruner } from "../../../core/mapPrune.js";
 const log = getLogger("bluesky");
 
 export type ActionFailure = "not_connected" | "expired" | "not_configured" | "unavailable" | "rate_limited" | "failed";
@@ -16,10 +17,15 @@ export type ActionResult = { ok: true; state: "on" | "off"; handle: string } | {
 const WINDOW_MS = 60_000;
 const MAX_ACTIONS_PER_WINDOW = 20;
 const recentActions = new Map<string, number[]>();
+const pruneRecentActions = createPruner(
+  recentActions,
+  (times, now) => times.length === 0 || now - times[times.length - 1]! >= WINDOW_MS,
+);
 
 /** In-memory sliding window per Discord user, so a reaction spree can't hammer their PDS. */
 function throttled(discordUserId: string): boolean {
   const now = Date.now();
+  pruneRecentActions(now);
   const recent = (recentActions.get(discordUserId) ?? []).filter((at) => now - at < WINDOW_MS);
   if (recent.length >= MAX_ACTIONS_PER_WINDOW) {
     recentActions.set(discordUserId, recent);

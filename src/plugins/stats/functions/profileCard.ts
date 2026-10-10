@@ -1,7 +1,7 @@
 import { createCanvas, loadImage, type Canvas, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import type { Client, User } from "discord.js";
 import { siteFont } from "../../welcome_message/functions/cardFonts.js";
-import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect } from "./charts.js";
+import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect, tintedImage } from "./charts.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
 import { getGlobalMessageStats } from "../../../bridge/userStats.js";
@@ -129,19 +129,6 @@ function toHex(color: string): string {
 }
 
 /** Single-color art (the One bolt) recolored, like the site's `color: var(--accent)` glyph. */
-function tinted(image: Image, color: string, size: number): Canvas {
-  const canvas = createCanvas(size, size);
-  const ctx = canvas.getContext("2d");
-  const fit = Math.min(size / image.width, size / image.height);
-  const w = image.width * fit;
-  const h = image.height * fit;
-  ctx.drawImage(image, (size - w) / 2, (size - h) / 2, w, h);
-  ctx.globalCompositeOperation = "source-in";
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, size, size);
-  return canvas;
-}
-
 function ellipsize(ctx: SKRSContext2D, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let cut = text;
@@ -302,7 +289,7 @@ export async function renderProfileCard(data: ProfileCardData, options: { width?
     try {
       const image = await loadImage(icon.image);
       const size = icon.sizeRem * REM;
-      icons.push({ draw: icon.tint ? tinted(image, icon.tint, Math.ceil(size * scale)) : image, size });
+      icons.push({ draw: icon.tint ? tintedImage(image, icon.tint, Math.ceil(size * scale)) : image, size });
     } catch {
       // unreadable art: leave that one off
     }

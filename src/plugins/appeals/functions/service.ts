@@ -468,12 +468,29 @@ export async function withdrawAppeal(guild: Guild, config: AppealsConfig, appeal
 }
 
 /** A staff-only note on an appeal (never shown to the user). */
-export async function addAppealNote(guild: Guild, appealId: number, actorId: string, body: string): Promise<ActionResult> {
+export async function addAppealNote(
+  guild: Guild,
+  config: AppealsConfig,
+  appealId: number,
+  actorId: string,
+  body: string,
+): Promise<ActionResult> {
   const text = body.trim();
   if (!text) return { ok: false, error: "Write the note first." };
   const appeal = getAppeal(guild.id, appealId);
   if (!appeal) return { ok: false, error: "Appeal not found." };
-  if (appeal.userId === actorId) return { ok: false, error: SELF_REVIEW };
+  if (appeal.userId === actorId) {
+    return { ok: false, error: "You can't add notes to your own appeal. Ask another staff member to review it." };
+  }
   addEvent(appeal.id, "note", actorId, text.slice(0, 2000));
+  // The discussion thread is staff-only, so the note goes there too for anyone reviewing in Discord.
+  if (appeal.threadId) {
+    await refreshAppealReview(
+      guild,
+      config,
+      appeal,
+      threadNote("Staff note", APPEAL_EMOJIS.note, STATUS_COLORS.pending, `By <@${actorId}>\n${text.slice(0, 1800)}`, guild.client),
+    );
+  }
   return { ok: true, appeal, notes: [] };
 }

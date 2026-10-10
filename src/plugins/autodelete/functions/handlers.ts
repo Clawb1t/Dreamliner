@@ -14,7 +14,11 @@ export async function handleAutodeleteMessage(message: Message): Promise<void> {
 
   const guildId = message.guild.id;
   const channelId = message.channel.id;
+  const messageId = message.id;
+  const client = message.client;
 
+  // Only ids are held while waiting (delays can be up to 7 days): keeping the whole Message alive
+  // for every message in a busy channel was a large share of the bot's memory.
   setTimeout(() => {
     void (async () => {
       const latest = await configManager.getEffectiveConfig(guildId);
@@ -23,7 +27,10 @@ export async function handleAutodeleteMessage(message: Message): Promise<void> {
       // dashboard while this message was waiting out its delay, leave the message alone.
       const latestRule = autodeleteRuleByChannel(loadAutodeleteConfig(latest)).get(channelId);
       if (!latestRule) return;
-      await message.delete().catch(() => null);
+      const channel = client.channels.cache.get(channelId);
+      if (channel?.isTextBased() && "messages" in channel) {
+        await channel.messages.delete(messageId).catch(() => null);
+      }
     })();
   }, rule.delay_seconds * 1000);
 }

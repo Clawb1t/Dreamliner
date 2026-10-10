@@ -3,6 +3,7 @@ import {
   type Guild,
   type GuildAuditLogsEntry,
 } from "discord.js";
+import { createPruner } from "../../core/mapPrune.js";
 
 type AuditCacheEntry = {
   at: number;
@@ -11,6 +12,8 @@ type AuditCacheEntry = {
 
 const cache = new Map<string, AuditCacheEntry>();
 const CACHE_TTL_MS = 8_000;
+/** Entries hold audit log entries (and the users behind them); drop them once stale. */
+const pruneCache = createPruner(cache, (entry, now) => now - entry.at >= CACHE_TTL_MS, 30_000);
 
 async function fetchRecent(
   guild: Guild,
@@ -23,6 +26,7 @@ async function fetchRecent(
   try {
     const logs = await guild.fetchAuditLogs({ type, limit: 6 });
     const entries = [...logs.entries.values()];
+    pruneCache();
     cache.set(key, { at: Date.now(), entries });
     return entries;
   } catch {

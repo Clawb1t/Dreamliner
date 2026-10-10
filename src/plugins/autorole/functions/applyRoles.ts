@@ -68,10 +68,14 @@ function scheduleSingleAutorole(
   delayMs: number,
   audience: AutoroleAudience,
 ): void {
+  // Only the guild and user are kept while waiting (delays can be long); the member is fetched
+  // fresh when it's time.
+  const guild = member.guild;
+  const userId = member.id;
   const run = async () => {
-    const guildConfig = await configManager.getEffectiveConfig(member.guild.id);
+    const guildConfig = await configManager.getEffectiveConfig(guild.id);
     if (!pluginEnabled(guildConfig, "autorole")) return;
-    const refreshed = await member.guild.members.fetch(member.id).catch(() => null);
+    const refreshed = await guild.members.fetch(userId).catch(() => null);
     if (!refreshed) return;
     if (audienceForMember(refreshed) !== audience) return;
     await applyAutoroles(refreshed, [roleId]);

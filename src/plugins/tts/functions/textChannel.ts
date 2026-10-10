@@ -10,9 +10,12 @@ import { blockedByMessage } from "../../../core/voiceSessionRegistry.js";
 import { getUserVoice } from "./userVoice.js";
 import { sanitizeSpokenText } from "./sanitizeSpokenText.js";
 import { isTtsBlacklisted } from "./blacklist.js";
+import { createPruner } from "../../../core/mapPrune.js";
 
 /** Per-member cooldown tracker, keyed `${guildId}:${userId}`. Cleared on process restart. */
 const lastUse = new Map<string, number>();
+/** Cooldowns are seconds long; an hour-old entry can never matter again. */
+const pruneLastUse = createPruner(lastUse, (at, now) => now - at >= 60 * 60_000);
 
 /**
  * The TTS text channel: any message there from a member currently in a voice channel gets
@@ -75,5 +78,6 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
     return;
   }
 
+  pruneLastUse(now);
   lastUse.set(cooldownKey, now);
 }

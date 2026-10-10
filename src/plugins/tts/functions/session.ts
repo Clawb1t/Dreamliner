@@ -27,6 +27,8 @@ const sessions = new Map<string, GuildSession>();
 
 /** How long to keep an idle connection open in case another /tts follows soon. */
 const IDLE_DISCONNECT_MS = 10 * 60_000;
+/** Clips waiting to be spoken in one channel; older ones are dropped past this. */
+const MAX_QUEUED_CLIPS = 25;
 
 function clearIdleTimer(session: GuildSession): void {
   if (session.idleTimer) {
@@ -106,7 +108,7 @@ export async function speakInChannel(channel: VoiceBasedChannel, audio: Prepared
     const claim = claimVoiceSession(guildId, channel.id, "tts");
     if (!claim.ok) return { ok: false, reason: "blocked_by_other", ownedBy: claim.ownedBy };
 
-    let connection: VoiceConnection;
+    let connection: VoiceConnection | null = null;
     try {
       connection = joinVoiceChannel({
         channelId: channel.id,
@@ -117,6 +119,7 @@ export async function speakInChannel(channel: VoiceBasedChannel, audio: Prepared
       });
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
     } catch {
+      connection?.destroy();
       releaseVoiceSession(guildId, "tts");
       return { ok: false, reason: "join_failed" };
     }
@@ -141,6 +144,8 @@ export async function speakInChannel(channel: VoiceBasedChannel, audio: Prepared
     connection.on(VoiceConnectionStatus.Disconnected, () => teardown(guildId, created));
   }
 
+  // A backlog this long is never going to be listened to; drop the oldest instead of holding audio.
+  if (session.queue.length >= MAX_QUEUED_CLIPS) session.queue.shift();
   session.queue.push(audio);
   if (!session.playing) playNext(guildId);
   return { ok: true };

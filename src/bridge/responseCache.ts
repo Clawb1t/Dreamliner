@@ -8,12 +8,17 @@
  */
 
 import { getLogger } from "../core/logger.js";
+import { capMap, createPruner } from "../core/mapPrune.js";
 
 const log = getLogger("cache");
 
 type CacheEntry<T> = { value: T; expiresAt: number };
 
 const store = new Map<string, CacheEntry<unknown>>();
+/** Keys include user ids, guild ids and query variants, so expired entries must be dropped (they
+ *  used to stay until the same key was requested again, which for most keys was never). */
+const pruneStore = createPruner(store, (entry, now) => entry.expiresAt <= now);
+const MAX_ENTRIES = 2000;
 /** In-flight computations, so concurrent requests for the same key share one call instead of stampeding. */
 const inFlight = new Map<string, Promise<unknown>>();
 
@@ -35,7 +40,10 @@ export async function cached<T>(key: string, ttlMs: number, compute: () => Promi
   const promise = (async () => {
     try {
       const value = await compute();
+      pruneStore();
+      store.delete(key); // re-insert at the end, so capMap drops the oldest first
       store.set(key, { value, expiresAt: Date.now() + ttlMs });
+      capMap(store, MAX_ENTRIES);
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
       log.debug(`miss ${key} (computed in ${durationMs.toFixed(1)}ms, cached ${ttlMs}ms)`);
       return value;
