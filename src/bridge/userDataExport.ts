@@ -9,6 +9,7 @@ import {
   blueskyActions,
   automodHits,
   evidenceMessages,
+  guildBirthdays,
   guildMessageCounts,
   guildStatsUserDaily,
   guildUserTrail,
@@ -129,10 +130,11 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
     },
     birthday: {
       label: "Birthday",
-      description: "The birthday you set with /birthday, and the servers you asked not to celebrate it in.",
+      description: "The birthday you set with /birthday, birthdays server staff set for you there, and the servers you asked not to celebrate it in.",
       rows: serializable([
         ...(await db.select().from(userBirthdays).where(eq(userBirthdays.userId, userId)).all()),
         ...(await db.select().from(birthdayOptouts).where(eq(birthdayOptouts.userId, userId)).all()),
+        ...(await db.select().from(guildBirthdays).where(eq(guildBirthdays.userId, userId)).all()),
       ]),
     },
     birthday_celebrations: {

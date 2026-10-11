@@ -18,7 +18,7 @@ import { baseEmbed, setEmbedAuthor } from "../../../../core/embeds.js";
 import { getLogger } from "../../../../core/logger.js";
 import { buildTicketAiLog } from "../../../../core/logging/format.js";
 import { sendModerationLog } from "../../../../core/logging/send.js";
-import { getPluginSettings } from "../../../../core/permissionRoles.js";
+import { getPluginSettings, hasPermission } from "../../../../core/permissionRoles.js";
 import { containerReply } from "../../../../core/responses.js";
 import { renderTemplate } from "../../../../core/templates.js";
 import { getTicket, type TicketRecord } from "../tickets.js";
@@ -54,6 +54,7 @@ import {
   startTicketAiState,
   type TicketAiState,
 } from "./store.js";
+import { fetchGuildChannel } from "../../../../core/guildChannel.js";
 
 const log = getLogger("tickets:ai");
 
@@ -102,7 +103,7 @@ export async function loadTicketAiContext(client: Client, guildId: string, ticke
 }
 
 async function ticketChannel(ctx: Pick<TicketAiContext, "client" | "ticket">): Promise<SendableChannels | null> {
-  const channel = await ctx.client.channels.fetch(ctx.ticket.threadId ?? ctx.ticket.channelId).catch(() => null);
+  const channel = await fetchGuildChannel(ctx.client, ctx.ticket.guildId, ctx.ticket.threadId ?? ctx.ticket.channelId);
   return channel?.isSendable() ? channel : null;
 }
 
@@ -444,7 +445,15 @@ export async function handleTicketAiButton(
       caseLogOverride: ctx.pluginConfig.log_channel_id,
     },
   ).catch(() => null);
-  if (config.replies.close_on_solved) {
+  // Closing follows the category's own rule: when only staff may close, the opener's click just
+  // marks it solved and leaves closing to staff.
+  const clickerIsStaff = isStaff(ctx, member);
+  const clickerIsOpener = interaction.user.id === ctx.ticket.openerId;
+  const closePermission = ctx.category?.close_permission ?? "either";
+  const mayClose =
+    clickerIsStaff ||
+    (clickerIsOpener && closePermission !== "staff" && (await hasPermission(ctx.guild.id, "tickets", "can_close", member, ctx.guildConfig)));
+  if (config.replies.close_on_solved && mayClose) {
     await closeTicket(ctx, interaction.user.id, "Solved by the AI assistant");
   } else {
     const channel = await ticketChannel(ctx);

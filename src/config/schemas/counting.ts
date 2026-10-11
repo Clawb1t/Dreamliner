@@ -70,6 +70,7 @@ export const zCountingChannel = z
     economy_milestone_bonus: z
       .number()
       .min(0)
+      .max(10000)
       .default(0)
       .describe("Server currency awarded when a milestone is reached. 0 disables."),
     announce_milestones: z

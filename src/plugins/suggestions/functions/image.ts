@@ -51,7 +51,7 @@ async function findPostedImage(client: Client, suggestion: Suggestion): Promise<
   ];
   for (const [channelId, messageId] of posts) {
     if (!channelId || !messageId) continue;
-    const channel = await resolveTextChannel(client, channelId);
+    const channel = await resolveTextChannel(client, suggestion.guildId, channelId);
     const message = channel ? await channel.messages.fetch(messageId).catch(() => null) : null;
     const attachment = message?.attachments.find((a) => a.name === name);
     if (attachment) return attachment;

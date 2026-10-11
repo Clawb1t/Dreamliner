@@ -20,7 +20,8 @@ import { containerReply } from "../../../core/responses.js";
 import { renderTemplate } from "../../../core/templates.js";
 import { applicationAcceptId, applicationDenyId } from "../constants.js";
 import { findOpening, openingName, openingVars, reviewChannelFor } from "./config.js";
-import { decideApplication, setReviewMessage, type ApplicationRecord } from "./store.js";
+import { decideApplication, getApplication, setReviewMessage, type ApplicationRecord } from "./store.js";
+import { canManageRole } from "../../../core/roles.js";
 
 const log = getLogger("applications");
 
@@ -215,6 +216,9 @@ export async function decide(
   reviewerId: string,
   reason: string | null,
 ): Promise<DecisionResult> {
+  // Nobody decides their own application (a reviewer could otherwise accept themselves into roles).
+  const pending = getApplication(guild.id, applicationId);
+  if (pending && pending.userId === reviewerId) return { ok: false, error: "You can't review your own application." };
   const app = decideApplication(guild.id, applicationId, decision, reviewerId, reason?.trim() || null);
   if (!app) return { ok: false, error: "That application was already reviewed or doesn't exist." };
 
@@ -226,7 +230,14 @@ export async function decide(
     if (!member) {
       notes.push("The applicant has left the server, so no roles were given.");
     } else {
-      const add = opening.accept_roles.filter((id) => guild.roles.cache.has(id) && !member.roles.cache.has(id));
+      // Only roles the reviewer could give by hand: reviewing applications is no way around Manage
+      // Roles or the role hierarchy.
+      const reviewer = await guild.members.fetch(reviewerId).catch(() => null);
+      const wanted = opening.accept_roles.filter((id) => guild.roles.cache.has(id) && !member.roles.cache.has(id));
+      const add = wanted.filter((id) => reviewer && canManageRole(reviewer, guild.roles.cache.get(id)!));
+      if (add.length < wanted.length) {
+        notes.push("Some roles weren't given because they're above you or grant permissions you don't have. Someone who can give them should add them.");
+      }
       const remove = opening.accept_remove_roles.filter((id) => member.roles.cache.has(id) && !add.includes(id));
       const reasonText = `Application #${app.id} accepted`;
       if (add.length > 0 && !(await member.roles.add(add, reasonText).then(() => true).catch(() => false))) {

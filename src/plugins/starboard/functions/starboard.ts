@@ -26,6 +26,7 @@ import {
   updateStarboardPostStarCount,
 } from "./store.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 const processingLocks = new Map<string, Promise<void>>();
 
@@ -267,8 +268,9 @@ function buildStarboardPayload(
   };
 }
 
-async function fetchTextChannel(client: Client, channelId: string): Promise<GuildTextBasedChannel | null> {
-  const channel = await client.channels.fetch(channelId).catch(() => null);
+/** A board's channel, only when it's in this server (config ids are never trusted across servers). */
+async function fetchTextChannel(client: Client, guildId: string, channelId: string): Promise<GuildTextBasedChannel | null> {
+  const channel = await fetchGuildChannel(client, guildId, channelId);
   if (!channel?.isTextBased() || channel.isDMBased()) return null;
   return channel as GuildTextBasedChannel;
 }
@@ -297,7 +299,7 @@ async function processBoard(
 
     if (!meetsThreshold) {
       if (!existing) return;
-      const starboardChannel = await fetchTextChannel(client, board.channel_id);
+      const starboardChannel = await fetchTextChannel(client, message.guild!.id, board.channel_id);
       if (starboardChannel) {
         const starboardMessage = await starboardChannel.messages.fetch(existing.starboardMessageId).catch(() => null);
         await starboardMessage?.delete().catch(() => null);
@@ -307,7 +309,7 @@ async function processBoard(
     }
 
     const payload = buildStarboardPayload(message, starCount, board);
-    const starboardChannel = await fetchTextChannel(client, board.channel_id);
+    const starboardChannel = await fetchTextChannel(client, message.guild!.id, board.channel_id);
     if (!starboardChannel) return;
 
     if (existing) {
@@ -338,6 +340,15 @@ async function processBoard(
 
     if (!existing && board.economy_bonus > 0 && message.author && !message.author.bot) {
       try {
+        // Once per message, ever: the claim row survives the post being removed and re-added.
+        const { getDb } = await import("../../../db/client.js");
+        const { starboardBonusPaid } = await import("../../../db/schema.js");
+        const claimed = getDb()
+          .insert(starboardBonusPaid)
+          .values({ guildId: message.guild!.id, boardName, sourceMessageId: message.id, paidAt: new Date() })
+          .onConflictDoNothing()
+          .run().changes;
+        if (claimed === 0) return;
         const { creditServer } = await import("../../economy/functions/money.js");
         creditServer(message.guild!.id, message.author.id, board.economy_bonus);
       } catch {
@@ -420,7 +431,7 @@ async function cleanupStarboardPostsForMessage(client: Client, guildId: string, 
     const board = config.boards?.[row.boardName];
     if (!board?.channel_id) continue;
 
-    const starboardChannel = await fetchTextChannel(client, board.channel_id);
+    const starboardChannel = await fetchTextChannel(client, guildId, board.channel_id);
     const posted = await starboardChannel?.messages.fetch(row.starboardMessageId).catch(() => null);
     await posted?.delete().catch(() => null);
   }

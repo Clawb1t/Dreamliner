@@ -8,6 +8,7 @@ import {
   SlashCommandBuilder,
   SlashCommandIntegerOption,
 } from "discord.js";
+import { canViewStatsChannel } from "../functions/ui/channelAccess.js";
 import type { SlashCommandContext, SlashCommandDefinition } from "../../../core/types.js";
 import { deferReplyOptions, resultReply, slashResultOptions } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
@@ -108,6 +109,18 @@ export const statsCommands: SlashCommandDefinition[] = [
             ctx.t("stats.title", "Stats"),
             ctx.t("stats.couldNotResolveChannel", "Could not resolve a text channel."),
             ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "error" }),
+          ),
+        );
+        return;
+      }
+      // A channel's stats name it and show its activity, so only for channels the member can read.
+      if (state.scope.type === "channel" && !(await canViewStatsChannel(ctx.interaction.guild!, state.scope.channelId, ctx.interaction.user.id))) {
+        await ctx.interaction.reply(
+          resultReply(
+            ctx.t("stats.title", "Stats"),
+            ctx.t("stats.couldNotResolveChannel", "Could not resolve a text channel."),
+            true,
             slashResultOptions(ctx, { tone: "error" }),
           ),
         );

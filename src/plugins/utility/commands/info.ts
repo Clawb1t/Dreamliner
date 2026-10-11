@@ -34,7 +34,7 @@ export const infoCommands: SlashCommandDefinition[] = [
       const target = ctx.interaction.options.getString("target", true);
       // Resolving a role fetches the member list for an accurate count, which can outlast the reply window.
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
-      const resolved = await resolveInfoTarget(target, ctx.interaction.guild!, ctx.guildConfig, ctx.client, ctx.t);
+      const resolved = await resolveInfoTarget(target, ctx.interaction.guild!, ctx.guildConfig, ctx.client, ctx.t, ctx.interaction.user.id);
       if (!resolved) {
         await ctx.interaction.editReply(resultEdit(ctx.t("utility.info.infoTitle", "Info"), ctx.t("utility.info.couldNotResolveTarget", "Could not resolve target."), slashResultOptions(ctx)));
         return;

@@ -5,6 +5,7 @@ import { getLogger } from "../../../core/logger.js";
 import type { BlueskyActor, BlueskyPost, BlueskyPostKind, BlueskyProfile } from "./api.js";
 import { buildPostCard } from "./card.js";
 import { completeDelivery, deleteDelivery, reserveDelivery, type BlueskyFeedRow } from "./store.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 const log = getLogger("bluesky");
 
 /** Every `{token}` a feed's message can use. Keep in sync with the website's BLUESKY_TOKENS. */
@@ -77,7 +78,8 @@ export type DeliverInput = {
 /** Posts a card for one feed. Never throws; logs and returns false on failure (or if already delivered). */
 export async function deliverPost(client: Client, input: DeliverInput): Promise<boolean> {
   const { feed, post, kind } = input;
-  const channel = await client.channels.fetch(feed.discordChannelId).catch(() => null);
+  // Only the feed's own server: a channel id from another server is treated as unavailable.
+  const channel = await fetchGuildChannel(client, feed.guildId, feed.discordChannelId);
   if (!channel || !channel.isTextBased() || !("send" in channel)) {
     log.warn(`[bluesky] feed ${feed.id}: target channel ${feed.discordChannelId} is unavailable.`);
     return false;

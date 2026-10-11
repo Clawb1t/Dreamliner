@@ -9,6 +9,7 @@ import { performClose } from "./actions.js";
 import { getLogger } from "../../../core/logger.js";
 import { defaultTranslator as t } from "../../../i18n/index.js";
 import { ticketAiStatesFor } from "./ai/store.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 const log = getLogger("tickets");
 
 async function getTicketsConfigForGuild(guildId: string): Promise<TicketsConfig> {
@@ -27,7 +28,7 @@ async function applyEscalationStep(
   const targetChannelId = ticket.threadId ?? ticket.channelId;
 
   if (step.action === "ping_role" && step.role_id) {
-    const channel = await client.channels.fetch(targetChannelId).catch(() => null);
+    const channel = await fetchGuildChannel(client, guild.id, targetChannelId);
     if (channel?.isTextBased() && "send" in channel) {
       const embed = setEmbedAuthor(baseEmbed(), t("tickets.escalation.needsAttentionTitle", "Ticket #{num} needs attention", { num: ticket.number }), client, { tone: "warning" });
       embed.setDescription(
@@ -51,7 +52,7 @@ async function applyEscalationStep(
   }
 
   if (step.action === "notify_channel" && step.channel_id) {
-    const channel = await client.channels.fetch(step.channel_id).catch(() => null);
+    const channel = await fetchGuildChannel(client, guild.id, step.channel_id);
     if (channel?.isTextBased() && "send" in channel) {
       const embed = setEmbedAuthor(baseEmbed(), t("tickets.escalation.escalatedTitle", "Ticket #{num} escalated", { num: ticket.number }), client, { tone: "warning" });
       embed.addFields(

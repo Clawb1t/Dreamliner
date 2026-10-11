@@ -31,6 +31,7 @@ import {
   updateRoom,
   type CompanionRoomRow,
 } from "./store.js";
+import { autoGrantableRoleIds } from "../../../core/roles.js";
 
 const CONNECT = PermissionFlagsBits.Connect;
 const VIEW = PermissionFlagsBits.ViewChannel;
@@ -94,9 +95,29 @@ async function applyOwnerOverwrites(
     .catch(() => null);
 }
 
+/**
+ * What @everyone gets for `flag` in the room's category: the server's own baseline (e.g. only
+ * verified members may join). Unlocking or unghosting goes back to this, never to "unset", so a
+ * room owner can't open a room to people the server keeps out.
+ */
+export function baselineEveryone(channel: VoiceBasedChannel, flag: "Connect" | "ViewChannel"): boolean | null {
+  const overwrite = channel.parent?.permissionOverwrites.cache.get(channel.guild.roles.everyone.id);
+  if (!overwrite) return null;
+  const bit = PermissionFlagsBits[flag];
+  if (overwrite.deny.has(bit)) return false;
+  if (overwrite.allow.has(bit)) return true;
+  return null;
+}
+
+/** True when the room's category explicitly keeps this role (or member) out of `flag`. */
+export function baselineDenies(channel: VoiceBasedChannel, targetId: string): boolean {
+  const overwrite = channel.parent?.permissionOverwrites.cache.get(targetId);
+  return Boolean(overwrite && (overwrite.deny.has(PermissionFlagsBits.Connect) || overwrite.deny.has(PermissionFlagsBits.ViewChannel)));
+}
+
 async function setLocked(channel: VoiceBasedChannel, locked: boolean, ownerId: string): Promise<void> {
   await channel.permissionOverwrites
-    .edit(channel.guild.roles.everyone, { Connect: locked ? false : null })
+    .edit(channel.guild.roles.everyone, { Connect: locked ? false : baselineEveryone(channel, "Connect") })
     .catch(() => null);
   if (locked && ownerId) {
     await channel.permissionOverwrites.edit(ownerId, { Connect: true, ViewChannel: true }).catch(() => null);
@@ -108,7 +129,7 @@ async function setLocked(channel: VoiceBasedChannel, locked: boolean, ownerId: s
 
 async function setGhosted(channel: VoiceBasedChannel, ghosted: boolean, ownerId: string): Promise<void> {
   await channel.permissionOverwrites
-    .edit(channel.guild.roles.everyone, { ViewChannel: ghosted ? false : null })
+    .edit(channel.guild.roles.everyone, { ViewChannel: ghosted ? false : baselineEveryone(channel, "ViewChannel") })
     .catch(() => null);
   if (ghosted && ownerId) {
     await channel.permissionOverwrites.edit(ownerId, { ViewChannel: true, Connect: true }).catch(() => null);
@@ -201,7 +222,7 @@ export async function syncTextAccess(guild: Guild, room: CompanionRoomRow, voice
 }
 
 export async function addJoinRole(member: GuildMember, roleId: string): Promise<void> {
-  if (!roleId) return;
+  if (!roleId || autoGrantableRoleIds(member.guild, [roleId]).length === 0) return;
   await member.roles.add(roleId, "Joined a companion channel").catch(() => null);
 }
 

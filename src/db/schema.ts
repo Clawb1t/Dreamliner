@@ -258,6 +258,19 @@ export const starboardPosts = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.boardName, table.sourceMessageId] })],
 );
 
+/** Starboard economy bonuses already paid. Kept when the starboard post is removed, so dropping
+ *  below the threshold and climbing back can't pay the same message again. */
+export const starboardBonusPaid = sqliteTable(
+  "starboard_bonus_paid",
+  {
+    guildId: text("guild_id").notNull(),
+    boardName: text("board_name").notNull(),
+    sourceMessageId: text("source_message_id").notNull(),
+    paidAt: integer("paid_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.boardName, table.sourceMessageId] })],
+);
+
 export const logMessages = sqliteTable(
   "log_messages",
   {
@@ -2095,6 +2108,34 @@ export const userBirthdays = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [index("user_birthdays_date").on(table.month, table.day)],
+);
+
+/** Birthdays staff set for a member with /birthday manage. Only used in that server: staff can't
+ *  change the member's own birthday, which other servers see. */
+export const guildBirthdays = sqliteTable(
+  "guild_birthdays",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    month: integer("month").notNull(),
+    day: integer("day").notNull(),
+    year: integer("year"),
+    setBy: text("set_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] }), index("guild_birthdays_date").on(table.month, table.day)],
+);
+
+/** Global coins each user got from /exchange per UTC day, across every server (the bot-wide cap). */
+export const economyExchangeDaily = sqliteTable(
+  "economy_exchange_daily",
+  {
+    userId: text("user_id").notNull(),
+    statDate: text("stat_date").notNull(),
+    globalAmount: real("global_amount").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.statDate] })],
 );
 
 /** Servers a member asked not to be celebrated in (/birthday privacy). */

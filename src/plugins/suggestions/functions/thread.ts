@@ -46,14 +46,16 @@ export async function startSuggestionThread(
  *  message's id, so the feed post's id finds it. */
 export async function closeSuggestionThread(
   client: Client,
+  guildId: string,
   channelId: string | null,
   messageId: string | null,
   action: "lock" | "delete",
 ): Promise<void> {
   if (!channelId || !messageId) return;
-  const channel = await resolveTextChannel(client, channelId);
+  const channel = await resolveTextChannel(client, guildId, channelId);
   const thread = channel && "threads" in channel ? await channel.threads.fetch(messageId).catch(() => null) : null;
-  if (!thread) return;
+  // threads.fetch looks the id up anywhere, so make sure it's really this channel's thread.
+  if (!thread || thread.parentId !== channel?.id) return;
   if (action === "delete") {
     await thread.delete("Suggestion deleted").catch(() => null);
     return;

@@ -1,4 +1,4 @@
-import type { Message } from "discord.js";
+import { PermissionFlagsBits, type Message } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { hasPermission, resolveEffectivePluginConfig } from "../../../core/permissionRoles.js";
@@ -39,6 +39,9 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
 
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) return;
+  // The bot speaks for the member, so someone who can't speak there (server-muted, or no Speak
+  // permission in that channel) can't talk through it either.
+  if (message.member.voice.serverMute || !voiceChannel.permissionsFor(message.member)?.has(PermissionFlagsBits.Speak)) return;
 
   const rawText = message.content.trim();
   if (!rawText) return;

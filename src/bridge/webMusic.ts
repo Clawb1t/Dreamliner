@@ -1,4 +1,5 @@
 import type { Client, Guild, GuildMember } from "discord.js";
+import { musicChannelBlock } from "../plugins/music/functions/limits.js";
 import type { Track } from "lavalink-client";
 import { getExistingPlayer, isLavalinkConfigured } from "../plugins/music/functions/manager.js";
 import { destroyPlayer, getOrConnectPlayer } from "../plugins/music/functions/player.js";
@@ -230,17 +231,21 @@ export async function joinWebVoiceSession(guild: Guild, userId: string): Promise
   if (!voiceChannelId) {
     return { ok: false, status: 400, error: "Join a voice channel first." };
   }
+  const channelBlock = musicChannelBlock(auth.config, voiceChannelId);
+  if (channelBlock) return { ok: false, status: 403, error: channelBlock };
 
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   const musicConfig = zMusicConfig.parse(getPluginSettings(guildConfig, "music"));
   const textChannelId = musicConfig.announce_channel_id || guild.systemChannelId || guild.id;
 
-  const claim = await getOrConnectPlayer(guild.id, voiceChannelId, textChannelId);
+  const claim = await getOrConnectPlayer(guild.id, voiceChannelId, textChannelId, { member: auth.member, config: auth.config });
   if (!claim.ok) {
     const error =
       claim.reason === "blocked_by_other"
         ? "Another feature is already using voice in this server."
-        : "Couldn't connect to that voice channel.";
+        : claim.reason === "in_use_elsewhere"
+          ? "People are listening in another voice channel. Join them, or ask a DJ to move the music."
+          : "Couldn't connect to that voice channel.";
     return { ok: false, status: 409, error };
   }
   void saveSessionNow(claim.player).catch(() => {});

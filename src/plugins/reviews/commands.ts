@@ -142,7 +142,7 @@ export const reviewsCommands: SlashCommandDefinition[] = [
 
         const config = zReviewsConfig.parse(auth.pluginConfig);
         if (review.channelId && review.messageId) {
-          const channel = await resolveTextChannel(ctx.interaction.client, review.channelId);
+          const channel = await resolveTextChannel(ctx.interaction.client, ctx.interaction.guildId!, review.channelId);
           const msg = channel ? await channel.messages.fetch(review.messageId).catch(() => null) : null;
           if (msg) await msg.delete().catch(() => null);
         }

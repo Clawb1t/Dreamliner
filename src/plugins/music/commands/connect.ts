@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, type GuildMember } from "discord.js";
+import { musicChannelBlock } from "../functions/limits.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { requireMusicPermission, requireActivePlayer, requirePlaybackControl, lineReply, lineEdit } from "../functions/commandHelpers.js";
 import { getOrConnectPlayer, destroyPlayer } from "../functions/player.js";
@@ -30,14 +31,19 @@ export const connectCommands: SlashCommandDefinition[] = [
         await interaction.reply(lineReply(`${MUSIC_EMOJI.error} Join a voice channel first.`, ephemeral));
         return;
       }
+      const channelBlock = musicChannelBlock(auth.config, voiceChannelId, interaction.channelId);
+      if (channelBlock) {
+        await interaction.reply(lineReply(`${MUSIC_EMOJI.error} ${channelBlock}`, ephemeral));
+        return;
+      }
 
       // The voice-gateway handshake below can outlast Discord's ~3s interaction budget, so defer
       // first (matching /play, which connects the same way) instead of risking a failed reply.
       await interaction.deferReply(deferReplyOptions(ephemeral));
 
-      const claim = await getOrConnectPlayer(interaction.guildId!, voiceChannelId, interaction.channelId);
+      const claim = await getOrConnectPlayer(interaction.guildId!, voiceChannelId, interaction.channelId, { member, config: auth.config });
       if (!claim.ok) {
-        const body = claim.reason === "blocked_by_other" ? blockedByMessage("music", claim.ownedBy) : "Couldn't connect to that voice channel.";
+        const body = claim.reason === "blocked_by_other" ? blockedByMessage("music", claim.ownedBy) : claim.reason === "in_use_elsewhere" ? `People are listening in <#${claim.channelId}>. Join them, or ask a DJ to move the music.` : "Couldn't connect to that voice channel.";
         await interaction.editReply(lineEdit(`${MUSIC_EMOJI.error} ${body}`));
         return;
       }

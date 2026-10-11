@@ -44,6 +44,7 @@ import { formatQuestionAnswer } from "./formAnswers.js";
 import type { TicketFormAnswer } from "./tickets.js";
 import { getLogger } from "../../../core/logger.js";
 import { defaultTranslator, translatorFor, type Translator } from "../../../i18n/index.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 const log = getLogger("tickets");
 
 export type BuiltPanelMessage = {
@@ -134,7 +135,7 @@ export function buildPanelMessage(
 /** Posts a panel's message to its configured channel. Returns the new message id, or null on failure. */
 export async function postPanel(client: Client, guildId: string, panel: TicketPanel, t: Translator = defaultTranslator): Promise<string | null> {
   if (!panel.channel_id) return null;
-  const channel = await client.channels.fetch(panel.channel_id).catch(() => null);
+  const channel = await fetchGuildChannel(client, guildId, panel.channel_id);
   if (!channel?.isTextBased() || !("send" in channel)) return null;
   const guild = "guild" in channel ? (channel.guild as import("discord.js").Guild) : undefined;
   const { keysReferencedInPanel, buildPanelDynamicExtras } = await import("./panelStats.js");
@@ -194,7 +195,7 @@ export async function refreshDynamicTicketPanels(client: Client): Promise<void> 
 
       for (const panel of panelsToRefresh) {
         if (!panel.channel_id || !panel.message_id) continue;
-        const channel = await client.channels.fetch(panel.channel_id).catch(() => null);
+        const channel = await fetchGuildChannel(client, guild.id, panel.channel_id);
         if (!channel?.isTextBased() || !("messages" in channel)) continue;
         const existing = await channel.messages.fetch(panel.message_id).catch(() => null);
         if (!existing) continue; // deleted or never actually posted; the next manual repost will fix message_id

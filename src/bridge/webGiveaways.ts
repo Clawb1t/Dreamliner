@@ -31,6 +31,12 @@ import {
   buildGiveawayEndedEmbed,
 } from "../plugins/giveaways/functions/embeds.js";
 
+
+/** Same bound as the default_win_bonus setting: a server's own currency, kept within reason. */
+function clampBonus(value: number): number {
+  return Number.isFinite(value) ? Math.min(10000, Math.max(0, value)) : 0;
+}
+
 export type WebGiveaway = {
   id: number;
   title: string;
@@ -315,7 +321,7 @@ export async function createGuildGiveaway(
     bonusRoleWeights: input.bonusRoleWeights ?? [],
     boosterBonusWeight: input.boosterBonusWeight ?? config.default_booster_bonus_weight,
     entryCost: input.entryCost ?? config.default_entry_cost,
-    winBonus: input.winBonus ?? config.default_win_bonus,
+    winBonus: clampBonus(input.winBonus ?? config.default_win_bonus),
     pingRoleId: input.pingRoleId !== undefined ? input.pingRoleId : (config.ping_role_id ?? null),
     dmWinner: input.dmWinner ?? config.default_dm_winner,
     dmNonWinners: input.dmNonWinners ?? config.default_dm_non_winners,
@@ -387,7 +393,7 @@ export async function updateGuildGiveaway(
     ...(patch.bonusRoleWeights !== undefined ? { bonusRoleWeights: patch.bonusRoleWeights } : {}),
     ...(patch.boosterBonusWeight !== undefined ? { boosterBonusWeight: patch.boosterBonusWeight } : {}),
     ...(patch.entryCost !== undefined ? { entryCost: patch.entryCost } : {}),
-    ...(patch.winBonus !== undefined ? { winBonus: patch.winBonus } : {}),
+    ...(patch.winBonus !== undefined ? { winBonus: clampBonus(patch.winBonus) } : {}),
     ...(patch.pingRoleId !== undefined ? { pingRoleId: patch.pingRoleId } : {}),
     ...(patch.dmWinner !== undefined ? { dmWinner: patch.dmWinner } : {}),
     ...(patch.dmNonWinners !== undefined ? { dmNonWinners: patch.dmNonWinners } : {}),

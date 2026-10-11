@@ -154,7 +154,8 @@ export const tagsCommands: SlashCommandDefinition[] = [
           extra,
         });
 
-        await ctx.interaction.reply({ content: rendered, ephemeral: false });
+        // Anyone can show a tag, as often as they like, so mentions in it are shown but never ping.
+        await ctx.interaction.reply({ content: rendered, ephemeral: false, allowedMentions: { parse: [] } });
       }
     },
   },

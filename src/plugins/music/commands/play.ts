@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, type GuildMember } from "discord.js";
+import { musicChannelBlock, musicTrackBlock } from "../functions/limits.js";
 import type { Track } from "lavalink-client";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { deferReplyOptions, embedEdit, containersEdit } from "../../../core/responses.js";
@@ -41,12 +42,17 @@ export const playCommand: SlashCommandDefinition = {
       await interaction.reply(lineReply(`${MUSIC_EMOJI.error} Join a voice channel first.`, ephemeral));
       return;
     }
+    const channelBlock = musicChannelBlock(auth.config, voiceChannelId, interaction.channelId);
+    if (channelBlock) {
+      await interaction.reply(lineReply(`${MUSIC_EMOJI.error} ${channelBlock}`, ephemeral));
+      return;
+    }
 
     await interaction.deferReply(deferReplyOptions(ephemeral));
 
-    const claim = await getOrConnectPlayer(guildId, voiceChannelId, interaction.channelId);
+    const claim = await getOrConnectPlayer(guildId, voiceChannelId, interaction.channelId, { member, config: auth.config });
     if (!claim.ok) {
-      const body = claim.reason === "blocked_by_other" ? blockedByMessage("music", claim.ownedBy) : "Couldn't connect to that voice channel.";
+      const body = claim.reason === "blocked_by_other" ? blockedByMessage("music", claim.ownedBy) : claim.reason === "in_use_elsewhere" ? `People are listening in <#${claim.channelId}>. Join them, or ask a DJ to move the music.` : "Couldn't connect to that voice channel.";
       await interaction.editReply(lineEdit(`${MUSIC_EMOJI.error} ${body}`));
       return;
     }
@@ -82,6 +88,11 @@ export const playCommand: SlashCommandDefinition = {
     if ("resolve" in first) await first.resolve(player);
     const track = first as Track;
     track.requester = interaction.user;
+    const trackBlock = musicTrackBlock(auth.config, player, track.info.duration);
+    if (trackBlock) {
+      await interaction.editReply(lineEdit(`${MUSIC_EMOJI.error} ${trackBlock}`));
+      return;
+    }
 
     const wasPlaying = player.playing || Boolean(player.queue.current);
     const size = await player.queue.add(track);

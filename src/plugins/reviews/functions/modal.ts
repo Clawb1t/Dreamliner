@@ -271,7 +271,7 @@ export async function handleReviewModalSubmit(
     return;
   }
 
-  const channel = await resolveTextChannel(interaction.client, pluginConfig.review_channel_id);
+  const channel = await resolveTextChannel(interaction.client, interaction.guildId!, pluginConfig.review_channel_id);
   if (channel) {
     const embed = buildReviewEmbed({
       client: interaction.client,

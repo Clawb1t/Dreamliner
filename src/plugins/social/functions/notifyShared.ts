@@ -14,10 +14,12 @@ import {
 } from "discord.js";
 import type { SocialEmbedConfig } from "../../../config/schemas/social.js";
 import { getLogger } from "../../../core/logger.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 const log = getLogger("social");
 
 export type NotifiableWatcher = {
   id: number;
+  guildId: string;
   discordChannelId: string;
   messageContent: string;
   mentionRoleIds: string[];
@@ -143,7 +145,8 @@ export async function sendNotification(
   mediaKey: string,
 ): Promise<boolean> {
   try {
-    const channel = await client.channels.fetch(watcher.discordChannelId).catch(() => null);
+    // Only the watcher's own server: a channel id from another server is treated as unavailable.
+    const channel = await fetchGuildChannel(client, watcher.guildId, watcher.discordChannelId);
     if (!channel || !channel.isTextBased() || !("send" in channel)) {
       log.warn(`[social] watcher ${watcher.id}: target channel ${watcher.discordChannelId} is unavailable.`);
       return false;

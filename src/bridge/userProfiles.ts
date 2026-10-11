@@ -13,6 +13,7 @@ import {
   birthdayOptouts,
   birthdayWishes,
   userBirthdays,
+  guildBirthdays,
   memberIdentity,
   reminders,
   reviews,
@@ -477,6 +478,7 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     db.delete(nameHistory).where(eq(nameHistory.userId, userId)).returning(),
   );
   await wipe("birthday", db.delete(userBirthdays).where(eq(userBirthdays.userId, userId)).returning());
+  await wipe("guild_birthdays", db.delete(guildBirthdays).where(eq(guildBirthdays.userId, userId)).returning());
   await wipe(
     "birthday_optouts",
     db.delete(birthdayOptouts).where(eq(birthdayOptouts.userId, userId)).returning(),

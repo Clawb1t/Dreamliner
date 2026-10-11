@@ -51,12 +51,12 @@ export const rolesCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        if (!canManageRole(auth.member, guildRole)) {
+        if (!canManageRole(auth.member, guildRole, member)) {
           await ctx.interaction.reply(resultReply(ctx.t("roles.permissionDeniedTitle", "Permission denied"), ctx.t("roles.permissionDeniedDesc", "You cannot manage that role."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }
 
-        const result = await safeAddRole(member, role.id, `Roles give by ${ctx.interaction.user.tag}`);
+        const result = await safeAddRole(member, role.id, `Roles give by ${ctx.interaction.user.tag}`, { allowStaffRoles: true });
         if (!result.ok) {
           await ctx.interaction.reply(resultReply(ctx.t("roles.couldNotGiveTitle", "Could not give role"), result.reason, ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
@@ -91,7 +91,7 @@ export const rolesCommands: SlashCommandDefinition[] = [
           return;
         }
 
-        if (!canManageRole(auth.member, guildRole)) {
+        if (!canManageRole(auth.member, guildRole, member)) {
           await ctx.interaction.reply(resultReply(ctx.t("roles.permissionDeniedTitle", "Permission denied"), ctx.t("roles.permissionDeniedDesc", "You cannot manage that role."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })));
           return;
         }

@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
+import { hasPermission } from "../../core/permissionRoles.js";
 import type { SlashCommandDefinition } from "../../core/types.js";
 import { embedReply, resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
@@ -295,6 +296,10 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       const sub = ctx.interaction.options.getSubcommand();
       const guildId = ctx.interaction.guildId!;
       const guild = ctx.interaction.guild!;
+      // Members only ever see approved suggestions: the review queue, denied ones (with staff's
+      // reasons) and who wrote an anonymous one stay with staff (can_manage).
+      const isStaff = (member: import("discord.js").GuildMember) => hasPermission(guildId, "suggestions", "can_manage", member, ctx.guildConfig);
+      const visibleTo = async (member: import("discord.js").GuildMember, status: string) => status === "approved" || (await isStaff(member));
 
       if (group === "follow") {
         const auth = await requirePluginPermission(ctx, "suggestions", "can_follow");
@@ -311,7 +316,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           return;
         }
         const num = ctx.interaction.options.getInteger("id", true);
-        const suggestion = await getSuggestionByNumber(guildId, num);
+        const found = await getSuggestionByNumber(guildId, num);
+        const suggestion = found && (await visibleTo(auth.member, found.status)) ? found : null;
         if (!suggestion) {
           await ctx.interaction.reply(
             resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
@@ -341,8 +347,10 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "suggestions", "can_info");
         if (!auth) return;
         const config = zSuggestionsConfig.parse(auth.pluginConfig);
+        const staff = await isStaff(auth.member);
         const num = ctx.interaction.options.getInteger("id", true);
-        const suggestion = await getSuggestionByNumber(guildId, num);
+        const found = await getSuggestionByNumber(guildId, num);
+        const suggestion = found && (await visibleTo(auth.member, found.status)) ? found : null;
         if (!suggestion) {
           await ctx.interaction.reply(
             resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
@@ -361,7 +369,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           // This reply doesn't carry the uploaded file, so link to it on the suggestion's post.
           image: await suggestionImageUrl(ctx.interaction.client, suggestion),
         });
-        if (suggestion.anonymous) {
+        if (suggestion.anonymous && staff) {
           embed.addFields(embedField(ctx.t("suggestions.authorStaffLabel", "Author (staff)"), `<@${suggestion.authorId}>`, true));
         }
         if (comments.length) {
@@ -402,17 +410,21 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       if (sub === "queue" || sub === "search") {
         const auth = await requirePluginPermission(ctx, "suggestions", sub === "queue" ? "can_manage" : "can_info");
         if (!auth) return;
+        const staff = sub === "queue" || (await isStaff(auth.member));
+        const authorId = ctx.interaction.options.getUser("author")?.id ?? null;
         const result = await listSuggestions(guildId, {
-          status: sub === "queue" ? "awaiting_review" : (ctx.interaction.options.getString("status") as "awaiting_review" | "approved" | "denied" | null),
-          authorId: ctx.interaction.options.getUser("author")?.id ?? null,
+          status: sub === "queue" ? "awaiting_review" : staff ? (ctx.interaction.options.getString("status") as "awaiting_review" | "approved" | "denied" | null) : "approved",
+          authorId,
           q: ctx.interaction.options.getString("query") ?? undefined,
           limit: 20,
           offset: 0,
         });
+        // Searching by author must not reveal who wrote anonymous suggestions.
+        const shown = !staff && authorId ? result.suggestions.filter((s) => !s.anonymous || s.authorId === auth.member.id) : result.suggestions;
         const lines =
-          result.suggestions.length === 0
+          shown.length === 0
             ? [ctx.t("suggestions.noneFound", "No suggestions found.")]
-            : result.suggestions.map(
+            : shown.map(
                 (s) =>
                   `**#${s.suggestionNumber}** [${s.status}] ${s.anonymous ? ctx.t("suggestions.anonymous", "Anonymous") : `<@${s.authorId}>`} — ${s.content.slice(0, 70)}`,
               );
@@ -539,7 +551,8 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const num = ctx.interaction.options.getInteger("id", true);
         const text = ctx.interaction.options.getString("text", true);
         const anonymous = ctx.interaction.options.getBoolean("anonymous") ?? false;
-        const suggestion = await getSuggestionByNumber(guildId, num);
+        const found = await getSuggestionByNumber(guildId, num);
+        const suggestion = found && (await visibleTo(auth.member, found.status)) ? found : null;
         if (!suggestion) {
           await ctx.interaction.reply(
             resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),

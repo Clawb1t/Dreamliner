@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
-import { economyGlobalAccounts, economyServerAccounts } from "../../../db/schema.js";
+import { economyExchangeDaily, economyGlobalAccounts, economyServerAccounts } from "../../../db/schema.js";
+import { EXCHANGE_DAILY_GLOBAL_CAP } from "./format.js";
 
 /** Round to 2 decimal places to keep the low-value decimal currencies tidy. */
 export function round2(amount: number): number {
@@ -40,6 +41,14 @@ export function creditGlobal(userId: string, amount: number): number {
     .where(eq(economyGlobalAccounts.userId, userId))
     .run();
   return balance;
+}
+
+/** /exchange would go over the bot-wide daily cap; `remaining` is what's left today (global coins). */
+export class ExchangeLimitError extends Error {
+  constructor(readonly remaining: number) {
+    super("Daily exchange limit reached.");
+    this.name = "ExchangeLimitError";
+  }
 }
 
 export class InsufficientFundsError extends Error {
@@ -181,7 +190,20 @@ export function exchangeServerForGlobal(guildId: string, userId: string, serverA
 
   const globalAmount = round2(serverAmount * rate);
   const timestamp = now();
+  const statDate = timestamp.toISOString().slice(0, 10);
   return db.transaction((tx) => {
+    const used =
+      tx
+        .select({ amount: economyExchangeDaily.globalAmount })
+        .from(economyExchangeDaily)
+        .where(and(eq(economyExchangeDaily.userId, userId), eq(economyExchangeDaily.statDate, statDate)))
+        .get()?.amount ?? 0;
+    if (used + globalAmount > EXCHANGE_DAILY_GLOBAL_CAP + 1e-9) throw new ExchangeLimitError(round2(Math.max(0, EXCHANGE_DAILY_GLOBAL_CAP - used)));
+    tx.insert(economyExchangeDaily)
+      .values({ userId, statDate, globalAmount })
+      .onConflictDoUpdate({ target: [economyExchangeDaily.userId, economyExchangeDaily.statDate], set: { globalAmount: round2(used + globalAmount) } })
+      .run();
+
     const serverBalance = round2(account.balance - serverAmount);
     tx.update(economyServerAccounts)
       .set({ balance: serverBalance, updatedAt: timestamp })

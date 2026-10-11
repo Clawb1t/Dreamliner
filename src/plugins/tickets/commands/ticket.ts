@@ -515,6 +515,20 @@ export const ticketCommands: SlashCommandDefinition[] = [
       }
 
       if (sub === "transcript") {
+        // Only people who were part of the ticket, or staff who can see every ticket, get its transcript.
+        const viewer = interaction.member as import("discord.js").GuildMember;
+        const involved = ticket.openerId === viewer.id || ticket.memberIds.includes(viewer.id);
+        if (!involved && !(await hasPermission(guildId, "tickets", "can_view_all", viewer, ctx.guildConfig))) {
+          await interaction.reply(
+            resultReply(
+              t("common.permissionDeniedTitle", "Permission denied"),
+              t("tickets.transcript.notYours", "You can only get transcripts of tickets you were part of."),
+              true,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
         await interaction.deferReply({ ephemeral: ctx.ephemeral });
         const latest = await getLatestTranscriptForTicket(guildId, ticket.id);
         if (!latest) {

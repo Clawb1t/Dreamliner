@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, type GuildMember } from "discord.js";
+import { musicTrackBlock, musicChannelBlock } from "../functions/limits.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { deferReplyOptions } from "../../../core/responses.js";
 import { requireMusicPermission, lineReply, lineEdit } from "../functions/commandHelpers.js";
@@ -149,11 +150,16 @@ export const playlistCommand: SlashCommandDefinition = {
       await interaction.reply(lineReply(`${MUSIC_EMOJI.error} Join a voice channel first.`, ephemeral));
       return;
     }
+    const channelBlock = musicChannelBlock(auth.config, voiceChannelId, interaction.channelId);
+    if (channelBlock) {
+      await interaction.reply(lineReply(`${MUSIC_EMOJI.error} ${channelBlock}`, ephemeral));
+      return;
+    }
 
     await interaction.deferReply(deferReplyOptions(ephemeral));
-    const claim = await getOrConnectPlayer(guildId, voiceChannelId, interaction.channelId);
+    const claim = await getOrConnectPlayer(guildId, voiceChannelId, interaction.channelId, { member, config: auth.config });
     if (!claim.ok) {
-      const body = claim.reason === "blocked_by_other" ? blockedByMessage("music", claim.ownedBy) : "Couldn't connect to that voice channel.";
+      const body = claim.reason === "blocked_by_other" ? blockedByMessage("music", claim.ownedBy) : claim.reason === "in_use_elsewhere" ? `People are listening in <#${claim.channelId}>. Join them, or ask a DJ to move the music.` : "Couldn't connect to that voice channel.";
       await interaction.editReply(lineEdit(`${MUSIC_EMOJI.error} ${body}`));
       return;
     }
@@ -162,6 +168,13 @@ export const playlistCommand: SlashCommandDefinition = {
     let queued = 0;
     let failed = 0;
     for (const row of rows) {
+      // The server's queue size and track length limits apply to playlists too.
+      const block = musicTrackBlock(auth.config, player, row.durationMs);
+      if (block) {
+        if (block === "The queue is full.") break;
+        failed++;
+        continue;
+      }
       if (row.encoded) {
         await player.queue.add({
           encoded: row.encoded,

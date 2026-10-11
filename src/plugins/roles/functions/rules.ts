@@ -1,6 +1,7 @@
 import type { GuildMember } from "discord.js";
 import type { RoleRule } from "../../../config/schemas/roleRules.js";
 import { getLogger } from "../../../core/logger.js";
+import { autoGrantableRoleIds } from "../../../core/roles.js";
 
 const log = getLogger("roles");
 
@@ -95,7 +96,8 @@ export async function applyRoleRules(member: GuildMember, rules: RoleRule[]): Pr
   inFlight.add(key);
   try {
     if (remove.length > 0) await member.roles.remove(remove, reason);
-    if (add.length > 0) await member.roles.add(add, reason);
+    const grantable = autoGrantableRoleIds(member.guild, add);
+    if (grantable.length > 0) await member.roles.add(grantable, reason);
   } catch (error) {
     log.warn(`[role rules] ${member.guild.id}: couldn't update ${member.id}:`, error);
   } finally {

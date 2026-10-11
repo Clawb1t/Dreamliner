@@ -36,10 +36,13 @@ import {
   celebrationsWithExpiredRoles,
   claimCelebration,
   countCelebrationsSince,
+  guildBirthdayUserIds,
+  guildBirthdaysOnDates,
   isOptedOut,
   updateCelebration,
   type StoredBirthday,
 } from "./store.js";
+import { isStaffRole } from "../../../core/roles.js";
 
 const log = getLogger("birthdays");
 
@@ -203,7 +206,7 @@ async function giveRole(config: BirthdaysConfig, member: GuildMember): Promise<s
   if (!roleId) return null;
   const role = member.guild.roles.cache.get(roleId);
   const me = member.guild.members.me;
-  if (!role || !me?.permissions.has(PermissionFlagsBits.ManageRoles) || role.comparePositionTo(me.roles.highest) >= 0) {
+  if (!role || isStaffRole(role) || !me?.permissions.has(PermissionFlagsBits.ManageRoles) || role.comparePositionTo(me.roles.highest) >= 0) {
     log.debug(`[birthdays] Can't give role ${roleId} in ${member.guild.id}.`);
     return null;
   }
@@ -315,10 +318,18 @@ async function celebrateDueIn(guild: Guild, config: BirthdaysConfig, candidates:
  *  announcements past their time. */
 export async function tickBirthdays(client: Client, now = new Date()): Promise<void> {
   await cleanup(client, now);
-  const candidates = birthdaysOnDates(candidateDates(now));
-  if (candidates.length === 0) return;
+  const dates = candidateDates(now);
+  const candidates = birthdaysOnDates(dates);
+  const serverSet = guildBirthdaysOnDates(dates);
+  if (candidates.length === 0 && serverSet.size === 0) return;
   for (const guild of client.guilds.cache.values()) {
+    // A birthday staff set in this server replaces the member's own one here (and only here).
+    const local = serverSet.get(guild.id) ?? [];
+    if (candidates.length === 0 && local.length === 0) continue;
     const config = await loadActiveBirthdays(guild.id);
-    if (config) await celebrateDueIn(guild, config, candidates, now);
+    if (!config) continue;
+    const replaced = guildBirthdayUserIds(guild.id, candidates.map((c) => c.userId));
+    const forGuild = [...candidates.filter((c) => !replaced.has(c.userId)), ...local];
+    if (forGuild.length) await celebrateDueIn(guild, config, forGuild, now);
   }
 }

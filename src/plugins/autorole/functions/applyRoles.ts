@@ -8,6 +8,7 @@ import type {
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parseDuration } from "../../infraction/functions/duration.js";
+import { isStaffRole } from "../../../core/roles.js";
 
 export function resolveRoleDelayMs(entry: Pick<AutoroleRoleEntry, "delay_ms" | "delay">): number {
   if (entry.delay) {
@@ -57,7 +58,7 @@ export function filterAssignableRoles(member: GuildMember, roleIds: string[]): R
 }
 
 export async function applyAutoroles(member: GuildMember, roleIds: string[]): Promise<void> {
-  const roles = filterAssignableRoles(member, roleIds);
+  const roles = filterAssignableRoles(member, roleIds).filter((role) => !isStaffRole(role));
   if (roles.length === 0) return;
   await member.roles.add(roles, "Dreamliner autorole").catch(() => null);
 }

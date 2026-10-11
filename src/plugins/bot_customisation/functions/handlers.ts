@@ -6,6 +6,7 @@ import {
   type ButtonInteraction,
   type GuildTextBasedChannel,
 } from "discord.js";
+import { BOT_BRAND_LOG_CHANNEL_ID } from "../constants.js";
 import { configManager } from "../../../config/manager.js";
 import { buildResultEmbed, setEmbedAuthor, baseEmbed, embedField } from "../../../core/embeds.js";
 import { containerEdit, containerReply, pingComponent } from "../../../core/responses.js";
@@ -192,7 +193,13 @@ export async function handleBotAvatarButtonInteraction(
 
   const { t } = await translatorFor(interaction.user.id);
 
-  if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+  // Brand requests from every server are reviewed in Dreamliner's own review channel. The request
+  // id alone says nothing about who may decide it, so the click has to come from that channel.
+  if (
+    !interaction.inGuild() ||
+    interaction.channelId !== BOT_BRAND_LOG_CHANNEL_ID ||
+    !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+  ) {
     await interaction.reply({
       content: t(
         "bot_customisation.error.needManageServer",

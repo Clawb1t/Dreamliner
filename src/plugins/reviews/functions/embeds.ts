@@ -6,6 +6,7 @@ import {
 import { baseEmbed, discordTs, embedField, setEmbedAuthor } from "../../../core/embeds.js";
 import type { Translator } from "../../../i18n/index.js";
 import type { Review } from "./store.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 export function starsForRating(rating: number): string {
   const clamped = Math.max(1, Math.min(5, Math.round(rating)));
@@ -40,13 +41,14 @@ export function buildReviewEmbed(options: {
   return embed;
 }
 
+/** The reviews channel by id, only when it's in `guildId`. */
 export async function resolveTextChannel(
   client: Client,
+  guildId: string,
   channelId: string | undefined,
 ): Promise<GuildTextBasedChannel | null> {
   if (!channelId) return null;
-  const channel =
-    client.channels.cache.get(channelId) ?? (await client.channels.fetch(channelId).catch(() => null));
+  const channel = await fetchGuildChannel(client, guildId, channelId);
   if (!channel?.isTextBased() || channel.isDMBased()) return null;
   if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
     return null;

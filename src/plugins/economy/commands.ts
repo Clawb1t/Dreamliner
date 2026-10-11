@@ -21,6 +21,7 @@ import { zEconomyConfig } from "../../config/schemas/economy.js";
 import {
   GLOBAL_DAILY_AMOUNT,
   SERVER_DAILY_AMOUNT,
+  EXCHANGE_DAILY_GLOBAL_CAP,
   SERVER_TO_GLOBAL_EXCHANGE_RATE,
   formatCoinAmount,
   formatExchangeRate,
@@ -35,6 +36,7 @@ import {
   exchangeServerForGlobal,
   getGlobalBalance,
   getServerBalance,
+  ExchangeLimitError,
   InsufficientFundsError,
   nextDailyClaimAt,
   type DailyClaimResult,
@@ -248,6 +250,21 @@ export const economyCommands: SlashCommandDefinition[] = [
           .setFooter({ text: ctx.t("economy.exchange.footer", "Dreamliner Exchange") });
         await i.reply(embedReply(embed, ctx.ephemeral));
       } catch (err) {
+        if (err instanceof ExchangeLimitError) {
+          await i.reply(
+            resultReply(
+              ctx.t("economy.exchange.limit.title", "Daily limit reached"),
+              ctx.t(
+                "economy.exchange.limit.description",
+                "You can get up to {cap} from exchanges each day (across every server). You can still exchange up to {remaining} today.",
+                { cap: formatGlobal(EXCHANGE_DAILY_GLOBAL_CAP), remaining: formatGlobal(err.remaining) },
+              ),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
         if (err instanceof InsufficientFundsError) {
           await i.reply(
             resultReply(

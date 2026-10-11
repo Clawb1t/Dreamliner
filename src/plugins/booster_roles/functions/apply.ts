@@ -3,6 +3,7 @@ import type { BoosterRolesConfig, BoosterRoleTier } from "../../../config/schema
 import { boostDurationDays } from "../../../core/boosterStatus.js";
 import { activeTiers, hasBoostCountTiers } from "./config.js";
 import { effectiveBoostCount } from "./boostCounts.js";
+import { autoGrantableRoleIds } from "../../../core/roles.js";
 
 export type BoosterRoleEvaluation = {
   toAdd: string[];
@@ -57,8 +58,9 @@ export function evaluateBoosterRoles(
 export async function syncBoosterRoles(member: GuildMember, config: BoosterRolesConfig): Promise<BoosterRoleEvaluation> {
   const boosts = hasBoostCountTiers(config) ? await effectiveBoostCount(member) : member.premiumSince ? 1 : 0;
   const evaluation = evaluateBoosterRoles(member, member.premiumSince, config, boosts);
-  if (evaluation.toAdd.length > 0) {
-    await member.roles.add(evaluation.toAdd).catch(() => null);
+  const toAdd = autoGrantableRoleIds(member.guild, evaluation.toAdd);
+  if (toAdd.length > 0) {
+    await member.roles.add(toAdd).catch(() => null);
   }
   if (evaluation.toRemove.length > 0) {
     await member.roles.remove(evaluation.toRemove).catch(() => null);

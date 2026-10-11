@@ -194,6 +194,19 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         );
         return;
       }
+      // Manage Channels has to apply to the channel being changed, not just the one the command
+      // was typed in (a channel overwrite can grant it in one place only).
+      if ((sub === "set" || sub === "clear") && !channel.permissionsFor(auth.member)?.has(PermissionFlagsBits.ManageChannels)) {
+        await ctx.interaction.reply(
+          resultReply(
+            ctx.t("slowmode.missingPermissionTitle", "Missing permission"),
+            ctx.t("slowmode.userNeedsManageChannels", "You need **Manage Channels** to change Discord channel slowmode."),
+            ctx.ephemeral,
+            slashResultOptions(ctx, { tone: "error" }),
+          ),
+        );
+        return;
+      }
 
       if (sub === "status") {
         const config = getSlowmodeGuildConfig(ctx.guildConfig);

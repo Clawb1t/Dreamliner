@@ -8,6 +8,8 @@ import {
   type Message,
   type TopLevelComponentData,
 } from "discord.js";
+import { memberCanReadChannel } from "../../../core/channelAccess.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 import { configManager } from "../../../config/manager.js";
 import { baseEmbed, discordTs, type ResultContainer } from "../../../core/embeds.js";
 import { guildResultOptions, resultReply } from "../../../core/responses.js";
@@ -158,8 +160,14 @@ export async function handleContextNavButtonInteraction(interaction: ButtonInter
     return true;
   }
 
-  const channel = await interaction.client.channels.fetch(parsed.channelId).catch(() => null);
-  if (!channel || !channel.isTextBased() || channel.isDMBased()) {
+  // Same server only, and only while the clicker can still read the channel.
+  const channel = await fetchGuildChannel(interaction.client, interaction.guildId, parsed.channelId);
+  if (
+    !channel ||
+    !channel.isTextBased() ||
+    channel.isDMBased() ||
+    !(await memberCanReadChannel(channel, interaction.user.id))
+  ) {
     await interaction.reply(
       resultReply(
         t("utility.contextNav.channelUnavailableTitle", "Channel unavailable"),

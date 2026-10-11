@@ -21,7 +21,18 @@ import {
   timeToMinutes,
   type Birthday,
 } from "./functions/dates.js";
-import { getBirthday, getBirthdays, isOptedOut, removeBirthday, setBirthday, setOptedOut } from "./functions/store.js";
+import {
+  getBirthday,
+  getBirthdayIn,
+  getBirthdaysIn,
+  isOptedOut,
+  optedOutIn,
+  removeBirthday,
+  removeGuildBirthday,
+  setBirthday,
+  setGuildBirthday,
+  setOptedOut,
+} from "./functions/store.js";
 
 const MONTH_CHOICES = MONTH_NAMES.map((name, i) => ({ name, value: i + 1 }));
 const MAX_UPCOMING = 10;
@@ -109,8 +120,9 @@ function addDateOptions(builder: SlashCommandSubcommandBuilder): SlashCommandSub
 
 async function upcomingFor(guild: import("discord.js").Guild, config: BirthdaysConfig) {
   const members = await guild.members.fetch().catch(() => guild.members.cache);
-  const humans = [...members.values()].filter((m) => !m.user.bot);
-  const birthdays = getBirthdays(humans.map((m) => m.id));
+  const optedOut = optedOutIn(guild.id);
+  const humans = [...members.values()].filter((m) => !m.user.bot && !optedOut.has(m.id));
+  const birthdays = getBirthdaysIn(guild.id, humans.map((m) => m.id));
   const today = localMoment(new Date(), config.timezone);
   return humans
     .filter((m) => birthdays.has(m.id))
@@ -176,18 +188,31 @@ export const birthdaysCommands: SlashCommandDefinition[] = [
         if (!auth) return;
         const config = loadBirthdaysConfig(ctx.guildConfig);
         const target = ctx.interaction.options.getUser("user", true);
+        const guildId = ctx.interaction.guildId!;
         if (target.bot) {
           await reply(ctx, title, t("birthdays.noBots", "Bots don't have birthdays."), "warning");
           return;
         }
+        // Staff only manage this server's view of a member's birthday: it's stored for this server
+        // alone, and only for people who are actually in it. A member's own birthday (which every
+        // server they're in uses) can only be changed by them.
+        const inServer = await ctx.interaction.guild!.members.fetch(target.id).catch(() => null);
+        if (!inServer) {
+          await reply(ctx, title, t("birthdays.manageNotMember", "<@{user}> isn't in this server.", { user: target.id }), "warning", true);
+          return;
+        }
         if (sub === "remove") {
-          const removed = removeBirthday(target.id);
+          const removed = removeGuildBirthday(guildId, target.id);
           await reply(
             ctx,
             title,
             removed
-              ? t("birthdays.manageRemoved", "Removed <@{user}>'s birthday.", { user: target.id })
-              : t("birthdays.manageNone", "<@{user}> hasn't set a birthday.", { user: target.id }),
+              ? t("birthdays.manageRemoved", "Removed the birthday this server set for <@{user}>.", { user: target.id })
+              : t(
+                  "birthdays.manageNone",
+                  "This server hasn't set a birthday for <@{user}>. Only they can change the birthday they set themselves.",
+                  { user: target.id },
+                ),
             removed ? "success" : "neutral",
           );
           return;
@@ -197,14 +222,14 @@ export const birthdaysCommands: SlashCommandDefinition[] = [
           await reply(ctx, title, read.error, "error", true);
           return;
         }
-        const previous = getBirthday(target.id);
-        setBirthday(target.id, read.birthday, previous?.timezone ?? null);
+        const own = getBirthday(target.id);
+        setGuildBirthday(guildId, target.id, read.birthday, ctx.interaction.user.id);
         await reply(
           ctx,
           title,
-          t("birthdays.manageSet", "Set <@{user}>'s birthday to {when}.", {
+          t("birthdays.manageSet", "Set <@{user}>'s birthday in this server to {when}.", {
             user: target.id,
-            when: describe(ctx, config, read.birthday, previous?.timezone ?? null),
+            when: describe(ctx, config, read.birthday, own?.timezone ?? null),
           }),
           "success",
         );
@@ -277,8 +302,14 @@ export const birthdaysCommands: SlashCommandDefinition[] = [
 
       if (sub === "view") {
         const user: User = ctx.interaction.options.getUser("user") ?? ctx.interaction.user;
-        const birthday = getBirthday(user.id);
         const self = user.id === ctx.interaction.user.id;
+        // Only members of this server: birthdays aren't a lookup for any Discord account.
+        if (!self && !(await ctx.interaction.guild!.members.fetch(user.id).catch(() => null))) {
+          await reply(ctx, title, t("birthdays.viewNotMember", "<@{user}> isn't in this server.", { user: user.id }), "warning", true);
+          return;
+        }
+        // Someone who asked this server not to celebrate them isn't shown to others here either.
+        const birthday = !self && isOptedOut(ctx.interaction.guildId!, user.id) ? null : getBirthdayIn(ctx.interaction.guildId!, user.id);
         await reply(
           ctx,
           title,

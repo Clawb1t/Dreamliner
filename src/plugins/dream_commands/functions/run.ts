@@ -109,10 +109,11 @@ export async function handleDreamCommandSlash(
     const tokens = buildTokens(interaction);
     const program = command.program;
     if (program.responseType === "embed") {
-      await interaction.reply({ embeds: [buildEmbed(program, tokens)], ephemeral: program.ephemeral });
+      // Anyone can run a custom command, as often as they like, so mentions in it never ping.
+      await interaction.reply({ embeds: [buildEmbed(program, tokens)], ephemeral: program.ephemeral, allowedMentions: { parse: [] } });
     } else {
       const content = interpolateTokens(pickContent(program), tokens);
-      await interaction.reply({ content, ephemeral: program.ephemeral });
+      await interaction.reply({ content, ephemeral: program.ephemeral, allowedMentions: { parse: [] } });
     }
 
     const { trackCommandUsage } = await import("../../stats/functions/commandUsage.js");

@@ -7,6 +7,7 @@ import {
   type PartialUser,
   type User,
 } from "discord.js";
+import { hasPermission } from "../../../core/permissionRoles.js";
 import { configManager } from "../../../config/manager.js";
 import { DEFAULT_LANGUAGE_CODE, flagForLanguage, languagesMatch } from "../../../core/languages.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
@@ -121,6 +122,9 @@ export async function handleAutoTranslateReaction(
   const expectedFlag = flagForLanguage(defaultLanguage);
   const emojiName = fullReaction.emoji.name ?? "";
   if (emojiName !== expectedFlag) return;
+  // Reacting is the same as asking for a translation, so it takes the same permission.
+  const reactor = await message.guild.members.fetch(user.id).catch(() => null);
+  if (!reactor || !(await hasPermission(message.guild.id, "translation", "can_translate", reactor, guildConfig))) return;
 
   // Claim before any await so parallel reactions cannot all send a reply.
   if (!claimTranslation(message.id)) return;

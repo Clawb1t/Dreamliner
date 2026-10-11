@@ -53,9 +53,15 @@ async function notifyTarget(
   reason: string,
   record: Awaited<ReturnType<typeof createInfraction>>,
 ) {
+  const notifyKey = type.replace("temp", "") as keyof InfractionConfig["notify"];
+  // Only punishments with their own DM setting are sent: staff notes and unbans never DM anyone (a
+  // note is private to staff). And only members of this server get DMs, so the bot can't be used to
+  // send a "warning" with any text to someone who was never here. Bans and kicks call this before
+  // acting, while the person is still a member.
+  if (!(notifyKey in pluginConfig.notify)) return;
+  if (!(await ctx.interaction.guild!.members.fetch(user.id).catch(() => null))) return;
   const { translatorFor } = await import("../../../i18n/index.js");
   const { t: userT } = await translatorFor(user.id);
-  const notifyKey = type.replace("temp", "") as keyof InfractionConfig["notify"];
   const notifyMsg = buildNotifyMessage(
     pluginConfig,
     notifyKey in pluginConfig.notify ? notifyKey : "warn",
@@ -176,6 +182,13 @@ export const actionCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
       const user = ctx.interaction.options.getUser("user", true);
+      // Notes can count towards escalation, so the same rank rule as a warning applies.
+      const noteTarget = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
+      const noteErr = canModerateTarget(auth.member, noteTarget, user, ctx.interaction.guild!, ctx.t);
+      if (noteErr) {
+        await replyOrEdit(ctx.interaction, resultReply(ctx.t("infraction.noteTitle", "Note"), noteErr, ctx.ephemeral, slashResultOptions(ctx)));
+        return;
+      }
       const reason = formatReason(ctx.interaction.options.getString("reason"));
       const record = await createInfraction({
         guildId: ctx.interaction.guildId!,
@@ -303,6 +316,12 @@ export const actionCommands: SlashCommandDefinition[] = [
       const target = await ctx.interaction.guild!.members.fetch(user.id).catch(() => null);
       if (!target) {
         await replyOrEdit(ctx.interaction, resultReply(ctx.t("infraction.unmuteTitle", "Unmute"), ctx.t("infraction.memberNotFound", "Member not found."), ctx.ephemeral, slashResultOptions(ctx)));
+        return;
+      }
+      // Same rank rule as muting: not yourself, and not someone at or above you.
+      const unmuteErr = canModerateTarget(auth.member, target, user, ctx.interaction.guild!, ctx.t);
+      if (unmuteErr) {
+        await replyOrEdit(ctx.interaction, resultReply(ctx.t("infraction.unmuteTitle", "Unmute"), unmuteErr, ctx.ephemeral, slashResultOptions(ctx)));
         return;
       }
 

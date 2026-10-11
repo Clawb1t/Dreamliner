@@ -1,4 +1,6 @@
-import { SlashCommandBuilder } from "discord.js";
+import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { hasPermission } from "../../../core/permissionRoles.js";
+import { canModerateTarget } from "../functions/moderation.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { embedReply, resultReply, slashResultOptions, deferReplyOptions, replyOrEdit } from "../../../core/responses.js";
 import { requireInfractionPermission } from "../functions/commandHelpers.js";
@@ -126,6 +128,14 @@ export const manageCommands: SlashCommandDefinition[] = [
           );
           return;
         }
+        // Nobody edits or deletes a case about themselves (the owner excepted).
+        if (record.userId === ctx.interaction.user.id && ctx.interaction.guild!.ownerId !== ctx.interaction.user.id) {
+          await replyOrEdit(
+            ctx.interaction,
+            resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.cannotEditOwnCase", "You can't change a case about yourself."), true, slashResultOptions(ctx, { tone: "error" })),
+          );
+          return;
+        }
         const reasonUpdateEmoji = "<:icons_pen:1544417369709871224>";
         await updateInfractionReason(guildId, id, reason);
         await sendModerationLog(
@@ -177,6 +187,43 @@ export const manageCommands: SlashCommandDefinition[] = [
             ctx.interaction,
             resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.noInfractionFound", "No infraction #{id} found.", { id }), ctx.ephemeral, slashResultOptions(ctx)),
           );
+          return;
+        }
+        // Changing a duration can lift a punishment (a past expiry unbans or unmutes on the next sweep),
+        // so it needs the same power as the punishment itself, not just can_edit_duration.
+        const denied = async (body: string) =>
+          replyOrEdit(ctx.interaction, resultReply(ctx.t("common.permissionDeniedTitle", "Permission denied"), body, true, slashResultOptions(ctx, { tone: "error" })));
+        const isBan = record.type === "ban" || record.type === "tempban";
+        const isMute = record.type === "mute" || record.type === "tempmute";
+        if (!isBan && !isMute) {
+          await denied(ctx.t("infraction.durationOnlyTimed", "Only ban and mute cases have a duration."));
+          return;
+        }
+        if (!record.active) {
+          await denied(ctx.t("infraction.durationInactive", "That punishment has already ended or been lifted."));
+          return;
+        }
+        const perms = auth.member.permissions;
+        const flag = (name: string) => hasPermission(guildId, "infractions", name, auth.member, ctx.guildConfig);
+        if (isBan && !(perms.has(PermissionFlagsBits.BanMembers) && (await flag("can_ban")) && (await flag("can_unban")))) {
+          await denied(ctx.t("infraction.durationNeedsBan", "Changing a ban's duration needs Ban Members and permission to ban and unban."));
+          return;
+        }
+        if (isMute) {
+          if (!(perms.has(PermissionFlagsBits.ModerateMembers) && (await flag("can_mute")))) {
+            await denied(ctx.t("infraction.durationNeedsMute", "Changing a mute's duration needs Moderate Members and permission to mute."));
+            return;
+          }
+          const targetUser = await ctx.client.users.fetch(record.userId).catch(() => null);
+          const targetMember = await ctx.interaction.guild!.members.fetch(record.userId).catch(() => null);
+          const err = targetUser ? canModerateTarget(auth.member, targetMember, targetUser, ctx.interaction.guild!, ctx.t) : null;
+          if (err) {
+            await denied(err);
+            return;
+          }
+        }
+        if (isBan && record.userId === auth.member.id) {
+          await denied(ctx.t("infraction.cannotModerateSelf", "You cannot moderate yourself."));
           return;
         }
         await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
@@ -239,6 +286,14 @@ export const manageCommands: SlashCommandDefinition[] = [
           await replyOrEdit(
             ctx.interaction,
             resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.noInfractionFound", "No infraction #{id} found.", { id }), ctx.ephemeral, slashResultOptions(ctx)),
+          );
+          return;
+        }
+        // Nobody edits or deletes a case about themselves (the owner excepted).
+        if (record.userId === ctx.interaction.user.id && ctx.interaction.guild!.ownerId !== ctx.interaction.user.id) {
+          await replyOrEdit(
+            ctx.interaction,
+            resultReply(ctx.t("infraction.infractionTitle", "Infraction"), ctx.t("infraction.cannotEditOwnCase", "You can't change a case about yourself."), true, slashResultOptions(ctx, { tone: "error" })),
           );
           return;
         }

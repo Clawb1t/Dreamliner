@@ -363,17 +363,17 @@ export async function deleteCaseEvidenceFile(guildId: string, caseId: number, fi
   const row = await db
     .select()
     .from(caseEvidenceFiles)
-    .where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.caseId, caseId)))
+    .where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.caseId, caseId), eq(caseEvidenceFiles.guildId, guildId)))
     .get();
   if (!row) return;
   deleteCaseEvidenceFileFromDisk(row.fileName, guildId, caseId);
-  await db.delete(caseEvidenceFiles).where(eq(caseEvidenceFiles.id, fileId));
+  await db.delete(caseEvidenceFiles).where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.guildId, guildId)));
 }
 
 /** Deletes every uploaded screenshot for a case. Call this when the case itself is deleted. */
 export async function deleteCaseEvidenceFilesForCase(guildId: string, caseId: number): Promise<void> {
   const db = getDb();
-  await db.delete(caseEvidenceFiles).where(eq(caseEvidenceFiles.caseId, caseId));
+  await db.delete(caseEvidenceFiles).where(and(eq(caseEvidenceFiles.caseId, caseId), eq(caseEvidenceFiles.guildId, guildId)));
   deleteAllCaseEvidenceFiles(guildId, caseId);
 }
 
@@ -387,7 +387,7 @@ export async function getWebCaseEvidenceFile(
   const row = await db
     .select()
     .from(caseEvidenceFiles)
-    .where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.caseId, caseId)))
+    .where(and(eq(caseEvidenceFiles.id, fileId), eq(caseEvidenceFiles.caseId, caseId), eq(caseEvidenceFiles.guildId, guildId)))
     .get();
   if (!row) return null;
   const buffer = readCaseEvidenceFile(row.fileName, guildId, caseId);

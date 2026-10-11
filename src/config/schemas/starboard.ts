@@ -81,6 +81,7 @@ export const zStarboardBoard = z.strictObject({
   economy_bonus: z
     .number()
     .min(0)
+    .max(10000)
     .default(0)
     .describe("Server currency awarded to the message author when it first reaches the star threshold."),
 });

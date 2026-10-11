@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { PermissionFlagsBits } from "discord.js";
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getDueReminders, removeReminder } from "./store.js";
@@ -36,8 +37,14 @@ export async function processDueReminders(client: Client): Promise<void> {
         : false;
 
       if (!dmSent) {
+        // Only post in the channel when the person is still here and could post there themselves:
+        // reminders aren't a way round slowmode, automod or a channel they can't write in.
         const channel = await guild.channels.fetch(reminder.channelId).catch(() => null);
-        if (channel?.isTextBased() && "send" in channel) {
+        const member = await guild.members.fetch(reminder.userId).catch(() => null);
+        const canPost = Boolean(
+          channel && member && channel.permissionsFor(member)?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]),
+        );
+        if (canPost && channel?.isTextBased() && "send" in channel) {
           // Ping only the reminder's owner — never let a reminder body containing
           // "@everyone"/"@here" (or anyone else's mention) actually notify them.
           await channel.send({

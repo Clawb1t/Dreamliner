@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, type GuildMember } from "discord.js";
+import { PermissionFlagsBits, SlashCommandBuilder, type GuildMember } from "discord.js";
 import type { ActivityMetric, ActivityRewardsConfig } from "../../config/schemas/activityRewards.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
@@ -235,6 +235,11 @@ export const activityRewardsCommands: SlashCommandDefinition[] = [
         const target = await resolveTargetMember(ctx, auth.member);
         if (!target || target.user.bot) {
           await reply(ctx, title, t("activity_rewards.memberNotFound", "That member isn't in this server."), "warning");
+          return;
+        }
+        // Adjusting your own progress hands you milestone roles, so it takes Manage Server.
+        if (target.id === auth.member.id && !auth.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+          await reply(ctx, title, t("activity_rewards.noSelfAdjust", "You can't adjust your own progress."), "warning");
           return;
         }
         const metric = ctx.interaction.options.getString("track", true) as ActivityMetric;

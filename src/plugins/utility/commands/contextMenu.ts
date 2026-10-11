@@ -5,6 +5,7 @@ import {
   ContextMenuCommandBuilder,
   InteractionContextType,
   MessageFlags,
+  PermissionFlagsBits,
   StickerFormatType,
   escapeMarkdown,
   type TextChannel,
@@ -372,6 +373,18 @@ export const contextMenuCommands: ContextMenuCommandDefinition[] = [
       const { interaction } = ctx;
       if (!interaction.isMessageContextMenuCommand()) return;
       const message = interaction.targetMessage;
+
+      // Discofy is a public site: only quote messages that were already public in this server, never
+      // anything from a private or staff-only channel.
+      const sourceChannel = message.guild && message.channel && "permissionsFor" in message.channel ? message.channel : null;
+      if (sourceChannel && !sourceChannel.permissionsFor(message.guild!.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)) {
+        await replyContextMenuError(
+          ctx,
+          ctx.t("utility.contextMenu.quotePrivateTitle", "Can't quote that"),
+          ctx.t("utility.contextMenu.quotePrivateBody", "Only messages from channels everyone in the server can see can be quoted to Discofy."),
+        );
+        return;
+      }
 
       const content = message.content?.trim();
       if (!content) {

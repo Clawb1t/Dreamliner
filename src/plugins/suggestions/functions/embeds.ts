@@ -21,19 +21,21 @@ import {
   type VoteValue,
 } from "../constants.js";
 import type { Suggestion, SuggestionComment, SuggestionVoter, VoteTotals } from "./store.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 /** Translated display-status label — falls back to the English label from constants.ts. */
 export function displayStatusLabel(t: Translator, value: string): string {
   return t(`suggestions.displayStatus.${value}`, DISPLAY_STATUS_LABELS[value] ?? value);
 }
 
+/** A suggestions channel by id, only when it's in `guildId` (config ids are never trusted across servers). */
 export async function resolveTextChannel(
   client: Client,
+  guildId: string,
   channelId: string | undefined | null,
 ): Promise<GuildTextBasedChannel | null> {
   if (!channelId) return null;
-  const channel =
-    client.channels.cache.get(channelId) ?? (await client.channels.fetch(channelId).catch(() => null));
+  const channel = await fetchGuildChannel(client, guildId, channelId);
   if (!channel?.isTextBased() || channel.isDMBased()) return null;
   if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
     return null;

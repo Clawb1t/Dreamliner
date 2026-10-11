@@ -766,11 +766,18 @@ export async function resolveInfoTarget(
   guildConfig: GuildConfig,
   client: Client,
   t: Translator = defaultTranslator,
+  /** Who's asking: channels they can't see are treated as unknown (even a name can be private). */
+  viewerId?: string,
 ): Promise<{ type: string; embed: ResultContainer } | null> {
   const trimmed = input.trim();
+  const viewer = viewerId ? (guild.members.cache.get(viewerId) ?? (await guild.members.fetch(viewerId).catch(() => null))) : null;
+  const visibleChannel = (id: string) => {
+    const channel = guild.channels.cache.get(id);
+    return channel && viewer && channel.permissionsFor(viewer)?.has(PermissionFlagsBits.ViewChannel) ? channel : undefined;
+  };
 
   if (/^\d{17,20}$/.test(trimmed)) {
-    const channel = guild.channels.cache.get(trimmed);
+    const channel = visibleChannel(trimmed);
     if (channel) return { type: "channel", embed: buildChannelInfoEmbed(channel, guild, guildConfig, client, t) };
 
     const role = guild.roles.cache.get(trimmed);
@@ -792,7 +799,7 @@ export async function resolveInfoTarget(
 
   if (trimmed.startsWith("<#") && trimmed.endsWith(">")) {
     const id = trimmed.slice(2, -1);
-    const channel = guild.channels.cache.get(id);
+    const channel = visibleChannel(id);
     if (channel) return { type: "channel", embed: buildChannelInfoEmbed(channel, guild, guildConfig, client, t) };
   }
 

@@ -16,6 +16,7 @@ import {
   updateGiveaway,
   type Giveaway,
 } from "./functions/store.js";
+import { fetchGuildChannel } from "../../core/guildChannel.js";
 
 export async function handleGiveawayAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
   const focused = interaction.options.getFocused(true);
@@ -148,7 +149,7 @@ export const giveawaysCommands: SlashCommandDefinition[] = [
         const currentWinners = await listWinnersByStatus(giveaway.id, "won");
         const claimRowId = giveaway.claimWindowMinutes > 0 && currentWinners[0] ? currentWinners[0].id : null;
         if (giveaway.messageId) {
-          const channel = await ctx.client.channels.fetch(giveaway.channelId).catch(() => null);
+          const channel = await fetchGuildChannel(ctx.client, giveaway.guildId, giveaway.channelId);
           if (channel?.isTextBased() && "messages" in channel) {
             const embed = buildGiveawayEndedEmbed(giveaway, currentWinners.map((w) => w.userId));
             await channel.messages
@@ -270,7 +271,7 @@ export const giveawaysCommands: SlashCommandDefinition[] = [
         }
         await updateGiveaway(giveaway.id, { status: "cancelled" });
         if (giveaway.messageId) {
-          const channel = await ctx.client.channels.fetch(giveaway.channelId).catch(() => null);
+          const channel = await fetchGuildChannel(ctx.client, giveaway.guildId, giveaway.channelId);
           if (channel?.isTextBased() && "messages" in channel) {
             await channel.messages
               .fetch(giveaway.messageId)

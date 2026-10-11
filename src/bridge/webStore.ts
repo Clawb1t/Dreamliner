@@ -123,13 +123,15 @@ export type WebStoreServer = {
 
 /** The given servers (the ones the member can manage, from Discord) that Dreamliner is in, with
  *  their One state. The website filters to manageable servers; purchases re-check it here. */
-export async function listWebStoreServers(client: Client, guildIds: string[]): Promise<WebStoreServer[]> {
+export async function listWebStoreServers(client: Client, guildIds: string[], userId: string): Promise<WebStoreServer[]> {
   const now = Date.now();
   const servers: WebStoreServer[] = [];
   // Superusers pick from every server the bot is in, so the cap is generous.
   for (const guildId of [...new Set(guildIds)].slice(0, 5000)) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) continue;
+    // Only servers this person could actually buy for (the purchase itself checks the same).
+    if (!(await canManage(guild, userId))) continue;
     const [entitlement, row] = await Promise.all([getActiveDiscordEntitlement(guildId), getDreamlinerOneRow(guildId)]);
     const grantActive = Boolean(row && !row.revokedAt && (row.expiresAt === null || row.expiresAt.getTime() > now));
     const forever = grantActive && row?.expiresAt === null;

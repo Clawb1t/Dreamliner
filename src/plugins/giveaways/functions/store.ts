@@ -464,6 +464,17 @@ export async function insertWinner(input: {
   return mapWinner(row);
 }
 
+/** Marks a winner claimed only while they're still "won" (so a claim can't be paid twice).
+ *  Returns false when it was already claimed, expired or rerolled. */
+export async function claimWinnerRow(id: number, claimedAt: Date): Promise<boolean> {
+  const rows = await getDb()
+    .update(giveawayWinners)
+    .set({ status: "claimed", claimedAt })
+    .where(and(eq(giveawayWinners.id, id), eq(giveawayWinners.status, "won")))
+    .returning();
+  return rows.length > 0;
+}
+
 export async function updateWinner(
   id: number,
   patch: Partial<{ status: WinnerStatus; claimedAt: Date | null; rerolledAt: Date | null }>,

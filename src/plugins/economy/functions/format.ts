@@ -25,6 +25,14 @@ export const SERVER_DAILY_AMOUNT = 5;
  */
 export const SERVER_TO_GLOBAL_EXCHANGE_RATE = 0.1;
 
+/**
+ * Most global coins one person can get from /exchange per UTC day, across every server. Server
+ * currency can be handed out by a server's own settings (counting milestones, starboard and
+ * giveaway bonuses), so without a bot-wide cap anyone could mint unlimited global coins from a
+ * server they own. Normal play earns well under this.
+ */
+export const EXCHANGE_DAILY_GLOBAL_CAP = 25;
+
 export function formatAmount(amount: number): string {
   return amount.toFixed(2);
 }

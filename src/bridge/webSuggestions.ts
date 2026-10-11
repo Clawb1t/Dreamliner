@@ -236,7 +236,14 @@ async function toWebComment(guild: Guild, comment: SuggestionComment): Promise<W
   };
 }
 
+/** The suggestion, only when it belongs to this server (ids are global, so every lookup by id checks). */
+async function ownSuggestion(guild: Guild, suggestionId: number) {
+  const suggestion = await getSuggestionById(suggestionId);
+  return suggestion && suggestion.guildId === guild.id ? suggestion : null;
+}
+
 export async function listWebSuggestionComments(guild: Guild, suggestionId: number) {
+  if (!(await ownSuggestion(guild, suggestionId))) return null;
   const comments = await listComments(suggestionId, 100);
   return Promise.all(comments.map((c) => toWebComment(guild, c)));
 }
@@ -268,7 +275,9 @@ export async function addWebSuggestionComment(
   return { comment: await toWebComment(guild, result.comment) };
 }
 
-export async function deleteWebSuggestionComment(commentId: number): Promise<{ ok: boolean }> {
-  const ok = await deleteComment(commentId);
+/** Deletes a comment only when it's on this suggestion and the suggestion is in this server. */
+export async function deleteWebSuggestionComment(guild: Guild, suggestionId: number, commentId: number): Promise<{ ok: boolean }> {
+  if (!(await ownSuggestion(guild, suggestionId))) return { ok: false };
+  const ok = await deleteComment(commentId, suggestionId);
   return { ok };
 }

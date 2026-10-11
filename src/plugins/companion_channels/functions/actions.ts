@@ -6,6 +6,7 @@ import {
   type VoiceBasedChannel,
   type VoiceChannel,
 } from "discord.js";
+import { baselineDenies } from "./rooms.js";
 import type { CompanionChannelsConfig, CompanionFeatureKey, CompanionSetup } from "../../../config/schemas/companion.js";
 import type { Translator } from "../../../i18n/index.js";
 import { featureEnabled, setupByHub } from "./config.js";
@@ -277,6 +278,11 @@ export async function permitTarget(
 ): Promise<CompanionActionResult> {
   const resolved = await requireManagedRoom(actor, channel, t, "permit");
   if (isActionResult(resolved)) return resolved;
+  // Owners manage who joins their room, not the server's own access rules: no opening it to
+  // everyone this way, and no letting in a role the server keeps out of these channels.
+  if (target.id === actor.member.guild.id || baselineDenies(resolved.channel, target.id)) {
+    return fail(t("companion_channels.error.permitBlocked", "You can't permit that here. Ask a moderator."));
+  }
   await resolved.channel.permissionOverwrites
     .edit(target.id, { Connect: true, ViewChannel: true })
     .catch(() => null);
@@ -296,7 +302,8 @@ export async function rejectTarget(
   const resolved = await requireManagedRoom(actor, channel, t, "reject");
   if (isActionResult(resolved)) return resolved;
   await resolved.channel.permissionOverwrites
-    .edit(target.id, { Connect: false, ViewChannel: resolved.room.ghosted ? false : null })
+    // Only hide the room when it's ghosted; otherwise leave View Channel as staff set it.
+    .edit(target.id, resolved.room.ghosted ? { Connect: false, ViewChannel: false } : { Connect: false })
     .catch(() => null);
 
   if ("username" in target || "user" in target) {
@@ -364,6 +371,10 @@ export async function claimCompanion(
   if (isActionResult(resolved)) return resolved;
   if (resolved.room.ownerId === actor.member.id)
     return fail(t("companion_channels.error.alreadyOwnRoom", "You already own this room."));
+  // Only someone actually in the room can take it over (staff excepted), so a rejected member who
+  // can still see it can't claim it from outside and undo the reject.
+  if (!isStaff(actor) && actor.member.voice.channelId !== resolved.channel.id)
+    return fail(t("companion_channels.error.claimNotInRoom", "Join the room to claim it."));
   if (resolved.room.ownerId) {
     const ownerInChannel = resolved.channel.members.has(resolved.room.ownerId);
     if (ownerInChannel && !isStaff(actor))
@@ -444,6 +455,8 @@ export async function postLookingForMembers(
         invite: invite ? `\n${invite.url}` : "",
       },
     ),
+    // The member's name is in the text: it must never ping anyone.
+    allowedMentions: { parse: [] },
   });
   return ok(
     t("companion_channels.success.lfmPosted", "Posted in the Looking for Members channel."),

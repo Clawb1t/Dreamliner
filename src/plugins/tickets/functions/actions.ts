@@ -40,6 +40,7 @@ import {
   type TicketFormAnswer,
   type TicketRecord,
 } from "./tickets.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 export type CreateTicketResult = { ticket: TicketRecord } | { error: string };
 
@@ -122,7 +123,7 @@ export async function createTicketForMember(opts: {
   });
 
   const target = container.threadId ?? container.channelId;
-  const channel = await client.channels.fetch(target).catch(() => null);
+  const channel = await fetchGuildChannel(client, guild.id, target);
   if (channel?.isTextBased() && "send" in channel) {
     // Notify the opener and any ping roles once (so they get a Discord notification),
     // then delete that message immediately — the notification already fired, but the
@@ -309,7 +310,7 @@ export async function performClose(
   t: Translator = defaultTranslator,
 ): Promise<{ transcriptId: string | null }> {
   const targetId = ticket.threadId ?? ticket.channelId;
-  const channel = await client.channels.fetch(targetId).catch(() => null);
+  const channel = await fetchGuildChannel(client, ticket.guildId, targetId);
 
   let transcriptId: string | null = null;
   if (channel?.isTextBased()) {

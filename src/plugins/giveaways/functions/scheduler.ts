@@ -6,6 +6,7 @@ import { buildClaimComponents, buildGiveawayComponents, buildGiveawayEmbed, buil
 import { drawWinners, expireUnclaimedWinners } from "./draw.js";
 import * as store from "./store.js";
 import type { Giveaway } from "./store.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 const log = getLogger("giveaways");
 
@@ -85,7 +86,7 @@ async function editGiveawayMessage(
   claimComponentsForWinnerRowId: number | null,
 ): Promise<void> {
   if (!giveaway.messageId) return;
-  const channel = await client.channels.fetch(giveaway.channelId).catch(() => null);
+  const channel = await fetchGuildChannel(client, giveaway.guildId, giveaway.channelId);
   if (!channel?.isTextBased() || !("messages" in channel)) return;
 
   const embed = buildGiveawayEndedEmbed(giveaway, winnerUserIds);

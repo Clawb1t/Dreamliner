@@ -107,7 +107,10 @@ export async function claimWinner(giveaway: Giveaway, userId: string): Promise<b
   const wonWinners = await store.listWinnersByStatus(giveaway.id, "won");
   const winner = wonWinners.find((w) => w.userId === userId);
   if (!winner) return false;
-  await store.updateWinner(winner.id, { status: "claimed", claimedAt: new Date() });
+  // Past the claim window the prize is gone, even before the sweep rerolls it.
+  const windowMs = giveaway.claimWindowMinutes * 60_000;
+  if (windowMs > 0 && winner.selectedAt && Date.now() > winner.selectedAt.getTime() + windowMs) return false;
+  if (!(await store.claimWinnerRow(winner.id, new Date()))) return false;
 
   if (giveaway.winBonus > 0) {
     try {

@@ -491,7 +491,11 @@ export async function countComments(suggestionId: number): Promise<number> {
   return Number(row?.value ?? 0);
 }
 
-export async function deleteComment(id: number): Promise<boolean> {
-  const deleted = await getDb().delete(suggestionComments).where(eq(suggestionComments.id, id)).returning();
+/** Deletes a comment, only if it belongs to this suggestion (callers check the suggestion's server). */
+export async function deleteComment(id: number, suggestionId: number): Promise<boolean> {
+  const deleted = await getDb()
+    .delete(suggestionComments)
+    .where(and(eq(suggestionComments.id, id), eq(suggestionComments.suggestionId, suggestionId)))
+    .returning();
   return deleted.length > 0;
 }

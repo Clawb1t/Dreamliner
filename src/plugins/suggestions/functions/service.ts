@@ -37,6 +37,7 @@ import {
 } from "./embeds.js";
 import { attachedImageRef, copySuggestionImage, isAttachedImage, type SuggestionImageFile } from "./image.js";
 import { closeSuggestionThread, startSuggestionThread } from "./thread.js";
+import { autoGrantableRoleIds } from "../../../core/roles.js";
 
 /** What a brand-new post should show for the suggestion's image: its own copy of an uploaded file
  *  (as `files` plus the stored `attachment://` reference), a plain legacy link, or nothing. */
@@ -96,7 +97,7 @@ async function loadCommentContext(
 async function maybeGrantRole(guild: Guild, userId: string, roleId?: string): Promise<void> {
   if (!roleId) return;
   const member = await guild.members.fetch(userId).catch(() => null);
-  if (!member || member.roles.cache.has(roleId)) return;
+  if (!member || member.roles.cache.has(roleId) || autoGrantableRoleIds(guild, [roleId]).length === 0) return;
   await member.roles.add(roleId).catch(() => null);
 }
 
@@ -143,7 +144,7 @@ export async function submitSuggestion(options: {
   );
 
   if (status === "awaiting_review") {
-    const channel = await resolveTextChannel(client, config.review_channel_id);
+    const channel = await resolveTextChannel(client, guild.id, config.review_channel_id);
     if (!channel) {
       return {
         suggestion,
@@ -187,7 +188,7 @@ export async function postToFeed(options: {
   t?: Translator;
 }): Promise<{ suggestion: Suggestion; error?: string }> {
   const { client, guild, config, suggestion: input, t = defaultTranslator } = options;
-  const channel = await resolveTextChannel(client, config.suggestions_channel_id);
+  const channel = await resolveTextChannel(client, guild.id, config.suggestions_channel_id);
   if (!channel) {
     return {
       suggestion: input,
@@ -248,6 +249,7 @@ const log = getLogger("suggestions");
  */
 async function editSuggestionPost(
   client: Client,
+  guildId: string,
   channelId: string | null,
   messageId: string | null,
   render: (safe: boolean) => MessageEditOptions,
@@ -256,7 +258,7 @@ async function editSuggestionPost(
   let send = edit;
   if (!send) {
     if (!channelId || !messageId) return false;
-    const channel = await resolveTextChannel(client, channelId);
+    const channel = await resolveTextChannel(client, guildId, channelId);
     if (!channel) return false;
     send = (payload) => channel.messages.edit(messageId, payload);
   }
@@ -276,9 +278,9 @@ async function editSuggestionPost(
 }
 
 /** Deletes one of a suggestion's posts by id (no fetch first, see editSuggestionPost). */
-async function deleteSuggestionPost(client: Client, channelId: string | null, messageId: string | null): Promise<void> {
+async function deleteSuggestionPost(client: Client, guildId: string, channelId: string | null, messageId: string | null): Promise<void> {
   if (!channelId || !messageId) return;
-  const channel = await resolveTextChannel(client, channelId);
+  const channel = await resolveTextChannel(client, guildId, channelId);
   await channel?.messages.delete(messageId).catch(() => null);
 }
 
@@ -317,7 +319,7 @@ export async function refreshFeedMessage(
 ): Promise<void> {
   if (!edit && (!suggestion.feedChannelId || !suggestion.feedMessageId)) return;
   const render = await feedPostPayload(client, config, suggestion, t);
-  await editSuggestionPost(client, suggestion.feedChannelId, suggestion.feedMessageId, render, edit);
+  await editSuggestionPost(client, suggestion.guildId, suggestion.feedChannelId, suggestion.feedMessageId, render, edit);
 }
 
 /** After a new comment is added, re-render whichever of the suggestion's live posted messages
@@ -337,7 +339,7 @@ async function refreshMessagesWithComments(
 
   if (suggestion.status === "awaiting_review" && suggestion.reviewChannelId && suggestion.reviewMessageId) {
     const { comments, commentCount } = await loadCommentContext(suggestion.id);
-    await editSuggestionPost(client, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
+    await editSuggestionPost(client, suggestion.guildId, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
       containerEdit(
         buildSuggestionEmbed({
           client,
@@ -395,7 +397,7 @@ export async function approveSuggestion(options: {
 
   if (suggestion.reviewChannelId && suggestion.reviewMessageId) {
     const context = await loadCommentContext(updated.id);
-    await editSuggestionPost(options.client, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
+    await editSuggestionPost(options.client, suggestion.guildId, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
       containerEdit(
         buildSuggestionEmbed({
           client: options.client,
@@ -473,7 +475,7 @@ export async function denySuggestion(options: {
 
   if (suggestion.reviewChannelId && suggestion.reviewMessageId) {
     const context = await loadCommentContext(updated.id);
-    await editSuggestionPost(options.client, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
+    await editSuggestionPost(options.client, suggestion.guildId, suggestion.reviewChannelId, suggestion.reviewMessageId, (safe) =>
       containerEdit(
         buildSuggestionEmbed({
           client: options.client,
@@ -492,14 +494,14 @@ export async function denySuggestion(options: {
 
   if (suggestion.feedChannelId && suggestion.feedMessageId) {
     // Its discussion thread outlives the feed post: lock it so the conversation stays readable.
-    await closeSuggestionThread(options.client, suggestion.feedChannelId, suggestion.feedMessageId, "lock");
-    await deleteSuggestionPost(options.client, suggestion.feedChannelId, suggestion.feedMessageId);
+    await closeSuggestionThread(options.client, suggestion.guildId, suggestion.feedChannelId, suggestion.feedMessageId, "lock");
+    await deleteSuggestionPost(options.client, suggestion.guildId, suggestion.feedChannelId, suggestion.feedMessageId);
     updated =
       (await updateSuggestion(updated.id, { feedChannelId: null, feedMessageId: null })) ?? updated;
   }
 
   if (!options.silent) {
-    const deniedChannel = await resolveTextChannel(options.client, options.config.denied_channel_id);
+    const deniedChannel = await resolveTextChannel(options.client, options.guild.id, options.config.denied_channel_id);
     if (deniedChannel) {
       const embed = buildSuggestionEmbed({
         client: options.client,
@@ -562,7 +564,7 @@ export async function markSuggestion(options: {
 
   if (options.displayStatus === "implemented") {
     await maybeGrantRole(options.guild, suggestion.authorId, options.config.implemented_role);
-    const archive = await resolveTextChannel(options.client, options.config.archive_channel_id);
+    const archive = await resolveTextChannel(options.client, options.guild.id, options.config.archive_channel_id);
     if (archive) {
       const votes = await getVoteTotals(updated.id);
       const { files, image } = await imageForNewPost(options.client, updated);
@@ -615,13 +617,13 @@ export async function deleteSuggestion(options: {
     return { suggestion: null, error: t("suggestions.error.notFound", "Suggestion not found.") };
   }
 
-  await closeSuggestionThread(options.client, suggestion.feedChannelId, suggestion.feedMessageId, "delete");
+  await closeSuggestionThread(options.client, suggestion.guildId, suggestion.feedChannelId, suggestion.feedMessageId, "delete");
   for (const [channelId, messageId] of [
     [suggestion.feedChannelId, suggestion.feedMessageId],
     [suggestion.reviewChannelId, suggestion.reviewMessageId],
     [suggestion.deniedChannelId, suggestion.deniedMessageId],
   ] as const) {
-    await deleteSuggestionPost(options.client, channelId, messageId);
+    await deleteSuggestionPost(options.client, suggestion.guildId, channelId, messageId);
   }
 
   const deletedLabel = t("suggestions.deletedLabel", "Deleted");

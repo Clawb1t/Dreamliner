@@ -6,6 +6,7 @@ import {
   type InteractionUpdateOptions,
   type StringSelectMenuInteraction,
 } from "discord.js";
+import { canViewStatsChannel } from "./channelAccess.js";
 import type { GuildConfig } from "../../../../config/schemas/guild.js";
 import { containerEdit, containerReply, resultReply, guildResultOptions } from "../../../../core/responses.js";
 import { isValidStatsWindow } from "../daily.js";
@@ -55,7 +56,9 @@ export async function handleStatsInteraction(
   const { t } = await translatorFor(interaction.user.id);
 
   const required = permissionForScope(parsed.state.scope);
-  if (!(await hasPermission(required))) {
+  const channelHidden =
+    parsed.state.scope.type === "channel" && !(await canViewStatsChannel(interaction.guild, parsed.state.scope.channelId, interaction.user.id));
+  if (channelHidden || !(await hasPermission(required))) {
     await interaction.reply(
       resultReply(
         t("stats.permissionDeniedTitle", "Permission denied"),

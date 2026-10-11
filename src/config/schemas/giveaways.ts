@@ -48,6 +48,7 @@ export const zGiveawaysConfig = z.strictObject({
   default_win_bonus: z
     .number()
     .min(0)
+    .max(10000)
     .default(0)
     .describe("Default server currency awarded to a winner when they claim their prize. 0 disables."),
   ping_role_id: roleId("Default role pinged when a giveaway starts, if the giveaway has no override."),

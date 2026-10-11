@@ -106,6 +106,21 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
 
 const OMIT_COLUMNS = new Set(["avatarPng", "avatar_png"]);
 
+/** Never shown in a server's database browser: bot-internal security data (raw IPs and locations),
+ *  members' private clips, and Dreamliner's own billing/usage bookkeeping. */
+const HIDDEN_TABLES = new Set([
+  "passport_network_signals",
+  "voice_clips",
+  "guild_one_subscriptions",
+  "guild_one_entitlements",
+  "one_discount_codes",
+  "one_discount_redemptions",
+  "guild_ai_usage",
+]);
+
+/** Secrets and personal network data, whatever table they're in. */
+const SENSITIVE_COLUMN = /(?:token|secret|password|passwd|hash|ip_?address|^ip$|_ip$|cookie|session_?key|api_?key|refresh|dpop|private_?key)/i;
+
 function humanize(name: string): string {
   return name
     .replace(/_/g, " ")
@@ -143,6 +158,7 @@ function detectType(jsName: string, column: Column): DbColumnMeta["type"] {
 
 function shouldOmit(jsName: string, sqlName: string): boolean {
   if (OMIT_COLUMNS.has(jsName) || OMIT_COLUMNS.has(sqlName)) return true;
+  if (SENSITIVE_COLUMN.test(jsName) || SENSITIVE_COLUMN.test(sqlName)) return true;
   return /(?:^|_)(?:png|blob|binary|image_data)(?:$|_)/i.test(sqlName) || /Png$|Blob$/.test(jsName);
 }
 
@@ -199,6 +215,7 @@ function buildTableDef(table: SQLiteTable): TableDef | null {
   if (!guildId) return null;
 
   const name = getTableName(table);
+  if (HIDDEN_TABLES.has(name)) return null;
   const entries = Object.entries(columnsMap) as Array<[string, Column]>;
   const keyFields = resolvePrimaryKeyFields(table, entries);
 

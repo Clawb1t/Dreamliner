@@ -47,6 +47,20 @@ export const remindCommand: SlashCommandDefinition = {
       return;
     }
 
+    // A cap per person per server, so reminders can't be used to flood a channel.
+    const MAX_ACTIVE_REMINDERS = 25;
+    if ((await listReminders(ctx.interaction.guildId!, ctx.interaction.user.id)).length >= MAX_ACTIVE_REMINDERS) {
+      await ctx.interaction.reply(
+        resultReply(
+          ctx.t("reminders.tooMany.title", "Too many reminders"),
+          ctx.t("reminders.tooMany.description", "You can have up to {max} reminders here at once. Cancel one first.", { max: MAX_ACTIVE_REMINDERS }),
+          true,
+          slashResultOptions(ctx, { tone: "error" }),
+        ),
+      );
+      return;
+    }
+
     const reminder = await createReminder({
       guildId: ctx.interaction.guildId!,
       userId: ctx.interaction.user.id,

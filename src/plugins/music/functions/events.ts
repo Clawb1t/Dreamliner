@@ -14,6 +14,7 @@ import { saveSessionNow, scheduleSave, deleteSession } from "./sessionPersistenc
 import { hasAnnouncedWebPlayer, markWebPlayerAnnounced, clearWebPlayerAnnounced } from "./webPlayerAnnounce.js";
 import { logMusic } from "./musicLog.js";
 import { clearAutoplayHistory, ensureAutoplayQueueDepth, rememberAutoplaySeen } from "./autoplay.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 /** destroy() reasons issued by our own commands/bridge - playerDestroy already gets its own
  *  music_stop log at those call sites, so the generic handler below skips these to avoid a
@@ -22,10 +23,10 @@ const COMMAND_INITIATED_DESTROY_REASONS = new Set(["stopped via /stop", "left vi
 
 const log = getLogger("music");
 
-async function send(client: Client, channelId: string | null | undefined, line: string): Promise<void> {
+async function send(client: Client, guildId: string, channelId: string | null | undefined, line: string): Promise<void> {
   if (!channelId) return;
   try {
-    const channel = (await client.channels.fetch(channelId).catch(() => null)) as TextBasedChannel | null;
+    const channel = (await fetchGuildChannel(client, guildId, channelId)) as TextBasedChannel | null;
     if (channel?.isSendable()) await channel.send(containerReply(baseEmbed().setDescription(line)));
   } catch (error) {
     log.error(`Failed to send music message in channel ${channelId}:`, error);
@@ -38,7 +39,7 @@ async function send(client: Client, channelId: string | null | undefined, line: 
 async function sendNowPlaying(client: Client, channelId: string | null | undefined, guildId: string, track: Track): Promise<void> {
   if (!channelId) return;
   try {
-    const channel = (await client.channels.fetch(channelId).catch(() => null)) as TextBasedChannel | null;
+    const channel = (await fetchGuildChannel(client, guildId, channelId)) as TextBasedChannel | null;
     if (!channel?.isSendable()) return;
     const trackEntry = buildTrackContainer(track, { kind: "now_playing" });
     if (!hasAnnouncedWebPlayer(guildId)) {
@@ -57,7 +58,7 @@ async function sendNowPlaying(client: Client, channelId: string | null | undefin
 async function sendWebPlayerLinkFallback(client: Client, channelId: string | null | undefined, guildId: string): Promise<void> {
   if (!channelId) return;
   try {
-    const channel = (await client.channels.fetch(channelId).catch(() => null)) as TextBasedChannel | null;
+    const channel = (await fetchGuildChannel(client, guildId, channelId)) as TextBasedChannel | null;
     if (!channel?.isSendable()) return;
     const { container, row } = buildWebPlayerAnnounceContainer(guildId);
     await channel.send(containerReply(container, false, [row]));
@@ -195,7 +196,7 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
             const result = await player.search({ query: fallback.query, source: "scsearch" }, { id: fallback.requesterId });
             const next = result.tracks[0];
             if (!next) {
-              void send(client, player.textChannelId, trackFailedLine(track, reason));
+              void send(client, player.guildId, player.textChannelId, trackFailedLine(track, reason));
               void logTrackError(player.guildId, "Music - Track Error (Exhausted)", [trackLine, `Error: ${reason}`, "No fallback source results - skipped"]);
               return;
             }
@@ -205,7 +206,7 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
             void logTrackError(player.guildId, "Music - Track Error (Fallback Source)", [trackLine, `Error: ${reason}`, `Falling back to SoundCloud: **${next.info.title}**`]);
           } catch (error) {
             log.error(`Fallback-source retry failed in guild ${player.guildId}:`, error);
-            void send(client, player.textChannelId, trackFailedLine(track, reason));
+            void send(client, player.guildId, player.textChannelId, trackFailedLine(track, reason));
             void logTrackError(player.guildId, "Music - Track Error (Exhausted)", [trackLine, `Error: ${reason}`, "Fallback source retry also failed - skipped"]);
           }
         })();
@@ -213,13 +214,13 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
       }
     }
 
-    void send(client, player.textChannelId, trackFailedLine(track, reason));
+    void send(client, player.guildId, player.textChannelId, trackFailedLine(track, reason));
     void logTrackError(player.guildId, "Music - Track Error", [trackLine, `Error: ${reason}`, "Skipped"]);
   });
 
   manager.on("trackStuck", (player, track, payload) => {
     log.warn(`Track stuck in guild ${player.guildId} after ${payload.thresholdMs}ms: ${track?.info.title ?? "unknown track"}`);
-    void send(client, player.textChannelId, trackFailedLine(track, "got stuck"));
+    void send(client, player.guildId, player.textChannelId, trackFailedLine(track, "got stuck"));
     const trackLine = track ? `Track: **${track.info.title}**${track.info.author ? ` - ${track.info.author}` : ""}` : "Track: (unknown)";
     void logTrackError(player.guildId, "Music - Track Stuck", [trackLine, `Stuck for: ${Math.round(payload.thresholdMs / 1000)}s`, "Skipped"]);
   });

@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { validateGuildTargets } from "../core/guildChannel.js";
 import http from "node:http";
 import type { Client, Guild } from "discord.js";
 import { ChannelType, PermissionFlagsBits } from "discord.js";
@@ -1057,7 +1058,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const guildIds = Array.isArray(body.guildIds)
               ? body.guildIds.filter((id): id is string => typeof id === "string" && /^\d{15,25}$/.test(id))
               : [];
-            sendJson(res, 200, { servers: await store.listWebStoreServers(client, guildIds) });
+            sendJson(res, 200, { servers: await store.listWebStoreServers(client, guildIds, userId) });
             return;
           }
           if (typeof body.guildId !== "string" || typeof body.days !== "number") {
@@ -4500,6 +4501,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               if (!body) return;
               const actorId = await requireManage(body.userId);
               if (!actorId) return;
+              // Global coins are shared by every server, so managing one server is no authority over
+              // them: only Dreamliner staff may adjust a global balance.
+              if (!isDashboardSuperuser(actorId)) {
+                sendJson(res, 403, { error: "Global balances can only be adjusted by Dreamliner staff." });
+                return;
+              }
               const result = await econ.adjustEconomyAccount(configManager, guildId, targetUserId, {
                 mode: body.mode ?? "add",
                 amount: Number(body.amount ?? 0),
@@ -6693,7 +6700,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const commentId = Number(suggestionCommentOneMatch[3]);
-            const result = await deleteWebSuggestionComment(commentId);
+            const result = await deleteWebSuggestionComment(guild, Number(suggestionCommentOneMatch[2]), commentId);
+            if (!result.ok) {
+              sendJson(res, 404, { error: "Comment not found" });
+              return;
+            }
             trackDashboardAction(client, guildId, userId, {
               eventType: "dashboard_suggestion",
               title: "Suggestion comment deleted",
@@ -6708,6 +6719,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const suggestionId = Number(suggestionCommentsMatch![2]);
           if (req.method === "GET") {
             const comments = await listWebSuggestionComments(guild, suggestionId);
+            if (!comments) {
+              sendJson(res, 404, { error: "Suggestion not found" });
+              return;
+            }
             sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, comments });
             return;
           }
@@ -7893,9 +7908,23 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           } else if (blueskyFeedsMatch && req.method === "GET") {
             result = await bluesky.listBridgeBlueskyFeeds(guildId);
           } else if (blueskyFeedsMatch && req.method === "POST") {
+            {
+              const invalid = await validateGuildTargets(guild, body as { discordChannelId?: unknown; mentionRoleIds?: unknown });
+              if (invalid) {
+                sendJson(res, 400, { error: invalid });
+                return;
+              }
+            }
             result = await bluesky.createBridgeBlueskyFeed(guildId, requesterId, body);
             if (result.ok) track("Bluesky feed created", result.feed, "created");
           } else if (blueskyFeedOneMatch && req.method === "PATCH") {
+            {
+              const invalid = await validateGuildTargets(guild, body as { discordChannelId?: unknown; mentionRoleIds?: unknown });
+              if (invalid) {
+                sendJson(res, 400, { error: invalid });
+                return;
+              }
+            }
             result = await bluesky.updateBridgeBlueskyFeed(guildId, feedId, body);
             if (result.ok) track("Bluesky feed updated", result.feed, "updated");
           } else if (blueskyFeedOneMatch && req.method === "DELETE") {
@@ -8031,6 +8060,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
+            {
+              const invalid = await validateGuildTargets(guild, body as { discordChannelId?: unknown; mentionRoleIds?: unknown });
+              if (invalid) {
+                sendJson(res, 400, { error: invalid });
+                return;
+              }
+            }
             const { createBridgeSocialWatcher } = await import("./social.js");
             const result = await createBridgeSocialWatcher(configManager, guildId, requesterId, body);
             if (!result.ok) {
@@ -8064,6 +8100,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             if (!(await memberCanManage(guild, requesterId))) {
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
+            }
+            {
+              const invalid = await validateGuildTargets(guild, body as { discordChannelId?: unknown; mentionRoleIds?: unknown });
+              if (invalid) {
+                sendJson(res, 400, { error: invalid });
+                return;
+              }
             }
             const { updateBridgeSocialWatcher } = await import("./social.js");
             const result = await updateBridgeSocialWatcher(

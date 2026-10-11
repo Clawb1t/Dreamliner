@@ -1,7 +1,8 @@
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, isNull, like } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { tickets } from "../../../db/schema.js";
 import type { TicketPriority, TicketStatus } from "../../../config/schemas/tickets.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 export type TicketFormAnswer = { questionId: string; label: string; answer: string };
 
@@ -145,10 +146,13 @@ export async function getTicket(guildId: string, id: number): Promise<TicketReco
 
 export async function getTicketByChannel(guildId: string, channelId: string): Promise<TicketRecord | null> {
   const db = getDb();
+  // Thread-mode tickets store their parent channel as channelId, and many share one parent, so
+  // only a channel-mode ticket (no thread) is found by its channel. Otherwise anything run in the
+  // parent channel would act on (or reveal) whichever thread ticket happened to come back.
   const row = await db
     .select()
     .from(tickets)
-    .where(and(eq(tickets.guildId, guildId), eq(tickets.channelId, channelId)))
+    .where(and(eq(tickets.guildId, guildId), eq(tickets.channelId, channelId), isNull(tickets.threadId)))
     .get();
   if (row) return rowToRecord(row);
   const threadRow = await db
@@ -475,7 +479,7 @@ export async function renameTicket(
   name: string,
 ): Promise<boolean> {
   const targetId = ticket.threadId ?? ticket.channelId;
-  const channel = await client.channels.fetch(targetId).catch(() => null);
+  const channel = await fetchGuildChannel(client, ticket.guildId, targetId);
   if (!channel || !("setName" in channel)) return false;
   await (channel as import("discord.js").TextChannel | import("discord.js").ThreadChannel)
     .setName(name.slice(0, 100))

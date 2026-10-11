@@ -8,6 +8,7 @@ import { fileComponent } from "../../../core/responses.js";
 import { buildTranscriptEmbed } from "./embeds.js";
 import type { TicketRecord } from "./tickets.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
 
 export type TranscriptMessage = {
   id: string;
@@ -132,7 +133,7 @@ export async function postTranscriptLog(
 ): Promise<boolean> {
   const messages = await getTranscript(transcriptId);
   if (!messages) return false;
-  const channel = await client.channels.fetch(channelId).catch(() => null);
+  const channel = await fetchGuildChannel(client, ticket.guildId, channelId);
   if (!channel?.isTextBased() || !("send" in channel)) return false;
   const { AttachmentBuilder } = await import("discord.js");
   const text = transcriptToText(ticket, messages);

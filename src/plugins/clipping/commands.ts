@@ -130,6 +130,25 @@ export const clippingCommands: SlashCommandDefinition[] = [
       if (sub === "stop") {
         const auth = await requirePluginPermission(ctx, "clipping", "can_record");
         if (!auth) return;
+        // Only whoever started it, someone in that voice channel, or someone who can move members.
+        const session = getSession(interaction.guildId!);
+        const member = auth.member;
+        if (
+          session &&
+          session.startedBy !== member.id &&
+          member.voice.channelId !== session.channelId &&
+          !member.permissions.has(PermissionFlagsBits.MoveMembers)
+        ) {
+          await interaction.reply(
+            resultReply(
+              ctx.t("clipping.stopTitle", "Stop recording"),
+              ctx.t("clipping.stopNotYours", "Only the person who started this recording, or someone in its channel, can stop it."),
+              true,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
 
         const result = stopRecording(interaction.guildId!);
         if (!result.ok) {

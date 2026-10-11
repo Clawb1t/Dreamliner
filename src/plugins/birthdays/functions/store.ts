@@ -1,6 +1,6 @@
 import { and, count, eq, gte, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
-import { birthdayCelebrations, birthdayOptouts, birthdayWishes, userBirthdays } from "../../../db/schema.js";
+import { birthdayCelebrations, birthdayOptouts, birthdayWishes, guildBirthdays, userBirthdays } from "../../../db/schema.js";
 import type { Birthday } from "./dates.js";
 
 export type StoredBirthday = Birthday & { userId: string; timezone: string | null };
@@ -38,6 +38,77 @@ export function getBirthdays(userIds: string[]): Map<string, StoredBirthday> {
       .where(inArray(userBirthdays.userId, userIds.slice(i, i + 500)))
       .all();
     for (const row of rows) out.set(row.userId, toStored(row));
+  }
+  return out;
+}
+
+// --- Birthdays staff set in one server (/birthday manage). They win over the member's own birthday,
+// but only in that server: nothing here changes what any other server sees. -------------------------
+
+export function setGuildBirthday(guildId: string, userId: string, birthday: Birthday, setBy: string): void {
+  const now = new Date();
+  const values = { month: birthday.month, day: birthday.day, year: birthday.year, setBy, updatedAt: now };
+  getDb()
+    .insert(guildBirthdays)
+    .values({ guildId, userId, ...values, createdAt: now })
+    .onConflictDoUpdate({ target: [guildBirthdays.guildId, guildBirthdays.userId], set: values })
+    .run();
+}
+
+export function removeGuildBirthday(guildId: string, userId: string): boolean {
+  return (
+    getDb()
+      .delete(guildBirthdays)
+      .where(and(eq(guildBirthdays.guildId, guildId), eq(guildBirthdays.userId, userId)))
+      .run().changes > 0
+  );
+}
+
+/** A member's birthday as this server sees it: the one staff set here, else their own. */
+export function getBirthdayIn(guildId: string, userId: string): StoredBirthday | null {
+  return getBirthdaysIn(guildId, [userId]).get(userId) ?? null;
+}
+
+export function getBirthdaysIn(guildId: string, userIds: string[]): Map<string, StoredBirthday> {
+  const out = getBirthdays(userIds);
+  for (let i = 0; i < userIds.length; i += 500) {
+    const rows = getDb()
+      .select()
+      .from(guildBirthdays)
+      .where(and(eq(guildBirthdays.guildId, guildId), inArray(guildBirthdays.userId, userIds.slice(i, i + 500))))
+      .all();
+    for (const row of rows) {
+      out.set(row.userId, { userId: row.userId, month: row.month, day: row.day, year: row.year ?? null, timezone: out.get(row.userId)?.timezone ?? null });
+    }
+  }
+  return out;
+}
+
+/** Server-set birthdays on any of these dates, grouped by server (timezone from the member's own entry). */
+export function guildBirthdaysOnDates(dates: Array<{ month: number; day: number }>): Map<string, StoredBirthday[]> {
+  const byGuild = new Map<string, StoredBirthday[]>();
+  if (dates.length === 0) return byGuild;
+  const conditions = dates.map((d) => and(eq(guildBirthdays.month, d.month), eq(guildBirthdays.day, d.day)));
+  const rows = getDb().select().from(guildBirthdays).where(or(...conditions)).all();
+  const own = getBirthdays([...new Set(rows.map((r) => r.userId))]);
+  for (const row of rows) {
+    const list = byGuild.get(row.guildId) ?? [];
+    list.push({ userId: row.userId, month: row.month, day: row.day, year: row.year ?? null, timezone: own.get(row.userId)?.timezone ?? null });
+    byGuild.set(row.guildId, list);
+  }
+  return byGuild;
+}
+
+/** Which of these members have a birthday set by staff in this server (it replaces their own there). */
+export function guildBirthdayUserIds(guildId: string, userIds: string[]): Set<string> {
+  const out = new Set<string>();
+  for (let i = 0; i < userIds.length; i += 500) {
+    const rows = getDb()
+      .select({ userId: guildBirthdays.userId })
+      .from(guildBirthdays)
+      .where(and(eq(guildBirthdays.guildId, guildId), inArray(guildBirthdays.userId, userIds.slice(i, i + 500))))
+      .all();
+    for (const row of rows) out.add(row.userId);
   }
   return out;
 }

@@ -18,6 +18,7 @@ import {
   type ActivityProgress,
 } from "./config.js";
 import { listAwarded, markAwarded } from "./store.js";
+import { autoGrantableRoleIds } from "../../../core/roles.js";
 
 const log = getLogger("activity_rewards");
 const ROLE_REASON = "Activity Rewards milestone";
@@ -89,8 +90,9 @@ export function evaluateRoles(
 }
 
 async function applyRoleDiff(member: GuildMember, diff: RoleDiff): Promise<void> {
-  if (diff.toAdd.length > 0) {
-    await member.roles.add(diff.toAdd, ROLE_REASON).catch((err) => {
+  const toAdd = autoGrantableRoleIds(member.guild, diff.toAdd);
+  if (toAdd.length > 0) {
+    await member.roles.add(toAdd, ROLE_REASON).catch((err) => {
       log.warn(`Could not add milestone roles in ${member.guild.id}: ${err instanceof Error ? err.message : err}`);
     });
   }

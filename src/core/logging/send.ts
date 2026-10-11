@@ -8,6 +8,7 @@ import { insertGuildLogEvent, setGuildLogDiscordMessageId } from "./store.js";
 import { isLogEventEnabled } from "./toggles.js";
 import type { LogButton, LogCard } from "./types.js";
 import { getLogger } from "../logger.js";
+import { fetchGuildChannel } from "../../core/guildChannel.js";
 
 const log = getLogger("logs");
 
@@ -89,13 +90,12 @@ async function sendToChannel(
   channelId: string,
   card: LogCard,
 ): Promise<string | null> {
-  const channel = await client.channels.fetch(channelId).catch((error) => {
-    log.warn(
-      `Could not fetch log channel ${channelId} in guild ${guildId} — it may have been deleted, or I've lost access. (${error instanceof Error ? error.message : error})`,
-    );
+  // Only channels in this server: a log channel id pointing at another server is never used.
+  const channel = await fetchGuildChannel(client, guildId, channelId);
+  if (!channel) {
+    log.warn(`Log channel ${channelId} isn't a channel in guild ${guildId} (deleted, no access, or another server) — skipped "${card.title}".`);
     return null;
-  });
-  if (!channel) return null;
+  }
   if (!channel.isTextBased() || !("send" in channel)) {
     log.warn(`Log channel ${channelId} in guild ${guildId} is not a sendable text channel — skipped "${card.title}".`);
     return null;
