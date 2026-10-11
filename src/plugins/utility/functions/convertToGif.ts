@@ -1,4 +1,5 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { loadImageSafe } from "../../../core/safeImage.js";
+import { createCanvas } from "@napi-rs/canvas";
 import { AttachmentBuilder, type Attachment } from "discord.js";
 import { canvasToGif, encodeRgbaAsGif } from "./gifEncode.js";
 import { downloadAttachment } from "./imageAttachments.js";
@@ -15,12 +16,17 @@ export async function convertAttachmentToGif(attachment: Attachment, index: numb
     return new AttachmentBuilder(buffer, { name: `converted-${index + 1}.gif` });
   }
 
-  const image = await loadImage(buffer);
-  const canvas = createCanvas(image.width, image.height);
+  const image = await loadImageSafe(buffer);
+  // GIF encoding holds every pixel in memory several times over, so big images are scaled down.
+  const MAX_GIF_SIDE = 2048;
+  const scale = Math.min(1, MAX_GIF_SIDE / Math.max(image.width, image.height));
+  const outW = Math.max(1, Math.round(image.width * scale));
+  const outH = Math.max(1, Math.round(image.height * scale));
+  const canvas = createCanvas(outW, outH);
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(image, 0, 0);
+  ctx.drawImage(image, 0, 0, outW, outH);
 
-  const { data, width, height } = ctx.getImageData(0, 0, image.width, image.height);
+  const { data, width, height } = ctx.getImageData(0, 0, outW, outH);
   const gifBuffer = await encodeRgbaAsGif(data, width, height);
 
   return new AttachmentBuilder(gifBuffer, { name: `converted-${index + 1}.gif` });

@@ -1,3 +1,4 @@
+import { loadImageSafe } from "../../../core/safeImage.js";
 import { createCanvas, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import type { Guild, GuildMember, User } from "discord.js";
 import type { WelcomeCardConfig } from "../../../config/schemas/welcome.js";
@@ -128,7 +129,7 @@ async function loadBackground(
     const buf = readWelcomeAsset(guildId, card.background_asset_id);
     if (buf) {
       try {
-        return { kind: "image", image: await loadImage(buf) };
+        return { kind: "image", image: await loadImageSafe(buf) };
       } catch {
         // fall through
       }
@@ -136,7 +137,7 @@ async function loadBackground(
   }
   if (card.background_type === "url" && card.background_url.trim()) {
     try {
-      return { kind: "image", image: await loadImage(card.background_url.trim()) };
+      return { kind: "image", image: await loadImageSafe(card.background_url.trim()) };
     } catch {
       // fall through
     }
@@ -149,7 +150,7 @@ async function loadAvatarImage(ctx: CardRenderContext): Promise<Awaited<ReturnTy
   if (!user) return null;
   const url = user.displayAvatarURL({ size: 256, extension: "png", forceStatic: true });
   try {
-    return await loadImage(url);
+    return await loadImageSafe(url);
   } catch {
     return null;
   }

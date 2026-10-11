@@ -1,6 +1,7 @@
+import { loadImageSafe } from "../../../core/safeImage.js";
 import { existsSync } from "node:fs";
 import { DREAMLINER_ACCENT_HEX } from "../../../core/embeds.js";
-import { createCanvas, GlobalFonts, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas";
 import { cardFont } from "../../welcome_message/functions/cardFonts.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { getLogger } from "../../../core/logger.js";
@@ -541,7 +542,7 @@ async function drawLeaderboardRow(
   const avatarY = rowCenter - avatarSize / 2;
   if (row.avatarURL) {
     try {
-      const image = await loadImage(row.avatarURL);
+      const image = await loadImageSafe(row.avatarURL);
       drawCircleAvatar(ctx, image, avatarX, avatarY, avatarSize);
     } catch {
       drawInitialAvatar(ctx, row.fallbackInitial ?? row.label.charAt(0), avatarX, avatarY, avatarSize, accent);
@@ -701,17 +702,10 @@ export type RankCardOptions = {
   scale?: number;
 };
 
-const IMAGE_FETCH_TIMEOUT_MS = 6_000;
 
-// loadImage(url) has no timeout of its own, so a slow CDN response could stall a whole card.
+// Downloads with a size cap and timeout, and refuses images too big to decode (see safeImage.ts).
 export async function loadImageMaybeDataUri(url: string) {
-  if (url.startsWith("data:")) {
-    const base64 = url.split(",", 2)[1] ?? "";
-    return loadImage(Buffer.from(base64, "base64"));
-  }
-  const res = await fetch(url, { signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS) });
-  if (!res.ok) throw new Error(`Image request failed with ${res.status}`);
-  return loadImage(Buffer.from(await res.arrayBuffer()));
+  return loadImageSafe(url);
 }
 
 /** Single-color art (like the Dreamliner One bolt) redrawn in `color`, fitted into a square. */
@@ -804,7 +798,7 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   const progressionImages: Array<import("@napi-rs/canvas").Image | import("@napi-rs/canvas").Canvas> = [];
   for (const icon of row.progressionIcons ?? []) {
     try {
-      const image = await loadImage(icon.image);
+      const image = await loadImageSafe(icon.image);
       // Tinted at full card resolution so the recolored bolt stays crisp.
       progressionImages.push(icon.accentTint ? tintedImage(image, accent, Math.ceil(progressionIconSize * scale)) : image);
     } catch {

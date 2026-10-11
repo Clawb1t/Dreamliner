@@ -1,4 +1,5 @@
-import { createCanvas, loadImage, type Canvas, type Image, type SKRSContext2D } from "@napi-rs/canvas";
+import { loadImageSafe } from "../../../core/safeImage.js";
+import { createCanvas, type Canvas, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import type { Client, User } from "discord.js";
 import { siteFont } from "../../welcome_message/functions/cardFonts.js";
 import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect, tintedImage } from "./charts.js";
@@ -287,7 +288,7 @@ export async function renderProfileCard(data: ProfileCardData, options: { width?
   const icons: Array<{ draw: Image | Canvas; size: number }> = [];
   for (const icon of data.progressionIcons) {
     try {
-      const image = await loadImage(icon.image);
+      const image = await loadImageSafe(icon.image);
       const size = icon.sizeRem * REM;
       icons.push({ draw: icon.tint ? tintedImage(image, icon.tint, Math.ceil(size * scale)) : image, size });
     } catch {

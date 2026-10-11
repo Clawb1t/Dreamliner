@@ -1,6 +1,6 @@
+import { loadImageSafe } from "../safeImage.js";
 import { randomBytes } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { loadImage } from "@napi-rs/canvas";
 import { getDb } from "../../db/client.js";
 import {
   progressionBadges,
@@ -153,7 +153,7 @@ export async function parseImageDataUrl(value: string): Promise<{ buffer: Buffer
   if (buffer.length > MAX_IMAGE_BYTES) throw new BadgeInputError("Tier images must be 256 KB or smaller.");
   let decoded;
   try {
-    decoded = await loadImage(buffer);
+    decoded = await loadImageSafe(buffer);
   } catch {
     throw new BadgeInputError("That file isn't a readable image.");
   }

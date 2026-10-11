@@ -1,3 +1,4 @@
+import { loadImageSafe } from "./safeImage.js";
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -82,7 +83,7 @@ export async function savePageAsset(
 
   let image: Awaited<ReturnType<typeof loadImage>>;
   try {
-    image = await loadImage(raw);
+    image = await loadImageSafe(raw);
   } catch {
     throw new Error("That file isn't an image we can read. Use PNG, JPEG or WebP.");
   }

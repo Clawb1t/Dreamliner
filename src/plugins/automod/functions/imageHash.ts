@@ -1,4 +1,5 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { loadImageSafe } from "../../../core/safeImage.js";
+import { createCanvas } from "@napi-rs/canvas";
 
 /**
  * 64-bit difference hash (dHash), returned as 16 lowercase hex chars.
@@ -11,7 +12,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
  * No native deps beyond @napi-rs/canvas, already a project dependency.
  */
 export async function computeDHash(buffer: Buffer): Promise<string> {
-  const image = await loadImage(buffer);
+  const image = await loadImageSafe(buffer);
   const width = 9;
   const height = 8;
   const canvas = createCanvas(width, height);

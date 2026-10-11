@@ -1,4 +1,5 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { loadImageSafe } from "../../../core/safeImage.js";
+import { createCanvas } from "@napi-rs/canvas";
 import type { Attachment } from "discord.js";
 import type { BotBrandImageKind } from "./store.js";
 
@@ -55,7 +56,7 @@ async function normalizeToPng(
   }
 
   try {
-    const image = await loadImage(raw);
+    const image = await loadImageSafe(raw);
     const srcW = image.width;
     const srcH = image.height;
     if (!srcW || !srcH) {

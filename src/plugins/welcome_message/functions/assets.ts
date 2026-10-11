@@ -1,8 +1,9 @@
+import { loadImageSafe } from "../../../core/safeImage.js";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { createCanvas } from "@napi-rs/canvas";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const ASSETS_ROOT = join(ROOT, "data", "guild-assets");
@@ -51,7 +52,7 @@ export async function saveWelcomeBackgroundAsset(
   if (!raw.length) throw new Error("Empty upload");
   if (raw.length > MAX_UPLOAD_BYTES) throw new Error("Image must be 4MB or smaller");
 
-  const image = await loadImage(raw);
+  const image = await loadImageSafe(raw);
   const width = Math.min(MAX_DIMENSION, Math.max(1, image.width));
   const height = Math.min(MAX_DIMENSION, Math.max(1, image.height));
   const scale = Math.min(width / image.width, height / image.height, 1);

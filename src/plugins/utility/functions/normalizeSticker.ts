@@ -1,4 +1,5 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { loadImageSafe } from "../../../core/safeImage.js";
+import { createCanvas } from "@napi-rs/canvas";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
 /** Discord's own limits for a guild sticker file. */
@@ -19,7 +20,7 @@ export type NormalizeStickerResult =
 export async function normalizeSticker(raw: Buffer, t: Translator = defaultTranslator): Promise<NormalizeStickerResult> {
   let image;
   try {
-    image = await loadImage(raw);
+    image = await loadImageSafe(raw);
   } catch {
     return {
       ok: false,
