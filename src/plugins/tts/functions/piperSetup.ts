@@ -180,6 +180,46 @@ async function installDefaultVoice(voicesDir: string, voiceId: string): Promise<
 
 export type EnsurePiperResult = { ok: true } | { ok: false; reason: string };
 
+/**
+ * The release bundles its shared libraries (libespeak-ng, libonnxruntime, libpiper_phonemize) next
+ * to the executable. An interrupted or partial install can leave the executable without them, which
+ * shows up much later as "Piper exited with code 127 ... libespeak-ng.so.1: cannot open shared
+ * object file". Only checked for the auto-installed copy, never a PIPER_BIN the host manages.
+ */
+async function hasBundledLibraries(binPath: string): Promise<boolean> {
+  if (process.platform !== "linux") return true;
+  try {
+    const files = await readdir(path.dirname(binPath));
+    return files.some((name) => name.startsWith("libespeak-ng.so")) && files.some((name) => name.startsWith("libonnxruntime"));
+  } catch {
+    return false;
+  }
+}
+
+let repairing: Promise<boolean> | null = null;
+
+/** Reinstalls Piper from scratch (only the auto-installed copy). Returns whether it's usable now. */
+export function repairPiperInstall(): Promise<boolean> {
+  if (process.env.PIPER_BIN?.trim()) return Promise.resolve(false);
+  repairing ??= (async () => {
+    const bin = resolvePiperBin();
+    try {
+      log.warn("[tts] Piper is missing its libraries; reinstalling it.");
+      await rm(path.dirname(bin), { recursive: true, force: true });
+      await installPiperBinary(bin);
+      const ok = await hasBundledLibraries(bin);
+      if (!ok) log.error("[tts] Reinstalled Piper but libespeak-ng is still missing from the download.");
+      return ok;
+    } catch (error) {
+      log.error(`[tts] Could not repair Piper: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    } finally {
+      repairing = null;
+    }
+  })();
+  return repairing;
+}
+
 /** Idempotent: downloads whatever's missing (binary and/or default voice), skips the rest. */
 export async function ensurePiperReady(): Promise<EnsurePiperResult> {
   const bin = resolvePiperBin();
@@ -188,6 +228,8 @@ export async function ensurePiperReady(): Promise<EnsurePiperResult> {
   try {
     if (!(await fileExists(bin))) {
       await installPiperBinary(bin);
+    } else if (!process.env.PIPER_BIN?.trim() && !(await hasBundledLibraries(bin))) {
+      await repairPiperInstall();
     }
   } catch (error) {
     return { ok: false, reason: `Could not install Piper: ${error instanceof Error ? error.message : String(error)}` };

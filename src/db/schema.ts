@@ -234,15 +234,25 @@ export const guildMessageCounts = sqliteTable(
     userId: text("user_id").notNull(),
     count: integer("count").notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.userId] }), index("guild_message_counts_user").on(table.userId)],
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    index("guild_message_counts_user").on(table.userId),
+    // Top senders and a member's rank in a server read in count order.
+    index("guild_message_counts_guild_count").on(table.guildId, table.count),
+  ],
 );
 
-export const userMessageCounts = sqliteTable("user_message_counts", {
-  userId: text("user_id").primaryKey(),
-  count: integer("count").notNull().default(0),
-  /** When this user last sent a tracked message, for public-profile "last seen". */
-  lastMessageAt: integer("last_message_at", { mode: "timestamp" }),
-});
+export const userMessageCounts = sqliteTable(
+  "user_message_counts",
+  {
+    userId: text("user_id").primaryKey(),
+    count: integer("count").notNull().default(0),
+    /** When this user last sent a tracked message, for public-profile "last seen". */
+    lastMessageAt: integer("last_message_at", { mode: "timestamp" }),
+  },
+  // Global rank and the global top list order by count; without this they scan every user.
+  (table) => [index("user_message_counts_count").on(table.count)],
+);
 
 export const starboardPosts = sqliteTable(
   "starboard_posts",
@@ -489,6 +499,8 @@ export const guildStatsUserDaily = sqliteTable(
     // Cross-user aggregation within a date window (engagement concentration, top movers) needs to
     // narrow by (guildId, statDate) first — the PK above is ordered by userId, not statDate.
     index("guild_stats_user_daily_guild_date").on(table.guildId, table.statDate),
+    // A user's activity across every server (profiles) filters by user and date, not guild.
+    index("guild_stats_user_daily_user_date").on(table.userId, table.statDate),
   ],
 );
 

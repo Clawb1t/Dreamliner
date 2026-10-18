@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, gte, like, lte, or, sql, type SQL } from "drizzle-orm";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import type { Guild } from "discord.js";
 import { getDb } from "../db/client.js";
 import { guildLogEvents } from "../db/schema.js";
@@ -76,8 +77,8 @@ export function parseWebLogsQuery(url: URL): WebLogsQuery {
 
 async function resolvePerson(guild: Guild, userId: string | null | undefined): Promise<WebLogPerson | null> {
   if (!userId) return null;
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+  const member = await fetchMemberCached(guild, userId);
+  const user = member?.user ?? (await fetchUserCached(guild.client, userId));
   return {
     id: userId,
     name: member?.displayName ?? user?.username ?? userId,

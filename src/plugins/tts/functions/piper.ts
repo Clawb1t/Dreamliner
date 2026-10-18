@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { resolvePiperBin, resolvePiperVoicesDir } from "./piperSetup.js";
+import { repairPiperInstall, resolvePiperBin, resolvePiperVoicesDir } from "./piperSetup.js";
 import { capitalize, readVoiceMeta } from "./voiceMeta.js";
 
 /**
@@ -101,8 +101,26 @@ async function loadVoiceMeta(voiceId: string): Promise<PiperVoiceMeta | null> {
 
 export type PiperResult = { pcm: Buffer; sampleRate: number } | { error: string };
 
-/** Runs `piper` for one line of text, returning raw signed-16-bit little-endian mono PCM. */
+/** Runs `piper` for one line of text, returning raw signed-16-bit little-endian mono PCM. If the
+ *  install turns out to be missing its shared libraries, it's repaired once and the line retried. */
 export async function synthesizeWithPiper(text: string, voiceId: string): Promise<PiperResult> {
+  const result = await runPiper(text, voiceId);
+  if ("error" in result && /error while loading shared libraries|cannot open shared object file/i.test(result.error)) {
+    if (await repairPiperInstall()) return runPiper(text, voiceId);
+  }
+  return result;
+}
+
+/** The directory holding the executable also holds its bundled libraries; the dynamic loader
+ *  is pointed there explicitly so a missing rpath can't hide them. */
+function piperEnv(): NodeJS.ProcessEnv {
+  const binDir = path.dirname(piperBin());
+  const key = process.platform === "darwin" ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH";
+  const existing = process.env[key];
+  return { ...process.env, [key]: existing ? `${binDir}${path.delimiter}${existing}` : binDir };
+}
+
+async function runPiper(text: string, voiceId: string): Promise<PiperResult> {
   const dir = voicesDir();
 
   // Multi-speaker voices are exposed as `<model-id>#<speaker-index>`.
@@ -131,6 +149,7 @@ export async function synthesizeWithPiper(text: string, voiceId: string): Promis
   return new Promise((resolve) => {
     const proc = spawn(piperBin(), args, {
       stdio: ["pipe", "pipe", "pipe"],
+      env: piperEnv(),
     });
 
     const chunks: Buffer[] = [];

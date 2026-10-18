@@ -198,7 +198,18 @@ export async function getDreamlinerOnePublicStatusWithRefresh(guildId: string): 
  * can show the same "subscribed for X" One badge tooltip the public server/leaderboard pages do,
  * without a second per-guild status call for each row.
  */
+let oneSinceMemo: { value: Map<string, string>; until: number } | null = null;
+
+/** Every server with an active Dreamliner One, and since when. Asked for on nearly every status,
+ *  profile and leaderboard request, so the answer is reused for a few seconds. */
 export async function listActiveOneGuildsSince(): Promise<Map<string, string>> {
+  if (oneSinceMemo && oneSinceMemo.until > Date.now()) return oneSinceMemo.value;
+  const value = await computeActiveOneGuildsSince();
+  oneSinceMemo = { value, until: Date.now() + 15_000 };
+  return value;
+}
+
+async function computeActiveOneGuildsSince(): Promise<Map<string, string>> {
   const since = new Map<string, string>();
   for (const row of await listActiveDiscordEntitlements()) {
     since.set(row.guildId, toIso(row.startsAt) ?? toIso(row.updatedAt) ?? new Date(0).toISOString());

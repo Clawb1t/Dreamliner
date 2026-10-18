@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { fetchMemberCached } from "./people.js";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { guildMessageCounts, guildStatsUserDaily, userHourlyActivity } from "../db/schema.js";
@@ -82,28 +83,29 @@ export async function listUserGuildSummaries(
     .where(eq(guildMessageCounts.userId, userId))
     .all();
 
-  const eligible: Array<{
-    guildId: string;
-    name: string;
-    icon: string | null;
-    bannerUrl: string | null;
-    messages: number;
-  }> = [];
-  for (const row of rows) {
-    const guild = client.guilds.cache.get(row.guildId);
-    if (!guild) continue;
-
-    const member = guild.members.cache.get(userId) ?? (await guild.members.fetch(userId).catch(() => null));
-    if (!member) continue;
-
-    eligible.push({
-      guildId: row.guildId,
-      name: guild.name,
-      icon: guild.iconURL({ size: 64 }),
-      bannerUrl: guild.bannerURL({ size: 512 }),
-      messages: row.count,
-    });
-  }
+  // Only the servers that can make the cut are checked for membership, and those checks run
+  // together (shared and remembered, see people.ts) instead of one Discord request after another
+  // across every server the person has ever spoken in.
+  const candidates = rows
+    .filter((row) => client.guilds.cache.has(row.guildId))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit * 3);
+  const checked = await Promise.all(
+    candidates.map(async (row) => {
+      const guild = client.guilds.cache.get(row.guildId)!;
+      const member = await fetchMemberCached(guild, userId);
+      return member
+        ? {
+            guildId: row.guildId,
+            name: guild.name,
+            icon: guild.iconURL({ size: 64 }),
+            bannerUrl: guild.bannerURL({ size: 512 }),
+            messages: row.count,
+          }
+        : null;
+    }),
+  );
+  const eligible = checked.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
   // Rank/share need one more query each per server, so only compute them for the servers that
   // actually make the cut, not every eligible one.

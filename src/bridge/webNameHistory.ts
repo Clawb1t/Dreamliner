@@ -1,4 +1,5 @@
 import type { Guild } from "discord.js";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import { getUserNameHistory, searchNameHistory, type NameHistoryEntry } from "../plugins/name_history/functions/store.js";
 
 export type WebNameHistoryEntry = {
@@ -18,8 +19,8 @@ export type WebNameHistoryPerson = {
 };
 
 async function resolvePerson(guild: Guild, userId: string): Promise<WebNameHistoryPerson> {
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+  const member = await fetchMemberCached(guild, userId);
+  const user = member?.user ?? (await fetchUserCached(guild.client, userId));
   return {
     id: userId,
     name: member?.displayName ?? user?.username ?? userId,

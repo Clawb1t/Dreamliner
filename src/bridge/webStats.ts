@@ -1,4 +1,5 @@
 import type { Client, Guild, User } from "discord.js";
+import { fetchMemberCached } from "./people.js";
 import {
   analyzeSeries,
   computeServerPulse,
@@ -163,8 +164,8 @@ function colorIntToHex(value: number): string {
 async function ensureBannerLoaded(user: User | null): Promise<User | null> {
   if (!user) return user;
   const fetched = await retryAsync(() => user.fetch(true), {
-    attempts: 4,
-    delayMs: 400,
+    attempts: 2,
+    delayMs: 300,
     onError: (error, attempt) =>
       log.debug(`Banner fetch for user ${user.id} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
   });
@@ -190,7 +191,7 @@ type CachedIdentity = {
  * messages and voice leaderboards in one page load.
  */
 const identityCache = new Map<string, { value: CachedIdentity; expiresAt: number }>();
-const IDENTITY_CACHE_TTL_MS = 10 * 60 * 1000;
+const IDENTITY_CACHE_TTL_MS = 30 * 60 * 1000;
 const pruneIdentityCache = createPruner(identityCache, (entry, now) => entry.expiresAt <= now);
 
 async function resolveUserIdentity(
@@ -242,7 +243,7 @@ async function resolvePeople(
     // Cache-first: the gateway keeps guild member/user caches warm for anyone who's been
     // active, so this is normally an instant local lookup. Only genuinely uncached
     // entries (rare — a member who left, or a very first-time computation) hit the API.
-    const member = await guild.members.fetch({ user: entry.userId }).catch(() => null);
+    const member = await fetchMemberCached(guild, entry.userId);
     const identity = await resolveUserIdentity(guild.client, entry.userId, member?.user ?? null);
     if (identity.apiFetch) apiFetches++;
     return {

@@ -1,4 +1,5 @@
 import type { Guild } from "discord.js";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import { configManager } from "../config/manager.js";
 import { zSuggestionsConfig, type SuggestionDisplayStatus } from "../config/schemas/suggestions.js";
 import { getPluginSettings } from "../core/permissionRoles.js";
@@ -74,8 +75,8 @@ export function parseWebSuggestionsQuery(url: URL): WebSuggestionsQuery {
 
 async function resolvePerson(guild: Guild, userId: string | null | undefined): Promise<WebPerson | null> {
   if (!userId) return null;
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+  const member = await fetchMemberCached(guild, userId);
+  const user = member?.user ?? (await fetchUserCached(guild.client, userId));
   return {
     id: userId,
     name: member?.displayName ?? user?.username ?? userId,

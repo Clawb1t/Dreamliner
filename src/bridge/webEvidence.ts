@@ -1,4 +1,5 @@
 import type { Guild } from "discord.js";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import type { EvidenceCapture, EvidenceSource, ListEvidenceQuery } from "../core/evidence.js";
 import { listEvidenceCaptures } from "../core/evidence.js";
 
@@ -36,8 +37,8 @@ export function parseWebEvidenceQuery(url: URL): ListEvidenceQuery {
 
 async function resolvePerson(guild: Guild, userId: string | null): Promise<WebPerson | null> {
   if (!userId) return null;
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+  const member = await fetchMemberCached(guild, userId);
+  const user = member?.user ?? (await fetchUserCached(guild.client, userId));
   return {
     id: userId,
     name: member?.displayName ?? user?.username ?? userId,

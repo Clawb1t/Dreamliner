@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { fetchMemberCached } from "./people.js";
 import { validateGuildTargets } from "../core/guildChannel.js";
 import http from "node:http";
 import type { Client, Guild } from "discord.js";
@@ -54,42 +55,64 @@ export type BridgeStatusPayload = {
 let startedAt: string | null = null;
 let server: http.Server | null = null;
 
+/** Owner display details, filled in the background: looking them up per server on every status
+ *  request meant one Discord REST call per server (thousands) before the site got any answer. */
+const ownerInfo = new Map<string, { name: string; displayName: string; avatar: string }>();
+let ownerFillRunning = false;
+
+async function fillOwnerInfo(client: Client): Promise<void> {
+  if (ownerFillRunning) return;
+  ownerFillRunning = true;
+  try {
+    let fetched = 0;
+    for (const guild of client.guilds.cache.values()) {
+      if (ownerInfo.has(guild.ownerId)) continue;
+      if (fetched >= 25) break; // a few per pass, spread over later requests
+      fetched++;
+      const owner = await guild.fetchOwner({ cache: true }).catch(() => null);
+      if (owner) {
+        ownerInfo.set(guild.ownerId, {
+          name: owner.user.username,
+          displayName: owner.displayName,
+          avatar: owner.user.displayAvatarURL({ size: 64 }),
+        });
+      }
+    }
+  } finally {
+    ownerFillRunning = false;
+  }
+}
+
 async function guildSnapshot(client: Client): Promise<BridgeGuildSnapshot[]> {
-  const guilds = [...client.guilds.cache.values()];
   const { listActiveOneGuildsSince } = await import("./dreamlinerOne.js");
   const oneSince = await listActiveOneGuildsSince();
-  return Promise.all(
-    guilds.map(async (guild) => {
-      let ownerName: string | null = null;
-      let ownerDisplayName: string | null = null;
-      let ownerAvatar: string | null = null;
-      try {
-        const owner =
-          guild.members.cache.get(guild.ownerId) ??
-          (await guild.fetchOwner({ cache: true }).catch(() => null));
-        if (owner) {
-          ownerName = owner.user.username;
-          ownerDisplayName = owner.displayName;
-          ownerAvatar = owner.user.displayAvatarURL({ size: 64 });
-        }
-      } catch {
-        // Owner may be unavailable; still return the guild.
-      }
-      return {
-        id: guild.id,
-        name: guild.name,
-        icon: guild.icon,
-        banner: guild.banner,
-        ownerId: guild.ownerId,
-        ownerName,
-        ownerDisplayName,
-        ownerAvatar,
-        memberCount: guild.memberCount,
-        oneActive: oneSince.has(guild.id),
-        oneActiveSince: oneSince.get(guild.id) ?? null,
-      };
-    }),
-  );
+  const guilds = [...client.guilds.cache.values()];
+  const snapshot = guilds.map((guild) => {
+    const cachedOwner = guild.members.cache.get(guild.ownerId);
+    if (cachedOwner && !ownerInfo.has(guild.ownerId)) {
+      ownerInfo.set(guild.ownerId, {
+        name: cachedOwner.user.username,
+        displayName: cachedOwner.displayName,
+        avatar: cachedOwner.user.displayAvatarURL({ size: 64 }),
+      });
+    }
+    const owner = ownerInfo.get(guild.ownerId) ?? null;
+    return {
+      id: guild.id,
+      name: guild.name,
+      icon: guild.icon,
+      banner: guild.banner,
+      ownerId: guild.ownerId,
+      ownerName: owner?.name ?? null,
+      ownerDisplayName: owner?.displayName ?? null,
+      ownerAvatar: owner?.avatar ?? null,
+      memberCount: guild.memberCount,
+      oneActive: oneSince.has(guild.id),
+      oneActiveSince: oneSince.get(guild.id) ?? null,
+    };
+  });
+  void fillOwnerInfo(client);
+  return snapshot;
 }
 
 async function buildStatus(client: Client): Promise<BridgeStatusPayload> {
@@ -165,32 +188,42 @@ async function readBody(req: http.IncomingMessage): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+/** Recent Manage Server answers, so one dashboard page (a dozen API calls) asks Discord once. */
+const manageCache = new Map<string, { allowed: boolean; until: number }>();
+const MANAGE_CACHE_MS = 30_000;
+
 async function memberCanManage(guild: Guild, userId: string): Promise<boolean> {
   // Platform superusers (OAuth discordId, after Bearer secret) may manage any bot guild.
   if (isDashboardSuperuser(userId)) return true;
 
   if (guild.ownerId === userId) return true;
+  const key = `${guild.id}:${userId}`;
+  const hit = manageCache.get(key);
+  if (hit && hit.until > Date.now()) return hit.allowed;
+  let allowed = false;
   try {
-    const member = await guild.members.fetch(userId);
-    return (
+    const member = guild.members.cache.get(userId) ?? (await guild.members.fetch(userId));
+    allowed =
       member.permissions.has(PermissionFlagsBits.Administrator) ||
-      member.permissions.has(PermissionFlagsBits.ManageGuild)
-    );
+      member.permissions.has(PermissionFlagsBits.ManageGuild);
   } catch {
-    return false;
+    allowed = false;
   }
+  manageCache.set(key, { allowed, until: Date.now() + MANAGE_CACHE_MS });
+  if (manageCache.size > 5000) {
+    const now = Date.now();
+    for (const [k, v] of manageCache) if (v.until <= now) manageCache.delete(k);
+    if (manageCache.size > 5000) manageCache.clear();
+  }
+  return allowed;
 }
 
 /** Lighter than memberCanManage - just "is this Discord user actually in the server", for the
  *  music web player page, which any member should be able to use, not just Manage Server staff. */
 async function memberIsInGuild(guild: Guild, userId: string): Promise<boolean> {
   if (isDashboardSuperuser(userId)) return true;
-  try {
-    await guild.members.fetch(userId);
-    return true;
-  } catch {
-    return false;
-  }
+  // Remembered like memberCanManage: the music page polls this every few seconds.
+  return (await fetchMemberCached(guild, userId)) !== null;
 }
 
 function channelKind(type: ChannelType): string {
@@ -214,12 +247,39 @@ function channelKind(type: ChannelType): string {
   }
 }
 
-async function buildEntities(guild: Guild) {
+/** Members and emojis need Discord REST calls (a full member list for big servers can take many
+ *  seconds), so they're cached separately and served stale-while-revalidate. */
+async function slowEntities(guild: Guild) {
+  // One REST page (up to 1000 members) instead of the entire member list: the pickers only show
+  // the first 750 anyway, and everyone else is found by search.
   if (guild.members.cache.size < 100) {
-    await guild.members.fetch().catch(() => null);
+    await guild.members.list({ limit: 1000, cache: true }).catch(() => null);
   }
   await guild.emojis.fetch().catch(() => null);
 
+  const members = [...guild.members.cache.values()]
+    .filter((m) => !m.user.bot)
+    .slice(0, 750)
+    .map((m) => ({
+      id: m.id,
+      username: m.user.username,
+      displayName: m.displayName,
+      avatar: m.user.displayAvatarURL({ size: 64 }),
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  const emojis = [...guild.emojis.cache.values()].map((emoji) => ({
+    id: emoji.id,
+    name: emoji.name ?? "emoji",
+    animated: Boolean(emoji.animated),
+    url: emoji.imageURL({ size: 64 }) ?? null,
+  }));
+  return { members, emojis };
+}
+
+async function buildEntities(guild: Guild) {
+  const { cachedSwr, cached } = await import("./responseCache.js");
+  // Channels and roles come straight from the gateway cache: instant and always current.
   const channels = [...guild.channels.cache.values()]
     .filter((ch) => !ch.isThread())
     .map((ch) => ({
@@ -240,30 +300,12 @@ async function buildEntities(guild: Guild) {
     }))
     .sort((a, b) => b.position - a.position);
 
-  const members = [...guild.members.cache.values()]
-    .filter((m) => !m.user.bot)
-    .slice(0, 750)
-    .map((m) => ({
-      id: m.id,
-      username: m.user.username,
-      displayName: m.displayName,
-      avatar: m.user.displayAvatarURL({ size: 64 }),
-    }))
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
-
-  const emojis = [...guild.emojis.cache.values()]
-    .map((emoji) => ({
-      id: emoji.id,
-      name: emoji.name ?? "emoji",
-      animated: Boolean(emoji.animated),
-      url: emoji.imageURL({ size: 64 }) ?? null,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  const { cached } = await import("./responseCache.js");
-  // Dreamliner's own application emojis are the same for every server, so they're fetched once
-  // and shared; the dashboard lists them after the server's own emojis.
-  const appEmojis = await cached("app-emojis", 10 * 60_000, () => fetchAppEmojis(guild.client));
+  const [{ members, emojis }, appEmojis] = await Promise.all([
+    cachedSwr(`entities-slow:${guild.id}`, 60_000, 30 * 60_000, () => slowEntities(guild)),
+    // Dreamliner's own application emojis are the same for every server, so they're fetched once
+    // and shared; the dashboard lists them after the server's own emojis.
+    cached("app-emojis", 10 * 60_000, () => fetchAppEmojis(guild.client)),
+  ]);
 
   return { channels, roles, members, emojis, appEmojis };
 }
@@ -306,6 +348,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
       const line = `${method} ${requestPath} -> ${res.statusCode} (${durationMs.toFixed(1)}ms)`;
       if (res.statusCode >= 500) log.error(line);
       else if (res.statusCode >= 400) log.warn(line);
+      else if (durationMs > 1500) log.warn(`SLOW ${line}`);
       else log.http(line);
     });
     void (async () => {
@@ -322,7 +365,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { buildPublicBotStatus } = await import("../core/statusMonitor.js");
           const rangeRaw = (url.searchParams.get("pingRange") ?? "24h").trim().toLowerCase();
           const pingRange = rangeRaw === "7d" ? "7d" : "24h";
-          sendJson(res, 200, await buildPublicBotStatus(client, pingRange));
+          // Public and unauthenticated, so anyone (or a status poller) can hit it as often as they like.
+          const { cached } = await import("./responseCache.js");
+          sendJson(res, 200, await cached(`public-status:${pingRange}`, 15_000, () => buildPublicBotStatus(client, pingRange)));
           return;
         }
 
@@ -339,7 +384,23 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (req.method === "GET" && url.pathname === "/bridge/status") {
-          sendJson(res, 200, await buildStatus(client));
+          // The full server list changes slowly; serve it from memory and refresh in the background.
+          const { cachedSwr } = await import("./responseCache.js");
+          const status = await cachedSwr("bridge-status", 15_000, 10 * 60_000, () => buildStatus(client));
+          sendJson(res, 200, { ...status, checkedAt: new Date().toISOString() });
+          return;
+        }
+
+        // One server's name/icon/banner: what the website's access check needs, without sending
+        // (or building) the whole server list.
+        const briefMatch = req.method === "GET" ? /^\/bridge\/guilds\/(\d+)\/brief$/.exec(url.pathname) : null;
+        if (briefMatch) {
+          const guild = client.guilds.cache.get(briefMatch[1]!);
+          if (!guild) {
+            sendJson(res, 404, { error: "Dreamliner is not in that server." });
+            return;
+          }
+          sendJson(res, 200, { id: guild.id, name: guild.name, icon: guild.icon, banner: guild.banner });
           return;
         }
 
@@ -1577,7 +1638,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const publicProfileMatch = /^\/bridge\/users\/(\d+)\/public-profile$/.exec(url.pathname);
         if (publicProfileMatch && req.method === "GET") {
           const { buildPublicUserProfile } = await import("./userPublicProfile.js");
-          const profile = await buildPublicUserProfile(client, publicProfileMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const profile = await cached(`pp:${publicProfileMatch[1]!}`, 30_000, () => buildPublicUserProfile(client, publicProfileMatch[1]!));
           if (!profile) {
             sendJson(res, 404, { error: "User not found." });
             return;
@@ -1591,7 +1653,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         if (publicProfileIdentityMatch && req.method === "GET") {
           const { buildPublicProfileIdentity } = await import("./userPublicProfile.js");
-          const identity = await buildPublicProfileIdentity(client, publicProfileIdentityMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const identity = await cached(`pp-id:${publicProfileIdentityMatch[1]!}`, 20_000, () => buildPublicProfileIdentity(client, publicProfileIdentityMatch[1]!));
           if (!identity) {
             sendJson(res, 404, { error: "User not found." });
             return;
@@ -1605,7 +1668,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         if (publicProfileStatsMatch && req.method === "GET") {
           const { buildPublicProfileStats } = await import("./userPublicProfile.js");
-          const stats = await buildPublicProfileStats(publicProfileStatsMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const stats = await cached(`pp-stats:${publicProfileStatsMatch[1]!}`, 30_000, async () => buildPublicProfileStats(publicProfileStatsMatch[1]!));
           sendJson(res, 200, { ok: true, stats });
           return;
         }
@@ -1615,7 +1679,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         if (publicProfileActivityMatch && req.method === "GET") {
           const { buildPublicProfileActivity } = await import("./userPublicProfile.js");
-          const daily = await buildPublicProfileActivity(publicProfileActivityMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const daily = await cached(`pp-act:${publicProfileActivityMatch[1]!}`, 60_000, async () => buildPublicProfileActivity(publicProfileActivityMatch[1]!));
           sendJson(res, 200, { ok: true, daily });
           return;
         }
@@ -1625,7 +1690,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         if (publicProfileHoursMatch && req.method === "GET") {
           const { buildPublicProfileHours } = await import("./userPublicProfile.js");
-          const activeHoursUtc = await buildPublicProfileHours(publicProfileHoursMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const activeHoursUtc = await cached(`pp-hours:${publicProfileHoursMatch[1]!}`, 60_000, async () => buildPublicProfileHours(publicProfileHoursMatch[1]!));
           sendJson(res, 200, { ok: true, activeHoursUtc });
           return;
         }
@@ -1635,7 +1701,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         if (publicProfileServersMatch && req.method === "GET") {
           const { buildPublicProfileServers } = await import("./userPublicProfile.js");
-          const guilds = await buildPublicProfileServers(client, publicProfileServersMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const guilds = await cached(`pp-servers:${publicProfileServersMatch[1]!}`, 60_000, () => buildPublicProfileServers(client, publicProfileServersMatch[1]!));
           sendJson(res, 200, { ok: true, guilds });
           return;
         }
@@ -1645,7 +1712,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         );
         if (publicProfileCardsMatch && req.method === "GET") {
           const { buildPublicProfileCards } = await import("./userPublicProfile.js");
-          const cards = await buildPublicProfileCards(publicProfileCardsMatch[1]!);
+          const { cached } = await import("./responseCache.js");
+          const cards = await cached(`pp-cards:${publicProfileCardsMatch[1]!}`, 30_000, async () => buildPublicProfileCards(publicProfileCardsMatch[1]!));
           sendJson(res, 200, { ok: true, ...cards });
           return;
         }
@@ -2566,7 +2634,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { buildGuildConfigEditorArtifacts } = await import(
             "../config/exportGuildConfigSchema.js"
           );
-          sendJson(res, 200, buildGuildConfigEditorArtifacts());
+          // ~800 KB of generated schema that only changes when the bot is redeployed: built once.
+          const { cached } = await import("./responseCache.js");
+          const artifacts = await cached("config-editor-artifacts", 60 * 60_000, async () => buildGuildConfigEditorArtifacts());
+          sendJson(res, 200, artifacts);
           return;
         }
 
@@ -8301,8 +8372,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
-          const { cached } = await import("./responseCache.js");
-          const entities = await cached(`entities:${guild.id}`, 45_000, () => buildEntities(guild));
+          const entities = await buildEntities(guild);
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             ...entities,

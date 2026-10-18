@@ -1,4 +1,5 @@
 import { and, count, desc, eq, isNotNull, isNull, like, or, sql, type SQL } from "drizzle-orm";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import type { Guild } from "discord.js";
 import { getDb } from "../db/client.js";
 import { reviews } from "../db/schema.js";
@@ -54,8 +55,8 @@ export function parseWebReviewsQuery(url: URL): WebReviewsQuery {
 }
 
 export async function resolvePerson(guild: Guild, userId: string): Promise<WebPerson> {
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+  const member = await fetchMemberCached(guild, userId);
+  const user = member?.user ?? (await fetchUserCached(guild.client, userId));
   return {
     id: userId,
     name: member?.displayName ?? user?.username ?? userId,

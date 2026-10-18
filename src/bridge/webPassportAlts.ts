@@ -1,4 +1,5 @@
 import type { Guild } from "discord.js";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import { configManager } from "../config/manager.js";
 import { getPassportConfig, isPassportEnabled } from "../plugins/passport/functions/loadConfig.js";
 import { findLikelyAlts, type AltConfidenceTier, type AltSignalType } from "../plugins/passport/functions/altMatching.js";
@@ -23,8 +24,8 @@ export type WebPassportAltsPayload = {
 };
 
 async function resolvePerson(guild: Guild, userId: string): Promise<WebPerson> {
-  const member = await guild.members.fetch(userId).catch(() => null);
-  const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+  const member = await fetchMemberCached(guild, userId);
+  const user = member?.user ?? (await fetchUserCached(guild.client, userId));
   return {
     id: userId,
     name: member?.displayName ?? user?.username ?? userId,

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import { and, count, desc, eq, like, or, sql, type SQL } from "drizzle-orm";
 import type { Client, Guild } from "discord.js";
 import { getDb } from "../db/client.js";
@@ -85,9 +86,9 @@ async function resolvePerson(guild: Guild, userId: string): Promise<WebPerson> {
   if (!userId || userId === "0") {
     return { id: userId || "0", name: "Unknown", username: null, avatar: null };
   }
-  const member = await guild.members.fetch(userId).catch(() => null);
+  const member = await fetchMemberCached(guild, userId);
   const user =
-    member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+    member?.user ?? (await fetchUserCached(guild.client, userId));
   return {
     id: userId,
     name: member?.displayName ?? user?.username ?? userId,
