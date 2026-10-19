@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { LEADERBOARD_TTL_MS, leaderboardCached, leaderboardKeys, prewarmLeaderboards } from "./leaderboardCache.js";
 import { fetchMemberCached } from "./people.js";
 import { validateGuildTargets } from "../core/guildChannel.js";
 import http from "node:http";
@@ -2646,7 +2647,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const { parseWebStatsQuery, buildWebGlobalStats } = await import("./webStats.js");
           const { cached } = await import("./responseCache.js");
           const query = parseWebStatsQuery(url);
-          const payload = await cached(`stats:global:${JSON.stringify(query)}`, 30_000, () =>
+          const payload = await cached(`stats:global:${JSON.stringify(query)}`, 120_000, () =>
             buildWebGlobalStats(client, query),
           );
           sendJson(res, 200, payload);
@@ -2655,9 +2656,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         if (req.method === "GET" && url.pathname === "/bridge/stats/global/public-leaderboard") {
           const { buildWebGlobalPublicMessagerLeaderboard } = await import("./webStats.js");
-          const { cached } = await import("./responseCache.js");
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          const payload = await cached(`leaderboard:global:${limit}`, 30_000, () =>
+          const payload = await leaderboardCached(leaderboardKeys.global(limit), LEADERBOARD_TTL_MS, () =>
             buildWebGlobalPublicMessagerLeaderboard(client, limit),
           );
           sendJson(res, 200, payload);
@@ -5763,13 +5763,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const { buildWebPublicMessagerLeaderboard } = await import("./webStats.js");
-          const { cached } = await import("./responseCache.js");
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
           // All-time rankings barely move minute to minute, and the expensive part
           // (buildWebPublicMessagerLeaderboard's per-row Discord identity resolution) is now
           // also cached on its own, longer-lived terms — see identityCache in webStats.ts — so
           // this payload-level TTL mostly just saves repeat visitors the DB round trips.
-          const payload = await cached(`leaderboard:guild:${guild.id}:${limit}`, 60_000, () =>
+          const payload = await leaderboardCached(leaderboardKeys.guild(guild.id, limit), LEADERBOARD_TTL_MS, () =>
             buildWebPublicMessagerLeaderboard(guild, limit),
           );
           sendJson(res, 200, payload);
@@ -5782,9 +5781,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const { buildWebPublicVoiceLeaderboard } = await import("./webStats.js");
-          const { cached } = await import("./responseCache.js");
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          const payload = await cached(`leaderboard:voice:guild:${guild.id}:${limit}`, 60_000, () =>
+          const payload = await leaderboardCached(leaderboardKeys.voice(guild.id, limit), LEADERBOARD_TTL_MS, () =>
             buildWebPublicVoiceLeaderboard(guild, limit),
           );
           sendJson(res, 200, payload);
@@ -8355,7 +8353,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const query = parseWebStatsQuery(url);
           const payload = await cached(
             `stats:guild:${guild.id}:${JSON.stringify(query)}`,
-            30_000,
+            90_000,
             () => buildWebServerStats(guild, query),
           );
           sendJson(res, 200, payload);
@@ -8471,6 +8469,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   server.headersTimeout = 60_000;
   server.requestTimeout = 30_000;
   server.keepAliveTimeout = 65_000;
+
+  // Keep the busiest leaderboards warm: a first pass shortly after boot (once guilds are cached),
+  // then every 45 seconds, so visitors are served from memory instead of rebuilding the board.
+  setTimeout(() => void prewarmLeaderboards(client).catch(() => null), 20_000).unref();
+  setInterval(() => void prewarmLeaderboards(client).catch(() => null), 45_000).unref();
 
   server.listen(port, "0.0.0.0", () => {
     log.success(

@@ -1,4 +1,6 @@
 import { and, asc, count, desc, eq, gte, sql } from "drizzle-orm";
+import { offloaded } from "../../../core/offload.js";
+import { cachedSwr } from "../../../bridge/responseCache.js";
 import { getDb } from "../../../db/client.js";
 import {
   guildStatsChannelDaily,
@@ -34,16 +36,26 @@ function fillDailyDates(dates: string[], rows: DailyStatRow[]): DailyStatRow[] {
 }
 
 /** Sum of lifetime global user message counters. */
-export async function getGlobalTrackedMessagesTotal(): Promise<number> {
+export function getGlobalTrackedMessagesTotal(): Promise<number> {
+  // A sum over every user the bot has ever seen: millions of rows. It's a display number, so a few
+  // minutes old is fine, and it must not be recomputed on every leaderboard or stats request.
+  return cachedSwr("global:messages-total", 5 * 60_000, 60 * 60_000, computeGlobalMessagesTotal);
+}
+
+export const computeGlobalMessagesTotal = offloaded("plugins/stats/functions/globalQueries", "computeGlobalMessagesTotal", async function computeGlobalMessagesTotal(): Promise<number> {
   const db = getDb();
   const row = await db
     .select({ total: sql<number>`coalesce(sum(${userMessageCounts.count}), 0)` })
     .from(userMessageCounts)
     .get();
   return Number(row?.total ?? 0);
+});
+
+export function getGlobalActiveMessagerCount(): Promise<number> {
+  return cachedSwr("global:active-messagers", 5 * 60_000, 60 * 60_000, computeGlobalActiveMessagers);
 }
 
-export async function getGlobalActiveMessagerCount(): Promise<number> {
+export const computeGlobalActiveMessagers = offloaded("plugins/stats/functions/globalQueries", "computeGlobalActiveMessagers", async function computeGlobalActiveMessagers(): Promise<number> {
   const db = getDb();
   const row = await db
     .select({ total: count() })
@@ -51,7 +63,7 @@ export async function getGlobalActiveMessagerCount(): Promise<number> {
     .where(gte(userMessageCounts.count, 1))
     .get();
   return Number(row?.total ?? 0);
-}
+});
 
 /** Lifetime global message count for a single user. */
 export async function getGlobalUserMessageCount(userId: string): Promise<number> {
@@ -88,7 +100,7 @@ export async function getTopGlobalMessagers(
   return rows.map((row) => ({ userId: row.userId, count: row.count }));
 }
 
-export async function getGlobalDailyTotals(): Promise<{
+export const getGlobalDailyTotals = offloaded("plugins/stats/functions/globalQueries", "getGlobalDailyTotals", async function getGlobalDailyTotals(): Promise<{
   messages: number;
   joins: number;
   leaves: number;
@@ -120,9 +132,9 @@ export async function getGlobalDailyTotals(): Promise<{
     reactions: Number(row?.reactions ?? 0),
     attachments: Number(row?.attachments ?? 0),
   };
-}
+});
 
-export async function getFilledGlobalDailyStats(days = 14): Promise<DailyStatRow[]> {
+export const getFilledGlobalDailyStats = offloaded("plugins/stats/functions/globalQueries", "getFilledGlobalDailyStats", async function getFilledGlobalDailyStats(days = 14): Promise<DailyStatRow[]> {
   const db = getDb();
 
   if (isAllTimeWindow(days)) {
@@ -182,9 +194,9 @@ export async function getFilledGlobalDailyStats(days = 14): Promise<DailyStatRow
     attachments: Number(row.attachments ?? 0),
   }));
   return fillDailyDates(dates, mapped);
-}
+});
 
-export async function getTopGlobalUsersByDaily(
+export const getTopGlobalUsersByDaily = offloaded("plugins/stats/functions/globalQueries", "getTopGlobalUsersByDaily", async function getTopGlobalUsersByDaily(
   days = 14,
   limit = 15,
 ): Promise<Array<{ userId: string; count: number }>> {
@@ -210,9 +222,9 @@ export async function getTopGlobalUsersByDaily(
     .limit(limit);
 
   return rows.map((row) => ({ userId: row.userId, count: Number(row.count ?? 0) }));
-}
+});
 
-export async function getTopGlobalChannelsByDaily(
+export const getTopGlobalChannelsByDaily = offloaded("plugins/stats/functions/globalQueries", "getTopGlobalChannelsByDaily", async function getTopGlobalChannelsByDaily(
   days = 14,
   limit = 15,
 ): Promise<Array<{ channelId: string; guildId: string; count: number }>> {
@@ -239,9 +251,9 @@ export async function getTopGlobalChannelsByDaily(
     guildId: row.guildId,
     count: Number(row.count ?? 0),
   }));
-}
+});
 
-export async function getFilledGlobalDailyActiveUsers(
+export const getFilledGlobalDailyActiveUsers = offloaded("plugins/stats/functions/globalQueries", "getFilledGlobalDailyActiveUsers", async function getFilledGlobalDailyActiveUsers(
   days = 14,
 ): Promise<Array<{ statDate: string; count: number }>> {
   const db = getDb();
@@ -275,7 +287,7 @@ export async function getFilledGlobalDailyActiveUsers(
 
   const byDate = new Map(rows.map((row) => [row.statDate, Number(row.count ?? 0)]));
   return dates.map((date) => ({ statDate: date, count: byDate.get(date) ?? 0 }));
-}
+});
 
 export async function getTrackedGlobalDailyMessagesTotal(days: number): Promise<number> {
   if (isAllTimeWindow(days)) {

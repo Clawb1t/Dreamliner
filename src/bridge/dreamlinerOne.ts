@@ -176,6 +176,9 @@ export async function isDreamlinerOneActive(guildId: string): Promise<boolean> {
  * (server-home/leaderboard payloads) so the website can show how long a server has had One
  * without a second round trip.
  */
+const oneRefreshedAt = new Map<string, number>();
+const ONE_REFRESH_INTERVAL_MS = 10 * 60_000;
+
 export async function getDreamlinerOnePublicStatusWithRefresh(guildId: string): Promise<DreamlinerOnePublicStatus> {
   const [entitlement, row] = await Promise.all([
     getActiveDiscordEntitlement(guildId),
@@ -184,6 +187,14 @@ export async function getDreamlinerOnePublicStatusWithRefresh(guildId: string): 
   const manual = deriveStatus(row);
   if (entitlement) return toPublicStatus(mergeOneStatus(manual, entitlement));
   if (manual.active) return toPublicStatus(manual);
+
+  // Most servers don't have One, so this branch is the common one: a live Discord request for every
+  // leaderboard or server page view. Entitlement changes also arrive by event, so re-asking Discord
+  // more than once per 10 minutes per server only adds a slow request to the page.
+  const lastRefresh = oneRefreshedAt.get(guildId) ?? 0;
+  if (Date.now() - lastRefresh < ONE_REFRESH_INTERVAL_MS) return toPublicStatus(manual);
+  oneRefreshedAt.set(guildId, Date.now());
+  if (oneRefreshedAt.size > 5000) oneRefreshedAt.clear();
 
   const refreshed = await refreshGuildDiscordOne(guildId);
   if (!refreshed) return toPublicStatus(manual);

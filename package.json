@@ -19,6 +19,7 @@
     "bluesky:keys": "tsx src/scripts/bluesky-keys.ts",
     "migrate:autodelete": "tsx src/scripts/migrate-autodelete-to-config.ts",
     "typecheck": "tsc --noEmit",
+    "bench:leaderboards": "tsx src/scripts/benchLeaderboards.ts",
     "test": "tsx --test src/**/*.test.ts"
   },
   "engines": {

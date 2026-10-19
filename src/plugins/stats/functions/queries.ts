@@ -1,4 +1,6 @@
 import { and, asc, count, desc, eq, gte, sql, type SQL } from "drizzle-orm";
+import { offloaded } from "../../../core/offload.js";
+import { cachedSwr } from "../../../bridge/responseCache.js";
 import { getDb } from "../../../db/client.js";
 import {
   guildMessageCounts,
@@ -50,7 +52,11 @@ export async function getTopMessagers(guildId: string, limit = 5): Promise<{ use
   return getTopMessageSenders(guildId, limit);
 }
 
-export async function getActiveMessagerCount(guildId: string): Promise<number> {
+export function getActiveMessagerCount(guildId: string): Promise<number> {
+  return cachedSwr(`guild:${guildId}:active-messagers`, 2 * 60_000, 30 * 60_000, () => computeActiveMessagers(guildId));
+}
+
+export const computeActiveMessagers = offloaded("plugins/stats/functions/queries", "computeActiveMessagers", async function computeActiveMessagers(guildId: string): Promise<number> {
   const db = getDb();
   const row = await db
     .select({ total: count() })
@@ -58,7 +64,7 @@ export async function getActiveMessagerCount(guildId: string): Promise<number> {
     .where(and(eq(guildMessageCounts.guildId, guildId), gte(guildMessageCounts.count, 1)))
     .get();
   return row?.total ?? 0;
-}
+});
 
 /** Lifetime message count for a single user in a guild. */
 export async function getUserMessageCount(guildId: string, userId: string): Promise<number> {
@@ -82,7 +88,7 @@ export async function getUserMessageRank(guildId: string, _userId: string, userC
   return (row?.total ?? 0) + 1;
 }
 
-export async function getTopChannelsByDaily(
+export const getTopChannelsByDaily = offloaded("plugins/stats/functions/queries", "getTopChannelsByDaily", async function getTopChannelsByDaily(
   guildId: string,
   days = 14,
   limit = 5,
@@ -105,9 +111,9 @@ export async function getTopChannelsByDaily(
     .limit(limit);
 
   return rows.map((row) => ({ channelId: row.channelId, count: Number(row.count ?? 0) }));
-}
+});
 
-export async function getTopUsersByDaily(
+export const getTopUsersByDaily = offloaded("plugins/stats/functions/queries", "getTopUsersByDaily", async function getTopUsersByDaily(
   guildId: string,
   days = 14,
   limit = 5,
@@ -130,7 +136,7 @@ export async function getTopUsersByDaily(
     .limit(limit);
 
   return rows.map((row) => ({ userId: row.userId, count: Number(row.count ?? 0) }));
-}
+});
 
 export async function getChannelDailyTotal(guildId: string, channelId: string): Promise<number> {
   const db = getDb();
@@ -157,7 +163,7 @@ export async function getUserDailyWindowTotal(guildId: string, userId: string, d
   return Number(row?.total ?? 0);
 }
 
-export async function getFilledDailyActiveUsers(
+export const getFilledDailyActiveUsers = offloaded("plugins/stats/functions/queries", "getFilledDailyActiveUsers", async function getFilledDailyActiveUsers(
   guildId: string,
   days = 14,
 ): Promise<{ statDate: string; count: number }[]> {
@@ -198,4 +204,4 @@ export async function getFilledDailyActiveUsers(
 
   const byDate = new Map(rows.map((row) => [row.statDate, Number(row.count ?? 0)]));
   return dates.map((date) => ({ statDate: date, count: byDate.get(date) ?? 0 }));
-}
+});

@@ -1,4 +1,6 @@
 import { and, countDistinct, desc, eq, gte, sql } from "drizzle-orm";
+import { offloaded } from "../../../core/offload.js";
+import { cachedSwr } from "../../../bridge/responseCache.js";
 import type { Client, VoiceState } from "discord.js";
 import { getDb } from "../../../db/client.js";
 import {
@@ -563,7 +565,7 @@ export async function getTopVoiceChannels(
 /** Top voice users by summed time over the window (or all time). `seconds` is the exact total
  *  (for a precise "Xm Ys" display); `minutes` is the same value rounded, kept for callers that
  *  only want the coarser figure. */
-export async function getTopVoiceUsers(
+export const getTopVoiceUsers = offloaded("plugins/stats/functions/voice", "getTopVoiceUsers", async function getTopVoiceUsers(
   guildId: string,
   days: number = 14,
   limit = 5,
@@ -586,7 +588,7 @@ export async function getTopVoiceUsers(
     .limit(limit);
 
   return rows.map((row) => ({ userId: row.userId, minutes: Math.round(row.seconds / 60), seconds: row.seconds }));
-}
+});
 
 /** `statDate` (text column) lower bound for a window, or null for all-time; same idea as
  *  daily.ts's `windowSinceTimestamp`, but for tables keyed by the text `statDate` column rather
@@ -599,7 +601,11 @@ function windowSinceTimestampForStatDate(days: number): string | null {
 /** Lifetime (or windowed) total voice minutes across the whole guild — the voice-leaderboard
  *  counterpart of queries.ts's `getTrackedMessagesTotal`. There's no separate lifetime counter
  *  table for voice (unlike messages), so this sums the daily table directly. */
-export async function getGuildTotalVoiceMinutes(guildId: string, days: number = 0): Promise<number> {
+export function getGuildTotalVoiceMinutes(guildId: string, days: number = 0): Promise<number> {
+  return cachedSwr(`guild:${guildId}:voice-total:${days}`, 2 * 60_000, 30 * 60_000, () => computeGuildTotalVoiceMinutes(guildId, days));
+}
+
+export const computeGuildTotalVoiceMinutes = offloaded("plugins/stats/functions/voice", "computeGuildTotalVoiceMinutes", async function computeGuildTotalVoiceMinutes(guildId: string, days: number): Promise<number> {
   const db = getDb();
   const since = windowSinceTimestampForStatDate(days);
   const filters = [eq(guildStatsVoiceDaily.guildId, guildId)];
@@ -612,11 +618,15 @@ export async function getGuildTotalVoiceMinutes(guildId: string, days: number = 
     .where(and(...filters))
     .get();
   return Math.round(Number(row?.total ?? 0) / 60);
-}
+});
 
 /** Distinct members with any tracked voice time (lifetime, or within a window) — the voice
  *  counterpart of queries.ts's `getActiveMessagerCount`. */
-export async function getActiveVoiceUserCount(guildId: string, days: number = 0): Promise<number> {
+export function getActiveVoiceUserCount(guildId: string, days: number = 0): Promise<number> {
+  return cachedSwr(`guild:${guildId}:voice-users:${days}`, 2 * 60_000, 30 * 60_000, () => computeActiveVoiceUserCount(guildId, days));
+}
+
+export const computeActiveVoiceUserCount = offloaded("plugins/stats/functions/voice", "computeActiveVoiceUserCount", async function computeActiveVoiceUserCount(guildId: string, days: number): Promise<number> {
   const db = getDb();
   const since = windowSinceTimestampForStatDate(days);
   const filters = [eq(guildStatsUserVoiceDaily.guildId, guildId)];
@@ -628,7 +638,7 @@ export async function getActiveVoiceUserCount(guildId: string, days: number = 0)
     .where(and(...filters))
     .get();
   return Number(row?.total ?? 0);
-}
+});
 
 /** Guild-wide voice engagement extras beyond plain minutes: total sessions (so average session
  *  length = minutes / sessions is derivable) and the highest concurrent voice presence seen. */

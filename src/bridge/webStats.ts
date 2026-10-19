@@ -221,6 +221,40 @@ async function resolveUserIdentity(
   return { ...value, apiFetch: true };
 }
 
+/**
+ * A leaderboard row needs a member lookup, a user lookup and a forced banner fetch: up to three
+ * Discord requests in a row, per row, with a cold cache. A 25-row board could take many seconds
+ * (and a rate-limited Discord longer), which is what made these pages time out. Each rebuild gets a
+ * time budget: rows not resolved in time are returned with a placeholder name while their lookups
+ * carry on in the background and fill the identity cache, and the payload is marked `partial` so
+ * the next visit rebuilds with everyone filled in.
+ */
+const RESOLVE_BUDGET_MS = 1500;
+const TIMED_OUT = Symbol("timed-out");
+
+function makeBudget(ms: number) {
+  const deadline = Date.now() + ms;
+  return async function within<T>(work: Promise<T>): Promise<T | typeof TIMED_OUT> {
+    work.catch(() => undefined); // keeps running in the background if the budget runs out
+    const left = deadline - Date.now();
+    if (left <= 0) return TIMED_OUT;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+      timer = setTimeout(() => resolve(TIMED_OUT), left);
+    });
+    try {
+      return await Promise.race([work, timeout]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+}
+
+/** Whatever identity is already known for a user (even if stale), for rows that ran out of budget. */
+function knownIdentity(userId: string): CachedIdentity {
+  return identityCache.get(userId)?.value ?? { username: null, globalName: null, avatar: null, bannerUrl: null };
+}
+
 async function resolvePeople(
   guild: Guild,
   entries: Array<{ userId: string; count: number; seconds?: number }>,
@@ -239,14 +273,23 @@ async function resolvePeople(
   ]);
   const startedAt = process.hrtime.bigint();
   let apiFetches = 0;
+  const within = makeBudget(RESOLVE_BUDGET_MS);
   const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
     // Cache-first: the gateway keeps guild member/user caches warm for anyone who's been
     // active, so this is normally an instant local lookup. Only genuinely uncached
     // entries (rare — a member who left, or a very first-time computation) hit the API.
-    const member = await fetchMemberCached(guild, entry.userId);
-    const identity = await resolveUserIdentity(guild.client, entry.userId, member?.user ?? null);
+    const done = await within(
+      (async () => {
+        const found = await fetchMemberCached(guild, entry.userId);
+        return { member: found, identity: await resolveUserIdentity(guild.client, entry.userId, found?.user ?? null) };
+      })(),
+    );
+    const unresolved = done === TIMED_OUT;
+    const member = unresolved ? (guild.members.cache.get(entry.userId) ?? null) : done.member;
+    const identity = unresolved ? { ...knownIdentity(entry.userId), apiFetch: false } : done.identity;
     if (identity.apiFetch) apiFetches++;
     return {
+      ...(unresolved ? { unresolved: true as const } : {}),
       rank: index + 1,
       id: entry.userId,
       name: member?.displayName ?? identity.username ?? entry.userId,
@@ -328,6 +371,7 @@ export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25
     oneActive: oneStatus.active,
     oneActiveSince: oneStatus.since,
     leaders,
+    partial: leaders.some((row) => "unresolved" in row),
   };
 }
 
@@ -371,6 +415,7 @@ export async function buildWebPublicVoiceLeaderboard(guild: Guild, limit = 25) {
     oneActive: oneStatus.active,
     oneActiveSince: oneStatus.since,
     leaders,
+    partial: leaders.some((row) => "unresolved" in row),
   };
 }
 
@@ -390,11 +435,15 @@ async function resolveGlobalPeople(
   ]);
   const startedAt = process.hrtime.bigint();
   let apiFetches = 0;
+  const within = makeBudget(RESOLVE_BUDGET_MS);
   const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
     // Cache-first — see resolveUserIdentity() above for why this normally never touches the network.
-    const identity = await resolveUserIdentity(client, entry.userId, null);
+    const done = await within(resolveUserIdentity(client, entry.userId, null));
+    const unresolved = done === TIMED_OUT;
+    const identity = unresolved ? { ...knownIdentity(entry.userId), apiFetch: false } : done;
     if (identity.apiFetch) apiFetches++;
     return {
+      ...(unresolved ? { unresolved: true as const } : {}),
       rank: index + 1,
       id: entry.userId,
       name: identity.globalName ?? identity.username ?? entry.userId,
@@ -464,6 +513,7 @@ export async function buildWebGlobalPublicMessagerLeaderboard(client: Client, li
     totalMessages: allTimeTrafficTotal,
     activeMessagers,
     leaders,
+    partial: leaders.some((row) => "unresolved" in row),
   };
 }
 

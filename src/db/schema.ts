@@ -499,8 +499,11 @@ export const guildStatsUserDaily = sqliteTable(
     // Cross-user aggregation within a date window (engagement concentration, top movers) needs to
     // narrow by (guildId, statDate) first — the PK above is ordered by userId, not statDate.
     index("guild_stats_user_daily_guild_date").on(table.guildId, table.statDate),
-    // A user's activity across every server (profiles) filters by user and date, not guild.
-    index("guild_stats_user_daily_user_date").on(table.userId, table.statDate),
+    // A user's activity across every server (profiles, global top users) filters by user and date, not
+    // guild. Includes `messages` so those sums are answered from the index alone.
+    index("guild_stats_user_daily_user_date").on(table.userId, table.statDate, table.messages),
+    // Per-day distinct-user counts and other date-first scans across every server, index-only.
+    index("guild_stats_user_daily_date_user").on(table.statDate, table.userId, table.messages),
   ],
 );
 
