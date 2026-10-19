@@ -272,6 +272,13 @@ async function main() {
   const voice = (label: string, guild: import("discord.js").Guild) =>
     measure(`voice leaderboard: ${label}`, () => webStats.buildWebPublicVoiceLeaderboard(guild, 25));
 
+  // The background pre-warmer: one full pass over the global board and the 25 biggest servers.
+  for (let i = 0; i < 25; i++) fakeGuild(i);
+  const { prewarmLeaderboards } = await import("../bridge/leaderboardCache.js");
+  const { invalidateCached } = await import("../bridge/responseCache.js");
+  invalidateCached();
+  await measure("PREWARM pass (global + 25 servers x2 boards)", () => prewarmLeaderboards(client, 25));
+
   await measure("GLOBAL messages leaderboard", () => webStats.buildWebGlobalPublicMessagerLeaderboard(client, 25));
   await leaderboard("mega server (800k)", mega);
   await leaderboard("big server (400k)", big);

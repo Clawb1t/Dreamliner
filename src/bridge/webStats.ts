@@ -161,15 +161,15 @@ function colorIntToHex(value: number): string {
  * costs one extra REST call — see `identityCache` below for how that cost is amortized across
  * requests instead of paid on every single leaderboard render.
  */
-async function ensureBannerLoaded(user: User | null): Promise<User | null> {
-  if (!user) return user;
+async function ensureBannerLoaded(user: User | null): Promise<{ user: User | null; forced: boolean }> {
+  if (!user) return { user, forced: false };
   const fetched = await retryAsync(() => user.fetch(true), {
     attempts: 2,
     delayMs: 300,
     onError: (error, attempt) =>
       log.debug(`Banner fetch for user ${user.id} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
   });
-  return fetched ?? user;
+  return { user: fetched ?? user, forced: fetched !== null };
 }
 
 type CachedIdentity = {
@@ -190,35 +190,51 @@ type CachedIdentity = {
  * trip entirely for anyone resolved recently — including the same user showing up on both the
  * messages and voice leaderboards in one page load.
  */
-const identityCache = new Map<string, { value: CachedIdentity; expiresAt: number }>();
+const identityCache = new Map<string, { value: CachedIdentity; complete: boolean; expiresAt: number }>();
 const IDENTITY_CACHE_TTL_MS = 30 * 60 * 1000;
+/** An identity missing its banner (the forced fetch failed) is only remembered briefly, so the next
+ *  visit tries again instead of showing a bannerless row for half an hour. */
+const INCOMPLETE_IDENTITY_TTL_MS = 45 * 1000;
 const pruneIdentityCache = createPruner(identityCache, (entry, now) => entry.expiresAt <= now);
 
-async function resolveUserIdentity(
-  client: Client,
-  userId: string,
-  knownUser: User | null,
-): Promise<CachedIdentity & { apiFetch: boolean }> {
-  const cached = identityCache.get(userId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return { ...cached.value, apiFetch: false };
-  }
-  const user = await ensureBannerLoaded(
-    knownUser ??
-      (await retryAsync(() => client.users.fetch(userId), {
-        onError: (error, attempt) =>
-          log.debug(`User fetch for ${userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
-      })),
-  );
-  const value: CachedIdentity = {
+function identityOf(user: User | null): CachedIdentity {
+  return {
     username: user?.username ?? null,
     globalName: user?.globalName ?? null,
     avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
     bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
   };
-  pruneIdentityCache();
-  identityCache.set(userId, { value, expiresAt: Date.now() + IDENTITY_CACHE_TTL_MS });
-  return { ...value, apiFetch: true };
+}
+
+async function resolveUserIdentity(
+  client: Client,
+  userId: string,
+  knownUser: User | null,
+): Promise<CachedIdentity & { apiFetch: boolean; complete: boolean }> {
+  const cached = identityCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return { ...cached.value, apiFetch: false, complete: cached.complete };
+  }
+  const base =
+    knownUser ??
+    client.users.cache.get(userId) ??
+    (await retryAsync(() => client.users.fetch(userId), {
+      onError: (error, attempt) =>
+        log.debug(`User fetch for ${userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
+    }));
+  const { user, forced } = await ensureBannerLoaded(base);
+  const value = identityOf(user);
+  // Only a user we actually got, with its banner fetched, counts as complete. A failed lookup is
+  // never remembered (the old code cached "nobody" for 30 minutes), and a missing banner only briefly.
+  if (user) {
+    pruneIdentityCache();
+    identityCache.set(userId, {
+      value,
+      complete: forced,
+      expiresAt: Date.now() + (forced ? IDENTITY_CACHE_TTL_MS : INCOMPLETE_IDENTITY_TTL_MS),
+    });
+  }
+  return { ...value, apiFetch: true, complete: forced };
 }
 
 /**
@@ -229,7 +245,7 @@ async function resolveUserIdentity(
  * carry on in the background and fill the identity cache, and the payload is marked `partial` so
  * the next visit rebuilds with everyone filled in.
  */
-const RESOLVE_BUDGET_MS = 1500;
+const RESOLVE_BUDGET_MS = 5000;
 const TIMED_OUT = Symbol("timed-out");
 
 function makeBudget(ms: number) {
@@ -251,8 +267,12 @@ function makeBudget(ms: number) {
 }
 
 /** Whatever identity is already known for a user (even if stale), for rows that ran out of budget. */
-function knownIdentity(userId: string): CachedIdentity {
-  return identityCache.get(userId)?.value ?? { username: null, globalName: null, avatar: null, bannerUrl: null };
+function knownIdentity(client: Client, userId: string): CachedIdentity {
+  const remembered = identityCache.get(userId)?.value;
+  if (remembered) return remembered;
+  // Not resolved in time: still show the avatar and name straight from Discord's cache if the bot
+  // has seen this user (avatars need no extra request; only banners do).
+  return identityOf(client.users.cache.get(userId) ?? null);
 }
 
 async function resolvePeople(
@@ -284,9 +304,10 @@ async function resolvePeople(
         return { member: found, identity: await resolveUserIdentity(guild.client, entry.userId, found?.user ?? null) };
       })(),
     );
-    const unresolved = done === TIMED_OUT;
-    const member = unresolved ? (guild.members.cache.get(entry.userId) ?? null) : done.member;
-    const identity = unresolved ? { ...knownIdentity(entry.userId), apiFetch: false } : done.identity;
+    const timedOut = done === TIMED_OUT;
+    const unresolved = timedOut || !done.identity.complete;
+    const member = timedOut ? (guild.members.cache.get(entry.userId) ?? null) : done.member;
+    const identity = unresolved ? { ...knownIdentity(guild.client, entry.userId), apiFetch: false, complete: false } : done.identity;
     if (identity.apiFetch) apiFetches++;
     return {
       ...(unresolved ? { unresolved: true as const } : {}),
@@ -440,7 +461,7 @@ async function resolveGlobalPeople(
     // Cache-first — see resolveUserIdentity() above for why this normally never touches the network.
     const done = await within(resolveUserIdentity(client, entry.userId, null));
     const unresolved = done === TIMED_OUT;
-    const identity = unresolved ? { ...knownIdentity(entry.userId), apiFetch: false } : done;
+    const identity = unresolved ? { ...knownIdentity(client, entry.userId), apiFetch: false, complete: false } : done;
     if (identity.apiFetch) apiFetches++;
     return {
       ...(unresolved ? { unresolved: true as const } : {}),

@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { invalidateCached } from "./responseCache.js";
 import { getGlobalMessageStats } from "./userStats.js";
 import { getUserProfile } from "./userProfiles.js";
 import { listDisplayedUserBadges, type UserBadge } from "./userBadges.js";
@@ -47,25 +48,101 @@ export type PublicProfileIdentity = {
   progressionBadges: ProgressionBadge[];
 };
 
-/** Fast: one forced Discord user fetch (needed for banner) + one DB row + one badge join. */
+const TIMED_OUT = Symbol("timed-out");
+
+/** Resolves to TIMED_OUT after `ms` instead of waiting on Discord indefinitely. */
+function within<T>(work: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    work,
+    new Promise<typeof TIMED_OUT>((resolve) => {
+      timer = setTimeout(() => resolve(TIMED_OUT), ms);
+    }),
+  ]).finally(() => timer && clearTimeout(timer));
+}
+
+/** Discord didn't answer in time for a user the bot has never seen; the caller should retry soon. */
+export class ProfileBusyError extends Error {
+  constructor() {
+    super("Discord is slow to respond right now. Try again in a moment.");
+    this.name = "ProfileBusyError";
+  }
+}
+
+/**
+ * When each user was last force-fetched from Discord. Only a forced `users.fetch` returns the real
+ * banner: the user objects embedded in messages/members carry `banner: null` even when the user
+ * has one (see `ensureBannerLoaded` in webStats.ts), so `user.banner !== undefined` proves nothing.
+ */
+const fullyFetchedAt = new Map<string, number>();
+const FULL_FETCH_TTL_MS = 30 * 60_000;
+const FULL_FETCH_MAX_ENTRIES = 5000;
+
+function rememberFullFetch(userId: string) {
+  fullyFetchedAt.delete(userId);
+  fullyFetchedAt.set(userId, Date.now());
+  if (fullyFetchedAt.size > FULL_FETCH_MAX_ENTRIES) {
+    const oldest = fullyFetchedAt.keys().next().value;
+    if (oldest !== undefined) fullyFetchedAt.delete(oldest);
+  }
+}
+
+/**
+ * The profile's Discord user (banner included), without making the page wait on Discord when it
+ * doesn't have to. A user force-fetched in the last 30 min is used from cache. Otherwise a forced
+ * fetch runs: a user the bot already knows waits up to 2.5s, then is shown as known while the fetch
+ * finishes, and `onLateFull` fires when it does so the caller can rebuild with the banner. A user
+ * the bot has never seen waits up to 6s, then ProfileBusyError (never a page left loading until the
+ * website gives up).
+ */
+async function profileUser(client: Client, userId: string, onLateFull: () => void) {
+  const known = client.users.cache.get(userId);
+  const fetchedAt = fullyFetchedAt.get(userId);
+  if (known && fetchedAt !== undefined && Date.now() - fetchedAt < FULL_FETCH_TTL_MS) return known;
+
+  const full = client.users.fetch(userId, { force: true }).then(
+    (user) => {
+      rememberFullFetch(userId);
+      return user;
+    },
+    () => null,
+  );
+  if (known) {
+    const fetched = await within(full, 2500);
+    if (fetched === TIMED_OUT) {
+      void full.then((user) => user && onLateFull());
+      return known;
+    }
+    return fetched ?? known;
+  }
+  const fetched = await within(full, 6000);
+  if (fetched === TIMED_OUT) throw new ProfileBusyError();
+  return fetched; // null: Discord says there's no such user
+}
+
+/** Fast: usually no Discord request at all (see profileUser) + one DB row + one badge join. */
 export async function buildPublicProfileIdentity(
   client: Client,
   userId: string,
 ): Promise<PublicProfileIdentity | null> {
-  let discordUser;
-  try {
-    discordUser = await client.users.fetch(userId, { force: true });
-  } catch {
-    discordUser = null;
-  }
+  const discordUser = await profileUser(client, userId, () => {
+    invalidateCached(`pp-id:${userId}`);
+    invalidateCached(`pp:${userId}`);
+  });
   if (!discordUser) return null;
 
-  const [profile, badges, oneOwnerSince, progressionBadges] = await Promise.all([
+  // Each extra is optional: one failing query must not take the whole profile down.
+  const [profileResult, badgesResult, oneOwnerResult, progressionResult] = await Promise.allSettled([
     getUserProfile(userId),
     listDisplayedUserBadges(userId),
     resolveOneOwnerSince(client, userId),
-    getProgressionBadges(client, userId).catch(() => []),
+    getProgressionBadges(client, userId),
   ]);
+  if (profileResult.status === "rejected") throw profileResult.reason;
+  const profile = profileResult.value;
+  const badges = badgesResult.status === "fulfilled" ? badgesResult.value : [];
+  const oneOwnerSince = oneOwnerResult.status === "fulfilled" ? oneOwnerResult.value : null;
+  const progressionBadges = progressionResult.status === "fulfilled" ? progressionResult.value : [];
 
   return {
     userId,

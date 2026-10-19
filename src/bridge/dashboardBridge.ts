@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { LEADERBOARD_TTL_MS, leaderboardCached, leaderboardKeys, prewarmLeaderboards } from "./leaderboardCache.js";
+import { LEADERBOARD_TTL_MS, PREWARM_INTERVAL_MS, leaderboardCached, leaderboardKeys, prewarmLeaderboards } from "./leaderboardCache.js";
 import { fetchMemberCached } from "./people.js";
 import { validateGuildTargets } from "../core/guildChannel.js";
 import http from "node:http";
@@ -1273,6 +1273,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const profile = await upsertUserProfileFields(profileMatch[1]!, patch);
+          // The public profile is served from cache: drop it so the change shows on the next view.
+          const { invalidateCached } = await import("./responseCache.js");
+          invalidateCached(`pp-id:${profileMatch[1]!}`);
+          invalidateCached(`pp:${profileMatch[1]!}`);
           sendJson(res, 200, { ok: true, profile });
           return;
         }
@@ -1653,10 +1657,24 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         if (publicProfileIdentityMatch && req.method === "GET") {
-          const { buildPublicProfileIdentity } = await import("./userPublicProfile.js");
-          const { cached } = await import("./responseCache.js");
-          const identity = await cached(`pp-id:${publicProfileIdentityMatch[1]!}`, 20_000, () => buildPublicProfileIdentity(client, publicProfileIdentityMatch[1]!));
+          const { buildPublicProfileIdentity, ProfileBusyError } = await import("./userPublicProfile.js");
+          const { cachedSwr, invalidateCached } = await import("./responseCache.js");
+          const key = `pp-id:${publicProfileIdentityMatch[1]!}`;
+          // Fresh for a minute, then served instantly from memory while it refreshes in the
+          // background: a profile view never waits on Discord after the first one.
+          let identity;
+          try {
+            identity = await cachedSwr(key, 60_000, 6 * 60 * 60_000, () => buildPublicProfileIdentity(client, publicProfileIdentityMatch[1]!));
+          } catch (error) {
+            if (error instanceof ProfileBusyError) {
+              sendJson(res, 503, { error: error.message, retry: true });
+              return;
+            }
+            throw error;
+          }
           if (!identity) {
+            invalidateCached(key); // "not found" isn't remembered
+
             sendJson(res, 404, { error: "User not found." });
             return;
           }
@@ -8471,9 +8489,20 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   server.keepAliveTimeout = 65_000;
 
   // Keep the busiest leaderboards warm: a first pass shortly after boot (once guilds are cached),
-  // then every 45 seconds, so visitors are served from memory instead of rebuilding the board.
-  setTimeout(() => void prewarmLeaderboards(client).catch(() => null), 20_000).unref();
-  setInterval(() => void prewarmLeaderboards(client).catch(() => null), 45_000).unref();
+  // then every few minutes. Small on purpose (see prewarmLeaderboards): it shares Discord's
+  // request queue with every other page.
+  let prewarmRunning = false;
+  const prewarm = () => {
+    if (prewarmRunning) return;
+    prewarmRunning = true;
+    void prewarmLeaderboards(client)
+      .catch(() => null)
+      .finally(() => {
+        prewarmRunning = false;
+      });
+  };
+  setTimeout(prewarm, 30_000).unref();
+  setInterval(prewarm, PREWARM_INTERVAL_MS).unref();
 
   server.listen(port, "0.0.0.0", () => {
     log.success(

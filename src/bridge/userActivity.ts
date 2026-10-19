@@ -90,10 +90,18 @@ export async function listUserGuildSummaries(
     .filter((row) => client.guilds.cache.has(row.guildId))
     .sort((a, b) => b.count - a.count)
     .slice(0, limit * 3);
+  // Membership checks may need Discord; the page gets at most ~2.5s of them. A server not confirmed
+  // in time is left out of this view (its check finishes in the background and is remembered, so
+  // the next view includes it) rather than holding the whole profile up.
+  const deadline = Date.now() + 2500;
   const checked = await Promise.all(
     candidates.map(async (row) => {
       const guild = client.guilds.cache.get(row.guildId)!;
-      const member = await fetchMemberCached(guild, userId);
+      const lookup = fetchMemberCached(guild, userId);
+      const member = await Promise.race([
+        lookup,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), Math.max(0, deadline - Date.now()))),
+      ]);
       return member
         ? {
             guildId: row.guildId,

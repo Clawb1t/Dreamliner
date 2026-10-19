@@ -2260,6 +2260,7 @@
                       "economy_bonus": {
                         "type": "number",
                         "minimum": 0,
+                        "maximum": 10000,
                         "default": 0,
                         "description": "Server currency awarded to the message author when it first reaches the star threshold.",
                         "title": "Economy Bonus"
@@ -9656,6 +9657,7 @@
                       "economy_milestone_bonus": {
                         "type": "number",
                         "minimum": 0,
+                        "maximum": 10000,
                         "default": 0,
                         "description": "Server currency awarded when a milestone is reached. 0 disables.",
                         "title": "Economy Milestone Bonus"
@@ -13182,6 +13184,7 @@
                 "default_win_bonus": {
                   "type": "number",
                   "minimum": 0,
+                  "maximum": 10000,
                   "default": 0,
                   "description": "Default server currency awarded to a winner when they claim their prize. 0 disables.",
                   "title": "Default Win Bonus"

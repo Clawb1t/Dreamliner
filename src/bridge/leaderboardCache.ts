@@ -25,11 +25,17 @@ export async function leaderboardCached<T extends { partial?: boolean }>(key: st
 }
 
 /**
- * Keeps the busiest leaderboards (global and the biggest servers) warm so visitors are served from
- * memory instead of triggering a rebuild. Runs on a timer; each pass only rebuilds what has gone
- * stale, one at a time, so it never competes with real requests for the event loop for long.
+ * Keeps the busiest leaderboards (global and the few biggest servers) warm so visitors are served
+ * from memory instead of triggering a rebuild.
+ *
+ * Kept deliberately small: every board row can need Discord requests (member, user, banner), and
+ * a pass over 25 servers measured ~1,300 requests. Those share the bot's Discord request queue with
+ * everything else, so a big pass made unrelated requests (like a profile's user lookup) wait behind
+ * it until the website gave up. Each pass only rebuilds what has gone stale, one board at a time.
  */
-export async function prewarmLeaderboards(client: Client, topGuilds = 25): Promise<void> {
+export const PREWARM_TOP_GUILDS = 5;
+export const PREWARM_INTERVAL_MS = 5 * 60_000;
+export async function prewarmLeaderboards(client: Client, topGuilds = PREWARM_TOP_GUILDS): Promise<void> {
   const { buildWebPublicMessagerLeaderboard, buildWebPublicVoiceLeaderboard, buildWebGlobalPublicMessagerLeaderboard } = await import("./webStats.js");
   const started = Date.now();
   const yieldLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
