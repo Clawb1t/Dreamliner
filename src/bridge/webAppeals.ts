@@ -106,6 +106,16 @@ export type AppealsPagePayload = {
     block: (Omit<BlockReason, "until"> & { until?: string }) | null;
     cases: PublicAppealCase[];
     manual: { state: ManualState; until: string | null; appealId: number | null; formId: string };
+    /** The server's own appeal options (enabled ones), each with this viewer's state. */
+    custom: {
+      id: string;
+      label: string;
+      description: string;
+      state: ManualState;
+      until: string | null;
+      appealId: number | null;
+      formId: string;
+    }[];
     appeals: PublicAppealSummary[];
   };
 };
@@ -175,6 +185,7 @@ export async function buildAppealsPagePayload(guild: Guild, viewerUserId?: strin
     }
     const manual = situation.options.manual;
     if (manual.state === "appealable") addForm(manual.formId);
+    for (const option of situation.options.custom) if (option.state === "appealable") addForm(option.formId);
     const block = situation.options.block;
     viewer = {
       userId,
@@ -183,6 +194,15 @@ export async function buildAppealsPagePayload(guild: Guild, viewerUserId?: strin
       block: block ? (block.kind === "account_too_new" ? { kind: block.kind, until: block.until.toISOString() } : block) : null,
       cases,
       manual: { state: manual.state, until: iso(manual.until), appealId: manual.appealId, formId: manual.formId },
+      custom: situation.options.custom.map((option) => ({
+        id: option.id,
+        label: option.label,
+        description: option.description,
+        state: option.state,
+        until: iso(option.until),
+        appealId: option.appealId,
+        formId: option.formId,
+      })),
       appeals: situation.appeals.map(summary),
     };
   }
@@ -230,13 +250,15 @@ export function publicWriteAllowed(userId: string): boolean {
 export async function submitWebAppeal(
   guild: Guild,
   userId: string,
-  body: { caseId?: unknown; manual?: unknown; answers?: unknown },
+  body: { caseId?: unknown; manual?: unknown; option?: unknown; answers?: unknown },
 ): Promise<{ ok: true; appealId: number; posted: boolean } | { ok: false; error: string; errors?: Record<string, string> }> {
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   const config = activeAppealsConfig(guildConfig);
   if (!config) return { ok: false, error: "This server isn't taking appeals." };
   const target =
-    body.manual === true
+    typeof body.option === "string" && body.option
+      ? { option: body.option.slice(0, 40) }
+      : body.manual === true
       ? ({ manual: true } as const)
       : Number.isInteger(Number(body.caseId)) && Number(body.caseId) > 0
         ? { caseId: Number(body.caseId) }
@@ -451,7 +473,8 @@ export async function getWebAppeal(guild: Guild, appealId: number, viewerId?: st
     decisionReason: appeal.decisionReason,
     reversed: appeal.reversed,
     reversalNote: appeal.reversalNote,
-    liftByDefault: appeal.kind === "manual" ? true : (rule?.auto_reverse ?? true),
+    // A custom option only lifts anything when it was set to lift a Discord ban (stored as "ban").
+    liftByDefault: appeal.option ? appeal.infractionType === "ban" : appeal.kind === "manual" ? true : (rule?.auto_reverse ?? true),
     ownAppeal,
     events,
     history,

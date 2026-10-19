@@ -260,7 +260,7 @@ export async function readSwitchPage(
   body: { source?: unknown; category?: unknown; images?: unknown; sessionToken?: string },
 ): Promise<SwitchReadResponse> {
   if (!isSwitchSource(body.source)) {
-    return { ok: false, error: "Pick MEE6 or Dyno first.", status: 400, freeUsesRemaining: 0 };
+    return { ok: false, error: "Pick the bot you're switching from first.", status: 400, freeUsesRemaining: 0 };
   }
   const category = typeof body.category === "string" ? body.category.trim().slice(0, 80) : "";
   if (!category) return { ok: false, error: "Missing the page being imported.", status: 400, freeUsesRemaining: 0 };

@@ -9,7 +9,7 @@
  * `form_index` (0 = the first, which is also the default). Blocked users and uploaded backgrounds
  * stay dashboard-only. Every setting is nullable: null means "leave it as it is".
  */
-import { APPEAL_QUESTION_TYPES, APPEALABLE_TYPES, MAX_APPEAL_FORMS, MAX_APPEAL_QUESTIONS } from "../../../config/schemas/appeals.js";
+import { APPEAL_QUESTION_TYPES, APPEALABLE_TYPES, MAX_APPEAL_CUSTOM_OPTIONS, MAX_APPEAL_FORMS, MAX_APPEAL_QUESTIONS } from "../../../config/schemas/appeals.js";
 import {
   ANSWER_KIND_RULE,
   COLOR_RULE,
@@ -109,6 +109,16 @@ export function appealsConfigSchema(): Rec {
         require_ban: nullable(bool()),
       }),
     ),
+    custom_options: nullable({
+      type: "array",
+      items: obj({
+        label: str(),
+        description: nullable(str()),
+        form_index: nullable(int()),
+        require_ban: nullable(bool()),
+        lift_discord_ban: nullable(bool()),
+      }),
+    }),
     forms: nullable({
       type: "array",
       items: obj({ name: str(), intro: nullable(str()), questions: { type: "array", items: questionSchema() } }),
@@ -304,6 +314,22 @@ export function validateAppealsConfig(config: Rec, ctx: AiWizardContext): string
     config.manual = null;
   }
 
+  if (Array.isArray(config.custom_options)) {
+    config.custom_options = config.custom_options
+      .filter(isRec)
+      .map((option) => ({
+        label: label(option.label, 80),
+        description: text(option.description, 300),
+        form_index: formIndex(option.form_index, forms),
+        require_ban: boolOrNull(option.require_ban),
+        lift_discord_ban: boolOrNull(option.lift_discord_ban),
+      }))
+      .filter((option) => option.label)
+      .slice(0, MAX_APPEAL_CUSTOM_OPTIONS);
+  } else {
+    config.custom_options = null;
+  }
+
   if (isRec(config.limits)) {
     const l = config.limits;
     l.max_per_case = clampInt(l.max_per_case, 1, 10);
@@ -358,6 +384,13 @@ function buildAppealsPrompt(ctx: AiWizardContext, questionsAsked: number): strin
     "- Manual appeals for punishments with no case on file (a ban by hand or by another bot): " +
     "on/off, which form, the option's title and description, and whether only people who are " +
     "really banned can send one (require_ban, recommended on).\n" +
+    `- custom_options: up to ${MAX_APPEAL_CUSTOM_OPTIONS} of the server's own appeal options, for ` +
+    "punishments Dreamliner didn't give, e.g. a Minecraft server ban or a ban on another game " +
+    "server. Each has a title (label), a description, a form (form_index), require_ban (only " +
+    "people banned from this Discord server can pick it, usually off for other places) and " +
+    "lift_discord_ban (approving also unbans them here, off for appeals about somewhere else). " +
+    "Returning custom_options REPLACES the server's list, so return the full list, or null to " +
+    "leave it alone.\n" +
     `- forms: up to ${MAX_APPEAL_FORMS} forms of up to ${MAX_APPEAL_QUESTIONS} questions, filled in on ` +
     "the website. Returning forms REPLACES the server's forms, so only return them when the user " +
     "wants questions changed or set up, and then return complete, well written forms. The first " +
@@ -396,7 +429,7 @@ function buildAppealsPrompt(ctx: AiWizardContext, questionsAsked: number): strin
     "form should ask (offer to write a solid form if they have no preference). Only bring up the " +
     "rest if the user mentions it or it clearly matters. " +
     NULL_MEANS_UNCHANGED_RULE +
-    " A whole section (page, types, one type, manual, forms, limits, review, decisions, " +
+    " A whole section (page, types, one type, manual, custom_options, forms, limits, review, decisions, " +
     'dm_button) can be null when nothing in it changes. An id of "" clears that setting. ' +
     "Durations are a number and unit like \"24h\", \"3d\" or \"2w\", or \"\" for none. " +
     NEVER_EM_DASH_RULE +

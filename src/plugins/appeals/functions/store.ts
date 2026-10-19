@@ -22,6 +22,8 @@ export type AppealRecord = {
   kind: "case" | "manual";
   infractionType: string | null;
   caseSnapshot: CaseSnapshot | null;
+  /** Set when a manual appeal came through one of the server's own options (`custom_options`). */
+  option: { id: string; label: string } | null;
   formId: string;
   formName: string;
   answers: FormAnswer[];
@@ -80,6 +82,7 @@ function toRecord(row: Row): AppealRecord {
     kind: row.kind === "manual" ? "manual" : "case",
     infractionType: row.infractionType,
     caseSnapshot: parseJson<CaseSnapshot | null>(row.caseSnapshotJson, null),
+    option: row.optionId ? { id: row.optionId, label: row.optionLabel ?? row.optionId } : null,
     formId: row.formId,
     formName: row.formName,
     answers: parseJson<FormAnswer[]>(row.answersJson, []),
@@ -103,6 +106,7 @@ export function createAppeal(input: {
   caseId: number | null;
   infractionType: string | null;
   caseSnapshot: CaseSnapshot | null;
+  option?: { id: string; label: string } | null;
   formId: string;
   formName: string;
   answers: FormAnswer[];
@@ -117,6 +121,8 @@ export function createAppeal(input: {
       kind: input.caseId === null ? "manual" : "case",
       infractionType: input.infractionType,
       caseSnapshotJson: input.caseSnapshot ? JSON.stringify(input.caseSnapshot) : null,
+      optionId: input.option?.id ?? null,
+      optionLabel: input.option?.label ?? null,
       formId: input.formId,
       formName: input.formName,
       answersJson: JSON.stringify(input.answers),

@@ -52,9 +52,22 @@ export type BlockReason =
   /** Already has as many open appeals as the server allows. */
   | { kind: "too_many_open"; max: number };
 
+/** One of the server's own options (`custom_options`): a manual appeal with its own title and form. */
+export type CustomOption = {
+  id: string;
+  label: string;
+  description: string;
+  state: ManualState;
+  until: Date | null;
+  appealId: number | null;
+  formId: string;
+};
+
 export type AppealOptions = {
   cases: CaseOption[];
   manual: { state: ManualState; until: Date | null; appealId: number | null; formId: string };
+  /** Enabled custom options only, in the server's order. */
+  custom: CustomOption[];
   /** When set, nothing can be submitted right now, whatever each case's own state is. */
   block: BlockReason | null;
 };
@@ -140,7 +153,7 @@ export function appealOptions(
   else {
     const history = historyState(
       config,
-      appeals.filter((appeal) => appeal.kind === "manual"),
+      appeals.filter((appeal) => appeal.kind === "manual" && !appeal.option),
       now,
     );
     manual =
@@ -149,7 +162,30 @@ export function appealOptions(
         : { ...manualBase, state: "appealable" };
   }
 
-  return { cases: options, manual, block: blockReason(config, appeals, now, viewer) };
+  // The server's own options: each keeps its own history (one appeal per option, like a case).
+  const custom: CustomOption[] = config.custom_options
+    .filter((option) => option.enabled)
+    .map((option) => {
+      const base = {
+        id: option.id,
+        label: option.label.trim() || "Other appeal",
+        description: option.description.trim(),
+        formId: option.form_id,
+        appealId: null as number | null,
+        until: null as Date | null,
+      };
+      if (option.require_ban && !viewer.isBanned) return { ...base, state: "not_banned" as const };
+      const history = historyState(
+        config,
+        appeals.filter((appeal) => appeal.kind === "manual" && appeal.option?.id === option.id),
+        now,
+      );
+      return history && history.state !== "resolved"
+        ? { ...base, state: history.state, until: history.until, appealId: history.appealId }
+        : { ...base, state: "appealable" as const };
+    });
+
+  return { cases: options, manual, custom, block: blockReason(config, appeals, now, viewer) };
 }
 
 function blockReason(

@@ -1262,6 +1262,7 @@ plugins:
         label: Something else
         description: Not listed here? Tell us what happened.
         require_ban: true
+      custom_options: []
       forms:
         - id: 00000000-0000-4000-8000-0000000a9fe1
           name: Appeal form

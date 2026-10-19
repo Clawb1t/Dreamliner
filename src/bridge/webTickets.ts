@@ -25,7 +25,13 @@ import {
   performUnassign,
   performUnclaim,
 } from "../plugins/tickets/functions/actions.js";
-import { getLatestTranscriptForTicket } from "../plugins/tickets/functions/transcripts.js";
+import {
+  getLatestTranscriptForTicket,
+  getTranscriptRecord,
+  isTranscriptParticipant,
+  type TranscriptMessage,
+} from "../plugins/tickets/functions/transcripts.js";
+import { hasPermission } from "../core/permissionRoles.js";
 import { postPanel } from "../plugins/tickets/functions/panels.js";
 import { deleteTicket as deleteTicketRow } from "../plugins/tickets/functions/tickets.js";
 import { deleteContainer } from "../plugins/tickets/functions/channels.js";
@@ -318,4 +324,179 @@ export async function addGuildTicketBlacklist(guild: Guild, targetId: string, ta
 export async function removeGuildTicketBlacklist(guild: Guild, targetId: string) {
   await removeFromBlacklist(guild.id, targetId);
   return listBlacklist(guild.id);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Web transcript page (/server/:guildId/tickets/transcript/:transcriptId)
+// ---------------------------------------------------------------------------------------------
+
+export type WebTranscriptMentions = {
+  users: Record<string, string>;
+  roles: Record<string, { name: string; color: number }>;
+  channels: Record<string, string>;
+};
+
+export type WebTranscriptPayload = {
+  ok: true;
+  guild: { id: string; name: string; icon: string | null };
+  ticket: {
+    id: number;
+    number: number;
+    status: string;
+    categoryLabel: string | null;
+    panelName: string | null;
+    opener: WebPerson;
+    claimedBy: WebPerson | null;
+    closedBy: WebPerson | null;
+    closeReason: string | null;
+    createdAt: string | null;
+    closedAt: string | null;
+  } | null;
+  transcript: {
+    id: string;
+    createdAt: string;
+    channelName: string | null;
+    messageCount: number;
+    messages: TranscriptMessage[];
+  };
+  mentions: WebTranscriptMentions;
+};
+
+export type WebTranscriptResult = WebTranscriptPayload | { ok: false; code: "forbidden" | "not_found" };
+
+const MAX_MENTIONS_PER_KIND = 300;
+
+/** Every <@user>, <@&role> and <#channel> referenced anywhere a reader will see text. */
+export function collectTranscriptMentionIds(messages: TranscriptMessage[]): { users: Set<string>; roles: Set<string>; channels: Set<string> } {
+  const users = new Set<string>();
+  const roles = new Set<string>();
+  const channels = new Set<string>();
+  const scan = (text: string | undefined) => {
+    if (!text) return;
+    for (const m of text.matchAll(/<@(!|&)?(\d{5,20})>/g)) {
+      if (m[1] === "&") {
+        if (roles.size < MAX_MENTIONS_PER_KIND) roles.add(m[2]!);
+      } else if (users.size < MAX_MENTIONS_PER_KIND) users.add(m[2]!);
+    }
+    for (const m of text.matchAll(/<#(\d{5,20})>/g)) if (channels.size < MAX_MENTIONS_PER_KIND) channels.add(m[1]!);
+  };
+  for (const message of messages) {
+    scan(message.content);
+    for (const embed of message.embeds ?? []) {
+      scan(embed.title);
+      scan(embed.description);
+      scan(embed.footer?.text);
+      for (const field of embed.fields ?? []) {
+        scan(field.name);
+        scan(field.value);
+      }
+    }
+    for (const block of message.components ?? []) {
+      for (const item of block.items) if (item.type === "text") scan(item.content);
+    }
+  }
+  return { users, roles, channels };
+}
+
+/**
+ * Who may read a transcript: anyone who was part of the ticket, server managers (`canManage`,
+ * checked by the bridge), and members with the tickets `can_view_all` permission. Never fetches
+ * per-message author data from Discord: stored snapshots first, then whatever is already cached.
+ */
+export async function getWebTranscript(
+  guild: Guild,
+  transcriptId: string,
+  viewerId: string,
+  canManage: () => Promise<boolean>,
+): Promise<WebTranscriptResult> {
+  const record = await getTranscriptRecord(guild.id, transcriptId);
+  const ticket = record ? await getTicket(guild.id, record.ticketId) : null;
+
+  const isStaff = async (): Promise<boolean> => {
+    if (await canManage()) return true;
+    const member = await fetchMemberCached(guild, viewerId);
+    if (!member) return false;
+    const guildConfig = await configManager.getEffectiveConfig(guild.id);
+    return hasPermission(guild.id, "tickets", "can_view_all", member, guildConfig);
+  };
+
+  const participant =
+    record !== null &&
+    isTranscriptParticipant(viewerId, ticket ?? { openerId: "", memberIds: [], claimedBy: null }, record.messages);
+  const allowed = participant || (await isStaff());
+  // Only someone who could see any transcript here learns that this one doesn't exist.
+  if (!record) return { ok: false, code: allowed ? "not_found" : "forbidden" };
+  if (!allowed) return { ok: false, code: "forbidden" };
+
+  const messages = record.messages.map((message): TranscriptMessage => {
+    const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+    if (message.authorName && message.authorAvatar !== undefined) return { ...message, attachments };
+    // Older payloads: fill name/avatar from the cache only (no Discord round trips per message).
+    const member = guild.members.cache.get(message.authorId);
+    const user = member?.user ?? guild.client.users.cache.get(message.authorId);
+    return {
+      ...message,
+      attachments,
+      authorName: message.authorName ?? member?.displayName ?? user?.globalName ?? user?.username ?? message.authorTag,
+      authorAvatar: message.authorAvatar ?? (member ?? user)?.displayAvatarURL({ size: 64 }) ?? null,
+      authorBot: message.authorBot ?? user?.bot ?? false,
+    };
+  });
+
+  const ids = collectTranscriptMentionIds(messages);
+  const authorNames = new Map(messages.map((m) => [m.authorId, m.authorName ?? m.authorTag]));
+  const mentions: WebTranscriptMentions = { users: {}, roles: {}, channels: {} };
+  for (const id of ids.users) {
+    const member = guild.members.cache.get(id);
+    const user = member?.user ?? guild.client.users.cache.get(id);
+    const name = authorNames.get(id) ?? member?.displayName ?? user?.globalName ?? user?.username;
+    if (name) mentions.users[id] = name;
+  }
+  for (const id of ids.roles) {
+    const role = guild.roles.cache.get(id);
+    if (role) mentions.roles[id] = { name: role.name, color: role.color };
+  }
+  for (const id of ids.channels) {
+    const channel = guild.channels.cache.get(id);
+    if (channel) mentions.channels[id] = channel.name;
+  }
+
+  let ticketMeta: WebTranscriptPayload["ticket"] = null;
+  if (ticket) {
+    const pluginConfig = await getTicketsConfig(guild.id);
+    const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
+    const category = panel?.categories.find((c) => c.id === ticket.categoryId);
+    const [opener, claimedBy, closedBy] = await Promise.all([
+      resolvePerson(guild, ticket.openerId),
+      resolvePerson(guild, ticket.claimedBy),
+      resolvePerson(guild, ticket.closedBy),
+    ]);
+    ticketMeta = {
+      id: ticket.id,
+      number: ticket.number,
+      status: ticket.status,
+      categoryLabel: category?.label?.trim() || null,
+      panelName: panel?.name?.trim() || null,
+      opener: opener ?? { id: ticket.openerId, name: ticket.openerId, username: null, avatar: null },
+      claimedBy,
+      closedBy,
+      closeReason: ticket.closeReason,
+      createdAt: toIso(ticket.createdAt),
+      closedAt: toIso(ticket.closedAt),
+    };
+  }
+
+  return {
+    ok: true,
+    guild: { id: guild.id, name: guild.name, icon: guild.icon },
+    ticket: ticketMeta,
+    transcript: {
+      id: record.id,
+      createdAt: toIso(record.createdAt) ?? new Date(0).toISOString(),
+      channelName: record.channelName,
+      messageCount: messages.length,
+      messages,
+    },
+    mentions,
+  };
 }

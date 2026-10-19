@@ -56,6 +56,9 @@ export async function reversePunishment(
     }
   };
 
+  // The server's own options only touch Discord when they were set to lift a ban (stored as "ban").
+  if (appeal.option && type !== "ban") return { ok: true, note: "Nothing to lift on Discord", unbanned: false };
+
   if (type === "ban" || type === "tempban" || appeal.kind === "manual") {
     const banned = await guild.bans.fetch({ user: appeal.userId, force: true }).catch(() => null);
     if (banned) return lift("unban");

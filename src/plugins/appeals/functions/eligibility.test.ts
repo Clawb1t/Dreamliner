@@ -29,6 +29,7 @@ const appeal = (patch: Partial<AppealRecord> = {}): AppealRecord => ({
   kind: "case",
   infractionType: "ban",
   caseSnapshot: null,
+  option: null,
   formId: "",
   formName: "",
   answers: [],
@@ -108,6 +109,37 @@ test("manual appeals: off by default, and only for banned users when required", 
     appealOptions(on, [], [appeal({ caseId: null, kind: "manual" })], now, viewer).manual.state,
     "already_open",
   );
+});
+
+test("custom options: own history per option, require_ban, disabled ones hidden", () => {
+  const cfg = config({
+    custom_options: [
+      { id: "minecraft", label: "Minecraft ban" },
+      { id: "discord-only", label: "Banned here", require_ban: true },
+      { id: "off", label: "Hidden", enabled: false },
+    ],
+  });
+  const fresh = appealOptions(cfg, [], [], now, { ...viewer, isBanned: false });
+  assert.deepEqual(
+    fresh.custom.map((option) => [option.id, option.state]),
+    [
+      ["minecraft", "appealable"],
+      ["discord-only", "not_banned"],
+    ],
+  );
+
+  const pendingMinecraft = appeal({ kind: "manual", caseId: null, infractionType: null, option: { id: "minecraft", label: "Minecraft ban" } });
+  const result = appealOptions(cfg, [], [pendingMinecraft], now, viewer);
+  assert.equal(result.custom.find((option) => option.id === "minecraft")?.state, "already_open");
+  assert.equal(result.custom.find((option) => option.id === "discord-only")?.state, "appealable");
+  // A custom-option appeal doesn't count against the built-in manual appeal.
+  const manual = appealOptions(config({ manual: { enabled: true }, custom_options: [{ id: "minecraft", label: "Minecraft ban" }] }), [], [pendingMinecraft], now, viewer);
+  assert.equal(manual.manual.state, "appealable");
+});
+
+test("custom option ids must be unique and slug-shaped", () => {
+  assert.throws(() => config({ custom_options: [{ id: "a", label: "A" }, { id: "a", label: "B" }] }));
+  assert.throws(() => config({ custom_options: [{ id: "Has Spaces", label: "A" }] }));
 });
 
 test("blocks: listed users, blocked roles, new accounts, too many open appeals", () => {

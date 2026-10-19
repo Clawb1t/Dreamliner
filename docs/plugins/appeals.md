@@ -84,6 +84,24 @@ A user can't appeal at all if they:
 **Manual appeals** (`manual.enabled`) cover punishments with no case on file, such as a ban made by
 hand or by another bot. With `manual.require_ban` on, only users who really are banned can file one.
 
+**Your own options** (`custom_options`, up to 10) let a server take appeals for things Dreamliner never
+punished, for example a Minecraft server ban. Each option has:
+
+- an `id`, which stays the same when the title is renamed;
+- a `label` and a `description`;
+- a form, chosen with `form_id`;
+- `require_ban`: only users banned from this Discord server can pick it;
+- `lift_discord_ban`: approving the appeal also unbans them here.
+
+Both switches are off by default. That suits an appeal about somewhere else: approving it records the
+decision and DMs the user, and staff lift the punishment themselves. Each option keeps its own history
+(the same per-appeal limits as a case). Appeals sent through an option keep its title even after the
+option is renamed or deleted.
+
+**Drafts:** while someone writes an appeal, their answers are saved in their browser. They're kept
+for each server, Discord account and option. Picking the same thing again restores the draft, and
+sending the appeal clears it. Drafts expire after 30 days.
+
 ## Forms
 
 Up to 10 forms, each with up to 20 questions. Each infraction type, and manual appeals, picks a form
@@ -144,6 +162,13 @@ plugins:
         enabled: false
         require_ban: true
         label: "Something else"
+      custom_options:
+        - id: minecraft
+          label: "Minecraft server ban"
+          description: "Banned on play.example.net? Appeal it here."
+          form_id: ""                 # empty uses the first form
+          require_ban: false          # they don't need to be banned on Discord
+          lift_discord_ban: false     # approving doesn't touch Discord
       forms:
         - id: "00000000-0000-4000-8000-0000000a9fe1"
           name: "Appeal form"

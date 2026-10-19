@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { DREAMLINER_ACCENT_HEX } from "../../../core/embeds.js";
 import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas";
 import { cardFont } from "../../welcome_message/functions/cardFonts.js";
+import { canvasGlyphSupport, cleanCanvasName, firstGrapheme, stripUnsupportedGlyphs, truncateToFit } from "../../../core/canvasText.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { getLogger } from "../../../core/logger.js";
 const log = getLogger("stats");
@@ -680,6 +681,8 @@ export type RankCardBadge = {
 export type RankCardRow = {
   rank: number;
   name: string;
+  /** Shown instead of `name` when none of its characters can be drawn (e.g. the username). */
+  fallbackName?: string | null;
   avatarURL?: string | null;
   /** The user's Discord profile banner, when set — shown fading into the row background, like the site. */
   bannerURL?: string | null;
@@ -735,7 +738,7 @@ function drawRoundedFallbackAvatar(ctx: SKRSContext2D, initial: string, x: numbe
   roundRect(ctx, x, y, size, size, radius);
   ctx.fill();
   ctx.fillStyle = RANK_CARD.muted;
-  ctx.font = cardFont(700, Math.floor(size * 0.36));
+  ctx.font = rankTextFont(Math.floor(size * 0.36));
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(initial, x + size / 2, y + size / 2 + 1);
@@ -743,11 +746,31 @@ function drawRoundedFallbackAvatar(ctx: SKRSContext2D, initial: string, x: numbe
   ctx.textBaseline = "alphabetic";
 }
 
+/** The card font plus the emoji face, for user-provided text (names, badge names): Skia only
+ *  falls back across the listed families, so without it every emoji drew as a "No Glyph" box. */
+function rankTextFont(sizePx: number): string {
+  return cardFont(700, sizePx).replace(/, sans-serif$/, `, "Rank Card Emoji", sans-serif`);
+}
+
 /** Renders one leaderboard row exactly as it appears on the site (rounded-square avatar +
  * rank badge, name + badge chips, accent share line, and a radial share-percentage ring),
  * scaled up into a taller, narrower card and with the user's profile banner as a background. */
 export async function renderRankCard(options: RankCardOptions, t: Translator = defaultTranslator): Promise<Buffer> {
-  const row = options.row;
+  const sourceRow = options.row;
+  // Characters no font here can draw would show as "No Glyph" boxes: leave them out. (The probe
+  // ignores the size in the font string, so any size works.)
+  ensureEmojiFont();
+  const nameGlyphs = canvasGlyphSupport(rankTextFont(19));
+  const emojiGlyphs = canvasGlyphSupport(`19px "Rank Card Emoji", sans-serif`);
+  const row: RankCardRow = {
+    ...sourceRow,
+    name: cleanCanvasName([sourceRow.name, sourceRow.fallbackName], nameGlyphs),
+    badges: sourceRow.badges?.map((badge) => ({
+      ...badge,
+      name: stripUnsupportedGlyphs(badge.name, nameGlyphs),
+      icon: badge.icon ? stripUnsupportedGlyphs(badge.icon, emojiGlyphs) : badge.icon,
+    })),
+  };
   const width = options.width ?? 460;
   // 4x: a crisp 1840px-wide card, sharp even when Discord shows it full size.
   const scale = options.scale ?? 4;
@@ -782,9 +805,9 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   const chipHeight = 19;
   const chipGap = 8;
   const badgeMetrics: { text: string; icon: string; showIcon: boolean; w: number; badge: RankCardBadge }[] = [];
-  measure.font = cardFont(700, badgeSize);
+  measure.font = rankTextFont(badgeSize);
   for (const badge of badges) {
-    const showIcon = Boolean(badge.iconImageUrl) || hasEmojiGlyphs;
+    const showIcon = Boolean(badge.iconImageUrl) || (hasEmojiGlyphs && Boolean(badge.icon));
     const textW = measure.measureText(badge.name).width;
     const iconPart = showIcon ? chipIconSize + chipIconGap : 0;
     badgeMetrics.push({ text: badge.name, icon: badge.icon, showIcon, w: chipPadX + iconPart + textW + chipPadX, badge });
@@ -819,7 +842,7 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
 
   // The username comes first: when it and its badges don't fit on one line, the badges move to a
   // line of their own instead of the name being cut short.
-  measure.font = cardFont(700, nameSize);
+  measure.font = rankTextFont(nameSize);
   const badgesOnOwnLine = badgesWidth > 0 && measure.measureText(row.name).width + nameToBadgesGap + badgesWidth > textMaxWidth;
 
   const nameLine = 24;
@@ -881,15 +904,17 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
 
   const avatarX = padX;
   const avatarY = (height - avatarSize) / 2;
+  // Whole first character (an emoji or accented letter can be several code units).
+  const initial = (firstGrapheme(row.name) ?? "?").toUpperCase();
   if (row.avatarURL) {
     try {
       const image = await loadImageMaybeDataUri(row.avatarURL);
       drawRoundedAvatar(ctx, image, avatarX, avatarY, avatarSize, avatarRadius);
     } catch {
-      drawRoundedFallbackAvatar(ctx, row.name.charAt(0).toUpperCase(), avatarX, avatarY, avatarSize, avatarRadius);
+      drawRoundedFallbackAvatar(ctx, initial, avatarX, avatarY, avatarSize, avatarRadius);
     }
   } else {
-    drawRoundedFallbackAvatar(ctx, row.name.charAt(0).toUpperCase(), avatarX, avatarY, avatarSize, avatarRadius);
+    drawRoundedFallbackAvatar(ctx, initial, avatarX, avatarY, avatarSize, avatarRadius);
   }
 
   // Rank badge — bottom-right of the avatar, shifted out by 20% of its own size, like the site.
@@ -941,15 +966,12 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   }
 
   // Identity column
-  ctx.font = cardFont(700, nameSize);
+  ctx.font = rankTextFont(nameSize);
   ctx.fillStyle = RANK_CARD.foreground;
-  let name = row.name;
   // Only a name too long for the whole column on its own is shortened.
   const nameMaxWidth =
     badgesOnOwnLine || badgesWidth === 0 ? textMaxWidth : textMaxWidth - nameToBadgesGap - badgesWidth;
-  while (name.length > 1 && ctx.measureText(name).width > nameMaxWidth) {
-    name = `${name.slice(0, -2)}…`;
-  }
+  const name = truncateToFit(row.name, (candidate) => ctx.measureText(candidate).width <= nameMaxWidth);
   const nameY = identityTop + 14; // baseline within the name line
   ctx.fillText(name, textX, nameY);
   const nameWidth = ctx.measureText(name).width;
@@ -1022,7 +1044,7 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     }
 
     ctx.fillStyle = RANK_CARD.foreground;
-    ctx.font = cardFont(700, badgeSize);
+    ctx.font = rankTextFont(badgeSize);
     ctx.textBaseline = "middle";
     ctx.fillText(metrics.text, cursor, pillCenterY);
     ctx.textBaseline = "alphabetic";

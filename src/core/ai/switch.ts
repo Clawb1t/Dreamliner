@@ -1,5 +1,6 @@
 /**
- * Autopilot pieces for Switch: moving a server from MEE6 or Dyno to Dreamliner. Neither bot has a
+ * Autopilot pieces for Switch: moving a server from MEE6, Dyno, Sapphire and the other bots in
+ * SWITCH_SOURCES to Dreamliner. None of them has a
  * settings export, so the admin screenshots each page of their old dashboard. Autopilot first reads
  * the screenshots into plain notes (the only step that sees images), then the matching regular
  * setup wizard (AI_WIZARDS) runs in "import mode" seeded with those notes, so every plugin keeps
@@ -16,6 +17,7 @@ export const SWITCH_SOURCES = {
   arcane: { name: "Arcane", botId: "437808476106784770" },
   probot: { name: "ProBot", botId: "282859044593598464" },
   tatsu: { name: "Tatsu", botId: "172002275412279296" },
+  sapphire: { name: "Sapphire", botId: "678344927997853742" },
 } as const;
 
 export type SwitchSource = keyof typeof SWITCH_SOURCES;
@@ -25,6 +27,29 @@ export function isSwitchSource(value: unknown): value is SwitchSource {
 }
 
 export const MAX_SWITCH_IMAGES = 4;
+
+/**
+ * Extra orientation for bots whose dashboards are laid out less like the others, so the read step
+ * recognises the page and knows which parts belong to which Dreamliner feature.
+ */
+const SOURCE_DASHBOARD_HINTS: Partial<Record<SwitchSource, string>> = {
+  sapphire:
+    "Sapphire's dashboard (dashboard.sapph.xyz) has a left sidebar of modules, each page made of cards with a " +
+    "toggle in the card header. Moderation holds punishment and case settings (Dreamliner's moderation commands " +
+    "already cover these); Auto Moderation lists filters (bad words, invites, links, spam, mass mentions, caps, " +
+    "duplicate text) each with its own actions, exempt roles and ignored channels; Join & Leave Messages (also " +
+    "called Welcome Messages) holds the join, leave and join DM messages, which may be plain text, an embed or a " +
+    "welcome card image; Auto Roles lists roles given on join, often split into member and bot roles, with an " +
+    "optional delay; Reaction Roles (also called Role Menus) lists messages with reactions, buttons or a select " +
+    "menu, each mapping an emoji or label to a role and a mode such as normal, unique, verify or remove; Leveling " +
+    "shows the level-up message, its channel, XP rate, No XP roles and channels and Level Rewards (a level and the " +
+    "role given at it); Custom Commands lists each command name and its response. Logging and Social " +
+    "Notifications pages may also appear: note their channels and toggles too.",
+};
+
+export function switchDashboardHint(source: SwitchSource): string {
+  return SOURCE_DASHBOARD_HINTS[source] ?? "";
+}
 
 const NO_EM_DASH = "Never use em dashes; use a comma, period, or 'and' instead.";
 
@@ -41,6 +66,9 @@ const VARIABLE_MAP =
   "{{.User.Username}} -> {username}, {{.Guild.Name}} -> {server}, {{.Guild.MemberCount}} -> {member_count}), " +
   "Carl-bot ({user} -> {user}, {user(name)} -> {username}, {server} -> {server}, {server(members)} -> {member_count}), " +
   "ProBot ([user] -> {user}, [userName] -> {username}, [server] -> {server}, [memberCount] -> {member_count}), " +
+  "Sapphire (snake_case names such as {user}, {user_mention} -> {user}; {user_name}, {username} -> {username}; " +
+  "{user_display_name}, {user_nickname} -> {user_display}; {user_id} -> {user_id}; {user_avatar}, {user_avatar_url} -> {avatar_url}; " +
+  "{server_name}, {guild_name} -> {server}; {server_member_count}, {server_members}, {guild_member_count} -> {member_count}), " +
   "Arcane and Tatsu ({user} -> {user}, {server} -> {server}). If a variable has no equivalent, drop it and keep the sentence natural. " +
   "Always keep variables as placeholders; never replace one with its current value (write {server}, not the server's name).";
 
@@ -77,6 +105,7 @@ export async function readSwitchScreenshots(input: {
   const system =
     `You read screenshots of the ${bot} Discord bot dashboard so a server admin can move their setup to Dreamliner. ` +
     `The screenshots should show the "${input.categoryName}" page. ` +
+    (switchDashboardHint(input.source) ? `${switchDashboardHint(input.source)} ` : "") +
     "Write notes listing every setting you can see: which features and toggles are ON or OFF, every channel " +
     "(write #channel-name exactly as shown), every role (write @Role Name exactly as shown), numbers and limits, " +
     "selected options, emojis, and every message, embed title, description, footer and button label copied word " +
@@ -137,6 +166,7 @@ export function buildImportDirective(source: SwitchSource, categoryName: string)
     "ignore them here and don't mention them at all, not even to say they were left out. " +
     `Keep the summary to one or two sentences about what this setup brings over from ${bot}, and mention anything ` +
     "Dreamliner does differently. " +
+    (switchDashboardHint(source) ? `About ${bot}: ${switchDashboardHint(source)} ` : "") +
     VARIABLE_MAP
   );
 }

@@ -278,8 +278,21 @@ async function slowEntities(guild: Guild) {
   return { members, emojis };
 }
 
-async function buildEntities(guild: Guild) {
-  const { cachedSwr, cached } = await import("./responseCache.js");
+/** Last forced entity reload per guild: the dashboard's Refresh button can't hammer Discord. */
+const entitiesForcedAt = new Map<string, number>();
+const ENTITIES_FORCE_MIN_MS = 15_000;
+
+async function buildEntities(guild: Guild, fresh = false) {
+  const { cachedSwr, cached, invalidateCached } = await import("./responseCache.js");
+  if (fresh) {
+    const last = entitiesForcedAt.get(guild.id) ?? 0;
+    if (Date.now() - last >= ENTITIES_FORCE_MIN_MS) {
+      entitiesForcedAt.set(guild.id, Date.now());
+      if (entitiesForcedAt.size > 2000) entitiesForcedAt.delete(entitiesForcedAt.keys().next().value!);
+      // Members and emojis are the cached part; dropping the entry makes this request rebuild them.
+      invalidateCached(`entities-slow:${guild.id}`);
+    }
+  }
   // Channels and roles come straight from the gateway cache: instant and always current.
   const channels = [...guild.channels.cache.values()]
     .filter((ch) => !ch.isThread())
@@ -2826,6 +2839,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ticketStatsMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/stats$/.exec(url.pathname);
         const ticketOneMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)$/.exec(url.pathname);
         const ticketsMatch = /^\/bridge\/guilds\/(\d+)\/tickets$/.exec(url.pathname);
+        // Web transcript page: participants + staff, checked inside (not Manage Server only).
+        const ticketTranscriptMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/transcripts\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         // AI Responder: overview, /knowledge[/:id], /autotrain (run now), /test (dashboard test chat).
         const ticketAiMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/ai(?:\/(knowledge|autotrain|test)(?:\/(\d+))?)?$/.exec(url.pathname);
         const giveawayActionMatch =
@@ -2972,6 +2987,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !ticketStatsMatch &&
           !ticketOneMatch &&
           !ticketsMatch &&
+          !ticketTranscriptMatch &&
           !ticketAiMatch &&
           !giveawayActionMatch &&
           !giveawayTemplateOneMatch &&
@@ -3084,6 +3100,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           ticketStatsMatch?.[1] ??
           ticketOneMatch?.[1] ??
           ticketsMatch?.[1] ??
+          ticketTranscriptMatch?.[1] ??
           ticketAiMatch?.[1] ??
           giveawayActionMatch?.[1] ??
           giveawayTemplateOneMatch?.[1] ??
@@ -7095,6 +7112,32 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (ticketTranscriptMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          // The site passes its own signed-in session user here, never a browser-supplied id.
+          const viewerId = url.searchParams.get("userId")?.trim() ?? "";
+          if (!/^\d{5,20}$/.test(viewerId)) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          const { getWebTranscript } = await import("./webTickets.js");
+          const result = await getWebTranscript(guild, ticketTranscriptMatch[2]!.toLowerCase(), viewerId, () =>
+            memberCanManage(guild, viewerId),
+          );
+          if (!result.ok) {
+            sendJson(res, result.code === "not_found" ? 404 : 403, {
+              error: result.code === "not_found" ? "Transcript not found" : "You don't have access to this transcript.",
+              code: result.code,
+            });
+            return;
+          }
+          sendJson(res, 200, result);
+          return;
+        }
+
         if (ticketsMatch || ticketOneMatch || ticketStatsMatch || ticketActionMatch || ticketPanelPublishMatch || ticketBlacklistMatch) {
           const userId = url.searchParams.get("userId")?.trim();
           if (!userId) {
@@ -8388,7 +8431,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
-          const entities = await buildEntities(guild);
+          const entities = await buildEntities(guild, url.searchParams.get("fresh") === "1");
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             ...entities,

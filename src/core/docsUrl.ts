@@ -42,6 +42,11 @@ export function getGuildAppealsDashboardUrl(guildId: string, appealId?: number |
   return `${resolveSiteUrl()}/dashboard/${guildId}?section=appeals${appealId ? `&appeal=${appealId}` : ""}`;
 }
 
+/** Web transcript of a closed ticket (access is checked on the page: participants and staff only). */
+export function getTicketTranscriptUrl(guildId: string, transcriptId: string): string {
+  return `${resolveSiteUrl()}/server/${guildId}/tickets/transcript/${encodeURIComponent(transcriptId)}`;
+}
+
 /** Public Passport verification page for a guild. */
 export function getPassportUrl(guildId: string): string {
   return `${resolveSiteUrl()}/passport/${guildId}`;

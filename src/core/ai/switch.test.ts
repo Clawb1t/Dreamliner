@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildImportDirective, isSwitchSource, withMoreToImport } from "./switch.js";
+import { SWITCH_SOURCES, buildImportDirective, isSwitchSource, switchDashboardHint, withMoreToImport } from "./switch.js";
 import { mee6XpForLevel, mee6XpToMessages } from "../../bridge/webSwitch.js";
 
 test("MEE6 level curve matches 5L^2 + 50L + 100 per level", () => {
@@ -35,4 +35,17 @@ test("import directive names the source and page, and never uses em dashes", () 
   assert.ok(isSwitchSource("dyno"));
   assert.ok(isSwitchSource("yagpdb") && isSwitchSource("carl") && isSwitchSource("tatsu"));
   assert.ok(!isSwitchSource("not-a-bot"));
+});
+
+test("Sapphire is a Switch source with its own dashboard guidance", () => {
+  assert.ok(isSwitchSource("sapphire"));
+  assert.equal(SWITCH_SOURCES.sapphire.name, "Sapphire");
+  assert.match(SWITCH_SOURCES.sapphire.botId, /^\d{17,20}$/);
+  const directive = buildImportDirective("sapphire", "Auto Moderation");
+  assert.match(directive, /switching from Sapphire/);
+  assert.match(directive, /dashboard\.sapph\.xyz/);
+  assert.ok(!directive.includes("—"));
+  assert.ok(switchDashboardHint("sapphire").length > 0);
+  assert.equal(switchDashboardHint("mee6"), "");
+  assert.ok(!buildImportDirective("mee6", "Levels").includes("dashboard.sapph.xyz"));
 });

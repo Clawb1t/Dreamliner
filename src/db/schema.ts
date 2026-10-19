@@ -2281,6 +2281,10 @@ export const appeals = sqliteTable(
     infractionType: text("infraction_type"),
     /** JSON: the infraction as it was when appealed (type, reason, dates), so later edits don't rewrite it. */
     caseSnapshotJson: text("case_snapshot_json"),
+    /** A manual appeal sent through one of the server's own options (`custom_options`): its id, and its
+     *  label at the time, so renaming or deleting the option doesn't blank old appeals. Null otherwise. */
+    optionId: text("option_id"),
+    optionLabel: text("option_label"),
     formId: text("form_id").notNull().default(""),
     formName: text("form_name").notNull().default(""),
     /** JSON: FormAnswer[] */

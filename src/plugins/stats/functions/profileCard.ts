@@ -2,6 +2,7 @@ import { loadImageSafe } from "../../../core/safeImage.js";
 import { createCanvas, type Canvas, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import type { Client, User } from "discord.js";
 import { siteFont } from "../../welcome_message/functions/cardFonts.js";
+import { canvasGlyphSupport, cleanCanvasName, firstGrapheme, stripUnsupportedGlyphs, truncateToFit } from "../../../core/canvasText.js";
 import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect, tintedImage } from "./charts.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
@@ -131,13 +132,26 @@ function toHex(color: string): string {
 
 /** Single-color art (the One bolt) recolored, like the site's `color: var(--accent)` glyph. */
 function ellipsize(ctx: SKRSContext2D, text: string, maxWidth: number): string {
-  if (ctx.measureText(text).width <= maxWidth) return text;
-  let cut = text;
-  while (cut.length > 1 && ctx.measureText(`${cut}…`).width > maxWidth) cut = cut.slice(0, -1);
-  return `${cut.trimEnd()}…`;
+  return truncateToFit(text, (candidate) => ctx.measureText(candidate).width <= maxWidth);
 }
 
-export async function renderProfileCard(data: ProfileCardData, options: { width?: number; scale?: number } = {}): Promise<Buffer> {
+export async function renderProfileCard(source: ProfileCardData, options: { width?: number; scale?: number } = {}): Promise<Buffer> {
+  // Characters no font here can draw would show as "No Glyph" boxes: leave them out. (The probe
+  // ignores the size in the font string, so any size works.)
+  const nameGlyphs = canvasGlyphSupport(siteFont(750, 16));
+  const chipGlyphs = canvasGlyphSupport(siteFont(650, 16));
+  const emojiGlyphs = canvasGlyphSupport(`16px "Rank Card Emoji", "Segoe UI Emoji", sans-serif`);
+  const username = cleanCanvasName([source.username], chipGlyphs, "user");
+  const data: ProfileCardData = {
+    ...source,
+    displayName: cleanCanvasName([source.displayName, source.username], nameGlyphs, username),
+    username,
+    badges: source.badges.map((badge) => ({
+      ...badge,
+      name: stripUnsupportedGlyphs(badge.name, chipGlyphs),
+      icon: badge.icon ? stripUnsupportedGlyphs(badge.icon, emojiGlyphs) : badge.icon,
+    })),
+  };
   const width = options.width ?? 760;
   const scale = options.scale ?? 3;
   const now = data.now ?? new Date();
@@ -271,7 +285,7 @@ export async function renderProfileCard(data: ProfileCardData, options: { width?
     ctx.font = siteFont(750, 1.5 * REM);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(data.displayName.slice(0, 1).toUpperCase(), avatarX + avatarSize / 2, avatarY + avatarSize / 2);
+    ctx.fillText((firstGrapheme(data.displayName) ?? "?").toUpperCase(), avatarX + avatarSize / 2, avatarY + avatarSize / 2);
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
   }
@@ -395,7 +409,7 @@ export async function renderProfileCard(data: ProfileCardData, options: { width?
           ctx.font = chip.badge.icon ? `${0.8 * REM}px "Rank Card Emoji", "Segoe UI Emoji", sans-serif` : siteFont(650, 0.8 * REM);
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(chip.badge.icon || chip.badge.name.slice(0, 1), cursor + chipIcon / 2, centerY + 0.5);
+          ctx.fillText(chip.badge.icon || firstGrapheme(chip.badge.name) || "", cursor + chipIcon / 2, centerY + 0.5);
           ctx.textAlign = "left";
           ctx.textBaseline = "alphabetic";
         }

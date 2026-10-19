@@ -315,7 +315,8 @@ export async function performClose(
   let transcriptId: string | null = null;
   if (channel?.isTextBased()) {
     const messages = await buildTranscript(channel).catch(() => []);
-    transcriptId = await saveTranscript(ticket.guildId, ticket.id, messages).catch(() => null);
+    const channelName = "name" in channel && typeof channel.name === "string" ? channel.name : null;
+    transcriptId = await saveTranscript(ticket.guildId, ticket.id, messages, channelName).catch(() => null);
   }
   if (transcriptId) void learnFromClosedTicket(client, ticket.guildId, ticket.id);
 

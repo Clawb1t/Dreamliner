@@ -213,7 +213,7 @@ export async function submitAppeal(
   guildConfig: GuildConfig,
   config: AppealsConfig,
   userId: string,
-  target: { caseId: number } | { manual: true },
+  target: { caseId: number } | { manual: true } | { option: string },
   raw: Record<string, RawAnswer>,
 ): Promise<SubmitResult> {
   if (!config.accepting) return { ok: false, error: "This server isn't taking appeals right now." };
@@ -223,6 +223,7 @@ export async function submitAppeal(
   let caseId: number | null = null;
   let infractionType: string | null = null;
   let snapshot = null;
+  let chosenOption: { id: string; label: string } | null = null;
   let formId: string;
   if ("caseId" in target) {
     const option = situation.options.cases.find((item) => item.case.id === target.caseId);
@@ -238,6 +239,15 @@ export async function submitAppeal(
       createdAt: option.case.createdAt.toISOString(),
       expiresAt: option.case.expiresAt?.toISOString() ?? null,
     };
+    formId = option.formId;
+  } else if ("option" in target) {
+    const option = situation.options.custom.find((item) => item.id === target.option);
+    const rule = config.custom_options.find((item) => item.id === target.option);
+    if (!option || !rule) return { ok: false, error: "That appeal option isn't available." };
+    if (option.state !== "appealable") return { ok: false, error: "You can't use that appeal option right now." };
+    // Only marked as a ban when approving it is meant to lift a ban on this Discord server.
+    infractionType = rule.lift_discord_ban && situation.isBanned ? "ban" : null;
+    chosenOption = { id: option.id, label: option.label };
     formId = option.formId;
   } else {
     if (situation.options.manual.state !== "appealable") return { ok: false, error: "Manual appeals aren't available to you." };
@@ -256,6 +266,7 @@ export async function submitAppeal(
     caseId,
     infractionType,
     caseSnapshot: snapshot,
+    option: chosenOption,
     formId: form.id,
     formName: form.name,
     answers: validation.answers,
@@ -283,6 +294,8 @@ async function liftBlockedReason(
   appeal: AppealRecord,
 ): Promise<string | null> {
   if (isDashboardSuperuser(reviewerId) || guild.ownerId === reviewerId) return null;
+  // A custom option about somewhere else (a game server, ...) has nothing on Discord to lift.
+  if (appeal.option && appeal.infractionType !== "ban") return null;
   const member = await guild.members.fetch(reviewerId).catch(() => null);
   if (!member) return "You need to be in the server to lift a punishment.";
   if (member.permissions.has(PermissionFlagsBits.Administrator) || member.permissions.has(PermissionFlagsBits.ManageGuild)) {

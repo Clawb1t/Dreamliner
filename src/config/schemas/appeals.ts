@@ -44,6 +44,34 @@ export const MAX_APPEAL_QUESTIONS = 20;
 
 /** The built-in form's id. Fixed (not random) so defaults stay stable between config loads. */
 export const DEFAULT_APPEAL_FORM_ID = "00000000-0000-4000-8000-0000000a9fe1";
+export const MAX_APPEAL_CUSTOM_OPTIONS = 10;
+
+/**
+ * One of the server's own appeal options: a manual appeal with its own title, form and rules, for
+ * punishments Dreamliner doesn't know about (a Minecraft server ban, a game-server mute, ...).
+ */
+const zAppealCustomOption = z.strictObject({
+  id: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9_-]{0,39}$/, "Use lowercase letters, numbers, - and _ (up to 40).")
+    .describe("Stable id for this option (kept when the title changes)."),
+  enabled: z.boolean().default(true).describe("Show this option on the appeals page."),
+  label: z
+    .string()
+    .max(80)
+    .default("")
+    .describe("Title of the option, e.g. \"Minecraft server ban\". Empty shows as \"Other appeal\"."),
+  description: z.string().max(300).default("").describe("Text under the title."),
+  form_id: z.string().max(64).default("").describe("Which appeal form this option uses. Empty uses the first form."),
+  require_ban: z
+    .boolean()
+    .default(false)
+    .describe("Only offer this option to users who are banned from this Discord server."),
+  lift_discord_ban: z
+    .boolean()
+    .default(false)
+    .describe("Approving also unbans the user from this Discord server (when they're banned). Off for options about other places, like a game server."),
+});
 
 /** "30m", "24h", "7d", "2w", or "" for none. */
 const duration = (description: string, fallback: string) =>
@@ -220,6 +248,20 @@ export const zAppealsConfig = z.strictObject({
         .describe("Only allow manual appeals from users who really are banned from this server."),
     })
     .default({}),
+  custom_options: z
+    .array(zAppealCustomOption)
+    .max(MAX_APPEAL_CUSTOM_OPTIONS)
+    .default([])
+    .describe(
+      "The server's own appeal options, shown next to the infractions on file. Useful for things Dreamliner didn't punish, e.g. a Minecraft server ban.",
+    )
+    .superRefine((options, ctx) => {
+      const seen = new Set<string>();
+      options.forEach((option, index) => {
+        if (seen.has(option.id)) ctx.addIssue({ code: "custom", path: [index, "id"], message: "Each option needs its own id." });
+        seen.add(option.id);
+      });
+    }),
   forms: z
     .array(zAppealForm)
     .max(MAX_APPEAL_FORMS)
@@ -307,5 +349,6 @@ export const zAppealsConfig = z.strictObject({
 export const zAppealsPluginSection = zPluginSection(zAppealsConfig.shape);
 
 export type AppealForm = z.infer<typeof zAppealForm>;
+export type AppealCustomOption = z.infer<typeof zAppealCustomOption>;
 export type AppealTypeRule = z.infer<typeof zAppealTypeRule>;
 export type AppealsConfig = z.infer<typeof zAppealsConfig>;

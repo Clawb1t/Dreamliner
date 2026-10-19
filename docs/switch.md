@@ -1,6 +1,6 @@
 # Switch to Dreamliner
 
-Switch moves a server's setup from MEE6, Dyno, YAGPDB, Carl-bot, Arcane, ProBot or Tatsu to Dreamliner. None of them can export their settings, so Switch reads them the way you see them: you screenshot each page of your old dashboard, and Autopilot sets up the matching Dreamliner feature for you to review.
+Switch moves a server's setup from MEE6, Dyno, YAGPDB, Carl-bot, Arcane, ProBot, Tatsu or Sapphire to Dreamliner. None of them can export their settings, so Switch reads them the way you see them: you screenshot each page of your old dashboard, and Autopilot sets up the matching Dreamliner feature for you to review.
 
 Open it from your server's dashboard: **Server → Switch**.
 
@@ -100,6 +100,15 @@ A whole switch uses **one Autopilot use**, however many pages you import in the 
 | Reaction Roles | Role panels |
 | Auto role | Autorole |
 
+| Sapphire | Dreamliner |
+|----------|------------|
+| Auto Moderation | Automod |
+| Join & Leave Messages | Welcomer |
+| Auto Roles | Autorole |
+| Reaction Roles | Role panels |
+| Leveling (level rewards) | Activity Rewards |
+| Custom Commands | Tags |
+
 Variables in messages from any of these bots (like `{user.mention}`, `{{.User.Mention}}` or `[user]`) are rewritten to Dreamliner's placeholders.
 
 Only MEE6 member levels carry over automatically (see below). For the other levelling bots, your level roles become milestones and members earn them again as they chat.
@@ -120,4 +129,4 @@ After you save, members get their roles as they chat, or right away with `/rewar
 - Turn off the same features in your old bot while you test, so members don't get two welcomes.
 - Remove the old bot when you're happy, and cancel any subscription on their website. Removing the bot doesn't cancel it.
 
-MEE6, Dyno, YAGPDB, Carl-bot, Arcane, ProBot and Tatsu are trademarks of their respective owners. Dreamliner is not affiliated with, endorsed by, or sponsored by any of them.
+MEE6, Dyno, YAGPDB, Carl-bot, Arcane, ProBot, Tatsu and Sapphire are trademarks of their respective owners. Dreamliner is not affiliated with, endorsed by, or sponsored by any of them.

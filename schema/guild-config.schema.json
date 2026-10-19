@@ -17160,6 +17160,71 @@
                   "default": {},
                   "title": "Manual"
                 },
+                "custom_options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9_-]{0,39}$",
+                        "description": "Stable id for this option (kept when the title changes).",
+                        "title": "Id"
+                      },
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Show this option on the appeals page.",
+                        "title": "Enabled"
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "default": "",
+                        "description": "Title of the option, e.g. \"Minecraft server ban\". Empty shows as \"Other appeal\".",
+                        "title": "Label"
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 300,
+                        "default": "",
+                        "description": "Text under the title.",
+                        "title": "Description"
+                      },
+                      "form_id": {
+                        "type": "string",
+                        "maxLength": 64,
+                        "default": "",
+                        "description": "Which appeal form this option uses. Empty uses the first form.",
+                        "title": "Form Id",
+                        "x-dreamliner": {
+                          "kind": "snowflake",
+                          "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                        }
+                      },
+                      "require_ban": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Only offer this option to users who are banned from this Discord server.",
+                        "title": "Require Ban"
+                      },
+                      "lift_discord_ban": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Approving also unbans the user from this Discord server (when they're banned). Off for options about other places, like a game server.",
+                        "title": "Lift Discord Ban"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 10,
+                  "default": [],
+                  "description": "The server's own appeal options, shown next to the infractions on file. Useful for things Dreamliner didn't punish, e.g. a Minecraft server ban.",
+                  "title": "Custom Options"
+                },
                 "forms": {
                   "type": "array",
                   "items": {
@@ -17667,6 +17732,7 @@
                   "description": "Not listed here? Tell us what happened.",
                   "require_ban": true
                 },
+                "custom_options": [],
                 "forms": [
                   {
                     "id": "00000000-0000-4000-8000-0000000a9fe1",

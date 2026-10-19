@@ -95,6 +95,7 @@ export async function renderUserRankCard(
     const row: RankCardRow = {
       rank,
       name,
+      fallbackName: user.username,
       avatarURL,
       bannerURL,
       count,
@@ -117,6 +118,7 @@ export async function renderUserRankCard(
   const row: RankCardRow = {
     rank,
     name,
+    fallbackName: user.username,
     avatarURL,
     bannerURL,
     count,

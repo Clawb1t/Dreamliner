@@ -33,7 +33,8 @@ const ANSWER_BUDGET = 2400;
 const ts = (date: Date, style: "R" | "f" = "R") => `<t:${Math.floor(date.getTime() / 1000)}:${style}>`;
 
 /** "Ban (case #42)" or "Manual appeal": what this appeal is about. */
-export function appealSubject(appeal: Pick<AppealRecord, "kind" | "caseId" | "infractionType">): string {
+export function appealSubject(appeal: Pick<AppealRecord, "kind" | "caseId" | "infractionType" | "option">): string {
+  if (appeal.option) return appeal.option.label;
   if (appeal.kind === "manual") return appeal.infractionType === "ban" ? "Manual appeal (banned)" : "Manual appeal";
   return `${typeLabel(appeal.infractionType)} (case #${appeal.caseId})`;
 }
@@ -101,6 +102,8 @@ export function buildAppealReview(
         (snapshot.expiresAt ? ` · ends ${ts(new Date(snapshot.expiresAt))}` : ""),
       `**Reason:** ${snapshot.reason?.trim() ? snapshot.reason.slice(0, 500) : "*none recorded*"}`,
     );
+  } else if (appeal.option) {
+    lines.push(`No infraction on file: the user chose **${appeal.option.label}**.`);
   } else if (appeal.kind === "manual") {
     lines.push("No infraction on file: the user chose a manual appeal.");
   }

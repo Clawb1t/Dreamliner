@@ -93,8 +93,8 @@ export function buildTranscriptEmbed(
   });
   embed.setDescription(
     t(
-      "tickets.embed.transcriptDescription",
-      "Here's a copy of the conversation from your ticket in **{guild}**. The full transcript is attached below.",
+      "tickets.embed.transcriptLinkDescription",
+      "Here's a copy of the conversation from your ticket in **{guild}**. Open the full transcript with the button below.",
       { guild: guildName },
     ),
   );
