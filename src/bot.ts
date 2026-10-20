@@ -63,6 +63,7 @@ import { handleSuggestionButtonInteraction } from "./plugins/suggestions/functio
 import { TICKET_PREFIX } from "./plugins/tickets/constants.js";
 import { APPLICATION_PREFIX } from "./plugins/applications/constants.js";
 import { APPEAL_PREFIX } from "./plugins/appeals/constants.js";
+import { handleCharacterAutocomplete } from "./plugins/characters/commands.js";
 import { handleAppealButtonInteraction, handleAppealModalSubmit } from "./plugins/appeals/functions/interactions.js";
 import { BLUESKY_PREFIX } from "./plugins/bluesky/constants.js";
 import { handleBlueskyButtonInteraction } from "./plugins/bluesky/functions/interactions.js";
@@ -345,6 +346,11 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       if (interaction.commandName === "giveaway") {
         await handleGiveawayAutocomplete(interaction).catch((error) => {
           log.error("Giveaway autocomplete error:", error);
+        });
+      }
+      if (interaction.commandName === "character") {
+        await handleCharacterAutocomplete(interaction).catch((error) => {
+          log.error("Character autocomplete error:", error);
         });
       }
       return;

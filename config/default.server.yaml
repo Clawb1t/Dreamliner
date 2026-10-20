@@ -1316,3 +1316,17 @@ plugins:
         label: Appeal
       can_review: false
       can_view: false
+  characters:
+    enabled: false
+    config:
+      allowed_channels: []
+      blocked_channels: []
+      triggers:
+        reply: true
+        name: false
+        dedicated_channels: true
+      cooldown_seconds: 5
+      member_daily_limit: 0
+      max_reply_chars: 1200
+      typing_text: "*{name} is typing…*"
+      can_talk: true

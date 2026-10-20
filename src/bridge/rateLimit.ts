@@ -87,7 +87,7 @@ const GUILD_BUCKETS = {
 type Bucket = keyof typeof USER_BUCKETS;
 
 function bucketFor(method: string, pathname: string): Bucket {
-  if (/\/ai(?:\/|$)/.test(pathname)) return "ai";
+  if (/\/ai(?:\/|$)/.test(pathname) || /\/characters\/\d+\/test$/.test(pathname)) return "ai";
   if (method !== "GET" && /\/(?:assets|images|evidence|upload|avatar|banner|brand-art)(?:\/|$)/.test(pathname)) return "upload";
   return method === "GET" || method === "HEAD" ? "read" : "write";
 }

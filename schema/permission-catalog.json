@@ -91,6 +91,20 @@
     ]
   },
   {
+    "plugin": "characters",
+    "pluginName": "Characters",
+    "pluginDescription": "AI roleplay characters for your server, each with its own name, avatar, personality and mentionable role. Members talk to them by @mentioning, replying, saying their name, or in their own channel.",
+    "entries": [
+      {
+        "plugin": "characters",
+        "permission": "can_talk",
+        "grantKey": "characters.can_talk",
+        "title": "Talk",
+        "description": "Allow members to talk to the server's characters."
+      }
+    ]
+  },
+  {
     "plugin": "clipping",
     "pluginName": "Clipping",
     "pluginDescription": "Record voice channel activity and export shareable clips with /clipping and /clip.",

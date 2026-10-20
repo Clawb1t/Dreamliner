@@ -159,13 +159,14 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "fun",
     label: "Fun",
-    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, and images.",
+    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, images, and AI characters.",
     include: [
       { plugin: "economy" },
       { plugin: "counting" },
       { plugin: "giveaways" },
       { plugin: "birthdays" },
       { plugin: "images" },
+      { plugin: "characters" },
     ],
   },
   {
@@ -427,6 +428,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description:
       "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists.",
   },
+  characters: {
+    key: "characters",
+    name: "Characters",
+    description:
+      "AI roleplay characters for your server, each with its own name, avatar, personality and mentionable role. Members talk to them by @mentioning, replying, saying their name, or in their own channel.",
+  },
   booster_roles: {
     key: "booster_roles",
     name: "Booster Roles",
@@ -488,6 +495,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   giveaways: "fun",
   birthdays: "fun",
   images: "fun",
+  characters: "fun",
   social: "social",
   bluesky: "social",
 };

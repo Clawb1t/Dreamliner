@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-19T20:21:20.550Z",
+  "generatedAt": "2026-10-20T01:39:48.703Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -291,7 +291,7 @@
     {
       "id": "fun",
       "label": "Fun",
-      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, and images.",
+      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, images, and AI characters.",
       "plugins": [
         {
           "key": "economy",
@@ -317,6 +317,11 @@
           "key": "images",
           "name": "Images",
           "description": "Random anime, Blåhaj, and animal images (cats, dogs, foxes, ducks, capybaras, birds) with /image, plus daily image drops into any channel."
+        },
+        {
+          "key": "characters",
+          "name": "Characters",
+          "description": "AI roleplay characters for your server, each with its own name, avatar, personality and mentionable role. Members talk to them by @mentioning, replying, saying their name, or in their own channel."
         }
       ]
     },
@@ -651,6 +656,13 @@
       "key": "images",
       "name": "Images",
       "description": "Random anime, Blåhaj, and animal images (cats, dogs, foxes, ducks, capybaras, birds) with /image, plus daily image drops into any channel.",
+      "category": "Fun",
+      "categoryId": "fun"
+    },
+    {
+      "key": "characters",
+      "name": "Characters",
+      "description": "AI roleplay characters for your server, each with its own name, avatar, personality and mentionable role. Members talk to them by @mentioning, replying, saying their name, or in their own channel.",
       "category": "Fun",
       "categoryId": "fun"
     },

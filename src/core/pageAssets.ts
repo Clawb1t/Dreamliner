@@ -20,7 +20,10 @@ const MAX_DIMENSION = 2000;
 /** Oldest uploads beyond this are deleted, so repeated uploads can't fill the disk. */
 const MAX_ASSETS_PER_FOLDER = 10;
 
-export type PageAssetFolder = "passport" | "appeals";
+export type PageAssetFolder = "passport" | "appeals" | "characters";
+
+/** Folders that hold one image per item (each character's avatar) keep more than a page's few. */
+const FOLDER_LIMITS: Partial<Record<PageAssetFolder, number>> = { characters: 80 };
 
 const ASSET_ID = /^[a-zA-Z0-9_-]{1,64}$/;
 
@@ -58,13 +61,13 @@ export function deletePageAsset(guildId: string, folder: PageAssetFolder, assetI
   }
 }
 
-function pruneFolder(dir: string, keep: string): void {
+function pruneFolder(dir: string, keep: string, max = MAX_ASSETS_PER_FOLDER): void {
   try {
     const files = readdirSync(dir)
       .filter((name) => name.endsWith(".png"))
       .map((name) => ({ name, at: statSync(join(dir, name)).mtimeMs }))
       .sort((a, b) => b.at - a.at);
-    for (const file of files.slice(MAX_ASSETS_PER_FOLDER)) {
+    for (const file of files.slice(max)) {
       if (file.name !== `${keep}.png`) unlinkSync(join(dir, file.name));
     }
   } catch {
@@ -100,7 +103,7 @@ export async function savePageAsset(
   const dir = folderDir(guildId, folder);
   mkdirSync(dir, { recursive: true });
   writeFileSync(pageAssetPath(guildId, folder, assetId), png);
-  pruneFolder(dir, assetId);
+  pruneFolder(dir, assetId, FOLDER_LIMITS[folder]);
   return { assetId, bytes: png.length };
 }
 

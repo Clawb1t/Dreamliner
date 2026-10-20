@@ -2398,3 +2398,67 @@ export const ticketAiGuildState = sqliteTable("ticket_ai_guild_state", {
   autotrainLastResult: text("autotrain_last_result"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// --- Characters (AI roleplay characters, see src/plugins/characters) --------------------------
+
+export const characters = sqliteTable(
+  "characters",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    name: text("name").notNull(),
+    /** An uploaded avatar (data/guild-assets/<guild>/characters/<id>.png), or... */
+    avatarAssetId: text("avatar_asset_id"),
+    /** ...a pasted https URL. Neither means the default avatar. */
+    avatarUrl: text("avatar_url"),
+    tagline: text("tagline").notNull().default(""),
+    personality: text("personality").notNull().default(""),
+    scenario: text("scenario").notNull().default(""),
+    greeting: text("greeting").notNull().default(""),
+    /** `{{user}}:` / `{{char}}:` lines showing how the character talks. */
+    exampleDialogue: text("example_dialogue").notNull().default(""),
+    /** "short" | "medium" | "long" */
+    replyStyle: text("reply_style").notNull().default("medium"),
+    temperature: real("temperature").notNull().default(0.9),
+    /** The mentionable role the bot made for this character (nobody is ever given it). */
+    roleId: text("role_id"),
+    roleColor: integer("role_color"),
+    /** JSON string[]: channels where the character answers every message. */
+    dedicatedChannelIds: text("dedicated_channel_ids").notNull().default("[]"),
+    /** JSON string[]: overrides the plugin-wide allowed channels for this character. */
+    allowedChannelIds: text("allowed_channel_ids").notNull().default("[]"),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    /** "approved" | "rejected" */
+    reviewStatus: text("review_status").notNull().default("approved"),
+    reviewReason: text("review_reason"),
+    /** When the AI review last passed/failed this definition; null = only the local check ran. */
+    reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("characters_guild").on(table.guildId), index("characters_guild_role").on(table.guildId, table.roleId)],
+);
+
+/** "Reset conversation": a character ignores channel history before `resetAt`. */
+export const characterMemoryResets = sqliteTable(
+  "character_memory_resets",
+  {
+    characterId: integer("character_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    resetAt: integer("reset_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.characterId, table.channelId] })],
+);
+
+export const charactersUsageDaily = sqliteTable(
+  "characters_usage_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    day: text("day").notNull(),
+    replies: integer("replies").notNull().default(0),
+    tokensIn: integer("tokens_in").notNull().default(0),
+    tokensOut: integer("tokens_out").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.day] })],
+);

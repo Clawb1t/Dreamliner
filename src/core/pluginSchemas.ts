@@ -18,6 +18,7 @@ import { zActivityRewardsConfig } from "../config/schemas/activityRewards.js";
 import { zApplicationsConfig } from "../config/schemas/applications.js";
 import { zSocialConfig } from "../config/schemas/social.js";
 import { zBlueskyConfig } from "../config/schemas/bluesky.js";
+import { zCharactersConfig } from "../config/schemas/characters.js";
 import {
   zAutomodConfig,
   zDreamCommandsConfig,
@@ -97,6 +98,7 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   applications: zApplicationsConfig,
   social: zSocialConfig,
   bluesky: zBlueskyConfig,
+  characters: zCharactersConfig,
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

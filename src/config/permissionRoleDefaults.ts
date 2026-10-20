@@ -28,6 +28,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // booster_roles
     "booster_roles.can_view",
     "booster_roles.can_recheck",
+    // characters (talking to the server's AI characters)
+    "characters.can_talk",
     // counting
     "counting.can_stats",
     // dream_commands

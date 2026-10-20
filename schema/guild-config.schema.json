@@ -17806,6 +17806,145 @@
           "additionalProperties": false,
           "default": {},
           "title": "Appeals"
+        },
+        "characters": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "allowed_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "default": [],
+                  "description": "Channels (or categories) where characters may talk. Empty means every channel the bot can read. A character's dedicated channels always work.",
+                  "title": "Allowed Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "blocked_channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "default": [],
+                  "description": "Channels (or categories) where characters never talk, even when mentioned.",
+                  "title": "Blocked Channels",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "triggers": {
+                  "type": "object",
+                  "properties": {
+                    "reply": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Members can reply to a character's message to talk to it.",
+                      "title": "Reply"
+                    },
+                    "name": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Saying a character's name in a message makes it answer. Off by default, since names can come up by accident.",
+                      "title": "Name"
+                    },
+                    "dedicated_channels": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Characters answer every message in their own dedicated channels.",
+                      "title": "Dedicated Channels",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "description": "Ways members can start talking to a character, besides @mentioning its role (always on).",
+                  "title": "Triggers"
+                },
+                "cooldown_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 300,
+                  "default": 5,
+                  "description": "Seconds a member waits between replies from the same character.",
+                  "title": "Cooldown Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "member_daily_limit": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000,
+                  "default": 0,
+                  "description": "Most character replies one member can get per day. 0 means no limit beyond the server's.",
+                  "title": "Member Daily Limit"
+                },
+                "max_reply_chars": {
+                  "type": "integer",
+                  "minimum": 200,
+                  "maximum": 1900,
+                  "default": 1200,
+                  "description": "Longest character reply, in characters.",
+                  "title": "Max Reply Chars"
+                },
+                "typing_text": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "default": "*{name} is typing…*",
+                  "description": "Shown while a character is thinking, then replaced by its reply. {name} is the character's name.",
+                  "title": "Typing Text"
+                },
+                "can_talk": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Allow members to talk to the server's characters.",
+                  "title": "Talk",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "allowed_channels": [],
+                "blocked_channels": [],
+                "triggers": {
+                  "reply": true,
+                  "name": false,
+                  "dedicated_channels": true
+                },
+                "cooldown_seconds": 5,
+                "member_daily_limit": 0,
+                "max_reply_chars": 1200,
+                "typing_text": "*{name} is typing…*",
+                "can_talk": true
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Characters"
         }
       },
       "additionalProperties": false,

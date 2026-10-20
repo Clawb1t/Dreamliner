@@ -2843,6 +2843,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ticketTranscriptMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/transcripts\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         // AI Responder: overview, /knowledge[/:id], /autotrain (run now), /test (dashboard test chat).
         const ticketAiMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/ai(?:\/(knowledge|autotrain|test)(?:\/(\d+))?)?$/.exec(url.pathname);
+        // Characters: list/create, /:id (PATCH, DELETE), /:id/(greet|test|role), /assets (avatar upload).
+        const charactersMatch = /^\/bridge\/guilds\/(\d+)\/characters(?:\/(assets|\d+)(?:\/(greet|test|role))?)?$/.exec(url.pathname);
+        // A character's uploaded avatar (binary, no userId: Discord loads it through the website's proxy).
+        const characterAvatarMatch = /^\/bridge\/guilds\/(\d+)\/characters\/avatar\/([a-zA-Z0-9_-]{1,64})$/.exec(url.pathname);
         const giveawayActionMatch =
           /^\/bridge\/guilds\/(\d+)\/giveaways\/(\d+)\/(end|reroll|pause|resume|cancel)$/.exec(url.pathname);
         const giveawayTemplateOneMatch = /^\/bridge\/guilds\/(\d+)\/giveaways\/templates\/(\d+)$/.exec(url.pathname);
@@ -2989,6 +2993,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !ticketsMatch &&
           !ticketTranscriptMatch &&
           !ticketAiMatch &&
+          !charactersMatch &&
+          !characterAvatarMatch &&
           !giveawayActionMatch &&
           !giveawayTemplateOneMatch &&
           !giveawayTemplatesMatch &&
@@ -3102,6 +3108,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           ticketsMatch?.[1] ??
           ticketTranscriptMatch?.[1] ??
           ticketAiMatch?.[1] ??
+          charactersMatch?.[1] ??
+          characterAvatarMatch?.[1] ??
           giveawayActionMatch?.[1] ??
           giveawayTemplateOneMatch?.[1] ??
           giveawayTemplatesMatch?.[1] ??
@@ -7029,6 +7037,111 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
             suggestion: detail,
           });
+          return;
+        }
+
+        if (characterAvatarMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { readCharacterAvatar } = await import("./webCharacters.js");
+          const buf = readCharacterAvatar(guild, characterAvatarMatch[2]!);
+          if (!buf) {
+            sendJson(res, 404, { error: "Image not found" });
+            return;
+          }
+          sendBinary(res, 200, buf, "image/png");
+          return;
+        }
+
+        if (charactersMatch) {
+          const [, , target, action] = charactersMatch;
+          let body: Record<string, unknown> = {};
+          if (req.method !== "GET") {
+            try {
+              body = JSON.parse((await readBody(req)) || "{}") as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { ok: false, error: "Invalid JSON body" });
+              return;
+            }
+          }
+          const userId = (typeof body.userId === "string" ? body.userId : url.searchParams.get("userId") ?? "").trim();
+          if (!userId) {
+            sendJson(res, 400, { ok: false, error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { ok: false, error: "Missing Manage Server permission." });
+            return;
+          }
+          const web = await import("./webCharacters.js");
+          const charId = target && target !== "assets" ? Number(target) : null;
+
+          if (!target && req.method === "GET") {
+            sendJson(res, 200, await web.getCharactersOverview(guild));
+            return;
+          }
+          if (!target && req.method === "POST") {
+            const result = await web.createWebCharacter(guild, userId, body);
+            if (result.body.ok) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Character created",
+                summary: `The character **${result.body.character.name}** was created from the dashboard.`,
+                payload: { action: "character_create", characterId: result.body.character.id, approved: result.body.review.approved },
+              });
+            }
+            sendJson(res, result.status, result.body);
+            return;
+          }
+          if (target === "assets" && !action && req.method === "POST") {
+            const result = await web.uploadCharacterAvatar(guild, body.imageBase64);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          if (charId !== null && !action && req.method === "PATCH") {
+            const result = await web.updateWebCharacter(guild, charId, body);
+            if (result.body.ok) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Character updated",
+                summary: `The character **${result.body.character.name}** was updated from the dashboard.`,
+                payload: { action: "character_update", characterId: charId, approved: result.body.review.approved },
+              });
+            }
+            sendJson(res, result.status, result.body);
+            return;
+          }
+          if (charId !== null && !action && req.method === "DELETE") {
+            const removed = await web.deleteWebCharacter(guild, charId);
+            if (removed) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Character deleted",
+                summary: "A character was deleted from the dashboard.",
+                payload: { action: "character_delete", characterId: charId },
+              });
+            }
+            sendJson(res, removed ? 200 : 404, removed ? { ok: true } : { ok: false, error: "That character doesn't exist any more." });
+            return;
+          }
+          if (charId !== null && action === "greet" && req.method === "POST") {
+            const result = await web.greetWebCharacter(guild, charId, body.channelId);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          if (charId !== null && action === "test" && req.method === "POST") {
+            const result = await web.testWebCharacter(guild, charId, userId, body);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          if (charId !== null && action === "role" && req.method === "POST") {
+            const result = await web.recreateWebCharacterRole(guild, charId);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          sendJson(res, 405, { ok: false, error: "Method not allowed" });
           return;
         }
 
