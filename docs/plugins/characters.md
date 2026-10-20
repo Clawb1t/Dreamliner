@@ -20,15 +20,15 @@ belongs to the server that made it.
 At most two characters answer one message. Characters never answer bots, webhooks or each other, so
 two characters can't get stuck talking to each other.
 
-The character reads the last 20 messages of the channel (or thread) for context. `/character reset`
+The character reads the last 20 messages of the channel (or thread) for context. `/characters reset`
 makes it forget everything before now in the current channel.
 
 ## Commands
 
 | Command | Who | What it does |
 |---|---|---|
-| `/characters` | Everyone | Lists the server's characters, their taglines, and how to talk to each one. |
-| `/character reset <character>` | Manage Messages or Manage Server | The character forgets the conversation in this channel. |
+| `/characters list` | Everyone | Lists the server's characters, their taglines, and how to talk to each one. |
+| `/characters reset <character>` | Manage Messages or Manage Server | The character forgets the conversation in this channel. |
 
 ## Settings (`plugins.characters.config`)
 

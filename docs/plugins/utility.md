@@ -8,14 +8,15 @@ The Utility plugin provides server management, search, info, message tools, voic
 |------|------------|
 | `can_search` | `/search`, `/bansearch` |
 | `can_clean` | `/clean` |
-| `can_userinfo` | `/user` |
-| `can_server` | `/server` |
-| `can_channelinfo` | `/channel` |
-| `can_messageinfo` | `/message` |
-| `can_inviteinfo` | `/invite` |
-| `can_roleinfo` | `/role` |
-| `can_emojiinfo` | `/emoji` |
-| `can_snowflake` | `/snowflake` |
+| `can_info` | `/info lookup` |
+| `can_userinfo` | `/info user` |
+| `can_server` | `/info server` |
+| `can_channelinfo` | `/info channel` |
+| `can_messageinfo` | `/info message` |
+| `can_inviteinfo` | `/info invite` |
+| `can_roleinfo` | `/info role` |
+| `can_emojiinfo` | `/info emoji` |
+| `can_snowflake` | `/info snowflake` |
 | `can_roles` | `/rolelist` |
 | `can_level` | `/level` |
 | `can_watchdog` | `/watchdog` |
@@ -82,11 +83,14 @@ Search banned users. Requires **Ban Members** Discord permission.
 
 ## Info commands
 
-### `/info`
+All lookups are subcommands of `/info` (Discord caps a bot at 100 slash commands, so they share
+one). Each subcommand keeps its own permission flag.
+
+### `/info lookup`
 
 Auto-detect target type (channel, role, user, invite, snowflake) from a string.
 
-### `/user`
+### `/info user`
 
 User information including infraction and message stats for this server and globally. Message counts are tracked by Dreamliner from when the bot is running. Defaults to yourself.
 
@@ -95,31 +99,31 @@ User information including infraction and message stats for this server and glob
 | `member` | Target user |
 | `compact` | Shorter output |
 
-### `/server`
+### `/info server`
 
 Information about the current server.
 
-### `/channel`
+### `/info channel`
 
 Channel information. Defaults to current channel.
 
-### `/message`
+### `/info message`
 
 Message information by ID (current channel).
 
-### `/invite`
+### `/info invite`
 
 Invite code or URL information.
 
-### `/role`
+### `/info role`
 
 Role information.
 
-### `/emoji`
+### `/info emoji`
 
 Custom emoji information.
 
-### `/snowflake`
+### `/info snowflake`
 
 Decode a Discord snowflake ID (timestamp, worker, process, increment).
 

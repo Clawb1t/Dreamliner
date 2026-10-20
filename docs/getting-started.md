@@ -56,7 +56,7 @@ See [Permissions setup](permissions.md) for a full walkthrough and examples. See
 
 ## 4. Use utility commands
 
-Moderators can use commands like `/search`, `/user`, `/clean`, and `/help` right away. Permission is controlled by Dreamliner Roles, not just Discord roles.
+Moderators can use commands like `/search`, `/info user`, `/clean`, and `/help` right away. Permission is controlled by Dreamliner Roles, not just Discord roles.
 
 ## Troubleshooting
 

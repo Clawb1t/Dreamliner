@@ -67,15 +67,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       {
         plugin: "utility",
         roots: [
+          // /info holds the lookups: user, server, channel, message, invite, role, emoji, snowflake.
           "info",
-          "user",
-          "server",
-          "channel",
-          "message",
-          "invite",
-          "role",
-          "emoji",
-          "snowflake",
           "rolelist",
           "level",
           "watchdog",

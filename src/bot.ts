@@ -348,7 +348,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
           log.error("Giveaway autocomplete error:", error);
         });
       }
-      if (interaction.commandName === "character") {
+      if (interaction.commandName === "characters") {
         await handleCharacterAutocomplete(interaction).catch((error) => {
           log.error("Character autocomplete error:", error);
         });
@@ -836,12 +836,14 @@ async function handleSlashCommand(
     }
   }
 
-  if (command.permission && command.plugin !== "config") {
+  const subcommand = interaction.options.getSubcommand(false);
+  const requiredPermission = (subcommand && command.subcommandPermissions?.[subcommand]) || command.permission;
+  if (requiredPermission && command.plugin !== "config") {
     const member = interaction.member;
     if (!member || typeof member === "string") return;
     const guildMember = member as import("discord.js").GuildMember;
 
-    if (!(await hasPermission(interaction.guildId!, command.plugin, command.permission, guildMember, guildConfig))) {
+    if (!(await hasPermission(interaction.guildId!, command.plugin, requiredPermission, guildMember, guildConfig))) {
       await interaction.reply(resultReply(t("common.permissionDeniedTitle", "Permission denied"), t("common.noPermission", "You do not have permission to use this command."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return;
     }

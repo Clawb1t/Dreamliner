@@ -52,7 +52,6 @@ import { charactersPlugin } from "../plugins/characters/index.js";
 import { ttsPlugin } from "../plugins/tts/index.js";
 import { clippingPlugin } from "../plugins/clipping/index.js";
 import { musicPlugin } from "../plugins/music/index.js";
-import { debugPlugin } from "../plugins/debug/index.js";
 import { languagePlugin } from "../plugins/language/index.js";
 
 export const availablePlugins: DreamlinerPlugin[] = [
@@ -109,7 +108,6 @@ export const availablePlugins: DreamlinerPlugin[] = [
   ttsPlugin,
   clippingPlugin,
   musicPlugin,
-  debugPlugin,
   languagePlugin,
 ];
 

@@ -20,7 +20,7 @@ import {
 } from "../functions/info.js";
 import { buildWatchdogEmbed } from "../functions/watchdog.js";
 
-export const infoCommands: SlashCommandDefinition[] = [
+const infoCommandDefs: SlashCommandDefinition[] = [
   {
     plugin: "utility",
     permission: "can_info",
@@ -301,4 +301,53 @@ export const infoCommands: SlashCommandDefinition[] = [
       await ctx.interaction.editReply(embedEdit(embed));
     },
   },
+];
+
+/**
+ * The lookups that used to be separate top-level commands (/user, /server, /role, ...) live under
+ * one /info command, because Discord caps a bot at 100 slash commands. The old auto-detecting
+ * /info becomes /info lookup. Each subcommand keeps its old options, handler and `can_*` flag.
+ */
+const INFO_SUBCOMMANDS: Record<string, string> = {
+  info: "lookup",
+  user: "user",
+  server: "server",
+  channel: "channel",
+  message: "message",
+  invite: "invite",
+  role: "role",
+  emoji: "emoji",
+  snowflake: "snowflake",
+};
+
+type CommandJson = { name: string; description: string; options?: unknown[] };
+
+const grouped = infoCommandDefs.filter((def) => def.data.name in INFO_SUBCOMMANDS);
+const handlers = new Map<string, SlashCommandDefinition>();
+const subcommandPermissions: Record<string, string> = {};
+const subcommandJson = grouped.map((def) => {
+  const json = def.data.toJSON() as CommandJson;
+  const sub = INFO_SUBCOMMANDS[def.data.name]!;
+  handlers.set(sub, def);
+  if (def.permission) subcommandPermissions[sub] = def.permission;
+  return { type: 1, name: sub, description: json.description, options: json.options ?? [] };
+});
+
+const infoCommand: SlashCommandDefinition = {
+  plugin: "utility",
+  subcommandPermissions,
+  data: {
+    name: "info",
+    description: "Look up a user, the server, a channel, message, invite, role, emoji or ID",
+    toJSON: () => ({ name: "info", description: "Look up a user, the server, a channel, message, invite, role, emoji or ID", options: subcommandJson }),
+  },
+  execute: async (ctx) => {
+    const handler = handlers.get(ctx.interaction.options.getSubcommand());
+    if (handler) await handler.execute(ctx);
+  },
+};
+
+export const infoCommands: SlashCommandDefinition[] = [
+  infoCommand,
+  ...infoCommandDefs.filter((def) => !(def.data.name in INFO_SUBCOMMANDS)),
 ];

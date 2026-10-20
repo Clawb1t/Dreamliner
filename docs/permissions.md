@@ -137,7 +137,7 @@ The same setup with `/permissions role`:
 
 ### Grant a command to everyone
 
-Grant the flag on the built-in **Member** role, which applies to every member of the server. Everyday commands like `/help` and `/user` are already on it; for example, to let everyone export voice clips:
+Grant the flag on the built-in **Member** role, which applies to every member of the server. Everyday commands like `/help` and `/info user` are already on it; for example, to let everyone export voice clips:
 
 ```
 /permissions role grant role:Member command:clip allow:true
@@ -227,7 +227,7 @@ A member with `can_level` granted can also run:
 /level member:@Someone
 ```
 
-`/user` and `/level` on a member now list which Dreamliner Roles they belong to, instead of a numeric level.
+`/info user` and `/level` on a member now list which Dreamliner Roles they belong to, instead of a numeric level.
 
 ***
 

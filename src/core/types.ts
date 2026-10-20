@@ -36,6 +36,12 @@ export type SlashCommandDefinition = {
   };
   plugin: string;
   permission?: string;
+  /**
+   * A different `can_*` flag per subcommand (subcommand name → flag), for commands that group
+   * what used to be separate commands (e.g. `/info user` keeps `can_userinfo`). A subcommand
+   * listed here uses its own flag instead of `permission`.
+   */
+  subcommandPermissions?: Record<string, string>;
   manageServer?: boolean;
   discordPermissions?: bigint;
   /**

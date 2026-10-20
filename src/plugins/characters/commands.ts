@@ -19,43 +19,43 @@ function howToTalk(character: CharacterRecord, triggers: { reply: boolean; name:
   return ways.length ? ways.join(" · ") : "Not reachable yet: its role is missing.";
 }
 
+/** /characters list: the server's characters and how to talk to each. */
+async function listCharactersCommand(ctx: Parameters<SlashCommandDefinition["execute"]>[0]): Promise<void> {
+  const guildId = ctx.interaction.guildId!;
+  const config = charactersConfigOf(ctx.guildConfig);
+  const usable = listCharacters(guildId).filter((c) => c.enabled && c.reviewStatus === "approved");
+  if (!usable.length) {
+    await ctx.interaction.reply(
+      resultReply(
+        "Characters",
+        "This server has no characters yet. Server managers can create them on the dashboard.",
+        true,
+        slashResultOptions(ctx, { emoji: CHARACTER_EMOJI }),
+        [siteLinkRow({ label: "Open dashboard", url: `${getGuildDashboardUrl(guildId)}?section=plugin:characters` })],
+      ),
+    );
+    return;
+  }
+  const lines = usable.map((c) => {
+    const avatar = characterAvatarUrl(guildId, c);
+    const title = avatar ? `**[${c.name}](${avatar})**` : `**${c.name}**`;
+    return `${title}${c.tagline ? ` - ${c.tagline}` : ""}\n-# ${howToTalk(c, config.triggers)}`;
+  });
+  const body = `**Characters in this server**\n\n${lines.join("\n\n")}\n\n-# Characters are AI and can make mistakes.`;
+  const container = buildResultEmbed("Characters", body.slice(0, 3900), slashResultOptions(ctx, { emoji: CHARACTER_EMOJI }));
+  // One character: show its avatar too.
+  if (usable.length === 1) container.setThumbnail(characterAvatarUrl(guildId, usable[0]!));
+  await ctx.interaction.reply({ ...containerReply(container, ctx.ephemeral), allowedMentions: { parse: [] } });
+}
+
+// One top-level command (Discord caps a bot at 100): /characters list and /characters reset.
 export const charactersCommands: SlashCommandDefinition[] = [
   {
     plugin: PLUGIN,
-    data: new SlashCommandBuilder().setName("characters").setDescription("See this server's AI characters and how to talk to them"),
-    execute: async (ctx) => {
-      const guildId = ctx.interaction.guildId!;
-      const config = charactersConfigOf(ctx.guildConfig);
-      const usable = listCharacters(guildId).filter((c) => c.enabled && c.reviewStatus === "approved");
-      if (!usable.length) {
-        await ctx.interaction.reply(
-          resultReply(
-            "Characters",
-            "This server has no characters yet. Server managers can create them on the dashboard.",
-            true,
-            slashResultOptions(ctx, { emoji: CHARACTER_EMOJI }),
-            [siteLinkRow({ label: "Open dashboard", url: `${getGuildDashboardUrl(guildId)}?section=plugin:characters` })],
-          ),
-        );
-        return;
-      }
-      const lines = usable.map((c) => {
-        const avatar = characterAvatarUrl(guildId, c);
-        const title = avatar ? `**[${c.name}](${avatar})**` : `**${c.name}**`;
-        return `${title}${c.tagline ? ` - ${c.tagline}` : ""}\n-# ${howToTalk(c, config.triggers)}`;
-      });
-      const body = `**Characters in this server**\n\n${lines.join("\n\n")}\n\n-# Characters are AI and can make mistakes.`;
-      const container = buildResultEmbed("Characters", body.slice(0, 3900), slashResultOptions(ctx, { emoji: CHARACTER_EMOJI }));
-      // One character: show its avatar too.
-      if (usable.length === 1) container.setThumbnail(characterAvatarUrl(guildId, usable[0]!));
-      await ctx.interaction.reply({ ...containerReply(container, ctx.ephemeral), allowedMentions: { parse: [] } });
-    },
-  },
-  {
-    plugin: PLUGIN,
     data: new SlashCommandBuilder()
-      .setName("character")
-      .setDescription("Manage this server's AI characters")
+      .setName("characters")
+      .setDescription("This server's AI characters")
+      .addSubcommand((sub) => sub.setName("list").setDescription("See this server's AI characters and how to talk to them"))
       .addSubcommand((sub) =>
         sub
           .setName("reset")
@@ -66,6 +66,10 @@ export const charactersCommands: SlashCommandDefinition[] = [
       ),
     execute: async (ctx) => {
       const sub = ctx.interaction.options.getSubcommand();
+      if (sub === "list") {
+        await listCharactersCommand(ctx);
+        return;
+      }
       if (sub !== "reset") return;
       const member = ctx.interaction.member as GuildMember | null;
       const allowed =
@@ -98,7 +102,7 @@ export const charactersCommands: SlashCommandDefinition[] = [
   },
 ];
 
-/** Autocomplete for /character reset: the server's characters by name. */
+/** Autocomplete for /characters reset: the server's characters by name. */
 export async function handleCharacterAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
   if (!interaction.guildId) {
     await interaction.respond([]);
