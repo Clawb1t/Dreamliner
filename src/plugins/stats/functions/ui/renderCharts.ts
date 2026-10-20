@@ -31,7 +31,7 @@ export async function renderStatsChart(
   state: StatsState,
   guild: Guild,
   t: Translator = defaultTranslator,
-): Promise<{ buffer: Buffer | null; caption: string }> {
+): Promise<{ buffer: Buffer | null; caption: string; animate?: () => Promise<Buffer | null> }> {
   const guildId = guild.id;
   const { days, category, chartPage } = state;
   const WEEKDAY_LABELS = weekdayLabels(t);
@@ -145,7 +145,7 @@ export async function renderStatsChart(
           `${guildName} · ${windowLabel} · UTC`,
           t,
         );
-        return { buffer: result.buffer, caption: result.caption };
+        return { buffer: result.buffer, caption: result.caption, animate: result.animate };
       }
       if (chartPage === 1) {
         const result = await renderChannelsLeaderboard(
@@ -163,7 +163,7 @@ export async function renderStatsChart(
         t("stats.leaderboardLifetimeTracked", "{guildName} · lifetime tracked messages", { guildName }),
         t,
       );
-      return { buffer: result.buffer, caption: result.caption };
+      return { buffer: result.buffer, caption: result.caption, animate: result.animate };
     }
   }
 

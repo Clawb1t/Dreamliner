@@ -3,12 +3,28 @@ import { createCanvas, type Canvas, type Image, type SKRSContext2D } from "@napi
 import type { Client, User } from "discord.js";
 import { siteFont } from "../../welcome_message/functions/cardFonts.js";
 import { canvasGlyphSupport, cleanCanvasName, firstGrapheme, stripUnsupportedGlyphs, truncateToFit } from "../../../core/canvasText.js";
-import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect, tintedImage } from "./charts.js";
+import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect, tintedImage, type CardLayers, type CardMode } from "./charts.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
 import { getGlobalMessageStats } from "../../../bridge/userStats.js";
 import { getProgressionBadges, loadBadgeImage } from "../../../core/progressionBadges/index.js";
 import { getLogger } from "../../../core/logger.js";
+import { getEquippedStyle } from "../../../core/cosmetics/equip.js";
+import type { CosmeticStyle } from "../../../core/cosmetics/types.js";
+import { animatedCardKey, cachedAnimatedCard, hasBackgroundFrames, renderAnimatedProfileCard } from "./animatedCards.js";
+import {
+  cosmeticGlyphSupport,
+  cosmeticNameFont,
+  drawAvatarFrame,
+  drawCosmeticName,
+  drawCosmeticTitle,
+  drawGlow,
+  drawNameIcon,
+  drawCoverRegion,
+  loadCosmeticImage,
+  wholeImage,
+  type ImageRegion,
+} from "../../../core/cosmetics/canvas.js";
 
 const log = getLogger("stats");
 
@@ -50,6 +66,8 @@ export type ProfileCardData = {
   badges: ProfileCardBadge[];
   lastActiveAt: Date | null;
   now?: Date;
+  /** Equipped store cosmetics (background, glow, frame, name font/colour, title, icon). */
+  cosmetics?: CosmeticStyle | null;
 };
 
 /** "3h ago" style, same thresholds as the site's ProfileLastSeen. */
@@ -135,10 +153,32 @@ function ellipsize(ctx: SKRSContext2D, text: string, maxWidth: number): string {
   return truncateToFit(text, (candidate) => ctx.measureText(candidate).width <= maxWidth);
 }
 
-export async function renderProfileCard(source: ProfileCardData, options: { width?: number; scale?: number } = {}): Promise<Buffer> {
+export type ProfileCardOptions = { width?: number; scale?: number };
+
+export async function renderProfileCard(source: ProfileCardData, options: ProfileCardOptions = {}): Promise<Buffer> {
+  const result = await composeProfileCard(source, options, { kind: "png" });
+  return result.canvas.toBuffer("image/png");
+}
+
+/** The /profile card as animation layers, its backdrop drawn from a background's frames
+ *  (`firstFrame` stands in behind the frosted pills). */
+export async function renderProfileCardLayers(source: ProfileCardData, options: ProfileCardOptions, firstFrame: ImageRegion): Promise<CardLayers> {
+  const result = await composeProfileCard(source, options, { kind: "layers", firstFrame });
+  return result.layers!;
+}
+
+async function composeProfileCard(
+  source: ProfileCardData,
+  options: ProfileCardOptions,
+  mode: CardMode,
+): Promise<{ canvas: Canvas; layers?: CardLayers }> {
   // Characters no font here can draw would show as "No Glyph" boxes: leave them out. (The probe
   // ignores the size in the font string, so any size works.)
-  const nameGlyphs = canvasGlyphSupport(siteFont(750, 16));
+  const cosmetics = source.cosmetics ?? {};
+  const nameSize = 1.35 * REM;
+  // The name's cosmetic font comes first; anything it can't draw falls back to the site font.
+  const nameFont = cosmeticNameFont(cosmetics.nameFont, nameSize, siteFont(750, nameSize));
+  const nameGlyphs = cosmeticGlyphSupport(cosmetics.nameFont, nameSize, siteFont(750, nameSize));
   const chipGlyphs = canvasGlyphSupport(siteFont(650, 16));
   const emojiGlyphs = canvasGlyphSupport(`16px "Rank Card Emoji", "Segoe UI Emoji", sans-serif`);
   const username = cleanCanvasName([source.username], chipGlyphs, "user");
@@ -167,7 +207,6 @@ export async function renderProfileCard(source: ProfileCardData, options: { widt
   const avatarRadius = 1 * REM;
   const identityGap = 0.9 * REM;
 
-  const nameSize = 1.35 * REM;
   const nameLineHeight = nameSize * 1.25;
   const statsGap = 0.35 * REM; // .lb-hero-stats margin-top
   const pillFont = 0.78 * REM;
@@ -209,63 +248,99 @@ export async function renderProfileCard(source: ProfileCardData, options: { widt
   const height = Math.round(identityBottom + padBottom + badgesHeight);
 
   const canvas = createCanvas(Math.round(width * scale), Math.round(height * scale));
-  const ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
+  const scaled = (target: Canvas) => {
+    const c = target.getContext("2d");
+    c.scale(scale, scale);
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    return c;
+  };
 
-  const [avatar, banner] = await Promise.all([
+  const [avatar, banner, stillImage] = await Promise.all([
     data.avatarURL ? loadImageMaybeDataUri(data.avatarURL).catch(() => null) : Promise.resolve(null),
-    data.bannerURL
+    data.bannerURL && mode.kind === "png"
       ? loadImageMaybeDataUri(data.bannerURL).catch((error: unknown) => {
           log.warn(`[profile card] banner failed to load:`, error);
           return null;
         })
       : Promise.resolve(null),
+    mode.kind === "png" && cosmetics.background?.profileStillUrl
+      ? loadCosmeticImage(cosmetics.background.profileStillUrl, { large: true }).catch((error: unknown) => {
+          log.warn(`[profile card] background still failed to load:`, error);
+          return null;
+        })
+      : Promise.resolve(null),
   ]);
+  const still = stillImage?.width && stillImage.height ? wholeImage(stillImage) : null;
 
   // --- Card + banner (.lb-hero-card / .lb-hero-banner / .lb-hero-scrim) --------------------
-  ctx.save();
-  roundRect(ctx, 0, 0, width, height, 1.25 * REM);
-  ctx.clip();
-  const soft = colorMix(accent, 14, SITE.surface);
-  const backdropGradient = ctx.createLinearGradient(0, 0, width, height);
-  backdropGradient.addColorStop(0, soft);
-  backdropGradient.addColorStop(1, SITE.surfaceMuted);
-  ctx.fillStyle = backdropGradient;
-  ctx.fillRect(0, 0, width, height);
+  const paintBackdrop = (target: SKRSContext2D, background: ImageRegion | null): boolean => {
+    target.save();
+    roundRect(target, 0, 0, width, height, 1.25 * REM);
+    target.clip();
+    const soft = colorMix(accent, 14, SITE.surface);
+    const backdropGradient = target.createLinearGradient(0, 0, width, height);
+    backdropGradient.addColorStop(0, soft);
+    backdropGradient.addColorStop(1, SITE.surfaceMuted);
+    target.fillStyle = backdropGradient;
+    target.fillRect(0, 0, width, height);
 
-  const backdrop = banner ?? avatar;
-  if (backdrop) {
-    const blurredFallback = !banner;
-    const zoom = blurredFallback ? 1.15 : 1;
-    const cover = Math.max(width / backdrop.width, height / backdrop.height) * zoom;
-    const w = backdrop.width * cover;
-    const h = backdrop.height * cover;
-    ctx.save();
-    // No banner: the avatar stands in, blurred and dimmed so it reads as a backdrop.
-    // Canvas filters work in device pixels, so the site's 20px blur is scaled with the card.
-    if (blurredFallback) ctx.filter = `blur(${20 * scale}px) saturate(1.15)`;
-    ctx.drawImage(backdrop, (width - w) / 2, (height - h) / 2, w, h);
-    ctx.restore();
-    if (blurredFallback) {
-      // brightness(0.75), as a black layer: the same result on every canvas build.
-      ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
-      ctx.fillRect(0, 0, width, height);
+    // An equipped background replaces the banner (or the blurred avatar standing in for one).
+    // Without a still yet, the card keeps its normal backdrop.
+    if (background) drawCoverRegion(target, background, { x: 0, y: 0, w: width, h: height });
+    const themed = Boolean(background);
+    const backdrop = themed ? null : (banner ?? avatar);
+    if (backdrop) {
+      const blurredFallback = !banner;
+      const zoom = blurredFallback ? 1.15 : 1;
+      const cover = Math.max(width / backdrop.width, height / backdrop.height) * zoom;
+      const w = backdrop.width * cover;
+      const h = backdrop.height * cover;
+      target.save();
+      // No banner: the avatar stands in, blurred and dimmed so it reads as a backdrop.
+      // Canvas filters work in device pixels, so the site's 20px blur is scaled with the card.
+      if (blurredFallback) target.filter = `blur(${20 * scale}px) saturate(1.15)`;
+      target.drawImage(backdrop, (width - w) / 2, (height - h) / 2, w, h);
+      target.restore();
+      if (blurredFallback) {
+        // brightness(0.75), as a black layer: the same result on every canvas build.
+        target.fillStyle = "rgba(0, 0, 0, 0.25)";
+        target.fillRect(0, 0, width, height);
+      }
     }
-  }
-  const scrim = ctx.createLinearGradient(0, 0, 0, height);
-  scrim.addColorStop(0.55, "rgba(0, 0, 0, 0)");
-  scrim.addColorStop(1, "rgba(0, 0, 0, 0.55)");
-  ctx.fillStyle = scrim;
-  ctx.fillRect(0, 0, width, height);
-  ctx.restore();
+    const scrim = target.createLinearGradient(0, 0, 0, height);
+    scrim.addColorStop(0.55, "rgba(0, 0, 0, 0)");
+    scrim.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+    target.fillStyle = scrim;
+    target.fillRect(0, 0, width, height);
+    if (themed) {
+      // Scenes can be bright where the name sits: shade the identity corner a little more.
+      const cx = padX + avatarSize * 1.6;
+      const cy = spacer - overlap + avatarSize / 2;
+      const shade = target.createRadialGradient(cx, cy, 0, cx, cy, width * 0.42);
+      shade.addColorStop(0, "rgba(0, 0, 0, 0.45)");
+      shade.addColorStop(0.6, "rgba(0, 0, 0, 0.2)");
+      shade.addColorStop(1, "rgba(0, 0, 0, 0)");
+      target.fillStyle = shade;
+      target.fillRect(0, 0, width, height);
+    }
+    if (cosmetics.glow) {
+      drawGlow(target, cosmetics.glow, { x: 0, y: 0, w: width, h: height }, { x: padX + avatarSize / 2, y: spacer - overlap + avatarSize / 2 });
+    }
+    target.restore();
+    return themed;
+  };
+
+  // Animated: the backdrop is painted per frame, everything else goes on a transparent overlay.
+  const backdropCanvas = mode.kind === "layers" ? createCanvas(canvas.width, canvas.height) : canvas;
+  const themed = paintBackdrop(scaled(backdropCanvas), mode.kind === "layers" ? mode.firstFrame : still);
+  const ctx = mode.kind === "layers" ? scaled(canvas) : canvas.getContext("2d");
 
   // Frosted pills (backdrop-filter: blur(4px)) need a blurred copy of what's behind them.
   const frosted = createCanvas(canvas.width, canvas.height);
   const frostedCtx = frosted.getContext("2d");
   frostedCtx.filter = `blur(${4 * scale}px)`;
-  frostedCtx.drawImage(canvas, 0, 0);
+  frostedCtx.drawImage(backdropCanvas, 0, 0);
 
   // --- Avatar (.lb-hero-icon) ------------------------------------------------------------------
   const avatarX = padX;
@@ -290,13 +365,21 @@ export async function renderProfileCard(source: ProfileCardData, options: { widt
     ctx.textBaseline = "alphabetic";
   }
   ctx.restore();
+  if (cosmetics.frame) {
+    await drawAvatarFrame(ctx, cosmetics.frame, { x: avatarX, y: avatarY, size: avatarSize, radius: avatarRadius }, data.username).catch(
+      (error: unknown) => log.warn(`[profile card] avatar frame failed to draw:`, error),
+    );
+  }
 
   // --- Name row (.lb-hero-name-row) + stat pills (.lb-hero-stats), bottom-aligned -------------
   const textX = avatarX + avatarSize + identityGap;
   const textRight = width - padX;
   const textBottom = identityBottom - 0.1 * REM; // .lb-hero-text padding-bottom
   const pillsTop = textBottom - pillHeight;
-  const nameLineTop = pillsTop - statsGap - nameLineHeight;
+  // An equipped title gets its own small line between the name and the pills.
+  const titleFont = siteFont(650, 0.8 * REM);
+  const titleLine = cosmetics.title ? 0.8 * REM * 1.3 + 0.15 * REM : 0;
+  const nameLineTop = pillsTop - statsGap - titleLine - nameLineHeight;
   const nameCenterY = nameLineTop + nameLineHeight / 2;
 
   const icons: Array<{ draw: Image | Canvas; size: number }> = [];
@@ -320,16 +403,33 @@ export async function renderProfileCard(source: ProfileCardData, options: { widt
       : 0;
   const iconPillHeight = Math.max(0, ...icons.map((icon) => icon.size)) + iconPillPadY * 2;
 
-  ctx.font = siteFont(750, nameSize);
-  ctx.fillStyle = "#ffffff";
-  const nameMax = textRight - textX - (icons.length > 0 ? rowGap + iconsWidth : 0);
+  // The name icon cosmetic sits right after the name.
+  const nameIconSize = 1.05 * REM;
+  const emojiFont = `${nameIconSize}px "Rank Card Emoji", "Segoe UI Emoji", sans-serif`;
+  const emojiOk = (emoji: string) => hasEmoji && stripUnsupportedGlyphs(emoji, emojiGlyphs) === emoji;
+  const hasNameIcon = Boolean(cosmetics.icon && (cosmetics.icon.imageUrl || (cosmetics.icon.emoji && emojiOk(cosmetics.icon.emoji))));
+  const nameIconWidth = hasNameIcon ? rowGap + nameIconSize : 0;
+
+  ctx.font = nameFont;
+  const nameMax = textRight - textX - (icons.length > 0 ? rowGap + iconsWidth : 0) - nameIconWidth;
   const name = ellipsize(ctx, data.displayName, Math.max(40, nameMax));
   ctx.textBaseline = "middle";
-  ctx.fillText(name, textX, nameCenterY + 0.5);
+  let nameEnd =
+    textX +
+    drawCosmeticName(ctx, name, textX, nameCenterY + 0.5, { font: nameFont, color: cosmetics.nameColor, defaultColor: "#ffffff", sizePx: nameSize, shadow: themed || Boolean(cosmetics.nameColor) });
   ctx.textBaseline = "alphabetic";
+  if (hasNameIcon && cosmetics.icon) {
+    const drawn = await drawNameIcon(ctx, cosmetics.icon, nameEnd + rowGap, nameCenterY, nameIconSize, { emojiFont, canDrawEmoji: emojiOk }).catch(() => 0);
+    if (drawn > 0) nameEnd += rowGap + drawn;
+  }
+  if (cosmetics.title) {
+    ctx.textBaseline = "middle";
+    drawCosmeticTitle(ctx, cosmetics.title, textX, nameLineTop + nameLineHeight + titleLine / 2, titleFont, "rgba(255,255,255,0.8)", textRight - textX);
+    ctx.textBaseline = "alphabetic";
+  }
 
   if (icons.length > 0) {
-    const pillX = textX + ctx.measureText(name).width + rowGap;
+    const pillX = nameEnd + rowGap;
     const pillTop = nameCenterY - iconPillHeight / 2;
     ctx.save();
     roundRect(ctx, pillX, pillTop, iconsWidth, iconPillHeight, 999);
@@ -425,7 +525,8 @@ export async function renderProfileCard(source: ProfileCardData, options: { widt
     rowTop += chipHeight + chipGap;
   }
 
-  return canvas.toBuffer("image/png");
+  if (mode.kind === "png") return { canvas };
+  return { canvas, layers: { width, height, scale, overlay: canvas, paintBackdrop: (target, frame) => void paintBackdrop(target, frame) } };
 }
 
 export type ProfileStatsSummary = {
@@ -436,7 +537,14 @@ export type ProfileStatsSummary = {
 };
 
 export type ProfileCardResult =
-  | { ok: true; buffer: Buffer; displayName: string; stats: ProfileStatsSummary }
+  | {
+      ok: true;
+      buffer: Buffer;
+      displayName: string;
+      stats: ProfileStatsSummary;
+      /** When the equipped background is animated: renders the card as a GIF (null if that fails). */
+      animate?: () => Promise<Buffer | null>;
+    }
   | { ok: false; reason: "private"; displayName: string };
 
 /** Everything the site's profile hero shows, for one user, rendered as the /profile card. */
@@ -473,7 +581,7 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
     );
   }
 
-  const buffer = await renderProfileCard({
+  const cardData: ProfileCardData = {
     displayName,
     username: fetched.username,
     avatarURL,
@@ -487,10 +595,28 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
       colorHex: badge.colorHex,
     })),
     lastActiveAt: stats?.lastActiveAt ?? null,
-  });
+    cosmetics: (() => {
+      try {
+        return getEquippedStyle(user.id);
+      } catch {
+        return null;
+      }
+    })(),
+    // Fixed, so the GIF version (rendered moments later) says the same "last seen".
+    now: new Date(),
+  };
+  const buffer = await renderProfileCard(cardData);
+  const background = cardData.cosmetics?.background;
+  let animate: (() => Promise<Buffer | null>) | undefined;
+  if (hasBackgroundFrames(background, "profile")) {
+    // Minute precision for "last seen", so a repeat within the minute reuses the cached GIF.
+    const key = animatedCardKey("profile", user.id, background, { ...cardData, now: Math.floor(cardData.now!.getTime() / 60_000) });
+    animate = () => cachedAnimatedCard(key, () => renderAnimatedProfileCard(cardData));
+  }
   return {
     ok: true,
     buffer,
+    animate,
     displayName,
     stats: {
       totalMessages: stats?.totalMessages ?? 0,

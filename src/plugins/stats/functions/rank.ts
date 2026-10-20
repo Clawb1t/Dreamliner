@@ -13,7 +13,9 @@ import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
 import { getProgressionBadges, loadBadgeImage } from "../../../core/progressionBadges/index.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { retryAsync } from "../../../core/retry.js";
+import { getEquippedStyle } from "../../../core/cosmetics/equip.js";
 import { getLogger } from "../../../core/logger.js";
+import { animatedCardKey, cachedAnimatedCard, hasBackgroundFrames, recordTranslations, renderAnimatedRankCard } from "./animatedCards.js";
 const log = getLogger("stats");
 
 export type RankScope = "server" | "global";
@@ -23,7 +25,20 @@ export type RankResult = {
   rank: number;
   totalRanked: number;
   count: number;
+  /** When the equipped background is animated: renders the card as a GIF (null if that fails). */
+  animate?: () => Promise<Buffer | null>;
 };
+
+/** The still card, plus its GIF version when the member's background has animation frames. */
+async function renderCard(userId: string, row: RankCardRow, t: Translator): Promise<{ buffer: Buffer; animate?: () => Promise<Buffer | null> }> {
+  const recorder = recordTranslations(t);
+  const buffer = await renderRankCard({ row }, recorder.t);
+  const background = row.cosmetics?.background;
+  if (!hasBackgroundFrames(background, "rank")) return { buffer };
+  const translations = recorder.entries();
+  const key = animatedCardKey("rank", userId, background, [row, translations]);
+  return { buffer, animate: () => cachedAnimatedCard(key, () => renderAnimatedRankCard(row, translations)) };
+}
 
 // The banner is decoration: never let a slow Discord fetch hold the whole reply hostage.
 const BANNER_FETCH_BUDGET_MS = 5_000;
@@ -46,6 +61,15 @@ async function progressionIconBuffers(
     const image = images[index];
     return image ? [{ image: image.buffer, accentTint: badge.id === "dreamliner_one" }] : [];
   });
+}
+
+function safeCosmetics(userId: string) {
+  try {
+    return getEquippedStyle(userId);
+  } catch (err) {
+    log.debug(`[rank card] cosmetics lookup failed for ${userId}:`, err);
+    return null;
+  }
 }
 
 function displayName(member: import("discord.js").GuildMember | null, user: User): string {
@@ -84,6 +108,7 @@ export async function renderUserRankCard(
     colorHex: badge.colorHex,
   }));
   const progressionIcons = await progressionIconBuffers(progression);
+  const cosmetics = safeCosmetics(user.id);
 
   if (scope === "global") {
     const [count, total, activeUsers] = await Promise.all([
@@ -104,9 +129,10 @@ export async function renderUserRankCard(
       accentColor: profile.accentColor,
       badges: rowBadges,
       progressionIcons,
+      cosmetics,
     };
-    const buffer = await renderRankCard({ row }, t);
-    return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count };
+    const { buffer, animate } = await renderCard(user.id, row, t);
+    return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count, animate };
   }
 
   const [count, total, activeUsers] = await Promise.all([
@@ -127,7 +153,8 @@ export async function renderUserRankCard(
     accentColor: profile.accentColor,
     badges: rowBadges,
     progressionIcons,
+    cosmetics,
   };
-  const buffer = await renderRankCard({ row }, t);
-  return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count };
+  const { buffer, animate } = await renderCard(user.id, row, t);
+  return { buffer, rank, totalRanked: Math.max(activeUsers, rank), count, animate };
 }

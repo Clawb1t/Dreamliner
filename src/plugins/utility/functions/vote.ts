@@ -1,6 +1,6 @@
 import { ButtonStyle, ComponentType, MessageFlags, type MessageCreateOptions } from "discord.js";
 import { DREAMLINER_ACCENT } from "../../../core/embeds.js";
-import { VOTE_URL, getAccountStoreUrl } from "../../../core/docsUrl.js";
+import { VOTE_URL, getStoreUrl } from "../../../core/docsUrl.js";
 import { STORE_PRICING } from "../../../core/store/pricing.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 
@@ -35,7 +35,7 @@ export function buildVotePayload(t: Translator = defaultTranslator): MessageCrea
                 type: ComponentType.Button,
                 style: ButtonStyle.Link,
                 label: t("utility.vote.creditsButtonLabel", "Your credits"),
-                url: getAccountStoreUrl(),
+                url: getStoreUrl(),
               },
             ],
           },

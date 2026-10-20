@@ -80,7 +80,7 @@ function pickSlot(): Slot | null {
   return slots.reduce((best, slot) => (slot.busy < best.busy ? slot : best));
 }
 
-function callWorker(modulePath: string, name: string, args: unknown[]): Promise<unknown> {
+function callWorker(modulePath: string, name: string, args: unknown[], timeoutMs = TASK_TIMEOUT_MS): Promise<unknown> {
   const slot = pickSlot();
   if (!slot) return Promise.reject(new Error("no worker available"));
   const id = nextId++;
@@ -90,7 +90,7 @@ function callWorker(modulePath: string, name: string, args: unknown[]): Promise<
         slot.busy--;
         reject(new Error(`${name} timed out on the worker`));
       }
-    }, TASK_TIMEOUT_MS);
+    }, timeoutMs);
     slot.pending.set(id, {
       resolve: (value) => {
         clearTimeout(timer);
@@ -106,21 +106,38 @@ function callWorker(modulePath: string, name: string, args: unknown[]): Promise<
   });
 }
 
+export type OffloadOptions = {
+  /** How long the worker gets before the call fails (default 60s). */
+  timeoutMs?: number;
+  /**
+   * false: never run on the main thread. A worker failure or timeout rejects instead, and with
+   * workers unavailable the call rejects straight away (for CPU-heavy work, like GIF encoding,
+   * that would block the bot). Default true.
+   */
+  mainThreadFallback?: boolean;
+};
+
 /**
  * Wraps a read-only async function so that on the main thread it runs on a worker, and inside the
  * worker (or if workers are unavailable) it runs directly. `modulePath` is relative to `src/`
  * without extension, e.g. "plugins/stats/functions/voice".
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function offloaded<F extends (...args: any[]) => Promise<any>>(modulePath: string, name: string, impl: F): F {
+export function offloaded<F extends (...args: any[]) => Promise<any>>(modulePath: string, name: string, impl: F, options: OffloadOptions = {}): F {
+  const fallback = options.mainThreadFallback !== false;
   const wrapped = (...args: Parameters<F>): ReturnType<F> => {
-    if (!isMainThread || disabled || process.env.DISABLE_OFFLOAD === "1") return impl(...args) as ReturnType<F>;
-    return callWorker(modulePath, name, args)
+    if (!isMainThread) return impl(...args) as ReturnType<F>;
+    if (disabled || process.env.DISABLE_OFFLOAD === "1") {
+      if (fallback) return impl(...args) as ReturnType<F>;
+      return Promise.reject(new Error(`${name} needs a worker thread`)) as ReturnType<F>;
+    }
+    return callWorker(modulePath, name, args, options.timeoutMs)
       .then((value) => {
         counters.onWorker++;
         return value;
       })
       .catch((error: unknown) => {
+      if (!fallback) throw error;
       // A worker problem must never take a page down: fall back to running it here.
       counters.fellBack++;
       log.warn(`${name} fell back to the main thread: ${error instanceof Error ? error.message : error}`);

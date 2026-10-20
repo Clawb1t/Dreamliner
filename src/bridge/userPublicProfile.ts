@@ -12,6 +12,8 @@ import {
 } from "./userActivity.js";
 import { getSortedInventory } from "../plugins/economy/functions/inventory.js";
 import type { CardType } from "../plugins/economy/functions/catalog.js";
+import { getEquippedStyle } from "../core/cosmetics/equip.js";
+import type { CosmeticStyle } from "../core/cosmetics/types.js";
 
 const ACTIVITY_DAYS = 30;
 
@@ -46,6 +48,8 @@ export type PublicProfileIdentity = {
   oneOwnerSince: string | null;
   /** Automatic progression badges (Dreamliner One included), shown right after the name. */
   progressionBadges: ProgressionBadge[];
+  /** Store cosmetics the user has equipped, resolved (an empty object when none). */
+  cosmetics: CosmeticStyle;
 };
 
 const TIMED_OUT = Symbol("timed-out");
@@ -160,7 +164,16 @@ export async function buildPublicProfileIdentity(
     oneOwner: oneOwnerSince != null,
     oneOwnerSince,
     progressionBadges,
+    cosmetics: safeCosmetics(userId),
   };
+}
+
+function safeCosmetics(userId: string): CosmeticStyle {
+  try {
+    return getEquippedStyle(userId);
+  } catch {
+    return {};
+  }
 }
 
 /** Earliest `since` among active Dreamliner One subscriptions on guilds this user owns, null if

@@ -747,6 +747,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
         const storeMatch = /^\/bridge\/users\/(\d+)\/store(?:\/(claim|servers|purchase|reminders))?$/.exec(url.pathname);
         const storeVoteMatch = url.pathname === "/bridge/store/votes";
+        const storeCatalogMatch = url.pathname === "/bridge/store/catalog";
+        const storeAdminProductsMatch = /^\/bridge\/store\/admin\/products(?:\/([a-z0-9][a-z0-9-]{0,63}))?$/.exec(url.pathname);
+        const storeAdminAssetsMatch = url.pathname === "/bridge/store/admin/assets";
+        const storeAdminSettingsMatch = url.pathname === "/bridge/store/admin/settings";
+        const storeAdminGrantMatch = url.pathname === "/bridge/store/admin/grant";
+        const cosmeticsMatch = /^\/bridge\/users\/(\d+)\/cosmetics(?:\/(equip))?$/.exec(url.pathname);
+        const storeAssetMatch = /^\/bridge\/store\/assets\/([a-zA-Z0-9_-]{1,64})$/.exec(url.pathname);
         const blueskyAccountMatch = /^\/bridge\/users\/(\d+)\/bluesky$/.exec(url.pathname);
         const blueskyAuthorizeMatch = /^\/bridge\/users\/(\d+)\/bluesky\/authorize$/.exec(url.pathname);
         const blueskyCallbackMatch = /^\/bridge\/users\/(\d+)\/bluesky\/callback$/.exec(url.pathname);
@@ -1098,6 +1105,188 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Dreamliner Store catalog -------------------------------------------------------------
+
+        if (storeCatalogMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          // The product list itself is cached in memory (30s, dropped on every admin write).
+          const { getStoreCatalog } = await import("../core/store/products.js");
+          sendJson(res, 200, getStoreCatalog());
+          return;
+        }
+
+        // Product art: public, addressed by its unguessable id, and only ever a PNG the bot re-encoded.
+        if (storeAssetMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { GLOBAL_ASSET_KEY, readPageAsset } = await import("../core/pageAssets.js");
+          const buf = readPageAsset(GLOBAL_ASSET_KEY, "store", storeAssetMatch[1]!);
+          if (!buf) {
+            sendJson(res, 404, { error: "Image not found" });
+            return;
+          }
+          sendBinary(res, 200, buf, "image/png");
+          return;
+        }
+
+        if (storeAdminProductsMatch || storeAdminAssetsMatch || storeAdminSettingsMatch || storeAdminGrantMatch) {
+          let body: Record<string, unknown> = {};
+          if (req.method !== "GET") {
+            try {
+              const parsedBody = JSON.parse((await readBody(req)) || "{}") as unknown;
+              if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) throw new Error("not an object");
+              body = parsedBody as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { ok: false, error: "Invalid JSON body" });
+              return;
+            }
+          }
+          const actorId = (req.method === "GET" ? url.searchParams.get("userId") : typeof body.userId === "string" ? body.userId : "")?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { ok: false, error: "Platform access required." });
+            return;
+          }
+
+          if (storeAdminAssetsMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { ok: false, error: "Method not allowed" });
+              return;
+            }
+            const assetKinds = ["card", "hero", "frame", "theme", "icon", "frames"];
+            if (typeof body.imageBase64 !== "string" || typeof body.kind !== "string" || !assetKinds.includes(body.kind)) {
+              sendJson(res, 400, { ok: false, error: `imageBase64 and kind (${assetKinds.join(", ")}) are required.` });
+              return;
+            }
+            try {
+              const { GLOBAL_ASSET_KEY, decodeBase64Upload, registerAssetKeeper, savePageAsset } = await import("../core/pageAssets.js");
+              const { referencedStoreAssetIds } = await import("../core/store/products.js");
+              registerAssetKeeper("store", referencedStoreAssetIds);
+              // Images keep their shape (up to 2400px on the long side for the Store, so background card stills stay at the cards' exact size).
+              const saved = await savePageAsset(GLOBAL_ASSET_KEY, "store", decodeBase64Upload(body.imageBase64));
+              log.info(`[store] ${actorId} uploaded a ${body.kind} image (${saved.assetId}).`);
+              sendJson(res, 200, { ok: true, assetId: saved.assetId });
+            } catch (error) {
+              sendJson(res, 400, { ok: false, error: error instanceof Error ? error.message : "Failed to upload image" });
+            }
+            return;
+          }
+
+          if (storeAdminSettingsMatch) {
+            const settings = await import("../core/store/settings.js");
+            if (req.method === "GET") {
+              sendJson(res, 200, { ok: true, settings: settings.getStoreSettings() });
+              return;
+            }
+            if (req.method !== "PATCH") {
+              sendJson(res, 405, { ok: false, error: "Method not allowed" });
+              return;
+            }
+            try {
+              const updated = settings.updateStoreSettings(body, actorId);
+              log.info(`[store] ${actorId} set creditsPerMile to ${updated.creditsPerMile}.`);
+              sendJson(res, 200, { ok: true, settings: updated });
+            } catch (error) {
+              if (!(error instanceof settings.StoreSettingsInputError)) throw error;
+              sendJson(res, 400, { ok: false, error: error.message });
+            }
+            return;
+          }
+
+          if (storeAdminGrantMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { ok: false, error: "Method not allowed" });
+              return;
+            }
+            const targetUserId = typeof body.targetUserId === "string" ? body.targetUserId.trim() : "";
+            if (!/^\d{15,25}$/.test(targetUserId) || (body.currency !== "miles" && body.currency !== "credits") || typeof body.amount !== "number") {
+              sendJson(res, 400, { ok: false, error: "targetUserId, currency (miles or credits) and amount are required." });
+              return;
+            }
+            const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
+            const miles = await import("../core/store/miles.js");
+            try {
+              const result = miles.grantCurrency({ actorId, targetUserId, currency: body.currency, amount: body.amount, note });
+              log.info(`[store] ${actorId} granted ${body.amount} ${body.currency} to ${targetUserId}.`);
+              sendJson(res, 200, { ok: true, balance: result.balance });
+            } catch (error) {
+              if (!(error instanceof miles.StoreGrantError)) throw error;
+              sendJson(res, error.status, { ok: false, error: error.message });
+            }
+            return;
+          }
+
+          const products = await import("../core/store/products.js");
+          const productId = storeAdminProductsMatch![1];
+          const { userId: _actor, ...input } = body;
+          try {
+            if (!productId && req.method === "GET") {
+              sendJson(res, 200, {
+                ok: true,
+                products: products.listProducts({ includeInactive: true }).map((product) => products.toAdminProductPayload(product)),
+              });
+              return;
+            }
+            if (!productId && req.method === "POST") {
+              const product = products.createProduct(input, actorId);
+              log.info(`[store] ${actorId} created store product ${product.id}.`);
+              sendJson(res, 200, { ok: true, product: products.toAdminProductPayload(product) });
+              return;
+            }
+            if (productId && req.method === "PATCH") {
+              const product = products.updateProduct(productId, input, actorId);
+              if (!product) {
+                sendJson(res, 404, { ok: false, error: "That product doesn't exist." });
+                return;
+              }
+              log.info(`[store] ${actorId} updated store product ${product.id}.`);
+              sendJson(res, 200, { ok: true, product: products.toAdminProductPayload(product) });
+              return;
+            }
+          } catch (error) {
+            if (error instanceof products.StoreProductInputError) {
+              sendJson(res, 400, { ok: false, error: error.message, ...(error.field ? { field: error.field } : {}) });
+              return;
+            }
+            throw error;
+          }
+          sendJson(res, 405, { ok: false, error: "Method not allowed" });
+          return;
+        }
+
+        if (cosmeticsMatch) {
+          const userId = cosmeticsMatch[1]!;
+          const cosmetics = await import("./webCosmetics.js");
+          if (!cosmeticsMatch[2]) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { ok: false, error: "Method not allowed" });
+              return;
+            }
+            sendJson(res, 200, cosmetics.getWebCosmetics(userId));
+            return;
+          }
+          if (req.method !== "POST") {
+            sendJson(res, 405, { ok: false, error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown>;
+          try {
+            const parsedBody = JSON.parse((await readBody(req)) || "{}") as unknown;
+            if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) throw new Error("not an object");
+            body = parsedBody as Record<string, unknown>;
+          } catch {
+            sendJson(res, 400, { ok: false, error: "Invalid JSON body" });
+            return;
+          }
+          const result = cosmetics.equipWebCosmetic(userId, body);
+          sendJson(res, result.status, result.body);
+          return;
+        }
+
         if (storeMatch) {
           const userId = storeMatch[1]!;
           const action = storeMatch[2];
@@ -1136,13 +1325,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 200, { servers: await store.listWebStoreServers(client, guildIds, userId) });
             return;
           }
-          if (typeof body.guildId !== "string" || typeof body.days !== "number") {
-            sendJson(res, 400, { error: "guildId and days are required." });
+          const { parsePurchaseBody } = await import("../core/store/products.js");
+          const parsed = parsePurchaseBody(body);
+          if (!parsed.ok) {
+            sendJson(res, 400, { error: parsed.error });
             return;
           }
-          const result = await store.purchaseWebStoreOne(client, userId, body.guildId, body.days);
+          const result = await store.purchaseWebStoreProduct(client, userId, parsed);
           if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
+            sendJson(res, result.status, { error: result.error, ...(result.code ? { code: result.code } : {}) });
             return;
           }
           sendJson(res, 200, result);
@@ -2934,7 +3125,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
-        const aiActionMatch = /^\/bridge\/guilds\/(\d+)\/ai\/(generate|status|wizard)$/.exec(url.pathname);
+        const aiActionMatch = /^\/bridge\/guilds\/(\d+)\/ai\/(generate|status|wizard|character)$/.exec(url.pathname);
         const switchActionMatch = /^\/bridge\/guilds\/(\d+)\/switch\/(status|read|mee6-levels)$/.exec(url.pathname);
         if (
           !publicLeaderboardMatch &&
@@ -4352,7 +4543,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (aiActionMatch) {
-          const { generateAiCopy, getAiStatus, runAiWizard } = await import("./webAi.js");
+          const { draftAiCharacter, generateAiCopy, getAiStatus, runAiWizard } = await import("./webAi.js");
           const action = aiActionMatch[2];
 
           if (action === "status" && req.method === "GET") {
@@ -4388,6 +4579,29 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const result = await generateAiCopy(guildId, { task: body.task, context: body.context });
+            sendJson(res, result.ok ? 200 : result.status, result);
+            return;
+          }
+
+          // Characters' Autopilot: { userId, description, name?, tone? } -> { ok, draft, freeUsesRemaining }.
+          if (action === "character" && req.method === "POST") {
+            let body: Record<string, unknown>;
+            try {
+              body = JSON.parse(await readBody(req)) as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            const result = await draftAiCharacter(guildId, body);
             sendJson(res, result.ok ? 200 : result.status, result);
             return;
           }

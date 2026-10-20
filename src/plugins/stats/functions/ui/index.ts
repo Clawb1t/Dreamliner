@@ -10,7 +10,8 @@ import { canViewStatsChannel } from "./channelAccess.js";
 import type { GuildConfig } from "../../../../config/schemas/guild.js";
 import { containerEdit, containerReply, resultReply, guildResultOptions } from "../../../../core/responses.js";
 import { isValidStatsWindow } from "../daily.js";
-import { buildStatsPayload } from "./buildPayload.js";
+import { buildStatsPayload, type ChartUpgrade } from "./buildPayload.js";
+import { claimMessageView, upgradeToGif } from "../animatedReply.js";
 import { parseCustomId, permissionForScope, STATS_PREFIX, type StatsState } from "./state.js";
 import { getLogger } from "../../../../core/logger.js";
 import { defaultTranslator, translatorFor, type Translator } from "../../../../i18n/index.js";
@@ -26,9 +27,9 @@ export async function buildStatsMessage(
   guildConfig: GuildConfig,
   ephemeral: boolean,
   t: Translator = defaultTranslator,
-): Promise<InteractionReplyOptions> {
+): Promise<InteractionReplyOptions & { chartUpgrade?: ChartUpgrade }> {
   const payload = await buildStatsPayload(state, guild, client, guildConfig, t);
-  return { ...containerReply(payload.embed, ephemeral, payload.rows), files: payload.files };
+  return { ...containerReply(payload.embed, ephemeral, payload.rows), files: payload.files, chartUpgrade: payload.chartUpgrade };
 }
 
 export async function buildStatsUpdate(
@@ -37,9 +38,9 @@ export async function buildStatsUpdate(
   client: Client,
   guildConfig: GuildConfig,
   t: Translator = defaultTranslator,
-): Promise<InteractionUpdateOptions> {
+): Promise<{ update: InteractionUpdateOptions; chartUpgrade?: ChartUpgrade }> {
   const payload = await buildStatsPayload(state, guild, client, guildConfig, t);
-  return { ...containerEdit(payload.embed, payload.rows), files: payload.files };
+  return { update: { ...containerEdit(payload.embed, payload.rows), files: payload.files }, chartUpgrade: payload.chartUpgrade };
 }
 
 export async function handleStatsInteraction(
@@ -86,7 +87,14 @@ export async function handleStatsInteraction(
       }
     }
 
-    await interaction.update(await buildStatsUpdate(nextState, interaction.guild, interaction.client, guildConfig, t));
+    // A newer view of this message makes any GIF still rendering for an older one stale.
+    const isCurrent = claimMessageView(interaction.message.id);
+    const { update, chartUpgrade } = await buildStatsUpdate(nextState, interaction.guild, interaction.client, guildConfig, t);
+    await interaction.update(update);
+    // An animated leaderboard: the still is up, the GIF replaces it when ready.
+    if (chartUpgrade) {
+      await upgradeToGif((options) => interaction.editReply(options), chartUpgrade.render, "chart", chartUpgrade.payload(), isCurrent);
+    }
   } catch (error) {
     log.error("Stats interaction error:", error);
     if (!interaction.replied && !interaction.deferred) {

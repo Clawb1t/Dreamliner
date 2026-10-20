@@ -244,6 +244,8 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         });
       },
     );
+    // Miles purchases: reconcile unconsumed entitlements now and every 10 minutes.
+    void import("./core/store/milesDiscord.js").then(({ startMilesEntitlements }) => startMilesEntitlements(c));
     void import("./bridge/oneEntitlements.js").then(({ startDreamlinerOneEntitlements }) =>
       startDreamlinerOneEntitlements(c).catch((error) => {
         log.error("[dreamliner-one] Failed to start entitlement sync.", error);
@@ -272,11 +274,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     void import("./bridge/oneEntitlements.js").then(({ handleDiscordEntitlement }) =>
       handleDiscordEntitlement(entitlement),
     );
+    // Miles packs (consumable SKUs): pay, consume, DM a receipt.
+    void import("./core/store/milesDiscord.js").then(({ handleMilesEntitlement }) => handleMilesEntitlement(client, entitlement));
   });
   client.on(Events.EntitlementUpdate, (_old, entitlement) => {
     void import("./bridge/oneEntitlements.js").then(({ handleDiscordEntitlement }) =>
       handleDiscordEntitlement(entitlement),
     );
+    void import("./core/store/milesDiscord.js").then(({ handleMilesEntitlement }) => handleMilesEntitlement(client, entitlement));
   });
   client.on(Events.EntitlementDelete, (entitlement) => {
     void import("./bridge/oneEntitlements.js").then(({ handleDiscordEntitlementDelete }) =>

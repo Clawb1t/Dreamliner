@@ -58,6 +58,19 @@ describe("characters review", () => {
     assert.equal(verdict.aiReviewed, false);
   });
 
+  it("sends the tone and catchphrases to the review", async () => {
+    let prompt = "";
+    await reviewCharacter({ ...def, tone: "scary", catchphrases: ["Boo!"] }, {
+      configured: true,
+      call: async ({ messages }) => {
+        prompt = messages.map((m) => m.content).join("\n");
+        return { value: { approved: true } };
+      },
+    });
+    assert.match(prompt, /Tone preset: scary/);
+    assert.match(prompt, /Catchphrases: "Boo!"/);
+  });
+
   it("throws ReviewUnavailableError on an unreadable verdict or API error", async () => {
     await assert.rejects(reviewCharacter(def, { configured: true, call: async () => ({ value: { nope: 1 } }) }), ReviewUnavailableError);
     await assert.rejects(

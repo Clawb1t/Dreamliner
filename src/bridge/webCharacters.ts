@@ -5,11 +5,18 @@ import { fetchGuildChannel, validateGuildTargets } from "../core/guildChannel.js
 import { getLogger } from "../core/logger.js";
 import { decodeBase64Upload, deletePageAsset, isPageAssetId, readPageAsset, savePageAsset } from "../core/pageAssets.js";
 import {
+  CATCHPHRASE_LIMITS,
   CHARACTER_LIMITS,
+  CHARACTER_TONES,
+  EMOJI_USES,
+  FORMALITIES,
   REPLY_STYLES,
   TEMPERATURE_DEFAULT,
   TEMPERATURE_MAX,
   TEMPERATURE_MIN,
+  type CharacterTone,
+  type EmojiUse,
+  type Formality,
   type ReplyStyle,
 } from "../plugins/characters/constants.js";
 import { characterAvatarUrl } from "../plugins/characters/functions/avatar.js";
@@ -51,6 +58,11 @@ export type CharacterPayload = {
   exampleDialogue: string;
   replyStyle: ReplyStyle;
   temperature: number;
+  tone: CharacterTone;
+  emojiUse: EmojiUse;
+  formality: Formality;
+  roleplayActions: boolean;
+  catchphrases: string[];
   roleId: string | null;
   roleMissing: boolean;
   roleColor: number | null;
@@ -87,6 +99,11 @@ export function toCharacterPayload(guild: Guild, c: CharacterRecord): CharacterP
     exampleDialogue: c.exampleDialogue,
     replyStyle: c.replyStyle,
     temperature: c.temperature,
+    tone: c.tone,
+    emojiUse: c.emojiUse,
+    formality: c.formality,
+    roleplayActions: c.roleplayActions,
+    catchphrases: c.catchphrases,
     roleId: role ? c.roleId : null,
     roleMissing: !role,
     roleColor: c.roleColor,
@@ -201,6 +218,46 @@ export async function parseCharacterInput(
     }
     value.temperature = Math.round(Math.min(TEMPERATURE_MAX, Math.max(TEMPERATURE_MIN, body.temperature)) * 100) / 100;
   }
+  if (body.tone !== undefined) {
+    if (typeof body.tone !== "string" || (body.tone !== "" && !(CHARACTER_TONES as readonly string[]).includes(body.tone))) {
+      return { ok: false, error: "Pick one of the tone presets.", field: "tone" };
+    }
+    value.tone = body.tone as CharacterTone;
+  }
+  if (body.emojiUse !== undefined) {
+    if (typeof body.emojiUse !== "string" || !(EMOJI_USES as readonly string[]).includes(body.emojiUse)) {
+      return { ok: false, error: "Emoji use must be none, some or lots.", field: "emojiUse" };
+    }
+    value.emojiUse = body.emojiUse as EmojiUse;
+  }
+  if (body.formality !== undefined) {
+    if (typeof body.formality !== "string" || !(FORMALITIES as readonly string[]).includes(body.formality)) {
+      return { ok: false, error: "Formality must be casual, balanced or formal.", field: "formality" };
+    }
+    value.formality = body.formality as Formality;
+  }
+  if (body.roleplayActions !== undefined) {
+    if (typeof body.roleplayActions !== "boolean") return { ok: false, error: "Expected on or off.", field: "roleplayActions" };
+    value.roleplayActions = body.roleplayActions;
+  }
+  if (body.catchphrases !== undefined) {
+    if (!Array.isArray(body.catchphrases) || body.catchphrases.some((p) => typeof p !== "string")) {
+      return { ok: false, error: "Expected a list of catchphrases.", field: "catchphrases" };
+    }
+    const phrases: string[] = [];
+    for (const raw of body.catchphrases as string[]) {
+      const phrase = raw.replace(/\s+/g, " ").trim();
+      if (!phrase) continue;
+      if (phrase.length > CATCHPHRASE_LIMITS.length) {
+        return { ok: false, error: `Keep each catchphrase to ${CATCHPHRASE_LIMITS.length} characters or fewer.`, field: "catchphrases" };
+      }
+      if (!phrases.some((p) => p.toLowerCase() === phrase.toLowerCase())) phrases.push(phrase);
+    }
+    if (phrases.length > CATCHPHRASE_LIMITS.count) {
+      return { ok: false, error: `A character can have at most ${CATCHPHRASE_LIMITS.count} catchphrases.`, field: "catchphrases" };
+    }
+    value.catchphrases = phrases;
+  }
   if (body.roleColor !== undefined) {
     if (body.roleColor !== null && (typeof body.roleColor !== "number" || !Number.isInteger(body.roleColor) || body.roleColor < 0 || body.roleColor > 0xffffff)) {
       return { ok: false, error: "Role colour must be a colour like #5865F2.", field: "roleColor" };
@@ -252,7 +309,7 @@ export async function parseCharacterInput(
 const REVIEWED_FIELDS = ["name", "tagline", "personality", "scenario", "greeting", "exampleDialogue"] as const;
 const NOT_AI_REVIEWED_NOTE = "Saved without an AI review: character replies aren't available on this bot yet.";
 
-function definitionOf(c: Pick<CharacterRecord, (typeof REVIEWED_FIELDS)[number]>): CharacterDefinition {
+function definitionOf(c: Pick<CharacterRecord, (typeof REVIEWED_FIELDS)[number] | "tone" | "catchphrases">): CharacterDefinition {
   return {
     name: c.name,
     tagline: c.tagline,
@@ -260,6 +317,8 @@ function definitionOf(c: Pick<CharacterRecord, (typeof REVIEWED_FIELDS)[number]>
     scenario: c.scenario,
     greeting: c.greeting,
     exampleDialogue: c.exampleDialogue,
+    tone: c.tone,
+    catchphrases: c.catchphrases,
   };
 }
 
@@ -304,6 +363,8 @@ export async function createWebCharacter(guild: Guild, userId: string, body: Rec
     scenario: input.scenario ?? "",
     greeting: input.greeting ?? "",
     exampleDialogue: input.exampleDialogue ?? "",
+    tone: input.tone ?? "",
+    catchphrases: input.catchphrases ?? [],
   };
   let verdict;
   try {
@@ -319,6 +380,11 @@ export async function createWebCharacter(guild: Guild, userId: string, body: Rec
 
   const record = createCharacter(guild.id, userId, {
     ...definition,
+    tone: input.tone ?? "",
+    emojiUse: input.emojiUse ?? "some",
+    formality: input.formality ?? "balanced",
+    roleplayActions: input.roleplayActions ?? true,
+    catchphrases: input.catchphrases ?? [],
     avatarAssetId: input.avatarAssetId ?? null,
     avatarUrl: input.avatarUrl ?? null,
     replyStyle: input.replyStyle ?? "medium",
@@ -353,8 +419,16 @@ export async function updateWebCharacter(guild: Guild, id: number, body: Record<
   if (input.personality !== undefined && !input.personality) return fail(400, "Describe the character's personality.", "personality");
   if (input.name && nameTaken(guild.id, input.name, id)) return fail(400, "Another character already has that name.", "name");
 
-  const next = { ...definitionOf(existing), ...Object.fromEntries(REVIEWED_FIELDS.filter((f) => input[f] !== undefined).map((f) => [f, input[f]])) } as CharacterDefinition;
-  const textChanged = REVIEWED_FIELDS.some((f) => next[f] !== existing[f]);
+  const next = {
+    ...definitionOf(existing),
+    ...Object.fromEntries(REVIEWED_FIELDS.filter((f) => input[f] !== undefined).map((f) => [f, input[f]])),
+    ...(input.tone !== undefined ? { tone: input.tone } : {}),
+    ...(input.catchphrases !== undefined ? { catchphrases: input.catchphrases } : {}),
+  } as CharacterDefinition;
+  const textChanged =
+    REVIEWED_FIELDS.some((f) => next[f] !== existing[f]) ||
+    (next.tone ?? "") !== existing.tone ||
+    JSON.stringify(next.catchphrases ?? []) !== JSON.stringify(existing.catchphrases);
   // Re-review when the text changed, or when it was only checked locally and the AI is available now.
   const needsReview = textChanged || (!existing.reviewedAt && isDeepSeekConfigured());
 

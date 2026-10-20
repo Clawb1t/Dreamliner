@@ -20,6 +20,7 @@ import { renderUserRankCard, type RankScope } from "../functions/rank.js";
 import { renderUserProfileCard, type ProfileStatsSummary } from "../functions/profileCard.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { getLogger } from "../../../core/logger.js";
+import { claimMessageView, replyWithCard, upgradeToGif } from "../functions/animatedReply.js";
 
 const log = getLogger("stats");
 
@@ -129,12 +130,18 @@ export const statsCommands: SlashCommandDefinition[] = [
 
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
       const message = await buildStatsMessage(state, ctx.interaction.guild!, ctx.client, ctx.guildConfig, ctx.ephemeral, ctx.t);
-      await ctx.interaction.editReply({
+      const sent = await ctx.interaction.editReply({
         flags: MessageFlags.IsComponentsV2,
         files: message.files,
         components: message.components,
         allowedMentions: message.allowedMentions,
       });
+      // An animated leaderboard: the still went out above, the GIF replaces it when ready.
+      if (message.chartUpgrade) {
+        const upgrade = message.chartUpgrade;
+        const isCurrent = claimMessageView(sent.id);
+        await upgradeToGif((options) => ctx.interaction.editReply(options), upgrade.render, "chart", upgrade.payload(), isCurrent);
+      }
     },
   },
   {
@@ -175,13 +182,10 @@ export const statsCommands: SlashCommandDefinition[] = [
       // Just the card: the rank and the leaderboard link live in the buttons underneath.
       const components = [rankButtonsRow(scope, result.rank, leaderboardUrl, ctx.t)];
 
+      // The still first; an animated background's GIF replaces it once rendered.
+      const payload = { content: "", components, allowedMentions: { parse: [] } };
       try {
-        await ctx.interaction.editReply({
-          content: "",
-          files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })],
-          components,
-          allowedMentions: { parse: [] },
-        });
+        await ctx.interaction.editReply({ ...payload, files: [new AttachmentBuilder(result.buffer, { name: "rank.png" })] });
       } catch (error) {
         // Never leave the member staring at "thinking...": if the card upload fails, still answer
         // with the numbers, and log where the time went so a slow step is easy to spot.
@@ -200,6 +204,7 @@ export const statsCommands: SlashCommandDefinition[] = [
       if (Date.now() - started > 5_000) {
         log.warn(`[rank] slow reply: defer ${deferredMs}ms, render ${renderedMs - deferredMs}ms, upload ${Date.now() - started - renderedMs}ms`);
       }
+      await upgradeToGif((options) => ctx.interaction.editReply(options), result.animate, "rank", payload);
     },
   },
   {
@@ -239,14 +244,21 @@ export const statsCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      // Just the card: its stats and the full-profile link live in the buttons underneath.
-      await ctx.interaction.editReply({
-        content: "",
-        files: [new AttachmentBuilder(result.buffer, { name: "profile.png" })],
-        components: [profileButtonsRow(result.stats, getPublicProfileUrl(user.id), ctx.t)],
-        allowedMentions: { parse: [] },
-      });
-      if (Date.now() - started > 5_000) log.warn(`[profile] slow reply: ${Date.now() - started}ms`);
+      // Just the card: its stats and the full-profile link live in the buttons underneath. The
+      // still first; an animated background's GIF replaces it once rendered.
+      await replyWithCard(
+        (options) => ctx.interaction.editReply(options),
+        result,
+        "profile",
+        {
+          content: "",
+          components: [profileButtonsRow(result.stats, getPublicProfileUrl(user.id), ctx.t)],
+          allowedMentions: { parse: [] },
+        },
+        () => {
+          if (Date.now() - started > 5_000) log.warn(`[profile] slow reply: ${Date.now() - started}ms`);
+        },
+      );
     },
   },
 ];

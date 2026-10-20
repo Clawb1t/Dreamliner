@@ -10,6 +10,7 @@ import {
 } from "discord.js";
 import type { GuildConfig } from "../../../../config/schemas/guild.js";
 import { getGlobalLeaderboardUrl } from "../../../../core/docsUrl.js";
+import { containerEdit, type ContainerPayload } from "../../../../core/responses.js";
 import { publicLeaderboardUrl } from "../../../../core/publicLeaderboard.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines, type ResultContainer } from "../../../../core/embeds.js";
 import { getGuildMessageCount, getGlobalMessageCount } from "../../../utility/functions/messageCounts.js";
@@ -402,17 +403,25 @@ export async function buildStatsPayload(
   client: Client,
   guildConfig: GuildConfig,
   t: Translator = defaultTranslator,
-): Promise<{ embed: ResultContainer; files: AttachmentBuilder[]; rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] }> {
+): Promise<{
+  embed: ResultContainer;
+  files: AttachmentBuilder[];
+  rows: ActionRowBuilder<MessageActionRowComponentBuilder>[];
+  /** An animated leaderboard: render it, then edit the message to `payload()` with chart.gif. */
+  chartUpgrade?: ChartUpgrade;
+}> {
   const cat = categoryDef(state.scope, state.category, t);
   const chartPage = Math.min(Math.max(0, state.chartPage), Math.max(0, cat.charts - 1));
   const normalized: StatsState = { ...state, chartPage };
 
   let chartBuffer: Buffer | null = null;
   let caption = "";
+  let animateChart: (() => Promise<Buffer | null>) | undefined;
   if (cat.charts > 0) {
     const chart = await renderStatsChart(normalized, guild, t);
     chartBuffer = chart.buffer;
     caption = chart.caption;
+    animateChart = chart.animate;
   }
 
   const fields = await buildCategoryFields(normalized, guild, caption, t);
@@ -467,5 +476,14 @@ export async function buildStatsPayload(
     embed,
     files: chartBuffer ? [new AttachmentBuilder(chartBuffer, { name: "chart.png" })] : [],
     rows,
+    chartUpgrade:
+      chartBuffer && animateChart
+        ? {
+            render: animateChart,
+            payload: () => containerEdit(embed.setImage("attachment://chart.gif"), rows),
+          }
+        : undefined,
   };
 }
+
+export type ChartUpgrade = { render: () => Promise<Buffer | null>; payload: () => ContainerPayload };

@@ -28,6 +28,16 @@ describe("characters safety", () => {
     assert.equal(verdict?.field, "scenario");
   });
 
+  it("checks catchphrases for slurs and swears", () => {
+    assert.equal(localCharacterCheck({ ...base, tone: "angry", catchphrases: ["Blast it!"] }), null);
+    const hate = localCharacterCheck({ ...base, catchphrases: ["fine", `you ${slur}`] });
+    assert.equal(hate?.category, "hate");
+    assert.equal(hate?.field, "catchphrases");
+    const swear = localCharacterCheck({ ...base, catchphrases: ["oh shit"] });
+    assert.equal(swear?.approved, false);
+    assert.equal(swear?.field, "catchphrases");
+  });
+
   it("drops a reply that contains a slur", () => {
     assert.equal(sanitizeCharacterReply(`You ${slur}!`, { maxChars: 1000 }), null);
   });

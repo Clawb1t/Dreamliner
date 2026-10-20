@@ -10,7 +10,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../../db/client.js";
 import { storeVotes, voteReminderPrefs } from "../../db/schema.js";
 import { DREAMLINER_ACCENT } from "../embeds.js";
-import { VOTE_URL, getAccountStoreUrl } from "../docsUrl.js";
+import { VOTE_URL, getStoreUrl } from "../docsUrl.js";
 import { getLogger } from "../logger.js";
 import { getDreamlinerEnv } from "../../bridge/env.js";
 import { defaultTranslator, translatorFor, type Translator } from "../../i18n/index.js";
@@ -92,7 +92,7 @@ export function buildVoteReminder(balance: number, t: Translator = defaultTransl
     ),
     `-# ${UPVOTE} ${t("store.reminder.balance", "You have {balance} credits. [Open the store]({url})", {
       balance: balance.toLocaleString(),
-      url: getAccountStoreUrl(),
+      url: getStoreUrl(),
     })}`,
   ];
   return container(lines.join("\n"), [

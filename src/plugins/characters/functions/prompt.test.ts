@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildCharacterPrompt, buildChatMessages, buildHistory, maxTokensFor, type HistoryMessage } from "./prompt.js";
+import { TONE_GUIDE, buildCharacterPrompt, buildChatMessages, buildHistory, maxTokensFor, type HistoryMessage } from "./prompt.js";
 import { HARD_RULES } from "./safety.js";
 
 const character = {
@@ -31,6 +31,35 @@ describe("characters prompt", () => {
     assert.match(prompt, /Member: how are you/);
     assert.match(prompt, /Sailors/);
     assert.match(prompt, /1200 characters/);
+  });
+
+  it("adds a How you talk block from the style controls, before the hard rules", () => {
+    const prompt = buildCharacterPrompt(
+      { ...character, tone: "angry", emojiUse: "none", formality: "casual", roleplayActions: false, catchphrases: ["Blast it!", "Arr"] },
+      "Sailors",
+      { maxReplyChars: 1200 },
+    );
+    const style = prompt.indexOf("## How you talk");
+    const rules = prompt.indexOf("## Hard rules");
+    assert.ok(style > prompt.indexOf("Gruff but kind") && rules > style);
+    assert.ok(prompt.includes(TONE_GUIDE.angry));
+    assert.match(prompt, /never insult members cruelly/);
+    assert.match(prompt, /Don't use emoji/);
+    assert.match(prompt, /casually/);
+    assert.match(prompt, /Never use roleplay actions/);
+    assert.doesNotMatch(prompt, /\*italics\* for actions is fine/);
+    assert.match(prompt, /not every message.*"Blast it!", "Arr"/);
+    assert.match(prompt, /even angry, scary/);
+  });
+
+  it("uses the defaults for older characters without style fields", () => {
+    const prompt = buildCharacterPrompt(character, "Sailors", { maxReplyChars: 1200 });
+    assert.match(prompt, /## How you talk/);
+    assert.match(prompt, /emoji now and then/);
+    assert.match(prompt, /short roleplay actions/);
+    assert.doesNotMatch(prompt, /Your tone is/);
+    assert.doesNotMatch(prompt, /catchphrases/);
+    for (const tone of Object.keys(TONE_GUIDE)) assert.ok(TONE_GUIDE[tone as keyof typeof TONE_GUIDE].length > 20);
   });
 
   it("maps own messages to assistant and members to named user turns", () => {

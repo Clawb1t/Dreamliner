@@ -5,7 +5,9 @@ import {
   appeals,
   blueskyAccounts,
   storeCreditLedger,
+  storeEntitlements,
   storeVotes,
+  userCosmeticsEquipped,
   blueskyActions,
   automodHits,
   evidenceMessages,
@@ -83,9 +85,23 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
     },
     store_credits: {
       label: "Store credits",
-      description: "Credits you earned from votes and spent on Dreamliner One.",
+      description: "Credits you earned from votes and Miles you bought, and what you spent them on.",
       rows: serializable(
         await db.select().from(storeCreditLedger).where(eq(storeCreditLedger.userId, userId)).all(),
+      ),
+    },
+    store_purchases: {
+      label: "Store purchases",
+      description: "What you bought in the Dreamliner Store, and for which server.",
+      rows: serializable(
+        await db.select().from(storeEntitlements).where(eq(storeEntitlements.userId, userId)).all(),
+      ),
+    },
+    cosmetics_equipped: {
+      label: "Equipped cosmetics",
+      description: "Which store cosmetic you wear in each slot (the cosmetics you own are in Store purchases).",
+      rows: serializable(
+        await db.select().from(userCosmeticsEquipped).where(eq(userCosmeticsEquipped.userId, userId)).all(),
       ),
     },
     bluesky_account: {

@@ -2078,18 +2078,107 @@ export const storeCreditLedger = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: text("user_id").notNull(),
     delta: integer("delta").notNull(),
-    /** vote | purchase */
+    /** vote | purchase | miles_purchase | grant | refund (a retired item paid back) */
     kind: text("kind").notNull(),
     /** The credited vote, so no vote can ever pay out twice. */
     voteId: integer("vote_id"),
     /** Purchases: the server that got Dreamliner One, and for how many days. */
     guildId: text("guild_id"),
     days: integer("days"),
+    /** Purchases: the store product bought (store_products.id). */
+    productId: text("product_id"),
+    /** Purchases: the website's id for the purchase attempt, so a resubmit can't charge twice. */
+    requestId: text("request_id"),
+    /** credits | miles. Each currency has its own balance (the sum of its rows). */
+    currency: text("currency").notNull().default("credits"),
+    /** miles_purchase: the Discord entitlement paid out, so one purchase can never pay twice. */
+    entitlementId: text("entitlement_id"),
+    /** grant: the superuser's note. */
+    note: text("note"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
     index("store_credit_ledger_user").on(table.userId, table.createdAt),
     uniqueIndex("store_credit_ledger_vote").on(table.voteId),
+    uniqueIndex("store_credit_ledger_request").on(table.userId, table.requestId),
+    uniqueIndex("store_credit_ledger_entitlement").on(table.entitlementId),
+    index("store_credit_ledger_user_currency").on(table.userId, table.currency),
+  ],
+);
+
+/** Store-wide settings (a single row, id 1). */
+export const storeSettings = sqliteTable("store_settings", {
+  id: integer("id").primaryKey(),
+  /** A cosmetic's credits price is ceil(priceMiles x this). */
+  creditsPerMile: real("credits_per_mile").notNull().default(2),
+  /** Miles entitlement reconcile cursor: every entitlement at or below this id is settled. */
+  milesEntitlementCursor: text("miles_entitlement_cursor"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+  updatedBy: text("updated_by"),
+});
+
+/** The cosmetic a member wears in each slot (one per slot). */
+export const userCosmeticsEquipped = sqliteTable(
+  "user_cosmetics_equipped",
+  {
+    userId: text("user_id").notNull(),
+    slot: text("slot").notNull(),
+    productId: text("product_id").notNull(),
+    equippedAt: integer("equipped_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.slot] })],
+);
+
+/** The Dreamliner Store catalog, managed by platform superusers from the dashboard. */
+export const storeProducts = sqliteTable("store_products", {
+  /** A slug, e.g. "dreamliner-one". */
+  id: text("id").primaryKey(),
+  /** one_days (more product types later). */
+  type: text("type").notNull(),
+  name: text("name").notNull(),
+  tagline: text("tagline").notNull().default(""),
+  /** Markdown. */
+  description: text("description").notNull().default(""),
+  /** Credits per unit (per day for one_days). Cosmetics and bundles price in Miles instead. */
+  priceCredits: integer("price_credits").notNull(),
+  /** cosmetic / bundle: the Miles price (the credits price is derived from it). */
+  priceMiles: integer("price_miles"),
+  imageAssetId: text("image_asset_id"),
+  heroAssetId: text("hero_asset_id"),
+  accentColor: integer("accent_color"),
+  badge: text("badge"),
+  section: text("section").notNull().default(""),
+  featured: integer("featured", { mode: "boolean" }).notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  startsAt: integer("starts_at", { mode: "timestamp_ms" }),
+  endsAt: integer("ends_at", { mode: "timestamp_ms" }),
+  /** Type-specific settings, e.g. { dayStep, maxDays } for one_days. */
+  configJson: text("config_json").notNull().default("{}"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  updatedBy: text("updated_by"),
+});
+
+/** What members bought from the store, one row per purchase (its ledger row). */
+export const storeEntitlements = sqliteTable(
+  "store_entitlements",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    productId: text("product_id").notNull(),
+    guildId: text("guild_id"),
+    quantity: integer("quantity").notNull().default(1),
+    days: integer("days"),
+    /** one_days: the server's One expiry right after this purchase. */
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+    ledgerId: integer("ledger_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("store_entitlements_user").on(table.userId, table.productId),
+    // Not unique: a bundle purchase delivers several items under one ledger row.
+    index("store_entitlements_ledger").on(table.ledgerId),
   ],
 );
 
@@ -2420,6 +2509,16 @@ export const characters = sqliteTable(
     /** "short" | "medium" | "long" */
     replyStyle: text("reply_style").notNull().default("medium"),
     temperature: real("temperature").notNull().default(0.9),
+    /** Tone preset (see CHARACTER_TONES), "" = none. Migration 0124. */
+    tone: text("tone").notNull().default(""),
+    /** "none" | "some" | "lots" */
+    emojiUse: text("emoji_use").notNull().default("some"),
+    /** "casual" | "balanced" | "formal" */
+    formality: text("formality").notNull().default("balanced"),
+    /** Whether it may use *actions in asterisks*. */
+    roleplayActions: integer("roleplay_actions", { mode: "boolean" }).notNull().default(true),
+    /** JSON string[] (max 5): phrases it works in now and then. */
+    catchphrases: text("catchphrases").notNull().default("[]"),
     /** The mentionable role the bot made for this character (nobody is ever given it). */
     roleId: text("role_id"),
     roleColor: integer("role_color"),

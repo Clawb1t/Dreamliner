@@ -3,6 +3,11 @@ import { ChannelType } from "discord.js";
 import { generateStructured, generateText, type ChatTurn } from "../core/ai/client.js";
 import { consumeAiGate } from "../core/ai/gate.js";
 import { getAiGateStatus } from "../core/ai/usage.js";
+import {
+  generateCharacterDraft,
+  parseDraftRequest,
+  type CharacterDraft,
+} from "../plugins/characters/functions/draft.js";
 import { AI_TASKS, isKnownAiTask, type AiTaskContext } from "../core/ai/prompts.js";
 import {
   AI_WIZARDS,
@@ -55,6 +60,42 @@ export async function generateAiCopy(
   });
 
   return { ok: true, text, oneActive: gate.oneActive, freeUsesRemaining: gate.freeUsesRemaining };
+}
+
+/**
+ * Characters' Autopilot: writes a first draft of a character from a description. Same OpenAI
+ * client and shared free-use gate as every other Autopilot feature (one use per draft).
+ */
+export async function draftAiCharacter(
+  guildId: string,
+  body: Record<string, unknown>,
+): Promise<
+  | { ok: true; draft: CharacterDraft; oneActive: boolean; freeUsesRemaining: number }
+  | { ok: false; error: string; status: number; freeUsesRemaining: number; field?: string }
+> {
+  // Validate first, so a bad request never spends a use.
+  const parsed = parseDraftRequest(body);
+  if (!parsed.ok) {
+    const status = await getAiGateStatus(guildId);
+    return { ok: false, error: parsed.error, field: parsed.field, status: 400, freeUsesRemaining: status.freeUsesRemaining };
+  }
+
+  const gate = await consumeAiGate(guildId);
+  if (!gate.ok) return gate;
+  // The gate reports 0 after consuming; read the real count for the "uses left" line.
+  const freeUsesRemaining = gate.oneActive ? gate.freeUsesRemaining : (await getAiGateStatus(guildId)).freeUsesRemaining;
+
+  try {
+    const draft = await generateCharacterDraft(parsed.value);
+    return { ok: true, draft, oneActive: gate.oneActive, freeUsesRemaining };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error && error.message.startsWith("Autopilot") ? error.message : "Autopilot couldn't write that character right now. Please try again.",
+      status: 502,
+      freeUsesRemaining,
+    };
+  }
 }
 
 function resolveWizardContext(guild: Guild): AiWizardContext {

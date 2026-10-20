@@ -23,6 +23,7 @@ import {
   suggestionVotes,
   userMessageCounts,
   usernameSnapshots,
+  userCosmeticsEquipped,
   userProfiles,
   userProgressionBadgeHidden,
   welcomeJoinMessages,
@@ -206,6 +207,14 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
             .get(),
         ),
       ]).then(([profile, hidden]) => profile + hidden),
+    },
+    {
+      key: "cosmetics_equipped",
+      label: "Equipped cosmetics",
+      description: "Which store cosmetic you wear in each slot. The cosmetics stay yours and can be equipped again.",
+      total: countRows(() =>
+        db.select({ total: count() }).from(userCosmeticsEquipped).where(eq(userCosmeticsEquipped.userId, userId)).get(),
+      ),
     },
     {
       key: "guild_message_counts",
@@ -421,7 +430,7 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       {
         label: "Store credits",
         description:
-          "Your top.gg votes, credits and Dreamliner One purchases are kept as transaction records, so the same vote can never be paid out twice.",
+          "Your top.gg votes, credits, Miles and store purchases (Dreamliner One and the cosmetics you own) are kept as transaction records, so the same vote or purchase can never be paid out twice.",
       },
       {
         label: "Message content retention",
@@ -450,6 +459,8 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     .where(eq(userProgressionBadgeHidden.userId, userId))
     .returning()
     .all().length;
+  const { deleteEquippedCosmetics } = await import("../core/cosmetics/equip.js");
+  deleted.cosmetics_equipped = deleteEquippedCosmetics(userId);
   await wipe(
     "guild_message_counts",
     db.delete(guildMessageCounts).where(eq(guildMessageCounts.userId, userId)).returning(),

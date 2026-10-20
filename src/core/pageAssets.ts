@@ -20,10 +20,15 @@ const MAX_DIMENSION = 2000;
 /** Oldest uploads beyond this are deleted, so repeated uploads can't fill the disk. */
 const MAX_ASSETS_PER_FOLDER = 10;
 
-export type PageAssetFolder = "passport" | "appeals" | "characters";
+export type PageAssetFolder = "passport" | "appeals" | "characters" | "store";
+
+/** Bot-wide images (the Store catalog) are kept under this key instead of a server id. */
+export const GLOBAL_ASSET_KEY = "global";
 
 /** Folders that hold one image per item (each character's avatar) keep more than a page's few. */
-const FOLDER_LIMITS: Partial<Record<PageAssetFolder, number>> = { characters: 80 };
+const FOLDER_LIMITS: Partial<Record<PageAssetFolder, number>> = { characters: 80, store: 200 };
+/** The Store also keeps background card stills at the cards' exact output size (/profile is 2280px wide). */
+const FOLDER_MAX_DIMENSION: Partial<Record<PageAssetFolder, number>> = { store: 2400 };
 
 const ASSET_ID = /^[a-zA-Z0-9_-]{1,64}$/;
 
@@ -32,7 +37,7 @@ export function isPageAssetId(value: string): boolean {
 }
 
 function folderDir(guildId: string, folder: PageAssetFolder): string {
-  if (!/^\d{15,22}$/.test(guildId)) throw new Error("Invalid guild id");
+  if (guildId !== GLOBAL_ASSET_KEY && !/^\d{15,22}$/.test(guildId)) throw new Error("Invalid guild id");
   return join(ASSETS_ROOT, guildId, folder);
 }
 
@@ -61,10 +66,29 @@ export function deletePageAsset(guildId: string, folder: PageAssetFolder, assetI
   }
 }
 
-function pruneFolder(dir: string, keep: string, max = MAX_ASSETS_PER_FOLDER): void {
+/**
+ * Folders whose images are referenced from elsewhere (the Store catalog) can register the ids
+ * still in use: pruning only ever deletes unreferenced uploads, so generating many background
+ * stills can't push live product art out.
+ */
+const assetKeepers = new Map<PageAssetFolder, () => Iterable<string>>();
+
+export function registerAssetKeeper(folder: PageAssetFolder, keeper: () => Iterable<string>): void {
+  assetKeepers.set(folder, keeper);
+}
+
+function keptAssets(folder: PageAssetFolder): Set<string> {
+  try {
+    return new Set(assetKeepers.get(folder)?.() ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
+function pruneFolder(dir: string, keep: string, max = MAX_ASSETS_PER_FOLDER, referenced: Set<string> = new Set()): void {
   try {
     const files = readdirSync(dir)
-      .filter((name) => name.endsWith(".png"))
+      .filter((name) => name.endsWith(".png") && !referenced.has(name.slice(0, -4)))
       .map((name) => ({ name, at: statSync(join(dir, name)).mtimeMs }))
       .sort((a, b) => b.at - a.at);
     for (const file of files.slice(max)) {
@@ -75,7 +99,7 @@ function pruneFolder(dir: string, keep: string, max = MAX_ASSETS_PER_FOLDER): vo
   }
 }
 
-/** Decode, downscale to at most 2000px, re-encode as PNG, and store. */
+/** Decode, downscale to at most 2000px (2400 for the Store), re-encode as PNG, and store. */
 export async function savePageAsset(
   guildId: string,
   folder: PageAssetFolder,
@@ -90,7 +114,8 @@ export async function savePageAsset(
   } catch {
     throw new Error("That file isn't an image we can read. Use PNG, JPEG or WebP.");
   }
-  const scale = Math.min(MAX_DIMENSION / image.width, MAX_DIMENSION / image.height, 1);
+  const maxDimension = FOLDER_MAX_DIMENSION[folder] ?? MAX_DIMENSION;
+  const scale = Math.min(maxDimension / image.width, maxDimension / image.height, 1);
   const w = Math.max(1, Math.round(image.width * scale));
   const h = Math.max(1, Math.round(image.height * scale));
 
@@ -103,7 +128,7 @@ export async function savePageAsset(
   const dir = folderDir(guildId, folder);
   mkdirSync(dir, { recursive: true });
   writeFileSync(pageAssetPath(guildId, folder, assetId), png);
-  pruneFolder(dir, assetId, FOLDER_LIMITS[folder]);
+  pruneFolder(dir, assetId, FOLDER_LIMITS[folder], keptAssets(folder));
   return { assetId, bytes: png.length };
 }
 

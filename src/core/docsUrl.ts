@@ -107,9 +107,19 @@ export function getAccountConnectionsUrl(): string {
   return `${resolveSiteUrl()}/account?tab=connections`;
 }
 
-/** Account page's Store tab: store credits from votes, spent on Dreamliner One. */
+/** The Dreamliner Store: store credits from votes, spent on Dreamliner One and other products. */
+export function getStoreUrl(): string {
+  return `${resolveSiteUrl()}/store`;
+}
+
+/** A Store product's detail (the store opens straight to it). */
+export function getStoreProductUrl(productId: string): string {
+  return `${resolveSiteUrl()}/store?product=${encodeURIComponent(productId)}`;
+}
+
+/** Old name, from when the store was a tab on the account page. Same link as getStoreUrl(). */
 export function getAccountStoreUrl(): string {
-  return `${resolveSiteUrl()}/account?tab=store`;
+  return getStoreUrl();
 }
 
 /** Dreamliner Clips gallery — clips a member captured, and clips they appear in. */

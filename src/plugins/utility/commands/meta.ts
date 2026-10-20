@@ -8,6 +8,7 @@ import {
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { resolveDocsUrl, siteLinkRow } from "../../../core/docsUrl.js";
 import { buildVotePayload } from "../functions/vote.js";
+import { buildMilesReply } from "../functions/miles.js";
 import {
   resultReply,
   resultEdit,
@@ -64,6 +65,14 @@ export const metaCommands: SlashCommandDefinition[] = [
       const payload = buildVotePayload(ctx.t);
       const flags: number = MessageFlags.IsComponentsV2 | (ctx.ephemeral ? MessageFlags.Ephemeral : 0);
       await ctx.interaction.reply({ ...payload, flags });
+    },
+  },
+  {
+    // Like /vote: personal (balances), so no permission flag and always ephemeral.
+    plugin: "utility",
+    data: new SlashCommandBuilder().setName("miles").setDescription("Your Miles and credits, and Miles packs for the Dreamliner Store"),
+    execute: async (ctx) => {
+      await ctx.interaction.reply(buildMilesReply(ctx.client, ctx.interaction.user.id, ctx.t));
     },
   },
   {

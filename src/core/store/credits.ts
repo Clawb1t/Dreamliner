@@ -1,15 +1,14 @@
 import { and, asc, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../../db/client.js";
-import { guildOneSubscriptions, storeCreditLedger, storeVotes } from "../../db/schema.js";
-import { STORE_PRICING, isValidPurchaseDays, purchaseCost } from "./pricing.js";
+import { storeCreditLedger, storeVotes } from "../../db/schema.js";
+import { STORE_PRICING } from "./pricing.js";
+import { DREAMLINER_ONE_PRODUCT_ID, purchaseProduct } from "./products.js";
 
 /**
  * Store credits: members earn them by voting for Dreamliner on top.gg and spend them on days of
  * Dreamliner One for a server. Every movement is a ledger row, and a balance is the ledger's sum,
  * so credits can't drift or be double-spent.
  */
-
-const DAY_MS = 86_400_000;
 
 export type VoteSource = "webhook" | "history";
 
@@ -94,7 +93,7 @@ export function getCreditBalance(userId: string): number {
   const row = getDb()
     .select({ total: sql<number>`coalesce(sum(${storeCreditLedger.delta}), 0)` })
     .from(storeCreditLedger)
-    .where(eq(storeCreditLedger.userId, userId))
+    .where(and(eq(storeCreditLedger.userId, userId), eq(storeCreditLedger.currency, "credits")))
     .get();
   return Number(row?.total ?? 0);
 }
@@ -117,12 +116,17 @@ export function getVoteSummary(userId: string): { total: number; lastVotedAt: Da
   return { total: Number(row?.total ?? 0), lastVotedAt: row?.last ? new Date(Number(row.last)) : null };
 }
 
+export type LedgerKind = "vote" | "purchase" | "miles_purchase" | "grant" | "refund";
+
 export type LedgerEntry = {
   id: number;
   delta: number;
-  kind: "vote" | "purchase";
+  kind: LedgerKind;
+  currency: "credits" | "miles";
   guildId: string | null;
   days: number | null;
+  /** Purchases: the product bought. */
+  productId: string | null;
   createdAt: Date;
 };
 
@@ -137,106 +141,39 @@ export function listLedger(userId: string, limit = 25): LedgerEntry[] {
     .map((row) => ({
       id: row.id,
       delta: row.delta,
-      kind: row.kind === "purchase" ? "purchase" : "vote",
+      kind: (["purchase", "miles_purchase", "grant", "refund"] as const).find((kind) => kind === row.kind) ?? "vote",
+      currency: row.currency === "miles" ? "miles" : "credits",
       guildId: row.guildId,
       days: row.days,
+      productId: row.productId ?? (row.kind === "purchase" ? "dreamliner-one" : null),
       createdAt: row.createdAt,
     }));
 }
 
-export class StorePurchaseError extends Error {
-  constructor(
-    readonly code: "invalid_days" | "insufficient_credits" | "one_forever",
-    message: string,
-  ) {
-    super(message);
-  }
-}
+export { StorePurchaseError } from "./products.js";
 
 /**
- * Spends credits on days of Dreamliner One for a server, in one transaction: the balance check,
- * the charge and the One extension all happen together or not at all. Days stack on top of an
- * active grant; an expired or revoked grant starts fresh from now.
+ * Spends credits on days of Dreamliner One for a server. A thin wrapper over purchaseProduct for
+ * the "dreamliner-one" product (price and day steps come from the catalog): the balance check, the
+ * charge and the One extension happen together or not at all, and days stack on an active grant.
  */
-export function purchaseOneDays(input: { userId: string; guildId: string; days: number; now?: Date }): {
+export function purchaseOneDays(input: {
+  userId: string;
+  guildId: string;
+  days: number;
+  now?: Date;
+  requestId?: string | null;
+}): {
   cost: number;
   balance: number;
   expiresAt: Date;
 } {
-  if (!isValidPurchaseDays(input.days)) {
-    throw new StorePurchaseError(
-      "invalid_days",
-      `Pick ${STORE_PRICING.dayStep} to ${STORE_PRICING.maxDaysPerPurchase} days, in steps of ${STORE_PRICING.dayStep}.`,
-    );
-  }
-  const cost = purchaseCost(input.days);
-  const now = input.now ?? new Date();
-
-  return getDb().transaction((tx) => {
-    const balanceRow = tx
-      .select({ total: sql<number>`coalesce(sum(${storeCreditLedger.delta}), 0)` })
-      .from(storeCreditLedger)
-      .where(eq(storeCreditLedger.userId, input.userId))
-      .get();
-    const balance = Number(balanceRow?.total ?? 0);
-    if (balance < cost) {
-      throw new StorePurchaseError("insufficient_credits", `You need ${cost} credits for ${input.days} days.`);
-    }
-
-    const row = tx.select().from(guildOneSubscriptions).where(eq(guildOneSubscriptions.guildId, input.guildId)).get();
-    const active = row && !row.revokedAt && (row.expiresAt === null || row.expiresAt.getTime() > now.getTime());
-    if (active && row.expiresAt === null) {
-      throw new StorePurchaseError("one_forever", "This server already has Dreamliner One for good.");
-    }
-
-    const base = active && row.expiresAt ? row.expiresAt.getTime() : now.getTime();
-    const expiresAt = new Date(base + input.days * DAY_MS);
-
-    if (!row) {
-      tx.insert(guildOneSubscriptions)
-        .values({
-          guildId: input.guildId,
-          expiresAt,
-          note: "Store credits",
-          grantedBy: input.userId,
-          grantedAt: now,
-          updatedBy: input.userId,
-          updatedAt: now,
-          revokedAt: null,
-        })
-        .run();
-    } else if (active) {
-      // Extending a live grant keeps who granted it and its note.
-      tx.update(guildOneSubscriptions)
-        .set({ expiresAt, updatedBy: input.userId, updatedAt: now })
-        .where(eq(guildOneSubscriptions.guildId, input.guildId))
-        .run();
-    } else {
-      tx.update(guildOneSubscriptions)
-        .set({
-          expiresAt,
-          note: "Store credits",
-          grantedBy: input.userId,
-          grantedAt: now,
-          updatedBy: input.userId,
-          updatedAt: now,
-          revokedAt: null,
-        })
-        .where(eq(guildOneSubscriptions.guildId, input.guildId))
-        .run();
-    }
-
-    tx.insert(storeCreditLedger)
-      .values({
-        userId: input.userId,
-        delta: -cost,
-        kind: "purchase",
-        guildId: input.guildId,
-        days: input.days,
-        createdAt: now,
-      })
-      .run();
-
-    return { cost, balance: balance - cost, expiresAt };
+  const receipt = purchaseProduct({
+    userId: input.userId,
+    productId: DREAMLINER_ONE_PRODUCT_ID,
+    input: { guildId: input.guildId, days: input.days },
+    requestId: input.requestId ?? null,
+    now: input.now,
   });
+  return { cost: receipt.cost, balance: receipt.balance, expiresAt: receipt.expiresAt! };
 }

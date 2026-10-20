@@ -1,4 +1,5 @@
 import type { Client, Guild, User } from "discord.js";
+import { leaderboardCosmetics, type LeaderboardCosmetics } from "../core/cosmetics/types.js";
 import { fetchMemberCached } from "./people.js";
 import {
   analyzeSeries,
@@ -275,6 +276,18 @@ function knownIdentity(client: Client, userId: string): CachedIdentity {
   return identityOf(client.users.cache.get(userId) ?? null);
 }
 
+/** Each user's leaderboard cosmetics (name font/colour, frame, icon, flair, bar), batched. */
+async function leaderboardCosmeticsFor(userIds: string[]): Promise<Map<string, LeaderboardCosmetics | null>> {
+  const out = new Map<string, LeaderboardCosmetics | null>();
+  try {
+    const { getEquippedCosmeticsForUsers } = await import("../core/cosmetics/equip.js");
+    for (const [userId, style] of getEquippedCosmeticsForUsers(userIds)) out.set(userId, leaderboardCosmetics(style));
+  } catch (error) {
+    log.debug(`Leaderboard cosmetics lookup failed: ${error instanceof Error ? error.message : error}`);
+  }
+  return out;
+}
+
 async function resolvePeople(
   guild: Guild,
   entries: Array<{ userId: string; count: number; seconds?: number }>,
@@ -286,6 +299,7 @@ async function resolvePeople(
   const { getAccentColorsForUsers } = await import("./userProfiles.js");
   const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
   const { getProgressionBadgesForUsers } = await import("../core/progressionBadges/index.js");
+  const cosmeticsByUser = await leaderboardCosmeticsFor(userIds);
   const [accents, badgesByUser, progressionByUser] = await Promise.all([
     includeAccents ? getAccentColorsForUsers(userIds) : Promise.resolve(new Map<string, string>()),
     getDisplayedBadgesForUsers(userIds),
@@ -327,6 +341,7 @@ async function resolvePeople(
       accentColor: accents.get(entry.userId) ?? null,
       badges: badgesByUser.get(entry.userId) ?? [],
       progressionBadges: progressionByUser.get(entry.userId) ?? [],
+      cosmetics: cosmeticsByUser.get(entry.userId) ?? null,
     };
   });
   const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
@@ -449,6 +464,7 @@ async function resolveGlobalPeople(
   const { getAccentColorsForUsers } = await import("./userProfiles.js");
   const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
   const { getProgressionBadgesForUsers } = await import("../core/progressionBadges/index.js");
+  const cosmeticsByUser = await leaderboardCosmeticsFor(userIds);
   const [accents, badgesByUser, progressionByUser] = await Promise.all([
     getAccentColorsForUsers(userIds),
     getDisplayedBadgesForUsers(userIds),
@@ -477,6 +493,7 @@ async function resolveGlobalPeople(
       accentColor: accents.get(entry.userId) ?? null,
       badges: badgesByUser.get(entry.userId) ?? [],
       progressionBadges: progressionByUser.get(entry.userId) ?? [],
+      cosmetics: cosmeticsByUser.get(entry.userId) ?? null,
     };
   });
   const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;

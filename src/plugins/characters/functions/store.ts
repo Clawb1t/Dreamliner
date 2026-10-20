@@ -2,7 +2,17 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { characterMemoryResets, characters, charactersUsageDaily } from "../../../db/schema.js";
 import { capMap } from "../../../core/mapPrune.js";
-import { REPLY_STYLES, type ReplyStyle } from "../constants.js";
+import {
+  CATCHPHRASE_LIMITS,
+  CHARACTER_TONES,
+  EMOJI_USES,
+  FORMALITIES,
+  REPLY_STYLES,
+  type CharacterTone,
+  type EmojiUse,
+  type Formality,
+  type ReplyStyle,
+} from "../constants.js";
 
 /** Storage for Characters: definitions (cached per guild), memory resets and daily usage. */
 
@@ -19,6 +29,11 @@ export type CharacterRecord = {
   exampleDialogue: string;
   replyStyle: ReplyStyle;
   temperature: number;
+  tone: CharacterTone;
+  emojiUse: EmojiUse;
+  formality: Formality;
+  roleplayActions: boolean;
+  catchphrases: string[];
   roleId: string | null;
   roleColor: number | null;
   dedicatedChannelIds: string[];
@@ -43,9 +58,21 @@ function parseIds(raw: string): string[] {
   }
 }
 
+/** Catchphrases from the JSON column: strings only, trimmed, capped. */
+export function parseCatchphrases(raw: string): string[] {
+  return parseIds(raw)
+    .map((p) => p.trim().slice(0, CATCHPHRASE_LIMITS.length))
+    .filter(Boolean)
+    .slice(0, CATCHPHRASE_LIMITS.count);
+}
+
 function toRecord(row: Row): CharacterRecord {
   return {
     ...row,
+    tone: (CHARACTER_TONES as readonly string[]).includes(row.tone) ? (row.tone as CharacterTone) : "",
+    emojiUse: (EMOJI_USES as readonly string[]).includes(row.emojiUse) ? (row.emojiUse as EmojiUse) : "some",
+    formality: (FORMALITIES as readonly string[]).includes(row.formality) ? (row.formality as Formality) : "balanced",
+    catchphrases: parseCatchphrases(row.catchphrases),
     replyStyle: (REPLY_STYLES as readonly string[]).includes(row.replyStyle) ? (row.replyStyle as ReplyStyle) : "medium",
     dedicatedChannelIds: parseIds(row.dedicatedChannelIds),
     allowedChannelIds: parseIds(row.allowedChannelIds),
@@ -98,6 +125,11 @@ export type CharacterWrite = {
   exampleDialogue: string;
   replyStyle: ReplyStyle;
   temperature: number;
+  tone: CharacterTone;
+  emojiUse: EmojiUse;
+  formality: Formality;
+  roleplayActions: boolean;
+  catchphrases: string[];
   roleColor: number | null;
   dedicatedChannelIds: string[];
   allowedChannelIds: string[];
@@ -108,8 +140,9 @@ export type CharacterWrite = {
 };
 
 function toColumns(input: Partial<CharacterWrite>): Partial<Row> {
-  const { dedicatedChannelIds, allowedChannelIds, ...rest } = input;
+  const { dedicatedChannelIds, allowedChannelIds, catchphrases, ...rest } = input;
   const set: Partial<Row> = { ...rest };
+  if (catchphrases !== undefined) set.catchphrases = JSON.stringify(catchphrases);
   if (dedicatedChannelIds !== undefined) set.dedicatedChannelIds = JSON.stringify(dedicatedChannelIds);
   if (allowedChannelIds !== undefined) set.allowedChannelIds = JSON.stringify(allowedChannelIds);
   return set;

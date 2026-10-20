@@ -1,11 +1,29 @@
 import { loadImageSafe } from "../../../core/safeImage.js";
 import { existsSync } from "node:fs";
 import { DREAMLINER_ACCENT_HEX } from "../../../core/embeds.js";
-import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
 import { cardFont } from "../../welcome_message/functions/cardFonts.js";
 import { canvasGlyphSupport, cleanCanvasName, firstGrapheme, stripUnsupportedGlyphs, truncateToFit } from "../../../core/canvasText.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { getLogger } from "../../../core/logger.js";
+import type { CosmeticStyle, LeaderboardCosmetics } from "../../../core/cosmetics/types.js";
+import {
+  cosmeticGlyphSupport,
+  cosmeticNameFont,
+  drawAvatarFrame,
+  drawCosmeticName,
+  drawCosmeticTitle,
+  drawGlow,
+  drawNameIcon,
+  drawRowFlair,
+  drawShareBarFill,
+  drawShareRingProgress,
+  drawBackgroundStill,
+  drawCoverRegion,
+  loadCosmeticImage,
+  wholeImage,
+  type ImageRegion,
+} from "../../../core/cosmetics/canvas.js";
 const log = getLogger("stats");
 
 let emojiFontReady = false;
@@ -425,6 +443,8 @@ export type LeaderboardRow = {
   sharePct: number;
   avatarURL?: string | null;
   fallbackInitial?: string;
+  /** The member's leaderboard cosmetics (flair, name font/colour, icon, frame, bar). */
+  cosmetics?: LeaderboardCosmetics | null;
 };
 
 export type LeaderboardImageOptions = {
@@ -518,13 +538,31 @@ async function drawLeaderboardRow(
   accent: string,
   maxShare: number,
   t: Translator,
+  /** The row's backdrop (fill and background) is painted elsewhere, per animation frame. */
+  animatedBackdrop = false,
 ) {
   const { rowLeft, rowWidth, contentRight, shareColX, rowInnerPad, rowHeight, rankSize, avatarSize } = geometry;
   const rowCenter = rowTop + rowHeight / 2;
+  const cosmetics = row.cosmetics ?? {};
 
-  ctx.fillStyle = "rgba(255,255,255,0.035)";
-  roundRect(ctx, rowLeft, rowTop, rowWidth, rowHeight, 12);
-  ctx.fill();
+  if (!animatedBackdrop) {
+    ctx.fillStyle = "rgba(255,255,255,0.035)";
+    roundRect(ctx, rowLeft, rowTop, rowWidth, rowHeight, 12);
+    ctx.fill();
+  }
+  // An equipped background's /rank still is the row's backdrop, fading left to right into the
+  // image background like the /rank card's banner, so the name and numbers stay readable.
+  if (!animatedBackdrop && cosmetics.background?.rankStillUrl) {
+    ctx.save();
+    roundRect(ctx, rowLeft, rowTop, rowWidth, rowHeight, 12);
+    ctx.clip();
+    const drawn = await drawBackgroundStill(ctx, cosmetics.background.rankStillUrl, { x: rowLeft, y: rowTop, w: rowWidth, h: rowHeight }).catch(
+      () => false,
+    );
+    if (drawn) paintRowFade(ctx, rowLeft, rowTop, rowWidth, rowHeight);
+    ctx.restore();
+  }
+  if (cosmetics.flair) drawRowFlair(ctx, cosmetics.flair, { x: rowLeft, y: rowTop, w: rowWidth, h: rowHeight }, 12);
 
   const rankX = rowLeft + rowInnerPad;
   ctx.fillStyle = hexToRgba(accent, rankAccentOpacity(row.rank));
@@ -551,16 +589,33 @@ async function drawLeaderboardRow(
   } else {
     drawInitialAvatar(ctx, row.fallbackInitial ?? row.label.charAt(0), avatarX, avatarY, avatarSize, accent);
   }
+  if (cosmetics.frame) {
+    await drawAvatarFrame(ctx, cosmetics.frame, { x: avatarX, y: avatarY, size: avatarSize, radius: avatarSize / 2 }, row.label).catch(() => undefined);
+  }
 
   const textX = avatarX + avatarSize + 18;
-  const textMaxWidth = shareColX - textX - 24;
-  let label = row.label;
-  ctx.fillStyle = "#f2f3f5";
-  ctx.font = font("600", 19);
-  while (label.length > 1 && ctx.measureText(label).width > textMaxWidth) {
-    label = `${label.slice(0, -2)}…`;
+  const nameFont = cosmeticNameFont(cosmetics.nameFont, 19, font("600", 19));
+  const iconSize = 18;
+  const iconEmoji = cosmetics.icon?.emoji && ensureEmojiFont() ? cosmetics.icon.emoji : null;
+  const iconWidth = cosmetics.icon && (cosmetics.icon.imageUrl || iconEmoji) ? iconSize + 8 : 0;
+  const textMaxWidth = shareColX - textX - 24 - iconWidth;
+  ctx.font = nameFont;
+  const label = truncateToFit(
+    stripUnsupportedGlyphs(row.label, cosmeticGlyphSupport(cosmetics.nameFont, 19, font("600", 19))) || row.label,
+    (candidate) => ctx.measureText(candidate).width <= textMaxWidth,
+  );
+  const labelWidth = drawCosmeticName(ctx, label, textX, rowCenter - 10, {
+    font: nameFont,
+    color: cosmetics.nameColor,
+    defaultColor: "#f2f3f5",
+    sizePx: 19,
+  });
+  if (cosmetics.icon && iconWidth > 0) {
+    await drawNameIcon(ctx, cosmetics.icon, textX + labelWidth + 8, rowCenter - 16, iconSize, {
+      emojiFont: `${iconSize - 2}px "Rank Card Emoji", sans-serif`,
+      canDrawEmoji: () => Boolean(iconEmoji),
+    }).catch(() => 0);
   }
-  ctx.fillText(label, textX, rowCenter - 10);
 
   ctx.fillStyle = COLORS.muted;
   ctx.font = font("", 14);
@@ -585,15 +640,57 @@ async function drawLeaderboardRow(
   roundRect(ctx, barX, barY, barW, barH, 4);
   ctx.fill();
   const fillW = shareValue > 0 ? Math.max(6, (shareValue / maxShare) * barW) : 0;
-  ctx.fillStyle = hexToRgba(accent, row.rank === 1 ? 1 : 0.72);
-  roundRect(ctx, barX, barY, fillW, barH, 4);
-  ctx.fill();
+  drawShareBarFill(ctx, cosmetics.bar, {
+    x: barX,
+    y: barY,
+    w: barW,
+    h: barH,
+    fillW,
+    radius: 4,
+    accent: hexToRgba(accent, row.rank === 1 ? 1 : 0.72),
+  });
 }
+
+function paintRowFade(ctx: SKRSContext2D, rowLeft: number, rowTop: number, rowWidth: number, rowHeight: number): void {
+  const fade = ctx.createLinearGradient(rowLeft, 0, rowLeft + rowWidth, 0);
+  fade.addColorStop(0, hexToRgba(COLORS.bg, 0.3));
+  fade.addColorStop(0.5, hexToRgba(COLORS.bg, 0.62));
+  fade.addColorStop(1, hexToRgba(COLORS.bg, 0.88));
+  ctx.fillStyle = fade;
+  ctx.fillRect(rowLeft, rowTop, rowWidth, rowHeight);
+}
+
+/** The image leaderboard split for animation: `paintBackdrop(ctx, i)` paints the image background
+ *  and the animated rows' backgrounds at frame `i`; the overlay holds everything else. */
+export type LeaderboardLayers = {
+  width: number;
+  height: number;
+  scale: number;
+  paintBackdrop: (ctx: SKRSContext2D, frameIndex: number) => void;
+  overlay: Canvas;
+};
 
 export async function renderLeaderboardImage(
   options: LeaderboardImageOptions,
   t: Translator = defaultTranslator,
 ): Promise<Buffer> {
+  return (await composeLeaderboard(options, t, null)).canvas.toBuffer("image/png");
+}
+
+/** Layers for an animated leaderboard; `rowFrames[i]` is row i's background frames (null: still). */
+export async function renderLeaderboardLayers(
+  options: LeaderboardImageOptions,
+  rowFrames: Array<ImageRegion[] | null>,
+  t: Translator = defaultTranslator,
+): Promise<LeaderboardLayers> {
+  return (await composeLeaderboard(options, t, rowFrames)).layers!;
+}
+
+async function composeLeaderboard(
+  options: LeaderboardImageOptions,
+  t: Translator,
+  rowFrames: Array<ImageRegion[] | null> | null,
+): Promise<{ canvas: Canvas; layers?: LeaderboardLayers }> {
   const width = options.width ?? 1100;
   const scale = options.scale ?? 2;
   const accent = options.accentColor ?? DREAMLINER_ACCENT_HEX;
@@ -606,12 +703,15 @@ export async function renderLeaderboardImage(
   const rows = options.rows.slice(0, 10);
   const bodyHeight = rows.length > 0 ? rows.length * rowHeight + (rows.length - 1) * rowGap : 48;
   const height = headerHeight + 28 + bodyHeight + 28;
-  const canvas = createCanvas(width * scale, height * scale);
+  const canvas = createCanvas(Math.round(width * scale), Math.round(height * scale));
   const ctx = canvas.getContext("2d");
   ctx.scale(scale, scale);
 
-  ctx.fillStyle = COLORS.bg;
-  ctx.fillRect(0, 0, width, height);
+  // Animated: the image background goes in the per-frame backdrop instead.
+  if (!rowFrames) {
+    ctx.fillStyle = COLORS.bg;
+    ctx.fillRect(0, 0, width, height);
+  }
 
   ctx.fillStyle = "#f2f3f5";
   ctx.font = font("600", 30);
@@ -626,19 +726,37 @@ export async function renderLeaderboardImage(
     ctx.fillStyle = COLORS.muted;
     ctx.font = font("", 18);
     ctx.fillText(t("stats.noActivityRecorded", "No activity recorded in this window yet."), padX, headerHeight + 36);
-    return canvas.toBuffer("image/png");
+    return { canvas };
   }
 
   const geometry: RowGeometry = { ...rowGeometry(width, padX), rowHeight, rankSize, avatarSize };
   const maxShare = Math.max(...rows.map((row) => row.sharePct), 1);
-  let y = headerHeight + 28;
+  const rowTops = rows.map((_, index) => headerHeight + 28 + index * (rowHeight + rowGap));
 
-  for (const row of rows) {
-    await drawLeaderboardRow(ctx, row, y, geometry, accent, maxShare, t);
-    y += rowHeight + rowGap;
+  for (const [index, row] of rows.entries()) {
+    await drawLeaderboardRow(ctx, row, rowTops[index]!, geometry, accent, maxShare, t, Boolean(rowFrames?.[index]?.length));
   }
 
-  return canvas.toBuffer("image/png");
+  if (!rowFrames) return { canvas };
+  const paintBackdrop = (target: SKRSContext2D, frameIndex: number) => {
+    target.fillStyle = COLORS.bg;
+    target.fillRect(0, 0, width, height);
+    for (const [index, frames] of rowFrames.entries()) {
+      if (!frames?.length || index >= rows.length) continue;
+      const { rowLeft, rowWidth } = geometry;
+      const rowTop = rowTops[index]!;
+      target.fillStyle = "rgba(255,255,255,0.035)";
+      roundRect(target, rowLeft, rowTop, rowWidth, rowHeight, 12);
+      target.fill();
+      target.save();
+      roundRect(target, rowLeft, rowTop, rowWidth, rowHeight, 12);
+      target.clip();
+      drawCoverRegion(target, frames[frameIndex % frames.length]!, { x: rowLeft, y: rowTop, w: rowWidth, h: rowHeight });
+      paintRowFade(target, rowLeft, rowTop, rowWidth, rowHeight);
+      target.restore();
+    }
+  };
+  return { canvas, layers: { width, height, scale, overlay: canvas, paintBackdrop } };
 }
 
 // --- Rank card: a pixel-faithful port of the website's .stats-leaderboard-row
@@ -697,6 +815,8 @@ export type RankCardRow = {
    *  `accentTint` recolors single-color art (the Dreamliner One bolt) in the card's accent, the
    *  same color as the "% of server traffic" text, as the site does. */
   progressionIcons?: Array<{ image: Buffer; accentTint?: boolean }>;
+  /** Equipped store cosmetics (background, glow, frame, name font/colour, title, icon, bar). */
+  cosmetics?: CosmeticStyle | null;
 };
 
 export type RankCardOptions = {
@@ -752,19 +872,55 @@ function rankTextFont(sizePx: number): string {
   return cardFont(700, sizePx).replace(/, sans-serif$/, `, "Rank Card Emoji", sans-serif`);
 }
 
+/**
+ * An image card split for animation: its backdrop (painted per frame from a background's frame)
+ * and everything drawn over it, rendered once onto a transparent overlay.
+ */
+export type CardLayers = {
+  /** Card units. */
+  width: number;
+  height: number;
+  /** Output pixels per card unit (the overlay is width*scale by height*scale, rounded). */
+  scale: number;
+  /** Paints the backdrop with `frame` as the background, on a context already scaled to card units. */
+  paintBackdrop: (ctx: SKRSContext2D, frame: ImageRegion) => void;
+  overlay: Canvas;
+};
+
+/** How a card is produced: a finished PNG (today's cards), or layers over `firstFrame`. */
+export type CardMode = { kind: "png" } | { kind: "layers"; firstFrame: ImageRegion };
+
 /** Renders one leaderboard row exactly as it appears on the site (rounded-square avatar +
  * rank badge, name + badge chips, accent share line, and a radial share-percentage ring),
  * scaled up into a taller, narrower card and with the user's profile banner as a background. */
 export async function renderRankCard(options: RankCardOptions, t: Translator = defaultTranslator): Promise<Buffer> {
+  const result = await composeRankCard(options, t, { kind: "png" });
+  // Lossless PNG: no compression artefacts on text, gradients or the banner.
+  return result.canvas.toBuffer("image/png");
+}
+
+/** The /rank card as animation layers, its backdrop drawn from a background's frames
+ *  (`firstFrame` stands in behind the frosted pills). */
+export async function renderRankCardLayers(options: RankCardOptions, firstFrame: ImageRegion, t: Translator = defaultTranslator): Promise<CardLayers> {
+  const result = await composeRankCard(options, t, { kind: "layers", firstFrame });
+  return result.layers!;
+}
+
+async function composeRankCard(options: RankCardOptions, t: Translator, mode: CardMode): Promise<{ canvas: Canvas; layers?: CardLayers }> {
   const sourceRow = options.row;
   // Characters no font here can draw would show as "No Glyph" boxes: leave them out. (The probe
   // ignores the size in the font string, so any size works.)
   ensureEmojiFont();
+  const cosmetics = sourceRow.cosmetics ?? {};
+  const nameSize = 19;
+  // The name's cosmetic font comes first; anything it can't draw falls back to the card font.
+  const nameFont = cosmeticNameFont(cosmetics.nameFont, nameSize, rankTextFont(nameSize));
   const nameGlyphs = canvasGlyphSupport(rankTextFont(19));
+  const cosmeticNameGlyphs = cosmeticGlyphSupport(cosmetics.nameFont, nameSize, rankTextFont(nameSize));
   const emojiGlyphs = canvasGlyphSupport(`19px "Rank Card Emoji", sans-serif`);
   const row: RankCardRow = {
     ...sourceRow,
-    name: cleanCanvasName([sourceRow.name, sourceRow.fallbackName], nameGlyphs),
+    name: cleanCanvasName([sourceRow.name, sourceRow.fallbackName], cosmeticNameGlyphs),
     badges: sourceRow.badges?.map((badge) => ({
       ...badge,
       name: stripUnsupportedGlyphs(badge.name, nameGlyphs),
@@ -784,7 +940,6 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   const colGap = 16;
   const ringSize = 30;
   const ringStroke = 3;
-  const nameSize = 19;
   const subSize = 14.5;
   const badgeSize = 11.5;
 
@@ -840,45 +995,86 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   const nameToBadgesGap = 8;
   const badgesWidth = iconsWidth + (iconsWidth > 0 && chipsWidth > 0 ? iconsToChipsGap : 0) + chipsWidth;
 
+  // The name icon cosmetic sits right after the name, before the badges.
+  const nameIconSize = 15;
+  const nameIconGap = 5;
+  const emojiFont = `${nameIconSize}px "Rank Card Emoji", sans-serif`;
+  const iconEmojiOk = (emoji: string) => hasEmojiGlyphs && stripUnsupportedGlyphs(emoji, emojiGlyphs) === emoji;
+  const hasNameIcon = Boolean(cosmetics.icon && (cosmetics.icon.imageUrl || (cosmetics.icon.emoji && iconEmojiOk(cosmetics.icon.emoji))));
+  const nameIconWidth = hasNameIcon ? nameIconGap + nameIconSize : 0;
+
   // The username comes first: when it and its badges don't fit on one line, the badges move to a
   // line of their own instead of the name being cut short.
-  measure.font = rankTextFont(nameSize);
-  const badgesOnOwnLine = badgesWidth > 0 && measure.measureText(row.name).width + nameToBadgesGap + badgesWidth > textMaxWidth;
+  measure.font = nameFont;
+  const badgesOnOwnLine =
+    badgesWidth > 0 && measure.measureText(row.name).width + nameIconWidth + nameToBadgesGap + badgesWidth > textMaxWidth;
 
   const nameLine = 24;
   const lineGap = 6;
   const subLine = 20;
+  // The title line is only there (and the card only taller) when a title is equipped.
+  const titleLine = cosmetics.title ? 14 : 0;
+  const titleOffset = titleLine ? titleLine + 2 : 0;
   const badgeLine = Math.max(badgeMetrics.length > 0 ? chipHeight : 0, progressionImages.length > 0 ? iconPillHeight : 0);
-  const identityHeight = nameLine + lineGap + (badgesOnOwnLine ? badgeLine + lineGap : 0) + subLine;
+  const identityHeight = nameLine + lineGap + titleOffset + (badgesOnOwnLine ? badgeLine + lineGap : 0) + subLine;
   const height = padY * 2 + Math.max(avatarSize, identityHeight);
   const identityTop = (height - identityHeight) / 2;
 
-  const canvas = createCanvas(width * scale, height * scale);
-  const ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
+  const canvas = createCanvas(Math.round(width * scale), Math.round(height * scale));
+  const scaled = (target: Canvas) => {
+    const c = target.getContext("2d");
+    c.scale(scale, scale);
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    return c;
+  };
 
-  // Card background (clipped to the rounded card so the banner can't bleed past the corners)
-  ctx.save();
-  roundRect(ctx, 0, 0, width, height, 24);
-  ctx.clip();
-  ctx.fillStyle = RANK_CARD.bg;
-  ctx.fillRect(0, 0, width, height);
+  // The equipped background's still (animated cards bring their own frames), else the banner.
+  let still: ImageRegion | null = null;
+  if (mode.kind === "png" && cosmetics.background?.rankStillUrl) {
+    const image = await loadCosmeticImage(cosmetics.background.rankStillUrl, { large: true }).catch((err: unknown) => {
+      log.warn(`[rank card] failed to load the background still:`, err);
+      return null;
+    });
+    if (image?.width && image.height) still = wholeImage(image);
+  }
+  let banner: import("@napi-rs/canvas").Image | null = null;
+  if (mode.kind === "png" && !still && row.bannerURL) {
+    banner = await loadImageMaybeDataUri(row.bannerURL).catch((err: unknown) => {
+      // no banner: plain background
+      log.warn(`[rank card] failed to load banner image from ${row.bannerURL}:`, err);
+      return null;
+    });
+  }
 
-  if (row.bannerURL) {
-    try {
-      const banner = await loadImageMaybeDataUri(row.bannerURL);
+  /** Card background (clipped to the rounded card so the banner can't bleed past the corners). */
+  const paintBackdrop = (target: SKRSContext2D, background: ImageRegion | null): boolean => {
+    target.save();
+    roundRect(target, 0, 0, width, height, 24);
+    target.clip();
+    target.fillStyle = RANK_CARD.bg;
+    target.fillRect(0, 0, width, height);
+    // An equipped background takes the banner's place, with an even dim (a little more behind the
+    // text column) so the name stays readable. No still yet: the normal banner/backdrop.
+    if (background) {
+      drawCoverRegion(target, background, { x: 0, y: 0, w: width, h: height });
+      const dim = target.createLinearGradient(0, 0, width, 0);
+      dim.addColorStop(0, hexToRgba(RANK_CARD.bg, 0.3));
+      dim.addColorStop(0.45, hexToRgba(RANK_CARD.bg, 0.48));
+      dim.addColorStop(1, hexToRgba(RANK_CARD.bg, 0.36));
+      target.fillStyle = dim;
+      target.fillRect(0, 0, width, height);
+    } else if (banner) {
       // `background-size: cover; background-position: left center`
       const coverScale = Math.max(width / banner.width, height / banner.height);
       const drawW = banner.width * coverScale;
       const drawH = banner.height * coverScale;
       const drawY = (height - drawH) / 2;
-      ctx.drawImage(banner, 0, drawY, drawW, drawH);
+      target.drawImage(banner, 0, drawY, drawW, drawH);
 
-      // Fade the banner into the row background left→right — longer and smoother than the
+      // Fade the banner into the row background left to right: longer and smoother than the
       // site's own two-stop overlay, easing gradually across most of the card's width.
-      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      const gradient = target.createLinearGradient(0, 0, width, 0);
       const fadeEnd = 0.92; // fully opaque row background from here to the right edge
       const steps = 10;
       for (let i = 0; i <= steps; i++) {
@@ -887,20 +1083,24 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
         gradient.addColorStop(frac * fadeEnd, hexToRgba(RANK_CARD.bg, 0.28 + eased * 0.72));
       }
       gradient.addColorStop(1, hexToRgba(RANK_CARD.bg, 1));
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-    } catch (err) {
-      // no banner — plain background already painted
-      log.warn(`[rank card] failed to load banner image from ${row.bannerURL}:`, err);
+      target.fillStyle = gradient;
+      target.fillRect(0, 0, width, height);
     }
-  }
-  ctx.restore();
+    if (cosmetics.glow) drawGlow(target, cosmetics.glow, { x: 0, y: 0, w: width, h: height }, { x: padX + avatarSize / 2, y: height / 2 });
+    target.restore();
+    return Boolean(background);
+  };
+
+  // Animated: the backdrop is painted per frame, everything else goes on a transparent overlay.
+  const backdropCanvas = mode.kind === "layers" ? createCanvas(canvas.width, canvas.height) : canvas;
+  const backgroundDrawn = paintBackdrop(scaled(backdropCanvas), mode.kind === "layers" ? mode.firstFrame : still);
+  const ctx = mode.kind === "layers" ? scaled(canvas) : canvas.getContext("2d");
 
   // A blurred copy of the background, for frosted pills (CSS backdrop-filter: blur(4px)).
   const frosted = createCanvas(canvas.width, canvas.height);
   const frostedCtx = frosted.getContext("2d");
   frostedCtx.filter = `blur(${4 * scale}px)`;
-  frostedCtx.drawImage(canvas, 0, 0);
+  frostedCtx.drawImage(backdropCanvas, 0, 0);
 
   const avatarX = padX;
   const avatarY = (height - avatarSize) / 2;
@@ -915,6 +1115,11 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     }
   } else {
     drawRoundedFallbackAvatar(ctx, initial, avatarX, avatarY, avatarSize, avatarRadius);
+  }
+  if (cosmetics.frame) {
+    await drawAvatarFrame(ctx, cosmetics.frame, { x: avatarX, y: avatarY, size: avatarSize, radius: avatarRadius }, row.name).catch((err) =>
+      log.warn(`[rank card] failed to draw the avatar frame:`, err),
+    );
   }
 
   // Rank badge — bottom-right of the avatar, shifted out by 20% of its own size, like the site.
@@ -955,32 +1160,39 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
   ctx.beginPath();
   ctx.arc(ringCx, ringCy, ringR, 0, Math.PI * 2);
   ctx.stroke();
-  const clamped = Math.max(0, Math.min(100, row.sharePct));
-  if (clamped > 0) {
-    ctx.strokeStyle = accent;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.arc(ringCx, ringCy, ringR, -Math.PI / 2, -Math.PI / 2 + (clamped / 100) * Math.PI * 2);
-    ctx.stroke();
-    ctx.lineCap = "butt";
-  }
+  drawShareRingProgress(ctx, cosmetics.bar, { cx: ringCx, cy: ringCy, r: ringR, stroke: ringStroke, pct: row.sharePct, accent });
 
   // Identity column
-  ctx.font = rankTextFont(nameSize);
-  ctx.fillStyle = RANK_CARD.foreground;
+  ctx.font = nameFont;
   // Only a name too long for the whole column on its own is shortened.
   const nameMaxWidth =
-    badgesOnOwnLine || badgesWidth === 0 ? textMaxWidth : textMaxWidth - nameToBadgesGap - badgesWidth;
+    (badgesOnOwnLine || badgesWidth === 0 ? textMaxWidth : textMaxWidth - nameToBadgesGap - badgesWidth) - nameIconWidth;
   const name = truncateToFit(row.name, (candidate) => ctx.measureText(candidate).width <= nameMaxWidth);
   const nameY = identityTop + 14; // baseline within the name line
-  ctx.fillText(name, textX, nameY);
-  const nameWidth = ctx.measureText(name).width;
+  const nameWidth = drawCosmeticName(ctx, name, textX, nameY, {
+    font: nameFont,
+    color: cosmetics.nameColor,
+    defaultColor: RANK_CARD.foreground,
+    sizePx: nameSize,
+    shadow: backgroundDrawn,
+  });
+  let afterName = textX + nameWidth;
+  if (hasNameIcon && cosmetics.icon) {
+    const drawn = await drawNameIcon(ctx, cosmetics.icon, afterName + nameIconGap, nameY - nameSize * 0.36, nameIconSize, {
+      emojiFont,
+      canDrawEmoji: iconEmojiOk,
+    }).catch(() => 0);
+    if (drawn > 0) afterName += nameIconGap + drawn;
+  }
+  if (cosmetics.title) {
+    drawCosmeticTitle(ctx, cosmetics.title, textX, identityTop + nameLine + 10, cardFont(600, 11.5), RANK_CARD.muted, textMaxWidth);
+  }
 
   // Badges sit on the name's own visual center, or centered on their own line below it.
   const badgesCenterY = badgesOnOwnLine
-    ? identityTop + nameLine + lineGap + badgeLine / 2
+    ? identityTop + nameLine + lineGap + titleOffset + badgeLine / 2
     : nameY - nameSize * 0.36;
-  let badgeCursorX = badgesOnOwnLine ? textX : textX + nameWidth + nameToBadgesGap;
+  let badgeCursorX = badgesOnOwnLine ? textX : afterName + nameToBadgesGap;
 
   // Only as many icons as fit, inside their frosted pill.
   let shownIcons = 0;
@@ -1068,6 +1280,6 @@ export async function renderRankCard(options: RankCardOptions, t: Translator = d
     subY,
   );
 
-  // Lossless PNG: no compression artefacts on text, gradients or the banner.
-  return canvas.toBuffer("image/png");
+  if (mode.kind === "png") return { canvas };
+  return { canvas, layers: { width, height, scale, overlay: canvas, paintBackdrop: (target, frame) => void paintBackdrop(target, frame) } };
 }
