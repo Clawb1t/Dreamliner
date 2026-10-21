@@ -3,6 +3,7 @@ import { loadImageSafe } from "../safeImage.js";
 import { GLOBAL_ASSET_KEY, readPageAsset } from "../pageAssets.js";
 import { canvasGlyphSupport, canvasShowsNotdef, type GlyphSupport } from "../canvasText.js";
 import { nameFontDef, nameFontStack, nameFontFace } from "./fonts.js";
+import { twemojiImage } from "../twemoji.js";
 import type {
   BarStyle,
   FlairStyle,
@@ -305,7 +306,15 @@ export async function drawNameIcon(
     ctx.drawImage(image, x + (size - image.width * fit) / 2, centerY - (image.height * fit) / 2, image.width * fit, image.height * fit);
     return size;
   }
-  if (!icon.emoji || !options.canDrawEmoji(icon.emoji)) return 0;
+  if (!icon.emoji) return 0;
+  // Twemoji artwork first (bundled, matches the website); a system emoji font is only a fallback.
+  const scale = Math.max(1, Math.abs(ctx.getTransform().a) || 1);
+  const twemoji = twemojiImage(icon.emoji, size * scale);
+  if (twemoji) {
+    ctx.drawImage(twemoji, x, centerY - size / 2, size, size);
+    return size;
+  }
+  if (!options.canDrawEmoji(icon.emoji)) return 0;
   ctx.save();
   ctx.font = options.emojiFont;
   ctx.textAlign = "left";

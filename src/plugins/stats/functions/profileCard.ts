@@ -25,6 +25,7 @@ import {
   wholeImage,
   type ImageRegion,
 } from "../../../core/cosmetics/canvas.js";
+import { hasTwemoji } from "../../../core/twemoji.js";
 
 const log = getLogger("stats");
 
@@ -406,7 +407,7 @@ async function composeProfileCard(
   // The name icon cosmetic sits right after the name.
   const nameIconSize = 1.05 * REM;
   const emojiFont = `${nameIconSize}px "Rank Card Emoji", "Segoe UI Emoji", sans-serif`;
-  const emojiOk = (emoji: string) => hasEmoji && stripUnsupportedGlyphs(emoji, emojiGlyphs) === emoji;
+  const emojiOk = (emoji: string) => hasTwemoji(emoji) || (hasEmoji && stripUnsupportedGlyphs(emoji, emojiGlyphs) === emoji);
   const hasNameIcon = Boolean(cosmetics.icon && (cosmetics.icon.imageUrl || (cosmetics.icon.emoji && emojiOk(cosmetics.icon.emoji))));
   const nameIconWidth = hasNameIcon ? rowGap + nameIconSize : 0;
 

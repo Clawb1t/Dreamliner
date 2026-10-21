@@ -31,6 +31,7 @@
     "@discordjs/voice": "^0.19.2",
     "@huggingface/transformers": "^4.3.0",
     "@napi-rs/canvas": "^1.0.3",
+    "@twemoji/svg": "^15.0.0",
     "better-sqlite3": "^11.9.0",
     "chrono-node": "^2.10.1",
     "discord.js": "^14.26.4",

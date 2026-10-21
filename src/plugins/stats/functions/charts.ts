@@ -24,6 +24,7 @@ import {
   wholeImage,
   type ImageRegion,
 } from "../../../core/cosmetics/canvas.js";
+import { hasTwemoji } from "../../../core/twemoji.js";
 const log = getLogger("stats");
 
 let emojiFontReady = false;
@@ -596,7 +597,8 @@ async function drawLeaderboardRow(
   const textX = avatarX + avatarSize + 18;
   const nameFont = cosmeticNameFont(cosmetics.nameFont, 19, font("600", 19));
   const iconSize = 18;
-  const iconEmoji = cosmetics.icon?.emoji && ensureEmojiFont() ? cosmetics.icon.emoji : null;
+  const iconEmoji =
+    cosmetics.icon?.emoji && (hasTwemoji(cosmetics.icon.emoji) || ensureEmojiFont()) ? cosmetics.icon.emoji : null;
   const iconWidth = cosmetics.icon && (cosmetics.icon.imageUrl || iconEmoji) ? iconSize + 8 : 0;
   const textMaxWidth = shareColX - textX - 24 - iconWidth;
   ctx.font = nameFont;
@@ -999,7 +1001,8 @@ async function composeRankCard(options: RankCardOptions, t: Translator, mode: Ca
   const nameIconSize = 15;
   const nameIconGap = 5;
   const emojiFont = `${nameIconSize}px "Rank Card Emoji", sans-serif`;
-  const iconEmojiOk = (emoji: string) => hasEmojiGlyphs && stripUnsupportedGlyphs(emoji, emojiGlyphs) === emoji;
+  const iconEmojiOk = (emoji: string) =>
+    hasTwemoji(emoji) || (hasEmojiGlyphs && stripUnsupportedGlyphs(emoji, emojiGlyphs) === emoji);
   const hasNameIcon = Boolean(cosmetics.icon && (cosmetics.icon.imageUrl || (cosmetics.icon.emoji && iconEmojiOk(cosmetics.icon.emoji))));
   const nameIconWidth = hasNameIcon ? nameIconGap + nameIconSize : 0;
 
