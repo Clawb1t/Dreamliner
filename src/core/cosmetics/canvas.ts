@@ -3,7 +3,7 @@ import { loadImageSafe } from "../safeImage.js";
 import { GLOBAL_ASSET_KEY, readPageAsset } from "../pageAssets.js";
 import { canvasGlyphSupport, canvasShowsNotdef, type GlyphSupport } from "../canvasText.js";
 import { nameFontDef, nameFontStack, nameFontFace } from "./fonts.js";
-import { twemojiImage } from "../twemoji.js";
+import { hasTwemoji, twemojiImage } from "../twemoji.js";
 import type {
   BarStyle,
   FlairStyle,
@@ -274,16 +274,60 @@ export function drawCosmeticName(
 }
 
 /** The small title line under a name. Uses the context's textBaseline. */
+const EMOJI_GRAPHEME = /\p{Extended_Pictographic}|\p{Regional_Indicator}|⃣/u;
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/** Font size in px from a CSS font string ("600 11.5px …"), for sizing inline emoji. */
+function fontPx(font: string): number {
+  const match = /(\d+(?:\.\d+)?)px/.exec(font);
+  return match ? Number(match[1]) : 12;
+}
+
+/**
+ * A line of text where emoji are drawn as Twemoji images (bundled, so they show on hosts with no
+ * emoji font, and match the website) and everything else with `font`. Uses the context's current
+ * textBaseline/fillStyle; truncates with "…" to `maxWidth`. Returns the width drawn.
+ */
+export function drawTextWithEmoji(ctx: SKRSContext2D, text: string, x: number, y: number, font: string, maxWidth?: number): number {
+  ctx.font = font;
+  const emojiSize = fontPx(font) * 1.15;
+  const parts = Array.from(graphemeSegmenter.segment(text), (segment) => {
+    const value = segment.segment;
+    const emoji = EMOJI_GRAPHEME.test(value) && hasTwemoji(value);
+    return { value, emoji, width: emoji ? emojiSize + 1 : ctx.measureText(value).width };
+  });
+  const total = (list: typeof parts) => list.reduce((sum, part) => sum + part.width, 0);
+  let shown = parts;
+  if (maxWidth !== undefined && total(parts) > maxWidth) {
+    const ellipsis = ctx.measureText("…").width;
+    shown = [...parts];
+    while (shown.length > 1 && total(shown) + ellipsis > maxWidth) shown.pop();
+    // Don't leave a dangling space before the ellipsis.
+    while (shown.length > 1 && shown[shown.length - 1]!.value.trim() === "") shown.pop();
+    shown = [...shown, { value: "…", emoji: false, width: ellipsis }];
+  }
+  // Emoji sit centred on the text's own glyph box, whatever textBaseline the caller uses.
+  const box = ctx.measureText("Hg");
+  const centerY = y + (box.actualBoundingBoxDescent - box.actualBoundingBoxAscent) / 2;
+  const scale = Math.max(1, Math.abs(ctx.getTransform().a) || 1);
+  let cursor = x;
+  for (const part of shown) {
+    if (part.emoji) {
+      const image = twemojiImage(part.value, emojiSize * scale);
+      if (image) ctx.drawImage(image, cursor + 0.5, centerY - emojiSize / 2, emojiSize, emojiSize);
+    } else {
+      ctx.fillText(part.value, cursor, y);
+    }
+    cursor += part.width;
+  }
+  return cursor - x;
+}
+
 export function drawCosmeticTitle(ctx: SKRSContext2D, title: TitleStyle, x: number, y: number, font: string, defaultColor: string, maxWidth?: number): number {
   ctx.save();
-  ctx.font = font;
+  ctx.textAlign = "left";
   ctx.fillStyle = title.color ?? defaultColor;
-  let text = title.text;
-  if (maxWidth !== undefined) {
-    while (text.length > 1 && ctx.measureText(text).width > maxWidth) text = `${text.slice(0, -2)}…`;
-  }
-  ctx.fillText(text, x, y);
-  const width = ctx.measureText(text).width;
+  const width = drawTextWithEmoji(ctx, title.text, x, y, font, maxWidth);
   ctx.restore();
   return width;
 }

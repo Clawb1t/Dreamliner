@@ -204,8 +204,6 @@ async function composeProfileCard(
   const padBottom = 1.1 * REM;
   const spacer = 15 * REM; // .lb-hero-spacer
   const overlap = 3.5 * REM; // .lb-hero-identity margin-top: -3.5rem
-  const avatarSize = 64;
-  const avatarRadius = 1 * REM;
   const identityGap = 0.9 * REM;
 
   const nameLineHeight = nameSize * 1.25;
@@ -214,6 +212,13 @@ async function composeProfileCard(
   const pillPadY = 0.2 * REM;
   const pillPadX = 0.6 * REM;
   const pillHeight = pillFont * 1.3 + pillPadY * 2;
+  // An equipped title gets its own small line between the name and the pills.
+  const titleFont = siteFont(650, 0.8 * REM);
+  const titleLine = cosmetics.title ? 0.8 * REM * 1.3 + 0.15 * REM : 0;
+  const textPadBottom = 0.1 * REM; // .lb-hero-text padding-bottom
+  // The avatar is exactly as tall as the text block beside it (name, title, pills), like the site.
+  const avatarSize = Math.round(nameLineHeight + titleLine + statsGap + pillHeight + textPadBottom);
+  const avatarRadius = 1 * REM;
 
   const chipFont = 0.75 * REM; // .badge-chip-sm
   const chipPadY = 0.22 * REM;
@@ -375,11 +380,8 @@ async function composeProfileCard(
   // --- Name row (.lb-hero-name-row) + stat pills (.lb-hero-stats), bottom-aligned -------------
   const textX = avatarX + avatarSize + identityGap;
   const textRight = width - padX;
-  const textBottom = identityBottom - 0.1 * REM; // .lb-hero-text padding-bottom
+  const textBottom = identityBottom - textPadBottom;
   const pillsTop = textBottom - pillHeight;
-  // An equipped title gets its own small line between the name and the pills.
-  const titleFont = siteFont(650, 0.8 * REM);
-  const titleLine = cosmetics.title ? 0.8 * REM * 1.3 + 0.15 * REM : 0;
   const nameLineTop = pillsTop - statsGap - titleLine - nameLineHeight;
   const nameCenterY = nameLineTop + nameLineHeight / 2;
 
