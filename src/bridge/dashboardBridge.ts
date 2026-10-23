@@ -405,6 +405,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Name, icon, banner and member count of the servers Dreamliner is in (home page showcase).
+        if (req.method === "GET" && url.pathname === "/bridge/showcase/servers") {
+          const { cachedSwr } = await import("./responseCache.js");
+          const { buildShowcaseServers } = await import("./publicGuild.js");
+          const servers = await cachedSwr("showcase-servers", 10 * 60_000, 60 * 60_000, async () => buildShowcaseServers(client));
+          sendJson(res, 200, { ok: true, servers });
+          return;
+        }
+
         // One server's name/icon/banner: what the website's access check needs, without sending
         // (or building) the whole server list.
         const briefMatch = req.method === "GET" ? /^\/bridge\/guilds\/(\d+)\/brief$/.exec(url.pathname) : null;

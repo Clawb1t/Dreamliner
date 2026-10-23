@@ -1,4 +1,4 @@
-import { ChannelType, GuildFeature, GuildVerificationLevel, type Guild } from "discord.js";
+import { ChannelType, GuildFeature, GuildVerificationLevel, type Client, type Guild } from "discord.js";
 import { configManager } from "../config/manager.js";
 import { getDreamlinerOnePublicStatusWithRefresh } from "./dreamlinerOne.js";
 import { getTopChannelsByDaily } from "../plugins/stats/functions/queries.js";
@@ -232,4 +232,26 @@ export async function buildPublicGuildHome(guild: Guild) {
       leaderboardPreview,
     },
   };
+}
+
+/** Most servers the home page's showcase lists: the biggest ones, so the payload stays small. */
+const SHOWCASE_LIMIT = 300;
+
+/**
+ * The servers Dreamliner is in, for the website home page's rotating showcase: just what a server
+ * picker card shows (name, icon, banner, member count). Every server already has a public page, so
+ * this exposes nothing new.
+ */
+export function buildShowcaseServers(client: Client) {
+  return [...client.guilds.cache.values()]
+    .filter((guild) => guild.available && guild.memberCount > 1)
+    .sort((a, b) => b.memberCount - a.memberCount)
+    .slice(0, SHOWCASE_LIMIT)
+    .map((guild) => ({
+      id: guild.id,
+      name: guild.name,
+      iconUrl: guild.iconURL({ size: 128, extension: "webp" }),
+      bannerUrl: guild.bannerURL({ size: 512, extension: "webp" }),
+      memberCount: guild.memberCount,
+    }));
 }
