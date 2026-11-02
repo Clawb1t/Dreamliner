@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-23T01:25:32.488Z",
+  "generatedAt": "2026-11-02T21:16:54.708Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -18,6 +18,11 @@
           "key": "appeals",
           "name": "Appeals",
           "description": "An appeals page where punished members (even banned ones) can ask for an infraction to be reviewed, with custom forms, a staff review channel, and approvals that lift the punishment."
+        },
+        {
+          "key": "team_control",
+          "name": "Team Control",
+          "description": "Run your staff team: a rank ladder, shifts and a live roster, leave requests, promotions and discipline, activity quotas, profiles, feedback and onboarding."
         },
         {
           "key": "slowmode",
@@ -143,6 +148,11 @@
           "key": "activity_rewards",
           "name": "Activity Rewards",
           "description": "Reward members with roles and announcements when they hit message or voice-time milestones, with per-milestone channels and messages."
+        },
+        {
+          "key": "invite_tracker",
+          "name": "Invite Tracker",
+          "description": "See who invited whom, with fake and rejoin detection, a leaderboard, tracked links that give roles, join and leave messages, analytics and raid pausing."
         },
         {
           "key": "companion_channels",
@@ -359,6 +369,13 @@
       "categoryId": "mod"
     },
     {
+      "key": "team_control",
+      "name": "Team Control",
+      "description": "Run your staff team: a rank ladder, shifts and a live roster, leave requests, promotions and discipline, activity quotas, profiles, feedback and onboarding.",
+      "category": "Moderation",
+      "categoryId": "mod"
+    },
+    {
       "key": "slowmode",
       "name": "Slowmode",
       "description": "Per-channel and individual slowmode.",
@@ -481,6 +498,13 @@
       "key": "activity_rewards",
       "name": "Activity Rewards",
       "description": "Reward members with roles and announcements when they hit message or voice-time milestones, with per-milestone channels and messages.",
+      "category": "Engagement",
+      "categoryId": "engage"
+    },
+    {
+      "key": "invite_tracker",
+      "name": "Invite Tracker",
+      "description": "See who invited whom, with fake and rejoin detection, a leaderboard, tracked links that give roles, join and leave messages, analytics and raid pausing.",
       "category": "Engagement",
       "categoryId": "engage"
     },

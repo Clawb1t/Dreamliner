@@ -303,6 +303,20 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       ),
     },
     {
+      key: "invite_tracker",
+      label: "Invite history",
+      description:
+        "When you joined servers using Invite Tracker and through which invite, your bonus invites and resets. Erasing also removes your name from joins you invited (the other members' join records stay).",
+      total: import("../plugins/invite_tracker/functions/store.js").then(({ countUserInviteData }) => countUserInviteData(userId)),
+    },
+    {
+      key: "team_control",
+      label: "Staff team records",
+      description:
+        "Your time on staff teams using Team Control: shifts, leave, promotions and discipline, ratings you gave or received, onboarding and staff-channel message counts. Erasing also removes managers' notes about you; actions you took on others stay but no longer name you.",
+      total: import("../plugins/team_control/functions/store.js").then(({ countUserTeamData }) => countUserTeamData(userId)),
+    },
+    {
       key: "member_identity",
       label: "Member identity",
       description: "Saved nickname, roles, and timeout used to restore identity on rejoin.",
@@ -506,6 +520,10 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     "username_snapshots",
     db.delete(usernameSnapshots).where(eq(usernameSnapshots.userId, userId)).returning(),
   );
+  const { deleteUserInviteData } = await import("../plugins/invite_tracker/functions/store.js");
+  deleted.invite_tracker = deleteUserInviteData(userId);
+  const { deleteUserTeamData } = await import("../plugins/team_control/functions/store.js");
+  deleted.team_control = deleteUserTeamData(userId);
   await wipe(
     "member_identity",
     db.delete(memberIdentity).where(eq(memberIdentity.userId, userId)).returning(),

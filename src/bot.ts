@@ -66,6 +66,11 @@ import { APPEAL_PREFIX } from "./plugins/appeals/constants.js";
 import { handleCharacterAutocomplete } from "./plugins/characters/commands.js";
 import { handleAppealButtonInteraction, handleAppealModalSubmit } from "./plugins/appeals/functions/interactions.js";
 import { BLUESKY_PREFIX } from "./plugins/bluesky/constants.js";
+import { INVITE_TRACKER_PREFIX } from "./plugins/invite_tracker/functions/config.js";
+import { handleInviteTrackerButton } from "./plugins/invite_tracker/functions/interactions.js";
+import { TEAM_PREFIX } from "./plugins/team_control/functions/config.js";
+import { handleTeamButton, handleTeamModal } from "./plugins/team_control/functions/interactions.js";
+import { handleTeamAutocomplete } from "./plugins/team_control/commands.js";
 import { handleBlueskyButtonInteraction } from "./plugins/bluesky/functions/interactions.js";
 import {
   handleApplicationButtonInteraction,
@@ -358,6 +363,11 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
           log.error("Character autocomplete error:", error);
         });
       }
+      if (interaction.commandName === "team") {
+        await handleTeamAutocomplete(interaction).catch((error) => {
+          log.error("Team Control autocomplete error:", error);
+        });
+      }
       return;
     }
     if (interaction.isChatInputCommand()) {
@@ -401,6 +411,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(APPEAL_PREFIX)) {
         const handled = await safeHandle(interaction, "Appeal button", () => handleAppealButtonInteraction(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(INVITE_TRACKER_PREFIX)) {
+        const handled = await safeHandle(interaction, "Invite tracker button", () => handleInviteTrackerButton(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(TEAM_PREFIX)) {
+        const handled = await safeHandle(interaction, "Team Control button", () => handleTeamButton(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(BLUESKY_PREFIX)) {
@@ -503,6 +521,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(APPEAL_PREFIX)) {
         const handled = await safeHandle(interaction, "Appeal modal", () => handleAppealModalSubmit(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(TEAM_PREFIX)) {
+        const handled = await safeHandle(interaction, "Team Control modal", () => handleTeamModal(interaction));
         if (handled) return;
       }
       if (interaction.customId === REVIEW_MODAL_ID) {

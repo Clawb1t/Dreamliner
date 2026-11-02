@@ -5,6 +5,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 ## Moderation
 
 - [Infractions](./infraction.md)
+- [Team Control](./team_control.md): staff management with a rank ladder, shifts, leave, promotions and discipline, quotas, a live roster, profiles, feedback and onboarding
 - [Slowmode](./slowmode.md)
 
 ## Protection
@@ -37,6 +38,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 - [Welcome message](./welcome_message.md): join/leave/DM messages and member-count milestones
 - [Activity Rewards](./activity_rewards.md): roles and announcements for message and voice milestones
+- [Invite Tracker](./invite_tracker.md): who invited whom, with fake detection, a leaderboard, tracked links, analytics and raid pausing
 - [Birthdays](./birthdays.md): members set their birthday, and the server celebrates it with announcements, a role, a DM and wish buttons
 - [Characters](./characters.md): AI roleplay characters with their own name, avatar, personality and @role
 - [Companion channels](./companion_channels.md)

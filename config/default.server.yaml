@@ -1050,6 +1050,263 @@ plugins:
       can_view: false
       can_sync: false
       can_manage: false
+  invite_tracker:
+    enabled: false
+    config:
+      log_channel_id: null
+      ignore_bots: true
+      blacklist:
+        user_ids: []
+        role_ids: []
+      count_on: join
+      passport:
+        pending_timeout_hours: 72
+      fake:
+        min_account_age_days: 7
+        rejoin_policy: fake
+        quick_leave_minutes: 0
+        quick_leave_as: left
+      join_message:
+        enabled: false
+        channel_id: null
+        message:
+          content: "{user} joined, invited by **{inviter_name}** ({invites} invites)"
+          embed:
+            enabled: false
+            title: ""
+            description: ""
+            color: 5661429
+            author_name: ""
+            author_icon: none
+            author_icon_url: ""
+            thumbnail: avatar
+            thumbnail_url: ""
+            image: none
+            image_url: ""
+            footer_text: ""
+            footer_icon: none
+            footer_icon_url: ""
+            timestamp: false
+            fields: []
+          card:
+            enabled: false
+            background_type: color
+            background_color: 1974050
+            background_url: ""
+            background_asset_id: ""
+            avatar_layout: left
+            text_layout: beside
+            avatar_style: circle
+            show_avatar: true
+            show_accent_bar: true
+            greeting_text: Welcome {user_display}!
+            subtitle_text: "Member #{guild_member_count}"
+            text_color: 16777215
+            accent_color: 5661429
+            border_color: 5661429
+            border_width: 0
+            border_radius: 24
+            avatar_size: 180
+            avatar_offset_x: 0
+            avatar_offset_y: 0
+            text_offset_x: 0
+            text_offset_y: 0
+            greeting_size: 44
+            subtitle_size: 24
+            avatar_ring_width: 6
+        unknown_message:
+          content: "{user} joined via {join_source}"
+          embed:
+            enabled: false
+            title: ""
+            description: ""
+            color: 5661429
+            author_name: ""
+            author_icon: none
+            author_icon_url: ""
+            thumbnail: avatar
+            thumbnail_url: ""
+            image: none
+            image_url: ""
+            footer_text: ""
+            footer_icon: none
+            footer_icon_url: ""
+            timestamp: false
+            fields: []
+          card:
+            enabled: false
+            background_type: color
+            background_color: 1974050
+            background_url: ""
+            background_asset_id: ""
+            avatar_layout: left
+            text_layout: beside
+            avatar_style: circle
+            show_avatar: true
+            show_accent_bar: true
+            greeting_text: Welcome {user_display}!
+            subtitle_text: "Member #{guild_member_count}"
+            text_color: 16777215
+            accent_color: 5661429
+            border_color: 5661429
+            border_width: 0
+            border_radius: 24
+            avatar_size: 180
+            avatar_offset_x: 0
+            avatar_offset_y: 0
+            text_offset_x: 0
+            text_offset_y: 0
+            greeting_size: 44
+            subtitle_size: 24
+            avatar_ring_width: 6
+      leave_message:
+        enabled: false
+        channel_id: null
+        message:
+          content: "{user_name} left. They were invited by **{inviter_name}** ({invites}
+            invites)"
+          embed:
+            enabled: false
+            title: ""
+            description: ""
+            color: 5661429
+            author_name: ""
+            author_icon: none
+            author_icon_url: ""
+            thumbnail: avatar
+            thumbnail_url: ""
+            image: none
+            image_url: ""
+            footer_text: ""
+            footer_icon: none
+            footer_icon_url: ""
+            timestamp: false
+            fields: []
+          card:
+            enabled: false
+            background_type: color
+            background_color: 1974050
+            background_url: ""
+            background_asset_id: ""
+            avatar_layout: left
+            text_layout: beside
+            avatar_style: circle
+            show_avatar: true
+            show_accent_bar: true
+            greeting_text: Welcome {user_display}!
+            subtitle_text: "Member #{guild_member_count}"
+            text_color: 16777215
+            accent_color: 5661429
+            border_color: 5661429
+            border_width: 0
+            border_radius: 24
+            avatar_size: 180
+            avatar_offset_x: 0
+            avatar_offset_y: 0
+            text_offset_x: 0
+            text_offset_y: 0
+            greeting_size: 44
+            subtitle_size: 24
+            avatar_ring_width: 6
+      leaderboard:
+        show_left: true
+        show_fake: true
+      raid:
+        enabled: false
+        threshold_joins: 10
+        window_seconds: 60
+        action: alert
+        pause_minutes: 60
+        alert_role_id: null
+      retention_days: 365
+      can_view: true
+      can_view_others: true
+      can_manage: false
+      can_raid: false
+  team_control:
+    enabled: false
+    config:
+      ranks: []
+      manager_role_ids: []
+      log_channel_id: null
+      shifts:
+        enabled: true
+        duty_role_id: null
+        nickname_prefix: ""
+        log_channel_id: null
+        types: []
+        allow_breaks: true
+        min_minutes: 5
+        max_hours: 12
+        max_on_duty: 0
+        block_on_loa: true
+      leave:
+        enabled: true
+        loa_role_id: null
+        ra_role_id: null
+        request_channel_id: null
+        log_channel_id: null
+        ping_role_id: null
+        require_reason: true
+        min_days: 1
+        max_days: 60
+        cooldown_days: 0
+        auto_approve: false
+        exempt_from_quota: true
+      actions:
+        enabled: true
+        log_channel_id: null
+        announce_channel_id: null
+        dm_member: true
+        require_reason: true
+        suspended_role_id: null
+        strike_expiry_days: 90
+        strike_thresholds:
+          - strikes: 3
+            action: notify
+            suspend_days: 7
+      activity:
+        enabled: true
+        period: weekly
+        week_start: monday
+        staff_channel_ids: []
+        inactivity_days: 7
+        report_channel_id: null
+        scheduled_reports: false
+        points_mode: false
+        weights:
+          shift_hour: 10
+          mod_action: 2
+          ticket: 3
+          message: 0.1
+          voice_hour: 2
+      roster:
+        enabled: false
+        channel_id: null
+        show_buttons: true
+        title: Team roster
+      feedback:
+        enabled: true
+        after_ticket: true
+        direct: true
+        cooldown_hours: 24
+        members_only: true
+        log_channel_id: null
+      onboarding:
+        enabled: false
+        checklist: []
+        trial_rank_id: null
+        trial_days: 14
+        review_channel_id: null
+        dm_welcome: true
+      can_view_team: true
+      can_shift: false
+      can_request_leave: false
+      can_rate: true
+      can_review_leave: false
+      can_discipline: false
+      can_promote: false
+      can_manage: false
   birthdays:
     enabled: false
     config:

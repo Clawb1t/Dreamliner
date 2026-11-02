@@ -3069,6 +3069,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const activityRewardsMatch = /^\/bridge\/guilds\/(\d+)\/activity-rewards\/(preview|test|overview|import)$/.exec(
           url.pathname,
         );
+        // Invite Tracker: status, leaderboard, member/:id, bonus, reset, links[/:id], analytics, raid, preview.
+        const inviteTrackerMatch =
+          /^\/bridge\/guilds\/(\d+)\/invite-tracker\/(status|leaderboard|member|bonus|reset|links|analytics|raid|preview)(?:\/(\d{1,20}))?$/.exec(
+            url.pathname,
+          );
+        // Team Control: overview, members, member/:id[/notes[/:noteId]|/onboarding], shifts[/:id],
+        // leave[/:id], actions[/:id/void], activity[/export], feedback, roster/refresh, sync.
+        const teamControlMatch = /^\/bridge\/guilds\/(\d+)\/team-control\/([a-z]+(?:\/[a-z0-9]{1,20}){0,3})$/.exec(url.pathname);
         const rolePanelsPreviewMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/preview$/.exec(url.pathname);
         const rolePanelsTestMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/test$/.exec(url.pathname);
         const rolePanelsValidateMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/validate$/.exec(url.pathname);
@@ -3207,6 +3215,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !welcomePreviewMatch &&
           !welcomeTestMatch &&
           !activityRewardsMatch &&
+          !inviteTrackerMatch &&
+          !teamControlMatch &&
           !birthdaysMatch &&
           !rolePanelsPreviewMatch &&
           !rolePanelsTestMatch &&
@@ -3322,6 +3332,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           welcomePreviewMatch?.[1] ??
           welcomeTestMatch?.[1] ??
           activityRewardsMatch?.[1] ??
+          inviteTrackerMatch?.[1] ??
+          teamControlMatch?.[1] ??
           birthdaysMatch?.[1] ??
           rolePanelsPreviewMatch?.[1] ??
           rolePanelsTestMatch?.[1] ??
@@ -4217,6 +4229,169 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const result = await sendBirthdayTest(guild, member, body);
           sendJson(res, result.ok ? 200 : 400, result);
+          return;
+        }
+
+        if (inviteTrackerMatch) {
+          const action = inviteTrackerMatch[2]!;
+          const targetId = inviteTrackerMatch[3];
+          const bridge = await import("./webInviteTracker.js");
+          const isGet = req.method === "GET";
+          const isPost = req.method === "POST";
+          const isDelete = req.method === "DELETE";
+          const allowed =
+            (isGet && ["status", "leaderboard", "member", "links", "analytics"].includes(action)) ||
+            (isPost && ["bonus", "reset", "links", "raid", "preview"].includes(action)) ||
+            (isDelete && action === "links");
+          // Only member/:id and links/:id (DELETE) take an ID segment.
+          const idOk = action === "member" ? Boolean(targetId) : action === "links" && isDelete ? Boolean(targetId) : !targetId;
+          if (!allowed || !idOk) {
+            sendJson(res, allowed ? 404 : 405, { error: allowed ? "Not found" : "Method not allowed" });
+            return;
+          }
+
+          let body: Record<string, unknown> = {};
+          let userId: string | undefined;
+          if (isGet) {
+            userId = url.searchParams.get("userId")?.trim();
+          } else {
+            try {
+              body = JSON.parse((await readBody(req)) || "{}") as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            userId = typeof body.userId === "string" ? body.userId.trim() : undefined;
+          }
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+
+          try {
+            if (action === "status") {
+              sendJson(res, 200, await bridge.getInviteTrackerStatus(guild));
+            } else if (action === "leaderboard") {
+              const page = Number(url.searchParams.get("page") ?? 1);
+              const pageSize = Number(url.searchParams.get("pageSize") ?? 25);
+              sendJson(res, 200, await bridge.getInviteTrackerLeaderboard(guild, page, pageSize));
+            } else if (action === "member") {
+              sendJson(res, 200, await bridge.getInviteTrackerMember(guild, targetId!));
+            } else if (action === "analytics") {
+              sendJson(res, 200, await bridge.getInviteTrackerAnalytics(guild, url.searchParams.get("range")));
+            } else if (action === "links" && isGet) {
+              sendJson(res, 200, await bridge.listInviteTrackerLinks(guild));
+            } else if (action === "links" && isDelete) {
+              const result = await bridge.deleteInviteTrackerLink(guild, Number(targetId));
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Tracked link deleted",
+                summary: `Invite Tracker link #${targetId} was deleted.`,
+                details: [],
+                payload: { linkId: Number(targetId) },
+              });
+              sendJson(res, 200, result);
+            } else if (action === "links") {
+              const result = await bridge.createInviteTrackerLink(guild, userId, body);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Tracked link created",
+                summary: `Invite Tracker link "${result.link.name}" was created.`,
+                details: [`Code: ${result.link.code}`],
+                payload: { linkId: result.link.id },
+              });
+              sendJson(res, 200, result);
+            } else if (action === "bonus") {
+              const result = bridge.postInviteTrackerBonus(guild, body);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Invites adjusted",
+                summary: `Bonus invites changed for ${String(body.memberId)}.`,
+                details: [`Amount: ${String(body.amount)}`],
+                payload: { memberId: body.memberId, amount: body.amount },
+              });
+              sendJson(res, 200, result);
+            } else if (action === "reset") {
+              const result = bridge.postInviteTrackerReset(guild, body);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Invites reset",
+                summary: body.scope === "all" ? "Every member's invites were reset." : `Invites were reset for ${String(body.memberId)}.`,
+                details: [],
+                payload: { scope: body.scope, memberId: body.memberId ?? null },
+              });
+              sendJson(res, 200, result);
+            } else if (action === "raid") {
+              const result = await bridge.postInviteTrackerRaid(guild, body);
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: body.action === "pause" ? "Invites paused" : "Invites resumed",
+                summary: result.invitesPausedUntil ? `Invites paused until ${result.invitesPausedUntil}.` : "Invites were resumed.",
+                details: [],
+                payload: result,
+              });
+              sendJson(res, 200, result);
+            } else {
+              const preview = await bridge.previewInviteTrackerMessage(client, guild, userId, body);
+              sendJson(res, 200, { ok: true, ...preview });
+            }
+          } catch (error) {
+            const status = error instanceof bridge.InviteBridgeError ? error.status : 500;
+            sendJson(res, status, { error: error instanceof Error ? error.message : "Invite Tracker request failed" });
+          }
+          return;
+        }
+
+        if (teamControlMatch) {
+          const method = req.method ?? "GET";
+          if (!["GET", "POST", "PATCH", "DELETE"].includes(method)) {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> = {};
+          let userId: string | undefined;
+          if (method === "GET") {
+            userId = url.searchParams.get("userId")?.trim();
+          } else {
+            try {
+              const parsed = JSON.parse((await readBody(req)) || "{}") as unknown;
+              body = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            userId = typeof body.userId === "string" ? body.userId.trim() : undefined;
+          }
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const bridge = await import("./webTeamControl.js");
+          try {
+            const result = await bridge.handleTeamControlBridge(client, guild, method, teamControlMatch[2]!.split("/"), url.searchParams, body, userId);
+            if ("csv" in result) {
+              res.writeHead(result.status, {
+                "Content-Type": "text/csv; charset=utf-8",
+                "Content-Disposition": `attachment; filename="${result.filename}"`,
+                "Content-Length": Buffer.byteLength(result.csv),
+              });
+              res.end(result.csv);
+            } else {
+              sendJson(res, result.status, result.json);
+            }
+          } catch (error) {
+            const status = error instanceof bridge.TeamBridgeError ? error.status : 500;
+            if (status === 500) log.error("Team Control bridge request failed:", error);
+            sendJson(res, status, { error: error instanceof Error && status !== 500 ? error.message : "Team Control request failed" });
+          }
           return;
         }
 

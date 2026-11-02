@@ -406,6 +406,41 @@
     ]
   },
   {
+    "plugin": "invite_tracker",
+    "pluginName": "Invite Tracker",
+    "pluginDescription": "See who invited whom, with fake and rejoin detection, a leaderboard, tracked links that give roles, join and leave messages, analytics and raid pausing.",
+    "entries": [
+      {
+        "plugin": "invite_tracker",
+        "permission": "can_manage",
+        "grantKey": "invite_tracker.can_manage",
+        "title": "Manage",
+        "description": "Allow members to add bonus invites, reset counts and manage tracked links with /invites."
+      },
+      {
+        "plugin": "invite_tracker",
+        "permission": "can_raid",
+        "grantKey": "invite_tracker.can_raid",
+        "title": "Raid",
+        "description": "Allow members to pause and resume the server's invites with /invites raid."
+      },
+      {
+        "plugin": "invite_tracker",
+        "permission": "can_view",
+        "grantKey": "invite_tracker.can_view",
+        "title": "View",
+        "description": "Allow members to see their own invites, the leaderboard and who invited someone with /invites."
+      },
+      {
+        "plugin": "invite_tracker",
+        "permission": "can_view_others",
+        "grantKey": "invite_tracker.can_view_others",
+        "title": "View Others",
+        "description": "Allow members to look up other members' invites with /invites."
+      }
+    ]
+  },
+  {
     "plugin": "locate_user",
     "pluginName": "Locate user",
     "pluginDescription": "Find where a member is, and when they were last seen.",
@@ -871,6 +906,69 @@
         "grantKey": "tags.can_show",
         "title": "Show",
         "description": "Allow members to show/use tags."
+      }
+    ]
+  },
+  {
+    "plugin": "team_control",
+    "pluginName": "Team Control",
+    "pluginDescription": "Run your staff team: a rank ladder, shifts and a live roster, leave requests, promotions and discipline, activity quotas, profiles, feedback and onboarding.",
+    "entries": [
+      {
+        "plugin": "team_control",
+        "permission": "can_discipline",
+        "grantKey": "team_control.can_discipline",
+        "title": "Discipline",
+        "description": "Allow members to warn, strike, suspend and terminate staff with /team action."
+      },
+      {
+        "plugin": "team_control",
+        "permission": "can_manage",
+        "grantKey": "team_control.can_manage",
+        "title": "Manage",
+        "description": "Allow members to edit shifts, write notes, manage onboarding, run reports and sync the team."
+      },
+      {
+        "plugin": "team_control",
+        "permission": "can_promote",
+        "grantKey": "team_control.can_promote",
+        "title": "Promote",
+        "description": "Allow members to promote and demote staff with /team action."
+      },
+      {
+        "plugin": "team_control",
+        "permission": "can_rate",
+        "grantKey": "team_control.can_rate",
+        "title": "Rate",
+        "description": "Allow members to rate staff with /team rate."
+      },
+      {
+        "plugin": "team_control",
+        "permission": "can_request_leave",
+        "grantKey": "team_control.can_request_leave",
+        "title": "Request Leave",
+        "description": "Allow members to request leave with /team leave without holding a rank role."
+      },
+      {
+        "plugin": "team_control",
+        "permission": "can_review_leave",
+        "grantKey": "team_control.can_review_leave",
+        "title": "Review Leave",
+        "description": "Allow members to approve and deny leave requests."
+      },
+      {
+        "plugin": "team_control",
+        "permission": "can_shift",
+        "grantKey": "team_control.can_shift",
+        "title": "Shift",
+        "description": "Allow members to clock in with /team shift without holding a rank role."
+      },
+      {
+        "plugin": "team_control",
+        "permission": "can_view_team",
+        "grantKey": "team_control.can_view_team",
+        "title": "View Team",
+        "description": "Allow members to see the roster, other staff profiles and the leaderboard with /team."
       }
     ]
   },

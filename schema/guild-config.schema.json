@@ -14669,6 +14669,2740 @@
           "default": {},
           "title": "Activity Rewards"
         },
+        "invite_tracker": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "log_channel_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "Optional channel for a log entry on every tracked join and leave, plus raid alerts. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "ignore_bots": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Bots added to the server never count towards anyone's invites.",
+                  "title": "Ignore Bots"
+                },
+                "blacklist": {
+                  "type": "object",
+                  "properties": {
+                    "user_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 100,
+                      "default": [],
+                      "description": "Members who never earn invites, and whose joins never count.",
+                      "title": "User Ids"
+                    },
+                    "role_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 25,
+                      "default": [],
+                      "description": "Inviters with any of these roles never earn invites.",
+                      "title": "Role Ids"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Blacklist"
+                },
+                "count_on": {
+                  "type": "string",
+                  "enum": [
+                    "join",
+                    "verified"
+                  ],
+                  "default": "join",
+                  "description": "join = count as soon as someone joins, verified = only once they pass Passport verification.",
+                  "title": "Count On"
+                },
+                "passport": {
+                  "type": "object",
+                  "properties": {
+                    "pending_timeout_hours": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 720,
+                      "default": 72,
+                      "description": "A join still waiting on Passport after this long counts as fake (unverified).",
+                      "title": "Pending Timeout Hours"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Passport"
+                },
+                "fake": {
+                  "type": "object",
+                  "properties": {
+                    "min_account_age_days": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 365,
+                      "default": 7,
+                      "description": "Accounts younger than this count as fake. 0 turns the check off.",
+                      "title": "Min Account Age Days"
+                    },
+                    "rejoin_policy": {
+                      "type": "string",
+                      "enum": [
+                        "count",
+                        "fake",
+                        "ignore"
+                      ],
+                      "default": "fake",
+                      "description": "count = a rejoin counts again, fake = it counts as fake, ignore = it isn't counted at all.",
+                      "title": "Rejoin Policy"
+                    },
+                    "quick_leave_minutes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 43200,
+                      "default": 0,
+                      "description": "Members who leave within this many minutes are a quick leave. 0 turns it off.",
+                      "title": "Quick Leave Minutes"
+                    },
+                    "quick_leave_as": {
+                      "type": "string",
+                      "enum": [
+                        "left",
+                        "fake"
+                      ],
+                      "default": "left",
+                      "description": "left = a quick leave counts as a normal leave, fake = it counts as fake.",
+                      "title": "Quick Leave As"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Fake"
+                },
+                "join_message": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Post a message when someone joins.",
+                      "title": "Enabled"
+                    },
+                    "channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel join messages are posted in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "string",
+                          "maxLength": 2000,
+                          "default": "",
+                          "description": "Optional message content above the embed/card. Supports placeholders.",
+                          "title": "Content"
+                        },
+                        "embed": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Include a Discord embed in the message.",
+                              "title": "Enabled"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Embed title. Supports placeholders.",
+                              "title": "Title"
+                            },
+                            "description": {
+                              "type": "string",
+                              "maxLength": 4096,
+                              "default": "",
+                              "description": "Embed description. Supports placeholders.",
+                              "title": "Description"
+                            },
+                            "color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Embed accent color as a decimal integer (0–16777215).",
+                              "default": 5661429,
+                              "title": "Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "author_name": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Optional embed author name.",
+                              "title": "Author Name"
+                            },
+                            "author_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Author icon source.",
+                              "title": "Author Icon"
+                            },
+                            "author_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Author icon URL when mode is url.",
+                              "title": "Author Icon Url"
+                            },
+                            "thumbnail": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "avatar",
+                              "description": "Thumbnail image source.",
+                              "title": "Thumbnail"
+                            },
+                            "thumbnail_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Thumbnail URL when mode is url.",
+                              "title": "Thumbnail Url"
+                            },
+                            "image": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Large embed image. Image cards attach as files, not embed images.",
+                              "title": "Image"
+                            },
+                            "image_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Image URL when mode is url.",
+                              "title": "Image Url"
+                            },
+                            "footer_text": {
+                              "type": "string",
+                              "maxLength": 2048,
+                              "default": "",
+                              "description": "Footer text. Supports placeholders.",
+                              "title": "Footer Text"
+                            },
+                            "footer_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Footer icon source.",
+                              "title": "Footer Icon"
+                            },
+                            "footer_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Footer icon URL when mode is url.",
+                              "title": "Footer Icon Url"
+                            },
+                            "timestamp": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Show the current time in the embed footer.",
+                              "title": "Timestamp"
+                            },
+                            "fields": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 256,
+                                    "default": "",
+                                    "description": "Embed field name.",
+                                    "title": "Name"
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "maxLength": 1024,
+                                    "default": "",
+                                    "description": "Embed field value. Supports placeholders.",
+                                    "title": "Value"
+                                  },
+                                  "inline": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Display the field inline.",
+                                    "title": "Inline"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "maxItems": 25,
+                              "default": [],
+                              "description": "Optional embed fields.",
+                              "title": "Fields"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Embed"
+                        },
+                        "card": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Generate and attach a welcome/leave image card.",
+                              "title": "Enabled"
+                            },
+                            "background_type": {
+                              "type": "string",
+                              "enum": [
+                                "color",
+                                "url",
+                                "asset"
+                              ],
+                              "default": "color",
+                              "description": "Card background source.",
+                              "title": "Background Type"
+                            },
+                            "background_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Solid background color when type is color.",
+                              "default": 1974050,
+                              "title": "Background Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "background_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Background image URL when type is url.",
+                              "title": "Background Url"
+                            },
+                            "background_asset_id": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Uploaded background asset id when type is asset.",
+                              "title": "Background Asset Id",
+                              "x-dreamliner": {
+                                "kind": "snowflake",
+                                "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                              }
+                            },
+                            "avatar_layout": {
+                              "type": "string",
+                              "enum": [
+                                "left",
+                                "center",
+                                "right"
+                              ],
+                              "default": "left",
+                              "description": "Preset position for the member avatar.",
+                              "title": "Avatar Layout"
+                            },
+                            "text_layout": {
+                              "type": "string",
+                              "enum": [
+                                "beside",
+                                "below",
+                                "overlay_center",
+                                "overlay_bottom"
+                              ],
+                              "default": "beside",
+                              "description": "Preset position for greeting and subtitle text.",
+                              "title": "Text Layout"
+                            },
+                            "avatar_style": {
+                              "type": "string",
+                              "enum": [
+                                "circle",
+                                "rounded_square"
+                              ],
+                              "default": "circle",
+                              "description": "Avatar shape.",
+                              "title": "Avatar Style"
+                            },
+                            "show_avatar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the member avatar on the card.",
+                              "title": "Show Avatar"
+                            },
+                            "show_accent_bar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the left accent bar.",
+                              "title": "Show Accent Bar"
+                            },
+                            "greeting_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Welcome {user_display}!",
+                              "description": "Primary card text. Supports placeholders.",
+                              "title": "Greeting Text"
+                            },
+                            "subtitle_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Member #{guild_member_count}",
+                              "description": "Secondary card text. Supports placeholders.",
+                              "title": "Subtitle Text"
+                            },
+                            "text_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card text color.",
+                              "default": 16777215,
+                              "title": "Text Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "accent_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Accent bar / avatar ring color.",
+                              "default": 5661429,
+                              "title": "Accent Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card border color.",
+                              "default": 5661429,
+                              "title": "Border Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 32,
+                              "default": 0,
+                              "description": "Card border thickness in pixels.",
+                              "title": "Border Width"
+                            },
+                            "border_radius": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 80,
+                              "default": 24,
+                              "description": "Card corner radius in pixels.",
+                              "title": "Border Radius"
+                            },
+                            "avatar_size": {
+                              "type": "integer",
+                              "minimum": 64,
+                              "maximum": 240,
+                              "default": 180,
+                              "description": "Avatar size in pixels.",
+                              "title": "Avatar Size"
+                            },
+                            "avatar_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal avatar nudge in pixels.",
+                              "title": "Avatar Offset X"
+                            },
+                            "avatar_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical avatar nudge in pixels.",
+                              "title": "Avatar Offset Y"
+                            },
+                            "text_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal text nudge in pixels.",
+                              "title": "Text Offset X"
+                            },
+                            "text_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical text nudge in pixels.",
+                              "title": "Text Offset Y"
+                            },
+                            "greeting_size": {
+                              "type": "integer",
+                              "minimum": 18,
+                              "maximum": 72,
+                              "default": 44,
+                              "description": "Greeting font size in pixels.",
+                              "title": "Greeting Size"
+                            },
+                            "subtitle_size": {
+                              "type": "integer",
+                              "minimum": 12,
+                              "maximum": 48,
+                              "default": 24,
+                              "description": "Subtitle font size in pixels.",
+                              "title": "Subtitle Size"
+                            },
+                            "avatar_ring_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16,
+                              "default": 6,
+                              "description": "Avatar ring thickness in pixels.",
+                              "title": "Avatar Ring Width"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Card"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "content": "{user} joined, invited by **{inviter_name}** ({invites} invites)"
+                      },
+                      "description": "Posted when the inviter is known.",
+                      "title": "Message"
+                    },
+                    "unknown_message": {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "string",
+                          "maxLength": 2000,
+                          "default": "",
+                          "description": "Optional message content above the embed/card. Supports placeholders.",
+                          "title": "Content"
+                        },
+                        "embed": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Include a Discord embed in the message.",
+                              "title": "Enabled"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Embed title. Supports placeholders.",
+                              "title": "Title"
+                            },
+                            "description": {
+                              "type": "string",
+                              "maxLength": 4096,
+                              "default": "",
+                              "description": "Embed description. Supports placeholders.",
+                              "title": "Description"
+                            },
+                            "color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Embed accent color as a decimal integer (0–16777215).",
+                              "default": 5661429,
+                              "title": "Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "author_name": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Optional embed author name.",
+                              "title": "Author Name"
+                            },
+                            "author_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Author icon source.",
+                              "title": "Author Icon"
+                            },
+                            "author_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Author icon URL when mode is url.",
+                              "title": "Author Icon Url"
+                            },
+                            "thumbnail": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "avatar",
+                              "description": "Thumbnail image source.",
+                              "title": "Thumbnail"
+                            },
+                            "thumbnail_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Thumbnail URL when mode is url.",
+                              "title": "Thumbnail Url"
+                            },
+                            "image": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Large embed image. Image cards attach as files, not embed images.",
+                              "title": "Image"
+                            },
+                            "image_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Image URL when mode is url.",
+                              "title": "Image Url"
+                            },
+                            "footer_text": {
+                              "type": "string",
+                              "maxLength": 2048,
+                              "default": "",
+                              "description": "Footer text. Supports placeholders.",
+                              "title": "Footer Text"
+                            },
+                            "footer_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Footer icon source.",
+                              "title": "Footer Icon"
+                            },
+                            "footer_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Footer icon URL when mode is url.",
+                              "title": "Footer Icon Url"
+                            },
+                            "timestamp": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Show the current time in the embed footer.",
+                              "title": "Timestamp"
+                            },
+                            "fields": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 256,
+                                    "default": "",
+                                    "description": "Embed field name.",
+                                    "title": "Name"
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "maxLength": 1024,
+                                    "default": "",
+                                    "description": "Embed field value. Supports placeholders.",
+                                    "title": "Value"
+                                  },
+                                  "inline": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Display the field inline.",
+                                    "title": "Inline"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "maxItems": 25,
+                              "default": [],
+                              "description": "Optional embed fields.",
+                              "title": "Fields"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Embed"
+                        },
+                        "card": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Generate and attach a welcome/leave image card.",
+                              "title": "Enabled"
+                            },
+                            "background_type": {
+                              "type": "string",
+                              "enum": [
+                                "color",
+                                "url",
+                                "asset"
+                              ],
+                              "default": "color",
+                              "description": "Card background source.",
+                              "title": "Background Type"
+                            },
+                            "background_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Solid background color when type is color.",
+                              "default": 1974050,
+                              "title": "Background Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "background_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Background image URL when type is url.",
+                              "title": "Background Url"
+                            },
+                            "background_asset_id": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Uploaded background asset id when type is asset.",
+                              "title": "Background Asset Id",
+                              "x-dreamliner": {
+                                "kind": "snowflake",
+                                "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                              }
+                            },
+                            "avatar_layout": {
+                              "type": "string",
+                              "enum": [
+                                "left",
+                                "center",
+                                "right"
+                              ],
+                              "default": "left",
+                              "description": "Preset position for the member avatar.",
+                              "title": "Avatar Layout"
+                            },
+                            "text_layout": {
+                              "type": "string",
+                              "enum": [
+                                "beside",
+                                "below",
+                                "overlay_center",
+                                "overlay_bottom"
+                              ],
+                              "default": "beside",
+                              "description": "Preset position for greeting and subtitle text.",
+                              "title": "Text Layout"
+                            },
+                            "avatar_style": {
+                              "type": "string",
+                              "enum": [
+                                "circle",
+                                "rounded_square"
+                              ],
+                              "default": "circle",
+                              "description": "Avatar shape.",
+                              "title": "Avatar Style"
+                            },
+                            "show_avatar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the member avatar on the card.",
+                              "title": "Show Avatar"
+                            },
+                            "show_accent_bar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the left accent bar.",
+                              "title": "Show Accent Bar"
+                            },
+                            "greeting_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Welcome {user_display}!",
+                              "description": "Primary card text. Supports placeholders.",
+                              "title": "Greeting Text"
+                            },
+                            "subtitle_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Member #{guild_member_count}",
+                              "description": "Secondary card text. Supports placeholders.",
+                              "title": "Subtitle Text"
+                            },
+                            "text_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card text color.",
+                              "default": 16777215,
+                              "title": "Text Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "accent_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Accent bar / avatar ring color.",
+                              "default": 5661429,
+                              "title": "Accent Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card border color.",
+                              "default": 5661429,
+                              "title": "Border Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 32,
+                              "default": 0,
+                              "description": "Card border thickness in pixels.",
+                              "title": "Border Width"
+                            },
+                            "border_radius": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 80,
+                              "default": 24,
+                              "description": "Card corner radius in pixels.",
+                              "title": "Border Radius"
+                            },
+                            "avatar_size": {
+                              "type": "integer",
+                              "minimum": 64,
+                              "maximum": 240,
+                              "default": 180,
+                              "description": "Avatar size in pixels.",
+                              "title": "Avatar Size"
+                            },
+                            "avatar_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal avatar nudge in pixels.",
+                              "title": "Avatar Offset X"
+                            },
+                            "avatar_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical avatar nudge in pixels.",
+                              "title": "Avatar Offset Y"
+                            },
+                            "text_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal text nudge in pixels.",
+                              "title": "Text Offset X"
+                            },
+                            "text_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical text nudge in pixels.",
+                              "title": "Text Offset Y"
+                            },
+                            "greeting_size": {
+                              "type": "integer",
+                              "minimum": 18,
+                              "maximum": 72,
+                              "default": 44,
+                              "description": "Greeting font size in pixels.",
+                              "title": "Greeting Size"
+                            },
+                            "subtitle_size": {
+                              "type": "integer",
+                              "minimum": 12,
+                              "maximum": 48,
+                              "default": 24,
+                              "description": "Subtitle font size in pixels.",
+                              "title": "Subtitle Size"
+                            },
+                            "avatar_ring_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16,
+                              "default": 6,
+                              "description": "Avatar ring thickness in pixels.",
+                              "title": "Avatar Ring Width"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Card"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "content": "{user} joined via {join_source}"
+                      },
+                      "description": "Posted when there's no inviter: the vanity URL, a tracked link, a bot invite, or an unknown invite.",
+                      "title": "Unknown Message"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Join Message"
+                },
+                "leave_message": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Post a message when someone leaves.",
+                      "title": "Enabled"
+                    },
+                    "channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel leave messages are posted in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "string",
+                          "maxLength": 2000,
+                          "default": "",
+                          "description": "Optional message content above the embed/card. Supports placeholders.",
+                          "title": "Content"
+                        },
+                        "embed": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Include a Discord embed in the message.",
+                              "title": "Enabled"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Embed title. Supports placeholders.",
+                              "title": "Title"
+                            },
+                            "description": {
+                              "type": "string",
+                              "maxLength": 4096,
+                              "default": "",
+                              "description": "Embed description. Supports placeholders.",
+                              "title": "Description"
+                            },
+                            "color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Embed accent color as a decimal integer (0–16777215).",
+                              "default": 5661429,
+                              "title": "Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "author_name": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Optional embed author name.",
+                              "title": "Author Name"
+                            },
+                            "author_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Author icon source.",
+                              "title": "Author Icon"
+                            },
+                            "author_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Author icon URL when mode is url.",
+                              "title": "Author Icon Url"
+                            },
+                            "thumbnail": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "avatar",
+                              "description": "Thumbnail image source.",
+                              "title": "Thumbnail"
+                            },
+                            "thumbnail_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Thumbnail URL when mode is url.",
+                              "title": "Thumbnail Url"
+                            },
+                            "image": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Large embed image. Image cards attach as files, not embed images.",
+                              "title": "Image"
+                            },
+                            "image_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Image URL when mode is url.",
+                              "title": "Image Url"
+                            },
+                            "footer_text": {
+                              "type": "string",
+                              "maxLength": 2048,
+                              "default": "",
+                              "description": "Footer text. Supports placeholders.",
+                              "title": "Footer Text"
+                            },
+                            "footer_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Footer icon source.",
+                              "title": "Footer Icon"
+                            },
+                            "footer_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Footer icon URL when mode is url.",
+                              "title": "Footer Icon Url"
+                            },
+                            "timestamp": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Show the current time in the embed footer.",
+                              "title": "Timestamp"
+                            },
+                            "fields": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 256,
+                                    "default": "",
+                                    "description": "Embed field name.",
+                                    "title": "Name"
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "maxLength": 1024,
+                                    "default": "",
+                                    "description": "Embed field value. Supports placeholders.",
+                                    "title": "Value"
+                                  },
+                                  "inline": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Display the field inline.",
+                                    "title": "Inline"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "maxItems": 25,
+                              "default": [],
+                              "description": "Optional embed fields.",
+                              "title": "Fields"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Embed"
+                        },
+                        "card": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Generate and attach a welcome/leave image card.",
+                              "title": "Enabled"
+                            },
+                            "background_type": {
+                              "type": "string",
+                              "enum": [
+                                "color",
+                                "url",
+                                "asset"
+                              ],
+                              "default": "color",
+                              "description": "Card background source.",
+                              "title": "Background Type"
+                            },
+                            "background_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Solid background color when type is color.",
+                              "default": 1974050,
+                              "title": "Background Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "background_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Background image URL when type is url.",
+                              "title": "Background Url"
+                            },
+                            "background_asset_id": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Uploaded background asset id when type is asset.",
+                              "title": "Background Asset Id",
+                              "x-dreamliner": {
+                                "kind": "snowflake",
+                                "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                              }
+                            },
+                            "avatar_layout": {
+                              "type": "string",
+                              "enum": [
+                                "left",
+                                "center",
+                                "right"
+                              ],
+                              "default": "left",
+                              "description": "Preset position for the member avatar.",
+                              "title": "Avatar Layout"
+                            },
+                            "text_layout": {
+                              "type": "string",
+                              "enum": [
+                                "beside",
+                                "below",
+                                "overlay_center",
+                                "overlay_bottom"
+                              ],
+                              "default": "beside",
+                              "description": "Preset position for greeting and subtitle text.",
+                              "title": "Text Layout"
+                            },
+                            "avatar_style": {
+                              "type": "string",
+                              "enum": [
+                                "circle",
+                                "rounded_square"
+                              ],
+                              "default": "circle",
+                              "description": "Avatar shape.",
+                              "title": "Avatar Style"
+                            },
+                            "show_avatar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the member avatar on the card.",
+                              "title": "Show Avatar"
+                            },
+                            "show_accent_bar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the left accent bar.",
+                              "title": "Show Accent Bar"
+                            },
+                            "greeting_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Welcome {user_display}!",
+                              "description": "Primary card text. Supports placeholders.",
+                              "title": "Greeting Text"
+                            },
+                            "subtitle_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Member #{guild_member_count}",
+                              "description": "Secondary card text. Supports placeholders.",
+                              "title": "Subtitle Text"
+                            },
+                            "text_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card text color.",
+                              "default": 16777215,
+                              "title": "Text Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "accent_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Accent bar / avatar ring color.",
+                              "default": 5661429,
+                              "title": "Accent Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card border color.",
+                              "default": 5661429,
+                              "title": "Border Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 32,
+                              "default": 0,
+                              "description": "Card border thickness in pixels.",
+                              "title": "Border Width"
+                            },
+                            "border_radius": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 80,
+                              "default": 24,
+                              "description": "Card corner radius in pixels.",
+                              "title": "Border Radius"
+                            },
+                            "avatar_size": {
+                              "type": "integer",
+                              "minimum": 64,
+                              "maximum": 240,
+                              "default": 180,
+                              "description": "Avatar size in pixels.",
+                              "title": "Avatar Size"
+                            },
+                            "avatar_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal avatar nudge in pixels.",
+                              "title": "Avatar Offset X"
+                            },
+                            "avatar_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical avatar nudge in pixels.",
+                              "title": "Avatar Offset Y"
+                            },
+                            "text_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal text nudge in pixels.",
+                              "title": "Text Offset X"
+                            },
+                            "text_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical text nudge in pixels.",
+                              "title": "Text Offset Y"
+                            },
+                            "greeting_size": {
+                              "type": "integer",
+                              "minimum": 18,
+                              "maximum": 72,
+                              "default": 44,
+                              "description": "Greeting font size in pixels.",
+                              "title": "Greeting Size"
+                            },
+                            "subtitle_size": {
+                              "type": "integer",
+                              "minimum": 12,
+                              "maximum": 48,
+                              "default": 24,
+                              "description": "Subtitle font size in pixels.",
+                              "title": "Subtitle Size"
+                            },
+                            "avatar_ring_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16,
+                              "default": 6,
+                              "description": "Avatar ring thickness in pixels.",
+                              "title": "Avatar Ring Width"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Card"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "content": "{user_name} left. They were invited by **{inviter_name}** ({invites} invites)"
+                      },
+                      "title": "Message"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Leave Message"
+                },
+                "leaderboard": {
+                  "type": "object",
+                  "properties": {
+                    "show_left": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show each member's left count on the leaderboard.",
+                      "title": "Show Left"
+                    },
+                    "show_fake": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show each member's fake count on the leaderboard.",
+                      "title": "Show Fake"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Leaderboard"
+                },
+                "raid": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Watch for bursts of joins through the same invite.",
+                      "title": "Enabled"
+                    },
+                    "threshold_joins": {
+                      "type": "integer",
+                      "minimum": 3,
+                      "maximum": 100,
+                      "default": 10,
+                      "description": "Joins through one invite that count as a burst.",
+                      "title": "Threshold Joins"
+                    },
+                    "window_seconds": {
+                      "type": "integer",
+                      "minimum": 10,
+                      "maximum": 600,
+                      "default": 60,
+                      "description": "How close together those joins must be.",
+                      "title": "Window Seconds",
+                      "x-dreamliner": {
+                        "kind": "seconds",
+                        "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                      }
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "alert",
+                        "delete_invite",
+                        "pause_all"
+                      ],
+                      "default": "alert",
+                      "description": "alert = post in the log channel, delete_invite = also delete the invite, pause_all = also pause every invite.",
+                      "title": "Action"
+                    },
+                    "pause_minutes": {
+                      "type": "integer",
+                      "minimum": 15,
+                      "maximum": 1440,
+                      "default": 60,
+                      "description": "How long pause_all pauses invites for (at most 24 hours).",
+                      "title": "Pause Minutes"
+                    },
+                    "alert_role_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Optional role pinged with raid alerts.",
+                      "title": "Alert Role Id",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Raid"
+                },
+                "retention_days": {
+                  "type": "integer",
+                  "minimum": 30,
+                  "maximum": 730,
+                  "default": 365,
+                  "description": "Joins older than this are folded into daily totals. Invite counts only cover this window.",
+                  "title": "Retention Days"
+                },
+                "can_view": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Allow members to see their own invites, the leaderboard and who invited someone with /invites.",
+                  "title": "View",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_view_others": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Allow members to look up other members' invites with /invites.",
+                  "title": "View Others",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to add bonus invites, reset counts and manage tracked links with /invites.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_raid": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to pause and resume the server's invites with /invites raid.",
+                  "title": "Raid",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "log_channel_id": null,
+                "ignore_bots": true,
+                "blacklist": {
+                  "user_ids": [],
+                  "role_ids": []
+                },
+                "count_on": "join",
+                "passport": {
+                  "pending_timeout_hours": 72
+                },
+                "fake": {
+                  "min_account_age_days": 7,
+                  "rejoin_policy": "fake",
+                  "quick_leave_minutes": 0,
+                  "quick_leave_as": "left"
+                },
+                "join_message": {
+                  "enabled": false,
+                  "channel_id": null,
+                  "message": {
+                    "content": "{user} joined, invited by **{inviter_name}** ({invites} invites)",
+                    "embed": {
+                      "enabled": false,
+                      "title": "",
+                      "description": "",
+                      "color": 5661429,
+                      "author_name": "",
+                      "author_icon": "none",
+                      "author_icon_url": "",
+                      "thumbnail": "avatar",
+                      "thumbnail_url": "",
+                      "image": "none",
+                      "image_url": "",
+                      "footer_text": "",
+                      "footer_icon": "none",
+                      "footer_icon_url": "",
+                      "timestamp": false,
+                      "fields": []
+                    },
+                    "card": {
+                      "enabled": false,
+                      "background_type": "color",
+                      "background_color": 1974050,
+                      "background_url": "",
+                      "background_asset_id": "",
+                      "avatar_layout": "left",
+                      "text_layout": "beside",
+                      "avatar_style": "circle",
+                      "show_avatar": true,
+                      "show_accent_bar": true,
+                      "greeting_text": "Welcome {user_display}!",
+                      "subtitle_text": "Member #{guild_member_count}",
+                      "text_color": 16777215,
+                      "accent_color": 5661429,
+                      "border_color": 5661429,
+                      "border_width": 0,
+                      "border_radius": 24,
+                      "avatar_size": 180,
+                      "avatar_offset_x": 0,
+                      "avatar_offset_y": 0,
+                      "text_offset_x": 0,
+                      "text_offset_y": 0,
+                      "greeting_size": 44,
+                      "subtitle_size": 24,
+                      "avatar_ring_width": 6
+                    }
+                  },
+                  "unknown_message": {
+                    "content": "{user} joined via {join_source}",
+                    "embed": {
+                      "enabled": false,
+                      "title": "",
+                      "description": "",
+                      "color": 5661429,
+                      "author_name": "",
+                      "author_icon": "none",
+                      "author_icon_url": "",
+                      "thumbnail": "avatar",
+                      "thumbnail_url": "",
+                      "image": "none",
+                      "image_url": "",
+                      "footer_text": "",
+                      "footer_icon": "none",
+                      "footer_icon_url": "",
+                      "timestamp": false,
+                      "fields": []
+                    },
+                    "card": {
+                      "enabled": false,
+                      "background_type": "color",
+                      "background_color": 1974050,
+                      "background_url": "",
+                      "background_asset_id": "",
+                      "avatar_layout": "left",
+                      "text_layout": "beside",
+                      "avatar_style": "circle",
+                      "show_avatar": true,
+                      "show_accent_bar": true,
+                      "greeting_text": "Welcome {user_display}!",
+                      "subtitle_text": "Member #{guild_member_count}",
+                      "text_color": 16777215,
+                      "accent_color": 5661429,
+                      "border_color": 5661429,
+                      "border_width": 0,
+                      "border_radius": 24,
+                      "avatar_size": 180,
+                      "avatar_offset_x": 0,
+                      "avatar_offset_y": 0,
+                      "text_offset_x": 0,
+                      "text_offset_y": 0,
+                      "greeting_size": 44,
+                      "subtitle_size": 24,
+                      "avatar_ring_width": 6
+                    }
+                  }
+                },
+                "leave_message": {
+                  "enabled": false,
+                  "channel_id": null,
+                  "message": {
+                    "content": "{user_name} left. They were invited by **{inviter_name}** ({invites} invites)",
+                    "embed": {
+                      "enabled": false,
+                      "title": "",
+                      "description": "",
+                      "color": 5661429,
+                      "author_name": "",
+                      "author_icon": "none",
+                      "author_icon_url": "",
+                      "thumbnail": "avatar",
+                      "thumbnail_url": "",
+                      "image": "none",
+                      "image_url": "",
+                      "footer_text": "",
+                      "footer_icon": "none",
+                      "footer_icon_url": "",
+                      "timestamp": false,
+                      "fields": []
+                    },
+                    "card": {
+                      "enabled": false,
+                      "background_type": "color",
+                      "background_color": 1974050,
+                      "background_url": "",
+                      "background_asset_id": "",
+                      "avatar_layout": "left",
+                      "text_layout": "beside",
+                      "avatar_style": "circle",
+                      "show_avatar": true,
+                      "show_accent_bar": true,
+                      "greeting_text": "Welcome {user_display}!",
+                      "subtitle_text": "Member #{guild_member_count}",
+                      "text_color": 16777215,
+                      "accent_color": 5661429,
+                      "border_color": 5661429,
+                      "border_width": 0,
+                      "border_radius": 24,
+                      "avatar_size": 180,
+                      "avatar_offset_x": 0,
+                      "avatar_offset_y": 0,
+                      "text_offset_x": 0,
+                      "text_offset_y": 0,
+                      "greeting_size": 44,
+                      "subtitle_size": 24,
+                      "avatar_ring_width": 6
+                    }
+                  }
+                },
+                "leaderboard": {
+                  "show_left": true,
+                  "show_fake": true
+                },
+                "raid": {
+                  "enabled": false,
+                  "threshold_joins": 10,
+                  "window_seconds": 60,
+                  "action": "alert",
+                  "pause_minutes": 60,
+                  "alert_role_id": null
+                },
+                "retention_days": 365,
+                "can_view": true,
+                "can_view_others": true,
+                "can_manage": false,
+                "can_raid": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Invite Tracker"
+        },
+        "team_control": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "ranks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9_-]{1,32}$",
+                        "description": "Short stable id (lowercase letters, numbers, - and _). Don't change it once in use.",
+                        "title": "Id"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 50,
+                        "description": "Rank name shown on the roster, profiles and announcements.",
+                        "title": "Name"
+                      },
+                      "role_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "default": null,
+                        "description": "Discord role that puts a member at this rank.",
+                        "title": "Role Id",
+                        "x-dreamliner": {
+                          "kind": "snowflake",
+                          "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                        }
+                      },
+                      "quota": {
+                        "type": "object",
+                        "properties": {
+                          "shift_hours": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 500,
+                            "default": 0,
+                            "description": "Hours on shift per period (breaks excluded). 0 = not required.",
+                            "title": "Shift Hours"
+                          },
+                          "mod_actions": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10000,
+                            "default": 0,
+                            "description": "Moderation actions per period. 0 = not required.",
+                            "title": "Mod Actions"
+                          },
+                          "tickets": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10000,
+                            "default": 0,
+                            "description": "Tickets closed per period. 0 = not required.",
+                            "title": "Tickets"
+                          },
+                          "messages": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100000,
+                            "default": 0,
+                            "description": "Messages in staff channels per period. 0 = not required.",
+                            "title": "Messages"
+                          },
+                          "voice_hours": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 500,
+                            "default": 0,
+                            "description": "Hours in voice per period. 0 = not required.",
+                            "title": "Voice Hours"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "default": {},
+                        "title": "Quota"
+                      },
+                      "points_quota": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100000,
+                        "default": 0,
+                        "description": "Points needed per period in points mode (Dreamliner One). 0 = none.",
+                        "title": "Points Quota"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 25,
+                  "default": [],
+                  "description": "The staff rank ladder, lowest first. A member's rank is the highest rank role they hold.",
+                  "title": "Ranks"
+                },
+                "manager_role_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 25,
+                  "default": [],
+                  "description": "Roles pinged for leave requests and alerts when no more specific ping role is set.",
+                  "title": "Manager Role Ids"
+                },
+                "log_channel_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "Default log channel for everything below that has no channel of its own. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "shifts": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Let staff clock in and out.",
+                      "title": "Enabled"
+                    },
+                    "duty_role_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Optional role given while on shift. Paste a Discord role ID.",
+                      "title": "Duty Role Id",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    },
+                    "nickname_prefix": {
+                      "type": "string",
+                      "maxLength": 12,
+                      "default": "",
+                      "description": "Optional nickname prefix while on shift, e.g. \"[On duty] \".",
+                      "title": "Nickname Prefix"
+                    },
+                    "log_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel shift starts and ends are logged in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Log Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,32}$",
+                            "description": "Short stable id (lowercase letters, numbers, - and _). Don't change it once in use.",
+                            "title": "Id"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40,
+                            "title": "Name"
+                          },
+                          "rank_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 25,
+                            "default": [],
+                            "description": "Ranks that can use this type. Empty = every rank.",
+                            "title": "Rank Ids"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 15,
+                      "default": [],
+                      "description": "Optional shift types, e.g. Moderation or Support.",
+                      "title": "Types"
+                    },
+                    "allow_breaks": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Let staff pause a shift. Break time doesn't count.",
+                      "title": "Allow Breaks"
+                    },
+                    "min_minutes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 120,
+                      "default": 5,
+                      "description": "Shifts shorter than this are voided.",
+                      "title": "Min Minutes"
+                    },
+                    "max_hours": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 48,
+                      "default": 12,
+                      "description": "Shifts longer than this are ended automatically.",
+                      "title": "Max Hours"
+                    },
+                    "max_on_duty": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 500,
+                      "default": 0,
+                      "description": "Most staff on shift at once. 0 = no limit.",
+                      "title": "Max On Duty"
+                    },
+                    "block_on_loa": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Staff on approved leave of absence can't clock in.",
+                      "title": "Block On Loa"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Shifts"
+                },
+                "leave": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Let staff request leave of absence (LOA) or reduced activity (RA).",
+                      "title": "Enabled"
+                    },
+                    "loa_role_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Role given while on leave of absence. Paste a Discord role ID.",
+                      "title": "Loa Role Id",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    },
+                    "ra_role_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Role given while on reduced activity. Paste a Discord role ID.",
+                      "title": "Ra Role Id",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    },
+                    "request_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel leave requests are posted in for review. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Request Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "log_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel leave decisions are logged in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Log Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "ping_role_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Role pinged for new leave requests (defaults to the manager roles). Paste a Discord role ID.",
+                      "title": "Ping Role Id",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    },
+                    "require_reason": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Leave requests need a reason.",
+                      "title": "Require Reason"
+                    },
+                    "min_days": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 30,
+                      "default": 1,
+                      "title": "Min Days"
+                    },
+                    "max_days": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 365,
+                      "default": 60,
+                      "title": "Max Days"
+                    },
+                    "cooldown_days": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 90,
+                      "default": 0,
+                      "description": "Days after a decision before the member can request again.",
+                      "title": "Cooldown Days"
+                    },
+                    "auto_approve": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Approve every request automatically.",
+                      "title": "Auto Approve"
+                    },
+                    "exempt_from_quota": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Staff on leave for at least half a period are excused from its quota.",
+                      "title": "Exempt From Quota"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Leave"
+                },
+                "actions": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Promotions, demotions, warnings, strikes, suspensions and terminations.",
+                      "title": "Enabled"
+                    },
+                    "log_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel staff actions are logged in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Log Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "announce_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Optional channel promotions and demotions are announced in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Announce Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "dm_member": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "DM the member about actions taken on them.",
+                      "title": "Dm Member"
+                    },
+                    "require_reason": {
+                      "type": "boolean",
+                      "default": true,
+                      "title": "Require Reason"
+                    },
+                    "suspended_role_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Optional role given while suspended. Paste a Discord role ID.",
+                      "title": "Suspended Role Id",
+                      "x-dreamliner": {
+                        "kind": "role",
+                        "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
+                      }
+                    },
+                    "strike_expiry_days": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 730,
+                      "default": 90,
+                      "description": "Strikes stop counting after this many days. 0 = never.",
+                      "title": "Strike Expiry Days"
+                    },
+                    "strike_thresholds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "strikes": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 20,
+                            "title": "Strikes"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "notify",
+                              "demote",
+                              "suspend",
+                              "terminate"
+                            ],
+                            "title": "Action"
+                          },
+                          "suspend_days": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 90,
+                            "default": 7,
+                            "title": "Suspend Days"
+                          }
+                        },
+                        "required": [
+                          "strikes",
+                          "action"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 10,
+                      "default": [
+                        {
+                          "strikes": 3,
+                          "action": "notify",
+                          "suspend_days": 7
+                        }
+                      ],
+                      "description": "What happens when a member's active strikes reach a count.",
+                      "title": "Strike Thresholds"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Actions"
+                },
+                "activity": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Track staff activity and quotas.",
+                      "title": "Enabled"
+                    },
+                    "period": {
+                      "type": "string",
+                      "enum": [
+                        "weekly",
+                        "biweekly",
+                        "monthly"
+                      ],
+                      "default": "weekly",
+                      "title": "Period"
+                    },
+                    "week_start": {
+                      "type": "string",
+                      "enum": [
+                        "monday",
+                        "sunday"
+                      ],
+                      "default": "monday",
+                      "title": "Week Start"
+                    },
+                    "staff_channel_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 50,
+                      "default": [],
+                      "description": "Channels whose messages count as staff messages.",
+                      "title": "Staff Channel Ids"
+                    },
+                    "inactivity_days": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 60,
+                      "default": 7,
+                      "description": "Alert after this many days without activity. 0 = off.",
+                      "title": "Inactivity Days"
+                    },
+                    "report_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel activity reports are posted in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Report Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "scheduled_reports": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Post a report at the end of every period (Dreamliner One).",
+                      "title": "Scheduled Reports"
+                    },
+                    "points_mode": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Measure quotas in weighted points instead of per-metric targets (Dreamliner One).",
+                      "title": "Points Mode"
+                    },
+                    "weights": {
+                      "type": "object",
+                      "properties": {
+                        "shift_hour": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 10,
+                          "title": "Shift Hour"
+                        },
+                        "mod_action": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 2,
+                          "title": "Mod Action"
+                        },
+                        "ticket": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 3,
+                          "title": "Ticket"
+                        },
+                        "message": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 0.1,
+                          "title": "Message"
+                        },
+                        "voice_hour": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 2,
+                          "title": "Voice Hour"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {},
+                      "title": "Weights"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Activity"
+                },
+                "roster": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Keep a live roster message up to date.",
+                      "title": "Enabled"
+                    },
+                    "channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel the roster is posted in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "show_buttons": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Clock in, break and clock out buttons under the roster.",
+                      "title": "Show Buttons"
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "default": "Team roster",
+                      "title": "Title"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Roster"
+                },
+                "feedback": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Let members rate staff.",
+                      "title": "Enabled"
+                    },
+                    "after_ticket": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Ask the ticket opener to rate the staff member when a ticket closes.",
+                      "title": "After Ticket"
+                    },
+                    "direct": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Let members rate staff with /team rate.",
+                      "title": "Direct"
+                    },
+                    "cooldown_hours": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 720,
+                      "default": 24,
+                      "description": "Hours before the same member can rate the same staff member again.",
+                      "title": "Cooldown Hours"
+                    },
+                    "members_only": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Staff can't rate each other.",
+                      "title": "Members Only"
+                    },
+                    "log_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel new feedback is logged in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Log Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Feedback"
+                },
+                "onboarding": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Checklists and trial periods for new staff.",
+                      "title": "Enabled"
+                    },
+                    "checklist": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,32}$",
+                            "description": "Short stable id (lowercase letters, numbers, - and _). Don't change it once in use.",
+                            "title": "Id"
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 80,
+                            "title": "Label"
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 200,
+                            "default": "",
+                            "title": "Description"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 40,
+                      "default": [],
+                      "title": "Checklist"
+                    },
+                    "trial_rank_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Rank new staff are on trial at. Empty = any rank.",
+                      "title": "Trial Rank Id",
+                      "x-dreamliner": {
+                        "kind": "snowflake",
+                        "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                      }
+                    },
+                    "trial_days": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 90,
+                      "default": 14,
+                      "description": "Trial length. 0 = no trial.",
+                      "title": "Trial Days"
+                    },
+                    "review_channel_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "default": null,
+                      "description": "Channel trial reviews are posted in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                      "title": "Review Channel Id",
+                      "x-dreamliner": {
+                        "kind": "channel",
+                        "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                      }
+                    },
+                    "dm_welcome": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "DM new staff a welcome with their checklist.",
+                      "title": "Dm Welcome"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Onboarding"
+                },
+                "can_view_team": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Allow members to see the roster, other staff profiles and the leaderboard with /team.",
+                  "title": "View Team",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_shift": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to clock in with /team shift without holding a rank role.",
+                  "title": "Shift",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_request_leave": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to request leave with /team leave without holding a rank role.",
+                  "title": "Request Leave",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_rate": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Allow members to rate staff with /team rate.",
+                  "title": "Rate",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_review_leave": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to approve and deny leave requests.",
+                  "title": "Review Leave",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_discipline": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to warn, strike, suspend and terminate staff with /team action.",
+                  "title": "Discipline",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_promote": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to promote and demote staff with /team action.",
+                  "title": "Promote",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to edit shifts, write notes, manage onboarding, run reports and sync the team.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "ranks": [],
+                "manager_role_ids": [],
+                "log_channel_id": null,
+                "shifts": {
+                  "enabled": true,
+                  "duty_role_id": null,
+                  "nickname_prefix": "",
+                  "log_channel_id": null,
+                  "types": [],
+                  "allow_breaks": true,
+                  "min_minutes": 5,
+                  "max_hours": 12,
+                  "max_on_duty": 0,
+                  "block_on_loa": true
+                },
+                "leave": {
+                  "enabled": true,
+                  "loa_role_id": null,
+                  "ra_role_id": null,
+                  "request_channel_id": null,
+                  "log_channel_id": null,
+                  "ping_role_id": null,
+                  "require_reason": true,
+                  "min_days": 1,
+                  "max_days": 60,
+                  "cooldown_days": 0,
+                  "auto_approve": false,
+                  "exempt_from_quota": true
+                },
+                "actions": {
+                  "enabled": true,
+                  "log_channel_id": null,
+                  "announce_channel_id": null,
+                  "dm_member": true,
+                  "require_reason": true,
+                  "suspended_role_id": null,
+                  "strike_expiry_days": 90,
+                  "strike_thresholds": [
+                    {
+                      "strikes": 3,
+                      "action": "notify",
+                      "suspend_days": 7
+                    }
+                  ]
+                },
+                "activity": {
+                  "enabled": true,
+                  "period": "weekly",
+                  "week_start": "monday",
+                  "staff_channel_ids": [],
+                  "inactivity_days": 7,
+                  "report_channel_id": null,
+                  "scheduled_reports": false,
+                  "points_mode": false,
+                  "weights": {
+                    "shift_hour": 10,
+                    "mod_action": 2,
+                    "ticket": 3,
+                    "message": 0.1,
+                    "voice_hour": 2
+                  }
+                },
+                "roster": {
+                  "enabled": false,
+                  "channel_id": null,
+                  "show_buttons": true,
+                  "title": "Team roster"
+                },
+                "feedback": {
+                  "enabled": true,
+                  "after_ticket": true,
+                  "direct": true,
+                  "cooldown_hours": 24,
+                  "members_only": true,
+                  "log_channel_id": null
+                },
+                "onboarding": {
+                  "enabled": false,
+                  "checklist": [],
+                  "trial_rank_id": null,
+                  "trial_days": 14,
+                  "review_channel_id": null,
+                  "dm_welcome": true
+                },
+                "can_view_team": true,
+                "can_shift": false,
+                "can_request_leave": false,
+                "can_rate": true,
+                "can_review_leave": false,
+                "can_discipline": false,
+                "can_promote": false,
+                "can_manage": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Team Control"
+        },
         "birthdays": {
           "type": "object",
           "properties": {

@@ -15,6 +15,8 @@ import { zImpersonationConfig } from "../config/schemas/impersonation.js";
 import { zIncidentResponseConfig } from "../config/schemas/incidentResponse.js";
 import { zImagesConfig } from "../config/schemas/images.js";
 import { zActivityRewardsConfig } from "../config/schemas/activityRewards.js";
+import { zInviteTrackerConfig } from "../config/schemas/inviteTracker.js";
+import { zTeamControlConfig } from "../config/schemas/teamControl.js";
 import { zApplicationsConfig } from "../config/schemas/applications.js";
 import { zSocialConfig } from "../config/schemas/social.js";
 import { zBlueskyConfig } from "../config/schemas/bluesky.js";
@@ -95,6 +97,8 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   music: zMusicConfig,
   images: zImagesConfig,
   activity_rewards: zActivityRewardsConfig,
+  invite_tracker: zInviteTrackerConfig,
+  team_control: zTeamControlConfig,
   applications: zApplicationsConfig,
   social: zSocialConfig,
   bluesky: zBlueskyConfig,

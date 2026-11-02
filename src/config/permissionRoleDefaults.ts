@@ -23,6 +23,12 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // birthdays
     "birthdays.can_set",
     "birthdays.can_view",
+    // team_control (the roster and staff profiles, and rating staff)
+    "team_control.can_view_team",
+    "team_control.can_rate",
+    // invite_tracker (read-only counts and who-invited lookups)
+    "invite_tracker.can_view",
+    "invite_tracker.can_view_others",
     // bluesky (profile cards and their own account link)
     "bluesky.can_use",
     // booster_roles
@@ -126,6 +132,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "giveaways.can_pause",
     // incident_response
     "incident_response.can_manage",
+    // invite_tracker
+    "invite_tracker.can_raid",
     // infractions
     "infractions.can_edit_duration",
     "infractions.can_edit_reason",
@@ -205,6 +213,15 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
   admin: [
     // activity_rewards
     "activity_rewards.can_manage",
+    // invite_tracker
+    "invite_tracker.can_manage",
+    // team_control
+    "team_control.can_shift",
+    "team_control.can_request_leave",
+    "team_control.can_review_leave",
+    "team_control.can_discipline",
+    "team_control.can_promote",
+    "team_control.can_manage",
     // giveaways
     "giveaways.can_cancel",
     "giveaways.can_view_all",

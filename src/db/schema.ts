@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer, real, blob, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const guildConfigs = sqliteTable("guild_configs", {
@@ -129,6 +130,8 @@ export const modCases = sqliteTable(
   (table) => [
     index("mod_cases_guild").on(table.guildId),
     index("mod_cases_guild_user").on(table.guildId, table.userId),
+    // Team Control counts each staff member's actions per period.
+    index("mod_cases_guild_mod_created").on(table.guildId, table.modId, table.createdAt),
   ],
 );
 
@@ -1977,6 +1980,305 @@ export const activityRewardsAwarded = sqliteTable(
     awardedAt: integer("awarded_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.userId, table.milestoneId] })],
+);
+
+/**
+ * Invite Tracker: one row per member join, the source of truth for every invite count (counts are
+ * always summed from these rows, never kept as running totals). Rows older than the guild's
+ * `retention_days` are folded into `invite_daily_stats` and deleted.
+ */
+export const inviteJoins = sqliteTable(
+  "invite_joins",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    memberId: text("member_id").notNull(),
+    /** Who gets credit. Null for vanity, bot, tracked-link and unknown joins. */
+    inviterId: text("inviter_id"),
+    code: text("code"),
+    /** invite | vanity | oauth | tracked | unknown */
+    source: text("source").notNull(),
+    trackedLinkId: integer("tracked_link_id", { mode: "number" }),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
+    leftAt: integer("left_at", { mode: "timestamp_ms" }),
+    /** pending (waiting on Passport) | valid | fake */
+    status: text("status").notNull(),
+    /** self | blacklist | bot | account_age | rejoin | quick_leave | unverified */
+    fakeReason: text("fake_reason"),
+    /** 0 for a rejoin under `rejoin_policy: ignore`: kept for history, never counted. */
+    counted: integer("counted", { mode: "boolean" }).notNull().default(true),
+    accountCreatedAt: integer("account_created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("invite_joins_guild_inviter_status").on(table.guildId, table.inviterId, table.status),
+    index("invite_joins_guild_member_joined").on(table.guildId, table.memberId, table.joinedAt),
+    index("invite_joins_guild_joined").on(table.guildId, table.joinedAt),
+    index("invite_joins_guild_link").on(table.guildId, table.trackedLinkId),
+  ],
+);
+
+/** Net manual invite adjustment per member (`/invites bonus`, the dashboard). */
+export const inviteBonus = sqliteTable(
+  "invite_bonus",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    amount: integer("amount", { mode: "number" }).notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+/** Soft resets: joins before `reset_at` stop counting for that inviter (`*` = the whole server). */
+export const inviteResets = sqliteTable(
+  "invite_resets",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    resetAt: integer("reset_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+);
+
+/** Bot-created invites that record where members came from (and can give roles). Soft-deleted so
+ *  a removed link's stats survive. */
+export const inviteTrackedLinks = sqliteTable(
+  "invite_tracked_links",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    channelId: text("channel_id").notNull(),
+    /** JSON string[] */
+    roleIds: text("role_ids").notNull().default("[]"),
+    maxUses: integer("max_uses", { mode: "number" }).notNull().default(0),
+    /** Seconds, 0 = never expires. */
+    maxAge: integer("max_age", { mode: "number" }).notNull().default(0),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [uniqueIndex("invite_tracked_links_code").on(table.code), index("invite_tracked_links_guild").on(table.guildId)],
+);
+
+/** Joins/leaves/fakes per day, folded from `invite_joins` rows past retention. `tracked_link_id`
+ *  is 0 for joins that didn't come through a tracked link. */
+export const inviteDailyStats = sqliteTable(
+  "invite_daily_stats",
+  {
+    guildId: text("guild_id").notNull(),
+    /** YYYY-MM-DD (UTC) */
+    day: text("day").notNull(),
+    source: text("source").notNull(),
+    trackedLinkId: integer("tracked_link_id", { mode: "number" }).notNull().default(0),
+    joins: integer("joins", { mode: "number" }).notNull().default(0),
+    leaves: integer("leaves", { mode: "number" }).notNull().default(0),
+    fakes: integer("fakes", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.day, table.source, table.trackedLinkId] })],
+);
+
+/**
+ * Team Control: one row per member who has ever held a rank role. Discord roles are the source of
+ * truth for who is on the team and at which rank; this keeps what roles can't: when they joined,
+ * suspensions (with the rank roles to give back) and trials.
+ */
+export const teamMembers = sqliteTable(
+  "team_members",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
+    /** Set when they stop holding any rank role (cleared if they come back). */
+    leftTeamAt: integer("left_team_at", { mode: "timestamp_ms" }),
+    /** active | suspended | terminated */
+    status: text("status").notNull().default("active"),
+    /** Last rank id seen, so suspended and former staff still show a rank. */
+    rankId: text("rank_id"),
+    suspendedUntil: integer("suspended_until", { mode: "timestamp_ms" }),
+    /** JSON string[]: rank roles removed by a suspension, given back when it ends. */
+    suspendedRoleIds: text("suspended_role_ids").notNull().default("[]"),
+    trialEndsAt: integer("trial_ends_at", { mode: "timestamp_ms" }),
+    /** When the trial review was posted (cleared again by "Extend"). */
+    trialReviewedAt: integer("trial_reviewed_at", { mode: "timestamp_ms" }),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] }), index("team_members_guild_status").on(table.guildId, table.status)],
+);
+
+/** Team Control shifts. Break time is excluded from every duration. */
+export const teamShifts = sqliteTable(
+  "team_shifts",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    typeId: text("type_id"),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
+    endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+    breakSeconds: integer("break_seconds", { mode: "number" }).notNull().default(0),
+    breakStartedAt: integer("break_started_at", { mode: "timestamp_ms" }),
+    /** active | ended | voided */
+    status: text("status").notNull().default("active"),
+    /** self | admin | auto */
+    endedBy: text("ended_by"),
+    editedBy: text("edited_by"),
+    note: text("note"),
+    /** The nickname before the on-duty prefix was added (null = none). */
+    prevNickname: text("prev_nickname"),
+    nickApplied: integer("nick_applied", { mode: "boolean" }).notNull().default(false),
+  },
+  (table) => [
+    index("team_shifts_guild_user_started").on(table.guildId, table.userId, table.startedAt),
+    index("team_shifts_guild_status").on(table.guildId, table.status),
+  ],
+);
+
+/** Leave of absence (loa) and reduced activity (ra) requests. */
+export const teamLeave = sqliteTable(
+  "team_leave",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    kind: text("kind").notNull(),
+    reason: text("reason").notNull().default(""),
+    startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
+    /** pending | approved | denied | active | ended | cancelled */
+    status: text("status").notNull(),
+    reviewerId: text("reviewer_id"),
+    reviewReason: text("review_reason"),
+    decidedAt: integer("decided_at", { mode: "timestamp_ms" }),
+    endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+    reviewChannelId: text("review_channel_id"),
+    reviewMessageId: text("review_message_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    roleApplied: integer("role_applied", { mode: "boolean" }).notNull().default(false),
+  },
+  (table) => [index("team_leave_guild_status").on(table.guildId, table.status), index("team_leave_guild_user").on(table.guildId, table.userId)],
+);
+
+/** Promotions, demotions, warnings, strikes, suspensions and terminations. Voided rows are kept. */
+export const teamActions = sqliteTable(
+  "team_actions",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    /** Null when Dreamliner took the action itself (a strike threshold or a failed trial). */
+    actorId: text("actor_id"),
+    type: text("type").notNull(),
+    fromRankId: text("from_rank_id"),
+    toRankId: text("to_rank_id"),
+    reason: text("reason").notNull().default(""),
+    /** Strikes: when it stops counting. Suspensions: when it ends. */
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+    voidedAt: integer("voided_at", { mode: "timestamp_ms" }),
+    voidedBy: text("voided_by"),
+    voidReason: text("void_reason"),
+    auto: integer("auto", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("team_actions_guild_user_created").on(table.guildId, table.userId, table.createdAt),
+    index("team_actions_guild_created").on(table.guildId, table.createdAt),
+  ],
+);
+
+/** Manager-only notes on a staff member. */
+export const teamNotes = sqliteTable(
+  "team_notes",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    authorId: text("author_id").notNull(),
+    body: text("body").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("team_notes_guild_user").on(table.guildId, table.userId)],
+);
+
+/** Member ratings of staff: after a ticket (one per ticket) or directly with /team rate. */
+export const teamFeedback = sqliteTable(
+  "team_feedback",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    staffId: text("staff_id").notNull(),
+    raterId: text("rater_id").notNull(),
+    rating: integer("rating", { mode: "number" }).notNull(),
+    comment: text("comment"),
+    /** ticket | direct */
+    source: text("source").notNull(),
+    ticketId: integer("ticket_id", { mode: "number" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("team_feedback_guild_staff_created").on(table.guildId, table.staffId, table.createdAt),
+    index("team_feedback_guild_rater").on(table.guildId, table.raterId, table.staffId),
+    uniqueIndex("team_feedback_ticket").on(table.guildId, table.source, table.ticketId).where(sql`source = 'ticket'`),
+  ],
+);
+
+/** Onboarding checklist items ticked off per member. */
+export const teamOnboarding = sqliteTable(
+  "team_onboarding",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    itemId: text("item_id").notNull(),
+    doneBy: text("done_by"),
+    doneAt: integer("done_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.itemId] })],
+);
+
+/** Messages per staff member per day in the configured staff channels. */
+export const teamActivityDaily = sqliteTable(
+  "team_activity_daily",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    /** YYYY-MM-DD (UTC) */
+    day: text("day").notNull(),
+    staffMessages: integer("staff_messages", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId, table.day] }), index("team_activity_daily_guild_day").on(table.guildId, table.day)],
+);
+
+/** The live roster message per guild, with a fingerprint of what it shows so unchanged boards aren't re-edited. */
+export const teamRosterMessages = sqliteTable("team_roster_messages", {
+  guildId: text("guild_id").primaryKey(),
+  channelId: text("channel_id").notNull(),
+  messageId: text("message_id").notNull(),
+  fingerprint: text("fingerprint").notNull().default(""),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+/** Scheduled activity reports already posted, one per period. */
+export const teamReports = sqliteTable(
+  "team_reports",
+  {
+    guildId: text("guild_id").notNull(),
+    /** YYYY-MM-DD (UTC) the period starts on. */
+    periodStart: text("period_start").notNull(),
+    postedAt: integer("posted_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.periodStart] })],
+);
+
+/** Inactivity alerts already posted: one per inactive streak, cleared when the member is active again. */
+export const teamInactivityAlerts = sqliteTable(
+  "team_inactivity_alerts",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    alertedAt: integer("alerted_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
 );
 
 /** Member-count milestones the welcomer has already celebrated, so dipping below and crossing a

@@ -7,6 +7,7 @@ import { deletePassportMessage } from "./delivery.js";
 import { deletePassportPending, getPassportPending, upsertPassportVerification } from "./store.js";
 import { recordPassportNetworkSignal } from "./altSignals.js";
 import { sendWelcomeAfterPassportVerification } from "../../welcome_message/functions/handlers.js";
+import { onInviteMemberVerified } from "../../invite_tracker/functions/tracking.js";
 
 export type PassportCompleteResult =
   | { ok: true; alreadyVerified?: boolean; rewards: PassportRewards }
@@ -53,6 +54,7 @@ export async function completePassportVerification(options: {
 
   if (!alreadyVerified) {
     await sendWelcomeAfterPassportVerification(member).catch(() => null);
+    await onInviteMemberVerified(member).catch(() => null);
   }
 
   await emitLog(

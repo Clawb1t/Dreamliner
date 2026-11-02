@@ -25,6 +25,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       { plugin: "infractions" },
       { plugin: "appeals" },
+      { plugin: "team_control" },
       { plugin: "slowmode" },
       { plugin: "utility", roots: ["clean", "bansearch"] },
     ],
@@ -89,6 +90,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     include: [
       { plugin: "welcome_message" },
       { plugin: "activity_rewards" },
+      { plugin: "invite_tracker" },
       { plugin: "companion_channels" },
       { plugin: "tts" },
       { plugin: "clipping" },
@@ -345,6 +347,18 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description:
       "Reward members with roles and announcements when they hit message or voice-time milestones, with per-milestone channels and messages.",
   },
+  team_control: {
+    key: "team_control",
+    name: "Team Control",
+    description:
+      "Run your staff team: a rank ladder, shifts and a live roster, leave requests, promotions and discipline, activity quotas, profiles, feedback and onboarding.",
+  },
+  invite_tracker: {
+    key: "invite_tracker",
+    name: "Invite Tracker",
+    description:
+      "See who invited whom, with fake and rejoin detection, a leaderboard, tracked links that give roles, join and leave messages, analytics and raid pausing.",
+  },
   starboard: {
     key: "starboard",
     name: "Starboard",
@@ -442,6 +456,7 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
 const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   infractions: "mod",
   appeals: "mod",
+  team_control: "mod",
   slowmode: "mod",
   automod: "protect",
   impersonation: "protect",
@@ -462,6 +477,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   username_saver: "info",
   welcome_message: "engage",
   activity_rewards: "engage",
+  invite_tracker: "engage",
   companion_channels: "engage",
   starboard: "engage",
   tts: "engage",

@@ -348,6 +348,11 @@ export async function performClose(
 
   // `feedback_enabled` (category override, else pluginConfig.feedback_enabled) reserves a spot for
   // a future "rate this ticket" DM; not wired up yet — dm_transcript_on_close covers the transcript DM.
+  // Team Control (when on, with feedback.after_ticket) DMs the opener a rating for the staff member
+  // who handled it and stores the score on the ticket's rating_score.
+  void import("../../team_control/functions/feedback.js")
+    .then(({ sendTicketRatingPrompt }) => sendTicketRatingPrompt(client, guild, closedTicket))
+    .catch(() => null);
 
   await archiveContainer(guild, closedTicket);
 

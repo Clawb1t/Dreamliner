@@ -45,6 +45,8 @@ import { socialPlugin } from "../plugins/social/index.js";
 import { blueskyPlugin } from "../plugins/bluesky/index.js";
 import { imagesPlugin } from "../plugins/images/index.js";
 import { activityRewardsPlugin } from "../plugins/activity_rewards/index.js";
+import { inviteTrackerPlugin } from "../plugins/invite_tracker/index.js";
+import { teamControlPlugin } from "../plugins/team_control/index.js";
 import { birthdaysPlugin } from "../plugins/birthdays/index.js";
 import { applicationsPlugin } from "../plugins/applications/index.js";
 import { appealsPlugin } from "../plugins/appeals/index.js";
@@ -101,6 +103,8 @@ export const availablePlugins: DreamlinerPlugin[] = [
   blueskyPlugin,
   imagesPlugin,
   activityRewardsPlugin,
+  inviteTrackerPlugin,
+  teamControlPlugin,
   birthdaysPlugin,
   applicationsPlugin,
   appealsPlugin,

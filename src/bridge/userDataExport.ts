@@ -168,6 +168,58 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
         await db.select().from(usernameSnapshots).where(eq(usernameSnapshots.userId, userId)).all(),
       ),
     },
+    invite_tracker: {
+      label: "Invite history",
+      description: "Your joins in servers using Invite Tracker, when and how people joined through your invites, your bonus invites and resets, and tracked links you created.",
+      rows: serializable(
+        await import("../plugins/invite_tracker/functions/store.js").then(({ exportUserInviteData }) => {
+          const data = exportUserInviteData(userId);
+          return [
+            ...data.joins.map((row) => ({ kind: "your_join", ...row })),
+            // Joins you invited belong to the other member too, so only how and when, not who.
+            ...data.invited.map((row) => ({
+              kind: "you_invited",
+              guildId: row.guildId,
+              code: row.code,
+              source: row.source,
+              joinedAt: row.joinedAt,
+              leftAt: row.leftAt,
+              status: row.status,
+            })),
+            ...data.bonus.map((row) => ({ kind: "bonus", ...row })),
+            ...data.resets.map((row) => ({ kind: "reset", ...row })),
+            ...data.trackedLinks.map((row) => ({ kind: "tracked_link", ...row })),
+          ];
+        }),
+      ),
+    },
+    team_control: {
+      label: "Staff team records",
+      description: "Your staff team memberships, shifts, leave, staff actions taken on you, ratings you gave and received, onboarding progress and daily staff-channel message counts. Managers' private notes aren't included.",
+      rows: serializable(
+        await import("../plugins/team_control/functions/store.js").then(({ exportUserTeamData }) => {
+          const data = exportUserTeamData(userId);
+          return [
+            ...data.memberships.map((row) => ({ kind: "membership", ...row })),
+            ...data.shifts.map((row) => ({ kind: "shift", ...row })),
+            ...data.leave.map(({ kind: leaveKind, ...row }) => ({ kind: "leave", leaveKind, ...row })),
+            ...data.actions.map((row) => ({ kind: "staff_action", ...row })),
+            // Ratings you received stay anonymous: when and how, not who.
+            ...data.feedbackReceived.map((row) => ({
+              kind: "rating_received",
+              guildId: row.guildId,
+              rating: row.rating,
+              comment: row.comment,
+              source: row.source,
+              createdAt: row.createdAt,
+            })),
+            ...data.feedbackGiven.map((row) => ({ kind: "rating_given", ...row })),
+            ...data.onboarding.map((row) => ({ kind: "onboarding", ...row })),
+            ...data.activity.map((row) => ({ kind: "staff_messages", ...row })),
+          ];
+        }),
+      ),
+    },
     member_identity: {
       label: "Member identity",
       description: "Saved nickname, roles, and timeout used to restore identity on rejoin.",

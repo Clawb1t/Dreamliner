@@ -20,6 +20,8 @@ import { zSocialPluginSection } from "./social.js";
 import { zBlueskyPluginSection } from "./bluesky.js";
 import { zImagesPluginSection } from "./images.js";
 import { zActivityRewardsPluginSection } from "./activityRewards.js";
+import { zInviteTrackerPluginSection } from "./inviteTracker.js";
+import { zTeamControlPluginSection } from "./teamControl.js";
 import { zBirthdaysPluginSection } from "./birthdays.js";
 import { zApplicationsPluginSection } from "./applications.js";
 import {
@@ -347,6 +349,8 @@ export const zGuildConfig = z.strictObject({
       bluesky: zBlueskyPluginSection.default({}),
       images: zImagesPluginSection.default({}),
       activity_rewards: zActivityRewardsPluginSection.default({}),
+      invite_tracker: zInviteTrackerPluginSection.default({}),
+      team_control: zTeamControlPluginSection.default({}),
       birthdays: zBirthdaysPluginSection.default({}),
       applications: zApplicationsPluginSection.default({}),
       appeals: zAppealsPluginSection.default({}),
