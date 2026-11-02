@@ -9,13 +9,14 @@ import { dayKey, periodLabel, periodRange, type PeriodRange, type PeriodWhich } 
 import { summarizeQuotas } from "./quota.js";
 import { claimReport } from "./store.js";
 import { summarizeTeam, type TeamMemberSummary } from "./team.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 
 const REPORT_LINES = 30;
 
-/** "✅ / ❌ / 💤" for one member's quota. */
+/** Met / missed / excused mark for one member's quota. */
 export function quotaIcon(member: Pick<TeamMemberSummary, "quota">): string {
-  if (member.quota.excused) return "💤";
-  return member.quota.met ? "✅" : "❌";
+  if (member.quota.excused) return APP_EMOJI.snooze;
+  return member.quota.met ? APP_EMOJI.correct : APP_EMOJI.wrong;
 }
 
 /** "3h 20m · 12 actions · 4 tickets · 80 msgs · 2h voice" (and points in points mode). */
@@ -45,7 +46,7 @@ export function buildReportCard(client: Client, guildConfig: GuildConfig, config
       embedField("Excused", String(totals.excused), true),
       embedField("Team shift time", formatMinutes(shift), true),
     ],
-    footer: "✅ met · ❌ missed · 💤 excused (on leave)",
+    footer: `${APP_EMOJI.correct} met · ${APP_EMOJI.wrong} missed · ${APP_EMOJI.snooze} excused (on leave)`,
   });
 }
 

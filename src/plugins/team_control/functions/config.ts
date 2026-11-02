@@ -4,6 +4,7 @@ import { configManager } from "../../../config/manager.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 
 export const PLUGIN = "team_control";
 
@@ -83,11 +84,12 @@ export const ACTION_LABELS: Record<TeamActionType, string> = {
 
 export const LEAVE_LABELS: Record<LeaveKind, string> = { loa: "Leave of absence", ra: "Reduced activity" };
 
+/** Dreamliner's app emojis (src/core/appEmojis.ts), so the dots look the same on every client. */
 export const STATUS_DOTS: Record<TeamStatus, string> = {
-  on_duty: "🟢",
-  on_break: "🟡",
-  off_duty: "⚫",
-  loa: "🌙",
-  ra: "🔸",
-  suspended: "⏸️",
+  on_duty: APP_EMOJI.online,
+  on_break: APP_EMOJI.idle,
+  off_duty: APP_EMOJI.offline,
+  loa: APP_EMOJI.night,
+  ra: APP_EMOJI.hourglass,
+  suspended: APP_EMOJI.pause,
 };

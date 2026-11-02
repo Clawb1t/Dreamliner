@@ -6,6 +6,7 @@ import { neutralizeMentions } from "../../../core/templates.js";
 import { channelOr, DAY_MS, TEAM_PREFIX, unix } from "./config.js";
 import { dmTeamCard, postTeamMessage, teamCard } from "./messages.js";
 import { listOnboarding, upsertTeamMember, type TeamMemberRecord } from "./store.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 
 export const TRIAL_BUTTON = `${TEAM_PREFIX}trial:`;
 export const TRIAL_FAIL_MODAL = `${TEAM_PREFIX}trialfail:`;
@@ -32,7 +33,7 @@ export function checklistProgress(guildId: string, userId: string, config: TeamC
 export function checklistText(progress: ChecklistProgress): string {
   if (progress.total === 0) return "No checklist is set up.";
   return progress.items
-    .map((item) => `${item.doneAt ? "✅" : "⬜"} ${neutralizeMentions(item.label)}${item.description ? `\n-# ${neutralizeMentions(item.description)}` : ""}`)
+    .map((item) => `${item.doneAt ? APP_EMOJI.correct : APP_EMOJI.square} ${neutralizeMentions(item.label)}${item.description ? `\n-# ${neutralizeMentions(item.description)}` : ""}`)
     .join("\n");
 }
 

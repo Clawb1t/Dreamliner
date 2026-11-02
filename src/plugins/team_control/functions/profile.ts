@@ -14,6 +14,7 @@ import { metricsLine, quotaIcon } from "./reports.js";
 import { shiftWorkedSeconds } from "./shiftMath.js";
 import { getActiveShift, getOpenLeave, listActions, listFeedback, listNotes } from "./store.js";
 import type { TeamMemberSummary } from "./team.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 
 export const STATUS_LABELS: Record<TeamStatus, string> = {
   on_duty: "On duty",
@@ -33,7 +34,7 @@ const QUOTA_LABELS: Record<QuotaKey, (n: number) => string> = {
   points: (n) => `${n} points`,
 };
 
-/** "✅ Met · 6h on shift, 10 mod actions" / "No quota for this rank". */
+/** "Met · 6h on shift, 10 mod actions" (with its mark) / "No quota for this rank". */
 export function quotaText(summary: TeamMemberSummary): string {
   const keys = Object.keys(summary.quota.required) as QuotaKey[];
   if (keys.length === 0) return "No quota for this rank.";
@@ -81,7 +82,7 @@ export function buildProfileCard(
   fields.push(embedField("Quota", quotaText(summary)));
   const feedback = listFeedback(guild.id, summary.userId, 0, 0, since);
   fields.push(embedField("Strikes", String(summary.activeStrikes), true));
-  fields.push(embedField("Feedback", feedback.average === null ? "No ratings yet" : `${feedback.average.toFixed(2)} ★ (${feedback.total})`, true));
+  fields.push(embedField("Feedback", feedback.average === null ? "No ratings yet" : `${APP_EMOJI.star} ${feedback.average.toFixed(2)} (${feedback.total})`, true));
   if (summary.trialEndsAt) fields.push(embedField("Trial", `Ends <t:${unix(summary.trialEndsAt)}:R>`, true));
   if (config.onboarding.enabled && config.onboarding.checklist.length > 0) {
     const progress = checklistProgress(guild.id, summary.userId, config);

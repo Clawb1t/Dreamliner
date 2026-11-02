@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type Client, type Guild } from "discord.js";
 import { configManager } from "../../../config/manager.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 import type { TeamControlConfig } from "../../../config/schemas/teamControl.js";
 import { embedField } from "../../../core/embeds.js";
 import { getLogger } from "../../../core/logger.js";
@@ -18,7 +19,8 @@ export const RATE_BUTTON = `${TEAM_PREFIX}rate:`;
 export const RATE_COMMENT_BUTTON = `${TEAM_PREFIX}ratec:`;
 export const RATE_COMMENT_MODAL = `${TEAM_PREFIX}ratecm:`;
 
-export const STARS = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
+/** A rating as the app star plus "4/5". */
+export const STARS = (n: number) => `${APP_EMOJI.star} ${n}/5`;
 
 export type FeedbackResult = { ok: true; feedback: FeedbackRow } | { ok: false; error: string };
 
@@ -104,7 +106,8 @@ export async function sendTicketRatingPrompt(
     [1, 2, 3, 4, 5].map((score) =>
       new ButtonBuilder()
         .setCustomId(`${RATE_BUTTON}${guild.id}:${ticket.id}:${score}`)
-        .setLabel(`${score} ★`)
+        .setLabel(String(score))
+        .setEmoji(APP_EMOJI.star)
         .setStyle(score >= 4 ? ButtonStyle.Success : score <= 2 ? ButtonStyle.Danger : ButtonStyle.Secondary),
     ),
   );

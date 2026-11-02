@@ -28,6 +28,7 @@ import {
   type ActionRow,
   type TeamMemberRecord,
 } from "./store.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 
 const log = getLogger("team_control");
 const REASON_PREFIX = "Dreamliner Team Control";
@@ -302,7 +303,7 @@ async function announceAction(
         guildConfig,
         type === "promotion" ? "Promotion" : "Rank change",
         type === "promotion"
-          ? `Congratulations <@${action.userId}>, you've been ${describeAction(config, action)}! 🎉`
+          ? `Congratulations <@${action.userId}>, you've been ${describeAction(config, action)}! ${APP_EMOJI.tada}`
           : `<@${action.userId}> was ${describeAction(config, action)}.`,
         { tone: type === "promotion" ? "success" : "neutral", thumbnail: target?.displayAvatarURL({ size: 128 }) ?? null },
       ),

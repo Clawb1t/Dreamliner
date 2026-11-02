@@ -19,7 +19,7 @@ import { containerReply, deferReplyOptions, resultEdit, resultReply, slashResult
 import { neutralizeMentions } from "../../core/templates.js";
 import type { ContextMenuCommandDefinition, SlashCommandContext, SlashCommandDefinition } from "../../core/types.js";
 import { describeAction, voidTeamAction } from "./functions/actions.js";
-import { ACTION_LABELS, formatMinutes, LEAVE_LABELS, MAX_NOTE, MAX_REASON, PLUGIN, unix, type LeaveKind, type TeamActionType } from "./functions/config.js";
+import { ACTION_LABELS, formatMinutes, LEAVE_LABELS, MAX_NOTE, MAX_REASON, PLUGIN, STATUS_DOTS, unix, type LeaveKind, type TeamActionType } from "./functions/config.js";
 import { createConfirmation, runTeamAction } from "./functions/interactions.js";
 import { endLeaveRecord, LEAVE_REQUEST_MODAL } from "./functions/leave.js";
 import { loadTeamRuntime, syncGuildTeam } from "./functions/members.js";
@@ -35,6 +35,7 @@ import { allowedShiftTypes, endOwnShift, shiftTypeName, startShift, toggleBreak 
 import { shiftWorkedSeconds } from "./functions/shiftMath.js";
 import { getActiveShift, getOpenLeave, getTeamMember, insertNote, listLeaveByStatus, setOnboardingItem } from "./functions/store.js";
 import { summarizeMember, summarizeTeam } from "./functions/team.js";
+import { APP_EMOJI } from "../../core/appEmojis.js";
 
 type Tone = "neutral" | "success" | "warning" | "error";
 type Runtime = NonNullable<Awaited<ReturnType<typeof loadTeamRuntime>>>;
@@ -279,7 +280,7 @@ export const teamControlCommands: SlashCommandDefinition[] = [
             const { listActiveShifts } = await import("./functions/store.js");
             const shifts = listActiveShifts(guild.id);
             const lines = shifts.slice(0, 40).map((s) => {
-              const dot = s.breakStartedAt ? "🟡" : "🟢";
+              const dot = s.breakStartedAt ? STATUS_DOTS.on_break : STATUS_DOTS.on_duty;
               const type = s.typeId ? ` · ${neutralizeMentions(shiftTypeName(config, s.typeId) ?? "")}` : "";
               return `${dot} <@${s.userId}> · ${formatMinutes(shiftWorkedSeconds(s) / 60)}${type}`;
             });
@@ -296,7 +297,7 @@ export const teamControlCommands: SlashCommandDefinition[] = [
             .filter((m) => m.metrics.shiftMinutes > 0)
             .sort((a, b) => b.metrics.shiftMinutes - a.metrics.shiftMinutes)
             .slice(0, 10);
-          const medals = ["🥇", "🥈", "🥉"];
+          const medals = [APP_EMOJI.first, APP_EMOJI.second, APP_EMOJI.third];
           const lines = members.map((m, i) => `${medals[i] ?? `**${i + 1}.**`} <@${m.userId}> · ${formatMinutes(m.metrics.shiftMinutes)}`);
           await replyCard(
             ctx,

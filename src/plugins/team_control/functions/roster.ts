@@ -9,6 +9,7 @@ import { neutralizeMentions } from "../../../core/templates.js";
 import { STATUS_DOTS, TEAM_PREFIX, type TeamStatus } from "./config.js";
 import { rankIndexById } from "./authority.js";
 import { activeLeaveByUser, deleteRosterMessage, getRosterMessage, listActiveShifts, listCurrentTeam, saveRosterMessage } from "./store.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 
 const log = getLogger("team_control");
 
@@ -68,16 +69,18 @@ export function buildRosterPayload(guild: Guild, config: TeamControlConfig) {
   const card = baseEmbed()
     .setTitle(neutralizeMentions(config.roster.title))
     .setDescription(body.slice(0, 3800))
-    .setFooter({ text: `${onDuty} on duty · ${onBreak} on break · ${team.length} staff · 🟢 on duty 🟡 break 🌙 LOA 🔸 RA ⏸️ suspended` });
+    .setFooter({
+      text: `${onDuty} on duty · ${onBreak} on break · ${team.length} staff · ${STATUS_DOTS.on_duty} on duty ${STATUS_DOTS.on_break} break ${STATUS_DOTS.loa} LOA ${STATUS_DOTS.ra} RA ${STATUS_DOTS.suspended} suspended`,
+    });
   const rows =
     config.roster.show_buttons && config.shifts.enabled
       ? [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}in`).setLabel("Clock in").setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}in`).setLabel("Clock in").setEmoji(APP_EMOJI.join).setStyle(ButtonStyle.Success),
             ...(config.shifts.allow_breaks
-              ? [new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}break`).setLabel("Break").setStyle(ButtonStyle.Secondary)]
+              ? [new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}break`).setLabel("Break").setEmoji(APP_EMOJI.idle).setStyle(ButtonStyle.Secondary)]
               : []),
-            new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}out`).setLabel("Clock out").setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}out`).setLabel("Clock out").setEmoji(APP_EMOJI.leave).setStyle(ButtonStyle.Danger),
           ),
         ]
       : [];
