@@ -174,6 +174,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // bluesky
     "bluesky.can_manage",
     "bluesky.can_view",
+    // message_kits (send, schedule and update kits from the dashboard)
+    "message_kits.can_send",
     // social
     "social.can_manage",
     "social.can_view",
@@ -215,6 +217,9 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "activity_rewards.can_manage",
     // invite_tracker
     "invite_tracker.can_manage",
+    // message_kits
+    "message_kits.can_manage",
+    "message_kits.can_send",
     // team_control
     "team_control.can_shift",
     "team_control.can_request_leave",

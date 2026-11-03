@@ -220,6 +220,22 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
         }),
       ),
     },
+    message_kits: {
+      label: "Message Kits authorship",
+      description: "Message Kits you created or edited, versions you saved, copies you sent, schedules you made and files you uploaded (names and dates; the messages belong to the server).",
+      rows: serializable(
+        await import("../plugins/message_kits/functions/store.js").then(({ exportUserKitData }) => {
+          const data = exportUserKitData(userId);
+          return [
+            ...data.kits.map((row) => ({ kind: "kit", ...row })),
+            ...data.versions.map((row) => ({ kind: "version", ...row })),
+            ...data.posts.map((row) => ({ kind: "sent_copy", ...row })),
+            ...data.schedules.map((row) => ({ kind: "schedule", ...row })),
+            ...data.assets.map((row) => ({ kind: "upload", ...row })),
+          ];
+        }),
+      ),
+    },
     member_identity: {
       label: "Member identity",
       description: "Saved nickname, roles, and timeout used to restore identity on rejoin.",

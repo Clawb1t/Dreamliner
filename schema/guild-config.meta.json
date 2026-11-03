@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-02T21:45:12.318Z",
+  "generatedAt": "2026-11-03T16:58:38.349Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -233,12 +233,17 @@
     {
       "id": "custom",
       "label": "Customization",
-      "description": "Custom commands built visually on the dashboard.",
+      "description": "Custom commands and messages built visually on the dashboard.",
       "plugins": [
         {
           "key": "dream_commands",
           "name": "Commands",
           "description": "Custom slash commands built visually on the dashboard."
+        },
+        {
+          "key": "message_kits",
+          "name": "Message Kits",
+          "description": "Design messages on the dashboard (embeds or Components V2 layouts with buttons, menus, forms and role actions), send them as Dreamliner or a custom identity, schedule them, and update every sent copy in one click."
         }
       ]
     },
@@ -596,6 +601,13 @@
       "key": "dream_commands",
       "name": "Commands",
       "description": "Custom slash commands built visually on the dashboard.",
+      "category": "Customization",
+      "categoryId": "custom"
+    },
+    {
+      "key": "message_kits",
+      "name": "Message Kits",
+      "description": "Design messages on the dashboard (embeds or Components V2 layouts with buttons, menus, forms and role actions), send them as Dreamliner or a custom identity, schedule them, and update every sent copy in one click.",
       "category": "Customization",
       "categoryId": "custom"
     },

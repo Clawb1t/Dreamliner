@@ -22,6 +22,7 @@ import { zImagesPluginSection } from "./images.js";
 import { zActivityRewardsPluginSection } from "./activityRewards.js";
 import { zInviteTrackerPluginSection } from "./inviteTracker.js";
 import { zTeamControlPluginSection } from "./teamControl.js";
+import { zMessageKitsPluginSection } from "./messageKits.js";
 import { zBirthdaysPluginSection } from "./birthdays.js";
 import { zApplicationsPluginSection } from "./applications.js";
 import {
@@ -351,6 +352,7 @@ export const zGuildConfig = z.strictObject({
       activity_rewards: zActivityRewardsPluginSection.default({}),
       invite_tracker: zInviteTrackerPluginSection.default({}),
       team_control: zTeamControlPluginSection.default({}),
+      message_kits: zMessageKitsPluginSection.default({}),
       birthdays: zBirthdaysPluginSection.default({}),
       applications: zApplicationsPluginSection.default({}),
       appeals: zAppealsPluginSection.default({}),

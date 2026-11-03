@@ -2863,3 +2863,114 @@ export const charactersUsageDaily = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.guildId, table.day] })],
 );
+
+// ── Message Kits ─────────────────────────────────────────────────────────────
+
+/** A saved message (KitDocument JSON, see plugins/message_kits/functions/document.ts). */
+export const messageKits = sqliteTable(
+  "message_kits",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    name: text("name").notNull(),
+    folder: text("folder").notNull().default(""),
+    description: text("description").notNull().default(""),
+    document: text("document").notNull(),
+    version: integer("version", { mode: "number" }).notNull().default(1),
+    archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("message_kits_guild_folder").on(table.guildId, table.folder),
+    index("message_kits_guild_updated").on(table.guildId, table.updatedAt),
+  ],
+);
+
+/** Earlier documents of a kit (the newest 25 are kept). */
+export const messageKitVersions = sqliteTable(
+  "message_kit_versions",
+  {
+    kitId: integer("kit_id", { mode: "number" }).notNull(),
+    version: integer("version", { mode: "number" }).notNull(),
+    document: text("document").notNull(),
+    savedBy: text("saved_by"),
+    savedAt: integer("saved_at", { mode: "timestamp_ms" }).notNull(),
+    note: text("note").notNull().default(""),
+  },
+  (table) => [primaryKey({ columns: [table.kitId, table.version] })],
+);
+
+/** A message a kit was sent as, so it can be edited in place later. kit_id null = detached. */
+export const messageKitPosts = sqliteTable(
+  "message_kit_posts",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    kitId: integer("kit_id", { mode: "number" }),
+    channelId: text("channel_id").notNull(),
+    threadId: text("thread_id"),
+    messageId: text("message_id").notNull(),
+    /** bot | webhook */
+    via: text("via").notNull(),
+    webhookId: text("webhook_id"),
+    /** classic | v2: what the message currently is (an edit can't turn V2 back into classic). */
+    format: text("format").notNull().default("classic"),
+    kitVersion: integer("kit_version", { mode: "number" }).notNull(),
+    postedBy: text("posted_by"),
+    postedAt: integer("posted_at", { mode: "timestamp_ms" }).notNull(),
+    lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("message_kit_posts_message").on(table.messageId),
+    index("message_kit_posts_guild_kit").on(table.guildId, table.kitId),
+  ],
+);
+
+/** One-off and recurring sends. next_run_at null = nothing left to run. */
+export const messageKitSchedules = sqliteTable(
+  "message_kit_schedules",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    kitId: integer("kit_id", { mode: "number" }).notNull(),
+    channelId: text("channel_id").notNull(),
+    threadId: text("thread_id"),
+    nextRunAt: integer("next_run_at", { mode: "timestamp_ms" }),
+    /** none | daily | weekly | monthly */
+    repeat: text("repeat").notNull().default("none"),
+    /** HH:MM in `timezone` */
+    timeOfDay: text("time_of_day").notNull(),
+    timezone: text("timezone").notNull(),
+    weekday: integer("weekday", { mode: "number" }),
+    monthDay: integer("month_day", { mode: "number" }),
+    replacePrevious: integer("replace_previous", { mode: "boolean" }).notNull().default(false),
+    lastPostId: integer("last_post_id", { mode: "number" }),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    lastRunAt: integer("last_run_at", { mode: "timestamp_ms" }),
+    lastError: text("last_error"),
+    failCount: integer("fail_count", { mode: "number" }).notNull().default(0),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("message_kit_schedules_guild").on(table.guildId), index("message_kit_schedules_due").on(table.enabled, table.nextRunAt)],
+);
+
+/** Uploaded images and files (bytes in data/guild-assets/<guildId>/message-kits/<id>). */
+export const messageKitAssets = sqliteTable(
+  "message_kit_assets",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    filename: text("filename").notNull(),
+    contentType: text("content_type").notNull(),
+    size: integer("size", { mode: "number" }).notNull(),
+    sha256: text("sha256").notNull(),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("message_kit_assets_guild").on(table.guildId)],
+);

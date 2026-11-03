@@ -66,6 +66,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 ## Customization
 
 - [Custom commands](./dream_commands.md), built on the dashboard, see [reference](../dreamcode/README.md)
+- [Message Kits](./message_kits.md): design messages (embeds or Components V2) on the dashboard, send and schedule them, and update every sent copy in one click
 
 ## Utilities
 

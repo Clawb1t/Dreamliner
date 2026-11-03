@@ -71,6 +71,8 @@ import { handleInviteTrackerButton } from "./plugins/invite_tracker/functions/in
 import { TEAM_PREFIX } from "./plugins/team_control/functions/config.js";
 import { handleTeamButton, handleTeamModal } from "./plugins/team_control/functions/interactions.js";
 import { handleTeamAutocomplete } from "./plugins/team_control/commands.js";
+import { MK_PREFIX } from "./plugins/message_kits/functions/constants.js";
+import { handleKitButton, handleKitModal, handleKitSelect } from "./plugins/message_kits/functions/interactions.js";
 import { handleBlueskyButtonInteraction } from "./plugins/bluesky/functions/interactions.js";
 import {
   handleApplicationButtonInteraction,
@@ -421,6 +423,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Team Control button", () => handleTeamButton(interaction));
         if (handled) return;
       }
+      if (interaction.customId.startsWith(MK_PREFIX)) {
+        const handled = await safeHandle(interaction, "Message Kit button", () => handleKitButton(interaction));
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(BLUESKY_PREFIX)) {
         const handled = await safeHandle(interaction, "Bluesky button", () => handleBlueskyButtonInteraction(interaction));
         if (handled) return;
@@ -501,6 +507,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Stats select", () => handleStatsSelectInteraction(configManager, interaction));
         if (handled) return;
       }
+      if (interaction.customId.startsWith(MK_PREFIX)) {
+        const handled = await safeHandle(interaction, "Message Kit select", () => handleKitSelect(interaction));
+        if (handled) return;
+      }
       const companionSelect = await safeHandle(interaction, "Companion select", () => handleCompanionSelectInteraction(interaction));
       if (companionSelect) return;
       await safeHandle(interaction, "Help select", () => handleHelpSelectInteraction(configManager, interaction));
@@ -525,6 +535,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(TEAM_PREFIX)) {
         const handled = await safeHandle(interaction, "Team Control modal", () => handleTeamModal(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(MK_PREFIX)) {
+        const handled = await safeHandle(interaction, "Message Kit form", () => handleKitModal(interaction));
         if (handled) return;
       }
       if (interaction.customId === REVIEW_MODAL_ID) {

@@ -317,6 +317,13 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       total: import("../plugins/team_control/functions/store.js").then(({ countUserTeamData }) => countUserTeamData(userId)),
     },
     {
+      key: "message_kits",
+      label: "Message Kits authorship",
+      description:
+        "Which Message Kits you created, edited, sent, scheduled or uploaded files to. The kits and messages belong to the server, so erasing removes your name from them and keeps the server's content.",
+      total: import("../plugins/message_kits/functions/store.js").then(({ countUserKitData }) => countUserKitData(userId)),
+    },
+    {
       key: "member_identity",
       label: "Member identity",
       description: "Saved nickname, roles, and timeout used to restore identity on rejoin.",
@@ -524,6 +531,8 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   deleted.invite_tracker = deleteUserInviteData(userId);
   const { deleteUserTeamData } = await import("../plugins/team_control/functions/store.js");
   deleted.team_control = deleteUserTeamData(userId);
+  const { deleteUserKitData } = await import("../plugins/message_kits/functions/store.js");
+  deleted.message_kits = deleteUserKitData(userId);
   await wipe(
     "member_identity",
     db.delete(memberIdentity).where(eq(memberIdentity.userId, userId)).returning(),

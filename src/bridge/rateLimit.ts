@@ -74,6 +74,7 @@ const USER_BUCKETS = {
   write: new SlidingWindowLimiter(240, MINUTE),
   upload: new SlidingWindowLimiter(30, MINUTE),
   ai: new SlidingWindowLimiter(40, MINUTE),
+  send: new SlidingWindowLimiter(15, MINUTE),
 };
 
 /** Per server, for writes that don't say who's asking (or carry it in the body): 4x the above. */
@@ -82,12 +83,18 @@ const GUILD_BUCKETS = {
   write: new SlidingWindowLimiter(960, MINUTE),
   upload: new SlidingWindowLimiter(120, MINUTE),
   ai: new SlidingWindowLimiter(160, MINUTE),
+  send: new SlidingWindowLimiter(30, MINUTE),
 };
 
 type Bucket = keyof typeof USER_BUCKETS;
 
-function bucketFor(method: string, pathname: string): Bucket {
+/** Message Kits writes that post to Discord (or fetch from it) per call: sends (up to 10
+ *  channels), syncs (up to 100 edits), test DMs, "run now", link imports and adopts. */
+const MESSAGE_KITS_HEAVY = /\/message-kits\/(?:kits\/\d+\/(?:send|sync|test)|schedules\/\d+\/run|import|posts\/adopt)$/;
+
+export function bucketFor(method: string, pathname: string): Bucket {
   if (/\/ai(?:\/|$)/.test(pathname) || /\/characters\/\d+\/test$/.test(pathname)) return "ai";
+  if (method !== "GET" && MESSAGE_KITS_HEAVY.test(pathname)) return "send";
   if (method !== "GET" && /\/(?:assets|images|evidence|upload|avatar|banner|brand-art)(?:\/|$)/.test(pathname)) return "upload";
   return method === "GET" || method === "HEAD" ? "read" : "write";
 }

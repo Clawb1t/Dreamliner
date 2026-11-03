@@ -121,9 +121,10 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "custom",
     label: "Customization",
-    blurb: "Custom commands built visually on the dashboard.",
+    blurb: "Custom commands and messages built visually on the dashboard.",
     include: [
       { plugin: "dream_commands" },
+      { plugin: "message_kits" },
     ],
   },
   {
@@ -353,6 +354,12 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     description:
       "Run your staff team: a rank ladder, shifts and a live roster, leave requests, promotions and discipline, activity quotas, profiles, feedback and onboarding.",
   },
+  message_kits: {
+    key: "message_kits",
+    name: "Message Kits",
+    description:
+      "Design messages on the dashboard (embeds or Components V2 layouts with buttons, menus, forms and role actions), send them as Dreamliner or a custom identity, schedule them, and update every sent copy in one click.",
+  },
   invite_tracker: {
     key: "invite_tracker",
     name: "Invite Tracker",
@@ -491,6 +498,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   reminders: "schedule",
   counters: "schedule",
   dream_commands: "custom",
+  message_kits: "custom",
   utility: "tools",
   stats: "tools",
   booster_roles: "tools",

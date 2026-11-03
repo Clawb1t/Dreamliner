@@ -462,6 +462,27 @@
     ]
   },
   {
+    "plugin": "message_kits",
+    "pluginName": "Message Kits",
+    "pluginDescription": "Design messages on the dashboard (embeds or Components V2 layouts with buttons, menus, forms and role actions), send them as Dreamliner or a custom identity, schedule them, and update every sent copy in one click.",
+    "entries": [
+      {
+        "plugin": "message_kits",
+        "permission": "can_manage",
+        "grantKey": "message_kits.can_manage",
+        "title": "Manage",
+        "description": "Allow members to create, edit and delete message kits on the dashboard."
+      },
+      {
+        "plugin": "message_kits",
+        "permission": "can_send",
+        "grantKey": "message_kits.can_send",
+        "title": "Send",
+        "description": "Allow members to send, schedule and update message kits on the dashboard."
+      }
+    ]
+  },
+  {
     "plugin": "music",
     "pluginName": "Music",
     "pluginDescription": "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists.",

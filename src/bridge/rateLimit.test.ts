@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { bridgeRateLimit, SlidingWindowLimiter } from "./rateLimit.js";
+import { bridgeRateLimit, bucketFor, SlidingWindowLimiter } from "./rateLimit.js";
 
 describe("SlidingWindowLimiter", () => {
   it("allows up to the limit, then refuses with a retry time", () => {
@@ -61,5 +61,27 @@ describe("bridgeRateLimit", () => {
     assert.equal(limitedAt, 40);
     const read = new URL(`http://x/bridge/guilds/123456789012345678/stats?userId=${user}`);
     assert.equal(bridgeRateLimit("GET", read), null);
+  });
+
+  it("puts Message Kits sends, syncs, test DMs, runs, imports and adopts in the tight send bucket", () => {
+    const base = "/bridge/guilds/123456789012345678/message-kits";
+    for (const path of ["kits/5/send", "kits/5/sync", "kits/5/test", "schedules/3/run", "import", "posts/adopt"]) {
+      assert.equal(bucketFor("POST", `${base}/${path}`), "send", path);
+    }
+    assert.equal(bucketFor("PATCH", `${base}/kits/5`), "write");
+    assert.equal(bucketFor("POST", `${base}/assets`), "upload");
+    assert.equal(bucketFor("GET", `${base}/kits/5`), "read");
+  });
+
+  it("caps a server's Message Kits sends at 30 a minute even without a userId", () => {
+    const url = new URL("http://x/bridge/guilds/223456789012345678/message-kits/kits/1/send");
+    let limitedAt = -1;
+    for (let i = 0; i < 100; i++) {
+      if (bridgeRateLimit("POST", url) !== null) {
+        limitedAt = i;
+        break;
+      }
+    }
+    assert.equal(limitedAt, 30);
   });
 });

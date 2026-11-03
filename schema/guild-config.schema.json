@@ -17403,6 +17403,72 @@
           "default": {},
           "title": "Team Control"
         },
+        "message_kits": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "log_channel_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "Optional channel for a log entry whenever a kit is sent, edited in place or deleted. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Log Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "ping_on_form": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Ping the form's role (when it has one) when someone submits a kit form.",
+                  "title": "Ping On Form"
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to create, edit and delete message kits on the dashboard.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_send": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to send, schedule and update message kits on the dashboard.",
+                  "title": "Send",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "log_channel_id": null,
+                "ping_on_form": true,
+                "can_manage": false,
+                "can_send": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Message Kits"
+        },
         "birthdays": {
           "type": "object",
           "properties": {

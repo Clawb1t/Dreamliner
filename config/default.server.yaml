@@ -1307,6 +1307,13 @@ plugins:
       can_discipline: false
       can_promote: false
       can_manage: false
+  message_kits:
+    enabled: false
+    config:
+      log_channel_id: null
+      ping_on_form: true
+      can_manage: false
+      can_send: false
   birthdays:
     enabled: false
     config:

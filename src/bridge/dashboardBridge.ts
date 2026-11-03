@@ -158,6 +158,7 @@ function sendBinary(
     "Content-Type": contentType,
     "Content-Length": body.length,
     "Cache-Control": "private, max-age=3600",
+    "X-Content-Type-Options": "nosniff",
   });
   res.end(body);
 }
@@ -3077,6 +3078,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Team Control: overview, members, member/:id[/notes[/:noteId]|/onboarding], shifts[/:id],
         // leave[/:id], actions[/:id/void], activity[/export], feedback, roster/refresh, sync.
         const teamControlMatch = /^\/bridge\/guilds\/(\d+)\/team-control\/([a-z]+(?:\/[a-z0-9]{1,20}){0,3})$/.exec(url.pathname);
+        // Message Kits: kits[/:id[/duplicate|versions[/:v[/restore]]|send|sync|test]], validate, posts[/adopt|/:id],
+        // import, schedules[/:id[/run]], assets[/:id[/file]], context.
+        const messageKitsMatch = /^\/bridge\/guilds\/(\d+)\/message-kits\/([a-z]+(?:\/[a-z0-9]{1,32}){0,4})$/.exec(url.pathname);
         const rolePanelsPreviewMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/preview$/.exec(url.pathname);
         const rolePanelsTestMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/test$/.exec(url.pathname);
         const rolePanelsValidateMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/validate$/.exec(url.pathname);
@@ -3217,6 +3221,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !activityRewardsMatch &&
           !inviteTrackerMatch &&
           !teamControlMatch &&
+          !messageKitsMatch &&
           !birthdaysMatch &&
           !rolePanelsPreviewMatch &&
           !rolePanelsTestMatch &&
@@ -3334,6 +3339,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           activityRewardsMatch?.[1] ??
           inviteTrackerMatch?.[1] ??
           teamControlMatch?.[1] ??
+          messageKitsMatch?.[1] ??
           birthdaysMatch?.[1] ??
           rolePanelsPreviewMatch?.[1] ??
           rolePanelsTestMatch?.[1] ??
@@ -4391,6 +4397,46 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const status = error instanceof bridge.TeamBridgeError ? error.status : 500;
             if (status === 500) log.error("Team Control bridge request failed:", error);
             sendJson(res, status, { error: error instanceof Error && status !== 500 ? error.message : "Team Control request failed" });
+          }
+          return;
+        }
+
+        if (messageKitsMatch) {
+          const method = req.method ?? "GET";
+          if (!["GET", "POST", "PATCH", "DELETE"].includes(method)) {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> = {};
+          let userId: string | undefined;
+          if (method === "GET") {
+            userId = url.searchParams.get("userId")?.trim();
+          } else {
+            try {
+              const parsed = JSON.parse((await readBody(req)) || "{}") as unknown;
+              body = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            userId = typeof body.userId === "string" ? body.userId.trim() : undefined;
+          }
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { handleMessageKitsBridge } = await import("./webMessageKits.js");
+          try {
+            const result = await handleMessageKitsBridge(client, guild, method, messageKitsMatch[2]!.split("/"), url.searchParams, body, userId);
+            if ("binary" in result) sendBinary(res, result.status, result.binary, result.contentType);
+            else sendJson(res, result.status, result.json);
+          } catch (error) {
+            log.error("Message Kits bridge request failed:", error);
+            sendJson(res, 500, { error: "Message Kits request failed" });
           }
           return;
         }
