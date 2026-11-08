@@ -3081,6 +3081,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Message Kits: kits[/:id[/duplicate|versions[/:v[/restore]]|send|sync|test]], validate, posts[/adopt|/:id],
         // import, schedules[/:id[/run]], assets[/:id[/file]], context.
         const messageKitsMatch = /^\/bridge\/guilds\/(\d+)\/message-kits\/([a-z]+(?:\/[a-z0-9]{1,32}){0,4})$/.exec(url.pathname);
+        // Server Autopilot: scan, generate, generations[/:id], plan, build, builds[/:id[/cancel]],
+        // backups[/:id[/restore]].
+        const serverAutopilotMatch = /^\/bridge\/guilds\/(\d+)\/server-autopilot\/([a-z]+(?:\/[a-z0-9]{1,20}){0,2})$/.exec(url.pathname);
         const rolePanelsPreviewMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/preview$/.exec(url.pathname);
         const rolePanelsTestMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/test$/.exec(url.pathname);
         const rolePanelsValidateMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/validate$/.exec(url.pathname);
@@ -3222,6 +3225,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !inviteTrackerMatch &&
           !teamControlMatch &&
           !messageKitsMatch &&
+          !serverAutopilotMatch &&
           !birthdaysMatch &&
           !rolePanelsPreviewMatch &&
           !rolePanelsTestMatch &&
@@ -3340,6 +3344,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           inviteTrackerMatch?.[1] ??
           teamControlMatch?.[1] ??
           messageKitsMatch?.[1] ??
+          serverAutopilotMatch?.[1] ??
           birthdaysMatch?.[1] ??
           rolePanelsPreviewMatch?.[1] ??
           rolePanelsTestMatch?.[1] ??
@@ -4437,6 +4442,45 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           } catch (error) {
             log.error("Message Kits bridge request failed:", error);
             sendJson(res, 500, { error: "Message Kits request failed" });
+          }
+          return;
+        }
+
+        if (serverAutopilotMatch) {
+          const method = req.method ?? "GET";
+          if (!["GET", "POST", "DELETE"].includes(method)) {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> = {};
+          let userId: string | undefined;
+          if (method === "GET") {
+            userId = url.searchParams.get("userId")?.trim();
+          } else {
+            try {
+              const parsed = JSON.parse((await readBody(req)) || "{}") as unknown;
+              body = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            userId = typeof body.userId === "string" ? body.userId.trim() : undefined;
+          }
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { handleServerAutopilotBridge } = await import("./webServerAutopilot.js");
+          try {
+            const result = await handleServerAutopilotBridge(client, guild, method, serverAutopilotMatch[2]!.split("/"), body, userId);
+            sendJson(res, result.status, result.json);
+          } catch (error) {
+            log.error("Server Autopilot bridge request failed:", error);
+            sendJson(res, 500, { error: "Server Autopilot request failed" });
           }
           return;
         }

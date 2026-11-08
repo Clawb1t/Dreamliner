@@ -92,7 +92,13 @@ type Bucket = keyof typeof USER_BUCKETS;
  *  channels), syncs (up to 100 edits), test DMs, "run now", link imports and adopts. */
 const MESSAGE_KITS_HEAVY = /\/message-kits\/(?:kits\/\d+\/(?:send|sync|test)|schedules\/\d+\/run|import|posts\/adopt)$/;
 
+/** Server Autopilot jobs: generating templates (AI) and builds/restores (many Discord calls). */
+const SERVER_AUTOPILOT_AI = /\/server-autopilot\/generate$/;
+const SERVER_AUTOPILOT_HEAVY = /\/server-autopilot\/(?:build|backups(?:\/\d+\/restore)?)$/;
+
 export function bucketFor(method: string, pathname: string): Bucket {
+  if (method !== "GET" && SERVER_AUTOPILOT_AI.test(pathname)) return "ai";
+  if (method !== "GET" && SERVER_AUTOPILOT_HEAVY.test(pathname)) return "send";
   if (/\/ai(?:\/|$)/.test(pathname) || /\/characters\/\d+\/test$/.test(pathname)) return "ai";
   if (method !== "GET" && MESSAGE_KITS_HEAVY.test(pathname)) return "send";
   if (method !== "GET" && /\/(?:assets|images|evidence|upload|avatar|banner|brand-art)(?:\/|$)/.test(pathname)) return "upload";

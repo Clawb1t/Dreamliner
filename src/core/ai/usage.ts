@@ -46,3 +46,14 @@ export async function consumeFreeAiUse(guildId: string): Promise<boolean> {
     .where(eq(guildAiUsage.guildId, guildId));
   return true;
 }
+
+/** Gives back one consumed free use, for a request that charged a use and then failed entirely
+ *  (e.g. every Server Autopilot template failing). Never goes below zero. */
+export async function refundFreeAiUse(guildId: string): Promise<void> {
+  const row = await getUsageRow(guildId);
+  if (!row || row.freeUsesConsumed <= 0) return;
+  await getDb()
+    .update(guildAiUsage)
+    .set({ freeUsesConsumed: row.freeUsesConsumed - 1 })
+    .where(eq(guildAiUsage.guildId, guildId));
+}

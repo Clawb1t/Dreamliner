@@ -211,6 +211,15 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
 
   const ctx = await loadPlugins(client, configManager, availablePlugins);
 
+  // Server Autopilot jobs can't survive a restart: mark any left running as failed (finished steps
+  // and created ids are kept, so a rerun continues) before the dashboard bridge can see them.
+  try {
+    const { failInterruptedJobs } = await import("./core/serverAutopilot/store.js");
+    await failInterruptedJobs();
+  } catch (error) {
+    log.error("[server_autopilot] Couldn't mark interrupted jobs:", error);
+  }
+
   client.once(Events.ClientReady, (c) => {
     applyBotPresence(c);
     log.info(`Dreamliner ready as ${c.user.tag}`);

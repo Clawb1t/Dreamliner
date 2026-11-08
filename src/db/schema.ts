@@ -26,7 +26,7 @@ export const guildSnapshots = sqliteTable(
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
     guildId: text("guild_id").notNull(),
     label: text("label"),
-    // "manual" | "pre_rollback" | "auto"
+    // "manual" | "pre_rollback" | "auto" | "server_autopilot"
     reason: text("reason").notNull().default("manual"),
     createdBy: text("created_by"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
@@ -2973,4 +2973,81 @@ export const messageKitAssets = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [index("message_kit_assets_guild").on(table.guildId)],
+);
+
+// ── Server Autopilot (AI server builder, src/core/serverAutopilot/) ────────────
+
+/** One Autopilot generation: the walkthrough answers and the 3 templates it produced (newest 15 kept). */
+export const serverAutopilotGenerations = sqliteTable(
+  "server_autopilot_generations",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    answers: text("answers").notNull(),
+    /** JSON SATemplate[], filled in as each template finishes. */
+    templates: text("templates").notNull().default("[]"),
+    /** running | done | failed */
+    status: text("status").notNull().default("running"),
+    error: text("error"),
+    /** Templates finished so far, successful or not (out of 3). */
+    progress: integer("progress", { mode: "number" }).notNull().default(0),
+    /** A free Autopilot use was consumed (refunded if every template fails). */
+    charged: integer("charged", { mode: "boolean" }).notNull().default(false),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [index("server_autopilot_generations_guild").on(table.guildId, table.createdAt)],
+);
+
+/** Builds and restores (jobs). Steps, errors and created ids are written as the job runs. */
+export const serverAutopilotBuilds = sqliteTable(
+  "server_autopilot_builds",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    /** build | restore */
+    kind: text("kind").notNull(),
+    /** queued | running | done | failed | cancelled */
+    status: text("status").notNull().default("queued"),
+    mode: text("mode"),
+    templateName: text("template_name"),
+    generationId: integer("generation_id", { mode: "number" }),
+    template: text("template"),
+    naming: text("naming"),
+    keep: text("keep"),
+    /** Restore options: { backupId, removeAdded, restoreConfig }. */
+    options: text("options"),
+    plan: text("plan"),
+    steps: text("steps").notNull().default("[]"),
+    errors: text("errors").notNull().default("[]"),
+    result: text("result"),
+    idMap: text("id_map").notNull().default("{}"),
+    backupId: integer("backup_id", { mode: "number" }),
+    cancelRequested: integer("cancel_requested", { mode: "boolean" }).notNull().default(false),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }),
+    finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [index("server_autopilot_builds_guild").on(table.guildId, table.createdAt), index("server_autopilot_builds_status").on(table.status)],
+);
+
+/** Structure backups (roles, channels, overwrites) taken before every build, or by hand. Newest 10 kept. */
+export const serverAutopilotBackups = sqliteTable(
+  "server_autopilot_backups",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    /** auto | manual */
+    reason: text("reason").notNull(),
+    structure: text("structure").notNull(),
+    roleCount: integer("role_count", { mode: "number" }).notNull().default(0),
+    channelCount: integer("channel_count", { mode: "number" }).notNull().default(0),
+    configSnapshotId: integer("config_snapshot_id", { mode: "number" }),
+    buildId: integer("build_id", { mode: "number" }),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("server_autopilot_backups_guild").on(table.guildId, table.createdAt)],
 );
