@@ -17,6 +17,7 @@ import { getGeneration, updateGeneration } from "./store.js";
 import { normalizeTemplate, sanitizeTemplate } from "./template.js";
 import {
   SA_ACCESS,
+  SA_CAPABILITIES,
   SA_CATEGORY_CASES,
   SA_CHANNEL_CASES,
   SA_CHANNEL_TYPES,
@@ -39,6 +40,12 @@ const log = getLogger("server_autopilot");
 
 const arrOf = (items: Record<string, unknown>) => ({ type: "array", items });
 
+const RULE_SCHEMA = obj({
+  target: str(),
+  allow: arrOf(oneOf(SA_CAPABILITIES)),
+  deny: arrOf(oneOf(SA_CAPABILITIES)),
+});
+
 const CHANNEL_SCHEMA = obj({
   key: str(),
   base: str(),
@@ -50,6 +57,7 @@ const CHANNEL_SCHEMA = obj({
   user_limit: int(),
   access: oneOf(SA_ACCESS),
   role_keys: arrOf(str()),
+  rules: arrOf(RULE_SCHEMA),
   purpose: oneOf(SA_PURPOSES),
 });
 
@@ -91,6 +99,7 @@ export const TEMPLATE_SCHEMA: Record<string, unknown> = obj({
       emoji: str(),
       access: oneOf(SA_ACCESS),
       role_keys: arrOf(str()),
+      rules: arrOf(RULE_SCHEMA),
       channels: arrOf(CHANNEL_SCHEMA),
     }),
   ),
@@ -221,7 +230,21 @@ const PURPOSE_HELP =
 const ACCESS_HELP =
   "Access levels: everyone (normal), read_only (everyone reads, only staff post: rules, announcements, info), staff_only (hidden, staff roles see it), " +
   "verified_only (hidden until the member has the verified role), roles (everyone sees it, only role_keys post), hidden_roles (only role_keys see it). " +
-  "A channel with access everyone inherits its category's access, so set access on the category and leave channels on everyone unless they differ.";
+  "A channel with access everyone and no rules inherits (syncs with) its category, so set access on the category and leave channels on everyone unless they differ.";
+
+const PERMISSION_RULES_HELP =
+  "PERMISSIONS: think through who should see and do what in every category and channel, like an experienced server admin would, and express it " +
+  "with `access` plus `rules`. `access` is the base; `rules` fine-tune it per target. Each rule has `target` (\"everyone\" or a role key from this " +
+  "template), `allow` and `deny` lists of capabilities: view (see it), chat (send messages), threads (start threads), react, files (upload), embeds " +
+  "(link previews), history (read past messages), polls, external_emoji, commands (use bot commands), connect / speak / video / soundboard (voice), " +
+  "moderate (delete and pin messages, manage threads, mute and move in voice: staff roles only), ping_everyone (staff roles only). " +
+  "Only add a rule where it changes something; most channels need none and simply follow their category. Good examples: media or art channels " +
+  "allow files and embeds for members while general chat denies files to everyone and allows them to a member or verified role; announcements " +
+  "and rules let everyone react but not start threads; counting denies threads, files and embeds; bot_commands allow commands; starboard " +
+  "and logs deny chat to everyone; a VIP lounge is hidden_roles with the vip key; a stage lets everyone connect but only staff or a host role speak; " +
+  "a moderator role gets moderate in public chat categories; helpers get moderate only in support channels. Rules can tighten anything, but " +
+  "they can never make a staff, log or hidden place visible to members (Dreamliner blocks that), and staff-only capabilities on member roles are ignored. " +
+  "At most 8 rules per category or channel, one per target.";
 
 const ROLE_HELP =
   "Role presets decide permissions (Dreamliner applies them safely, never Administrator): owner, admin, moderator, helper, staff (generic team), member, " +
@@ -337,6 +360,7 @@ export function buildPrompt(answers: SAAnswers, snap: GuildSnapshot, direction: 
     ...QUALITY_RULES.map((rule, i) => `${i + 1}. ${rule}`),
     PURPOSE_HELP,
     ACCESS_HELP,
+    PERMISSION_RULES_HELP,
     ROLE_HELP,
     MESSAGE_HELP,
     pluginHelp(answers),

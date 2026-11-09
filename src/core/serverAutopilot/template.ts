@@ -6,10 +6,12 @@
  */
 import { z } from "zod";
 import { aiMayPickNaming, namingOf, zNaming, type SAAnswers } from "./answers.js";
+import { isSensitiveName } from "./detect.js";
 import { DEFAULT_NAMING, nameWords, validPattern } from "./naming.js";
 import { allowedExtraPermissions, isStaffPreset } from "./permissions.js";
 import {
   SA_ACCESS,
+  SA_CAPABILITIES,
   SA_CHANNEL_TYPES,
   SA_LIMITS,
   SA_MESSAGE_KINDS,
@@ -18,6 +20,7 @@ import {
   SA_PURPOSES,
   SA_ROLE_PRESETS,
   type SAAccess,
+  type SACapability,
   type SACategory,
   type SAChannel,
   type SAChannelType,
@@ -25,6 +28,7 @@ import {
   type SAMessageKind,
   type SANaming,
   type SAPluginName,
+  type SAPermRule,
   type SAPluginSetup,
   type SAPurpose,
   type SARole,
@@ -97,6 +101,17 @@ function titleFromKey(key: string): string {
 
 // ── Lenient sanitising (AI output) ──────────────────────────────────────────
 
+function sanitizeRules(raw: unknown): SAPermRule[] {
+  const caps = (v: unknown): SACapability[] => arr(v).filter((c): c is SACapability => has(SA_CAPABILITIES, c));
+  return arr(raw)
+    .slice(0, SA_LIMITS.permRules * 2)
+    .map((item) => {
+      const r = rec(item);
+      return { target: str(r.target, 60), allow: caps(r.allow), deny: caps(r.deny) };
+    })
+    .filter((r) => r.target);
+}
+
 function sanitizeChannel(raw: unknown): SAChannel {
   const r = rec(raw);
   return {
@@ -110,6 +125,7 @@ function sanitizeChannel(raw: unknown): SAChannel {
     user_limit: int(r.user_limit, 0, SA_LIMITS.userLimitMax, 0),
     access: has(SA_ACCESS, r.access) ? r.access : "everyone",
     role_keys: arr(r.role_keys).filter((k): k is string => typeof k === "string").slice(0, 30),
+    rules: sanitizeRules(r.rules),
     purpose: has(SA_PURPOSES, r.purpose) ? r.purpose : "other",
   };
 }
@@ -153,6 +169,7 @@ export function sanitizeTemplate(raw: unknown, fallbackNaming: SANaming = DEFAUL
         emoji: cleanEmoji(cat.emoji),
         access: has(SA_ACCESS, cat.access) ? cat.access : "everyone",
         role_keys: arr(cat.role_keys).filter((k): k is string => typeof k === "string").slice(0, 30),
+        rules: sanitizeRules(cat.rules),
         channels: arr(cat.channels).map(sanitizeChannel),
       };
     }),
@@ -185,6 +202,10 @@ export function sanitizeTemplate(raw: unknown, fallbackNaming: SANaming = DEFAUL
 // ── Strict parsing (dashboard edits) ────────────────────────────────────────
 
 const zKey = z.string().trim().min(1, "Every item needs a key.").max(60);
+const zRules = z
+  .array(z.object({ target: z.string().min(1).max(60), allow: z.array(z.enum(SA_CAPABILITIES)).max(SA_CAPABILITIES.length).default([]), deny: z.array(z.enum(SA_CAPABILITIES)).max(SA_CAPABILITIES.length).default([]) }))
+  .max(SA_LIMITS.permRules, `At most ${SA_LIMITS.permRules} permission rules per item.`)
+  .default([]);
 const zEmoji = z.string().max(64).default("");
 const zChannelInput = z.object({
   key: zKey,
@@ -197,6 +218,7 @@ const zChannelInput = z.object({
   user_limit: z.number().int().min(0).max(SA_LIMITS.userLimitMax).default(0),
   access: z.enum(SA_ACCESS).default("everyone"),
   role_keys: z.array(z.string()).max(30).default([]),
+  rules: zRules,
   purpose: z.enum(SA_PURPOSES).default("other"),
 });
 const zTemplateInput = z.object({
@@ -242,6 +264,7 @@ const zTemplateInput = z.object({
         emoji: zEmoji,
         access: z.enum(SA_ACCESS).default("everyone"),
         role_keys: z.array(z.string()).max(30).default([]),
+        rules: zRules,
         channels: z.array(zChannelInput).max(SA_LIMITS.channelsPerCategory, `At most ${SA_LIMITS.channelsPerCategory} channels per category.`).default([]),
       }),
     )
@@ -367,7 +390,7 @@ function isHidden(access: SAAccess): boolean {
 }
 
 function newChannel(key: string, base: string, emoji: string, purpose: SAPurpose, access: SAAccess, topic = ""): SAChannel {
-  return { key, base, emoji, type: "text", topic, slowmode: 0, nsfw: false, user_limit: 0, access, role_keys: [], purpose };
+  return { key, base, emoji, type: "text", topic, slowmode: 0, nsfw: false, user_limit: 0, access, role_keys: [], rules: [], purpose };
 }
 
 /**
@@ -441,6 +464,34 @@ export function normalizeTemplate(input: SATemplate, answers: SAAnswers | null =
   }
 
   const fixRoleKeys = (keys: string[]) => [...new Set(keys.filter((k) => roleByKey.has(k)))];
+  /** One rule per target (merged, later decisions win), real targets and capabilities only, no
+   *  staff-only capability for non-staff, nothing both allowed and denied, at most permRules. */
+  const fixRules = (rules: SAPermRule[]): SAPermRule[] => {
+    const byTarget = new Map<string, { allow: Set<SACapability>; deny: Set<SACapability> }>();
+    for (const rule of rules) {
+      const target = rule.target.trim();
+      if (target !== "everyone" && !roleByKey.has(target)) continue;
+      const entry = byTarget.get(target) ?? { allow: new Set<SACapability>(), deny: new Set<SACapability>() };
+      const staff = target !== "everyone" && isStaffPreset(roleByKey.get(target)!.preset);
+      for (const cap of rule.deny) {
+        if (!has(SA_CAPABILITIES, cap)) continue;
+        entry.deny.add(cap);
+        entry.allow.delete(cap);
+      }
+      for (const cap of rule.allow) {
+        if (!has(SA_CAPABILITIES, cap) || rule.deny.includes(cap)) continue;
+        if (!staff && (cap === "moderate" || cap === "ping_everyone")) continue;
+        entry.allow.add(cap);
+        entry.deny.delete(cap);
+      }
+      byTarget.set(target, entry);
+    }
+    const order = (set: Set<SACapability>) => SA_CAPABILITIES.filter((c) => set.has(c));
+    return [...byTarget.entries()]
+      .map(([target, e]) => ({ target, allow: order(e.allow), deny: order(e.deny) }))
+      .filter((r) => r.allow.length || r.deny.length)
+      .slice(0, SA_LIMITS.permRules);
+  };
   const fixAccess = (access: SAAccess, keys: string[]): SAAccess => {
     if (access === "roles" && keys.length === 0) return "read_only";
     if (access === "hidden_roles" && keys.length === 0) return "staff_only";
@@ -474,6 +525,7 @@ export function normalizeTemplate(input: SATemplate, answers: SAAnswers | null =
       user_limit: ch.type === "voice" ? int(ch.user_limit, 0, SA_LIMITS.userLimitMax, 0) : 0,
       access,
       role_keys: keys,
+      rules: fixRules(ch.rules ?? []),
       purpose: ch.purpose,
     };
   };
@@ -493,6 +545,7 @@ export function normalizeTemplate(input: SATemplate, answers: SAAnswers | null =
       emoji: cleanEmoji(cat.emoji),
       access: fixAccess(cat.access, keys),
       role_keys: keys,
+      rules: fixRules(cat.rules ?? []),
       channels: cat.channels.slice(0, SA_LIMITS.channelsPerCategory).map(fixChannel).filter((c): c is SAChannel => c !== null),
     });
   }
@@ -511,7 +564,7 @@ export function normalizeTemplate(input: SATemplate, answers: SAAnswers | null =
     const existing = t.categories.find((c) => c.access === "staff_only" || c.access === "hidden_roles");
     if (existing) return existing;
     if (t.categories.length >= SA_LIMITS.categories) return null;
-    const cat: SACategory = { key: uniqueKey("staff", channelKeys, "staff"), base: "staff", emoji: "🛡️", access: "staff_only", role_keys: [], channels: [] };
+    const cat: SACategory = { key: uniqueKey("staff", channelKeys, "staff"), base: "staff", emoji: "🛡️", access: "staff_only", role_keys: [], rules: [], channels: [] };
     t.categories.push(cat);
     return cat;
   };
@@ -596,9 +649,26 @@ export function normalizeTemplate(input: SATemplate, answers: SAAnswers | null =
     }
   }
 
-  // Staff and log channels are never public, whatever their category says.
+  // Staff and log channels are never public, whatever their category says, and neither is
+  // anything named like one ("admin chat", "mod logs", a "Staff" category) even when the
+  // template tagged it as something else.
+  for (const cat of t.categories) {
+    if (!isHidden(cat.access) && isSensitiveName(cat.base)) {
+      cat.access = "staff_only";
+      notes.push(`Made the ${cat.base} category staff-only.`);
+    }
+  }
   for (const ref of allChannels(t)) {
-    if (PRIVATE_PURPOSES.has(ref.channel.purpose) && !isHidden(effectiveAccess(ref)) && !isHidden(ref.channel.access)) ref.channel.access = "staff_only";
+    const sensitive = PRIVATE_PURPOSES.has(ref.channel.purpose) || isSensitiveName(ref.channel.base);
+    if (sensitive && !isHidden(effectiveAccess(ref)) && !isHidden(ref.channel.access)) ref.channel.access = "staff_only";
+  }
+  // A rule can't make a hidden place visible to everyone (the build ignores it too); drop it so
+  // the customizer doesn't show a permission that won't happen.
+  const dropEveryoneView = (rules: SAPermRule[]) => rules.map((r) => (r.target === "everyone" ? { ...r, allow: r.allow.filter((c) => c !== "view") } : r)).filter((r) => r.allow.length || r.deny.length);
+  for (const cat of t.categories) if (isHidden(cat.access) || cat.access === "verified_only") cat.rules = dropEveryoneView(cat.rules);
+  for (const ref of allChannels(t)) {
+    const access = effectiveAccess(ref);
+    if (isHidden(access) || access === "verified_only") ref.channel.rules = dropEveryoneView(ref.channel.rules);
   }
 
   // Plugins

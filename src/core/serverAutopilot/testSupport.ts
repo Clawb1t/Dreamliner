@@ -46,7 +46,7 @@ export function snapshot(patch: Partial<GuildSnapshot> & { channels?: SnapChanne
 }
 
 export function ch(key: string, base: string, patch: Partial<SAChannel> = {}): SAChannel {
-  return { key, base, emoji: "", type: "text", topic: "", slowmode: 0, nsfw: false, user_limit: 0, access: "everyone", role_keys: [], purpose: "other", ...patch };
+  return { key, base, emoji: "", type: "text", topic: "", slowmode: 0, nsfw: false, user_limit: 0, access: "everyone", role_keys: [], rules: [], purpose: "other", ...patch };
 }
 
 export function tRole(key: string, name: string, preset: SARole["preset"], patch: Partial<SARole> = {}): SARole {
@@ -69,6 +69,7 @@ export function template(patch: Partial<SATemplate> = {}): SATemplate {
         emoji: "📌",
         access: "everyone",
         role_keys: [],
+        rules: [],
         channels: [ch("rules", "rules", { purpose: "rules", access: "read_only" }), ch("announcements", "announcements", { purpose: "announcements", access: "read_only" })],
       },
       {
@@ -77,6 +78,7 @@ export function template(patch: Partial<SATemplate> = {}): SATemplate {
         emoji: "💬",
         access: "everyone",
         role_keys: [],
+        rules: [],
         channels: [ch("general", "general", { purpose: "general" }), ch("memes", "memes", { purpose: "memes" }), ch("lounge", "lounge", { type: "voice", purpose: "voice_lounge" })],
       },
       {
@@ -85,6 +87,7 @@ export function template(patch: Partial<SATemplate> = {}): SATemplate {
         emoji: "🛡️",
         access: "staff_only",
         role_keys: [],
+        rules: [],
         channels: [ch("staff_chat", "staff chat", { purpose: "staff_chat" }), ch("mod_logs", "mod logs", { purpose: "mod_logs" })],
       },
     ],

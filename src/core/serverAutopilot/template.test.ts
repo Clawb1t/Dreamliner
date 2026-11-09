@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { parseAnswers } from "./answers.js";
 import { cleanEmoji, normalizeTemplate, parseTemplateInput, sanitizeTemplate, slugKey } from "./template.js";
 import { ch, tRole, template } from "./testSupport.js";
+import type { SAChannel } from "./types.js";
 import { SA_LIMITS } from "./types.js";
 
 describe("parseAnswers", () => {
@@ -96,7 +97,7 @@ describe("normalizeTemplate", () => {
   it("clamps limits", () => {
     const many = template({
       roles: Array.from({ length: 40 }, (_, i) => tRole(`r${i}`, `Role ${i}`, "cosmetic")),
-      categories: Array.from({ length: 20 }, (_, i) => ({ key: `cat${i}`, base: `cat ${i}`, emoji: "", access: "everyone" as const, role_keys: [], channels: Array.from({ length: 5 }, (_, j) => ch(`c${i}_${j}`, `chan ${i} ${j}`)) })),
+      categories: Array.from({ length: 20 }, (_, i) => ({ key: `cat${i}`, base: `cat ${i}`, emoji: "", access: "everyone" as const, role_keys: [], rules: [], channels: Array.from({ length: 5 }, (_, j) => ch(`c${i}_${j}`, `chan ${i} ${j}`)) })),
     });
     const { template: out } = normalizeTemplate(many);
     assert.equal(out.roles.length, SA_LIMITS.roles);
@@ -108,7 +109,8 @@ describe("normalizeTemplate", () => {
     const t = template({ roles: [tRole("member", "Member", "member", { extra_permissions: ["BanMembers", "AttachFiles", "Administrator"] }), tRole("mod", "Mod", "moderator", { self_assignable: true, group: "x" })] });
     t.categories[2]!.access = "everyone";
     const { template: out } = normalizeTemplate(t);
-    assert.ok(out.categories[2]!.channels.every((c) => c.access === "staff_only"));
+    assert.equal(out.categories[2]!.access, "staff_only", "a category named Staff is hidden");
+    assert.ok(out.categories[2]!.channels.every((c) => c.access === "staff_only" || c.access === "everyone"));
     assert.deepEqual(out.roles[0]!.extra_permissions, ["AttachFiles"]);
     assert.equal(out.roles[1]!.self_assignable, false, "staff roles are never self-assignable");
   });
@@ -126,8 +128,8 @@ describe("normalizeTemplate", () => {
       naming: { ...template().naming, channel_pattern: "{name}" },
       roles: [tRole("mod", "Moderator", "moderator"), tRole("member", "Member", "member")],
       categories: [
-        { key: "info", base: "info", emoji: "", access: "everyone", role_keys: [], channels: [ch("rules", "rules", { purpose: "rules" }), ch("welcome", "welcome", { purpose: "welcome" })] },
-        { key: "chat", base: "chat", emoji: "", access: "everyone", role_keys: [], channels: [ch("general", "general", { purpose: "general", nsfw: true })] },
+        { key: "info", base: "info", emoji: "", access: "everyone", role_keys: [], rules: [], channels: [ch("rules", "rules", { purpose: "rules" }), ch("welcome", "welcome", { purpose: "welcome" })] },
+        { key: "chat", base: "chat", emoji: "", access: "everyone", role_keys: [], rules: [], channels: [ch("general", "general", { purpose: "general", nsfw: true })] },
       ],
       plugins: [{ plugin: "starboard", channel_key: null, role_key: null, extra_role_keys: [], level: "standard" }],
       messages: [
@@ -171,5 +173,56 @@ describe("normalizeTemplate", () => {
     const { template: out } = normalizeTemplate(t);
     assert.equal(out.messages.length, 1);
     assert.equal(out.messages[0]!.role_group, "Pronouns");
+  });
+});
+
+describe("normalizeTemplate: private channels by name", () => {
+  it("hides staff-side channels the template tagged as something else", () => {
+    const t = template();
+    const community = t.categories[1]!;
+    community.channels.push(
+      ch("admin_chat", "admin chat", { purpose: "other" }),
+      ch("audit", "audit log", { purpose: "other" }),
+      ch("mod_talk", "mod talk", { purpose: "general" }),
+      ch("staff_news", "staff announcements", { purpose: "announcements", access: "read_only" }),
+    );
+    const { template: out } = normalizeTemplate(t);
+    const byKey = new Map<string, SAChannel>(out.categories.flatMap((c) => c.channels).map((c) => [c.key, c]));
+    for (const key of ["admin_chat", "audit", "mod_talk", "staff_news"]) assert.equal(byKey.get(key)!.access, "staff_only", key);
+  });
+  it("leaves public channels that only sound similar alone", () => {
+    const t = template();
+    t.categories[1]!.channels.push(
+      ch("mods", "mods", { purpose: "other" }),
+      ch("devlogs", "dev logs", { purpose: "updates" }),
+      ch("apply", "staff applications", { purpose: "other" }),
+    );
+    const { template: out } = normalizeTemplate(t);
+    const byKey = new Map<string, SAChannel>(out.categories.flatMap((c) => c.channels).map((c) => [c.key, c]));
+    assert.equal(byKey.get("devlogs")!.access, "everyone");
+    assert.equal(byKey.get("apply")!.access, "everyone");
+  });
+});
+
+describe("normalizeTemplate: permission rules", () => {
+  it("merges rules per target, drops unknown roles and staff powers on members", () => {
+    const t = template();
+    t.categories[1]!.rules = [
+      { target: "member", allow: ["files", "moderate"], deny: [] },
+      { target: "member", allow: [], deny: ["files"] },
+      { target: "ghost", allow: ["chat"], deny: [] },
+      { target: "mod", allow: ["moderate"], deny: [] },
+    ];
+    const { template: out } = normalizeTemplate(t);
+    assert.deepEqual(out.categories[1]!.rules, [
+      { target: "member", allow: [], deny: ["files"] },
+      { target: "mod", allow: ["moderate"], deny: [] },
+    ]);
+  });
+  it("drops rules that would show a hidden category to everyone", () => {
+    const t = template();
+    t.categories[2]!.rules = [{ target: "everyone", allow: ["view", "react"], deny: [] }];
+    const { template: out } = normalizeTemplate(t);
+    assert.deepEqual(out.categories[2]!.rules, [{ target: "everyone", allow: ["react"], deny: [] }]);
   });
 });

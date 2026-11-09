@@ -22,6 +22,8 @@ export const SA_LIMITS = {
   generationsKept: 15,
   backupsKept: 10,
   generateTemplates: 3,
+  /** Permission rules per category or channel. */
+  permRules: 8,
 } as const;
 
 export const SA_SERVER_TYPES = [
@@ -55,6 +57,15 @@ export const SA_MODES = ["add", "merge", "fresh"] as const;
 
 export const SA_CHANNEL_TYPES = ["text", "voice", "forum", "stage", "announcement"] as const;
 export const SA_ACCESS = ["everyone", "read_only", "staff_only", "verified_only", "roles", "hidden_roles"] as const;
+/**
+ * What a permission rule can switch on or off for @everyone or a template role in one category or
+ * channel. Each maps to a fixed set of Discord permission bits (permissions.ts CAPABILITY_BITS).
+ * "moderate" and "ping_everyone" only ever apply to staff roles.
+ */
+export const SA_CAPABILITIES = [
+  "view", "chat", "threads", "react", "files", "embeds", "history", "polls", "external_emoji", "commands",
+  "connect", "speak", "video", "soundboard", "moderate", "ping_everyone",
+] as const;
 export const SA_PURPOSES = [
   "rules", "announcements", "welcome", "introductions", "general", "off_topic", "media", "memes", "art", "clips",
   "events", "giveaways", "polls", "suggestions", "tickets", "faq", "starboard", "counting", "bot_commands", "music",
@@ -105,10 +116,16 @@ export type SAChannel = {
   user_limit: number;
   access: SAAccess;
   role_keys: string[];
+  /** Fine-grained permission rules on top of `access` (the AI's per-role decisions). */
+  rules: SAPermRule[];
   purpose: SAPurpose;
 };
 
-export type SACategory = { key: string; base: string; emoji: string; access: SAAccess; role_keys: string[]; channels: SAChannel[] };
+export type SACapability = (typeof SA_CAPABILITIES)[number];
+/** One permission overwrite decision: `target` is "everyone" or a template role key. */
+export type SAPermRule = { target: string; allow: SACapability[]; deny: SACapability[] };
+
+export type SACategory = { key: string; base: string; emoji: string; access: SAAccess; role_keys: string[]; rules: SAPermRule[]; channels: SAChannel[] };
 
 export type SARole = {
   key: string;

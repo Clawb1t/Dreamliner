@@ -113,6 +113,42 @@ export function detectPurpose(name: string, kind: "text" | "voice" | "forum" | "
   return "other";
 }
 
+// Words that mark a staff-side channel, whatever purpose the template gave it.
+const SENSITIVE_WORDS = new Set([
+  "staff", "moderator", "moderators", "moderation", "admin", "admins", "administrator", "administrators", "administration",
+  "management", "managers", "leadership", "council", "audit", "internal", "private", "owners", "executive", "exec",
+  "punishments", "infractions", "warnings", "modmail", "evidence",
+]);
+// Only private next to one of these: "mods" alone is often game mods, "logs" alone may be devlogs.
+const MOD_WORDS = new Set(["mod", "mods"]);
+const MOD_COMPANIONS = new Set(["chat", "talk", "lounge", "only", "team", "log", "logs", "room", "area", "hq", "discussion", "general", "queue", "actions", "notes"]);
+const LOG_WORDS = new Set(["log", "logs", "logging"]);
+const PUBLIC_LOG_PREFIXES = new Set(["dev", "patch", "change", "update", "release", "game", "build", "captain", "quest"]);
+// Staff words that describe a public channel: applying to staff, meeting or listing the team.
+const PUBLIC_STAFF_WORDS = new Set(["apply", "applications", "application", "apps", "hiring", "recruitment", "recruiting", "list", "roster", "meet", "contact", "info", "introductions"]);
+
+/**
+ * Whether a channel or category name says it's for staff only (mod chat, logs, admin area…), so it
+ * must never be public. Conservative on purpose: when unsure, hiding a channel is the safe mistake.
+ */
+export function isSensitiveName(name: string): boolean {
+  const words = plainWords(name).split(" ").filter(Boolean);
+  if (!words.length) return false;
+  if (words.some((w) => PUBLIC_STAFF_WORDS.has(w))) return false;
+  // A bare "mods" reads as moderators to detectPurpose, but in a template it's as likely game mods;
+  // the template's own purpose (staff_chat) still hides it when that's what it is.
+  const purpose = words.every((w) => MOD_WORDS.has(w)) ? "other" : detectPurpose(name, "text");
+  if (purpose === "staff_chat" || purpose === "mod_logs") return true;
+  for (let i = 0; i < words.length; i += 1) {
+    const w = words[i]!;
+    if (SENSITIVE_WORDS.has(w)) return true;
+    if (MOD_WORDS.has(w) && words.some((other, j) => j !== i && MOD_COMPANIONS.has(other))) return true;
+    if (LOG_WORDS.has(w) && !(i > 0 && PUBLIC_LOG_PREFIXES.has(words[i - 1]!))) return true;
+    if (/^(mod|staff|admin|audit)logs?$/.test(w)) return true;
+  }
+  return false;
+}
+
 /** Role presets an existing role name suggests (for merge matching). */
 const ROLE_SYNONYMS: Array<[SARolePreset, RegExp]> = [
   ["owner", /^(owner|founder|server ?owner|co ?owner|creator)$/],

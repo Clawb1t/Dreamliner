@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { detectNaming, detectPurpose, detectRolePreset, normalizeName, unfont } from "./detect.js";
+import { detectNaming, detectPurpose, detectRolePreset, isSensitiveName, normalizeName, unfont } from "./detect.js";
 
 describe("normalizeName / unfont", () => {
   it("strips emoji, decoration and fonts", () => {
@@ -78,5 +78,18 @@ describe("detectNaming", () => {
     const d = detectNaming({ text: [], voice: [], categories: [] });
     assert.deepEqual(d.naming, {});
     assert.equal(d.preset, null);
+  });
+});
+
+describe("isSensitiveName", () => {
+  it("flags staff-side names", () => {
+    for (const name of ["staff", "🛡️︱mod-chat", "admin", "ADMINISTRATION", "mod logs", "modlogs", "audit-log", "logs", "message logs", "management", "ᴍᴏᴅ ᴛᴀʟᴋ", "staff-announcements", "punishments"]) {
+      assert.equal(isSensitiveName(name), true, name);
+    }
+  });
+  it("leaves public names alone", () => {
+    for (const name of ["general", "mods", "game-mods", "dev-logs", "patch logs", "staff-applications", "meet the staff", "staff list", "announcements", "modding help"]) {
+      assert.equal(isSensitiveName(name), false, name);
+    }
   });
 });

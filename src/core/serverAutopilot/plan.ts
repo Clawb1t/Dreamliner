@@ -7,12 +7,14 @@ import { PermissionFlagsBits } from "discord.js";
 import { detectPurpose, detectRolePreset, normalizeName } from "./detect.js";
 import { formatName } from "./naming.js";
 import {
-  accessOverwrites,
   clampOverwrites,
   isStaffPreset,
   isVoiceType,
   overwriteSignature,
+  planCategoryOverwrites,
+  planChannelOverwrites,
   rolePermissions,
+  samePlannedOverwrites,
   type OverwriteTarget,
   type PlannedOverwrite,
 } from "./permissions.js";
@@ -286,8 +288,6 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
   );
 
   const overwriteCtxRoles = template.roles.map((r) => ({ key: r.key, preset: r.preset }));
-  const plannedFor = (access: SAChannel["access"], roleKeys: string[], voice: boolean, category: boolean) =>
-    clampOverwrites(accessOverwrites(access, roleKeys, { roles: overwriteCtxRoles, voice, category }), botPerms, botAdmin);
 
   /** Resolved ids for a planned overwrite list, or null when a target role doesn't exist yet. */
   const resolveIds = (list: PlannedOverwrite[]): Array<{ id: string; allow: bigint; deny: bigint }> | null => {
@@ -314,7 +314,7 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
   const plannedByCategory = new Map<string, PlannedOverwrite[]>();
   for (const cat of template.categories) {
     const name = formatName(template.naming, "category", cat.base, cat.emoji);
-    const planned = plannedFor(cat.access, cat.role_keys, false, true);
+    const planned = clampOverwrites(planCategoryOverwrites({ access: cat.access, roleKeys: cat.role_keys, rules: cat.rules ?? [] }, overwriteCtxRoles), botPerms, botAdmin);
     plannedByCategory.set(cat.key, planned);
     const existingId = categoryMatch.get(cat.key);
     const existing = existingId ? channelById.get(existingId) : undefined;
@@ -333,12 +333,26 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
 
   const channelActions: ChannelAction[] = [];
   const lockedReasons: string[] = [];
+  const categoryByKey = new Map(template.categories.map((c) => [c.key, c]));
   for (const { channel, parentKey } of flat) {
     const type = typeOf(channel);
     const name = formatName(template.naming, type, channel.base, channel.emoji);
     const voice = isVoiceType(type);
-    const syncWithParent = parentKey !== null && channel.access === "everyone" && channel.role_keys.length === 0;
-    const planned = syncWithParent ? (plannedByCategory.get(parentKey!) ?? []) : plannedFor(channel.access, channel.role_keys, voice, false);
+    const category = parentKey ? (categoryByKey.get(parentKey) ?? null) : null;
+    const categoryPlanned = parentKey ? (plannedByCategory.get(parentKey) ?? []) : [];
+    // A channel with its own access or rules still carries its category's (planChannelOverwrites),
+    // and is synced whenever that works out to exactly the category's overwrites.
+    const planned = clampOverwrites(
+      planChannelOverwrites(
+        { access: channel.access, roleKeys: channel.role_keys, rules: channel.rules ?? [] },
+        category ? { access: category.access, roleKeys: category.role_keys, rules: category.rules ?? [], planned: categoryPlanned } : null,
+        overwriteCtxRoles,
+        voice,
+      ),
+      botPerms,
+      botAdmin,
+    );
+    const syncWithParent = category !== null && samePlannedOverwrites(planned, categoryPlanned);
     const existingId = channelMatch.get(channel.key);
     const existing = existingId ? channelById.get(existingId) : undefined;
     const base = {

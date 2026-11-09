@@ -264,6 +264,11 @@ function mergedOverwrites(channel: GuildChannel, desired: OverwriteResolvable[],
   return [...desired, ...kept];
 }
 
+/** A channel's current overwrites, in the shape channel create / set take. */
+function currentOverwrites(channel: GuildChannel): OverwriteResolvable[] {
+  return [...channel.permissionOverwrites.cache.values()].map((o) => ({ id: o.id, type: o.type, allow: o.allow.bitfield, deny: o.deny.bitfield }));
+}
+
 function channelOf(guild: Guild, id: string | null | undefined): GuildChannel | null {
   if (!id) return null;
   const channel = guild.channels.cache.get(id);
@@ -383,7 +388,10 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
         job.step("channels").done += 1;
         continue;
       }
-      const overwrites = resolveStored(job, c.syncWithParent && c.parentKey ? (categoryOverwrites.get(c.parentKey) ?? []) : c.overwrites);
+      // A synced channel copies its category exactly as it is now (a reused category may carry
+      // more than the plan), so Discord shows it as synced and it can't end up more open.
+      const parent = c.syncWithParent ? channelOf(guild, parentId) : null;
+      const overwrites = parent ? currentOverwrites(parent) : resolveStored(job, c.syncWithParent && c.parentKey ? (categoryOverwrites.get(c.parentKey) ?? []) : c.overwrites);
       const options: GuildChannelCreateOptions = {
         name: c.name,
         type: RAW_TYPES[c.type] as GuildChannelCreateOptions["type"],
@@ -433,6 +441,9 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
     ...resolved.categories.filter((c) => c.action === "update" && c.changes.includes("permissions")),
     ...resolved.channels.filter((c) => c.action === "update" && (c.changes.includes("permissions") || (c.changes.includes("move") && c.syncWithParent))),
   ];
+  // Channels the plan doesn't place itself, and channels that must never be touched.
+  const plannedChannelIds = new Set(resolved.channels.map((c) => job.idMap.channels[c.key]).filter(Boolean));
+  const untouchable = new Set<string>([...protectedChannelIds(snap), ...inputs.keep.channelIds]);
   job.begin("permissions", permissionWork.length);
   for (const c of permissionWork) {
     const channel = channelOf(guild, c.channelId);
@@ -442,8 +453,17 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
         await channel.lockPermissions();
         return true;
       }
+      // Discord doesn't push a category's new permissions to its channels: remember which were
+      // synced so they follow it (otherwise a category made private leaves them public).
+      const followers = c.isCategory
+        ? [...guild.channels.cache.values()]
+            .filter((ch) => !ch.isThread())
+            .map((ch) => ch as GuildChannel)
+            .filter((ch) => ch.parentId === channel.id && !plannedChannelIds.has(ch.id) && !untouchable.has(ch.id) && ch.permissionsLocked === true)
+        : [];
       const desired = resolveStored(job, c.syncWithParent && c.parentKey ? (categoryOverwrites.get(c.parentKey) ?? []) : c.overwrites);
       await channel.permissionOverwrites.set(mergedOverwrites(channel, desired, managedIds), "Server Autopilot");
+      for (const follower of followers) await follower.lockPermissions().catch(() => null);
       return true;
     });
   }
@@ -451,7 +471,7 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
   job.finish("permissions");
 
   // 6. Order
-  job.begin("order", 2);
+  job.begin("order", 3);
   await job.op("order", "Couldn't reorder channels", async () => {
     await guild.channels.fetch();
     const positions: Array<{ channel: string; position: number }> = [];
@@ -495,6 +515,16 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
     });
     if (movable.length < 2 || top < 1) return;
     await guild.roles.setPositions(movable.map((id, i) => ({ role: id, position: Math.max(1, top - i) })));
+  });
+  // Last check after all the moving: every channel meant to follow its category is synced to it.
+  await job.op("order", "Couldn't sync some channels with their categories", async () => {
+    await guild.channels.fetch();
+    for (const c of resolved.channels) {
+      if (!c.syncWithParent || c.action === "reuse") continue;
+      const channel = channelOf(guild, job.idMap.channels[c.key]);
+      if (!channel?.parent || untouchable.has(channel.id) || channel.permissionsLocked !== false) continue;
+      await channel.lockPermissions();
+    }
   });
   job.finish("order");
 
