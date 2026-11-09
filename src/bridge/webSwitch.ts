@@ -15,15 +15,34 @@ const log = getLogger("bridge");
 
 export type SwitchBotInfo = { id: string; name: string; avatarUrl: string | null; present: boolean };
 
+/** Avatars asked fresh from Discord, at most once an hour per bot. */
+const AVATAR_TTL_MS = 60 * 60_000;
+const freshAvatars = new Map<string, { url: string | null; at: number }>();
+
+/**
+ * A bot's current avatar. A plain users.fetch returns the cached user, and a cached user keeps
+ * the avatar it had when it was cached (Dyno's went stale that way and the site showed a broken
+ * image), so this forces a fresh lookup once the hour is up.
+ */
+async function liveAvatar(client: Client, botId: string): Promise<string | null> {
+  const cached = freshAvatars.get(botId);
+  if (cached && Date.now() - cached.at < AVATAR_TTL_MS) return cached.url;
+  const user = await client.users.fetch(botId, { force: true }).catch(() => null);
+  // A failed lookup keeps the last good avatar rather than caching nothing for an hour.
+  if (!user) return cached?.url ?? null;
+  const url = user.displayAvatarURL({ size: 256, extension: "png" });
+  freshAvatars.set(botId, { url, at: Date.now() });
+  return url;
+}
+
 async function botInfo(client: Client, source: SwitchSource, guild: Guild | null): Promise<SwitchBotInfo> {
   const { botId, name } = SWITCH_SOURCES[source];
-  const member = guild ? await guild.members.fetch(botId).catch(() => null) : null;
-  const user = member?.user ?? (await client.users.fetch(botId).catch(() => null));
+  const [member, avatarUrl] = await Promise.all([guild ? guild.members.fetch(botId).catch(() => null) : Promise.resolve(null), liveAvatar(client, botId)]);
   return {
     id: botId,
     name,
     // Null when Discord can't be asked; the website falls back to its own copy of the avatar.
-    avatarUrl: user?.displayAvatarURL({ size: 256, extension: "png" }) ?? null,
+    avatarUrl,
     present: Boolean(member),
   };
 }
