@@ -3,7 +3,6 @@ import type { SlashCommandDefinition } from "../../../core/types.js";
 import { getLogger } from "../../../core/logger.js";
 import { deferReplyOptions } from "../../../core/responses.js";
 import { blockedByMessage } from "../../../core/voiceSessionRegistry.js";
-import { getGuildMusicPlayerUrl } from "../../../core/docsUrl.js";
 import { getOrConnectPlayer, getConnectedPlayer } from "../functions/player.js";
 import { isLavalinkConfigured } from "../functions/manager.js";
 import { musicChannelBlock } from "../functions/limits.js";
@@ -18,7 +17,7 @@ import { getLive, liveStations } from "../radio/clock.js";
 import { leaveRadio, listenerCounts, tuneIn } from "../radio/controller.js";
 import { currentStationId } from "../radio/tags.js";
 
-const RADIO = "📻";
+const RADIO = MUSIC_EMOJI.radio;
 const log = getLogger("music");
 
 function nowLine(stationId: string): string | null {
@@ -70,12 +69,12 @@ export const radioCommand: SlashCommandDefinition = {
       const lines = stations.map((s) => {
         const live = nowLine(s.id) ?? `${RADIO} **${s.name}**`;
         const listening = counts.get(s.id) ?? 0;
-        const extra = [s.id === tuned ? "on air here" : null, listening ? `${listening} server${listening === 1 ? "" : "s"} listening` : null]
+        const extra = [s.id === tuned ? `${MUSIC_EMOJI.live} on air here` : null, listening ? `${listening} server${listening === 1 ? "" : "s"} listening` : null]
           .filter(Boolean)
           .join(" · ");
         return extra ? `${live}\n-# ${extra}` : live;
       });
-      lines.push(`-# Tune in with /radio play, or from the [web player](${getGuildMusicPlayerUrl(guildId)}).`);
+      lines.push("-# Tune in with /radio play.");
       await interaction.reply(lineReply(lines.join("\n"), ephemeral));
       return;
     }

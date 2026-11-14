@@ -71,7 +71,7 @@ plugins:
 
 | Field | Description |
 |-------|-------------|
-| `radios_enabled` | Let members tune into Dreamliner radio stations with `/radio play` or the web player. Uses `can_play`. Default on. |
+| `radios_enabled` | Let members tune into Dreamliner radio stations with `/radio play`. Uses `can_play`. Default on. |
 
 ## Commands
 
@@ -140,7 +140,7 @@ Grant these to a Dreamliner Role on the dashboard's **Roles** page (or `/permiss
 
 Dreamliner operators run **radio stations**: playlists of YouTube videos that loop forever. Stations are
 live, like real radio: every server tuned to a station hears the same song at the same point. Tune in
-with `/radio play` or the **Radios** section of the web player.
+with `/radio play`; the web player shows the station that's on air.
 
 - While a station is on air, `/skip` (and the web player's skip) leaves the station, and seek, filters,
   loop and pause are switched off.

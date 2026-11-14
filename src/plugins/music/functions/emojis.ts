@@ -24,4 +24,6 @@ export const MUSIC_EMOJI = {
   warning: "<:icons_warning:1544418156913885194>",
   info: "<:icons_generalinfo:1544417795335389254>",
   clock: "<:icons_clock:1544417185336664114>",
+  radio: "<:icons_podcast:1544417391969042532>",
+  live: "<:icons_live:1544417331822993408>",
 } as const;

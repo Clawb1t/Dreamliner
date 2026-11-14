@@ -18,7 +18,7 @@ export function formatDuration(ms: number): string {
 
 export function trackLink(track: Track): string {
   const radio = radioTag(track);
-  if (radio?.kind === "ticket") return `📻 **${radio.stationName ?? "Radio station"}** (radio)`;
+  if (radio?.kind === "ticket") return `${MUSIC_EMOJI.radio} **${radio.stationName ?? "Radio station"}** (radio)`;
   const title = track.info.title || "Unknown title";
   const label = track.info.author ? `${title} - ${track.info.author}` : title;
   return track.info.uri ? `[${label}](${track.info.uri})` : label;
