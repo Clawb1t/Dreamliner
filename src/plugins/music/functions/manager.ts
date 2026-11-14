@@ -56,6 +56,11 @@ export function initLavalinkManager(client: Client): LavalinkManager {
         // play.ts also retries once on a timeout, but giving the first attempt more room to
         // begin with means fewer retries needed in the first place.
         requestSignalTimeoutMS: 20_000,
+        // The library's default gives up after 5 tries 10s apart, then destroys the node for good:
+        // a hosted node that restarts for over a minute would leave every 24/7 session silent
+        // forever. Keep retrying (the attempt list is capped at 1000, so this never trips).
+        retryAmount: 1_000_000,
+        retryDelay: 5_000,
       },
     ],
     sendToShard: (guildId, payload) => {
@@ -99,9 +104,23 @@ export function initLavalinkManager(client: Client): LavalinkManager {
     resumedSignalResolve = resolve;
   });
 
+  // Set by the "resumed" handler; a reconnect that wasn't resumed means the node lost every player.
+  let resumedSinceConnect = false;
+  let connectedOnce = false;
+
   manager.nodeManager.on("connect", (node) => {
     log.info(`Lavalink node "${node.id}" connected.`);
     nodeConnectedResolve?.();
+    const isReconnect = connectedOnce;
+    connectedOnce = true;
+    resumedSinceConnect = false;
+    if (isReconnect) {
+      // Give the "ready" op (and a possible "resumed" handshake) a moment to land first.
+      setTimeout(() => {
+        if (resumedSinceConnect) return;
+        void rebuildPlayersOnNode(node.id).catch((error) => log.error(`Failed to rebuild players after Lavalink node "${node.id}" reconnected:`, error));
+      }, 2_500);
+    }
 
     // node.sessionId right this instant may still be our stale persisted guess from before this
     // connection - the confirmed value only lands once the "ready" op (the very next WS message)
@@ -118,6 +137,7 @@ export function initLavalinkManager(client: Client): LavalinkManager {
   });
 
   manager.nodeManager.on("resumed", (node, _payload, playersResult) => {
+    resumedSinceConnect = true;
     void (async () => {
       try {
         if (!Array.isArray(playersResult)) {
@@ -166,6 +186,51 @@ export function initLavalinkManager(client: Client): LavalinkManager {
   });
 
   return manager;
+}
+
+/**
+ * After the node reconnects WITHOUT resuming (it restarted, or the outage outlasted the resume
+ * window), Lavalink has no players left, but ours still exist and Discord still shows the bot in
+ * the call, so it would sit there silent. Recreate each one on the node: voice first, then the
+ * song it was playing at its last position. A radio station re-tunes to its live point instead.
+ */
+async function rebuildPlayersOnNode(nodeId: string): Promise<void> {
+  if (!manager) return;
+  const players = [...manager.players.values()].filter((p) => p.node.id === nodeId);
+  if (players.length === 0) return;
+  log.warn(`Lavalink node "${nodeId}" came back without resuming; rebuilding ${players.length} player(s).`);
+  const { radioTag } = await import("../radio/tags.js");
+  for (const player of players) {
+    try {
+      const current = player.queue.current;
+      const position = Math.max(0, Math.round(player.lastPosition || player.position || 0));
+      const voice = player.voice;
+      if (voice?.token && voice.endpoint && voice.sessionId) {
+        await player.node.updatePlayer({
+          guildId: player.guildId,
+          noReplace: false,
+          playerOptions: {
+            voice: { token: voice.token, endpoint: voice.endpoint, sessionId: voice.sessionId, channelId: voice.channelId },
+          },
+        });
+      } else {
+        // No cached voice data: ask Discord for it again (the gateway reply is forwarded to the node).
+        await player.connect();
+      }
+      const station = radioTag(current)?.stationId;
+      if (station) {
+        const { resumeRadio } = await import("../radio/controller.js");
+        await resumeRadio(player, station);
+      } else if (current?.encoded) {
+        await player.play({ track: { encoded: current.encoded, requester: current.requester }, position, paused: player.paused });
+      } else if (player.queue.tracks.length > 0) {
+        await player.play();
+      }
+      log.info(`Rebuilt music player for guild ${player.guildId} after the node reconnected.`);
+    } catch (error) {
+      log.error(`Couldn't rebuild music player for guild ${player.guildId} after the node reconnected:`, error);
+    }
+  }
 }
 
 function delay(ms: number): Promise<void> {

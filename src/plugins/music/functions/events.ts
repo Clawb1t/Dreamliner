@@ -16,6 +16,7 @@ import { logMusic } from "./musicLog.js";
 import { clearAutoplayHistory, ensureAutoplayQueueDepth, rememberAutoplaySeen } from "./autoplay.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
 import { radioTag } from "../radio/tags.js";
+import { getExistingPlayer } from "./manager.js";
 import { markRadioTrackFailed } from "../radio/controller.js";
 
 /** destroy() reasons issued by our own commands/bridge - playerDestroy already gets its own
@@ -271,5 +272,28 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
     // (moderator action, channel deleted, etc.) - not a Lavalink-side failure, nothing to announce.
     if (payload.code === 4014) return;
     log.warn(`Player voice socket closed in guild ${player.guildId}: code=${payload.code} reason=${payload.reason}`);
+
+    // Anything else (4006 session invalid, 4015 voice server crashed, 1006 dropped...) kills
+    // Lavalink's audio connection while Discord still shows the bot in the call, so it would sit
+    // there silent. Re-join voice and pick the song back up, at most once every 30s per server.
+    const last = player.getData<number | undefined>("voiceRecoverAt") ?? 0;
+    if (Date.now() - last < 30_000) return;
+    player.setData("voiceRecoverAt", Date.now());
+    setTimeout(() => {
+      void (async () => {
+        if (!getExistingPlayer(player.guildId) || !player.voiceChannelId) return;
+        const current = player.queue.current;
+        const position = Math.max(0, Math.round(player.lastPosition || player.position || 0));
+        await player.connect();
+        const station = radioTag(current)?.stationId;
+        if (station) {
+          const { resumeRadio } = await import("../radio/controller.js");
+          await resumeRadio(player, station);
+        } else if (current?.encoded && !player.paused) {
+          await player.play({ track: { encoded: current.encoded, requester: current.requester }, position });
+        }
+        log.info(`Recovered the voice connection in guild ${player.guildId} after socket close ${payload.code}.`);
+      })().catch((error: unknown) => log.error(`Voice recovery failed in guild ${player.guildId}:`, error));
+    }, 2_000);
   });
 }
