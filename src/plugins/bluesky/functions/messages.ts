@@ -14,7 +14,7 @@ export function connectButtonRow(t: Translator): ActionRowBuilder<ButtonBuilder>
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setLabel(t("bluesky.connectButton", "Connect Bluesky"))
-      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.connect) ?? "🔗")
+      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.connect) ?? "<:icons_link:1544417328597434500>")
       .setStyle(ButtonStyle.Link)
       .setURL(getAccountConnectionsUrl()),
   );

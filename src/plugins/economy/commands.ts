@@ -201,7 +201,7 @@ export const economyCommands: SlashCommandDefinition[] = [
         .setThumbnail(i.user.displayAvatarURL())
         .setColor(memberAccentColor(member))
         .setDescription(description)
-        .setFooter({ text: `${bank.text}  ✧  🔥 streak: ${streak}`, iconURL: bank.iconURL });
+        .setFooter({ text: `${bank.text}  ✧  <:icons_fire:1544417280375525437> streak: ${streak}`, iconURL: bank.iconURL });
 
       await i.editReply(embedEdit(embed));
     },

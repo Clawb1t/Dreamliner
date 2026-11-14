@@ -63,7 +63,7 @@ export const zActivityAnnouncement = z.strictObject({
   content: z
     .string()
     .max(2000)
-    .default("🎉 {user} just reached **{milestone}**!")
+    .default("<:icons_tada:1544417975472492594> {user} just reached **{milestone}**!")
     .describe(
       "Default announcement. Supports placeholders plus {milestone}, {milestone_requirement}, {messages}, {voice_time}, {voice_hours}, {reward_roles} and {next_milestone}.",
     ),

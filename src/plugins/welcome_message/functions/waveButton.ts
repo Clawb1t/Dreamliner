@@ -35,7 +35,7 @@ export function buildWaveButtonRow(
     .setStyle(ButtonStyle.Secondary)
     .setLabel(waveButtonLabel(wave.label || "Wave", count));
 
-  const emoji = parseComponentEmoji(wave.emoji || "👋");
+  const emoji = parseComponentEmoji(wave.emoji || "<:icons_wave:1544418074172727328>");
   if (emoji) button.setEmoji(emoji);
 
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(button);
@@ -100,7 +100,7 @@ export async function handleWelcomeWaveButtonInteraction(
   }
 
   const config = await loadWelcomeConfig(interaction.guildId!);
-  const wave = config?.wave_button ?? { enabled: true, label: "Wave", emoji: "👋" };
+  const wave = config?.wave_button ?? { enabled: true, label: "Wave", emoji: "<:icons_wave:1544418074172727328>" };
   const row = buildWaveButtonRow(wave, result.row.waveCount);
 
   await interaction.update({ components: [row] }).catch(async () => {

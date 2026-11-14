@@ -65,7 +65,7 @@ function jumpToMessageButton(guildId: string, channelId: string, messageId: stri
     label: "Jump to Message",
     url: `https://discord.com/channels/${guildId}/${channelId}/${messageId}`,
     style: "link",
-    emoji: "🔗",
+    emoji: "<:icons_link:1544417328597434500>",
   };
 }
 

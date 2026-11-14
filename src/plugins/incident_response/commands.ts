@@ -6,7 +6,7 @@ import { resultReply, slashResultOptions } from "../../core/responses.js";
 import { getIncident, listIncidents, setIncidentStatus } from "./functions/store.js";
 import { unlockChannelManually } from "./functions/lockdown.js";
 
-const SEVERITY_EMOJI: Record<string, string> = { low: "🟢", medium: "🟡", high: "🟠", critical: "🔴" };
+const SEVERITY_EMOJI: Record<string, string> = { low: "<:icons_dgreen:1544417216227709049>", medium: "<:icons_dyellow:1544417259374518423>", high: "<:icons_dred:1544417250528723215>", critical: "<:icons_outage:1544417573410701322>" };
 
 function entityMention(entityType: string, entityId: string, t: Translator): string {
   if (entityType === "user") return `<@${entityId}>`;
@@ -89,7 +89,7 @@ export const incidentResponseCommands: SlashCommandDefinition[] = [
         }
         const lines = incidents.map(
           (i) =>
-            `${SEVERITY_EMOJI[i.severity] ?? "⚪"} \`#${i.id}\` ${entityMention(i.entityType, i.entityId, ctx.t)} — **${i.title}** ` +
+            `${SEVERITY_EMOJI[i.severity] ?? "<:icons_dwhite:1544417252332273734>"} \`#${i.id}\` ${entityMention(i.entityType, i.entityId, ctx.t)} — **${i.title}** ` +
             `(${ctx.t("incident_response.riskSignalCount", "risk {risk}, {count} signal{plural}", { risk: i.riskScore, count: i.signalCount, plural: i.signalCount === 1 ? "" : "s" })})`,
         );
         await ctx.interaction.reply(

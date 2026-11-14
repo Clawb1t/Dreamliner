@@ -7056,7 +7056,7 @@
                     "emoji": {
                       "type": "string",
                       "maxLength": 128,
-                      "default": "👋",
+                      "default": "<:icons_wave:1544418074172727328>",
                       "description": "Button emoji (unicode, emoji id, or <:name:id>).",
                       "title": "Emoji",
                       "x-dreamliner": {
@@ -7096,7 +7096,7 @@
                     "content": {
                       "type": "string",
                       "maxLength": 2000,
-                      "default": "🎉 We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}.",
+                      "default": "<:icons_tada:1544417975472492594> We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}.",
                       "description": "Default milestone message. Supports placeholders plus {milestone} (e.g. 1,000) and {milestone_name}.",
                       "title": "Content"
                     },
@@ -8131,12 +8131,12 @@
                 "wave_button": {
                   "enabled": false,
                   "label": "Wave",
-                  "emoji": "👋"
+                  "emoji": "<:icons_wave:1544418074172727328>"
                 },
                 "require_passport_verification": false,
                 "member_milestones": {
                   "enabled": false,
-                  "content": "🎉 We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}.",
+                  "content": "<:icons_tada:1544417975472492594> We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}.",
                   "embed": {
                     "enabled": false,
                     "title": "",
@@ -11480,7 +11480,7 @@
                 },
                 "upvote_emoji": {
                   "type": "string",
-                  "default": "👍",
+                  "default": "<:icons_upvote:1544417455689179349>",
                   "description": "Emoji shown on the upvote button.",
                   "title": "Upvote Emoji",
                   "x-dreamliner": {
@@ -11490,7 +11490,7 @@
                 },
                 "midvote_emoji": {
                   "type": "string",
-                  "default": "😐",
+                  "default": "<:icons_hyphen:1544417304203362406>",
                   "description": "Emoji shown on the mid / neutral vote button.",
                   "title": "Midvote Emoji",
                   "x-dreamliner": {
@@ -11500,7 +11500,7 @@
                 },
                 "downvote_emoji": {
                   "type": "string",
-                  "default": "👎",
+                  "default": "<:icons_downvote:1544417248209404054>",
                   "description": "Emoji shown on the downvote button.",
                   "title": "Downvote Emoji",
                   "x-dreamliner": {
@@ -11730,9 +11730,9 @@
                 "upvote_label": "Upvote",
                 "midvote_label": "Neutral",
                 "downvote_label": "Downvote",
-                "upvote_emoji": "👍",
-                "midvote_emoji": "😐",
-                "downvote_emoji": "👎",
+                "upvote_emoji": "<:icons_upvote:1544417455689179349>",
+                "midvote_emoji": "<:icons_hyphen:1544417304203362406>",
+                "downvote_emoji": "<:icons_downvote:1544417248209404054>",
                 "mid_vote_enabled": true,
                 "allow_self_vote": false,
                 "show_vote_count": true,
@@ -14100,7 +14100,7 @@
                     "content": {
                       "type": "string",
                       "maxLength": 2000,
-                      "default": "🎉 {user} just reached **{milestone}**!",
+                      "default": "<:icons_tada:1544417975472492594> {user} just reached **{milestone}**!",
                       "description": "Default announcement. Supports placeholders plus {milestone}, {milestone_requirement}, {messages}, {voice_time}, {voice_hours}, {reward_roles} and {next_milestone}.",
                       "title": "Content"
                     },
@@ -14611,7 +14611,7 @@
                 "announcement": {
                   "enabled": true,
                   "destination": "current",
-                  "content": "🎉 {user} just reached **{milestone}**!",
+                  "content": "<:icons_tada:1544417975472492594> {user} just reached **{milestone}**!",
                   "embed": {
                     "enabled": false,
                     "title": "",

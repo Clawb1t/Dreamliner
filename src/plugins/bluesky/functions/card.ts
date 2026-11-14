@@ -74,7 +74,7 @@ export function cardButtonsRow(post: BlueskyPost, deliveryId: number | null): Ac
       new ButtonBuilder()
         .setCustomId(blueskyRepostId(deliveryId))
         .setLabel("Repost")
-        .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.repost) ?? "🔁")
+        .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.repost) ?? "<:icons_repeat:1544417397220311040>")
         .setStyle(ButtonStyle.Secondary),
     );
   }

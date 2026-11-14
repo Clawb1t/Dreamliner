@@ -67,7 +67,7 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
 
   const speech = await synthesize(spokenText, config, voice);
   if ("error" in speech) {
-    await message.react("❌").catch(() => {});
+    await message.react("<:icons_Wrong:1544417460638457937>").catch(() => {});
     return;
   }
 
@@ -76,7 +76,7 @@ export async function handleTtsTextChannelMessage(message: Message): Promise<voi
     if (spoken.reason === "blocked_by_other") {
       await message.reply(blockedByMessage("tts", spoken.ownedBy)).catch(() => {});
     } else {
-      await message.react("❌").catch(() => {});
+      await message.react("<:icons_Wrong:1544417460638457937>").catch(() => {});
     }
     return;
   }

@@ -54,7 +54,7 @@ import {
 import { emitLog } from "./send.js";
 import type { LogCard, LogRef } from "./types.js";
 
-const TEST_MARKER = "🧪 TEST — ";
+const TEST_MARKER = "<:icons_Bugs:1544417160879677591> TEST — ";
 const TEST_REASON = "Test log — safe to ignore";
 
 type TestCtx = {

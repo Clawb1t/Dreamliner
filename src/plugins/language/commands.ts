@@ -19,7 +19,7 @@ async function buildLanguageRow(current: string): Promise<ActionRowBuilder<Strin
       languages.map((lang) =>
         new StringSelectMenuOptionBuilder()
           .setLabel(lang.name)
-          .setEmoji(lang.flag || "🌐")
+          .setEmoji(lang.flag || "<:icons_globe:1544417296703815710>")
           .setValue(lang.code)
           .setDefault(lang.code === current),
       ),

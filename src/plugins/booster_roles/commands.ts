@@ -48,7 +48,7 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
 
         const lines = tiers.map((tier) => {
           const qualifies = tierQualifies(tier, { days, boosts });
-          const mark = qualifies ? "✅" : "▫️";
+          const mark = qualifies ? "<:icons_Correct:1544417199798886530>" : "<:icons_square:1544418208549970101>";
           if (tier.requirement === "boosts") {
             const label =
               tier.name.trim() || t("booster_roles.boostTierFallbackLabel", "{count} boost tier", { count: tier.boost_count });

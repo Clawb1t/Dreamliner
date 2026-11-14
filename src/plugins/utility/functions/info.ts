@@ -158,7 +158,7 @@ export async function buildUserInfoEmbed(
     }
   } else {
     embed.addFields(
-      embedField(t("utility.info.memberInformationLabel", "Member information"), t("utility.info.notOnServerWarnBody", "⚠ {label} is not on the server", { label })),
+      embedField(t("utility.info.memberInformationLabel", "Member information"), t("utility.info.notOnServerWarnBody", "<:icons_warning:1544418156913885194> {label} is not on the server", { label })),
     );
   }
 

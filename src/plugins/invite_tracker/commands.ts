@@ -124,7 +124,7 @@ async function resolveViewTarget(ctx: SlashCommandContext, optionName = "user", 
 
 function missingManageServerNote(t: Translator, guild: Guild): string {
   return getCacheState(guild.id).warm && !getCacheState(guild.id).permOk
-    ? `\n\n${t("invite_tracker.missingManageServer", "⚠️ Missing Manage Server: Dreamliner can't read this server's invites, so new joins can't be attributed.")}`
+    ? `\n\n${t("invite_tracker.missingManageServer", "<:icons_warning:1544418156913885194> Missing Manage Server: Dreamliner can't read this server's invites, so new joins can't be attributed.")}`
     : "";
 }
 

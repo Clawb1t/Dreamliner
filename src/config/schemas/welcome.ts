@@ -176,7 +176,7 @@ export const zWelcomeMemberMilestones = z.strictObject({
   content: z
     .string()
     .max(2000)
-    .default("🎉 We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}.")
+    .default("<:icons_tada:1544417975472492594> We just hit **{milestone} members**! Welcome {user}, you're member #{milestone}.")
     .describe(
       "Default milestone message. Supports placeholders plus {milestone} (e.g. 1,000) and {milestone_name}.",
     ),
@@ -213,7 +213,7 @@ export const zWelcomeWaveButton = z.strictObject({
   emoji: z
     .string()
     .max(128)
-    .default("👋")
+    .default("<:icons_wave:1544418074172727328>")
     .describe("Button emoji (unicode, emoji id, or <:name:id>)."),
 });
 
@@ -343,7 +343,7 @@ export function migrateWelcomeMessageInConfig(value: Record<string, unknown>): b
   }
 
   if (!isPlainObject(config.wave_button)) {
-    config.wave_button = { enabled: false, label: "Wave", emoji: "👋" };
+    config.wave_button = { enabled: false, label: "Wave", emoji: "<:icons_wave:1544418074172727328>" };
     changed = true;
   }
 

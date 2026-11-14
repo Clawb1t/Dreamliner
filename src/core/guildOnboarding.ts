@@ -65,7 +65,7 @@ export async function buildGuildOnboardingPayload(guild: Guild): Promise<Message
   const guildId = guild.id;
   const dashboardUrl = getGuildDashboardUrl(guildId);
 
-  const heading = "✈️ Welcome to Dreamliner";
+  const heading = "<:dreamlinerlogo:1536010087468892161> Welcome to Dreamliner";
   const description = [
     "Dreamliner is a moderation and utility bot with a web dashboard for easy configuration.",
     "Configure roles, channels, automod, tags, stats, and more from your server dashboard.",

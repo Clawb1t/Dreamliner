@@ -103,7 +103,7 @@ async function runProfile(ctx: SlashCommandContext): Promise<void> {
     new ButtonBuilder()
       .setCustomId(blueskyFollowId(profile.did))
       .setLabel(t("bluesky.followButton", "Follow"))
-      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.people) ?? "➕")
+      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.people) ?? "<:icons_plus:1544417389872156732>")
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setLabel(t("bluesky.openButton", "Open on Bluesky")).setStyle(ButtonStyle.Link).setURL(profile.url),
   );
@@ -153,7 +153,7 @@ async function runAccount(ctx: SlashCommandContext): Promise<void> {
     new ButtonBuilder()
       .setCustomId(BLUESKY_DISCONNECT_ID)
       .setLabel(t("bluesky.disconnectButton", "Disconnect"))
-      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.disconnect) ?? "✖️")
+      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.disconnect) ?? "<:icons_linkrevoke:1544417799445676062>")
       .setStyle(ButtonStyle.Danger),
     ...connectButtonRow(t).components.map((button) => button.setLabel(t("bluesky.manageButton", "Manage connection"))),
   );

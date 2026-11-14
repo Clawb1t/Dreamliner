@@ -628,10 +628,10 @@ export function buildRaidMeshAlertLog(input: {
 }
 
 const INCIDENT_SEVERITY_EMOJI: Record<string, string> = {
-  low: "🟢",
-  medium: "🟡",
-  high: "🟠",
-  critical: "🔴",
+  low: "<:icons_dgreen:1544417216227709049>",
+  medium: "<:icons_dyellow:1544417259374518423>",
+  high: "<:icons_dred:1544417250528723215>",
+  critical: "<:icons_outage:1544417573410701322>",
 };
 
 /** Incident Response: an incident was opened, or escalated to a higher severity. */
@@ -647,7 +647,7 @@ export function buildIncidentLog(input: {
   actionsTaken?: string[];
 }): LogCard {
   return card(
-    `${INCIDENT_SEVERITY_EMOJI[input.severity] ?? "⚪"} Incident #${input.id} — ${input.severity.toUpperCase()}`,
+    `${INCIDENT_SEVERITY_EMOJI[input.severity] ?? "<:icons_dwhite:1544417252332273734>"} Incident #${input.id} — ${input.severity.toUpperCase()}`,
     [
       `Time: ${logTimestamp()}`,
       `Entity: ${input.entityLabel}`,

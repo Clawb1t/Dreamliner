@@ -46,7 +46,7 @@ export function buildMilestoneCard(
     new ButtonBuilder()
       .setCustomId(blueskyFollowId(profile.did))
       .setLabel("Follow")
-      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.people) ?? "👥")
+      .setEmoji(parseComponentEmoji(BLUESKY_EMOJIS.people) ?? "<:icons_people:1544417371215626262>")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setLabel("Open profile").setStyle(ButtonStyle.Link).setURL(profile.url),
   );

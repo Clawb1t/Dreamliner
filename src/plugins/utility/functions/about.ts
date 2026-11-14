@@ -62,7 +62,7 @@ export function buildAboutEmbed(client: Client, t: Translator): ResultContainer 
         ${buildLavalinkLine(t)}
       `),
     )
-    .setFooter({ text: t("utility.about.footer", "Made with ❤️ by ClawB1t") });
+    .setFooter({ text: t("utility.about.footer", "Made with <:icons_heart:1544417554225700904> by ClawB1t") });
 }
 
 export function aboutLinkRows(t: Translator): ActionRowBuilder<ButtonBuilder>[] {

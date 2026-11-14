@@ -13,7 +13,7 @@ import type { LogButton, LogCard, LogFile } from "./types.js";
 
 const MAX_TEXT = 4000;
 /** Leave room for the title/info text itself before we fall back to a file. */
-const OVERFLOW_NOTE = "\n\n⚠️ Full details attached as a file below (too long for a message).";
+const OVERFLOW_NOTE = "\n\n<:icons_warning:1544418156913885194> Full details attached as a file below (too long for a message).";
 
 function informationBlock(lines: string[]): string {
   return trimLines(`**Information**\n${lines.join("\n")}`);

@@ -63,7 +63,7 @@ function trackSummary(
       `${progressBar(fraction)} ${Math.floor(fraction * 100)}% → **${milestoneLabel(next)}** (${requirementLabel(next)})`,
     );
   } else {
-    lines.push(t("activity_rewards.trackComplete", "✅ Every milestone on this track reached."));
+    lines.push(t("activity_rewards.trackComplete", "<:icons_Correct:1544417199798886530> Every milestone on this track reached."));
   }
   return lines.join("\n");
 }
@@ -173,7 +173,7 @@ export const activityRewardsCommands: SlashCommandDefinition[] = [
         }
         const progress = getProgress(guildId, auth.member.id);
         const lines = all.map((m) => {
-          const mark = hasReached(progress, m) ? "✅" : "▫️";
+          const mark = hasReached(progress, m) ? "<:icons_Correct:1544417199798886530>" : "<:icons_square:1544418208549970101>";
           const roles = m.roles.length > 0 ? ` · ${m.roles.map((id) => `<@&${id}>`).join(", ")}` : "";
           const label = m.name.trim() ? `**${m.name.trim()}** · ${requirementLabel(m)}` : `**${requirementLabel(m)}**`;
           return `${mark} ${label}${roles}`;
