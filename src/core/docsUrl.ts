@@ -10,9 +10,18 @@ export function getSiteUrl(): string {
 /** @deprecated Prefer getSiteUrl() — kept for call sites that import a constant. */
 export const SITE_URL = resolveSiteUrl();
 
+/** The website's help centre (the old /docs pages redirect here). */
 export function getDocsUrl(): string {
-  return `${resolveSiteUrl()}/docs`;
+  return `${resolveSiteUrl()}/helpcenter`;
 }
+
+/** Old docs paths that have a direct guide; everything else opens the guides home. */
+const GUIDE_FOR_DOCS_PATH: Record<string, string> = {
+  "getting-started": "getting-started/add-dreamliner",
+  permissions: "getting-started/staff-permissions",
+  "terms-of-service": "legal/terms-of-service",
+  "privacy-policy": "legal/privacy-policy",
+};
 
 export function getEditorUrl(): string {
   return `${resolveSiteUrl()}/dashboard`;
@@ -170,15 +179,15 @@ export function resolveDocsUrl(): string {
   return getDocsUrl();
 }
 
-/** Build a docs page URL. Accepts legacy `.md` paths from help maps. */
+/** A guides URL for a legacy docs path (help maps still use `plugins/x.md` style paths). */
 export function docsPageUrl(page: string, base = getDocsUrl()): string {
   const clean = page
     .replace(/\.md$/i, "")
     .replace(/^\//, "")
     .replace(/\/$/, "");
   const root = base.replace(/\/$/, "");
-  if (!clean || clean === "index") return root;
-  return `${root}/${clean}`;
+  const guide = GUIDE_FOR_DOCS_PATH[clean];
+  return guide ? `${root}/${guide}` : root;
 }
 
 export function linkButton(label: string, url: string): ButtonBuilder {
@@ -200,14 +209,14 @@ export function supportLinkRow(): ActionRowBuilder<ButtonBuilder> {
 export function configEditorLinkRow(guildId?: string): ActionRowBuilder<ButtonBuilder> {
   return siteLinkRow(
     { label: "Dashboard", url: guildId ? getGuildDashboardUrl(guildId) : getDashboardUrl() },
-    { label: "Docs", url: docsPageUrl("configuration") },
+    { label: "Guides", url: docsPageUrl("getting-started") },
   );
 }
 
 export function configEditorWithSupportRow(guildId?: string): ActionRowBuilder<ButtonBuilder> {
   return siteLinkRow(
     { label: "Dashboard", url: guildId ? getGuildDashboardUrl(guildId) : getDashboardUrl() },
-    { label: "Docs", url: docsPageUrl("configuration") },
+    { label: "Guides", url: docsPageUrl("getting-started") },
     { label: "Support server", url: SUPPORT_URL },
   );
 }

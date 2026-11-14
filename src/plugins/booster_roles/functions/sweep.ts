@@ -3,7 +3,7 @@ import { configManager } from "../../../config/manager.js";
 import { isBoosting } from "../../../core/boosterStatus.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { activeTiers, loadBoosterRolesConfig } from "./config.js";
-import { syncBoosterRoles } from "./apply.js";
+import { holdsBoosterTierRole, syncBoosterRoles } from "./apply.js";
 
 /**
  * Re-sync every currently boosting member in every guild with `booster_roles` enabled. Needed
@@ -37,7 +37,9 @@ export async function sweepBoosterRoles(client: Client): Promise<void> {
     }
 
     for (const member of members.values()) {
-      if (!isBoosting(member)) continue;
+      // Non-boosters are only touched when they still hold a tier role (e.g. they stopped boosting
+      // while the bot was offline), so those roles get removed.
+      if (!isBoosting(member) && !holdsBoosterTierRole(member, config)) continue;
       await syncBoosterRoles(member, config).catch(() => null);
     }
   }

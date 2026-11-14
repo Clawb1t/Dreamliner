@@ -14,6 +14,7 @@ import {
   listCounterRows,
   normalizeCounterName,
   pruneCounterRows,
+  setCounterChannelId,
   setCounterLastRenamedAt,
   setCounterMessageId,
   updateCounterValue,
@@ -230,20 +231,31 @@ export async function syncGuildCounters(
         await updateCounterValue(guildId, entry.name, entry.value);
         row = await getCounterRow(guildId, entry.name);
       }
+      if (row && row.channelId !== entry.channel_id) {
+        // Moved to another channel from the dashboard: remove the old embed (best effort) and
+        // track the new channel, so the next update posts/edits there instead of leaving a stale copy.
+        if (row.messageId) await deleteCounterMessage(guild, row.channelId, row.messageId);
+        await setCounterChannelId(guildId, entry.name, entry.channel_id);
+        await setCounterMessageId(guildId, entry.name, null);
+        row = { ...row, channelId: entry.channel_id, messageId: null, lastRenamedAt: null };
+      }
       if (!row) return;
       await applyCounterDisplay(guild, entry, row, row.value);
     });
   }
 }
 
+async function deleteCounterMessage(guild: Guild, channelId: string, messageId: string): Promise<void> {
+  const channel = await guild.channels.fetch(channelId).catch(() => null);
+  if (channel?.isTextBased() && "messages" in channel) {
+    const message = await channel.messages.fetch(messageId).catch(() => null);
+    await message?.delete().catch(() => null);
+  }
+}
+
 async function cleanupStaleRows(guild: Guild, stale: CounterRow[]): Promise<void> {
   for (const row of stale) {
-    if (!row.messageId) continue;
-    const channel = await guild.channels.fetch(row.channelId).catch(() => null);
-    if (channel?.isTextBased() && "messages" in channel) {
-      const message = await channel.messages.fetch(row.messageId).catch(() => null);
-      await message?.delete().catch(() => null);
-    }
+    if (row.messageId) await deleteCounterMessage(guild, row.channelId, row.messageId);
   }
 }
 

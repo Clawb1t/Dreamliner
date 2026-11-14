@@ -96,6 +96,20 @@ export function buildReviewButtons(app: ApplicationRecord): ActionRowBuilder<But
   );
 }
 
+/** The channel an opening's applications are posted to for review, or null when none is set or
+ *  it's gone/unsendable. Checked before an applicant starts and before an application is saved. */
+export async function resolveReviewChannel(
+  guild: Guild,
+  config: ApplicationsConfig,
+  opening: ApplicationOpening,
+): Promise<SendableChannels | null> {
+  const channelId = reviewChannelFor(config, opening);
+  if (!channelId) return null;
+  const channel = await guild.channels.fetch(channelId).catch(() => null);
+  if (!channel?.isTextBased() || !("send" in channel)) return null;
+  return channel as SendableChannels;
+}
+
 /** Posts a new application to its review channel (re-uploading any attached files). */
 export async function postForReview(
   guild: Guild,
@@ -105,13 +119,11 @@ export async function postForReview(
   applicant: User,
   files: Attachment[],
 ): Promise<boolean> {
-  const channelId = reviewChannelFor(config, opening);
-  if (!channelId) return false;
-  const channel = await guild.channels.fetch(channelId).catch(() => null);
-  if (!channel?.isTextBased() || !("send" in channel)) return false;
+  const channel = await resolveReviewChannel(guild, config, opening);
+  if (!channel) return false;
 
   const pings = opening.ping_roles.map((id) => `<@&${id}>`).join(" ");
-  const message = await (channel as SendableChannels)
+  const message = await channel
     .send({
       ...(pings ? { content: pings } : {}),
       embeds: [buildReviewEmbed(app, applicant)],
@@ -133,7 +145,7 @@ export async function postForReview(
       .catch(() => null);
     threadId = thread?.id ?? null;
   }
-  setReviewMessage(app.id, { channelId, messageId: message.id, threadId });
+  setReviewMessage(app.id, { channelId: channel.id, messageId: message.id, threadId });
   return true;
 }
 

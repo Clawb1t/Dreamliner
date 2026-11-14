@@ -52,6 +52,7 @@ function buildEmbed(
   tokens: Record<string, string>,
   avatarKey: string,
   mediaKey: string,
+  timestamp?: Date,
 ): EmbedBuilder | null {
   if (!embedConfig.enabled) return null;
   const embed = new EmbedBuilder();
@@ -86,7 +87,9 @@ function buildEmbed(
       iconURL: resolveIconUrl(embedConfig.footer_icon, embedConfig.footer_icon_url, tokens, avatarKey, mediaKey),
     });
   }
-  if (embedConfig.timestamp) embed.setTimestamp(new Date());
+  if (embedConfig.timestamp) {
+    embed.setTimestamp(timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : new Date());
+  }
 
   for (const field of embedConfig.fields.slice(0, 25)) {
     const name = interpolateTokens(field.name, tokens).slice(0, 256).trim();
@@ -99,6 +102,8 @@ function buildEmbed(
 }
 
 function buildButtonsRow(embedConfig: SocialEmbedConfig, tokens: Record<string, string>): ActionRowBuilder<ButtonBuilder> | null {
+  // Buttons are edited as part of the embed on the dashboard, so they're only sent alongside it.
+  if (!embedConfig.enabled) return null;
   const buttons = embedConfig.buttons.slice(0, 5).filter((b) => b.label.trim() && b.url.trim());
   if (!buttons.length) return null;
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -123,8 +128,10 @@ export function buildNotificationPayload(
   /** Which token holds the source's avatar image, and which holds the post/stream media thumbnail — used to resolve "channel"/"video" icon sources. */
   avatarKey: string,
   mediaKey: string,
+  /** The video's publish time / stream's start time, used for the embed timestamp (falls back to now). */
+  timestamp?: Date,
 ): BaseMessageOptions {
-  const embed = buildEmbed(watcher.embedConfig, tokens, avatarKey, mediaKey);
+  const embed = buildEmbed(watcher.embedConfig, tokens, avatarKey, mediaKey, timestamp);
   const buttonsRow = buildButtonsRow(watcher.embedConfig, tokens);
   const content = buildContent(watcher, tokens);
 
@@ -143,6 +150,7 @@ export async function sendNotification(
   tokens: Record<string, string>,
   avatarKey: string,
   mediaKey: string,
+  timestamp?: Date,
 ): Promise<boolean> {
   try {
     // Only the watcher's own server: a channel id from another server is treated as unavailable.
@@ -151,7 +159,7 @@ export async function sendNotification(
       log.warn(`[social] watcher ${watcher.id}: target channel ${watcher.discordChannelId} is unavailable.`);
       return false;
     }
-    await channel.send(buildNotificationPayload(watcher, tokens, avatarKey, mediaKey));
+    await channel.send(buildNotificationPayload(watcher, tokens, avatarKey, mediaKey, timestamp));
     return true;
   } catch (error) {
     log.error(`[social] watcher ${watcher.id}: failed to send notification:`, error);

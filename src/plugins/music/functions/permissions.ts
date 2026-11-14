@@ -11,9 +11,11 @@ export function canBypassVoteSkip(member: GuildMember, config: MusicConfig, canF
   return canForceSkip || isDj(member, config);
 }
 
-/** In DJ mode, only DJs may control playback directly (non-DJs fall back to vote-skip for skip,
- *  and are blocked entirely from pause/stop/queue-management/volume/filters/loop). */
+/** In DJ mode, only DJs - and anyone with can_force_skip, which the resolved config already sets
+ *  for owner/Administrator/Manage Server under admin_bypass - may control playback directly
+ *  (everyone else falls back to vote-skip for skip, and is blocked entirely from
+ *  pause/stop/queue-management/volume/filters/loop). `config` must be the member-resolved one. */
 export function canControlPlayback(member: GuildMember, config: MusicConfig, hasFlag: boolean): boolean {
-  if (config.dj_mode) return isDj(member, config);
+  if (config.dj_mode) return canBypassVoteSkip(member, config, config.can_force_skip === true);
   return hasFlag;
 }

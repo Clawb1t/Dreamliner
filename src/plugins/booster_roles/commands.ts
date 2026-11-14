@@ -4,7 +4,7 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
 import { formatDuration } from "../../core/datetime.js";
 import { activeTiers, hasBoostCountTiers, loadBoosterRolesConfig } from "./functions/config.js";
-import { syncBoosterRoles, tierQualifies } from "./functions/apply.js";
+import { holdsBoosterTierRole, syncBoosterRoles, tierQualifies } from "./functions/apply.js";
 import { effectiveBoostCount } from "./functions/boostCounts.js";
 import { boostDurationDays, boostDurationMs, isBoosting } from "../../core/boosterStatus.js";
 
@@ -98,7 +98,8 @@ export const boosterRolesCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "booster_roles", "can_recheck");
         if (!auth) return;
 
-        if (!isBoosting(auth.member)) {
+        // An ex-booster still holding tier roles goes through the sync below so they get removed.
+        if (!isBoosting(auth.member) && !holdsBoosterTierRole(auth.member, loadBoosterRolesConfig(ctx.guildConfig))) {
           await ctx.interaction.reply(
             resultReply(
               t("booster_roles.notBoostingTitle", "Not boosting"),

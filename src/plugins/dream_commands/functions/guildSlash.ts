@@ -2,12 +2,22 @@ import { Routes, SlashCommandBuilder, type Client } from "discord.js";
 import { getAllSlashCommands } from "../../availablePlugins.js";
 import { listEnabledDreamCommands, type DreamCommandRow } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
+import { configManager } from "../../../config/manager.js";
+import { pluginEnabled } from "../../../core/pluginCommand.js";
 const log = getLogger("dream_commands");
 
 /** Dreamliner allows at most this many custom commands per server (product limit). */
 export const DREAM_COMMAND_CAP = 10;
 
 const reservedNamesCache = new Set<string>();
+
+/** Whether each guild's custom commands were last synced with the plugin on, so a config save
+ *  only re-syncs with Discord when the plugin was actually toggled. */
+const syncedPluginState = new Map<string, boolean>();
+
+export function dreamCommandsNeedResync(guildId: string, enabled: boolean): boolean {
+  return syncedPluginState.get(guildId) !== enabled;
+}
 
 /** Built-in Dreamliner slash command names (and a few fixed reserves). */
 export function getReservedCommandNames(): Set<string> {
@@ -53,11 +63,14 @@ export async function syncGuildDreamSlashCommands(client: Client, guildId: strin
     return 0;
   }
 
-  const rows = await listEnabledDreamCommands(guildId);
+  // With the plugin off, register no custom commands so they don't linger in Discord's picker.
+  const enabled = pluginEnabled(await configManager.getEffectiveConfig(guildId), "dream_commands");
+  const rows = enabled ? await listEnabledDreamCommands(guildId) : [];
   const body = buildGuildCommandBody(rows);
   // The client's own REST manager: a new REST per sync leaked two interval timers (and the whole
   // instance) every time, once per guild at startup and on every custom-command edit.
   await client.rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
+  syncedPluginState.set(guildId, enabled);
   return body.length;
 }
 

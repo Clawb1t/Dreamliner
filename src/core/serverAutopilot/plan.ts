@@ -237,8 +237,9 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
   const roleIdByKey = new Map(roles.filter((r) => r.roleId).map((r) => [r.key, r.roleId!]));
 
   // ── Channels ─────────────────────────────────────────────────────────────
-  const hasLogsPlugin = template.plugins.some((p) => p.plugin === "logs");
-  const protectedIds = protectedChannelIds(snap, { includeLogs: !hasLogsPlugin });
+  // Existing Dreamliner log channels stay protected even when the design adds a logs plugin:
+  // they can be reused as they are, but are never changed or deleted.
+  const protectedIds = protectedChannelIds(snap);
   const existingChannels = snap.channels.filter((c) => c.kind !== "category" && c.kind !== "other");
   const existingCategories = snap.channels.filter((c) => c.kind === "category");
   const channelById = new Map(snap.channels.map((c) => [c.id, c]));

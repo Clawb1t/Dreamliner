@@ -753,6 +753,7 @@ plugins:
       stay_connected_247: false
       auto_leave_empty_seconds: 120
       autoplay_enabled: false
+      radios_enabled: true
       can_play: false
       can_control_playback: false
       can_skip: false

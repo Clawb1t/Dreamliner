@@ -56,8 +56,9 @@ export async function handleAutothreadMessage(message: Message): Promise<void> {
 
   for (const rule of rules) {
     if (message.hasThread) return;
-    if (!autothreadHasContent(rule)) continue;
     if (!autothreadPassesFilters(message, rule)) continue;
+    // A rule with nothing to post still starts the thread; it just stays quiet inside it.
+    const hasContent = autothreadHasContent(rule);
 
     if (rule.every_n || rule.cooldown_seconds) {
       const allowed = await shouldTriggerAutothreadByCadence({
@@ -71,14 +72,15 @@ export async function handleAutothreadMessage(message: Message): Promise<void> {
     }
 
     const sticky = autothreadAsSticky(rule);
-    const built = buildPersistPayload(sticky, {
-      client: message.client,
-      guild: message.guild,
-      channel,
-      user: message.author,
-      member: message.member as GuildMember | null,
-    });
-    if (built.empty) continue;
+    const built = hasContent
+      ? buildPersistPayload(sticky, {
+          client: message.client,
+          guild: message.guild,
+          channel,
+          user: message.author,
+          member: message.member as GuildMember | null,
+        })
+      : null;
 
     const thread = await message
       .startThread({
@@ -88,6 +90,7 @@ export async function handleAutothreadMessage(message: Message): Promise<void> {
       })
       .catch(() => null);
     if (!thread) continue;
+    if (!built || built.empty) return;
 
     if (rule.webhook) {
       const hook = await getAutothreadWebhook(channel);

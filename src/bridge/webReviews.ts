@@ -4,6 +4,7 @@ import type { Guild } from "discord.js";
 import { getDb } from "../db/client.js";
 import { reviews } from "../db/schema.js";
 import { softDeleteReview } from "../plugins/reviews/functions/store.js";
+import { deleteReviewPost } from "../plugins/reviews/functions/embeds.js";
 
 export type WebPerson = {
   id: string;
@@ -160,5 +161,8 @@ export async function getWebReview(guild: Guild, reviewId: number): Promise<WebR
 }
 
 export async function deleteWebReview(guild: Guild, reviewId: number) {
-  return softDeleteReview(guild.id, reviewId);
+  const review = await softDeleteReview(guild.id, reviewId);
+  // Same as /review delete: the Discord post goes too, not just the dashboard row.
+  if (review) await deleteReviewPost(guild.client, guild.id, review);
+  return review;
 }

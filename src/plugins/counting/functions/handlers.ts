@@ -7,8 +7,9 @@ import { renderTemplate } from "../../../core/templates.js";
 import { buildResultEmbed } from "../../../core/embeds.js";
 import { containerReply } from "../../../core/responses.js";
 import { safeEvaluateExpression } from "./math.js";
-import { getCountingWebhook } from "./webhook.js";
-import { getCountingState, recordSuccessfulCount, resetCountingState } from "./store.js";
+import { getCountingWebhook, isCountingWebhookId } from "./webhook.js";
+import { getCountingState, markRecordAnnounced, recordSuccessfulCount, resetCountingState } from "./store.js";
+import { isOwnWebhookId } from "../../../core/webhooks.js";
 
 type FailureReason = "invalid" | "out_of_turn" | "cooldown" | "wrong_number";
 type MessageKind = "failure" | "milestone" | "record";
@@ -54,7 +55,8 @@ function restartCountFor(channelConfig: CountingChannel, brokenAtCount: number):
   if (channelConfig.reset_to === "last_milestone" && channelConfig.milestone_every > 0) {
     return Math.floor(brokenAtCount / channelConfig.milestone_every) * channelConfig.milestone_every;
   }
-  return 0;
+  // Same as /counting reset: the next expected number is start_at.
+  return channelConfig.start_at - channelConfig.step;
 }
 
 async function sendCountingMessage(
@@ -142,6 +144,17 @@ export async function handleCountingMessage(message: Message): Promise<void> {
   if (!channelConfig) return;
 
   if (message.author.bot && !channelConfig.allow_bots) return;
+  // Never count Dreamliner's own posts (announcements, webhook messages), even with bots allowed,
+  // or its failure/milestone messages could break the count in a loop.
+  if (message.author.id === message.client.user.id) return;
+  if (
+    message.webhookId &&
+    (message.applicationId === message.client.user.id ||
+      isOwnWebhookId(message.webhookId) ||
+      isCountingWebhookId(message.webhookId))
+  ) {
+    return;
+  }
 
   const guildId = message.guild.id;
   const channel = message.channel as GuildTextBasedChannel;
@@ -222,7 +235,7 @@ export async function handleCountingMessage(message: Message): Promise<void> {
     if (channelConfig.pin_milestones) {
       await message.pin().catch(() => null);
     }
-    if (channelConfig.economy_milestone_bonus > 0) {
+    if (channelConfig.economy_milestone_bonus > 0 && pluginEnabled(guildConfig, "economy")) {
       try {
         const { creditServer } = await import("../../economy/functions/money.js");
         creditServer(guildId, message.author.id, channelConfig.economy_milestone_bonus);
@@ -233,7 +246,10 @@ export async function handleCountingMessage(message: Message): Promise<void> {
   }
 
   const hadPreviousReset = (state?.totalResets ?? 0) > 0;
-  if (channelConfig.announce_new_record && hadPreviousReset && expected > highestCount) {
+  // Announce only the first count past the old record in this run; highestCount keeps rising with
+  // every count after that, so the flag stops it re-announcing each time.
+  if (channelConfig.announce_new_record && hadPreviousReset && expected > highestCount && !state?.recordAnnounced) {
+    await markRecordAnnounced(guildId, channel.id);
     await sendCountingMessage("record", channel, channelConfig, channelConfig.record_message, message, {
       number: String(expected),
       highest: String(newHighest),

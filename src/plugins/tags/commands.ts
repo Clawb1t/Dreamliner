@@ -4,7 +4,7 @@ import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
 import { renderTemplate } from "../../core/templates.js";
 import { buildDynamicExtras, keysReferencedIn } from "../../core/templateExtras.js";
-import { createTag, deleteTag, getTag, listTags, updateTag } from "./functions/store.js";
+import { createTag, deleteTag, getTag, listTags, updateTag, validateTagContent, validateTagName } from "./functions/store.js";
 
 export const tagsCommands: SlashCommandDefinition[] = [
   {
@@ -58,8 +58,15 @@ export const tagsCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, "tags", "can_create");
         if (!auth) return;
 
-        const name = ctx.interaction.options.getString("name", true);
-        const content = ctx.interaction.options.getString("content", true);
+        const nameCheck = validateTagName(ctx.interaction.options.getString("name", true));
+        const contentCheck = validateTagContent(ctx.interaction.options.getString("content", true));
+        if (!nameCheck.ok || !contentCheck.ok) {
+          const error = !nameCheck.ok ? nameCheck.error : !contentCheck.ok ? contentCheck.error : "";
+          await ctx.interaction.reply(resultReply(ctx.t("tags.invalidTitle", "Can't create tag"), error, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
+          return;
+        }
+        const { name } = nameCheck;
+        const { content } = contentCheck;
 
         const existing = await getTag(guildId, name);
         if (existing) {
@@ -84,8 +91,12 @@ export const tagsCommands: SlashCommandDefinition[] = [
         if (!auth) return;
 
         const name = ctx.interaction.options.getString("name", true);
-        const content = ctx.interaction.options.getString("content", true);
-        const updated = await updateTag(guildId, name, content);
+        const contentCheck = validateTagContent(ctx.interaction.options.getString("content", true));
+        if (!contentCheck.ok) {
+          await ctx.interaction.reply(resultReply(ctx.t("tags.invalidEditTitle", "Can't update tag"), contentCheck.error, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })));
+          return;
+        }
+        const updated = await updateTag(guildId, name, contentCheck.content);
         if (!updated) {
           await ctx.interaction.reply(resultReply(ctx.t("tags.notFoundTitle", "Not found"), ctx.t("tags.notFoundBody", "No tag named **{name}**.", { name }), ctx.ephemeral, slashResultOptions(ctx)));
           return;

@@ -129,7 +129,7 @@ import { loadDefaultConfig } from "./config/default.js";
 import type { BotContext, ContextMenuCommandDefinition, SlashCommandDefinition } from "./core/types.js";
 import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
 import { startDashboardBridge } from "./bridge/dashboardBridge.js";
-import { startStatusMonitor } from "./core/statusMonitor.js";
+import { setStatusInventory, startStatusMonitor } from "./core/statusMonitor.js";
 import { getLogger } from "./core/logger.js";
 const log = getLogger("bot");
 const cmdLog = getLogger("commands");
@@ -209,7 +209,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     log.error("[discord] Client error:", error);
   });
 
+  // Every plugin adds its own listener per event (loadPlugins), so busy events like messageCreate
+  // or guildMemberAdd legitimately carry one per plugin, past Node's default warning limit of 10.
+  // Size the limit to the plugin count plus headroom for the bot's own listeners instead of
+  // disabling it, so a real leak (a listener added per message, say) still warns.
+  client.setMaxListeners(availablePlugins.length + 20);
+
   const ctx = await loadPlugins(client, configManager, availablePlugins);
+  setStatusInventory({ plugins: availablePlugins.length, commands: ctx.commands.size + ctx.contextMenuCommands.size });
 
   // Server Autopilot jobs can't survive a restart: mark any left running as failed (finished steps
   // and created ids are kept, so a rerun continues) before the dashboard bridge can see them.
@@ -373,6 +380,13 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         await handleCharacterAutocomplete(interaction).catch((error) => {
           log.error("Character autocomplete error:", error);
         });
+      }
+      if (interaction.commandName === "radio") {
+        const { handleRadioAutocomplete } = await import("./plugins/music/commands/radio.js");
+        await handleRadioAutocomplete(interaction).catch((error) => {
+          log.error("Radio autocomplete error:", error);
+        });
+        return;
       }
       if (interaction.commandName === "team") {
         await handleTeamAutocomplete(interaction).catch((error) => {

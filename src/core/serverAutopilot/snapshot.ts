@@ -151,9 +151,8 @@ export function snapshotGuild(guild: Guild, logChannelIds: string[] = []): Guild
 }
 
 /** Channels Discord or Dreamliner depends on: never deleted or modified by Autopilot. */
-export function protectedChannelIds(snap: GuildSnapshot, options: { includeLogs?: boolean } = {}): Set<string> {
-  const ids = [snap.rulesChannelId, snap.publicUpdatesChannelId, snap.systemChannelId, snap.safetyAlertsChannelId];
-  if (options.includeLogs !== false) ids.push(...snap.logChannelIds);
+export function protectedChannelIds(snap: GuildSnapshot): Set<string> {
+  const ids = [snap.rulesChannelId, snap.publicUpdatesChannelId, snap.systemChannelId, snap.safetyAlertsChannelId, ...snap.logChannelIds];
   return new Set(ids.filter((id): id is string => Boolean(id)));
 }
 
@@ -165,7 +164,7 @@ export function roleEditable(snap: GuildSnapshot, role: SnapRole): boolean {
 /** The SAStructure the dashboard shows for a snapshot (or a backup, which has the same shape). */
 export function structureOf(snap: Pick<GuildSnapshot, "channels" | "roles" | "bot"> & Partial<Pick<GuildSnapshot, "rulesChannelId" | "publicUpdatesChannelId" | "systemChannelId" | "safetyAlertsChannelId" | "logChannelIds">>): SAStructure {
   const protectedIds = new Set(
-    [snap.rulesChannelId, snap.publicUpdatesChannelId, snap.systemChannelId, snap.safetyAlertsChannelId].filter((id): id is string => Boolean(id)),
+    [snap.rulesChannelId, snap.publicUpdatesChannelId, snap.systemChannelId, snap.safetyAlertsChannelId, ...(snap.logChannelIds ?? [])].filter((id): id is string => Boolean(id)),
   );
   const toExisting = (c: SnapChannel) => ({
     id: c.id,

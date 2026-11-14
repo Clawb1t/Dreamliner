@@ -24,7 +24,7 @@ export const APP_EMOJI = {
   tada: "<:icons_tada:1544417975472492594>",
   join: "<:icons_join:1544417310780166154>",
   leave: "<:icons_leave:1544417327335088148>",
-  first: "<:icons_1:1544417676762292264>",
+  first: "<:1_:1570990883984384050>",
   second: "<:icons_2:1544417991813238868>",
   third: "<:icons_3:1544417993449013308>",
 } as const;

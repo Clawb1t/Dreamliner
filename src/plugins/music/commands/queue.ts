@@ -2,7 +2,9 @@ import { SlashCommandBuilder, type GuildMember } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { MUSIC_LOOP_MODES } from "../../../config/schemas/music.js";
 import { requireMusicPermission, requireActivePlayer, requirePlaybackControl, lineReply } from "../functions/commandHelpers.js";
-import { removeAt, move, clearQueue } from "../functions/queueOps.js";
+import { refuseWhileOnAir } from "../functions/commandHelpers.js";
+import { removeAt, move, clearQueue, shuffleQueue } from "../functions/queueOps.js";
+import { visibleQueue } from "../radio/tags.js";
 import { formatDuration, trackLink, loopLine, shuffledLine, nothingPlayingLine } from "../functions/formatting.js";
 import { MUSIC_EMOJI } from "../functions/emojis.js";
 import { saveSessionNow } from "../functions/sessionPersistence.js";
@@ -39,7 +41,7 @@ export const queueCommands: SlashCommandDefinition[] = [
         const player = await requireActivePlayer(ctx, guildId);
         if (!player) return;
 
-        const tracks = player.queue.tracks;
+        const tracks = visibleQueue(player);
         if (!player.queue.current && tracks.length === 0) {
           await interaction.reply(lineReply(nothingPlayingLine(), ephemeral));
           return;
@@ -132,7 +134,7 @@ export const queueCommands: SlashCommandDefinition[] = [
       const member = auth.member as GuildMember;
       if (!(await requirePlaybackControl(ctx, member, auth.config, auth.config.can_manage_queue))) return;
 
-      const count = await player.queue.shuffle();
+      const count = await shuffleQueue(player);
       void saveSessionNow(player).catch(() => {});
       await interaction.reply(lineReply(shuffledLine(count), ephemeral));
       void logMusic(interaction.client, ctx.guildConfig, interaction.guildId!, "music_queue", "Music - Queue Shuffled", [
@@ -153,6 +155,7 @@ export const queueCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const player = await requireActivePlayer(ctx, interaction.guildId!);
       if (!player) return;
+      if (await refuseWhileOnAir(ctx, player)) return;
       const member = auth.member as GuildMember;
       if (!(await requirePlaybackControl(ctx, member, auth.config, auth.config.can_manage_queue))) return;
 

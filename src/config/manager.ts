@@ -20,7 +20,9 @@ const cache = new Map<string, GuildConfig>();
 
 type SaveResult = { success: true; data: GuildConfig } | { success: false; errors: string[] };
 
-type ConfigSaveListener = (guildId: string, config: GuildConfig) => void;
+/** `previous` is the guild's config from just before this save (null when it had none), so a
+ *  listener can react to what was removed, e.g. clean up Discord posts for deleted entries. */
+type ConfigSaveListener = (guildId: string, config: GuildConfig, previous: GuildConfig | null) => void;
 
 export class ConfigManager {
   private saveListeners = new Set<ConfigSaveListener>();
@@ -53,10 +55,10 @@ export class ConfigManager {
     };
   }
 
-  private notifySave(guildId: string, config: GuildConfig): void {
+  private notifySave(guildId: string, config: GuildConfig, previous: GuildConfig | null): void {
     for (const listener of this.saveListeners) {
       try {
-        listener(guildId, config);
+        listener(guildId, config, previous);
       } catch (error) {
         log.error("[dreamliner] Config save listener failed:", error);
       }
@@ -232,6 +234,7 @@ export class ConfigManager {
       return result;
     }
 
+    const previous = await this.getGuildConfig(guildId).catch(() => null);
     const defaultsSnapshotJson = JSON.stringify(loadDefaultConfig());
     let userConfigJson: string;
     try {
@@ -267,7 +270,7 @@ export class ConfigManager {
 
     cache.set(guildId, result.data);
     this.guildsWithoutStoredConfig.delete(guildId);
-    this.notifySave(guildId, result.data);
+    this.notifySave(guildId, result.data, previous);
     return { success: true, data: result.data };
   }
 

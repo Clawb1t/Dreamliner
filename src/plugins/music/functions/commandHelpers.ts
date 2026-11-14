@@ -9,6 +9,7 @@ import { zMusicConfig, type MusicConfig } from "../../../config/schemas/music.js
 import { getConnectedPlayer } from "./player.js";
 import { canControlPlayback, isDj } from "./permissions.js";
 import { MUSIC_EMOJI } from "./emojis.js";
+import { currentStationId, RADIO_ON_AIR_BLOCK } from "../radio/tags.js";
 
 export type MusicAuth = { member: GuildMember; config: MusicConfig };
 
@@ -48,7 +49,7 @@ export function memberSharesVoiceChannel(member: GuildMember, player: Player): b
 }
 
 /** DJ-mode-aware gate for direct playback control (pause/resume/stop/volume/seek/filter/queue
- *  management/loop) — in DJ mode only DJs may act; otherwise the caller's own can_* flag decides.
+ *  management/loop) — in DJ mode only DJs (and can_force_skip holders) may act; otherwise the caller's own can_* flag decides.
  *  Replies with a permission-denied one-liner and returns false when blocked. */
 export async function requirePlaybackControl(
   ctx: SlashCommandContext,
@@ -65,3 +66,10 @@ export async function requirePlaybackControl(
 }
 
 export { isDj };
+
+/** Seek, filters, loop and pause don't apply to a live station. Replies and returns true when blocked. */
+export async function refuseWhileOnAir(ctx: SlashCommandContext, player: Player): Promise<boolean> {
+  if (!currentStationId(player)) return false;
+  await ctx.interaction.reply(lineReply(`${MUSIC_EMOJI.error} ${RADIO_ON_AIR_BLOCK}`, ctx.ephemeral));
+  return true;
+}

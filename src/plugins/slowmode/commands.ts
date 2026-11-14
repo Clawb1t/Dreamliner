@@ -236,9 +236,14 @@ export const slowmodeCommands: SlashCommandDefinition[] = [
         return;
       }
 
+      // No preset or seconds given: fall back to the dashboard's "Default channel delay (seconds)",
+      // which the page has always promised (it used to be ignored and the command errored instead).
+      const defaultSeconds = getSlowmodeGuildConfig(ctx.guildConfig).default_seconds;
       const seconds =
         sub === "set"
-          ? (ctx.interaction.options.getInteger("seconds") ?? ctx.interaction.options.getInteger("preset"))
+          ? (ctx.interaction.options.getInteger("seconds") ??
+            ctx.interaction.options.getInteger("preset") ??
+            (typeof defaultSeconds === "number" && defaultSeconds > 0 ? defaultSeconds : null))
           : 0;
 
       if (sub === "set" && seconds === null) {

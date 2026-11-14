@@ -1,6 +1,6 @@
 import type { Client, TextChannel } from "discord.js";
 import type { GuildConfig } from "../../config/schemas/guild.js";
-import { getEventChannelOverride, getModerationLogChannelId, getServerLogChannelId } from "./channels.js";
+import { resolveLogChannelId } from "./channels.js";
 import { buildLogPayload } from "./container.js";
 import { LOG_EVENT_META, type LogEventType } from "./events.js";
 import { LOG_EMOJI, type LogEmojiCategory } from "./emojis.js";
@@ -46,6 +46,8 @@ export type LogEmitMeta = {
   messageId?: string | null;
   caseId?: number | null;
   payload?: Record<string, unknown>;
+  /** The plugin's own log channel (e.g. Tickets/Automod/Suggestions `log_channel_id`); beats the
+   *  moderation/server default but not a per-event override. */
   caseLogOverride?: string | null;
 };
 
@@ -161,11 +163,7 @@ export async function emitLog(
     }
   }
 
-  const channelId =
-    getEventChannelOverride(guildConfig, meta.eventType) ??
-    (category === "moderation"
-      ? getModerationLogChannelId(guildConfig, meta.caseLogOverride)
-      : getServerLogChannelId(guildConfig));
+  const channelId = resolveLogChannelId(guildConfig, meta.eventType, meta.caseLogOverride);
 
   let discordMessageId: string | null = null;
   if (channelId) {

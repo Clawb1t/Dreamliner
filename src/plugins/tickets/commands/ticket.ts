@@ -328,6 +328,17 @@ export const ticketCommands: SlashCommandDefinition[] = [
         const auth = await requireTicketPermission(ctx, "can_claim");
         if (!auth) return;
         if (sub === "claim") {
+          if (ticket.status === "closed") {
+            await interaction.reply(
+              resultReply(
+                t("tickets.close.alreadyClosedTitle", "Already closed"),
+                t("tickets.close.alreadyClosed", "Ticket #{number} is already closed.", { number: ticket.number }),
+                ctx.ephemeral,
+                slashResultOptions(ctx, { tone: "error" }),
+              ),
+            );
+            return;
+          }
           await performClaim(ctx.client, ctx.guildConfig, auth.pluginConfig, ticket, interaction.user.id);
           await interaction.reply(
             resultReply(
@@ -396,6 +407,17 @@ export const ticketCommands: SlashCommandDefinition[] = [
       }
 
       if (sub === "close") {
+        if (ticket.status === "closed") {
+          await interaction.reply(
+            resultReply(
+              t("tickets.close.alreadyClosedTitle", "Already closed"),
+              t("tickets.close.alreadyClosed", "Ticket #{number} is already closed.", { number: ticket.number }),
+              ctx.ephemeral,
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
+        }
         const pluginConfig = (await getTicketsPluginConfig(guildId, ctx.guildConfig, interaction.member as import("discord.js").GuildMember)) as TicketsConfig;
         const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
         const category = panel?.categories.find((c) => c.id === ticket.categoryId);
@@ -542,17 +564,39 @@ export const ticketCommands: SlashCommandDefinition[] = [
           return;
         }
         const sent = await dmTranscript(interaction.user, ticket, latest.id, t);
+        let postedChannelId: string | null = null;
         if (!sent) {
+          // Same channel the close flow posts to: the category's transcript channel, then the plugin default.
           const pluginConfig = (await getTicketsPluginConfig(guildId, ctx.guildConfig)) as TicketsConfig;
-          const channelId = pluginConfig.default_transcript_channel_id;
-          if (channelId) await postTranscriptLog(ctx.client, channelId, ticket, latest.id, t);
+          const category = pluginConfig.panels
+            .find((p) => p.id === ticket.panelId)
+            ?.categories.find((c) => c.id === ticket.categoryId);
+          const channelId = category?.transcript_channel_id || pluginConfig.default_transcript_channel_id;
+          if (channelId && (await postTranscriptLog(ctx.client, channelId, ticket, latest.id, t))) {
+            postedChannelId = channelId;
+          }
+        }
+        if (!sent && !postedChannelId) {
+          await interaction.editReply(
+            resultEdit(
+              t("tickets.transcript.failedTitle", "Couldn't send transcript"),
+              t(
+                "tickets.transcript.failed",
+                "Could not DM you, and there's no reachable transcript channel to post it in. Open your DMs from this server and try again.",
+              ),
+              slashResultOptions(ctx, { tone: "error" }),
+            ),
+          );
+          return;
         }
         await interaction.editReply(
           resultEdit(
             sent ? t("tickets.transcript.sentTitle", "Transcript sent") : t("tickets.transcript.postedTitle", "Transcript posted"),
             sent
               ? t("tickets.transcript.sent", "Check your DMs for the transcript.")
-              : t("tickets.transcript.posted", "Could not DM you — posted the transcript to the log channel instead."),
+              : t("tickets.transcript.postedIn", "Could not DM you, so the transcript was posted in <#{channelId}> instead.", {
+                  channelId: postedChannelId!,
+                }),
             slashResultOptions(ctx, { tone: "success", emoji: "<:icons_folder:1544417545602334791>" }),
           ),
         );

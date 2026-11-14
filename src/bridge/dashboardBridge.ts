@@ -386,6 +386,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Radio MP3s for Lavalink: unauthenticated but HMAC-signed (see plugins/music/radio/media.ts).
+        if ((req.method === "GET" || req.method === "HEAD") && url.pathname.startsWith("/radio/media/")) {
+          const { serveRadioMedia } = await import("../plugins/music/radio/media.js");
+          serveRadioMedia(req, res, url);
+          return;
+        }
+
         if (!authorized(req, secret)) {
           sendJson(res, 401, { error: "Unauthorized" });
           return;
@@ -425,6 +432,35 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { id: guild.id, name: guild.name, icon: guild.icon, banner: guild.banner });
+          return;
+        }
+
+        // Avia (help centre assistant): daily message limits. The site hashes visitors' IPs before
+        // sending them, so the bot never sees a raw address.
+        if (url.pathname === "/bridge/avia/usage") {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { subject?: unknown; peek?: unknown; tokens?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const { validAviaSubject, takeAviaMessage, recordAviaTokens, pruneAviaUsage } = await import("../core/avia/usage.js");
+          if (!validAviaSubject(body.subject)) {
+            sendJson(res, 400, { error: "Invalid subject" });
+            return;
+          }
+          if (typeof body.tokens === "number") {
+            recordAviaTokens(body.subject, body.tokens);
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+          if (Math.random() < 0.01) pruneAviaUsage();
+          sendJson(res, 200, takeAviaMessage(body.subject, { peek: body.peek === true }));
           return;
         }
 
@@ -1422,6 +1458,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             profileVisible?: unknown;
             showTradingCards?: unknown;
             hideServersSection?: unknown;
+            aviaDashboard?: unknown;
           };
           try {
             body = JSON.parse(await readBody(req)) as typeof body;
@@ -1442,6 +1479,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             profileVisible?: boolean;
             showTradingCards?: boolean;
             hideServersSection?: boolean;
+            aviaDashboard?: boolean;
           } = {};
 
           if ("accentColor" in body) {
@@ -1480,6 +1518,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             patch.hideServersSection = body.hideServersSection;
+          }
+          if ("aviaDashboard" in body) {
+            if (typeof body.aviaDashboard !== "boolean") {
+              sendJson(res, 400, { error: "aviaDashboard must be a boolean." });
+              return;
+            }
+            patch.aviaDashboard = body.aviaDashboard;
           }
 
           if (Object.keys(patch).length === 0) {
@@ -2408,6 +2453,111 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        const radioIconMatch = /^\/bridge\/radios\/([a-z0-9]{8,32})\/icon$/.exec(url.pathname);
+        const radioArtworkMatch = /^\/bridge\/radios\/([a-z0-9]{8,32})\/tracks\/([a-z0-9]{8,32})\/artwork$/.exec(url.pathname);
+        if ((radioIconMatch || radioArtworkMatch) && req.method === "GET") {
+          const { readRadioIcon, readRadioArtwork } = await import("./webRadio.js");
+          const buf = radioIconMatch
+            ? await readRadioIcon(radioIconMatch[1]!)
+            : await readRadioArtwork(radioArtworkMatch![1]!, radioArtworkMatch![2]!);
+          if (!buf) {
+            sendJson(res, 404, { error: "Image not found" });
+            return;
+          }
+          sendBinary(res, 200, buf, "image/png");
+          return;
+        }
+
+        if (url.pathname === "/bridge/platform/radios" || url.pathname.startsWith("/bridge/platform/radios/")) {
+          const parts = url.pathname.slice("/bridge/platform/radios".length).split("/").filter(Boolean);
+          let body: Record<string, unknown> = {};
+          if (req.method !== "GET") {
+            try {
+              const raw = await readBody(req);
+              body = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+            } catch (error) {
+              if (error instanceof PayloadTooLargeError) {
+                sendJson(res, 413, { error: "That upload is too large." });
+                return;
+              }
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+          }
+          const actorId = ((req.method === "GET" ? url.searchParams.get("userId") : typeof body.userId === "string" ? body.userId : "") ?? "").trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const radio = await import("./webRadio.js");
+          const reply = (result: { ok: true } | { ok: false; status: number; error: string }) => {
+            if (result.ok) sendJson(res, 200, result);
+            else sendJson(res, result.status, { error: result.error });
+          };
+          const [stationId, section, subId, action] = parts;
+          if (stationId && !/^[a-z0-9]{8,32}$/.test(stationId)) {
+            sendJson(res, 404, { error: "Station not found." });
+            return;
+          }
+          if (!stationId) {
+            if (req.method === "GET") {
+              sendJson(res, 200, { ok: true, ...(await radio.listPlatformRadios()) });
+              return;
+            }
+            if (req.method === "POST") {
+              reply(await radio.createPlatformRadio(body, actorId));
+              return;
+            }
+          } else if (!section) {
+            if (req.method === "PUT") {
+              reply(await radio.updatePlatformRadio(stationId, body));
+              return;
+            }
+            if (req.method === "DELETE") {
+              reply(await radio.deletePlatformRadio(stationId));
+              return;
+            }
+          } else if (section === "icon" && !subId && req.method === "POST") {
+            reply(await radio.setPlatformRadioIcon(stationId, body.imageBase64));
+            return;
+          } else if (section === "skip" && !subId && req.method === "POST") {
+            reply(await radio.skipPlatformRadio(stationId));
+            return;
+          } else if (section === "tracks") {
+            if (!subId && req.method === "PUT") {
+              reply(await radio.editPlatformTracks(stationId, body));
+              return;
+            }
+            if (subId && !action && req.method === "DELETE") {
+              reply(await radio.deletePlatformTrack(stationId, subId));
+              return;
+            }
+          } else if (section === "uploads") {
+            if (!subId && req.method === "POST") {
+              reply(await radio.startPlatformUpload(stationId, body, actorId));
+              return;
+            }
+            if (subId && !/^[a-f0-9]{24}$/.test(subId)) {
+              sendJson(res, 404, { error: "Unknown upload." });
+              return;
+            }
+            if (subId && action === "chunk" && req.method === "POST") {
+              reply(await radio.appendPlatformChunk(stationId, subId, body));
+              return;
+            }
+            if (subId && action === "complete" && req.method === "POST") {
+              reply(await radio.completePlatformUpload(stationId, subId, actorId));
+              return;
+            }
+            if (subId && !action && req.method === "DELETE") {
+              reply(await radio.abortPlatformUpload(stationId, subId));
+              return;
+            }
+          }
+          sendJson(res, 404, { error: "Not found" });
+          return;
+        }
+
         if (url.pathname === "/bridge/platform/badges") {
           if (req.method === "GET") {
             const requesterId = url.searchParams.get("userId")?.trim();
@@ -3124,6 +3274,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const automodTestMatch = /^\/bridge\/guilds\/(\d+)\/automod\/test$/.exec(url.pathname);
         const automodAiTextMatch = /^\/bridge\/guilds\/(\d+)\/automod\/ai-text$/.exec(url.pathname);
         const boosterBoostsMatch = /^\/bridge\/guilds\/(\d+)\/booster-roles\/boosts(\/backfill)?$/.exec(url.pathname);
+        const aviaDiagnosticsMatch = req.method === "GET" ? /^\/bridge\/guilds\/(\d+)\/avia\/diagnostics$/.exec(url.pathname) : null;
         const automodNativeSyncMatch = /^\/bridge\/guilds\/(\d+)\/automod\/native-sync$/.exec(url.pathname);
         const automodMatch = /^\/bridge\/guilds\/(\d+)\/automod$/.exec(url.pathname);
         const impersonationTestMatch = /^\/bridge\/guilds\/(\d+)\/impersonation\/test$/.exec(url.pathname);
@@ -3146,6 +3297,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const musicActionMatch =
           /^\/bridge\/guilds\/(\d+)\/music\/(skip|pause|stop|shuffle|loop|volume|filter|join|autoplay)$/.exec(url.pathname);
         const musicMatch = /^\/bridge\/guilds\/(\d+)\/music$/.exec(url.pathname);
+        const musicRadioMatch = /^\/bridge\/guilds\/(\d+)\/music\/(radios|radio\/tune|radio\/leave)$/.exec(url.pathname);
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
@@ -3247,6 +3399,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !automodTestMatch &&
           !automodAiTextMatch &&
           !boosterBoostsMatch &&
+          !aviaDiagnosticsMatch &&
           !automodNativeSyncMatch &&
           !automodMatch &&
           !impersonationTestMatch &&
@@ -3262,6 +3415,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !musicQueueActionMatch &&
           !musicActionMatch &&
           !musicMatch &&
+          !musicRadioMatch &&
           !guildMatch &&
           !aiActionMatch &&
           !switchActionMatch
@@ -3367,6 +3521,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           automodTestMatch?.[1] ??
           automodAiTextMatch?.[1] ??
           boosterBoostsMatch?.[1] ??
+          aviaDiagnosticsMatch?.[1] ??
           automodNativeSyncMatch?.[1] ??
           automodMatch?.[1] ??
           impersonationTestMatch?.[1] ??
@@ -3382,6 +3537,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           musicQueueActionMatch?.[1] ??
           musicActionMatch?.[1] ??
           musicMatch?.[1] ??
+          musicRadioMatch?.[1] ??
           guildMatch?.[1] ??
           aiActionMatch?.[1] ??
           switchActionMatch?.[1]
@@ -3389,6 +3545,22 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
           sendJson(res, 404, { error: "Guild not found (bot is not in that server)." });
+          return;
+        }
+
+        if (aviaDiagnosticsMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const plugins = (url.searchParams.get("plugins") ?? "").split(",").filter(Boolean);
+          const { runAviaDiagnostics } = await import("../core/avia/diagnostics.js");
+          sendJson(res, 200, await runAviaDiagnostics(guild, plugins));
           return;
         }
 
@@ -5928,6 +6100,51 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const channelId = incidentUnlockMatch[2]!;
           const result = await unlockWebChannel(guild, channelId, userId);
           sendJson(res, result.ok ? 200 : 400, result);
+          return;
+        }
+
+        if (musicRadioMatch) {
+          const { getGuildRadios, webTuneRadio, webLeaveRadio } = await import("./webRadio.js");
+          const action = musicRadioMatch[2];
+          if (action === "radios" && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberIsInGuild(guild, userId))) {
+              sendJson(res, 403, { error: "You need to be a member of this server." });
+              return;
+            }
+            sendJson(res, 200, await getGuildRadios(guild));
+            return;
+          }
+          if (req.method === "POST" && (action === "radio/tune" || action === "radio/leave")) {
+            let body: { userId?: string; stationId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = body.userId?.trim();
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (action === "radio/tune") {
+              const stationId = typeof body.stationId === "string" ? body.stationId.trim() : "";
+              if (!/^[a-z0-9]{8,32}$/.test(stationId)) {
+                sendJson(res, 400, { error: "stationId is required" });
+                return;
+              }
+              const result = await webTuneRadio(guild, userId, stationId);
+              if (!result.ok) sendJson(res, result.status, { error: result.error });
+              else sendJson(res, 200, result);
+              return;
+            }
+            const result = await webLeaveRadio(guild, userId);
+            if (!result.ok) sendJson(res, result.status, { error: result.error });
+            else sendJson(res, 200, result);
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 
@@ -8522,7 +8739,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           if (commandOneMatch && req.method === "PUT") {
-            let body: { userId?: string; program?: unknown };
+            let body: { userId?: string; program?: unknown; enabled?: unknown };
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
@@ -8530,8 +8747,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const requesterId = body.userId?.trim();
-            if (!requesterId || typeof body.program !== "object" || body.program === null) {
-              sendJson(res, 400, { error: "userId and program are required" });
+            // Either a new program, or just `enabled` to switch the command on/off.
+            const hasProgram = typeof body.program === "object" && body.program !== null;
+            if (!requesterId || (!hasProgram && typeof body.enabled !== "boolean")) {
+              sendJson(res, 400, { error: "userId and program (or enabled) are required" });
               return;
             }
             if (!(await memberCanManage(guild, requesterId))) {
@@ -8544,7 +8763,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               configManager,
               guildId,
               commandOneMatch[2]!,
-              { program: body.program },
+              { program: body.program, enabled: body.enabled },
             );
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });

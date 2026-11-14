@@ -15,6 +15,8 @@ export const voiceCommands: SlashCommandDefinition[] = [
   {
     plugin: "utility",
     permission: "can_vcmove",
+    // Disconnect is a kick, not a move: it only needs can_vckick (checked again in execute).
+    subcommandPermissions: { disconnect: "can_vckick" },
     data: new SlashCommandBuilder()
       .setName("voice")
       .setDescription("Voice channel management")

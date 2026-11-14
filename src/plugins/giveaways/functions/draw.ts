@@ -1,3 +1,4 @@
+import { loadEconomyConfig } from "../../economy/functions/config.js";
 import * as store from "./store.js";
 import type { Giveaway, WinnerStatus } from "./store.js";
 
@@ -30,6 +31,18 @@ export function weightedPick(entries: WeightedEntrant[], count: number, exclude:
   return picks;
 }
 
+/** Credits the giveaway's win bonus, only while Economy is enabled. Never throws. */
+async function payWinBonus(giveaway: Giveaway, userId: string): Promise<void> {
+  if (giveaway.winBonus <= 0) return;
+  try {
+    if (!(await loadEconomyConfig(giveaway.guildId))) return;
+    const { creditServer } = await import("../../economy/functions/money.js");
+    creditServer(giveaway.guildId, userId, giveaway.winBonus);
+  } catch {
+    // Economy unavailable or errored - never block a draw or claim on it.
+  }
+}
+
 export async function drawWinners(giveaway: Giveaway): Promise<string[]> {
   const entries = await store.listEntries(giveaway.id);
   const picks = weightedPick(
@@ -41,6 +54,8 @@ export async function drawWinners(giveaway: Giveaway): Promise<string[]> {
   const now = new Date();
   for (const userId of picks) {
     await store.insertWinner({ giveawayId: giveaway.id, userId, status: "won", selectedAt: now, replacesWinnerId: null });
+    // No claim window means there's no claim step, so pay the bonus on the draw itself.
+    if (giveaway.claimWindowMinutes <= 0) await payWinBonus(giveaway, userId);
   }
 
   return picks;
@@ -98,6 +113,7 @@ export async function rerollWinner(
       selectedAt: now,
       replacesWinnerId: winnerRowId,
     });
+    if (giveaway.claimWindowMinutes <= 0) await payWinBonus(giveaway, userId);
   }
 
   return { oldWinnerIds, newWinnerIds };
@@ -112,14 +128,7 @@ export async function claimWinner(giveaway: Giveaway, userId: string): Promise<b
   if (windowMs > 0 && winner.selectedAt && Date.now() > winner.selectedAt.getTime() + windowMs) return false;
   if (!(await store.claimWinnerRow(winner.id, new Date()))) return false;
 
-  if (giveaway.winBonus > 0) {
-    try {
-      const { creditServer } = await import("../../economy/functions/money.js");
-      creditServer(giveaway.guildId, userId, giveaway.winBonus);
-    } catch {
-      // Economy unavailable, disabled, or errored - never block a successful claim on it.
-    }
-  }
+  await payWinBonus(giveaway, userId);
 
   return true;
 }

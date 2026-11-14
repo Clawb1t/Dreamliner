@@ -27,6 +27,7 @@ import {
 } from "./store.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
+import { pluginEnabled } from "../../../core/pluginCommand.js";
 
 const processingLocks = new Map<string, Promise<void>>();
 
@@ -340,6 +341,9 @@ async function processBoard(
 
     if (!existing && board.economy_bonus > 0 && message.author && !message.author.bot) {
       try {
+        // No reward while Economy is off (checked before claiming, so it can still pay out later).
+        const guildConfig = await configManager.getEffectiveConfig(message.guild!.id);
+        if (!pluginEnabled(guildConfig, "economy")) return;
         // Once per message, ever: the claim row survives the post being removed and re-added.
         const { getDb } = await import("../../../db/client.js");
         const { starboardBonusPaid } = await import("../../../db/schema.js");

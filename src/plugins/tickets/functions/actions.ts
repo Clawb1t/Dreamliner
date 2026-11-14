@@ -32,6 +32,7 @@ import {
   closeTicket as closeTicketRow,
   countOpenTicketsForUser,
   createTicket,
+  getTicket,
   nextTicketNumber,
   removeMember,
   setSubStatus,
@@ -309,6 +310,10 @@ export async function performClose(
   reason?: string | null,
   t: Translator = defaultTranslator,
 ): Promise<{ transcriptId: string | null }> {
+  // Last line of defence (callers check too): closing twice would re-save the transcript,
+  // re-DM the opener and re-log. Re-read so a double click that raced past the caller's check stops here.
+  const current = await getTicket(ticket.guildId, ticket.id);
+  if (!current || current.status === "closed") return { transcriptId: null };
   const targetId = ticket.threadId ?? ticket.channelId;
   const channel = await fetchGuildChannel(client, ticket.guildId, targetId);
 

@@ -54,6 +54,7 @@ export async function startGiveaway(guild: Guild, giveaway: Giveaway): Promise<G
     {
       guildId: guild.id,
       eventType: "giveaway_start",
+      caseLogOverride: guildConfig.plugins.giveaways?.config?.log_channel_id,
       summary: `${finalGiveaway.title || finalGiveaway.prize} started in <#${finalGiveaway.channelId}>.`,
       channelId: finalGiveaway.channelId,
       messageId: message.id,
@@ -77,6 +78,21 @@ export async function processScheduledStarts(client: Client): Promise<void> {
       log.error(`Failed to start giveaway #${giveaway.id}:`, error);
     }
   }
+}
+
+/** Refreshes the live embed/components for an active/scheduled/paused giveaway, used after any
+ *  change (edit, pause, resume) that changes what the posted message should show. */
+export async function refreshGiveawayMessage(guild: Guild, giveaway: Giveaway): Promise<void> {
+  if (!giveaway.messageId) return;
+  const channel = await fetchSendableChannel(guild, giveaway.channelId);
+  if (!channel) return;
+  const entryCount = await store.getEntryCount(giveaway.id);
+  await channel.messages
+    .fetch(giveaway.messageId)
+    .then((message) =>
+      message.edit({ embeds: [buildGiveawayEmbed(giveaway, entryCount, guild)], components: buildGiveawayComponents(giveaway, entryCount) }),
+    )
+    .catch(() => null);
 }
 
 async function editGiveawayMessage(
@@ -144,6 +160,7 @@ export async function finishGiveaway(client: Client, giveaway: Giveaway): Promis
     {
       guildId: giveaway.guildId,
       eventType: "giveaway_end",
+      caseLogOverride: guildConfig.plugins.giveaways?.config?.log_channel_id,
       summary: `${giveaway.title || giveaway.prize} ended with ${winnerIds.length} winner(s).`,
       channelId: giveaway.channelId,
       messageId: giveaway.messageId,
@@ -203,6 +220,7 @@ async function processExpiredClaimForGiveaway(client: Client, giveaway: Giveaway
     {
       guildId: giveaway.guildId,
       eventType: "giveaway_reroll",
+      caseLogOverride: guildConfig.plugins.giveaways?.config?.log_channel_id,
       summary: `${giveaway.title || giveaway.prize}: ${newWinners.length} unclaimed winner(s) auto-rerolled.`,
       channelId: giveaway.channelId,
       messageId: giveaway.messageId,

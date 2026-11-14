@@ -1,5 +1,5 @@
 import { PermissionFlagsBits, type Client, type Guild } from "discord.js";
-import { consumeAiGate } from "../core/ai/gate.js";
+import { AI_ONE_REQUIRED, consumeAiGate } from "../core/ai/gate.js";
 import { AI_FREE_USES_LIMIT, getAiGateStatus } from "../core/ai/usage.js";
 import { getLogger } from "../core/logger.js";
 import { parseAnswers } from "../core/serverAutopilot/answers.js";
@@ -27,7 +27,6 @@ import {
 import { normalizeTemplate, parseTemplateInput } from "../core/serverAutopilot/template.js";
 import { SA_LIMITS, SA_MODES, type SABuild, type SAMode, type SAPerson, type SATemplate } from "../core/serverAutopilot/types.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
-import { isDreamlinerOneActive } from "./dreamlinerOne.js";
 import { SlidingWindowLimiter } from "./rateLimit.js";
 
 // Response shapes are the bot ⇄ website contract for Server Autopilot (see the spec mirrored in
@@ -189,11 +188,13 @@ async function scanRoute(guild: Guild): Promise<SABridgeResponse> {
 async function generateRoute(client: Client, guild: Guild, body: Record<string, unknown>, userId: string): Promise<SABridgeResponse> {
   if (runningGeneration(guild.id)) throw new SABridgeError("Autopilot is already generating templates for this server.", 409, { code: "busy" });
   const answers = parseAnswers(body.answers);
+  // Peek first, so a guild with no uses left doesn't burn a rate-limit slot on a blocked request.
+  const standing = await getAiGateStatus(guild.id);
+  if (!standing.oneActive && standing.freeUsesRemaining <= 0) throw new SABridgeError(AI_ONE_REQUIRED, 403, { code: "one_required" });
   limited(generateLimiter, guild.id, "generations");
-  const oneActive = await isDreamlinerOneActive(guild.id);
   const gate = await consumeAiGate(guild.id);
   if (!gate.ok) throw new SABridgeError(gate.error, 403, { code: "one_required" });
-  const row = insertGeneration({ guildId: guild.id, answers: JSON.stringify(answers), charged: !oneActive, createdBy: userId });
+  const row = insertGeneration({ guildId: guild.id, answers: JSON.stringify(answers), charged: !gate.oneActive, createdBy: userId });
   runGeneration(guild, row.id, answers);
   audit(client, guild.id, userId, "Server Autopilot templates generated", "Autopilot started designing 3 server templates.", { generationId: row.id });
   return ok({ generationId: row.id }, 202);

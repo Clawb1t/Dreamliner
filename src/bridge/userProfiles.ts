@@ -40,6 +40,8 @@ export type UserProfile = {
   showTradingCards: boolean;
   /** Hide the "As seen in these servers" section on the public profile page. */
   hideServersSection: boolean;
+  /** Show Avia on dashboard pages. */
+  aviaDashboard: boolean;
   updatedAt: string | null;
 };
 
@@ -76,6 +78,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
     profileVisible: row?.profileVisible ?? true,
     showTradingCards: row?.showTradingCards ?? false,
     hideServersSection: row?.hideServersSection ?? false,
+    aviaDashboard: row?.aviaDashboard ?? true,
     updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
   };
 }
@@ -110,6 +113,7 @@ export type UpsertUserProfileInput = {
   profileVisible?: boolean;
   showTradingCards?: boolean;
   hideServersSection?: boolean;
+  aviaDashboard?: boolean;
 };
 
 export async function upsertUserProfileFields(
@@ -134,6 +138,9 @@ export async function upsertUserProfileFields(
   }
   if ("hideServersSection" in fields && fields.hideServersSection !== undefined) {
     patch.hideServersSection = fields.hideServersSection;
+  }
+  if ("aviaDashboard" in fields && fields.aviaDashboard !== undefined) {
+    patch.aviaDashboard = fields.aviaDashboard;
   }
 
   if (existing) {
@@ -207,6 +214,12 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
             .get(),
         ),
       ]).then(([profile, hidden]) => profile + hidden),
+    },
+    {
+      key: "avia_usage",
+      label: "Avia usage",
+      description: "How many messages you sent Avia, the help centre assistant, each day (for daily limits). Conversations themselves aren't stored.",
+      total: import("../core/avia/usage.js").then((m) => m.aviaUsageForUser(userId).length),
     },
     {
       key: "cosmetics_equipped",
@@ -482,6 +495,8 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     .all().length;
   const { deleteEquippedCosmetics } = await import("../core/cosmetics/equip.js");
   deleted.cosmetics_equipped = deleteEquippedCosmetics(userId);
+  const { deleteAviaUsageForUser } = await import("../core/avia/usage.js");
+  deleted.avia_usage = deleteAviaUsageForUser(userId);
   await wipe(
     "guild_message_counts",
     db.delete(guildMessageCounts).where(eq(guildMessageCounts.userId, userId)).returning(),

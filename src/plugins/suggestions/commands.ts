@@ -103,7 +103,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         );
         return;
       }
-      await ctx.interaction.showModal(buildSuggestModal(anon, ctx.t, config.allow_attachments));
+      await ctx.interaction.showModal(buildSuggestModal(anon, ctx.t, config.allow_attachments, config.max_length));
     },
   },
   {

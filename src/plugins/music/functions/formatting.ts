@@ -1,3 +1,4 @@
+import { radioTag } from "../radio/tags.js";
 import type { Track, UnresolvedTrack } from "lavalink-client";
 import { ActionRowBuilder, type ButtonBuilder } from "discord.js";
 import { baseEmbed, embedField, type ResultContainer } from "../../../core/embeds.js";
@@ -16,6 +17,8 @@ export function formatDuration(ms: number): string {
 }
 
 export function trackLink(track: Track): string {
+  const radio = radioTag(track);
+  if (radio?.kind === "ticket") return `📻 **${radio.stationName ?? "Radio station"}** (radio)`;
   const title = track.info.title || "Unknown title";
   const label = track.info.author ? `${title} - ${track.info.author}` : title;
   return track.info.uri ? `[${label}](${track.info.uri})` : label;

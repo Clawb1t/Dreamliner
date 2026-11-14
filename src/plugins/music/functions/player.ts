@@ -1,6 +1,8 @@
 import type { Player } from "lavalink-client";
 import type { GuildMember } from "discord.js";
-import type { MusicConfig } from "../../../config/schemas/music.js";
+import { zMusicConfig, type MusicConfig } from "../../../config/schemas/music.js";
+import { configManager } from "../../../config/manager.js";
+import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { canControlPlayback } from "./permissions.js";
 import { getLogger } from "../../../core/logger.js";
 import { claimVoiceSession, releaseVoiceSession, type VoiceSessionOwner } from "../../../core/voiceSessionRegistry.js";
@@ -26,6 +28,14 @@ function mayTakeBotFrom(requester: PlayerRequester | undefined, fromChannelId: s
   const listeners = from && "members" in from && from.isVoiceBased() ? from.members.filter((m) => !m.user.bot).size : 0;
   if (listeners === 0) return true;
   return canControlPlayback(requester.member, requester.config, requester.config.can_control_playback === true);
+}
+
+/** The server's configured starting volume (default_volume) for a freshly created player. */
+async function defaultVolumeFor(guildId: string, requester: PlayerRequester | undefined): Promise<number> {
+  if (requester) return requester.config.default_volume;
+  const guildConfig = await configManager.getEffectiveConfig(guildId).catch(() => null);
+  const parsed = guildConfig ? zMusicConfig.safeParse(getPluginSettings(guildConfig, "music")) : null;
+  return parsed?.success ? parsed.data.default_volume : 80;
 }
 
 /**
@@ -60,6 +70,7 @@ export async function getOrConnectPlayer(
         textChannelId,
         selfDeaf: true,
         selfMute: false,
+        volume: await defaultVolumeFor(guildId, requester),
       });
 
     if (existing && existing.voiceChannelId !== voiceChannelId) {

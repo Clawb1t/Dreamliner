@@ -58,12 +58,25 @@ const FIELD = {
   content: "dl:review:content",
 } as const;
 
+/** The allowed star range, tolerating a config saved with min_rating above max_rating (which
+ *  would otherwise leave the modal with no rating options at all). */
+export function reviewRatingBounds(minRating = 1, maxRating = 5): { min: number; max: number } {
+  return { min: Math.min(minRating, maxRating), max: Math.max(minRating, maxRating) };
+}
+
 export function buildReviewModal(
   t: Translator,
-  options?: { minRating?: number; maxRating?: number; requireText?: boolean },
+  options?: {
+    minRating?: number;
+    maxRating?: number;
+    requireText?: boolean;
+    minTextLength?: number;
+    maxTextLength?: number;
+  },
 ) {
-  const min = options?.minRating ?? 1;
-  const max = options?.maxRating ?? 5;
+  const { min, max } = reviewRatingBounds(options?.minRating, options?.maxRating);
+  const maxText = Math.max(1, options?.maxTextLength ?? 1000);
+  const minText = options?.requireText ?? true ? Math.min(Math.max(0, options?.minTextLength ?? 0), maxText) : 0;
   const modal = new ModalBuilder().setCustomId(REVIEW_MODAL_ID).setTitle(t("reviews.modal.title", "Server review"));
 
   const ratingOptions = [];
@@ -92,7 +105,8 @@ export function buildReviewModal(
           .setCustomId(FIELD.content)
           .setStyle(TextInputStyle.Paragraph)
           .setRequired(options?.requireText ?? true)
-          .setMaxLength(1000)
+          .setMinLength(minText)
+          .setMaxLength(maxText)
           .setPlaceholder(t("reviews.modal.feedbackPlaceholder", "Your feedback...")),
       ),
   );
@@ -210,13 +224,14 @@ export async function handleReviewModalSubmit(
 
   const ratingRaw = getRadioValue(interaction, FIELD.rating);
   const rating = Number(ratingRaw);
-  if (!Number.isFinite(rating) || rating < pluginConfig.min_rating || rating > pluginConfig.max_rating) {
+  const bounds = reviewRatingBounds(pluginConfig.min_rating, pluginConfig.max_rating);
+  if (!Number.isFinite(rating) || rating < bounds.min || rating > bounds.max) {
     await interaction.reply(
       resultReply(
         t("reviews.invalidRating.title", "Invalid rating"),
         t("reviews.invalidRating.description", "Choose a rating between {min} and {max}.", {
-          min: pluginConfig.min_rating,
-          max: pluginConfig.max_rating,
+          min: bounds.min,
+          max: bounds.max,
         }),
         ephemeral,
         guildResultOptions(interaction.client, guildConfig, { tone: "error" }),

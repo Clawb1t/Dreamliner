@@ -339,6 +339,10 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
       await interaction.reply(resultReply(t("tickets.permissionDeniedTitle", "Permission denied"), t("tickets.cannotClaimBody", "You cannot claim tickets."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
+    if (parsed.kind === "claim" && ticket.status === "closed") {
+      await interaction.reply(resultReply(t("tickets.close.alreadyClosedTitle", "Already closed"), t("tickets.close.alreadyClosed", "Ticket #{number} is already closed.", { number: ticket.number }), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      return true;
+    }
     await interaction.deferUpdate();
     const panel = config.panels.find((p) => p.id === ticket.panelId);
     const category = panel?.categories.find((c) => c.id === ticket.categoryId);
@@ -368,6 +372,10 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
     const isStaff = await hasPermission(interaction.guildId!, "tickets", "can_close_others", member, guildConfig);
     const canCloseOwn = isOpener && (await hasPermission(interaction.guildId!, "tickets", "can_close", member, guildConfig));
     const allowed = canCloseTicket(category?.close_permission ?? "either", canCloseOwn, isStaff);
+    if (ticket.status === "closed") {
+      await interaction.reply(resultReply(t("tickets.close.alreadyClosedTitle", "Already closed"), t("tickets.close.alreadyClosed", "Ticket #{number} is already closed.", { number: ticket.number }), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      return true;
+    }
     if (!allowed) {
       await interaction.reply(resultReply(t("tickets.permissionDeniedTitle", "Permission denied"), t("tickets.cannotCloseThisBody", "You cannot close this ticket."), ephemeral, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
@@ -389,6 +397,10 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
       await interaction.update(resultEdit(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      return true;
+    }
+    if (ticket.status === "closed") {
+      await interaction.update(resultEdit(t("tickets.close.alreadyClosedTitle", "Already closed"), t("tickets.close.alreadyClosed", "Ticket #{number} is already closed.", { number: ticket.number }), guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
@@ -503,6 +515,10 @@ export async function handleTicketModalSubmit(interaction: ModalSubmitInteractio
     const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
     if (!ticket) {
       await interaction.reply(resultReply(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), true));
+      return true;
+    }
+    if (ticket.status === "closed") {
+      await interaction.reply(resultReply(t("tickets.close.alreadyClosedTitle", "Already closed"), t("tickets.close.alreadyClosed", "Ticket #{number} is already closed.", { number: ticket.number }), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
       return true;
     }
     const reason = interaction.fields.getTextInputValue(`${TICKET_PREFIX}reason`).trim();

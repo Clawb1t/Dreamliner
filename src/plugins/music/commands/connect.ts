@@ -86,8 +86,6 @@ export const connectCommands: SlashCommandDefinition[] = [
       const guildId = interaction.guildId!;
       const auth = await requireMusicPermission(ctx, "can_manage_settings");
       if (!auth) return;
-      const member = auth.member as GuildMember;
-      if (!(await requirePlaybackControl(ctx, member, auth.config, auth.config.can_manage_settings))) return;
 
       const enabled = interaction.options.getBoolean("enabled", true);
       await configManager.patchPluginConfig(guildId, "music", { stay_connected_247: enabled }, interaction.user.id);

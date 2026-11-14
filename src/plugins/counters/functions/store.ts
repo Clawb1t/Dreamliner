@@ -62,7 +62,7 @@ export async function setCounterChannelId(guildId: string, name: string, channel
     .where(and(eq(counters.guildId, guildId), eq(counters.name, normalizeCounterName(name))));
 }
 
-export async function setCounterMessageId(guildId: string, name: string, messageId: string): Promise<void> {
+export async function setCounterMessageId(guildId: string, name: string, messageId: string | null): Promise<void> {
   await getDb()
     .update(counters)
     .set({ messageId })

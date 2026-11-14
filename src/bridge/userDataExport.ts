@@ -104,6 +104,11 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
         await db.select().from(userCosmeticsEquipped).where(eq(userCosmeticsEquipped.userId, userId)).all(),
       ),
     },
+    avia_usage: {
+      label: "Avia usage",
+      description: "How many messages you sent Avia, the help centre assistant, each day. Conversations aren't stored.",
+      rows: serializable((await import("../core/avia/usage.js")).aviaUsageForUser(userId)),
+    },
     bluesky_account: {
       label: "Bluesky connection",
       description: "Your connected Bluesky account (session tokens are encrypted and not included).",

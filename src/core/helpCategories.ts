@@ -440,7 +440,7 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     key: "music",
     name: "Music",
     description:
-      "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists.",
+      "Search for songs or paste a link to play music in voice, with queues, DJ roles, vote-skip, filters, and saved playlists.",
   },
   characters: {
     key: "characters",
@@ -451,7 +451,7 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   booster_roles: {
     key: "booster_roles",
     name: "Booster Roles",
-    description: "Reward server boosters with different roles based on how long they've been boosting.",
+    description: "Reward server boosters with roles based on how long they've been boosting or how many boosts they've given.",
   },
 };
 

@@ -15,6 +15,7 @@ import { hasAnnouncedWebPlayer, markWebPlayerAnnounced, clearWebPlayerAnnounced 
 import { logMusic } from "./musicLog.js";
 import { clearAutoplayHistory, ensureAutoplayQueueDepth, rememberAutoplaySeen } from "./autoplay.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
+import { radioTag } from "../radio/tags.js";
 
 /** destroy() reasons issued by our own commands/bridge - playerDestroy already gets its own
  *  music_stop log at those call sites, so the generic handler below skips these to avoid a
@@ -95,9 +96,12 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
 
       // Proactively keeps the queue topped up the moment each track starts, rather than waiting
       // for it to end - so a skip (or several in a row) always has something queued to land on.
-      if (config?.autoplay_enabled && guildConfig) {
+      if (config?.autoplay_enabled && guildConfig && !radioTag(track)) {
         void ensureAutoplayQueueDepth(client, player, guildConfig);
       }
+
+      // A station replacing its own queued entry fires trackStart twice; only announce the real song.
+      if (radioTag(track)?.kind === "ticket") return;
 
       if (config?.announce_now_playing) {
         const channelId = config.announce_channel_id || player.textChannelId;
@@ -113,6 +117,33 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
         await sendWebPlayerLinkFallback(client, player.textChannelId, player.guildId);
       }
     })();
+  });
+
+  // Per-guild empty-queue auto-leave. Stored under the library's own "internal_queueempty" key,
+  // so lavalink-client clears it whenever playback resumes or the player is destroyed.
+  manager.on("queueEnd", (player) => {
+    void (async () => {
+      const guildConfig = await configManager.getEffectiveConfig(player.guildId).catch(() => null);
+      const config = guildConfig ? zMusicConfig.parse(getPluginSettings(guildConfig, "music")) : null;
+      if (config?.stay_connected_247 || player.queue.current) return;
+      const delayMs = (config?.auto_leave_empty_seconds ?? 120) * 1000;
+      const pending = player.getData<ReturnType<typeof setTimeout> | undefined>("internal_queueempty");
+      if (pending) clearTimeout(pending);
+      if (delayMs === 0) {
+        await player.destroy("QueueEmpty");
+        return;
+      }
+      player.setData(
+        "internal_queueempty",
+        setTimeout(() => {
+          player.setData("internal_queueempty", undefined);
+          if (player.queue.current) return;
+          void player.destroy("QueueEmpty").catch((error: unknown) =>
+            log.error(`Failed to auto-leave empty queue in guild ${player.guildId}:`, error),
+          );
+        }, delayMs),
+      );
+    })().catch((error: unknown) => log.error(`Empty-queue auto-leave failed in guild ${player.guildId}:`, error));
   });
 
   manager.on("playerUpdate", (_oldPlayerJson, player) => {

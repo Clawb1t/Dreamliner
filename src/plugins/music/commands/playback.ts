@@ -3,6 +3,7 @@ import type { SlashCommandDefinition } from "../../../core/types.js";
 import { MUSIC_FILTER_PRESETS } from "../../../config/schemas/music.js";
 import { containersReply } from "../../../core/responses.js";
 import { requireMusicPermission, requireActivePlayer, requirePlaybackControl, memberSharesVoiceChannel, lineReply } from "../functions/commandHelpers.js";
+import { refuseWhileOnAir } from "../functions/commandHelpers.js";
 import { canBypassVoteSkip } from "../functions/permissions.js";
 import { registerVote, requiredVotes, clearVotes } from "../functions/voteSkip.js";
 import { applyFilterPreset } from "../functions/filters.js";
@@ -21,6 +22,7 @@ import {
 } from "../functions/formatting.js";
 import { MUSIC_EMOJI } from "../functions/emojis.js";
 import { saveSessionNow } from "../functions/sessionPersistence.js";
+import { skipOrLeaveRadio } from "../radio/controller.js";
 import { markWebPlayerAnnounced } from "../functions/webPlayerAnnounce.js";
 import { logMusic } from "../functions/musicLog.js";
 
@@ -60,7 +62,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
 
       if (bypass) {
         clearVotes(guildId);
-        await player.skip();
+        await skipOrLeaveRadio(player);
         await interaction.reply(lineReply(skippedLine(current), ephemeral));
         void logMusic(interaction.client, ctx.guildConfig, guildId, "music_skip", "Music - Track Skipped", [
           `By: <@${interaction.user.id}>`,
@@ -76,7 +78,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       const result = registerVote(guildId, current?.encoded, member.id, need, auth.config.vote_skip_timeout_seconds * 1000);
 
       if (result.status === "skipped") {
-        await player.skip();
+        await skipOrLeaveRadio(player);
         await interaction.reply(lineReply(`${MUSIC_EMOJI.vote} Vote passed. ${skippedLine(current)}`, ephemeral));
         void logMusic(interaction.client, ctx.guildConfig, guildId, "music_skip", "Music - Track Skipped", [
           `By: <@${interaction.user.id}>`,
@@ -126,6 +128,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const player = await requireActivePlayer(ctx, interaction.guildId!);
       if (!player) return;
+      if (await refuseWhileOnAir(ctx, player)) return;
       const member = auth.member as GuildMember;
       const canControl = auth.config.can_control_playback;
       if (!(await requirePlaybackControl(ctx, member, auth.config, canControl))) return;
@@ -147,6 +150,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const player = await requireActivePlayer(ctx, interaction.guildId!);
       if (!player) return;
+      if (await refuseWhileOnAir(ctx, player)) return;
       const member = auth.member as GuildMember;
       const canControl = auth.config.can_control_playback;
       if (!(await requirePlaybackControl(ctx, member, auth.config, canControl))) return;
@@ -197,6 +201,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const player = await requireActivePlayer(ctx, interaction.guildId!);
       if (!player) return;
+      if (await refuseWhileOnAir(ctx, player)) return;
       const member = auth.member as GuildMember;
       const canControl = auth.config.can_control_playback;
       if (!(await requirePlaybackControl(ctx, member, auth.config, canControl))) return;
@@ -263,6 +268,7 @@ export const playbackCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const player = await requireActivePlayer(ctx, interaction.guildId!);
       if (!player) return;
+      if (await refuseWhileOnAir(ctx, player)) return;
       const member = auth.member as GuildMember;
       const canControl = auth.config.can_control_playback;
       if (!(await requirePlaybackControl(ctx, member, auth.config, canControl))) return;

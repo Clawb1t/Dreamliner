@@ -2,7 +2,7 @@ import type { Guild } from "discord.js";
 import { ChannelType } from "discord.js";
 import { generateStructured, generateText, type ChatTurn } from "../core/ai/client.js";
 import { consumeAiGate } from "../core/ai/gate.js";
-import { getAiGateStatus } from "../core/ai/usage.js";
+import { getAiGateStatus, refundFreeAiUse } from "../core/ai/usage.js";
 import {
   generateCharacterDraft,
   parseDraftRequest,
@@ -36,6 +36,17 @@ export async function getAiStatus(guildId: string) {
   return getAiGateStatus(guildId);
 }
 
+/** Gives back the free use a failed request charged (pass charged=false for Dreamliner One
+ *  guilds, which weren't charged), and returns the guild's up-to-date remaining count. */
+async function refundFailedUse(guildId: string, charged: boolean): Promise<number> {
+  if (charged) await refundFreeAiUse(guildId).catch(() => null);
+  return (await getAiGateStatus(guildId)).freeUsesRemaining;
+}
+
+function aiErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message.startsWith("Autopilot") ? error.message : fallback;
+}
+
 export async function generateAiCopy(
   guildId: string,
   body: { task?: string; context?: AiTaskContext },
@@ -53,11 +64,21 @@ export async function generateAiCopy(
 
   const definition = AI_TASKS[task];
   const context = body.context ?? {};
-  const text = await generateText({
-    system: definition.system,
-    prompt: definition.buildPrompt(context),
-    maxTokens: definition.maxTokens,
-  });
+  let text: string;
+  try {
+    text = await generateText({
+      system: definition.system,
+      prompt: definition.buildPrompt(context),
+      maxTokens: definition.maxTokens,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: aiErrorMessage(error, "Autopilot couldn't write that right now. Please try again."),
+      status: 502,
+      freeUsesRemaining: await refundFailedUse(guildId, !gate.oneActive),
+    };
+  }
 
   return { ok: true, text, oneActive: gate.oneActive, freeUsesRemaining: gate.freeUsesRemaining };
 }
@@ -82,18 +103,16 @@ export async function draftAiCharacter(
 
   const gate = await consumeAiGate(guildId);
   if (!gate.ok) return gate;
-  // The gate reports 0 after consuming; read the real count for the "uses left" line.
-  const freeUsesRemaining = gate.oneActive ? gate.freeUsesRemaining : (await getAiGateStatus(guildId)).freeUsesRemaining;
 
   try {
     const draft = await generateCharacterDraft(parsed.value);
-    return { ok: true, draft, oneActive: gate.oneActive, freeUsesRemaining };
+    return { ok: true, draft, oneActive: gate.oneActive, freeUsesRemaining: gate.freeUsesRemaining };
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error && error.message.startsWith("Autopilot") ? error.message : "Autopilot couldn't write that character right now. Please try again.",
+      error: aiErrorMessage(error, "Autopilot couldn't write that character right now. Please try again."),
       status: 502,
-      freeUsesRemaining,
+      freeUsesRemaining: await refundFailedUse(guildId, !gate.oneActive),
     };
   }
 }
@@ -180,14 +199,22 @@ export async function runAiWizard(
   }
 
   const importFrom = parseImportFrom(body.importFrom);
+  // A normal wizard token only covers the wizard it was paid for; a Switch token covers every
+  // import wizard in that switch.
   const hasValidSession =
-    verifyWizardSessionToken(guildId, body.sessionToken) || verifySwitchSessionToken(guildId, body.sessionToken);
-  let freeUsesRemaining = 0;
+    verifyWizardSessionToken(guildId, wizardId, body.sessionToken) || verifySwitchSessionToken(guildId, body.sessionToken);
+  let freeUsesRemaining: number;
+  let charged = false;
   if (!hasValidSession) {
     const gate = await consumeAiGate(guildId);
     if (!gate.ok) return gate;
     freeUsesRemaining = gate.freeUsesRemaining;
+    charged = !gate.oneActive;
+  } else {
+    freeUsesRemaining = (await getAiGateStatus(guildId)).freeUsesRemaining;
   }
+  // Only the turn that paid is refunded; later turns of a paid session cost nothing anyway.
+  const failedRemaining = async () => (charged ? refundFailedUse(guildId, true) : freeUsesRemaining);
 
   const transcript = sanitizeTranscript(body.transcript);
   if (body.answer?.trim()) {
@@ -206,24 +233,40 @@ export async function runAiWizard(
   ];
 
   const baseSchema = definition.buildResultSchema(ctx);
-  const raw = await generateStructured({
-    messages,
-    schemaName: `ai_wizard_${wizardId}`,
-    schema: importFrom ? withMoreToImport(baseSchema) : baseSchema,
-    maxTokens: Math.max(definition.maxTokens ?? 1600, importFrom ? 3000 : 0),
-  });
+  let raw: unknown;
+  try {
+    raw = await generateStructured({
+      messages,
+      schemaName: `ai_wizard_${wizardId}`,
+      schema: importFrom ? withMoreToImport(baseSchema) : baseSchema,
+      maxTokens: Math.max(definition.maxTokens ?? 1600, importFrom ? 3000 : 0),
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: aiErrorMessage(error, "Autopilot couldn't answer right now. Please try again."),
+      status: 502,
+      freeUsesRemaining: await failedRemaining(),
+    };
+  }
   const turn = raw as AiWizardTurn & { question?: string | null; summary?: string | null; config?: unknown };
 
-  const sessionToken = hasValidSession ? body.sessionToken! : issueWizardSessionToken(guildId);
+  // A Switch import that had to pay (no valid switch token) hands back a switch token, so the
+  // rest of that switch's reads and import wizards stay covered by this one use.
+  const sessionToken = hasValidSession
+    ? body.sessionToken!
+    : importFrom
+      ? issueSwitchSessionToken(guildId)
+      : issueWizardSessionToken(guildId, wizardId);
 
   if (turn.action === "ready") {
     const config = (turn as { config: Record<string, unknown> | null }).config;
     if (!config || typeof config !== "object") {
-      return { ok: false, error: "Autopilot did not return a valid setup.", status: 502, freeUsesRemaining };
+      return { ok: false, error: "Autopilot did not return a valid setup.", status: 502, freeUsesRemaining: await failedRemaining() };
     }
     const validationError = definition.validateConfig?.(config, ctx);
     if (validationError) {
-      return { ok: false, error: validationError, status: 502, freeUsesRemaining };
+      return { ok: false, error: validationError, status: 502, freeUsesRemaining: await failedRemaining() };
     }
     return {
       ok: true,
@@ -327,16 +370,30 @@ export async function readSwitchPage(
   }
 
   const hasValidSession = verifySwitchSessionToken(guildId, body.sessionToken);
-  let freeUsesRemaining = 0;
+  let freeUsesRemaining: number;
+  let charged = false;
   if (!hasValidSession) {
     const gate = await consumeAiGate(guildId);
     if (!gate.ok) return gate;
     freeUsesRemaining = gate.freeUsesRemaining;
+    charged = !gate.oneActive;
+  } else {
+    freeUsesRemaining = (await getAiGateStatus(guildId)).freeUsesRemaining;
   }
   recent.push(now);
   switchReads.set(guildId, recent);
 
-  const result = await readSwitchScreenshots({ source: body.source, categoryName: category, images, ctx: resolveWizardContext(guild) });
+  let result: Awaited<ReturnType<typeof readSwitchScreenshots>>;
+  try {
+    result = await readSwitchScreenshots({ source: body.source, categoryName: category, images, ctx: resolveWizardContext(guild) });
+  } catch (error) {
+    return {
+      ok: false,
+      error: aiErrorMessage(error, "Autopilot couldn't read those screenshots right now. Please try again."),
+      status: 502,
+      freeUsesRemaining: charged ? await refundFailedUse(guildId, true) : freeUsesRemaining,
+    };
+  }
   return {
     ok: true,
     ...result,

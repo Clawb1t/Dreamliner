@@ -35,11 +35,11 @@ export function buildTwitchTokens(watcher: SocialTwitchWatcherRow, stream: LiveS
 
 export function buildTwitchNotificationPayload(watcher: SocialTwitchWatcherRow, stream: LiveStream): BaseMessageOptions {
   const tokens = buildTwitchTokens(watcher, stream);
-  return buildPayload(watcher, tokens, "streamer_avatar", "stream_thumbnail");
+  return buildPayload(watcher, tokens, "streamer_avatar", "stream_thumbnail", stream.startedAt);
 }
 
 /** Send a "went live" notification for a watcher. Never throws; logs and returns false on failure. */
 export async function sendTwitchNotification(client: Client, watcher: SocialTwitchWatcherRow, stream: LiveStream): Promise<boolean> {
   const tokens = buildTwitchTokens(watcher, stream);
-  return send(client, watcher, tokens, "streamer_avatar", "stream_thumbnail");
+  return send(client, watcher, tokens, "streamer_avatar", "stream_thumbnail", stream.startedAt);
 }

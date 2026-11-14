@@ -5,7 +5,7 @@ import type { TeamControlConfig } from "../../../config/schemas/teamControl.js";
 import { embedField } from "../../../core/embeds.js";
 import { getLogger } from "../../../core/logger.js";
 import { neutralizeMentions } from "../../../core/templates.js";
-import { HOUR_MS, MAX_COMMENT, TEAM_PREFIX, unix } from "./config.js";
+import { HOUR_MS, MAX_COMMENT, TEAM_PREFIX, channelOr, unix } from "./config.js";
 import { loadTeamRuntime } from "./members.js";
 import { dmTeamCard, postTeamMessage, teamCard } from "./messages.js";
 import { isOnTeam } from "./ranks.js";
@@ -31,7 +31,8 @@ export function cleanComment(comment: string | null | undefined): string | null 
 
 /** Logs new feedback (staff see it anonymised, so the log, a manager space, names the rater). */
 export async function logFeedback(client: Client, guild: Guild, config: TeamControlConfig, feedback: FeedbackRow): Promise<void> {
-  const channelId = config.feedback.log_channel_id;
+  // Same fallback as every other Team Control log (and what the dashboard says): the default log channel.
+  const channelId = channelOr(config, config.feedback.log_channel_id);
   if (!channelId) return;
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   await postTeamMessage(

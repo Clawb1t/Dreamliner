@@ -7,6 +7,8 @@
 
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { getDb } from "../db/client.js";
+import { configManager } from "../config/manager.js";
+import { zClippingConfig } from "../config/schemas/clipping.js";
 import { voiceClips, voiceClipParticipants } from "../db/schema.js";
 import { hashClipPassword, verifyClipPasswordHash } from "../plugins/clipping/functions/clipPassword.js";
 import { deleteClipFile, readClipFile, trimClipFile } from "../plugins/clipping/functions/export.js";
@@ -236,6 +238,12 @@ export type UpdateClipInput = {
 
 const VALID_PRIVACY: ClipPrivacy[] = ["public", "password", "private"];
 
+async function getClipRetentionDays(guildId: string): Promise<number> {
+  const guildConfig = await configManager.getEffectiveConfig(guildId);
+  const parsed = zClippingConfig.safeParse(guildConfig.plugins.clipping?.config ?? {});
+  return parsed.success ? parsed.data.retention_days : 30;
+}
+
 export async function updateClip(clipId: string, userId: string, input: UpdateClipInput): Promise<BridgeResult<{ clip: ClipDetail }>> {
   const clip = await loadClip(clipId);
   if (!clip) return { ok: false, status: 404, error: "Clip not found." };
@@ -252,8 +260,12 @@ export async function updateClip(clipId: string, userId: string, input: UpdateCl
     if (!VALID_PRIVACY.includes(input.privacy)) return { ok: false, status: 400, error: "Invalid privacy mode." };
     patch.privacy = input.privacy;
     if (input.privacy === "password") {
-      if (!input.password) return { ok: false, status: 400, error: "A password is required for password-protected clips." };
-      patch.passwordHash = await hashClipPassword(input.password);
+      if (input.password) {
+        patch.passwordHash = await hashClipPassword(input.password);
+      } else if (!clip.passwordHash) {
+        // Leaving the password blank keeps the current one — only a clip without one needs it.
+        return { ok: false, status: 400, error: "A password is required for password-protected clips." };
+      }
     } else {
       patch.passwordHash = null;
     }
@@ -264,12 +276,15 @@ export async function updateClip(clipId: string, userId: string, input: UpdateCl
 
   if (typeof input.keepForever === "boolean") {
     patch.keepForever = input.keepForever;
-    // Editing never extends retention on its own — retention counts from createdAt. Turning
-    // keepForever off here just stops the row from being swept until it's turned back on with a
-    // real expiry; that's set by the guild's retention_days config, which this bridge module
-    // deliberately doesn't reach for here to avoid duplicating that lookup — the /clip command is
-    // the only place a fresh expiresAt gets computed today.
-    if (input.keepForever) patch.expiresAt = null;
+    if (input.keepForever) {
+      patch.expiresAt = null;
+    } else if (clip.keepForever || !clip.expiresAt) {
+      // Turning keep-forever off restores the guild's normal retention, counted from createdAt
+      // (editing never extends retention on its own) — or from now if that's already passed.
+      const retentionMs = (await getClipRetentionDays(clip.guildId)) * 24 * 60 * 60 * 1000;
+      const fromCreated = clip.createdAt.getTime() + retentionMs;
+      patch.expiresAt = new Date(fromCreated > Date.now() ? fromCreated : Date.now() + retentionMs);
+    }
   }
 
   if (typeof input.trimStartMs === "number" || typeof input.trimEndMs === "number") {

@@ -6,7 +6,7 @@ import { baseEmbed, commandHeader, discordTs, embedField, setEmbedAuthor, trimLi
 import { emitLog } from "../../core/logging/send.js";
 import { buildClaimComponents, buildGiveawayCancelledEmbed, buildGiveawayEndedEmbed } from "./functions/embeds.js";
 import { rerollWinner } from "./functions/draw.js";
-import { finishGiveaway } from "./functions/scheduler.js";
+import { finishGiveaway, refreshGiveawayMessage } from "./functions/scheduler.js";
 import {
   claimGiveawayForEnding,
   getEntryCount,
@@ -179,6 +179,7 @@ export const giveawaysCommands: SlashCommandDefinition[] = [
           {
             guildId,
             eventType: "giveaway_reroll",
+            caseLogOverride: ctx.guildConfig.plugins.giveaways?.config?.log_channel_id,
             summary: `${giveaway.title || giveaway.prize} rerolled by staff.`,
             actorId: auth.member.id,
             channelId: giveaway.channelId,
@@ -236,7 +237,8 @@ export const giveawaysCommands: SlashCommandDefinition[] = [
             );
             return;
           }
-          await updateGiveaway(giveaway.id, { status: "paused", pausedAt: new Date() });
+          const paused = await updateGiveaway(giveaway.id, { status: "paused", pausedAt: new Date() });
+          if (paused && ctx.interaction.guild) await refreshGiveawayMessage(ctx.interaction.guild, paused).catch(() => null);
           await ctx.interaction.reply(
             resultReply(ctx.t("giveaways.pausedTitle", "Paused"), ctx.t("giveaways.pausedBody", "The giveaway is paused. Entries and the countdown are frozen until it's resumed."), ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
           );
@@ -251,7 +253,8 @@ export const giveawaysCommands: SlashCommandDefinition[] = [
         }
         const pausedDurationMs = Date.now() - giveaway.pausedAt.getTime();
         const newEndsAt = new Date(giveaway.endsAt.getTime() + pausedDurationMs);
-        await updateGiveaway(giveaway.id, { status: "active", pausedAt: null, endsAt: newEndsAt });
+        const resumed = await updateGiveaway(giveaway.id, { status: "active", pausedAt: null, endsAt: newEndsAt });
+        if (resumed && ctx.interaction.guild) await refreshGiveawayMessage(ctx.interaction.guild, resumed).catch(() => null);
         await ctx.interaction.reply(
           resultReply(ctx.t("giveaways.resumedTitle", "Resumed"), ctx.t("giveaways.resumedBody", "The giveaway resumed. It now ends {ends}.", { ends: discordTs(newEndsAt) }), ctx.ephemeral, slashResultOptions(ctx, { tone: "success" })),
         );

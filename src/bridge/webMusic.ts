@@ -5,7 +5,7 @@ import { getExistingPlayer, isLavalinkConfigured } from "../plugins/music/functi
 import { destroyPlayer, getOrConnectPlayer } from "../plugins/music/functions/player.js";
 import { saveSessionNow } from "../plugins/music/functions/sessionPersistence.js";
 import { applyFilterPreset } from "../plugins/music/functions/filters.js";
-import { clearQueue, move, removeAt } from "../plugins/music/functions/queueOps.js";
+import { clearQueue, move, removeAt, shuffleQueue } from "../plugins/music/functions/queueOps.js";
 import { getLogger } from "../core/logger.js";
 import { configManager } from "../config/manager.js";
 import { getPluginSettings, hasAdminBypass, resolveEffectivePluginConfig } from "../core/permissionRoles.js";
@@ -24,6 +24,9 @@ import { ensureAutoplayQueueDepth } from "../plugins/music/functions/autoplay.js
 import { clearVotes, registerVote, requiredVotes } from "../plugins/music/functions/voteSkip.js";
 import { logMusic } from "../plugins/music/functions/musicLog.js";
 import { formatDuration } from "../plugins/music/functions/formatting.js";
+import { currentStationId, radioTag, RADIO_ON_AIR_BLOCK, visibleQueue } from "../plugins/music/radio/tags.js";
+import { skipOrLeaveRadio, radioArtworkUrl, radioIconUrl } from "../plugins/music/radio/controller.js";
+import { getLive } from "../plugins/music/radio/clock.js";
 
 const log = getLogger("bridge");
 
@@ -46,6 +49,25 @@ export type WebMusicTrack = {
   durationMs: number;
   sourceName: string;
   requestedBy: WebMusicRequester | null;
+  /** Set on a queued station entry: show it as one radio row, not a song. */
+  radio?: { stationId: string; name: string; iconUrl: string | null };
+};
+
+export type WebRadioNowPlaying = {
+  trackId: string;
+  title: string;
+  artist: string | null;
+  durationMs: number;
+  positionMs: number;
+  artworkUrl: string | null;
+};
+
+export type WebMusicRadio = {
+  stationId: string;
+  name: string;
+  accentColor: string | null;
+  iconUrl: string | null;
+  nowPlaying: WebRadioNowPlaying;
 };
 
 export type WebVoiceChannel = { id: string; name: string };
@@ -65,7 +87,29 @@ export type WebMusicState = {
   /** The viewer's own current voice channel, if any — lets the "no session yet" empty state offer
    *  a one-click "Start a session in #channel" instead of just telling them to use /play. */
   viewerVoiceChannel: WebVoiceChannel | null;
+  /** Non-null while a radio station is on air: seek, filters, loop and pause are off. */
+  radio: WebMusicRadio | null;
 };
+
+/** What a station is playing right now, from its global clock. */
+export function webRadioNow(stationId: string): WebMusicRadio | null {
+  const live = getLive(stationId);
+  if (!live) return null;
+  return {
+    stationId,
+    name: live.station.name,
+    accentColor: live.station.accentColor,
+    iconUrl: radioIconUrl(live.station),
+    nowPlaying: {
+      trackId: live.track.id,
+      title: live.track.title,
+      artist: live.track.artist,
+      durationMs: live.track.durationMs,
+      positionMs: Math.round(live.offsetMs),
+      artworkUrl: radioArtworkUrl(stationId, live.track) ?? radioIconUrl(live.station),
+    },
+  };
+}
 
 function requesterIdOf(track: Track): string | null {
   return (track.requester as { id?: string } | undefined)?.id ?? null;
@@ -73,6 +117,22 @@ function requesterIdOf(track: Track): string | null {
 
 function toWebTrack(track: Track, requesters?: Map<string, WebMusicRequester>): WebMusicTrack {
   const requesterId = requesterIdOf(track);
+  const tag = radioTag(track);
+  if (tag?.kind === "ticket") {
+    const live = getLive(tag.stationId);
+    const name = live?.station.name ?? tag.stationName ?? "Radio station";
+    return {
+      encoded: track.encoded ?? "",
+      title: name,
+      author: "Radio",
+      uri: null,
+      artworkUrl: live ? radioIconUrl(live.station) : null,
+      durationMs: 0,
+      sourceName: "radio",
+      requestedBy: (requesterId && requesters?.get(requesterId)) || null,
+      radio: { stationId: tag.stationId, name, iconUrl: live ? radioIconUrl(live.station) : null },
+    };
+  }
   return {
     encoded: track.encoded ?? "",
     title: track.info.title,
@@ -157,10 +217,12 @@ export async function getWebMusicState(guild: Guild, userId: string): Promise<We
       allowedFilters: [],
       autoplay: musicConfig.autoplay_enabled,
       viewerVoiceChannel,
+      radio: null,
     };
   }
   const current = player.queue.current;
-  const resolvedQueue = player.queue.tracks.filter((t): t is Track => !("resolve" in t));
+  const resolvedQueue = visibleQueue(player).filter((t): t is Track => !("resolve" in t));
+  const stationId = currentStationId(player);
 
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   // Settings-only resolution (no member in context here) — fine for dj_roles/dj_mode, which
@@ -189,6 +251,7 @@ export async function getWebMusicState(guild: Guild, userId: string): Promise<We
     allowedFilters: musicConfig.allowed_filters,
     autoplay: musicConfig.autoplay_enabled,
     viewerVoiceChannel,
+    radio: stationId ? webRadioNow(stationId) : null,
   };
 }
 
@@ -361,7 +424,7 @@ export async function webSkip(guild: Guild, userId: string): Promise<WebSkipResu
 
   if (bypass) {
     clearVotes(guild.id);
-    await player.skip();
+    await skipOrLeaveRadio(player);
     void logMusic(guild.client, guildConfig, guild.id, "music_skip", "Music - Track Skipped", [
       `By: <@${userId}>`,
       "Source: Web player",
@@ -377,7 +440,7 @@ export async function webSkip(guild: Guild, userId: string): Promise<WebSkipResu
   const result = registerVote(guild.id, current?.encoded, userId, need, config.vote_skip_timeout_seconds * 1000);
 
   if (result.status === "skipped") {
-    await player.skip();
+    await skipOrLeaveRadio(player);
     void logMusic(guild.client, guildConfig, guild.id, "music_skip", "Music - Track Skipped", [
       `By: <@${userId}>`,
       "Source: Web player",
@@ -415,6 +478,7 @@ export async function webSetPaused(guild: Guild, userId: string, paused: boolean
   const player = getExistingPlayer(guild.id);
   if (!player) return { ok: false, status: 409, error: "No active music session in this server right now." };
 
+  if (currentStationId(player)) return { ok: false, status: 409, error: RADIO_ON_AIR_BLOCK };
   const auth = await requirePlaybackControl(guild, userId, (c) => c.can_control_playback);
   if (!auth.ok) return auth;
 
@@ -470,6 +534,7 @@ export async function setWebFilter(guild: Guild, userId: string, preset: string)
   if (!(MUSIC_FILTER_PRESETS as readonly string[]).includes(preset)) {
     return { ok: false, status: 400, error: "That filter preset doesn't exist." };
   }
+  if (currentStationId(player)) return { ok: false, status: 409, error: RADIO_ON_AIR_BLOCK };
 
   const auth = await requirePlaybackControl(guild, userId, (c) => c.can_control_playback);
   if (!auth.ok) return auth;
@@ -492,6 +557,7 @@ export async function setWebLoopMode(guild: Guild, userId: string, mode: string)
   if (!(MUSIC_LOOP_MODES as readonly string[]).includes(mode)) {
     return { ok: false, status: 400, error: "That's not a valid loop mode." };
   }
+  if (currentStationId(player)) return { ok: false, status: 409, error: RADIO_ON_AIR_BLOCK };
 
   const auth = await requirePlaybackControl(guild, userId, (c) => c.can_manage_queue);
   if (!auth.ok) return auth;
@@ -541,7 +607,7 @@ export async function shuffleWebQueue(guild: Guild, userId: string): Promise<Web
   const auth = await requirePlaybackControl(guild, userId, (c) => c.can_manage_queue);
   if (!auth.ok) return auth;
 
-  await player.queue.shuffle();
+  await shuffleQueue(player);
   void saveSessionNow(player).catch(() => {});
   void logMusic(guild.client, auth.guildConfig, guild.id, "music_queue", "Music - Queue Shuffled", [
     `By: <@${userId}>`,
@@ -611,6 +677,7 @@ export type WebActiveUserMusicSession =
       guildName: string;
       track: { title: string; author: string | null; artworkUrl: string | null };
       paused: boolean;
+      radio: { stationId: string; name: string } | null;
     };
 
 /** For the navbar "now playing" pill — not guild-scoped, since the user could be listening in any
@@ -637,6 +704,11 @@ export async function getActiveUserMusicSession(client: Client, userId: string):
         artworkUrl: current.info.artworkUrl,
       },
       paused: player.paused,
+      radio: (() => {
+        const id = currentStationId(player);
+        const name = id ? (getLive(id)?.station.name ?? radioTag(current)?.stationName) : null;
+        return id && name ? { stationId: id, name } : null;
+      })(),
     };
   }
   return { active: false };

@@ -1,6 +1,6 @@
 # Music plugin
 
-Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists — controllable from Discord commands or the website's music player.
+Search for songs or paste a link to play music in voice, with queues, DJ roles, vote-skip, filters, and saved playlists — controllable from Discord commands or the website's music player.
 
 ## How it works
 
@@ -67,6 +67,12 @@ plugins:
 | `stay_connected_247` | Keep the bot connected even when the queue is empty and nobody is listening, instead of auto-leaving. |
 | `auto_leave_empty_seconds` | Seconds to wait after the voice channel empties before leaving. Ignored when 24/7 is on. `0` leaves immediately. |
 
+### Radio
+
+| Field | Description |
+|-------|-------------|
+| `radios_enabled` | Let members tune into Dreamliner radio stations with `/radio play` or the web player. Uses `can_play`. Default on. |
+
 ## Commands
 
 ### Playback
@@ -95,6 +101,15 @@ plugins:
 | `/shuffle` | `can_manage_queue` | Shuffle the queue |
 | `/loop <mode>` | `can_manage_queue` | Set loop mode: off, track, or queue |
 
+### Radio
+
+| Command | Permission | Description |
+|---------|------------|-------------|
+| `/radio play <station>` | `can_play` | Tune into a Dreamliner radio station in your voice channel. If music is already playing, the station is queued as one entry after the current queue |
+| `/radio leave` | `can_skip` (bypassed by DJs, force-skip, or whoever tuned in) | Leave the station and move on to the next queued song, or start/join a vote |
+| `/radio list` | `can_play` | Every station on air, what it's playing and how many servers are listening |
+| `/radio nowplaying` | `can_play` | What the station on air here is playing |
+
 ### Playlists
 
 | Command | Permission | Description |
@@ -120,6 +135,24 @@ Playlists are saved per-user, not per-server, and can also be created and queued
 | `/247 <enabled>` | `can_manage_settings` | Toggle 24/7 mode |
 
 Grant these to a Dreamliner Role on the dashboard's **Roles** page (or `/permissions role grant`) — see [permissions.md](../permissions.md).
+
+## Radio stations
+
+Dreamliner operators run **radio stations**: playlists of uploaded MP3s that loop forever. Stations are
+live, like real radio: every server tuned to a station hears the same song at the same point. Tune in
+with `/radio play` or the **Radios** section of the web player.
+
+- While a station is on air, `/skip` (and the web player's skip) leaves the station, and seek, filters,
+  loop and pause are switched off.
+- Each station keeps a clock that's saved every few seconds. After a restart the station carries on
+  from where it was, and servers that were tuned in rejoin at the live point.
+- Turn stations off for a server with `radios_enabled: false`.
+
+Operators manage stations from the dashboard (**Radios**, superusers only): name, description, genre,
+colour, icon, shuffle, draft/live, and the track list (upload MP3s up to 100MB each, reorder, rename,
+delete). Files are stored under `data/radio/<station>/` and served to Lavalink through signed URLs on
+the bridge (`/radio/media/...`), so the Lavalink node needs its HTTP source enabled. See `.env.example`
+for `RADIO_MEDIA_BASE_URL`, `RADIO_MEDIA_SECRET` and `RADIO_STORAGE_LIMIT_MB`.
 
 ## Website music player
 

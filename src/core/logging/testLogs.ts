@@ -1,6 +1,6 @@
 import type { Client, Guild } from "discord.js";
 import type { GuildConfig } from "../../config/schemas/guild.js";
-import { getModerationLogChannelId, getServerLogChannelId } from "./channels.js";
+import { resolveLogChannelId } from "./channels.js";
 import { LOG_EVENT_META, LOG_EVENT_TYPES, type LogEventType } from "./events.js";
 import {
   buildAppealLog,
@@ -567,6 +567,39 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
     ),
 };
 
+/** Plugins whose real log calls pass their own log channel (as `caseLogOverride`), so test sends
+ *  land where the real event would. Keep in sync with those call sites. */
+const PLUGIN_LOG_CHANNEL: Partial<Record<LogEventType, [plugin: string, key: string]>> = {
+  automod: ["automod", "log_channel_id"],
+  raid: ["automod", "log_channel_id"],
+  impersonation: ["impersonation", "log_channel_id"],
+  incident_response: ["incident_response", "log_channel_id"],
+  raid_mesh: ["raid_mesh", "alert_channel_id"],
+  ticket_open: ["tickets", "log_channel_id"],
+  ticket_claim: ["tickets", "log_channel_id"],
+  ticket_assign: ["tickets", "log_channel_id"],
+  ticket_status: ["tickets", "log_channel_id"],
+  ticket_close: ["tickets", "log_channel_id"],
+  ticket_ai_escalate: ["tickets", "log_channel_id"],
+  ticket_ai_resolved: ["tickets", "log_channel_id"],
+  ticket_ai_lesson: ["tickets", "log_channel_id"],
+  suggestion_create: ["suggestions", "log_channel_id"],
+  suggestion_approve: ["suggestions", "log_channel_id"],
+  suggestion_deny: ["suggestions", "log_channel_id"],
+  suggestion_comment: ["suggestions", "log_channel_id"],
+  giveaway_start: ["giveaways", "log_channel_id"],
+  giveaway_end: ["giveaways", "log_channel_id"],
+  giveaway_reroll: ["giveaways", "log_channel_id"],
+};
+
+function getPluginLogChannelId(guildConfig: GuildConfig, eventType: LogEventType): string | undefined {
+  const entry = PLUGIN_LOG_CHANNEL[eventType];
+  if (!entry) return undefined;
+  const plugins = guildConfig.plugins as Record<string, { config?: Record<string, unknown> } | undefined>;
+  const value = plugins[entry[0]]?.config?.[entry[1]];
+  return typeof value === "string" ? value : undefined;
+}
+
 export type TestLogResult = {
   eventType: LogEventType;
   ok: boolean;
@@ -574,8 +607,8 @@ export type TestLogResult = {
 };
 
 /**
- * Sends a synthetic log card for one event type to whatever channel that event's category
- * (server/moderation) resolves to for this guild. Bypasses the per-event toggle and does not
+ * Sends a synthetic log card for one event type to the channel a real log of that type would use
+ * (per-event override, then the plugin's own log channel, then the server/moderation default). Bypasses the per-event toggle and does not
  * write to the dashboard Logs history — this is a preview, not a real event.
  */
 export async function sendLogEventTest(
@@ -586,8 +619,8 @@ export async function sendLogEventTest(
   actorId: string,
 ): Promise<TestLogResult> {
   const category = LOG_EVENT_META[eventType].category;
-  const channelId =
-    category === "moderation" ? getModerationLogChannelId(guildConfig) : getServerLogChannelId(guildConfig);
+  const pluginChannelId = getPluginLogChannelId(guildConfig, eventType);
+  const channelId = resolveLogChannelId(guildConfig, eventType, pluginChannelId);
   if (!channelId) {
     return { eventType, ok: false, reason: `No ${category} log channel configured for this server.` };
   }
@@ -608,11 +641,18 @@ export async function sendLogEventTest(
     client,
     guildConfig,
     { ...card, title: `${TEST_MARKER}${card.title}` },
-    { guildId: guild.id, eventType, actorId, summary: `Test send of ${LOG_EVENT_META[eventType].label}` },
+    {
+      guildId: guild.id,
+      eventType,
+      actorId,
+      summary: `Test send of ${LOG_EVENT_META[eventType].label}`,
+      caseLogOverride: pluginChannelId,
+    },
     { skipToggleCheck: true, skipPersist: true },
   );
 
-  return { eventType, ok: true, reason: logId == null ? "Sent, but the channel could not be reached." : undefined };
+  if (logId == null) return { eventType, ok: false, reason: "The log channel could not be reached." };
+  return { eventType, ok: true };
 }
 
 export async function sendAllLogTests(

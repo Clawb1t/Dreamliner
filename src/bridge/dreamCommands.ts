@@ -155,7 +155,7 @@ export async function updateBridgeDreamCommand(
   _configManager: ConfigManager,
   guildId: string,
   name: string,
-  input: { program: unknown },
+  input: { program?: unknown; enabled?: unknown },
 ): Promise<{ ok: true; command: BridgeDreamCommand } | { ok: false; error: string; status: number }> {
   const normalized = normalizeCommandName(name);
   const existing = await getDreamCommand(guildId, normalized);
@@ -170,10 +170,21 @@ export async function updateBridgeDreamCommand(
     };
   }
 
-  const programCheck = validateProgramInput(input.program);
-  if (!programCheck.ok) return programCheck;
+  if (input.enabled !== undefined && typeof input.enabled !== "boolean") {
+    return { ok: false, error: "enabled must be true or false.", status: 400 };
+  }
+  // A toggle-only update (just `enabled`) leaves the program as it is.
+  let program: CommandProgram | undefined;
+  if (input.program !== undefined || input.enabled === undefined) {
+    const programCheck = validateProgramInput(input.program);
+    if (!programCheck.ok) return programCheck;
+    program = programCheck.program;
+  }
 
-  const updated = await updateDreamCommand(guildId, normalized, { program: programCheck.program });
+  const updated = await updateDreamCommand(guildId, normalized, {
+    ...(program ? { program } : {}),
+    ...(typeof input.enabled === "boolean" ? { enabled: input.enabled } : {}),
+  });
   if (!updated) {
     return { ok: false, error: `No command named ${normalized}.`, status: 404 };
   }

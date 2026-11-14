@@ -12,7 +12,7 @@ import {
   listReviews,
   softDeleteReview,
 } from "./functions/store.js";
-import { resolveTextChannel, starsForRating } from "./functions/embeds.js";
+import { deleteReviewPost, starsForRating } from "./functions/embeds.js";
 
 export const reviewsCommands: SlashCommandDefinition[] = [
   {
@@ -87,6 +87,8 @@ export const reviewsCommands: SlashCommandDefinition[] = [
             minRating: config.min_rating,
             maxRating: config.max_rating,
             requireText: config.require_text,
+            minTextLength: config.min_text_length,
+            maxTextLength: config.max_text_length,
           }),
         );
         return;
@@ -141,11 +143,7 @@ export const reviewsCommands: SlashCommandDefinition[] = [
         }
 
         const config = zReviewsConfig.parse(auth.pluginConfig);
-        if (review.channelId && review.messageId) {
-          const channel = await resolveTextChannel(ctx.interaction.client, ctx.interaction.guildId!, review.channelId);
-          const msg = channel ? await channel.messages.fetch(review.messageId).catch(() => null) : null;
-          if (msg) await msg.delete().catch(() => null);
-        }
+        await deleteReviewPost(ctx.interaction.client, ctx.interaction.guildId!, review);
 
         await ctx.interaction.reply(
           resultReply(

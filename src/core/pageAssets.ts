@@ -20,13 +20,13 @@ const MAX_DIMENSION = 2000;
 /** Oldest uploads beyond this are deleted, so repeated uploads can't fill the disk. */
 const MAX_ASSETS_PER_FOLDER = 10;
 
-export type PageAssetFolder = "passport" | "appeals" | "characters" | "store";
+export type PageAssetFolder = "passport" | "appeals" | "characters" | "store" | "radio";
 
 /** Bot-wide images (the Store catalog) are kept under this key instead of a server id. */
 export const GLOBAL_ASSET_KEY = "global";
 
 /** Folders that hold one image per item (each character's avatar) keep more than a page's few. */
-const FOLDER_LIMITS: Partial<Record<PageAssetFolder, number>> = { characters: 80, store: 200 };
+const FOLDER_LIMITS: Partial<Record<PageAssetFolder, number>> = { characters: 80, store: 200, radio: 5000 };
 /** The Store also keeps background card stills at the cards' exact output size (/profile is 2280px wide). */
 const FOLDER_MAX_DIMENSION: Partial<Record<PageAssetFolder, number>> = { store: 2400 };
 

@@ -72,7 +72,7 @@
   {
     "plugin": "booster_roles",
     "pluginName": "Booster Roles",
-    "pluginDescription": "Reward server boosters with different roles based on how long they've been boosting.",
+    "pluginDescription": "Reward server boosters with roles based on how long they've been boosting or how many boosts they've given.",
     "entries": [
       {
         "plugin": "booster_roles",
@@ -485,7 +485,7 @@
   {
     "plugin": "music",
     "pluginName": "Music",
-    "pluginDescription": "Play music from SoundCloud, Apple Music, Bandcamp, and more with queues, DJ roles, vote-skip, filters, and saved playlists.",
+    "pluginDescription": "Search for songs or paste a link to play music in voice, with queues, DJ roles, vote-skip, filters, and saved playlists.",
     "entries": [
       {
         "plugin": "music",
@@ -702,7 +702,7 @@
         "permission": "can_give",
         "grantKey": "roles.can_give",
         "title": "Give",
-        "description": "Allow members to give roles with /role."
+        "description": "Allow members to give roles with /roles."
       },
       {
         "plugin": "roles",
@@ -716,7 +716,7 @@
         "permission": "can_remove",
         "grantKey": "roles.can_remove",
         "title": "Remove",
-        "description": "Allow members to remove roles with /role."
+        "description": "Allow members to remove roles with /roles."
       }
     ]
   },

@@ -53,7 +53,9 @@ async function notifyTarget(
   reason: string,
   record: Awaited<ReturnType<typeof createInfraction>>,
 ) {
-  const notifyKey = type.replace("temp", "") as keyof InfractionConfig["notify"];
+  // Timed punishments have their own DM settings (notify.tempmute / notify.tempban: the dashboard's
+  // Mute and Tempban rows edit exactly those); fall back to the base type for anything else.
+  const notifyKey = (type in pluginConfig.notify ? type : type.replace("temp", "")) as keyof InfractionConfig["notify"];
   // Only punishments with their own DM setting are sent: staff notes and unbans never DM anyone (a
   // note is private to staff). And only members of this server get DMs, so the bot can't be used to
   // send a "warning" with any text to someone who was never here. Bans and kicks call this before

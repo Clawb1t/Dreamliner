@@ -1,6 +1,8 @@
 import type { Guild, GuildMember } from "discord.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { isBoosting } from "../../../core/boosterStatus.js";
+import { loadEconomyConfig } from "../../economy/functions/config.js";
+import { formatServer } from "../../economy/functions/format.js";
 import * as store from "./store.js";
 import type { Giveaway } from "./store.js";
 
@@ -73,14 +75,16 @@ export async function enterGiveaway(guild: Guild, giveaway: Giveaway, userId: st
     return { ok: true, entered: false };
   }
 
-  if (giveaway.entryCost > 0) {
+  // The entry cost only applies while Economy is enabled.
+  const economy = giveaway.entryCost > 0 ? await loadEconomyConfig(guild.id).catch(() => null) : null;
+  if (economy) {
     try {
       const { spendServer, InsufficientFundsError } = await import("../../economy/functions/money.js");
       try {
         spendServer(guild.id, userId, giveaway.entryCost);
       } catch (error) {
         if (error instanceof InsufficientFundsError) {
-          return { ok: false, reason: `You need ${giveaway.entryCost} to enter this giveaway.` };
+          return { ok: false, reason: `You need ${formatServer(giveaway.entryCost, economy.server)} to enter this giveaway.` };
         }
         throw error;
       }

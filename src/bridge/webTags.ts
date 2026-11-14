@@ -3,13 +3,11 @@ import {
   deleteTag,
   getTag,
   listTags,
-  normalizeTagName,
   updateTag,
+  validateTagContent as validateContent,
+  validateTagName as validateName,
   type TagRow,
 } from "../plugins/tags/functions/store.js";
-
-const MAX_NAME_LEN = 64;
-const MAX_CONTENT_LEN = 2000;
 
 export type BridgeTag = {
   guildId: string;
@@ -27,31 +25,6 @@ function serializeTag(row: TagRow): BridgeTag {
     createdBy: row.createdBy,
     createdAt: row.createdAt.toISOString(),
   };
-}
-
-function validateName(raw: string): { ok: true; name: string } | { ok: false; error: string } {
-  const name = normalizeTagName(raw);
-  if (!name) return { ok: false, error: "Tag name is required." };
-  if (name.length > MAX_NAME_LEN) {
-    return { ok: false, error: `Tag name must be ${MAX_NAME_LEN} characters or fewer.` };
-  }
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(name)) {
-    return {
-      ok: false,
-      error: "Tag names must start with a letter or number and use only a-z, 0-9, _ or -.",
-    };
-  }
-  return { ok: true, name };
-}
-
-function validateContent(raw: string): { ok: true; content: string } | { ok: false; error: string } {
-  if (typeof raw !== "string" || !raw.trim()) {
-    return { ok: false, error: "Tag content is required." };
-  }
-  if (raw.length > MAX_CONTENT_LEN) {
-    return { ok: false, error: `Tag content must be ${MAX_CONTENT_LEN} characters or fewer.` };
-  }
-  return { ok: true, content: raw };
 }
 
 export async function listBridgeTags(

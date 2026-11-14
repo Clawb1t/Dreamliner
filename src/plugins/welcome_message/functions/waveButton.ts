@@ -17,6 +17,9 @@ import { translatorFor } from "../../../i18n/index.js";
 export const WELCOME_WAVE_CUSTOM_ID = "welcome:wave";
 export const WELCOME_WAVE_PREFIX = "welcome:wave";
 export const EARLY_LEAVE_MS = 24 * 60 * 60 * 1000;
+/** How long a join message stays tracked for wave counting. Early-leave deletion only looks at the
+ *  last EARLY_LEAVE_MS of rows (by createdAt), so pruning must not use that much shorter window. */
+export const WELCOME_JOIN_TRACKING_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function waveButtonLabel(baseLabel: string, count: number): string {
   const label = baseLabel.trim() || "Wave";

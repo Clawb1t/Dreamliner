@@ -89,18 +89,31 @@ export function evaluateRoles(
   return { toAdd, toRemove };
 }
 
-async function applyRoleDiff(member: GuildMember, diff: RoleDiff): Promise<void> {
+/** Applies the diff and returns only the role changes that actually went through. */
+async function applyRoleDiff(member: GuildMember, diff: RoleDiff): Promise<RoleDiff> {
+  const applied: RoleDiff = { toAdd: [], toRemove: [] };
   const toAdd = autoGrantableRoleIds(member.guild, diff.toAdd);
   if (toAdd.length > 0) {
-    await member.roles.add(toAdd, ROLE_REASON).catch((err) => {
-      log.warn(`Could not add milestone roles in ${member.guild.id}: ${err instanceof Error ? err.message : err}`);
-    });
+    const added = await member.roles.add(toAdd, ROLE_REASON).then(
+      () => true,
+      (err) => {
+        log.warn(`Could not add milestone roles in ${member.guild.id}: ${err instanceof Error ? err.message : err}`);
+        return false;
+      },
+    );
+    if (added) applied.toAdd = toAdd;
   }
   if (diff.toRemove.length > 0) {
-    await member.roles.remove(diff.toRemove, ROLE_REASON).catch((err) => {
-      log.warn(`Could not remove milestone roles in ${member.guild.id}: ${err instanceof Error ? err.message : err}`);
-    });
+    const removed = await member.roles.remove(diff.toRemove, ROLE_REASON).then(
+      () => true,
+      (err) => {
+        log.warn(`Could not remove milestone roles in ${member.guild.id}: ${err instanceof Error ? err.message : err}`);
+        return false;
+      },
+    );
+    if (removed) applied.toRemove = diff.toRemove;
   }
+  return applied;
 }
 
 // ── Announcements ────────────────────────────────────────────────────────────
@@ -235,8 +248,7 @@ export async function processMember(
   const newlyReached = reached.filter((m) => !awarded.has(m.id));
   if (newlyReached.length === 0 && !options.resync) return empty;
 
-  const diff = evaluateRoles(member, config, progress);
-  await applyRoleDiff(member, diff);
+  const diff = await applyRoleDiff(member, evaluateRoles(member, config, progress));
 
   if (newlyReached.length > 0) {
     markAwarded(member.guild.id, member.id, newlyReached.map((m) => m.id));

@@ -243,7 +243,7 @@ const zKitDocumentShape = z.object({
   content: z.string().max(2000, "Message text can be at most 2000 characters.").default(""),
   embeds: z.array(zKitEmbed).max(10, "At most 10 embeds.").default([]),
   rows: z.array(zKitRow).max(5, "At most 5 rows of buttons or menus.").default([]),
-  blocks: z.array(zKitBlock).max(100, "At most 40 components.").default([]),
+  blocks: z.array(zKitBlock).max(100, "At most 100 blocks.").default([]),
   attachments: z.array(z.string().regex(ASSET_ID_RE, "Pick an uploaded file.")).max(10, "At most 10 files.").default([]),
   identity: z
     .object({

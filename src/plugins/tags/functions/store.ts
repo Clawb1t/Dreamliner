@@ -14,6 +14,35 @@ export function normalizeTagName(name: string): string {
   return name.trim().toLowerCase();
 }
 
+export const TAG_MAX_NAME_LEN = 64;
+export const TAG_MAX_CONTENT_LEN = 2000;
+
+/** Shared by /tag and the dashboard bridge (webTags.ts) so both accept the same names/content. */
+export function validateTagName(raw: string): { ok: true; name: string } | { ok: false; error: string } {
+  const name = normalizeTagName(raw);
+  if (!name) return { ok: false, error: "Tag name is required." };
+  if (name.length > TAG_MAX_NAME_LEN) {
+    return { ok: false, error: `Tag name must be ${TAG_MAX_NAME_LEN} characters or fewer.` };
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(name)) {
+    return {
+      ok: false,
+      error: "Tag names must start with a letter or number and use only a-z, 0-9, _ or -.",
+    };
+  }
+  return { ok: true, name };
+}
+
+export function validateTagContent(raw: string): { ok: true; content: string } | { ok: false; error: string } {
+  if (typeof raw !== "string" || !raw.trim()) {
+    return { ok: false, error: "Tag content is required." };
+  }
+  if (raw.length > TAG_MAX_CONTENT_LEN) {
+    return { ok: false, error: `Tag content must be ${TAG_MAX_CONTENT_LEN} characters or fewer.` };
+  }
+  return { ok: true, content: raw };
+}
+
 export async function getTag(guildId: string, name: string): Promise<TagRow | null> {
   const row = await getDb()
     .select()

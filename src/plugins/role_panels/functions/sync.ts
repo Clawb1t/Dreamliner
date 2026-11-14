@@ -17,6 +17,7 @@ import {
   buildRolePanelButtonRows,
   buildRolePanelPayload,
   rolePanelHasContent,
+  rolePanelBuiltMessageFingerprint,
   rolePanelMessageFingerprint,
   rolePanelPayloadFingerprint,
 } from "./messageBuilder.js";
@@ -155,7 +156,12 @@ async function syncBotModePanel(client: Client, guild: Guild, guildId: string, p
   const existing = tracked ? await channel.messages.fetch(tracked.messageId).catch(() => null) : null;
 
   if (existing) {
-    if (rolePanelMessageFingerprint(existing) === (tracked?.fingerprint ?? "") && tracked?.fingerprint === desiredFingerprint) {
+    // The stored fingerprint includes the reaction set (so emoji changes re-sync), but a live message
+    // fingerprint has no reactions key, so check the live post against the reaction-less form.
+    if (
+      tracked?.fingerprint === desiredFingerprint &&
+      rolePanelMessageFingerprint(existing) === rolePanelBuiltMessageFingerprint(built)
+    ) {
       return;
     }
     await existing.edit(built.payload).catch((error) => {

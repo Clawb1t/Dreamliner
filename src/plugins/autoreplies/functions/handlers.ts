@@ -27,7 +27,11 @@ export async function handleAutoreplyMessage(message: Message): Promise<void> {
   );
 
   const rules = normalizeAutoreplyRules(pluginConfig.rules).filter(
-    (rule) => rule.channel_id === ALL_CHANNELS || rule.channel_id === message.channel.id,
+    (rule) =>
+      rule.channel_id === ALL_CHANNELS ||
+      rule.channel_id === message.channel.id ||
+      // A channel rule also covers that channel's threads.
+      (message.channel.isThread() && rule.channel_id === message.channel.parentId),
   );
 
   for (const rule of rules) {

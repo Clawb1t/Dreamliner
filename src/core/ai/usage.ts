@@ -20,9 +20,13 @@ async function getUsageRow(guildId: string) {
 export async function getAiGateStatus(guildId: string): Promise<AiGateStatus> {
   const oneActive = await isDreamlinerOneActive(guildId);
   if (oneActive) return { oneActive, freeUsesRemaining: AI_FREE_USES_LIMIT };
+  return { oneActive, freeUsesRemaining: await getFreeUsesRemaining(guildId) };
+}
+
+/** Free uses a guild has left, ignoring Dreamliner One. */
+export async function getFreeUsesRemaining(guildId: string): Promise<number> {
   const row = await getUsageRow(guildId);
-  const consumed = row?.freeUsesConsumed ?? 0;
-  return { oneActive, freeUsesRemaining: Math.max(0, AI_FREE_USES_LIMIT - consumed) };
+  return Math.max(0, AI_FREE_USES_LIMIT - (row?.freeUsesConsumed ?? 0));
 }
 
 /** Atomically consumes one free use (out of AI_FREE_USES_LIMIT total) for a non-One guild.

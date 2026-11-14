@@ -54,16 +54,24 @@ export function evaluateBoosterRoles(
   return { toAdd, toRemove };
 }
 
-/** Evaluate and actually add/remove the roles on Discord. Safe to call repeatedly — a no-op diff does nothing. */
+/** Whether the member holds any configured tier role (e.g. an ex-booster who still needs them removed). */
+export function holdsBoosterTierRole(member: GuildMember, config: BoosterRolesConfig): boolean {
+  return activeTiers(config).some((tier) => member.roles.cache.has(tier.role_id));
+}
+
+/** Evaluate and actually add/remove the roles on Discord. Safe to call repeatedly — a no-op diff does
+ *  nothing. Returns only the roles actually added/removed (not ones skipped or that Discord refused). */
 export async function syncBoosterRoles(member: GuildMember, config: BoosterRolesConfig): Promise<BoosterRoleEvaluation> {
   const boosts = hasBoostCountTiers(config) ? await effectiveBoostCount(member) : member.premiumSince ? 1 : 0;
   const evaluation = evaluateBoosterRoles(member, member.premiumSince, config, boosts);
   const toAdd = autoGrantableRoleIds(member.guild, evaluation.toAdd);
+  let added: string[] = [];
+  let removed: string[] = [];
   if (toAdd.length > 0) {
-    await member.roles.add(toAdd).catch(() => null);
+    added = (await member.roles.add(toAdd).then(() => true).catch(() => false)) ? toAdd : [];
   }
   if (evaluation.toRemove.length > 0) {
-    await member.roles.remove(evaluation.toRemove).catch(() => null);
+    removed = (await member.roles.remove(evaluation.toRemove).then(() => true).catch(() => false)) ? evaluation.toRemove : [];
   }
-  return evaluation;
+  return { toAdd: added, toRemove: removed };
 }

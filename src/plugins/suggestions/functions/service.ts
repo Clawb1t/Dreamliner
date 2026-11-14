@@ -140,6 +140,7 @@ export async function submitSuggestion(options: {
       guildId: guild.id,
       eventType: "suggestion_create",
       actorId: author.id,
+      caseLogOverride: config.log_channel_id,
     },
   );
 
@@ -374,6 +375,17 @@ export async function approveSuggestion(options: {
   if (suggestion.status !== "awaiting_review") {
     return { suggestion, error: t("suggestions.error.notAwaitingReview", "This suggestion is not awaiting review.") };
   }
+  // Check the feed first: approving without one would mark it approved and leave it stranded
+  // (out of the review queue, but never posted anywhere).
+  if (!(await resolveTextChannel(options.client, options.guild.id, options.config.suggestions_channel_id))) {
+    return {
+      suggestion,
+      error: t(
+        "suggestions.error.suggestionsChannelMissing",
+        "Suggestions channel is not configured or inaccessible.",
+      ),
+    };
+  }
 
   let updated =
     (await updateSuggestion(suggestion.id, { staffActorId: options.staffId, status: "approved" })) ??
@@ -392,6 +404,7 @@ export async function approveSuggestion(options: {
       eventType: "suggestion_approve",
       actorId: options.staffId,
       targetId: updated.authorId,
+      caseLogOverride: options.config.log_channel_id,
     },
   );
 
@@ -470,6 +483,7 @@ export async function denySuggestion(options: {
       eventType: "suggestion_deny",
       actorId: options.staffId,
       targetId: updated.authorId,
+      caseLogOverride: options.config.log_channel_id,
     },
   );
 
@@ -699,6 +713,7 @@ export async function addSuggestionComment(options: {
       eventType: "suggestion_comment",
       actorId: options.authorId,
       targetId: suggestion.authorId,
+      caseLogOverride: options.config.log_channel_id,
     },
   );
 

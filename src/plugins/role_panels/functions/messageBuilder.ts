@@ -136,13 +136,25 @@ export function rolePanelMessageFingerprint(message: Pick<Message, "content" | "
   });
 }
 
-/** Fingerprint of a panel's built payload, including the reaction-emoji set for reaction panels. */
-export function rolePanelPayloadFingerprint(built: BuiltRolePanelMessage, panel: RolePanel): string {
+function builtMessageSnapshot(built: BuiltRolePanelMessage) {
   const embed = built.payload.embeds?.[0];
-  return JSON.stringify({
+  return {
     content: built.payload.content ?? "",
     embeds: embed ? [embedSnapshot(embed as EmbedBuilder)] : [],
     buttons: buttonSnapshot(built.payload.components),
+  };
+}
+
+/** Fingerprint of a panel's built payload in the same shape as `rolePanelMessageFingerprint`
+ *  (no reactions, which a live message fingerprint can't see), for comparing against the live post. */
+export function rolePanelBuiltMessageFingerprint(built: BuiltRolePanelMessage): string {
+  return JSON.stringify(builtMessageSnapshot(built));
+}
+
+/** Fingerprint of a panel's built payload, including the reaction-emoji set for reaction panels. */
+export function rolePanelPayloadFingerprint(built: BuiltRolePanelMessage, panel: RolePanel): string {
+  return JSON.stringify({
+    ...builtMessageSnapshot(built),
     reactions: panel.trigger_type === "reaction" ? panel.roles.map((r) => r.emoji) : [],
   });
 }

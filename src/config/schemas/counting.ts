@@ -58,7 +58,7 @@ export const zCountingChannel = z
       .enum(COUNTING_RESET_TARGETS)
       .default("zero")
       .describe(
-        "Where the count resets to on a mistake: back to zero, or back down to the last milestone reached (see milestone_every).",
+        "Where the count resets to on a mistake: \"zero\" restarts from start_at (like /counting reset), or back down to the last milestone reached (see milestone_every).",
       ),
     milestone_every: z
       .number()

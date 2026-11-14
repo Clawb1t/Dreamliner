@@ -8,6 +8,10 @@ import { claimVoiceSession } from "../../../core/voiceSessionRegistry.js";
 import { getLavalinkManager, isLavalinkConfigured } from "./manager.js";
 import { configManager } from "../../../config/manager.js";
 import { logMusic } from "./musicLog.js";
+import { radioTag } from "../radio/tags.js";
+
+/** Queued station entries are stored with this source so they come back as station entries. */
+const RADIO_SOURCE = "dreamliner-radio";
 
 const log = getLogger("music");
 
@@ -24,6 +28,7 @@ function requesterOf(track: Track): string | undefined {
 }
 
 function trackFromRow(row: QueueItemRow): Track {
+  const radioStationId = row.sourceName === RADIO_SOURCE && row.uri?.startsWith("radio:") ? row.uri.slice(6) : null;
   return {
     encoded: row.encoded,
     info: {
@@ -40,6 +45,7 @@ function trackFromRow(row: QueueItemRow): Track {
     },
     pluginInfo: {},
     requester: row.requestedBy ? { id: row.requestedBy } : undefined,
+    ...(radioStationId ? { userData: { radio: { stationId: radioStationId, stationName: row.title, kind: "ticket" } } } : {}),
   };
 }
 
@@ -71,6 +77,7 @@ export async function saveSessionNow(player: Player): Promise<void> {
     volume: player.volume,
     paused: player.paused,
     loopMode: player.repeatMode,
+    radioStationId: radioTag(current)?.stationId ?? null,
     updatedAt: now,
   };
 
@@ -80,21 +87,25 @@ export async function saveSessionNow(player: Player): Promise<void> {
     .onConflictDoUpdate({ target: [musicSessions.guildId], set: sessionValues });
 
   await db.delete(musicQueueItems).where(eq(musicQueueItems.guildId, player.guildId));
-  const queued = player.queue.tracks.filter((t): t is Track => !("resolve" in t));
+  // A station's hidden "live" entries are rebuilt from its clock on resume, so they aren't saved.
+  const queued = player.queue.tracks.filter((t): t is Track => !("resolve" in t) && radioTag(t)?.kind !== "live");
   if (queued.length > 0) {
     await db.insert(musicQueueItems).values(
-      queued.map((track, index) => ({
-        guildId: player.guildId,
-        position: index,
-        encoded: track.encoded ?? "",
-        title: track.info.title,
-        author: track.info.author,
-        uri: track.info.uri,
-        artworkUrl: track.info.artworkUrl,
-        durationMs: track.info.duration,
-        sourceName: track.info.sourceName,
-        requestedBy: requesterOf(track) ?? "unknown",
-      })),
+      queued.map((track, index) => {
+        const radio = radioTag(track);
+        return {
+          guildId: player.guildId,
+          position: index,
+          encoded: track.encoded ?? "",
+          title: radio ? (radio.stationName ?? "Radio station") : track.info.title,
+          author: track.info.author,
+          uri: radio ? `radio:${radio.stationId}` : track.info.uri,
+          artworkUrl: track.info.artworkUrl,
+          durationMs: track.info.duration,
+          sourceName: radio ? RADIO_SOURCE : track.info.sourceName,
+          requestedBy: requesterOf(track) ?? "unknown",
+        };
+      }),
     );
   }
 }
@@ -189,6 +200,11 @@ export async function reclaimResumedSessions(client: Client, players: LavalinkPl
       if (dbRow && VALID_LOOP_MODES.has(dbRow.loopMode)) {
         await player.setRepeatMode(dbRow.loopMode as "off" | "track" | "queue");
       }
+      if (dbRow?.radioStationId) {
+        // Playback never stopped, but our hidden "next song" entry was lost: re-sync to the station.
+        const { resumeRadio } = await import("../radio/controller.js");
+        await resumeRadio(player, dbRow.radioStationId);
+      }
 
       void saveSessionNow(player).catch(() => {});
       log.info(`Reclaimed live music session for guild ${raw.guildId} via Lavalink session resume - it never left the voice channel.`);
@@ -264,7 +280,13 @@ export async function resumeSessionsOnBoot(client: Client): Promise<void> {
         await player.setRepeatMode(session.loopMode as "off" | "track" | "queue");
       }
 
-      if (session.currentTrackEncoded) {
+      if (session.radioStationId) {
+        // A station was on air: tune back in at the station's live point (its clock resumed too).
+        const { resumeRadio } = await import("../radio/controller.js");
+        const resumed = await resumeRadio(player, session.radioStationId);
+        if (!resumed && queueRows.length > 0) await player.play();
+        log.info(`Resumed radio station ${session.radioStationId} for guild ${session.guildId}.`);
+      } else if (session.currentTrackEncoded) {
         await player.play({
           track: {
             encoded: session.currentTrackEncoded,

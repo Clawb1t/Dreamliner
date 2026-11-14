@@ -11,6 +11,8 @@ export type CountingState = {
   highestCount: number;
   totalResets: number;
   lastCountAt: Date | null;
+  /** Whether the new-record message was already posted for the current run (cleared on reset). */
+  recordAnnounced: boolean;
 };
 
 export async function getCountingState(guildId: string, channelId: string): Promise<CountingState | null> {
@@ -74,6 +76,7 @@ export async function resetCountingState(input: {
       highestCount: input.highestCount,
       totalResets: (existing?.totalResets ?? 0) + 1,
       lastCountAt: input.now,
+      recordAnnounced: false,
     })
     .onConflictDoUpdate({
       target: [countingChannels.guildId, countingChannels.channelId],
@@ -83,6 +86,14 @@ export async function resetCountingState(input: {
         highestCount: input.highestCount,
         totalResets: (existing?.totalResets ?? 0) + 1,
         lastCountAt: input.now,
+        recordAnnounced: false,
       },
     });
+}
+
+export async function markRecordAnnounced(guildId: string, channelId: string): Promise<void> {
+  await getDb()
+    .update(countingChannels)
+    .set({ recordAnnounced: true })
+    .where(and(eq(countingChannels.guildId, guildId), eq(countingChannels.channelId, channelId)));
 }

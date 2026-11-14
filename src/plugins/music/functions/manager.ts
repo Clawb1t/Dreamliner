@@ -1,3 +1,4 @@
+import { registerRadioEvents } from "../radio/controller.js";
 import { Events, type Client } from "discord.js";
 import { LavalinkManager, type Player } from "lavalink-client";
 import { getLogger } from "../../../core/logger.js";
@@ -69,13 +70,12 @@ export function initLavalinkManager(client: Client): LavalinkManager {
       // available as a fallback if a specific search comes up empty.
       defaultSearchPlatform: "ytsearch",
       onDisconnect: { autoReconnect: true, destroyPlayer: false },
-      // Default grace period before leaving an empty queue - matches auto_leave_empty_seconds'
-      // own default (120s) philosophy but longer, since someone queueing up a next track shouldn't
-      // race a fast auto-leave. Guilds with stay_connected_247 on never hit this at all (see
-      // player.ts's create-time override). autoPlayFunction runs first, the instant the queue
-      // drains - it only actually queues something when the guild has autoplay_enabled, so this
-      // destroy timer still fires exactly as before for everyone who hasn't opted in.
-      onEmptyQueue: { destroyAfterMs: 600_000, autoPlayFunction: createAutoPlayFunction(client) },
+      // No library-wide destroyAfterMs: the empty-queue auto-leave is per guild
+      // (auto_leave_empty_seconds, skipped entirely with stay_connected_247) and is scheduled by
+      // events.ts's queueEnd handler. autoPlayFunction runs first, the instant the queue drains -
+      // it only queues something when the guild has autoplay_enabled; queueEnd only fires when it
+      // didn't.
+      onEmptyQueue: { autoPlayFunction: createAutoPlayFunction(client) },
     },
   });
 
@@ -145,6 +145,7 @@ export function initLavalinkManager(client: Client): LavalinkManager {
   // playerDestroy handling (voice registry release, 24/7 reconnect, session cleanup) lives in
   // events.ts alongside the rest of the playback-lifecycle logic.
   registerPlayerEvents(client, manager);
+  registerRadioEvents(manager);
 
   client.once(Events.ClientReady, (ready) => {
     void (async () => {

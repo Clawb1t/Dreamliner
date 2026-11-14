@@ -61,7 +61,7 @@ export async function handleAutoTranslateMessage(message: Message): Promise<void
   const pluginConfig = getTranslationPluginConfig(guildConfig);
   if (!pluginConfig.auto_translate) return;
   if (!(await isDreamlinerOneActive(message.guild.id))) return;
-  if (pluginConfig.ignored_channels.includes(message.channelId)) return;
+  if (isIgnoredChannel(pluginConfig.ignored_channels, message.channel)) return;
 
   const defaultLanguage = guildConfig.default_language || DEFAULT_LANGUAGE_CODE;
 
@@ -116,7 +116,7 @@ export async function handleAutoTranslateReaction(
   const pluginConfig = getTranslationPluginConfig(guildConfig);
   if (!pluginConfig.auto_translate) return;
   if (!(await isDreamlinerOneActive(message.guild.id))) return;
-  if (pluginConfig.ignored_channels.includes(message.channelId)) return;
+  if (isIgnoredChannel(pluginConfig.ignored_channels, message.channel)) return;
 
   const defaultLanguage = guildConfig.default_language || DEFAULT_LANGUAGE_CODE;
   const expectedFlag = flagForLanguage(defaultLanguage);
@@ -180,3 +180,9 @@ export const autoTranslateEvents = [
     },
   },
 ];
+
+/** Ignored channels also cover the threads inside them. */
+function isIgnoredChannel(ignored: string[], channel: { id: string; isThread(): boolean; parentId?: string | null }): boolean {
+  if (ignored.includes(channel.id)) return true;
+  return channel.isThread() && Boolean(channel.parentId) && ignored.includes(channel.parentId!);
+}

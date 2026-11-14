@@ -6,6 +6,12 @@ import {
 } from "discord.js";
 
 const COUNTING_WEBHOOK_NAME = "Dreamliner Counting";
+const countingWebhookIds = new Set<string>();
+
+/** Whether `id` is a counting webhook this process has used, so its posts aren't counted. */
+export function isCountingWebhookId(id: string | null | undefined): boolean {
+  return Boolean(id && countingWebhookIds.has(id));
+}
 
 function asWebhookChannel(channel: GuildTextBasedChannel): TextChannel | null {
   if (!channel.isTextBased() || channel.isDMBased()) return null;
@@ -26,11 +32,16 @@ export async function getCountingWebhook(channel: GuildTextBasedChannel): Promis
   try {
     const existing = await textChannel.fetchWebhooks();
     const owned = existing.find((hook) => hook.owner?.id === me.id && hook.name === COUNTING_WEBHOOK_NAME);
-    if (owned) return owned;
-    return await textChannel.createWebhook({
+    if (owned) {
+      countingWebhookIds.add(owned.id);
+      return owned;
+    }
+    const created = await textChannel.createWebhook({
       name: COUNTING_WEBHOOK_NAME,
       reason: "Counting messages with a custom name and avatar",
     });
+    countingWebhookIds.add(created.id);
+    return created;
   } catch {
     return null;
   }

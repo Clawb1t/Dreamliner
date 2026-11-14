@@ -31,7 +31,7 @@ import {
 import { findOpening, loadApplicationsConfig, modalTitle, openingName, PLUGIN } from "./config.js";
 import { clearDraft, getDraft, saveDraft } from "./drafts.js";
 import { applyBlocker } from "./eligibility.js";
-import { decide, postForReview } from "./review.js";
+import { decide, postForReview, resolveReviewChannel } from "./review.js";
 import { createApplication } from "./store.js";
 
 type Ctx = {
@@ -102,6 +102,11 @@ async function handleApply(interaction: ButtonInteraction, ctx: Ctx, openingId: 
   const blocker = applyBlocker(ctx.member, opening, t);
   if (blocker) {
     await reply(interaction, ctx, t("applications.cantApplyTitle", "Can't apply"), blocker, "warning");
+    return;
+  }
+
+  if (!(await resolveReviewChannel(interaction.guild!, ctx.config, opening))) {
+    await reply(interaction, ctx, t("applications.notSetUpTitle", "Not set up yet"), t("applications.notSetUpBody", "Applications for **{opening}** aren't set up yet, so there's nowhere to send yours. Let the server staff know.", { opening: openingName(opening) }), "warning");
     return;
   }
 
@@ -259,6 +264,13 @@ async function handleFormPage(interaction: ModalSubmitInteraction, ctx: Ctx, ope
   }
 
   await interaction.deferReply({ ephemeral: true });
+  // Checked before saving, so a missing review channel doesn't leave an application nobody can see.
+  // The draft is kept so the applicant can resubmit the last page once staff fix it.
+  if (!(await resolveReviewChannel(interaction.guild!, ctx.config, opening))) {
+    saveDraft(guildId, interaction.user.id, opening.id, { answers: draft.answers, files: draft.files, pagesDone: page });
+    await reply(interaction, ctx, t("applications.notSetUpTitle", "Not set up yet"), t("applications.notSetUpBody", "Applications for **{opening}** aren't set up yet, so there's nowhere to send yours. Let the server staff know.", { opening: openingName(opening) }), "warning");
+    return;
+  }
   const application = createApplication({
     guildId,
     openingId: opening.id,
@@ -266,7 +278,19 @@ async function handleFormPage(interaction: ModalSubmitInteraction, ctx: Ctx, ope
     userId: interaction.user.id,
     answers,
   });
-  await postForReview(interaction.guild!, ctx.config, opening, application, interaction.user, files);
+  const posted = await postForReview(interaction.guild!, ctx.config, opening, application, interaction.user, files);
+  if (!posted) {
+    await reply(
+      interaction,
+      ctx,
+      t("applications.notPostedTitle", "Application saved, not delivered"),
+      t("applications.notPostedBody", "Your **{opening}** application was saved, but it couldn't be posted for the team to review. Let the server staff know.", {
+        opening: openingName(opening),
+      }),
+      "warning",
+    );
+    return;
+  }
   await reply(
     interaction,
     ctx,

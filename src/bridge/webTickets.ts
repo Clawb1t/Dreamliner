@@ -82,7 +82,10 @@ export type WebTicket = {
 const DEFAULT_LIMIT = 40;
 const MAX_LIMIT = 100;
 
-export type WebTicketsQuery = TicketQueryFilters;
+export type WebTicketsQuery = TicketQueryFilters & {
+  /** Free-text search: ticket number ("12" or "#12"), category label, or channel/thread id or name. */
+  q?: string;
+};
 
 export function parseWebTicketsQuery(url: URL): WebTicketsQuery {
   const status = url.searchParams.get("status")?.trim();
@@ -92,6 +95,7 @@ export function parseWebTicketsQuery(url: URL): WebTicketsQuery {
     panelId: url.searchParams.get("panelId")?.trim() || undefined,
     openerId: url.searchParams.get("openerId")?.trim() || undefined,
     claimedBy: url.searchParams.get("claimedBy")?.trim() || undefined,
+    q: url.searchParams.get("q")?.trim().slice(0, 100) || undefined,
     limit: Math.min(MAX_LIMIT, Math.max(1, Number(url.searchParams.get("limit") ?? DEFAULT_LIMIT) || DEFAULT_LIMIT)),
     offset: Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0),
   };
@@ -169,9 +173,31 @@ async function getTicketsConfig(guildId: string): Promise<TicketsConfig> {
   return zTicketsConfig.parse(getPluginSettings(guildConfig, "tickets"));
 }
 
+function ticketMatchesSearch(guild: Guild, ticket: TicketRecord, pluginConfig: TicketsConfig, q: string): boolean {
+  const needle = q.toLowerCase();
+  const number = needle.replace(/^#/, "");
+  if (/^\d+$/.test(number) && ticket.number === Number(number)) return true;
+  const channelIds = [ticket.channelId, ticket.threadId].filter((id): id is string => Boolean(id));
+  if (channelIds.includes(q)) return true;
+  if (channelIds.some((id) => guild.channels.cache.get(id)?.name.toLowerCase().includes(needle))) return true;
+  const label = pluginConfig.panels
+    .find((p) => p.id === ticket.panelId)
+    ?.categories.find((c) => c.id === ticket.categoryId)?.label;
+  return Boolean(label?.toLowerCase().includes(needle));
+}
+
 export async function listGuildTickets(guild: Guild, query: WebTicketsQuery) {
-  const result = await queryTickets(guild.id, query);
   const pluginConfig = await getTicketsConfig(guild.id);
+  let result: { tickets: TicketRecord[]; total: number };
+  if (query.q) {
+    // Search needs config labels and live channel names, so filter the full (already filtered) set here.
+    const all = await queryTickets(guild.id, { ...query, limit: Number.MAX_SAFE_INTEGER, offset: 0 });
+    const matched = all.tickets.filter((t) => ticketMatchesSearch(guild, t, pluginConfig, query.q!));
+    const offset = query.offset ?? 0;
+    result = { tickets: matched.slice(offset, offset + (query.limit ?? DEFAULT_LIMIT)), total: matched.length };
+  } else {
+    result = await queryTickets(guild.id, query);
+  }
   const items = await Promise.all(result.tickets.map((t) => toWebTicket(guild, t, false, pluginConfig)));
   return {
     tickets: items,
@@ -248,6 +274,7 @@ export async function performTicketAction(
   const category = panel?.categories.find((c) => c.id === ticket.categoryId);
 
   if (action === "claim") {
+    if (ticket.status === "closed") return { error: "Ticket is already closed" };
     await performClaim(guild.client, guildConfig, pluginConfig, ticket, actorId);
   } else if (action === "unclaim") {
     await performUnclaim(ticket);

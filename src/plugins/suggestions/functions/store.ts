@@ -189,10 +189,11 @@ export async function listSuggestions(guildId: string, query: ListSuggestionsQue
   if (query.authorId) filters.push(eq(suggestions.authorId, query.authorId));
   if (query.q) {
     const q = query.q.trim();
-    if (/^\d+$/.test(q)) {
-      filters.push(or(eq(suggestions.suggestionNumber, Number(q)), like(suggestions.content, `%${q}%`))!);
-    } else if (/^\d{17,20}$/.test(q)) {
+    // Snowflake first: a user ID is also all digits, so the number check would swallow it.
+    if (/^\d{17,20}$/.test(q)) {
       filters.push(eq(suggestions.authorId, q));
+    } else if (/^\d+$/.test(q)) {
+      filters.push(or(eq(suggestions.suggestionNumber, Number(q)), like(suggestions.content, `%${q}%`))!);
     } else {
       filters.push(like(suggestions.content, `%${q}%`));
     }

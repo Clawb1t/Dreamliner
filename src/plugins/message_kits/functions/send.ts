@@ -160,8 +160,8 @@ export function kitVars(guild: Guild, channel: Channel | null, person?: { user: 
     user: person?.user ?? null,
     member: person?.member ?? null,
   });
-  // No person: leave {user} and friends as written instead of blanking them.
-  if (!person) for (const key of USER_KEYS) delete vars[key];
+  // No person (a channel post): {user} and friends come out empty, matching the dashboard preview.
+  if (!person) for (const key of USER_KEYS) vars[key] = "";
   const time = timeVars(now);
   return { vars: { ...vars, ...time.markdown }, plainVars: { ...vars, ...time.plain } };
 }

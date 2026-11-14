@@ -20,7 +20,7 @@ import {
   pruneOldWelcomeJoinMessages,
   trackWelcomeJoinMessage,
 } from "./store.js";
-import { EARLY_LEAVE_MS } from "./waveButton.js";
+import { EARLY_LEAVE_MS, WELCOME_JOIN_TRACKING_MS } from "./waveButton.js";
 
 export { loadWelcomeConfig };
 
@@ -85,7 +85,8 @@ async function deliverWelcome(
     if (!user) return { ok: false, detail: "No user available for DM." };
     const dm = await user.createDM().catch(() => null);
     if (!dm) return { ok: false, detail: "Could not open a DM with that member." };
-    await dm.send(built.payload).catch(() => null);
+    const sent = await dm.send(built.payload).catch(() => null);
+    if (!sent) return { ok: false, detail: "Couldn't DM you — your DMs may be closed." };
     return { ok: true, detail: "DM sent." };
   }
 
@@ -223,8 +224,9 @@ export async function handleWelcomeMemberRemove(
     await deleteEarlyJoinWelcomes(member.guild, member.id);
   }
 
-  // Drop tracking rows older than a day so the table stays small.
-  await pruneOldWelcomeJoinMessages(new Date(Date.now() - EARLY_LEAVE_MS)).catch(() => null);
+  // Drop old tracking rows so the table stays small — kept well past the early-leave window so
+  // Wave buttons on older welcomes keep working.
+  await pruneOldWelcomeJoinMessages(new Date(Date.now() - WELCOME_JOIN_TRACKING_MS)).catch(() => null);
 
   if (!config.leave.enabled || !config.leave.channel_id) return;
 

@@ -97,7 +97,7 @@ export async function getBirthdayOverview(guild: Guild): Promise<{
   upcoming: BirthdayOverviewEntry[];
 }> {
   const config = loadBirthdaysConfig(await configManager.getEffectiveConfig(guild.id));
-  const all = await upcomingFor(guild, config);
+  const all = await upcomingFor(guild, config, { includeOptedOut: true });
   const optouts = optedOutIn(guild.id);
   const today = localMoment(new Date(), config.timezone);
   return {

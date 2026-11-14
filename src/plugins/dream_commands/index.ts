@@ -2,7 +2,12 @@ import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zDreamCommandsConfig } from "../../config/schemas/plugins.js";
 import { dreamCommandManageCommands } from "./commands/manage.js";
-import { syncAllGuildDreamSlashCommands, syncGuildDreamSlashCommands } from "./functions/guildSlash.js";
+import {
+  dreamCommandsNeedResync,
+  syncAllGuildDreamSlashCommands,
+  syncGuildDreamSlashCommands,
+} from "./functions/guildSlash.js";
+import { pluginEnabled } from "../../core/pluginCommand.js";
 import { getLogger } from "../../core/logger.js";
 const log = getLogger("dream_commands");
 
@@ -10,6 +15,17 @@ export const dreamCommandsPlugin = definePlugin({
   name: "dream_commands",
   configSchema: zDreamCommandsConfig,
   slashCommands: dreamCommandManageCommands,
+  onLoad: async ({ client, configManager }) => {
+    // Turning the plugin on/off (from the dashboard or /plugin toggle) adds or removes the
+    // server's custom commands in Discord.
+    configManager.onSave((guildId, config) => {
+      if (!client.isReady()) return;
+      if (!dreamCommandsNeedResync(guildId, pluginEnabled(config, "dream_commands"))) return;
+      void syncGuildDreamSlashCommands(client, guildId).catch((error) => {
+        log.error(`[dream_commands] Re-sync after config save failed for ${guildId}:`, error);
+      });
+    });
+  },
   events: [
     {
       name: Events.ClientReady,

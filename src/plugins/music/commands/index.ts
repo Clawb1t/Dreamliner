@@ -7,6 +7,7 @@ import { djCommand } from "./dj.js";
 import { playlistCommand } from "./playlist.js";
 import { musicConfigCommand } from "./config.js";
 import { autoplayCommand } from "./autoplay.js";
+import { radioCommand } from "./radio.js";
 
 export const musicCommands: SlashCommandDefinition[] = [
   playCommand,
@@ -17,4 +18,5 @@ export const musicCommands: SlashCommandDefinition[] = [
   playlistCommand,
   musicConfigCommand,
   autoplayCommand,
+  radioCommand,
 ];

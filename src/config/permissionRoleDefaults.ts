@@ -111,6 +111,10 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
 
   // Was level >= 25 OR level >= 50.
   moderator: [
+    // appeals (migration 0116 granted these to Moderator roles that existed then; newly seeded
+    // servers need them here too, or nobody but admins can review appeals)
+    "appeals.can_review",
+    "appeals.can_view",
     // applications
     "applications.can_review",
     // birthdays
@@ -132,6 +136,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "giveaways.can_pause",
     // incident_response
     "incident_response.can_manage",
+    // impersonation (alert list / resolve / dismiss; nobody had it by default)
+    "impersonation.can_status",
     // invite_tracker
     "invite_tracker.can_raid",
     // infractions
@@ -205,6 +211,7 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "utility.can_create_sticker",
     "utility.can_nickname",
     "utility.can_search",
+    "utility.can_snipe",
     "utility.can_stealemoji",
     "utility.can_vckick",
     "utility.can_vcmove",

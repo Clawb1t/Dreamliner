@@ -436,8 +436,8 @@ export async function postTranscriptLog(
     guild?.iconURL({ size: 64 }),
     t,
   );
-  await (channel as TextChannel)
+  const sent = await (channel as TextChannel)
     .send(containerReply(embed, false, [transcriptLinkRow(ticket.guildId, transcriptId, t)]))
     .catch(() => null);
-  return true;
+  return sent !== null;
 }

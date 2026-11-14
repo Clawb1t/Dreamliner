@@ -118,9 +118,13 @@ function addDateOptions(builder: SlashCommandSubcommandBuilder): SlashCommandSub
     );
 }
 
-async function upcomingFor(guild: import("discord.js").Guild, config: BirthdaysConfig) {
+async function upcomingFor(
+  guild: import("discord.js").Guild,
+  config: BirthdaysConfig,
+  options: { includeOptedOut?: boolean } = {},
+) {
   const members = await guild.members.fetch().catch(() => guild.members.cache);
-  const optedOut = optedOutIn(guild.id);
+  const optedOut = options.includeOptedOut ? new Set<string>() : optedOutIn(guild.id);
   const humans = [...members.values()].filter((m) => !m.user.bot && !optedOut.has(m.id));
   const birthdays = getBirthdaysIn(guild.id, humans.map((m) => m.id));
   const today = localMoment(new Date(), config.timezone);
@@ -246,7 +250,7 @@ export const birthdaysCommands: SlashCommandDefinition[] = [
             ctx,
             title,
             removed
-              ? t("birthdays.removed", "Your birthday is removed. It won't be celebrated anywhere now.")
+              ? t("birthdays.removed", "Your birthday is removed. Servers won't celebrate it any more, unless their staff set one for you there.")
               : t("birthdays.noneSet", "You haven't set a birthday yet. Use `/birthday set`."),
             removed ? "success" : "neutral",
             true,

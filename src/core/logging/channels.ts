@@ -1,5 +1,5 @@
 import type { GuildConfig } from "../../config/schemas/guild.js";
-import type { LogEventType } from "./events.js";
+import { LOG_EVENT_META, type LogEventType } from "./events.js";
 
 /** Trims to a real value, or undefined if blank/missing — `??` alone treats `""` as "set". */
 function nonEmpty(value: string | null | undefined): string | undefined {
@@ -26,4 +26,19 @@ export function getModerationLogChannelId(
 
 export function getServerLogChannelId(guildConfig: GuildConfig): string | undefined {
   return nonEmpty(guildConfig.server_log_channel_id);
+}
+
+/** Where a log for `eventType` is delivered, in priority order: the per-event override, then the
+ *  plugin's own log channel (when the caller passes one), then the moderation/server default. */
+export function resolveLogChannelId(
+  guildConfig: GuildConfig,
+  eventType: LogEventType,
+  pluginChannelId?: string | null,
+): string | undefined {
+  return (
+    getEventChannelOverride(guildConfig, eventType) ??
+    (LOG_EVENT_META[eventType].category === "moderation"
+      ? getModerationLogChannelId(guildConfig, pluginChannelId)
+      : (nonEmpty(pluginChannelId) ?? getServerLogChannelId(guildConfig)))
+  );
 }

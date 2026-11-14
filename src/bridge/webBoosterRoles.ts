@@ -8,6 +8,7 @@ import {
 import { syncBoosterRoles } from "../plugins/booster_roles/functions/apply.js";
 import { activeTiers, loadBoosterRolesConfig } from "../plugins/booster_roles/functions/config.js";
 import { configManager } from "../config/manager.js";
+import { pluginEnabled } from "../core/pluginCommand.js";
 import { getLogger } from "../core/logger.js";
 
 const log = getLogger("booster_roles");
@@ -48,7 +49,10 @@ export function startWebBoostBackfill(guild: Guild): WebBackfillStart {
       const result = await backfillBoostCounts(guild);
       lastResult.set(guild.id, result);
       if (!result.ok) return;
-      const config = loadBoosterRolesConfig(await configManager.getEffectiveConfig(guild.id));
+      // Counting always runs; roles are only re-synced while the plugin is on.
+      const guildConfig = await configManager.getEffectiveConfig(guild.id);
+      if (!pluginEnabled(guildConfig, "booster_roles")) return;
+      const config = loadBoosterRolesConfig(guildConfig);
       if (activeTiers(config).length === 0) return;
       for (const member of guild.members.cache.values()) {
         if (member.premiumSince) await syncBoosterRoles(member, config).catch(() => null);

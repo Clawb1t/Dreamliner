@@ -182,11 +182,11 @@ describe("computePlan: fresh", () => {
     assert.ok(ops.indexOf("delete_channel") < ops.indexOf("delete_role"));
   });
 
-  it("a logs plugin frees the old log channel for deletion", () => {
+  it("keeps existing log channels even when the design adds a logs plugin", () => {
     const logs = channel("bot-logs", "text");
     const t = template({ plugins: [{ plugin: "logs", channel_key: "mod_logs", role_key: null, extra_role_keys: [], level: "standard" }] });
     const { resolved } = computePlan({ template: t, mode: "fresh", keep: noKeep, snap: snapshot({ channels: [logs], logChannelIds: [logs.id] }) });
-    assert.ok(resolved.deleteChannels.some((d) => d.id === logs.id));
+    assert.ok(!resolved.deleteChannels.some((d) => d.id === logs.id));
   });
 
   it("is deterministic", () => {

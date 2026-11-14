@@ -552,7 +552,7 @@
                 "autojoin_threads": {
                   "type": "boolean",
                   "default": true,
-                  "description": "Automatically join threads when Dreamliner is mentioned or used in them.",
+                  "description": "Automatically join every thread Dreamliner is able to join, including new ones as they are created.",
                   "title": "Autojoin Threads"
                 },
                 "expand_message_links": {
@@ -5229,7 +5229,7 @@
                 "can_give": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to give roles with /role.",
+                  "description": "Allow members to give roles with /roles.",
                   "title": "Give",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -5239,7 +5239,7 @@
                 "can_remove": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to remove roles with /role.",
+                  "description": "Allow members to remove roles with /roles.",
                   "title": "Remove",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -9643,7 +9643,7 @@
                           "last_milestone"
                         ],
                         "default": "zero",
-                        "description": "Where the count resets to on a mistake: back to zero, or back down to the last milestone reached (see milestone_every).",
+                        "description": "Where the count resets to on a mistake: \"zero\" restarts from start_at (like /counting reset), or back down to the last milestone reached (see milestone_every).",
                         "title": "Reset To"
                       },
                       "milestone_every": {
@@ -10491,7 +10491,7 @@
                   "minimum": 0,
                   "maximum": 3600,
                   "default": 120,
-                  "description": "Seconds to wait after the voice channel empties of non-bot members before leaving. Ignored when 24/7 is on. 0 leaves immediately.",
+                  "description": "Seconds to wait after the queue runs out before leaving the voice channel. Ignored when 24/7 is on. 0 leaves immediately.",
                   "title": "Auto Leave Empty Seconds",
                   "x-dreamliner": {
                     "kind": "seconds",
@@ -10503,6 +10503,12 @@
                   "default": false,
                   "description": "When the queue runs out, automatically queue a track similar to the last one played (like YouTube's autoplay/radio) instead of going quiet. While this is on the bot won't auto-leave for an empty queue, since it keeps refilling itself - use /stop or turn this off to end the session.",
                   "title": "Autoplay Enabled"
+                },
+                "radios_enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Let members tune the bot into Dreamliner radio stations with /radio play or the web player's Radios section. Uses the same can_play permission as /play.",
+                  "title": "Radios Enabled"
                 },
                 "can_play": {
                   "type": "boolean",
@@ -10618,6 +10624,7 @@
                 "stay_connected_247": false,
                 "auto_leave_empty_seconds": 120,
                 "autoplay_enabled": false,
+                "radios_enabled": true,
                 "can_play": false,
                 "can_control_playback": false,
                 "can_skip": false,

@@ -42,6 +42,14 @@ export function buildReviewEmbed(options: {
 }
 
 /** The reviews channel by id, only when it's in `guildId`. */
+/** Removes a review's Discord post, if it still exists (best effort). */
+export async function deleteReviewPost(client: Client, guildId: string, review: Review): Promise<void> {
+  if (!review.channelId || !review.messageId) return;
+  const channel = await resolveTextChannel(client, guildId, review.channelId);
+  const msg = channel ? await channel.messages.fetch(review.messageId).catch(() => null) : null;
+  if (msg) await msg.delete().catch(() => null);
+}
+
 export async function resolveTextChannel(
   client: Client,
   guildId: string,

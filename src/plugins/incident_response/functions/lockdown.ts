@@ -101,8 +101,12 @@ async function restoreOverwrite(channel: NonThreadGuildBasedChannel, everyoneId:
     });
     return;
   }
+  // Lockdown also denied thread creation; only Send Messages' prior state is recorded, so clear the
+  // thread denies (back to inherit) instead of leaving threads blocked after the unlock.
   await channel.permissionOverwrites.edit(everyoneId, {
     SendMessages: previous === "allow",
+    CreatePublicThreads: null,
+    CreatePrivateThreads: null,
   });
 }
 

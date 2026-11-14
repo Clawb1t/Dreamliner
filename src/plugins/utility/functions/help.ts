@@ -11,7 +11,7 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 import type { EmojisConfig } from "../../../config/schemas/guild.js";
-import { SUPPORT_URL, getSiteUrl, linkButton } from "../../../core/docsUrl.js";
+import { SUPPORT_URL, docsPageUrl, getSiteUrl, linkButton } from "../../../core/docsUrl.js";
 import { HELP_CATEGORIES, type HelpCategory } from "../../../core/helpCategories.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
 import { baseEmbed, setEmbedAuthor, trimLines, type ResultContainer } from "../../../core/embeds.js";
@@ -573,12 +573,12 @@ function buildNavButtons(view: HelpView, query: string, pageCount: number, t: Tr
 }
 
 function buildHelpLinkRow(docsUrl: string, docsPath: string, t: Translator): ActionRowBuilder<ButtonBuilder> {
-  const docsTarget =
-    !docsPath || docsPath === "index" ? docsUrl.replace(/\/$/, "") : `${docsUrl.replace(/\/$/, "")}/${docsPath.replace(/^\//, "")}`;
+  // Plugin doc pages are gone; docsPageUrl sends known paths to their guide, the rest to /helpcenter.
+  const docsTarget = docsPageUrl(docsPath, docsUrl);
 
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     linkButton(t("help.button.website", "Website"), getSiteUrl()),
-    linkButton(t("help.button.docs", "Docs"), docsTarget),
+    linkButton(t("help.button.guides", "Guides"), docsTarget),
     linkButton(t("help.button.support", "Support"), SUPPORT_URL),
   );
 }

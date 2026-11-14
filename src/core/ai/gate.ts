@@ -1,5 +1,5 @@
 import { isDreamlinerOneActive } from "../../bridge/dreamlinerOne.js";
-import { consumeFreeAiUse } from "./usage.js";
+import { consumeFreeAiUse, getFreeUsesRemaining } from "./usage.js";
 
 export const AI_ONE_REQUIRED = "Autopilot's free uses are used up. Dreamliner One is required to keep using it.";
 
@@ -15,7 +15,8 @@ export async function consumeAiGate(guildId: string): Promise<AiGateResult> {
   }
 
   if (await consumeFreeAiUse(guildId)) {
-    return { ok: true, oneActive: false, freeUsesRemaining: 0 };
+    // Report what's left after this charge, so the "uses left" caption stays accurate.
+    return { ok: true, oneActive: false, freeUsesRemaining: await getFreeUsesRemaining(guildId) };
   }
 
   return { ok: false, error: AI_ONE_REQUIRED, status: 403, freeUsesRemaining: 0 };

@@ -426,6 +426,7 @@ export const countingChannels = sqliteTable(
     highestCount: integer("highest_count").notNull().default(0),
     totalResets: integer("total_resets").notNull().default(0),
     lastCountAt: integer("last_count_at", { mode: "timestamp" }),
+    recordAnnounced: integer("record_announced", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.channelId] })],
 );
@@ -967,6 +968,8 @@ export const userProfiles = sqliteTable("user_profiles", {
   showTradingCards: integer("show_trading_cards", { mode: "boolean" }).notNull().default(false),
   /** Hide the "As seen in these servers" section on the public profile page. Off by default. */
   hideServersSection: integer("hide_servers_section", { mode: "boolean" }).notNull().default(false),
+  /** Show Avia, the help assistant, on dashboard pages. On by default; turned off in account settings. */
+  aviaDashboard: integer("avia_dashboard", { mode: "boolean" }).notNull().default(true),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
@@ -1029,6 +1032,12 @@ export const botStatusSamples = sqliteTable("bot_status_samples", {
   lavalinkPlayingPlayers: integer("lavalink_playing_players", { mode: "number" }),
   lavalinkMemoryUsedMb: integer("lavalink_memory_used_mb", { mode: "number" }),
   lavalinkCpuLoadPct: real("lavalink_cpu_load_pct"),
+  /** Process health over the minute before the sample (migration 0132): CPU as % of one core,
+   *  event-loop delay p99 in ms, V8 heap in use, and commands run. Null on older rows. */
+  cpuPct: real("cpu_pct"),
+  eventLoopMs: real("event_loop_ms"),
+  heapUsedMb: integer("heap_used_mb", { mode: "number" }),
+  commands: integer("commands", { mode: "number" }),
 });
 
 /** Daily rollup of bot status samples (uptime % + avg ping). */
@@ -1816,6 +1825,8 @@ export const musicSessions = sqliteTable("music_sessions", {
   volume: integer("volume", { mode: "number" }).notNull().default(80),
   paused: integer("paused", { mode: "boolean" }).notNull().default(false),
   loopMode: text("loop_mode").notNull().default("off"), // "off" | "track" | "queue"
+  /** Set while a Dreamliner Radio station is on air here; resume re-tunes to the station's live clock. */
+  radioStationId: text("radio_station_id"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
@@ -1837,6 +1848,68 @@ export const musicQueueItems = sqliteTable(
   },
   (table) => [index("music_queue_items_guild").on(table.guildId, table.position)],
 );
+
+// --- Dreamliner Radio: operator-run stations the bot can tune into -----------------------------
+
+/** A station Dreamliner operators (dashboard superusers) run. Platform content, not per guild. */
+export const radioStations = sqliteTable("radio_stations", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  genre: text("genre"),
+  accentColor: text("accent_color"),
+  /** Global page asset id (data/guild-assets/global/radio/<id>.png). */
+  iconAssetId: text("icon_asset_id"),
+  shuffle: integer("shuffle", { mode: "boolean" }).notNull().default(false),
+  /** "draft" | "live" - only live stations can be tuned into. */
+  visibility: text("visibility").notNull().default("draft"),
+  sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** One uploaded MP3 in a station, stored at data/radio/<stationId>/<id>.mp3. */
+export const radioTracks = sqliteTable(
+  "radio_tracks",
+  {
+    id: text("id").primaryKey(),
+    stationId: text("station_id").notNull(),
+    position: integer("position", { mode: "number" }).notNull(),
+    title: text("title").notNull(),
+    artist: text("artist"),
+    durationMs: integer("duration_ms", { mode: "number" }).notNull(),
+    sizeBytes: integer("size_bytes", { mode: "number" }).notNull(),
+    sha256: text("sha256").notNull(),
+    artworkAssetId: text("artwork_asset_id"),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("radio_tracks_station").on(table.stationId, table.position)],
+);
+
+/** Each station's global clock, saved every few seconds so a restart picks up where it left off. */
+export const radioStationState = sqliteTable("radio_station_state", {
+  stationId: text("station_id").primaryKey(),
+  currentTrackId: text("current_track_id"),
+  offsetMs: integer("offset_ms", { mode: "number" }).notNull().default(0),
+  /** Seeds the shuffle order so it stays stable across restarts until the track list changes. */
+  orderSeed: integer("order_seed", { mode: "number" }).notNull().default(0),
+  savedAt: integer("saved_at", { mode: "timestamp" }).notNull(),
+});
+
+/** An MP3 being uploaded in chunks from the dashboard (Vercel caps each request at 4.5MB). */
+export const radioUploads = sqliteTable("radio_uploads", {
+  id: text("id").primaryKey(),
+  stationId: text("station_id").notNull(),
+  filename: text("filename").notNull(),
+  expectedBytes: integer("expected_bytes", { mode: "number" }).notNull(),
+  receivedBytes: integer("received_bytes", { mode: "number" }).notNull().default(0),
+  nextIndex: integer("next_index", { mode: "number" }).notNull().default(0),
+  createdBy: text("created_by").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
 
 export const giveaways = sqliteTable(
   "giveaways",
@@ -3050,4 +3123,21 @@ export const serverAutopilotBackups = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [index("server_autopilot_backups_guild").on(table.guildId, table.createdAt)],
+);
+
+/**
+ * Avia (the help centre's AI assistant): messages and tokens per subject per UTC day, for daily
+ * limits. `subject` is `user:<discordId>`, `ip:<salted hash>` (never a raw IP) or `*` for the global
+ * total. Rows older than a few days are pruned.
+ */
+export const aviaUsage = sqliteTable(
+  "avia_usage",
+  {
+    subject: text("subject").notNull(),
+    day: text("day").notNull(),
+    messages: integer("messages", { mode: "number" }).notNull().default(0),
+    tokens: integer("tokens", { mode: "number" }).notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.subject, table.day] }), index("avia_usage_day").on(table.day)],
 );

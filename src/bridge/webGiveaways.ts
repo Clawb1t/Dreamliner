@@ -22,11 +22,10 @@ import type {
   GiveawayTemplate,
 } from "../plugins/giveaways/functions/store.js";
 import { rerollWinner } from "../plugins/giveaways/functions/draw.js";
-import { finishGiveaway, startGiveaway } from "../plugins/giveaways/functions/scheduler.js";
+import { finishGiveaway, refreshGiveawayMessage, startGiveaway } from "../plugins/giveaways/functions/scheduler.js";
 import {
   buildClaimComponents,
   buildGiveawayCancelledEmbed,
-  buildGiveawayComponents,
   buildGiveawayEmbed,
   buildGiveawayEndedEmbed,
 } from "../plugins/giveaways/functions/embeds.js";
@@ -230,13 +229,6 @@ async function editLiveMessage(
     .fetch(giveaway.messageId)
     .then((message) => message.edit({ embeds: [embed], components }))
     .catch(() => null);
-}
-
-/** Refreshes the live embed/components for an active/scheduled/paused giveaway, used after any
- *  edit that changes what the posted message should show. */
-async function refreshGiveawayMessage(guild: Guild, giveaway: Giveaway): Promise<void> {
-  const entryCount = await store.getEntryCount(giveaway.id);
-  await editLiveMessage(guild, giveaway, buildGiveawayEmbed(giveaway, entryCount, guild), buildGiveawayComponents(giveaway, entryCount));
 }
 
 async function dmUsers(client: Client, userIds: string[], content: string): Promise<void> {
@@ -491,6 +483,7 @@ export async function performGiveawayAction(
         {
           guildId: guild.id,
           eventType: "giveaway_reroll",
+          caseLogOverride: guildConfig.plugins.giveaways?.config?.log_channel_id,
           summary: `${refreshed.title || refreshed.prize} rerolled from the dashboard.`,
           channelId: refreshed.channelId,
           messageId: refreshed.messageId,

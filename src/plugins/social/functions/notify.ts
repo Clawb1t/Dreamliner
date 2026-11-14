@@ -35,11 +35,11 @@ export const interpolateSocialTokens: (text: string, tokens: Record<SocialTokenK
 
 export function buildNotificationPayload(watcher: SocialWatcherRow, video: LatestUpload): BaseMessageOptions {
   const tokens = buildSocialTokens(watcher, video);
-  return buildPayload(watcher, tokens, "channel_avatar", "video_thumbnail");
+  return buildPayload(watcher, tokens, "channel_avatar", "video_thumbnail", video.publishedAt);
 }
 
 /** Send a video notification for a watcher. Never throws; logs and returns false on failure. */
 export async function sendNotification(client: Client, watcher: SocialWatcherRow, video: LatestUpload): Promise<boolean> {
   const tokens = buildSocialTokens(watcher, video);
-  return send(client, watcher, tokens, "channel_avatar", "video_thumbnail");
+  return send(client, watcher, tokens, "channel_avatar", "video_thumbnail", video.publishedAt);
 }

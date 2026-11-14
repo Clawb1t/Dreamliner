@@ -173,8 +173,8 @@ export const zRolesConfig = z.strictObject({
     .max(MAX_ROLE_RULES)
     .default([])
     .describe("If-then role rules: when a member has certain roles, give and remove others."),
-  can_give: boolPerm("give roles with /role"),
-  can_remove: boolPerm("remove roles with /role"),
+  can_give: boolPerm("give roles with /roles"),
+  can_remove: boolPerm("remove roles with /roles"),
   can_list: boolPerm("list roles"),
 });
 

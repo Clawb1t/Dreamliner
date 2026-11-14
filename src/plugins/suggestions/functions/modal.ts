@@ -37,6 +37,7 @@ export function buildSuggestModal(
   anonymous: boolean,
   t: Translator = defaultTranslator,
   allowImages = true,
+  maxLength = 1000,
 ): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId(anonymous ? SUGGEST_ANON_MODAL_ID : SUGGEST_MODAL_ID)
@@ -50,7 +51,7 @@ export function buildSuggestModal(
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(1)
-        .setMaxLength(1000)
+        .setMaxLength(Math.max(1, maxLength))
         .setPlaceholder(t("suggestions.modal.contentPlaceholder", "Describe your idea...")),
     ),
   );

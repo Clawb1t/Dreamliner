@@ -51,6 +51,22 @@ export async function buildOpeningPost(guild: Guild, opening: ApplicationOpening
   };
 }
 
+/** Deletes the Discord posts of openings that a config save removed (best effort). */
+export async function deleteRemovedOpeningPosts(
+  guild: Guild,
+  previous: ApplicationOpening[],
+  next: ApplicationOpening[],
+): Promise<void> {
+  const kept = new Set(next.map((o) => o.id));
+  for (const opening of previous) {
+    if (kept.has(opening.id) || !opening.channel_id || !opening.message_id) continue;
+    const channel = await guild.channels.fetch(opening.channel_id).catch(() => null);
+    if (!channel?.isTextBased()) continue;
+    const message = await channel.messages.fetch(opening.message_id).catch(() => null);
+    if (message?.author.id === guild.client.user.id) await message.delete().catch(() => null);
+  }
+}
+
 /**
  * Posts an opening (from the saved config), or edits its existing post in place when it's still
  * there, then stores the message ID back into the config.

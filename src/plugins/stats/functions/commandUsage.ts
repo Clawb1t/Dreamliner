@@ -9,6 +9,7 @@ import {
   windowSince,
 } from "./daily.js";
 import { getLogger } from "../../../core/logger.js";
+import { countCommand } from "../../../core/runtimeCounters.js";
 const log = getLogger("stats");
 
 const MAX_COMMAND_NAME = 64;
@@ -57,6 +58,7 @@ export async function recordCommandUsage(guildId: string, commandName: string): 
 }
 
 export function trackCommandUsage(guildId: string | null | undefined, commandName: string): void {
+  countCommand();
   if (!guildId) return;
   void recordCommandUsage(guildId, commandName).catch((error) => {
     log.warn(

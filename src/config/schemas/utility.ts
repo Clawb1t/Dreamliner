@@ -73,7 +73,7 @@ export const zUtilityConfig = z.strictObject({
   autojoin_threads: z
     .boolean()
     .default(true)
-    .describe("Automatically join threads when Dreamliner is mentioned or used in them."),
+    .describe("Automatically join every thread Dreamliner is able to join, including new ones as they are created."),
   expand_message_links: z
     .boolean()
     .default(true)

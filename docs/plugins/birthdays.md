@@ -30,7 +30,7 @@ Posted in a channel when a member's birthday starts.
 - **Pings:** the birthday member (optional) and up to 5 roles.
 - **Wish button:** (the birthday app emoji by default) members press it to wish the birthday member a happy birthday. Everyone counts once,
   the tally shows on the button (optional), and the birthday member can't wish themselves.
-- **Link buttons:** up to 4 next to the wish button (5 without it), e.g. a gift or card page.
+- **Link buttons:** up to 4 (alongside the wish button if it is on), e.g. a gift or card page.
 - **Reactions:** up to 5 emojis Dreamliner reacts with.
 - **Birthday thread:** opens a thread on the announcement for wishes, with a custom name and archive time.
 - **Delete later:** removes the announcement after 1 to 168 hours.

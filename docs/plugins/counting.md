@@ -59,7 +59,7 @@ page.
 | `allow_bots` | Let bot accounts participate |
 | `allow_non_number_messages` | Off (default): every message is judged, anything wrong breaks the count. On: only real counting attempts are judged, other chat is left alone |
 | `delete_wrong_messages` | Delete messages that break the count |
-| `reset_on_mistake` / `reset_to` | Whether a mistake resets the count, and whether it resets to zero or the last milestone |
+| `reset_on_mistake` / `reset_to` | Whether a mistake resets the count, and whether it restarts from `start_at` (`zero`, same as `/counting reset`) or the last milestone |
 | `milestone_every` | Celebrate every Nth count (0 disables) |
 | `announce_milestones` / `pin_milestones` | Post `milestone_message` on a milestone, and optionally pin it |
 | `announce_new_record` | Post `record_message` when the count climbs back past this channel's previous best after a reset |

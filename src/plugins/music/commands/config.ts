@@ -1,6 +1,6 @@
-import { ChannelType, SlashCommandBuilder, type GuildMember } from "discord.js";
+import { ChannelType, SlashCommandBuilder } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
-import { requireMusicPermission, requirePlaybackControl, lineReply } from "../functions/commandHelpers.js";
+import { requireMusicPermission, lineReply } from "../functions/commandHelpers.js";
 import { configManager } from "../../../config/manager.js";
 import { MUSIC_EMOJI } from "../functions/emojis.js";
 import { logMusic } from "../functions/musicLog.js";
@@ -23,8 +23,6 @@ export const musicConfigCommand: SlashCommandDefinition = {
     const guildId = interaction.guildId!;
     const auth = await requireMusicPermission(ctx, "can_manage_settings");
     if (!auth) return;
-    const member = auth.member as GuildMember;
-    if (!(await requirePlaybackControl(ctx, member, auth.config, auth.config.can_manage_settings))) return;
 
     const sub = interaction.options.getSubcommand(true);
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { impersonationAlerts } from "../../../db/schema.js";
 
@@ -106,6 +106,17 @@ export async function setAlertStatus(
   status: Exclude<AlertStatus, "open">,
   resolvedBy: string,
 ): Promise<ImpersonationAlert | null> {
+  // /impersonation list shows the first 8 characters of each id, so accept a unique prefix too.
+  const raw = id.trim().toLowerCase();
+  if (raw.length >= 4 && raw.length < 36 && /^[0-9a-f-]+$/.test(raw)) {
+    const matches = await getDb()
+      .select({ id: impersonationAlerts.id })
+      .from(impersonationAlerts)
+      .where(and(eq(impersonationAlerts.guildId, guildId), like(impersonationAlerts.id, `${raw}%`)))
+      .limit(2);
+    if (matches.length !== 1) return null;
+    id = matches[0]!.id;
+  }
   const result = await getDb()
     .update(impersonationAlerts)
     .set({ status, resolvedBy, resolvedAt: new Date() })
