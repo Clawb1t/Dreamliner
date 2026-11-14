@@ -1,4 +1,7 @@
 import type { Guild } from "discord.js";
+import { getLogger } from "../core/logger.js";
+
+const log = getLogger("music");
 import { configManager } from "../config/manager.js";
 import { pluginEnabled } from "../core/pluginCommand.js";
 import { getPluginSettings, resolveEffectivePluginConfig } from "../core/permissionRoles.js";
@@ -22,18 +25,16 @@ import {
   getStation,
   listStations,
   listTracks,
-  radioStorageLimitBytes,
   refreshKeptRadioAssets,
   removeTrack,
   reorderTracks,
-  totalStorageBytes,
   updateStation,
   updateTrackMeta,
   type RadioStationRow,
   type RadioTrackRow,
   type StationInput,
 } from "../plugins/music/radio/store.js";
-import { abortUpload, appendChunk, completeUpload, RadioUploadError, startUpload } from "../plugins/music/radio/uploads.js";
+import { addYoutubeTracks, RadioAddError } from "../plugins/music/radio/youtube.js";
 
 // ---------------------------------------------------------------------------------------------
 // Shapes the website reads (see the website's botBridge.ts).
@@ -70,6 +71,10 @@ export type RadioTrackAdmin = {
   sizeBytes: number;
   artworkUrl: string | null;
   createdAt: string;
+  /** "mp3" rows are legacy uploads with no playable source: they're skipped and should be deleted. */
+  source: "youtube" | "mp3";
+  url: string | null;
+  playable: boolean;
 };
 
 export type RadioStationAdmin = RadioStationPublic & {
@@ -124,15 +129,19 @@ function toTrackAdmin(track: RadioTrackRow): RadioTrackAdmin {
     sizeBytes: track.sizeBytes,
     artworkUrl: radioArtworkUrl(track.stationId, track),
     createdAt: track.createdAt.toISOString(),
+    source: track.encoded ? "youtube" : "mp3",
+    url: track.sourceUrl,
+    playable: Boolean(track.encoded),
   };
 }
 
 async function toAdmin(station: RadioStationRow, counts = listenerCounts()): Promise<RadioStationAdmin> {
   const tracks = await listTracks(station.id);
+  const playable = tracks.filter((t) => t.encoded);
   return {
     ...toPublic(station, counts),
-    trackCount: tracks.length,
-    totalDurationMs: tracks.reduce((sum, t) => sum + t.durationMs, 0),
+    trackCount: playable.length,
+    totalDurationMs: playable.reduce((sum, t) => sum + t.durationMs, 0),
     visibility: station.visibility === "live" ? "live" : "draft",
     shuffle: station.shuffle,
     sortOrder: station.sortOrder,
@@ -204,7 +213,8 @@ export async function webTuneRadio(guild: Guild, userId: string, stationId: stri
       `Station: **${live.station.name}**`,
     ], { actorId: userId, channelId: voiceChannelId });
     return { ok: true, started: result.started };
-  } catch {
+  } catch (error) {
+    log.error(`Radio tune-in failed for station ${stationId} in guild ${guild.id}:`, error);
     return { ok: false, status: 502, error: `Couldn't tune into ${live.station.name} right now.` };
   }
 }
@@ -302,10 +312,9 @@ export function parseStationInput(body: Record<string, unknown>, requireName: bo
   return input;
 }
 
-export async function listPlatformRadios(): Promise<{ stations: RadioStationAdmin[]; storage: { usedBytes: number; limitBytes: number } }> {
+export async function listPlatformRadios(): Promise<{ stations: RadioStationAdmin[] }> {
   const counts = listenerCounts();
-  const stations = await Promise.all((await listStations()).map((s) => toAdmin(s, counts)));
-  return { stations, storage: { usedBytes: await totalStorageBytes(), limitBytes: radioStorageLimitBytes() } };
+  return { stations: await Promise.all((await listStations()).map((s) => toAdmin(s, counts))) };
 }
 
 export async function createPlatformRadio(body: Record<string, unknown>, actorId: string): Promise<Result<{ station: RadioStationAdmin }>> {
@@ -357,47 +366,22 @@ export async function setPlatformRadioIcon(stationId: string, imageBase64: unkno
   return { ok: true, station: await toAdmin(station!) };
 }
 
-function uploadError(error: unknown): { ok: false; status: number; error: string } {
-  if (error instanceof RadioUploadError) return { ok: false, status: error.status, error: error.message };
-  return { ok: false, status: 500, error: "Upload failed." };
-}
-
-export async function startPlatformUpload(stationId: string, body: Record<string, unknown>, actorId: string): Promise<Result<{ uploadId: string; chunkBytes: number }>> {
-  if (!(await getStation(stationId))) return { ok: false, status: 404, error: "Station not found." };
-  const filename = typeof body.filename === "string" ? body.filename : "";
-  const sizeBytes = Number(body.sizeBytes);
+export async function addPlatformTracks(
+  stationId: string,
+  body: Record<string, unknown>,
+  actorId: string,
+): Promise<Result<{ added: RadioTrackAdmin[]; skipped: number; station: RadioStationAdmin }>> {
+  const station = await getStation(stationId);
+  if (!station) return { ok: false, status: 404, error: "Station not found." };
+  if (typeof body.url !== "string" || !body.url.trim()) return { ok: false, status: 400, error: "Paste a YouTube video or playlist link." };
   try {
-    return { ok: true, ...(await startUpload(stationId, filename, sizeBytes, actorId)) };
+    const { added, skipped } = await addYoutubeTracks(stationId, body.url.slice(0, 500), actorId);
+    await refreshStationClock(stationId);
+    return { ok: true, added: added.map(toTrackAdmin), skipped, station: await toAdmin(station) };
   } catch (error) {
-    return uploadError(error);
+    if (error instanceof RadioAddError) return { ok: false, status: error.status, error: error.message };
+    return { ok: false, status: 500, error: "Couldn't add those songs." };
   }
-}
-
-export async function appendPlatformChunk(stationId: string, uploadId: string, body: Record<string, unknown>): Promise<Result<{ receivedBytes: number }>> {
-  if (!Number.isInteger(body.index) || typeof body.dataBase64 !== "string") {
-    return { ok: false, status: 400, error: "index and dataBase64 are required." };
-  }
-  try {
-    return { ok: true, ...(await appendChunk(stationId, uploadId, body.index as number, body.dataBase64)) };
-  } catch (error) {
-    return uploadError(error);
-  }
-}
-
-export async function completePlatformUpload(stationId: string, uploadId: string, actorId: string): Promise<Result<{ track: RadioTrackAdmin; duplicate: boolean }>> {
-  try {
-    const { track, duplicate } = await completeUpload(stationId, uploadId, actorId);
-    await refreshKeptRadioAssets();
-    if (!duplicate) await refreshStationClock(stationId);
-    return { ok: true, track: toTrackAdmin(track), duplicate };
-  } catch (error) {
-    return uploadError(error);
-  }
-}
-
-export async function abortPlatformUpload(stationId: string, uploadId: string): Promise<Result<object>> {
-  await abortUpload(stationId, uploadId);
-  return { ok: true };
 }
 
 export async function editPlatformTracks(stationId: string, body: Record<string, unknown>): Promise<Result<{ station: RadioStationAdmin }>> {

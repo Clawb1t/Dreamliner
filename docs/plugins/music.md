@@ -138,7 +138,7 @@ Grant these to a Dreamliner Role on the dashboard's **Roles** page (or `/permiss
 
 ## Radio stations
 
-Dreamliner operators run **radio stations**: playlists of uploaded MP3s that loop forever. Stations are
+Dreamliner operators run **radio stations**: playlists of YouTube videos that loop forever. Stations are
 live, like real radio: every server tuned to a station hears the same song at the same point. Tune in
 with `/radio play` or the **Radios** section of the web player.
 
@@ -149,10 +149,10 @@ with `/radio play` or the **Radios** section of the web player.
 - Turn stations off for a server with `radios_enabled: false`.
 
 Operators manage stations from the dashboard (**Radios**, superusers only): name, description, genre,
-colour, icon, shuffle, draft/live, and the track list (upload MP3s up to 100MB each, reorder, rename,
-delete). Files are stored under `data/radio/<station>/` and served to Lavalink through signed URLs on
-the bridge (`/radio/media/...`), so the Lavalink node needs its HTTP source enabled. See `.env.example`
-for `RADIO_MEDIA_BASE_URL`, `RADIO_MEDIA_SECRET` and `RADIO_STORAGE_LIMIT_MB`.
+colour, icon, shuffle, draft/live, and the song list. Songs are added by pasting a YouTube video or
+playlist link; each video is resolved once through Lavalink and its encoded track stored, so playing a
+station needs no searches and no extra setup. Live streams and videos over 3 hours are skipped. A video
+YouTube later refuses is skipped for 30 minutes and the station carries on with the next song.
 
 ## Website music player
 

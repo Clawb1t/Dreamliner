@@ -386,13 +386,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        // Radio MP3s for Lavalink: unauthenticated but HMAC-signed (see plugins/music/radio/media.ts).
-        if ((req.method === "GET" || req.method === "HEAD") && url.pathname.startsWith("/radio/media/")) {
-          const { serveRadioMedia } = await import("../plugins/music/radio/media.js");
-          serveRadioMedia(req, res, url);
-          return;
-        }
-
         if (!authorized(req, secret)) {
           sendJson(res, 401, { error: "Unauthorized" });
           return;
@@ -2524,33 +2517,16 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             reply(await radio.skipPlatformRadio(stationId));
             return;
           } else if (section === "tracks") {
+            if (!subId && req.method === "POST") {
+              reply(await radio.addPlatformTracks(stationId, body, actorId));
+              return;
+            }
             if (!subId && req.method === "PUT") {
               reply(await radio.editPlatformTracks(stationId, body));
               return;
             }
             if (subId && !action && req.method === "DELETE") {
               reply(await radio.deletePlatformTrack(stationId, subId));
-              return;
-            }
-          } else if (section === "uploads") {
-            if (!subId && req.method === "POST") {
-              reply(await radio.startPlatformUpload(stationId, body, actorId));
-              return;
-            }
-            if (subId && !/^[a-f0-9]{24}$/.test(subId)) {
-              sendJson(res, 404, { error: "Unknown upload." });
-              return;
-            }
-            if (subId && action === "chunk" && req.method === "POST") {
-              reply(await radio.appendPlatformChunk(stationId, subId, body));
-              return;
-            }
-            if (subId && action === "complete" && req.method === "POST") {
-              reply(await radio.completePlatformUpload(stationId, subId, actorId));
-              return;
-            }
-            if (subId && !action && req.method === "DELETE") {
-              reply(await radio.abortPlatformUpload(stationId, subId));
               return;
             }
           }

@@ -2,8 +2,7 @@ import type { LavalinkManager, Player, Track } from "lavalink-client";
 import { getLogger } from "../../../core/logger.js";
 import { getSiteUrl } from "../../../core/docsUrl.js";
 import { getLavalinkManager, isLavalinkConfigured } from "../functions/manager.js";
-import { getLive, onStationChange, type RadioLive } from "./clock.js";
-import { signedRadioUrl } from "./media.js";
+import { getLive, onStationChange, trackAfter, type RadioLive } from "./clock.js";
 import { currentStationId, leadingLiveCount, radioTag, type RadioTag } from "./tags.js";
 import type { RadioStationRow, RadioTrackRow } from "./store.js";
 
@@ -14,6 +13,8 @@ import type { RadioStationRow, RadioTrackRow } from "./store.js";
  *    straight on, and every song start re-syncs to the station's global clock.
  *  - Tuning in while music is playing adds a "ticket" entry to the end of the queue. When the
  *    ticket comes up it swaps itself for whatever the station is playing at that moment.
+ *  - Songs are YouTube videos resolved once when an operator adds them; the stored Lavalink
+ *    `encoded` string is replayed directly, so playing a station needs no searches.
  */
 
 const log = getLogger("music");
@@ -27,6 +28,7 @@ export function radioIconUrl(station: RadioStationRow, absolute = false): string
 }
 
 export function radioArtworkUrl(stationId: string, track: RadioTrackRow, absolute = false): string | null {
+  if (track.artworkUrl) return track.artworkUrl;
   if (!track.artworkAssetId) return null;
   return `${absolute ? getSiteUrl() : ""}/api/radios/${stationId}/media/artwork/${track.id}?v=${track.artworkAssetId}`;
 }
@@ -36,31 +38,56 @@ function requesterFor(player: Player, fallback?: string): { id: string } | undef
   return id ? { id } : undefined;
 }
 
-/** Loads one station song into Lavalink and dresses it with the station's details. */
-async function resolveRadioTrack(
-  player: Player,
-  station: RadioStationRow,
-  track: RadioTrackRow,
-  kind: RadioTag["kind"],
-  requester?: { id: string },
-): Promise<Track> {
-  const result = await player.search({ query: signedRadioUrl(station.id, track.id) }, requester);
-  const loaded = result.tracks.find((t): t is Track => !("resolve" in t));
-  if (!loaded) throw new Error(`Lavalink couldn't load radio track ${track.id} (${result.loadType}).`);
-  loaded.info = {
-    ...loaded.info,
-    title: track.title,
-    author: track.artist ? `${track.artist} · ${station.name}` : station.name,
-    duration: track.durationMs || loaded.info.duration,
-    artworkUrl: radioArtworkUrl(station.id, track, true) ?? radioIconUrl(station, true),
-    // The real URI is the signed internal media link; never show it anywhere.
-    uri: "",
-    isSeekable: true,
-    isStream: false,
+/** Builds a playable Lavalink track from a stored station song, dressed with the station's details. */
+function radioTrack(station: RadioStationRow, track: RadioTrackRow, kind: RadioTag["kind"], requester?: { id: string }): Track {
+  if (!track.encoded) throw new Error(`Radio track ${track.id} has no playable source.`);
+  return {
+    encoded: track.encoded,
+    info: {
+      identifier: track.sourceUrl ?? track.id,
+      title: track.title,
+      author: track.artist ? `${track.artist} · ${station.name}` : station.name,
+      duration: track.durationMs,
+      artworkUrl: radioArtworkUrl(station.id, track, true) ?? radioIconUrl(station, true),
+      uri: track.sourceUrl ?? "",
+      sourceName: "youtube",
+      isSeekable: true,
+      isStream: false,
+      isrc: null,
+    },
+    pluginInfo: {},
+    requester,
+    userData: { radio: { stationId: station.id, stationName: station.name, trackId: track.id, kind } satisfies RadioTag },
   };
-  loaded.requester = requester;
-  loaded.userData = { ...(loaded.userData ?? {}), radio: { stationId: station.id, stationName: station.name, trackId: track.id, kind } satisfies RadioTag };
-  return loaded;
+}
+
+/** Videos YouTube refused recently (removed, region-locked...). Skipped instead of retried in a loop. */
+const failedTracks = new Map<string, number>();
+const FAILED_TTL_MS = 30 * 60_000;
+
+function hasFailed(trackId: string): boolean {
+  const until = failedTracks.get(trackId);
+  if (!until) return false;
+  if (until < Date.now()) {
+    failedTracks.delete(trackId);
+    return false;
+  }
+  return true;
+}
+
+export function markRadioTrackFailed(trackId: string): void {
+  failedTracks.set(trackId, Date.now() + FAILED_TTL_MS);
+}
+
+/** The live position, stepping past any song that failed recently (starting the next one from 0). */
+function playableLive(stationId: string): RadioLive | null {
+  let live = getLive(stationId);
+  for (let guard = 0; live && hasFailed(live.track.id) && guard < 50; guard++) {
+    const track = live.next;
+    if (!track || track.id === live.track.id) return null;
+    live = { ...live, track, offsetMs: 0, next: trackAfter(stationId, track.id) };
+  }
+  return live;
 }
 
 async function dropLeadingLive(player: Player): Promise<void> {
@@ -71,19 +98,20 @@ async function dropLeadingLive(player: Player): Promise<void> {
 /** Keeps exactly one "live" entry (the station's next song) at the front of the queue. */
 async function ensureNext(player: Player, live: RadioLive): Promise<void> {
   await dropLeadingLive(player);
-  if (!live.next) return;
-  const next = await resolveRadioTrack(player, live.station, live.next, "live", requesterFor(player));
-  await player.queue.add(next, 0);
+  let next = live.next;
+  for (let guard = 0; next && hasFailed(next.id) && guard < 50; guard++) next = trackAfter(live.station.id, next.id);
+  if (!next) return;
+  await player.queue.add(radioTrack(live.station, next, "live", requesterFor(player)), 0);
 }
 
 const busy = new Set<string>();
 
 /** Plays whatever `stationId` is playing right now, at the live point, replacing the current track. */
 export async function playLive(player: Player, stationId: string, requesterId?: string): Promise<boolean> {
-  const live = getLive(stationId);
+  const live = playableLive(stationId);
   if (!live) return false;
   if (requesterId) player.setData("radioRequester", requesterId);
-  const track = await resolveRadioTrack(player, live.station, live.track, "live", requesterFor(player, requesterId));
+  const track = radioTrack(live.station, live.track, "live", requesterFor(player, requesterId));
   if (player.repeatMode !== "off") await player.setRepeatMode("off");
   busy.add(player.guildId);
   try {
@@ -111,10 +139,10 @@ export async function tuneIn(player: Player, stationId: string, requesterId: str
   if (idle) {
     // Switching stations, or nothing playing: go live straight away.
     if (radioTag(current)) await dropLeadingLive(player);
-    await playLive(player, stationId, requesterId);
+    if (!(await playLive(player, stationId, requesterId))) return { ok: false, error: `${live.station.name} has nothing it can play right now.` };
     return { ok: true, started: true };
   }
-  const ticket = await resolveRadioTrack(player, live.station, live.track, "ticket", { id: requesterId });
+  const ticket = radioTrack(live.station, live.track, "ticket", { id: requesterId });
   await player.queue.add(ticket);
   return { ok: true, started: false };
 }
@@ -159,7 +187,7 @@ export async function resumeRadio(player: Player, stationId: string): Promise<bo
 async function onRadioTrackStart(player: Player, track: Track): Promise<void> {
   const tag = radioTag(track);
   if (!tag || busy.has(player.guildId)) return;
-  const live = getLive(tag.stationId);
+  const live = playableLive(tag.stationId);
   if (!live || live.station.visibility !== "live") {
     // The station was deleted or taken off air while queued: move on.
     await dropLeadingLive(player);
@@ -184,7 +212,7 @@ async function onRadioTrackStart(player: Player, track: Track): Promise<void> {
 
 /** Brings one tuned-in server back in line: swap the song if it changed, else just refresh what's next. */
 async function resyncPlayer(player: Player, stationId: string): Promise<void> {
-  const live = getLive(stationId);
+  const live = playableLive(stationId);
   if (!live || live.station.visibility !== "live") return;
   if (radioTag(player.queue.current)?.trackId !== live.track.id) {
     await playLive(player, stationId);

@@ -7,7 +7,7 @@ import { getDb } from "../../../db/client.js";
 import { radioStations, radioTracks, radioStationState, radioUploads } from "../../../db/schema.js";
 import { deletePageAsset, GLOBAL_ASSET_KEY, registerAssetKeeper } from "../../../core/pageAssets.js";
 
-/** Stations and their MP3s. Files live at data/radio/<stationId>/<trackId>.mp3. */
+/** Stations and their songs (YouTube videos; legacy MP3 uploads live at data/radio/<station>/<track>.mp3). */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 export const RADIO_ROOT = join(ROOT, "data", "radio");
@@ -222,11 +222,6 @@ export async function stationStorageBytes(stationId: string): Promise<number> {
 
 export async function totalStorageBytes(): Promise<number> {
   return (await listAllTracks()).reduce((sum, t) => sum + t.sizeBytes, 0);
-}
-
-export function radioStorageLimitBytes(): number {
-  const mb = Number(process.env.RADIO_STORAGE_LIMIT_MB);
-  return (Number.isFinite(mb) && mb > 0 ? mb : 10_240) * 1024 * 1024;
 }
 
 export function fileSize(path: string): number {

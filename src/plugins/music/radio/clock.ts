@@ -40,7 +40,8 @@ export async function loadRadioClocks(): Promise<void> {
   const seen = new Set<string>();
   for (const station of stations) {
     seen.add(station.id);
-    const stationTracks = tracks.filter((t) => t.stationId === station.id);
+    // Only songs with a playable source (legacy MP3 rows without one are skipped).
+    const stationTracks = tracks.filter((t) => t.stationId === station.id && Boolean(t.encoded));
     const existing = clocks.get(station.id);
     const row = saved.get(station.id);
     const state: ClockState = existing
@@ -102,6 +103,13 @@ export function liveStations(): RadioStationRow[] {
     .filter((c) => c.station.visibility === "live" && c.order.length > 0)
     .map((c) => c.station)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime());
+}
+
+/** The song after `trackId` in a station's play order (wrapping), or null. */
+export function trackAfter(stationId: string, trackId: string): RadioTrackRow | null {
+  const order = clocks.get(stationId)?.order ?? [];
+  const index = order.findIndex((t) => t.id === trackId);
+  return index === -1 ? (order[0] ?? null) : (order[(index + 1) % order.length] ?? null);
 }
 
 export function getStationFromClock(stationId: string): RadioStationRow | null {

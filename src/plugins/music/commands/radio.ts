@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, type AutocompleteInteraction, type GuildMember, type VoiceBasedChannel } from "discord.js";
 import type { SlashCommandDefinition } from "../../../core/types.js";
+import { getLogger } from "../../../core/logger.js";
 import { deferReplyOptions } from "../../../core/responses.js";
 import { blockedByMessage } from "../../../core/voiceSessionRegistry.js";
 import { getGuildMusicPlayerUrl } from "../../../core/docsUrl.js";
@@ -18,6 +19,7 @@ import { leaveRadio, listenerCounts, tuneIn } from "../radio/controller.js";
 import { currentStationId } from "../radio/tags.js";
 
 const RADIO = "📻";
+const log = getLogger("music");
 
 function nowLine(stationId: string): string | null {
   const live = getLive(stationId);
@@ -184,7 +186,8 @@ export const radioCommand: SlashCommandDefinition = {
         "Source: Discord (/radio play)",
         `Station: **${live.station.name}**`,
       ], { actorId: interaction.user.id, channelId: voiceChannelId });
-    } catch {
+    } catch (error) {
+      log.error(`Radio tune-in failed for station ${stationId} in guild ${guildId}:`, error);
       await interaction.editReply(lineEdit(`${MUSIC_EMOJI.error} Couldn't tune into ${live.station.name} right now. Try again in a moment.`));
     }
   },

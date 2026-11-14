@@ -16,6 +16,7 @@ import { logMusic } from "./musicLog.js";
 import { clearAutoplayHistory, ensureAutoplayQueueDepth, rememberAutoplaySeen } from "./autoplay.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
 import { radioTag } from "../radio/tags.js";
+import { markRadioTrackFailed } from "../radio/controller.js";
 
 /** destroy() reasons issued by our own commands/bridge - playerDestroy already gets its own
  *  music_stop log at those call sites, so the generic handler below skips these to avoid a
@@ -202,6 +203,15 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
     const reason = payload.exception?.message ?? "unknown error";
     log.error(`Track error in guild ${player.guildId}: ${reason} (${track?.info.title ?? "unknown track"})`);
     const trackLine = track ? `Track: **${track.info.title}**${track.info.author ? ` - ${track.info.author}` : ""}` : "Track: (unknown)";
+
+    // A station song YouTube refused: remember it so the station steps past it (autoSkip already
+    // moves on to the station's next song), and never swap in a search result.
+    const radio = radioTag(track);
+    if (radio) {
+      if (radio.trackId) markRadioTrackFailed(radio.trackId);
+      void logTrackError(player.guildId, "Music - Radio Song Failed", [trackLine, `Error: ${reason}`, "Skipped to the station's next song"]);
+      return;
+    }
 
     // Only auto-retry the "just started playing, nothing else queued" case - if there's a real
     // queue behind it, autoSkip already advances to the next real track, which is more useful

@@ -1870,7 +1870,7 @@ export const radioStations = sqliteTable("radio_stations", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
-/** One uploaded MP3 in a station, stored at data/radio/<stationId>/<id>.mp3. */
+/** One song in a station: a YouTube video resolved through Lavalink (older rows: an uploaded MP3). */
 export const radioTracks = sqliteTable(
   "radio_tracks",
   {
@@ -1883,6 +1883,12 @@ export const radioTracks = sqliteTable(
     sizeBytes: integer("size_bytes", { mode: "number" }).notNull(),
     sha256: text("sha256").notNull(),
     artworkAssetId: text("artwork_asset_id"),
+    /** The YouTube watch URL the song came from (null for legacy MP3 uploads). */
+    sourceUrl: text("source_url"),
+    /** Lavalink's encoded track, replayed directly so playback needs no search. */
+    encoded: text("encoded"),
+    /** Remote artwork (the YouTube thumbnail). */
+    artworkUrl: text("artwork_url"),
     createdBy: text("created_by").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
