@@ -9,8 +9,10 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
   type Client,
   type BaseMessageOptions,
+  type Message,
 } from "discord.js";
 import type { SocialEmbedConfig } from "../../../config/schemas/social.js";
 import { getLogger } from "../../../core/logger.js";
@@ -24,6 +26,14 @@ export type NotifiableWatcher = {
   messageContent: string;
   mentionRoleIds: string[];
   embedConfig: SocialEmbedConfig;
+};
+
+/** Per-send tweaks: a type-specific message/roles, and quiet hours / cooldown (no pings, silent). */
+export type SendTweaks = {
+  messageContent?: string;
+  mentionRoleIds?: string[];
+  /** Post without pinging roles and with Discord's silent flag. */
+  silent?: boolean;
 };
 
 /** Replace every `{token}` present in `tokens` — the regex is built from its keys, so this works for any platform's token set. */
@@ -113,9 +123,9 @@ function buildButtonsRow(embedConfig: SocialEmbedConfig, tokens: Record<string, 
   );
 }
 
-function buildContent(watcher: NotifiableWatcher, tokens: Record<string, string>): string {
-  const rendered = interpolateTokens(watcher.messageContent, tokens);
-  const roleMentions = watcher.mentionRoleIds.map((id) => `<@&${id}>`).join(" ");
+function buildContent(messageContent: string, mentionRoleIds: string[], tokens: Record<string, string>): string {
+  const rendered = interpolateTokens(messageContent, tokens);
+  const roleMentions = mentionRoleIds.map((id) => `<@&${id}>`).join(" ");
 
   if (!roleMentions) return rendered.slice(0, 2000);
   if (rendered.includes("{roles}")) return rendered.replace(/\{roles\}/g, roleMentions).slice(0, 2000);
@@ -130,20 +140,24 @@ export function buildNotificationPayload(
   mediaKey: string,
   /** The video's publish time / stream's start time, used for the embed timestamp (falls back to now). */
   timestamp?: Date,
-): BaseMessageOptions {
+  tweaks: SendTweaks = {},
+): BaseMessageOptions & { flags?: MessageFlags.SuppressNotifications } {
   const embed = buildEmbed(watcher.embedConfig, tokens, avatarKey, mediaKey, timestamp);
   const buttonsRow = buildButtonsRow(watcher.embedConfig, tokens);
-  const content = buildContent(watcher, tokens);
+  const roles = tweaks.mentionRoleIds ?? watcher.mentionRoleIds;
+  // Silent sends still show which roles it's for, as plain text with no ping.
+  const content = buildContent(tweaks.messageContent ?? watcher.messageContent, roles, tokens);
 
   return {
     content: content || undefined,
     embeds: embed ? [embed] : [],
     components: buttonsRow ? [buttonsRow] : [],
-    allowedMentions: { roles: watcher.mentionRoleIds, parse: [] },
+    allowedMentions: { roles: tweaks.silent ? [] : roles, parse: [] },
+    ...(tweaks.silent ? { flags: MessageFlags.SuppressNotifications as const } : {}),
   };
 }
 
-/** Send a notification for a watcher. Never throws; logs and returns false on failure. */
+/** Send a notification for a watcher. Never throws; logs and returns null on failure. */
 export async function sendNotification(
   client: Client,
   watcher: NotifiableWatcher,
@@ -151,18 +165,77 @@ export async function sendNotification(
   avatarKey: string,
   mediaKey: string,
   timestamp?: Date,
-): Promise<boolean> {
+  tweaks: SendTweaks = {},
+): Promise<Message | null> {
   try {
     // Only the watcher's own server: a channel id from another server is treated as unavailable.
     const channel = await fetchGuildChannel(client, watcher.guildId, watcher.discordChannelId);
     if (!channel || !channel.isTextBased() || !("send" in channel)) {
       log.warn(`[social] watcher ${watcher.id}: target channel ${watcher.discordChannelId} is unavailable.`);
-      return false;
+      return null;
     }
-    await channel.send(buildNotificationPayload(watcher, tokens, avatarKey, mediaKey, timestamp));
-    return true;
+    return await channel.send(buildNotificationPayload(watcher, tokens, avatarKey, mediaKey, timestamp, tweaks));
   } catch (error) {
     log.error(`[social] watcher ${watcher.id}: failed to send notification:`, error);
+    return null;
+  }
+}
+
+/** Edit a message the bot posted for a watcher. Never throws; false when it's gone or not editable. */
+export async function editNotification(
+  client: Client,
+  guildId: string,
+  channelId: string,
+  messageId: string,
+  payload: BaseMessageOptions,
+): Promise<boolean> {
+  try {
+    const channel = await fetchGuildChannel(client, guildId, channelId);
+    if (!channel || !channel.isTextBased() || !("messages" in channel)) return false;
+    const message = await channel.messages.fetch(messageId).catch(() => null);
+    if (!message || !message.editable) return false;
+    // Edits never re-ping, so no mentions are allowed through.
+    await message.edit({ ...payload, allowedMentions: { parse: [] } });
+    return true;
+  } catch (error) {
+    log.warn(`[social] couldn't edit message ${messageId}:`, error);
     return false;
+  }
+}
+
+/** Delete a message the bot posted for a watcher. Never throws. */
+export async function deleteNotification(client: Client, guildId: string, channelId: string, messageId: string): Promise<boolean> {
+  try {
+    const channel = await fetchGuildChannel(client, guildId, channelId);
+    if (!channel || !channel.isTextBased() || !("messages" in channel)) return false;
+    const message = await channel.messages.fetch(messageId).catch(() => null);
+    if (!message) return false;
+    await message.delete();
+    return true;
+  } catch (error) {
+    log.warn(`[social] couldn't delete message ${messageId}:`, error);
+    return false;
+  }
+}
+
+/** Post a follow-up in a watcher's channel, as a reply to `replyTo` when it still exists. */
+export async function sendFollowUp(
+  client: Client,
+  guildId: string,
+  channelId: string,
+  payload: BaseMessageOptions,
+  replyTo?: string | null,
+): Promise<Message | null> {
+  try {
+    const channel = await fetchGuildChannel(client, guildId, channelId);
+    if (!channel || !channel.isTextBased() || !("send" in channel)) return null;
+    return await channel.send({
+      ...payload,
+      allowedMentions: { parse: [] },
+      ...(replyTo ? { reply: { messageReference: replyTo, failIfNotExists: false } } : {}),
+    });
+  } catch (error) {
+    log.warn(`[social] couldn't post a follow-up in ${channelId}:`, error);
+    return null;
   }
 }

@@ -26,13 +26,14 @@ describe("loadDefaultConfig", () => {
     assert.ok(pluginKeys.length >= 0); // shape presence isn't load-bearing here; the loop above is the real assertion
   });
 
-  // Only Utility ships on out of the box — everything else is opt-in from the dashboard. Get
-  // this wrong and a plugin either silently activates for every guild that's never touched it,
-  // or Utility itself goes dark.
-  it("enables only Utility by default", () => {
+  // Only Utility and Stats ship on out of the box; everything else is opt-in from the dashboard.
+  // Get this wrong and a plugin either silently activates for every guild that's never touched
+  // it, or one of these goes dark.
+  const ON_BY_DEFAULT = new Set(["utility", "stats"]);
+  it("enables only Utility and Stats by default", () => {
     const config = loadDefaultConfig();
     for (const [key, section] of Object.entries(config.plugins as Record<string, { enabled?: boolean } | undefined>)) {
-      const expected = key === "utility";
+      const expected = ON_BY_DEFAULT.has(key);
       assert.equal(section?.enabled, expected, `plugins.${key}.enabled should default to ${expected}`);
     }
   });

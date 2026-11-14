@@ -7,6 +7,9 @@ Real-time Bluesky post notifications, plus liking, reposting and following from 
 - **Reaction likes.** React 💙 or 🩵 to any message that links a Bluesky post, and that post is liked on your account. Remove the reaction and the like is removed.
 - **Link cards (optional).** When someone pastes a bsky.app post link, Dreamliner replies with an interactive card for it.
 - **Profiles.** `/bluesky profile` shows someone's profile with a **Follow** button.
+- **Follower milestones (optional, per feed).** A celebration card when a followed account reaches a follower milestone.
+- **Import.** Follow everyone in a Bluesky list or starter pack in one go.
+- **Stats.** Posts delivered and Like/Repost presses from Discord, per account and for the whole server.
 
 ## Connecting your Bluesky account
 
@@ -24,11 +27,30 @@ Your Bluesky server decides how long a session lasts. If it expires, the next ac
 
 ## Feeds
 
-Feeds are managed on the dashboard's **Bluesky** page:
+Feeds are managed on the dashboard's **Bluesky** page, split into sidebar sub-pages:
 
-1. Press **Follow account**, enter a handle, profile link or DID, and pick a channel.
+- **Overview** (the main page): the "Your sky" banner, built from the followed accounts' real avatars, banners and latest posts (fetched from Bluesky's public API and cached for about 10 minutes), headline stats, the busiest accounts in the last 30 days and the most recent deliveries.
+- **Accounts**: every followed account with its 30-day and all-time post counts, Like/Repost presses, last post and a 30-day activity chart. Open one to edit it.
+- **Import**: follow a whole list or starter pack (see below).
+- **Settings**: the server-wide toggles (reaction likes, link cards).
+
+To follow one account:
+
+1. Press **Follow account** and start typing a name. Pick the account from the search results, or paste a handle, profile link or DID. Then pick a channel.
 2. Open the feed to customize it. The preview updates as you type.
 3. Use **Send test notification** to post the account's latest post with your settings.
+
+### Importing a list or starter pack
+
+On **Import**, paste a list link (`bsky.app/profile/<handle>/lists/<id>`), a starter pack link (`bsky.app/starter-pack/<handle>/<id>`, or a `go.bsky.app` short link) and press **Preview**. Pick who to follow (new accounts are pre-selected up to your plan's limit; accounts the server already follows are skipped), choose one channel, ping roles and shared settings, and import. Up to 150 accounts are read from one list.
+
+### Follower milestones
+
+Turn on **Follower milestones** on a feed to post a celebration card in its channel when the account reaches 100, 250, 500, 1K, 2.5K, 5K, 10K, 25K, 50K, 100K, 250K, 500K or 1M followers, then every million after that. Follower counts are checked every 6 hours (and a few minutes after the bot starts). Only the highest milestone crossed since the last check is announced, a milestone is never announced twice, and turning the option on records where the account is now, so milestones it passed earlier stay quiet. The card shows the account's banner and has **Follow** and **Open profile** buttons.
+
+### Stats
+
+Posts delivered are counted per feed (all time, plus the last 30 days by day). Like and Repost presses are the net presses on this server's cards (buttons and 💙 reactions; undoing one takes it back off), counted from when stats were added and kept for as long as the cards' buttons work (180 days).
 
 Each feed has these settings:
 
@@ -43,6 +65,7 @@ Each feed has these settings:
 | Accent color | Bluesky blue | The card's accent bar. |
 | Show media | on | Show images, the video thumbnail or the link preview image. |
 | Show buttons | on | Show the Like and Repost buttons. |
+| Follower milestones | off | Celebrate follower milestones in this feed's channel. |
 
 ### Placeholders
 

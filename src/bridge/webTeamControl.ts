@@ -1,7 +1,7 @@
 import type { Client, Guild } from "discord.js";
 import { configManager } from "../config/manager.js";
 import { performTeamAction } from "../plugins/team_control/functions/actions.js";
-import { computeDaily } from "../plugins/team_control/functions/activity.js";
+import { computeDaily, type DailyActivity } from "../plugins/team_control/functions/activity.js";
 import { checkAuthority, rankIndexById } from "../plugins/team_control/functions/authority.js";
 import {
   isTeamControlEnabled,
@@ -14,7 +14,7 @@ import {
 import { decideLeave, endLeaveRecord, extendLeaveRecord } from "../plugins/team_control/functions/leave.js";
 import { syncGuildTeam } from "../plugins/team_control/functions/members.js";
 import { applyOneGate, historyCutoff, isTeamOneActive, teamLimits } from "../plugins/team_control/functions/oneGate.js";
-import { periodRange, parseWhich, toTeamPeriod, type TeamPeriod } from "../plugins/team_control/functions/periods.js";
+import { dayKey, periodRange, parseWhich, toTeamPeriod, type TeamPeriod } from "../plugins/team_control/functions/periods.js";
 import { summarizeQuotas, type QuotaState, type TeamMetrics } from "../plugins/team_control/functions/quota.js";
 import { configWarnings, memberRankIndex, resolveActor, type TeamActor } from "../plugins/team_control/functions/ranks.js";
 import { computeStatuses, scheduleRosterUpdate, syncRoster } from "../plugins/team_control/functions/roster.js";
@@ -311,6 +311,27 @@ function audit(client: Client, guildId: string, userId: string, title: string, s
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 
+const DAY = 86_400_000;
+const PULSE_TTL_MS = 60_000;
+/** Last-30-days team totals per guild, briefly cached: the overview reloads after every live change. */
+const dailyCache = new Map<string, { at: number; key: string; daily: DailyActivity[] }>();
+
+function recentDaily(guildId: string, userIds: string[], now = Date.now()): DailyActivity[] {
+  const key = `${dayKey(now)}|${[...userIds].sort().join(",")}`;
+  const hit = dailyCache.get(guildId);
+  if (hit && hit.key === key && now - hit.at < PULSE_TTL_MS) return hit.daily;
+  const end = Date.parse(`${dayKey(now)}T00:00:00Z`) + DAY;
+  const daily = computeDaily(guildId, userIds, new Date(end - 30 * DAY), new Date(end), now);
+  for (const [id, entry] of dailyCache) if (now - entry.at >= PULSE_TTL_MS) dailyCache.delete(id);
+  dailyCache.set(guildId, { at: now, key, daily });
+  return daily;
+}
+
+function roleColor(guild: Guild, roleId: string | null): string | null {
+  const role = roleId ? guild.roles.cache.get(roleId) : null;
+  return role && role.color !== 0 ? `#${role.color.toString(16).padStart(6, "0")}` : null;
+}
+
 async function getOverview(guild: Guild, runtime: Runtime) {
   const range = periodRange(runtime.config.activity.period, runtime.config.activity.week_start);
   const summaries = summarizeTeam(guild.id, runtime.config, range, runtime.one);
@@ -337,6 +358,32 @@ async function getOverview(guild: Guild, runtime: Runtime) {
     pendingLeave: await leaveRows(guild, pending),
     recentActions: await actionRows(guild, runtime, listActions(guild.id, {}, 10).rows),
     quota: summarizeQuotas(summaries.map((s) => s.quota)),
+    // The overview page's hero and at-a-glance sections.
+    members: await memberRows(guild, summaries),
+    ranks: runtime.config.ranks.map((rank) => ({
+      id: rank.id,
+      name: rank.name,
+      roleId: rank.role_id,
+      color: roleColor(guild, rank.role_id),
+      members: summaries.filter((s) => s.rankId === rank.id).length,
+    })),
+    daily: recentDaily(guild.id, summaries.map((s) => s.userId), now),
+    actionCounts: {
+      last7d: listActions(guild.id, { since: new Date(now - 7 * DAY) }, 1).total,
+      promotions7d: listActions(guild.id, { type: "promotion", since: new Date(now - 7 * DAY) }, 1).total,
+      last30d: listActions(guild.id, { since: new Date(now - 30 * DAY) }, 1).total,
+    },
+    recentShifts: await shiftRows(guild, runtime, listShifts(guild.id, { status: "ended" }, 8, 0).rows),
+    onboarding:
+      runtime.config.onboarding.enabled && runtime.config.onboarding.checklist.length > 0
+        ? {
+            total: runtime.config.onboarding.checklist.length,
+            members: summaries
+              .filter((s) => s.memberStatus === "active")
+              .slice(0, 200)
+              .map((s) => ({ userId: s.userId, done: checklistProgress(guild.id, s.userId, runtime.config).done })),
+          }
+        : null,
   };
 }
 

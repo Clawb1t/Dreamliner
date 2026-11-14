@@ -12,7 +12,7 @@ import { like, unlike } from "./actions.js";
 import { extractPostUrls, getPost, resolvePostUrl } from "./api.js";
 import { activeBlueskySettings } from "./guildSettings.js";
 import { connectPrompt } from "./messages.js";
-import { getDeliveryByMessage } from "./store.js";
+import { adjustDeliveryCounter, getDeliveryByMessage } from "./store.js";
 import { createPruner } from "../../../core/mapPrune.js";
 const log = getLogger("bluesky");
 
@@ -25,10 +25,13 @@ async function resolveMessage(message: Message | PartialMessage): Promise<Messag
   return message.fetch().catch(() => null);
 }
 
-/** The post a message shows, as `{ uri, cid? }`. `cid` is only needed (and only fetched) to like. */
-async function findPost(message: Message, needCid: boolean): Promise<{ uri: string; cid?: string } | null> {
+/**
+ * The post a message shows, as `{ uri, cid? }`, plus the card's delivery id when Dreamliner sent it
+ * (so the press counts toward that feed's stats). `cid` is only needed (and only fetched) to like.
+ */
+async function findPost(message: Message, needCid: boolean): Promise<{ uri: string; cid?: string; deliveryId?: number } | null> {
   const delivery = await getDeliveryByMessage(message.id);
-  if (delivery) return { uri: delivery.postUri, cid: delivery.postCid };
+  if (delivery) return { uri: delivery.postUri, cid: delivery.postCid, deliveryId: delivery.id };
 
   const haystack = [
     message.content,
@@ -77,12 +80,18 @@ export async function handleBlueskyReaction(
   const user = rawUser.partial ? await rawUser.fetch().catch(() => null) : rawUser;
   if (!user) return;
 
+  const countPress = async (delta: 1 | -1) => {
+    if (post.deliveryId !== undefined) await adjustDeliveryCounter(post.deliveryId, "like", delta).catch(() => undefined);
+  };
+
   if (type === "remove") {
-    await unlike(user.id, post.uri);
+    const removed = await unlike(user.id, post.uri);
+    if (removed.ok && removed.changed) await countPress(-1);
     return;
   }
   if (!post.cid) return;
   const result = await like(user.id, post.uri, post.cid);
+  if (result.ok && result.changed) await countPress(1);
   if (!result.ok && (result.reason === "not_connected" || result.reason === "expired")) {
     await promptToConnect(client, user, result.reason === "expired");
   }

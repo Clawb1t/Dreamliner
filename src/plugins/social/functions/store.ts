@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { socialYoutubeWatchers } from "../../../db/schema.js";
-import type { SocialEmbedConfig } from "../../../config/schemas/social.js";
+import { parseSocialWatcherOptions, type SocialEmbedConfig, type SocialWatcherOptions } from "../../../config/schemas/social.js";
 
 export type SocialWatcherRow = {
   id: number;
@@ -19,6 +19,8 @@ export type SocialWatcherRow = {
   lastVideoId: string | null;
   lastVideoPublishedAt: Date | null;
   lastCheckedAt: Date | null;
+  options: SocialWatcherOptions;
+  deliveredCount: number;
   enabled: boolean;
   createdBy: string;
   createdAt: Date;
@@ -31,6 +33,14 @@ export const ONE_WATCHERS_LIMIT = 50;
 
 export function resolveMaxWatchers(oneActive: boolean): number {
   return oneActive ? ONE_WATCHERS_LIMIT : FREE_WATCHERS_LIMIT;
+}
+
+function parseOptions(raw: string): SocialWatcherOptions {
+  try {
+    return parseSocialWatcherOptions(JSON.parse(raw));
+  } catch {
+    return parseSocialWatcherOptions({});
+  }
 }
 
 function mapRow(row: typeof socialYoutubeWatchers.$inferSelect): SocialWatcherRow {
@@ -57,6 +67,8 @@ function mapRow(row: typeof socialYoutubeWatchers.$inferSelect): SocialWatcherRo
     lastVideoId: row.lastVideoId,
     lastVideoPublishedAt: row.lastVideoPublishedAt,
     lastCheckedAt: row.lastCheckedAt,
+    options: parseOptions(row.options),
+    deliveredCount: row.deliveredCount,
     enabled: row.enabled,
     createdBy: row.createdBy,
     createdAt: row.createdAt,
@@ -116,6 +128,7 @@ export async function createWatcher(input: {
   lastVideoId: string | null;
   lastVideoPublishedAt: Date | null;
   createdBy: string;
+  options?: SocialWatcherOptions;
 }): Promise<SocialWatcherRow> {
   const now = new Date();
   const row = await getDb()
@@ -135,6 +148,7 @@ export async function createWatcher(input: {
       lastVideoId: input.lastVideoId,
       lastVideoPublishedAt: input.lastVideoPublishedAt,
       lastCheckedAt: null,
+      options: JSON.stringify(input.options ?? parseSocialWatcherOptions({})),
       enabled: true,
       createdBy: input.createdBy,
       createdAt: now,
@@ -153,6 +167,7 @@ export async function updateWatcher(
     messageContent?: string;
     mentionRoleIds?: string[];
     embedConfig?: SocialEmbedConfig;
+    options?: SocialWatcherOptions;
     enabled?: boolean;
   },
 ): Promise<SocialWatcherRow | null> {
@@ -163,6 +178,7 @@ export async function updateWatcher(
       ...(patch.messageContent !== undefined ? { messageContent: patch.messageContent } : {}),
       ...(patch.mentionRoleIds !== undefined ? { mentionRoleIds: JSON.stringify(patch.mentionRoleIds) } : {}),
       ...(patch.embedConfig !== undefined ? { embedConfig: JSON.stringify(patch.embedConfig) } : {}),
+      ...(patch.options !== undefined ? { options: JSON.stringify(patch.options) } : {}),
       ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
       updatedAt: new Date(),
     })
@@ -202,4 +218,21 @@ export async function deleteWatcher(guildId: string, id: number): Promise<Social
     .returning()
     .get();
   return row ? mapRow(row) : null;
+}
+
+/** Store options changed by the bot itself (e.g. the milestone it last announced). */
+export async function setWatcherOptions(id: number, options: SocialWatcherOptions): Promise<void> {
+  await getDb().update(socialYoutubeWatchers).set({ options: JSON.stringify(options) }).where(eq(socialYoutubeWatchers.id, id)).run();
+}
+
+/** Keep stored names/avatars fresh (channels rename and change avatars). */
+export async function refreshWatcherProfile(
+  sourceId: string,
+  profile: { name: string; avatarUrl: string | null; handle?: string | null },
+): Promise<void> {
+  await getDb()
+    .update(socialYoutubeWatchers)
+    .set({ sourceChannelName: profile.name, sourceChannelAvatarUrl: profile.avatarUrl, ...(profile.handle !== undefined ? { sourceChannelHandle: profile.handle } : {}) })
+    .where(eq(socialYoutubeWatchers.sourceChannelId, sourceId))
+    .run();
 }

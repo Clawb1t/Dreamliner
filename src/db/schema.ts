@@ -1276,6 +1276,10 @@ export const socialYoutubeWatchers = sqliteTable(
     lastVideoId: text("last_video_id"),
     lastVideoPublishedAt: integer("last_video_published_at", { mode: "timestamp" }),
     lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+    /** JSON-serialized SocialWatcherOptions (upload types, cooldown, quiet hours, milestones). */
+    options: text("options").notNull().default("{}"),
+    /** All-time notifications sent (deliveries themselves are pruned after 180 days). */
+    deliveredCount: integer("delivered_count", { mode: "number" }).notNull().default(0),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     createdBy: text("created_by").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
@@ -1304,12 +1308,50 @@ export const socialTwitchWatchers = sqliteTable(
     lastStreamId: text("last_stream_id"),
     lastLiveAt: integer("last_live_at", { mode: "timestamp" }),
     lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+    /** Last poll that saw them live; a stream counts as ended a few minutes after this. */
+    lastSeenLiveAt: integer("last_seen_live_at", { mode: "timestamp" }),
+    /** JSON-serialized SocialWatcherOptions (stream end, live updates, cooldown, quiet hours). */
+    options: text("options").notNull().default("{}"),
+    /** All-time notifications sent (deliveries themselves are pruned after 180 days). */
+    deliveredCount: integer("delivered_count", { mode: "number" }).notNull().default(0),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     createdBy: text("created_by").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [index("social_twitch_watchers_guild").on(table.guildId)],
+);
+
+/** Every Social Notifications message the bot sent (not tests or milestone cards). Backs the
+ *  dashboard stats and recent list, and maps a Twitch session back to its live message so it can
+ *  be updated or edited when the stream ends. Pruned after 180 days. */
+export const socialDeliveries = sqliteTable(
+  "social_deliveries",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    platform: text("platform").notNull(),
+    watcherId: integer("watcher_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    messageId: text("message_id"),
+    /** "video" | "short" | "live" for YouTube, "stream" for Twitch. */
+    kind: text("kind").notNull(),
+    /** YouTube video id or Twitch stream id. */
+    itemId: text("item_id").notNull(),
+    title: text("title").notNull().default(""),
+    url: text("url").notNull().default(""),
+    thumbnailUrl: text("thumbnail_url"),
+    gameName: text("game_name"),
+    peakViewers: integer("peak_viewers", { mode: "number" }).notNull().default(0),
+    startedAt: integer("started_at", { mode: "timestamp" }),
+    endedAt: integer("ended_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("social_deliveries_guild_created").on(table.guildId, table.createdAt),
+    index("social_deliveries_watcher").on(table.platform, table.watcherId, table.createdAt),
+    index("social_deliveries_created").on(table.createdAt),
+  ],
 );
 
 /** Dashboard-configured Bluesky accounts to post into a Discord channel (the Bluesky plugin). */
@@ -1329,6 +1371,8 @@ export const blueskyFeeds = sqliteTable(
     /** JSON-serialized BlueskyFeedOptions (filters + card look). */
     options: text("options").notNull(),
     lastPostAt: integer("last_post_at", { mode: "timestamp" }),
+    /** All-time posts delivered (deliveries themselves are pruned after 180 days). */
+    deliveredCount: integer("delivered_count", { mode: "number" }).notNull().default(0),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     createdBy: text("created_by").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
@@ -1350,12 +1394,16 @@ export const blueskyDeliveries = sqliteTable(
     messageId: text("message_id").notNull(),
     postUri: text("post_uri").notNull(),
     postCid: text("post_cid").notNull(),
+    /** Net Like / Repost presses from Discord (buttons and 💙 reactions) on this card. */
+    likeCount: integer("like_count", { mode: "number" }).notNull().default(0),
+    repostCount: integer("repost_count", { mode: "number" }).notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [
     uniqueIndex("bluesky_deliveries_feed_post").on(table.feedId, table.postUri),
     index("bluesky_deliveries_message").on(table.messageId),
     index("bluesky_deliveries_created").on(table.createdAt),
+    index("bluesky_deliveries_guild_created").on(table.guildId, table.createdAt),
   ],
 );
 
@@ -1915,6 +1963,12 @@ export const radioUploads = sqliteTable("radio_uploads", {
   nextIndex: integer("next_index", { mode: "number" }).notNull().default(0),
   createdBy: text("created_by").notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
+
+/** One-time maintenance jobs that have already run (see core/oneTimeTasks.ts). */
+export const oneTimeTasks = sqliteTable("one_time_tasks", {
+  id: text("id").primaryKey(),
+  doneAt: integer("done_at", { mode: "timestamp" }).notNull(),
 });
 
 export const giveaways = sqliteTable(

@@ -20,7 +20,15 @@ source of truth; Dreamliner keeps what roles can't (when someone joined the team
   any of these; a member on leave for at least half the period is excused. Members inactive for
   `inactivity_days` get one alert per inactive streak.
 - **Roster**: one auto-updating message listing every rank and who's on duty, with Clock in, Break and
-  Clock out buttons.
+  Clock out buttons, plus a **Web kiosk** link button when the kiosk is on.
+- **Web clock-in kiosk**: a page on the website (`/kiosk/<guildId>`) where staff sign in with Discord
+  to clock in (picking a shift type when there are any), start and end breaks and clock out, with a live
+  timer, time today and this period, quota progress and their recent shifts. It runs the same shift
+  functions as `/team shift` and the roster buttons, so every rule, log line (marked "from the web
+  kiosk"), duty role and nickname prefix is identical. Only current members who can shift on Discord (a
+  rank role or `can_shift`) can use it; suspended staff can see it but not clock in. Its look (headline,
+  welcome text, button labels, accent, background colour or image, layout, clock format and which
+  stats show) is customised on the dashboard's **Clock-in kiosk** sub-page, like the Passport page.
 - **Profiles, notes and feedback**: staff profiles (`/team profile` and the **Team profile** user context
   menu), private manager notes, and ratings from members: after a ticket closes (the opener gets a DM
   with 1 to 5 stars) or with `/team rate`. Staff see feedback anonymised; managers see who left it.
@@ -50,7 +58,7 @@ without One; the extra values are simply ignored.
 
 | Command | Who |
 | --- | --- |
-| `/team shift start [type]` · `break` · `end` | Team members (or `can_shift`) |
+| `/team shift start [type]` · `break` · `end` · `kiosk` | Team members (or `can_shift`); `kiosk` replies with the web kiosk link |
 | `/team shift status [user]` · `leaderboard [period]` | `can_view_team` or team members |
 | `/team leave request <kind> <days> [starts_in_days]` · `status` · `end` | Team members (or `can_request_leave`) |
 | `/team leave list` | `can_review_leave` |
@@ -134,6 +142,32 @@ plugins:
         points_mode: false         # Dreamliner One
         weights: { shift_hour: 10, mod_action: 2, ticket: 3, message: 0.1, voice_hour: 2 }
       roster: { enabled: false, channel_id: null, show_buttons: true, title: Team roster }
+      kiosk:
+        enabled: false
+        title: Staff clock-in      # supports {guild}
+        welcome: Clock in to start your shift. Your time is tracked until you clock out.  # {guild}, {user}
+        clock_in_label: Clock in
+        clock_out_label: Clock out
+        inherit_accent: true       # use the server's public accent colour
+        accent_color: 5661429      # 0x5662f5, when inherit_accent is off
+        background: none           # none | color | url | guild_banner | asset
+        background_color: 16053751 # 0xf4f5f7
+        background_url: ""
+        background_asset_id: ""    # uploaded from the dashboard
+        layout: split              # split | centered
+        clock_format: auto         # auto | 12h | 24h
+        show_server_icon: true
+        show_server_name: true
+        show_wall_clock: true
+        show_rank: true
+        show_on_duty: true
+        show_today: true
+        show_period: true
+        show_quota: true
+        show_recent: true
+        allow_breaks: true         # also needs shifts.allow_breaks
+        require_type: false        # must pick a shift type when the member's rank has any
+        confirm_clock_out: true
       feedback: { enabled: true, after_ticket: true, direct: true, cooldown_hours: 24, members_only: true, log_channel_id: null }
       onboarding:
         enabled: false
@@ -158,5 +192,13 @@ Two scheduled tasks, both restart-safe because all state is in the database:
 `team-control:tick` (every minute: auto clock-out, leave start and end, suspension end, trial end) and
 `team-control:sweep` (every 30 minutes: member sync, roster refresh, inactivity alerts, scheduled
 reports, daily retention pruning).
+
+Kiosk background uploads are stored as PNGs under `data/guild-assets/<guildId>/team_kiosk/` (the shared
+page-asset store). The kiosk adds no tables.
+
+Bridge routes for the kiosk (`src/bridge/webTeamKiosk.ts`): `GET team-kiosk/page` (public look),
+`GET team-kiosk/me` and `POST team-kiosk/clock` (signed-in staff of that server only; the website passes
+its session user as `?userId=`; presses are limited to 20 a minute per member and one at a time), and
+`POST team-kiosk/assets` / `GET team-kiosk/assets/:id` (Manage Server).
 
 Members can export and erase their Team Control data from the website's privacy page.

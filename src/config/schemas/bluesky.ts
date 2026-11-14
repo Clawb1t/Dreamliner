@@ -33,6 +33,16 @@ export const zBlueskyFeedOptions = z.strictObject({
   media_only: z.boolean().default(false).describe("Only post when the post has images or video."),
   show_media: z.boolean().default(true).describe("Show the post's images, video thumbnail or link preview."),
   show_buttons: z.boolean().default(true).describe("Show the Like and Repost buttons."),
+  follower_milestones: z
+    .boolean()
+    .default(false)
+    .describe("Post a celebration card in this feed's channel when the account reaches a follower milestone."),
+  milestone_last: z
+    .number()
+    .int()
+    .min(-1)
+    .default(-1)
+    .describe("Bot-managed: the last follower milestone announced (-1 until the starting point is recorded)."),
 });
 
 export type BlueskyConfig = z.infer<typeof zBlueskyConfig>;

@@ -3079,11 +3079,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const blueskyFeedTestMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds\/(\d+)\/test$/.exec(url.pathname);
         const blueskyFeedOneMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds\/(\d+)$/.exec(url.pathname);
         const blueskyFeedsMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds$/.exec(url.pathname);
+        const blueskyExtraMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/(showcase|search|import\/preview|import)$/.exec(url.pathname);
         const socialWatcherTestMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers\/(\d+)\/test$/.exec(
           url.pathname,
         );
         const socialWatcherOneMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers\/(\d+)$/.exec(url.pathname);
         const socialWatchersMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers$/.exec(url.pathname);
+        const socialExtraMatch = /^\/bridge\/guilds\/(\d+)\/social\/(showcase|search)$/.exec(url.pathname);
         const tagOneMatch = /^\/bridge\/guilds\/(\d+)\/tags\/([a-z0-9][a-z0-9_-]{0,63})$/i.exec(
           url.pathname,
         );
@@ -3204,6 +3206,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Team Control: overview, members, member/:id[/notes[/:noteId]|/onboarding], shifts[/:id],
         // leave[/:id], actions[/:id/void], activity[/export], feedback, roster/refresh, sync.
         const teamControlMatch = /^\/bridge\/guilds\/(\d+)\/team-control\/([a-z]+(?:\/[a-z0-9]{1,20}){0,3})$/.exec(url.pathname);
+        // Team Control web kiosk: page (public look), me (viewer's shift state), clock (actions),
+        // assets[/:id] (dashboard background uploads). Signed-in staff, not Manage Server.
+        const teamKioskMatch = /^\/bridge\/guilds\/(\d+)\/team-kiosk\/(page|me|clock|assets)(?:\/([a-zA-Z0-9_-]{1,64}))?$/.exec(url.pathname);
         // Message Kits: kits[/:id[/duplicate|versions[/:v[/restore]]|send|sync|test]], validate, posts[/adopt|/:id],
         // import, schedules[/:id[/run]], assets[/:id[/file]], context.
         const messageKitsMatch = /^\/bridge\/guilds\/(\d+)\/message-kits\/([a-z]+(?:\/[a-z0-9]{1,32}){0,4})$/.exec(url.pathname);
@@ -3224,6 +3229,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const nameHistoryMatch = /^\/bridge\/guilds\/(\d+)\/name-history$/.exec(url.pathname);
+        // Website identity card: any current member of the server may view anyone's card there.
+        const memberIdentityCardMatch = /^\/bridge\/guilds\/(\d+)\/identity\/(\d{17,20})$/.exec(url.pathname);
         const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
         const permissionRolesMatch =
           /^\/bridge\/guilds\/(\d+)\/permission-roles(?:\/(\d+)(?:\/(targets|grants))?)?$/.exec(url.pathname);
@@ -3293,10 +3300,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !socialWatcherTestMatch &&
           !socialWatcherOneMatch &&
           !socialWatchersMatch &&
+          !socialExtraMatch &&
           !blueskyResolveMatch &&
           !blueskyFeedTestMatch &&
           !blueskyFeedOneMatch &&
           !blueskyFeedsMatch &&
+          !blueskyExtraMatch &&
           !tagOneMatch &&
           !tagsMatch &&
           !dbRowMatch &&
@@ -3352,6 +3361,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !activityRewardsMatch &&
           !inviteTrackerMatch &&
           !teamControlMatch &&
+          !teamKioskMatch &&
           !messageKitsMatch &&
           !serverAutopilotMatch &&
           !birthdaysMatch &&
@@ -3361,6 +3371,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !passportMatch &&
           !passportAltsMatch &&
           !nameHistoryMatch &&
+          !memberIdentityCardMatch &&
           !economyMatch &&
           !permissionRolesMatch &&
           !permissionCatalogMatch &&
@@ -3414,10 +3425,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           socialWatcherTestMatch?.[1] ??
           socialWatcherOneMatch?.[1] ??
           socialWatchersMatch?.[1] ??
+          socialExtraMatch?.[1] ??
           blueskyResolveMatch?.[1] ??
           blueskyFeedTestMatch?.[1] ??
           blueskyFeedOneMatch?.[1] ??
           blueskyFeedsMatch?.[1] ??
+          blueskyExtraMatch?.[1] ??
           tagOneMatch?.[1] ??
           tagsMatch?.[1] ??
           dbRowMatch?.[1] ??
@@ -3473,6 +3486,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           activityRewardsMatch?.[1] ??
           inviteTrackerMatch?.[1] ??
           teamControlMatch?.[1] ??
+          teamKioskMatch?.[1] ??
           messageKitsMatch?.[1] ??
           serverAutopilotMatch?.[1] ??
           birthdaysMatch?.[1] ??
@@ -3483,6 +3497,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           passportAltsMatch?.[1] ??
           passportAssetMatch?.[1] ??
           nameHistoryMatch?.[1] ??
+          memberIdentityCardMatch?.[1] ??
           economyMatch?.[1] ??
           permissionRolesMatch?.[1] ??
           permissionCatalogMatch?.[1] ??
@@ -4550,6 +4565,102 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const status = error instanceof bridge.TeamBridgeError ? error.status : 500;
             if (status === 500) log.error("Team Control bridge request failed:", error);
             sendJson(res, status, { error: error instanceof Error && status !== 500 ? error.message : "Team Control request failed" });
+          }
+          return;
+        }
+
+        if (teamKioskMatch) {
+          const method = req.method ?? "GET";
+          const area = teamKioskMatch[2]!;
+          const assetId = teamKioskMatch[3] ?? null;
+          if (assetId && area !== "assets") {
+            sendJson(res, 404, { error: "Not found" });
+            return;
+          }
+          const kiosk = await import("./webTeamKiosk.js");
+          const { parseTzOffset } = await import("../plugins/team_control/functions/kiosk.js");
+          // The site forwards its own signed-in session user as `?userId=` (never a browser-supplied
+          // id), on writes too, so the per-user limits in rateLimit.ts apply to every kiosk call.
+          const viewerId = url.searchParams.get("userId")?.trim() ?? "";
+          const needsViewer = area !== "page";
+          if (needsViewer && !/^\d{17,20}$/.test(viewerId)) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          const tzOffset = parseTzOffset(url.searchParams.get("tzOffset"));
+          try {
+            if (area === "page" && method === "GET") {
+              sendJson(res, 200, await kiosk.buildKioskPage(guild));
+              return;
+            }
+            if (area === "me" && method === "GET") {
+              sendJson(res, 200, await kiosk.getKioskState(guild, viewerId, tzOffset));
+              return;
+            }
+            if (area === "clock" && method === "POST") {
+              let body: Record<string, unknown> = {};
+              try {
+                const parsed = JSON.parse((await readBody(req)) || "{}") as unknown;
+                body = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+              } catch {
+                sendJson(res, 400, { error: "Invalid JSON body" });
+                return;
+              }
+              sendJson(res, 200, await kiosk.runKioskAction(guild, viewerId, body, tzOffset));
+              return;
+            }
+            if (area === "assets") {
+              // Background images are managed from the dashboard: Manage Server only.
+              if (!(await memberCanManage(guild, viewerId))) {
+                sendJson(res, 403, { error: "Missing Manage Server permission." });
+                return;
+              }
+              if (!assetId && method === "POST") {
+                let body: { imageBase64?: unknown };
+                try {
+                  body = JSON.parse(await readBody(req)) as typeof body;
+                } catch {
+                  sendJson(res, 400, { error: "Invalid JSON body" });
+                  return;
+                }
+                if (typeof body.imageBase64 !== "string" || !body.imageBase64) {
+                  sendJson(res, 400, { error: "imageBase64 is required" });
+                  return;
+                }
+                try {
+                  const saved = await kiosk.uploadKioskBackground(guildId, body.imageBase64);
+                  trackDashboardAction(client, guildId, viewerId, {
+                    eventType: "dashboard_config",
+                    title: "Kiosk background uploaded",
+                    summary: "A Team Control kiosk background was uploaded from the dashboard.",
+                    details: [`Asset: \`${saved.assetId}\``],
+                    payload: { assetId: saved.assetId },
+                  });
+                  sendJson(res, 200, { ok: true, ...saved });
+                } catch (error) {
+                  sendJson(res, 400, { error: error instanceof Error ? error.message : "Failed to upload image" });
+                }
+                return;
+              }
+              if (assetId && method === "GET") {
+                const buf = kiosk.readKioskBackground(guildId, assetId);
+                if (!buf) {
+                  sendJson(res, 404, { error: "Asset not found" });
+                  return;
+                }
+                sendBinary(res, 200, buf, "image/png");
+                return;
+              }
+            }
+            sendJson(res, 405, { error: "Method not allowed" });
+          } catch (error) {
+            const status = error instanceof kiosk.KioskBridgeError ? error.status : 500;
+            if (status === 500) log.error("Team Control kiosk request failed:", error);
+            if (status === 429) res.setHeader("Retry-After", "10");
+            sendJson(res, status, {
+              error: error instanceof Error && status !== 500 ? error.message : "Kiosk request failed",
+              code: error instanceof kiosk.KioskBridgeError ? error.code : "error",
+            });
           }
           return;
         }
@@ -5650,6 +5761,33 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (memberIdentityCardMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          // The site passes its own signed-in session user here, never a browser-supplied id.
+          // `userId` (not `viewerId`) so the per-user rate limit in rateLimit.ts applies.
+          const viewerId = url.searchParams.get("userId")?.trim() ?? "";
+          if (!/^\d{17,20}$/.test(viewerId)) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          const { buildIdentityCard, currentGuildMember } = await import("./webMemberIdentity.js");
+          // Only people in the server right now can see cards from it (no superuser bypass).
+          if (!(await currentGuildMember(guild, viewerId))) {
+            sendJson(res, 403, { error: "You need to be in this server to view identity cards from it.", code: "not_member" });
+            return;
+          }
+          const card = await buildIdentityCard(client, guild, memberIdentityCardMatch[2]!, viewerId);
+          if (!card) {
+            sendJson(res, 404, { error: "User not found.", code: "user_not_found" });
+            return;
+          }
+          sendJson(res, 200, card);
           return;
         }
 
@@ -8791,7 +8929,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (blueskyResolveMatch || blueskyFeedTestMatch || blueskyFeedOneMatch || blueskyFeedsMatch) {
+        if (blueskyResolveMatch || blueskyFeedTestMatch || blueskyFeedOneMatch || blueskyFeedsMatch || blueskyExtraMatch) {
           const bluesky = await import("./bluesky.js");
           let body: { userId?: string } & Record<string, unknown> = {};
           if (req.method === "POST" || req.method === "PATCH") {
@@ -8822,8 +8960,33 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               payload: { handle: feed.handle },
             });
 
+          const blueskyExtra = blueskyExtraMatch?.[2];
           let result;
-          if (blueskyResolveMatch && req.method === "POST") {
+          if (blueskyExtra === "showcase" && req.method === "GET") {
+            result = await bluesky.getBridgeBlueskyShowcase(guildId);
+          } else if (blueskyExtra === "search" && req.method === "GET") {
+            result = await bluesky.searchBridgeBlueskyActors(requesterId, url.searchParams.get("q") ?? "");
+          } else if (blueskyExtra === "import/preview" && req.method === "POST") {
+            result = await bluesky.previewBridgeBlueskyImport(guildId, body);
+          } else if (blueskyExtra === "import" && req.method === "POST") {
+            {
+              const invalid = await validateGuildTargets(guild, body as { discordChannelId?: unknown; mentionRoleIds?: unknown });
+              if (invalid) {
+                sendJson(res, 400, { error: invalid });
+                return;
+              }
+            }
+            result = await bluesky.importBridgeBlueskyFeeds(guildId, requesterId, body);
+            if (result.ok && result.created.length) {
+              trackDashboardAction(client, guildId, requesterId, {
+                eventType: "dashboard_command",
+                title: "Bluesky accounts imported",
+                summary: `${result.created.length} Bluesky ${result.created.length === 1 ? "account was" : "accounts were"} imported from the dashboard.`,
+                targetId: String(result.created[0]!.id),
+                payload: { handles: result.created.map((feed) => feed.handle) },
+              });
+            }
+          } else if (blueskyResolveMatch && req.method === "POST") {
             if (typeof body.input !== "string" || !body.input.trim()) {
               sendJson(res, 400, { error: "input is required" });
               return;
@@ -8939,6 +9102,38 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (socialExtraMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const requesterId = url.searchParams.get("userId")?.trim();
+          if (!requesterId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const social = await import("./social.js");
+          const result =
+            socialExtraMatch[2] === "showcase"
+              ? await social.getBridgeSocialShowcase(guildId)
+              : await social.searchBridgeSocialSources(
+                  requesterId,
+                  url.searchParams.get("platform") ?? "",
+                  url.searchParams.get("q") ?? "",
+                );
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          const { ok: _ok, ...payload } = result;
+          sendJson(res, 200, payload);
+          return;
+        }
+
         if (socialWatchersMatch || socialWatcherOneMatch) {
           const userId =
             req.method === "GET" || req.method === "DELETE"
@@ -8965,6 +9160,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               watchers: result.watchers,
               count: result.count,
               maxWatchers: result.maxWatchers,
+              stats: result.stats,
+              totals: result.totals,
+              recent: result.recent,
+              platforms: result.platforms,
             });
             return;
           }
@@ -9283,8 +9482,20 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           if (result.data.plugins.scam_protect?.enabled === true) {
-            const { ensureScamProtectChannel } = await import("../plugins/scam_protect/functions/ensure.js");
-            void ensureScamProtectChannel(guild).catch(() => null);
+            const { ensureScamProtectChannel, getScamProtectConfig } = await import("../plugins/scam_protect/functions/ensure.js");
+            // The honeypot's channel/message ids are written by the bot after it creates the
+            // channel, so a dashboard that loaded its copy earlier saves them back as empty. Without
+            // this, ensureScamProtectChannel would see no channel and create a brand-new one on
+            // every settings save. Keep the ids the bot already had.
+            const before = getScamProtectConfig(beforeConfig);
+            const after = getScamProtectConfig(result.data);
+            const keep: Record<string, string> = {};
+            if (before.channel_id && !after.channel_id) keep.channel_id = before.channel_id;
+            if (before.warning_message_id && !after.warning_message_id) keep.warning_message_id = before.warning_message_id;
+            const restore = Object.keys(keep).length
+              ? configManager.patchPluginConfig(guildId, "scam_protect", keep, "system:scam_protect")
+              : Promise.resolve(null);
+            void restore.then(() => ensureScamProtectChannel(guild)).catch(() => null);
           }
           const { diffConfigValues, formatConfigChangeLines } = await import("../config/diff.js");
           const changes = diffConfigValues(beforeConfig, result.data);

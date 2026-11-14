@@ -101,3 +101,70 @@ export function buildDefaultTwitchEmbedConfig(): SocialEmbedConfig {
 
 /** Default plain-text message for a newly created Twitch watcher, used when the embed is off. */
 export const DEFAULT_TWITCH_MESSAGE_CONTENT = "**{streamer_name}** is live! {stream_url}";
+
+// ---------------------------------------------------------------------------------------------
+// Per-creator notification options (stored as JSON on each watcher row, not in guild config)
+// ---------------------------------------------------------------------------------------------
+
+const zSnowflakeList = z.array(z.string().regex(/^\d{5,25}$/)).max(10);
+
+/** What a YouTube upload turned out to be (see classifyUpload in youtube.ts). */
+export const YOUTUBE_UPLOAD_KINDS = ["video", "short", "live"] as const;
+export type YoutubeUploadKind = (typeof YOUTUBE_UPLOAD_KINDS)[number];
+
+/** What happens to a Twitch "went live" message once the stream ends. */
+export const TWITCH_END_ACTIONS = ["none", "edit", "summary", "delete"] as const;
+export type TwitchEndAction = (typeof TWITCH_END_ACTIONS)[number];
+
+/** A separate message + role pings for one YouTube upload type. Off = use the creator's main message. */
+export const zSocialTypeOverride = z.object({
+  custom: z.boolean().default(false),
+  message: z.string().max(2000).default(""),
+  role_ids: zSnowflakeList.default([]),
+});
+export type SocialTypeOverride = z.infer<typeof zSocialTypeOverride>;
+
+/**
+ * Every field has a default, so rows saved before these options existed (stored as `{}`) parse
+ * to the old behaviour: every upload type notifies, nothing happens when a stream ends.
+ * Unknown keys are dropped rather than rejected.
+ */
+export const zSocialWatcherOptions = z.object({
+  // YouTube upload types
+  notify_videos: z.boolean().default(true),
+  notify_shorts: z.boolean().default(true),
+  notify_live: z.boolean().default(true),
+  short_override: zSocialTypeOverride.default({ custom: false, message: "", role_ids: [] }),
+  live_override: zSocialTypeOverride.default({ custom: false, message: "", role_ids: [] }),
+  // Twitch stream lifecycle
+  end_action: z.enum(TWITCH_END_ACTIONS).default("none"),
+  live_updates: z.boolean().default(false),
+  // Both: cooldown (Twitch: a restart within N minutes doesn't notify again; YouTube: uploads
+  // within N minutes of the last notification still post, but without role pings).
+  cooldown_minutes: z.number().int().min(0).max(720).default(0),
+  // Both: quiet hours (notifications still post, silently and without role pings).
+  quiet_enabled: z.boolean().default(false),
+  quiet_start: z.number().int().min(0).max(23).default(23),
+  quiet_end: z.number().int().min(0).max(23).default(8),
+  quiet_timezone: z.string().min(1).max(64).default("UTC"),
+  // Subscriber milestones (YouTube only: Twitch follower totals need a broadcaster's own login).
+  milestones: z.boolean().default(false),
+  /** Last announced milestone; -1 = not seeded yet (the next check records it without posting). */
+  milestone_last: z.number().int().min(-1).default(-1),
+});
+export type SocialWatcherOptions = z.infer<typeof zSocialWatcherOptions>;
+
+/** Parse stored options, falling back to defaults for anything missing or invalid. */
+export function parseSocialWatcherOptions(raw: unknown): SocialWatcherOptions {
+  const parsed = zSocialWatcherOptions.safeParse(raw ?? {});
+  if (parsed.success) return parsed.data;
+  // One bad field shouldn't wipe the rest: keep whatever parses on its own.
+  const base = zSocialWatcherOptions.parse({});
+  const source = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const out: Record<string, unknown> = { ...base };
+  for (const key of Object.keys(base) as (keyof SocialWatcherOptions)[]) {
+    const single = zSocialWatcherOptions.shape[key].safeParse(source[key]);
+    if (single.success) out[key] = single.data;
+  }
+  return out as SocialWatcherOptions;
+}

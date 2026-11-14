@@ -6,7 +6,7 @@ import { BLUESKY_EMOJIS, parseBlueskyCustomId } from "../constants.js";
 import { toggleFollow, toggleLike, toggleRepost } from "./actions.js";
 import { actionFeedback } from "./messages.js";
 import { disconnect } from "./oauth.js";
-import { getDelivery } from "./store.js";
+import { adjustDeliveryCounter, getDelivery } from "./store.js";
 
 /** Like / Repost on post cards, Follow on profile cards, Disconnect on /bluesky account. */
 export async function handleBlueskyButtonInteraction(interaction: ButtonInteraction): Promise<boolean> {
@@ -50,6 +50,9 @@ export async function handleBlueskyButtonInteraction(interaction: ButtonInteract
     parsed.kind === "like"
       ? await toggleLike(userId, delivery.postUri, delivery.postCid)
       : await toggleRepost(userId, delivery.postUri, delivery.postCid);
+  if (result.ok && result.changed) {
+    await adjustDeliveryCounter(delivery.id, parsed.kind, result.state === "on" ? 1 : -1).catch(() => undefined);
+  }
   const { container, rows } = actionFeedback(interaction.client, t, parsed.kind, result);
   await interaction.editReply(containerEdit(container, rows));
   return true;

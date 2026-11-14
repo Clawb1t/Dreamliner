@@ -3,12 +3,13 @@ import { definePlugin } from "../../core/plugin.js";
 import { zMemberIdentityConfig } from "../../config/schemas/plugins.js";
 import { configManager } from "../../config/manager.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
+import { memberIdentityCommands } from "./commands.js";
 import { getMemberIdentityConfig, identityChanged, restoreMemberIdentity, saveMemberIdentity } from "./functions/handlers.js";
 
 export const memberIdentityPlugin = definePlugin({
   name: "member_identity",
   configSchema: zMemberIdentityConfig,
-  slashCommands: [],
+  slashCommands: memberIdentityCommands,
   events: [
     {
       name: Events.GuildMemberAdd,

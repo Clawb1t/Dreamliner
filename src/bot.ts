@@ -232,6 +232,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     log.info(`Dreamliner ready as ${c.user.tag}`);
     startStatusMonitor(c);
     startDashboardBridge(c, configManager);
+    // Stats is on by default now; turn it on for every existing server once.
+    void import("./core/oneTimeTasks.js").then(({ runOnce, enableStatsEverywhere }) =>
+      runOnce("stats-on-by-default-2026-11", enableStatsEverywhere),
+    );
     // Store credits: import top.gg vote history (past votes to claim, and any the webhook missed).
     void Promise.all([import("./core/store/topggVotes.js"), import("./core/scheduler.js")]).then(
       ([{ isVoteHistoryConfigured, syncVoteHistory }, { registerIntervalTask }]) => {

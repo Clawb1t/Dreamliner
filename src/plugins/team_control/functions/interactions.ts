@@ -22,9 +22,9 @@ import { decideLeave, LEAVE_BUTTON, LEAVE_DENY_MODAL, LEAVE_REQUEST_MODAL, reque
 import { loadTeamRuntime } from "./members.js";
 import { teamCard } from "./messages.js";
 import { TRIAL_BUTTON, TRIAL_EXTEND_DAYS, TRIAL_FAIL_MODAL, trialReviewRow } from "./onboarding.js";
-import { isOnTeam, resolveActor, type TeamActor } from "./ranks.js";
+import { resolveActor, type TeamActor } from "./ranks.js";
 import { ROSTER_BUTTON } from "./roster.js";
-import { endOwnShift, startShift, toggleBreak } from "./shifts.js";
+import { endOwnShift, maySelfShift, startShift, toggleBreak } from "./shifts.js";
 import { getFeedback, getLeave, getTeamMember, setFeedbackComment, upsertTeamMember } from "./store.js";
 
 type Runtime = NonNullable<Awaited<ReturnType<typeof loadTeamRuntime>>>;
@@ -145,7 +145,7 @@ export async function handleTeamButton(interaction: ButtonInteraction): Promise<
 
   if (id.startsWith(ROSTER_BUTTON)) {
     const action = id.slice(ROSTER_BUTTON.length);
-    const allowed = isOnTeam(member, config.ranks) || (await hasPermission(guild.id, PLUGIN, "can_shift", member, guildConfig));
+    const allowed = await maySelfShift(member, guildConfig, config);
     if (!allowed) {
       await ephemeral(interaction, ctx, t("team_control.rosterNotStaff", "Only staff can clock in."), "warning");
       return true;

@@ -56,9 +56,19 @@ export function getTicketTranscriptUrl(guildId: string, transcriptId: string): s
   return `${resolveSiteUrl()}/server/${guildId}/tickets/transcript/${encodeURIComponent(transcriptId)}`;
 }
 
+/** A member's identity card for one server (Member Identity; only that server's members can open it). */
+export function getIdentityCardUrl(guildId: string, userId: string): string {
+  return `${resolveSiteUrl()}/identity/${guildId}/${userId}`;
+}
+
 /** Public Passport verification page for a guild. */
 export function getPassportUrl(guildId: string): string {
   return `${resolveSiteUrl()}/passport/${guildId}`;
+}
+
+/** Team Control's web clock-in kiosk for a guild (staff sign in with Discord to run their shift). */
+export function getTeamKioskUrl(guildId: string): string {
+  return `${resolveSiteUrl()}/kiosk/${guildId}`;
 }
 
 /** Guild-scoped dashboard (config editor for one server). */

@@ -785,7 +785,7 @@ plugins:
       can_locate: false
       can_seen: false
   stats:
-    enabled: false
+    enabled: true
     config:
       can_server: false
       can_user: false
@@ -1286,6 +1286,32 @@ plugins:
         channel_id: null
         show_buttons: true
         title: Team roster
+      kiosk:
+        enabled: false
+        title: Staff clock-in
+        welcome: Clock in to start your shift. Your time is tracked until you clock out.
+        clock_in_label: Clock in
+        clock_out_label: Clock out
+        inherit_accent: true
+        accent_color: 5661429
+        background: none
+        background_color: 16053751
+        background_url: ""
+        background_asset_id: ""
+        layout: split
+        clock_format: auto
+        show_server_icon: true
+        show_server_name: true
+        show_wall_clock: true
+        show_rank: true
+        show_on_duty: true
+        show_today: true
+        show_period: true
+        show_quota: true
+        show_recent: true
+        allow_breaks: true
+        require_type: false
+        confirm_clock_out: true
       feedback:
         enabled: true
         after_ticket: true

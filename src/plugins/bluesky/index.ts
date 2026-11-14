@@ -4,6 +4,7 @@ import { zBlueskyConfig } from "../../config/schemas/bluesky.js";
 import { registerIntervalTask } from "../../core/scheduler.js";
 import { blueskyCommands } from "./commands.js";
 import { handleBlueskyLinkMessage } from "./functions/linkCards.js";
+import { MILESTONE_FIRST_POLL_DELAY_MS, MILESTONE_POLL_INTERVAL_MS, pollFollowerMilestones } from "./functions/milestoneNotify.js";
 import { pruneOauthStates } from "./functions/oauth.js";
 import { handleBlueskyReaction } from "./functions/reactions.js";
 import { pruneDeliveries } from "./functions/store.js";
@@ -46,8 +47,18 @@ export const blueskyPlugin = definePlugin({
         await pruneOauthStates();
       },
     });
+    registerIntervalTask({
+      id: "bluesky:milestones",
+      intervalMs: MILESTONE_POLL_INTERVAL_MS,
+      run: async (client) => {
+        await pollFollowerMilestones(client);
+      },
+    });
     ctx.client.once(Events.ClientReady, (client) => {
       startBlueskyStream(client).catch((error: unknown) => log.error("[bluesky] failed to start the Jetstream stream:", error));
+      setTimeout(() => {
+        pollFollowerMilestones(client).catch((error: unknown) => log.warn("[bluesky] follower milestone check failed:", error));
+      }, MILESTONE_FIRST_POLL_DELAY_MS).unref?.();
     });
   },
 });

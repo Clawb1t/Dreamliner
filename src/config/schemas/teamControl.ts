@@ -7,6 +7,14 @@ export const TEAM_PERIODS = ["weekly", "biweekly", "monthly"] as const;
 export const TEAM_WEEK_STARTS = ["monday", "sunday"] as const;
 /** What reaching a strike threshold does. */
 export const TEAM_STRIKE_ACTIONS = ["notify", "demote", "suspend", "terminate"] as const;
+/** What sits behind the web clock-in kiosk's card (same choices as the Passport page). */
+export const TEAM_KIOSK_BACKGROUNDS = ["none", "color", "url", "guild_banner", "asset"] as const;
+/** Kiosk layouts: the clock beside the summary, or everything in one centred column. */
+export const TEAM_KIOSK_LAYOUTS = ["split", "centered"] as const;
+/** How the kiosk's wall clock shows the time. */
+export const TEAM_KIOSK_CLOCK_FORMATS = ["auto", "12h", "24h"] as const;
+
+const colorInt = (help: string, fallback: number) => z.number().int().min(0).max(0xffffff).default(fallback).describe(help);
 
 /** The most anything can be with Dreamliner One. Free servers get lower limits at runtime (see
  *  the plugin's oneGate.ts), so a config saved while One was active never fails validation. */
@@ -149,6 +157,39 @@ export const zTeamControlConfig = z.strictObject({
       title: z.string().min(1).max(100).default("Team roster"),
     })
     .default({}),
+  kiosk: z
+    .strictObject({
+      enabled: z.boolean().default(false).describe("A web page where staff sign in with Discord to clock in, take breaks and clock out."),
+      title: z.string().max(80).default("Staff clock-in").describe("Headline on the kiosk. Supports {guild}."),
+      welcome: z
+        .string()
+        .max(300)
+        .default("Clock in to start your shift. Your time is tracked until you clock out.")
+        .describe("Short text under the headline. Supports {guild} and {user}."),
+      clock_in_label: z.string().min(1).max(32).default("Clock in").describe("Label on the main button when off shift."),
+      clock_out_label: z.string().min(1).max(32).default("Clock out").describe("Label on the button that ends a shift."),
+      inherit_accent: z.boolean().default(true).describe("Use the server's public accent colour on the kiosk."),
+      accent_color: colorInt("Kiosk accent when inherit_accent is off.", 0x5662f5),
+      background: z.enum(TEAM_KIOSK_BACKGROUNDS).default("none").describe("What sits behind the kiosk card."),
+      background_color: colorInt("Solid background when background is color.", 0xf4f5f7),
+      background_url: z.string().max(512).default("").describe("Background image link when background is url."),
+      background_asset_id: z.string().max(128).default("").describe("Uploaded background image when background is asset."),
+      layout: z.enum(TEAM_KIOSK_LAYOUTS).default("split").describe("split = clock beside the summary on wide screens; centered = one column."),
+      clock_format: z.enum(TEAM_KIOSK_CLOCK_FORMATS).default("auto").describe("Wall clock format. auto follows each viewer's device."),
+      show_server_icon: z.boolean().default(true).describe("Show the server icon."),
+      show_server_name: z.boolean().default(true).describe("Show the server name."),
+      show_wall_clock: z.boolean().default(true).describe("Show the current time and date."),
+      show_rank: z.boolean().default(true).describe("Show the signed-in member's rank."),
+      show_on_duty: z.boolean().default(true).describe("Show how many staff are on shift right now."),
+      show_today: z.boolean().default(true).describe("Show time worked today."),
+      show_period: z.boolean().default(true).describe("Show time worked this activity period."),
+      show_quota: z.boolean().default(true).describe("Show quota progress (when activity tracking is on)."),
+      show_recent: z.boolean().default(true).describe("Show the member's recent shifts."),
+      allow_breaks: z.boolean().default(true).describe("Allow breaks from the kiosk (breaks must also be on in shift settings)."),
+      require_type: z.boolean().default(false).describe("Make staff pick a shift type before clocking in (when shift types exist)."),
+      confirm_clock_out: z.boolean().default(true).describe("Ask before clocking out."),
+    })
+    .default({}),
   feedback: z
     .strictObject({
       enabled: z.boolean().default(true).describe("Let members rate staff."),
@@ -196,5 +237,6 @@ export type TeamStrikeAction = (typeof TEAM_STRIKE_ACTIONS)[number];
 export type TeamStrikeThreshold = TeamControlConfig["actions"]["strike_thresholds"][number];
 export type TeamQuota = TeamRank["quota"];
 export type TeamWeights = TeamControlConfig["activity"]["weights"];
+export type TeamKioskConfig = TeamControlConfig["kiosk"];
 
 export const zTeamControlPluginSection = zPluginSection(zTeamControlConfig.shape);

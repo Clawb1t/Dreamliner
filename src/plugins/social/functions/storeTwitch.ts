@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { socialTwitchWatchers } from "../../../db/schema.js";
-import type { SocialEmbedConfig } from "../../../config/schemas/social.js";
+import { parseSocialWatcherOptions, type SocialEmbedConfig, type SocialWatcherOptions } from "../../../config/schemas/social.js";
 
 export type SocialTwitchWatcherRow = {
   id: number;
@@ -17,12 +17,23 @@ export type SocialTwitchWatcherRow = {
   embedConfig: SocialEmbedConfig;
   lastStreamId: string | null;
   lastLiveAt: Date | null;
+  lastSeenLiveAt: Date | null;
   lastCheckedAt: Date | null;
+  options: SocialWatcherOptions;
+  deliveredCount: number;
   enabled: boolean;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 };
+
+function parseOptions(raw: string): SocialWatcherOptions {
+  try {
+    return parseSocialWatcherOptions(JSON.parse(raw));
+  } catch {
+    return parseSocialWatcherOptions({});
+  }
+}
 
 function mapRow(row: typeof socialTwitchWatchers.$inferSelect): SocialTwitchWatcherRow {
   let mentionRoleIds: string[] = [];
@@ -46,7 +57,10 @@ function mapRow(row: typeof socialTwitchWatchers.$inferSelect): SocialTwitchWatc
     embedConfig: JSON.parse(row.embedConfig) as SocialEmbedConfig,
     lastStreamId: row.lastStreamId,
     lastLiveAt: row.lastLiveAt,
+    lastSeenLiveAt: row.lastSeenLiveAt,
     lastCheckedAt: row.lastCheckedAt,
+    options: parseOptions(row.options),
+    deliveredCount: row.deliveredCount,
     enabled: row.enabled,
     createdBy: row.createdBy,
     createdAt: row.createdAt,
@@ -97,6 +111,7 @@ export async function createTwitchWatcher(input: {
   lastStreamId: string | null;
   lastLiveAt: Date | null;
   createdBy: string;
+  options?: SocialWatcherOptions;
 }): Promise<SocialTwitchWatcherRow> {
   const now = new Date();
   const row = await getDb()
@@ -115,6 +130,7 @@ export async function createTwitchWatcher(input: {
       lastStreamId: input.lastStreamId,
       lastLiveAt: input.lastLiveAt,
       lastCheckedAt: null,
+      options: JSON.stringify(input.options ?? parseSocialWatcherOptions({})),
       enabled: true,
       createdBy: input.createdBy,
       createdAt: now,
@@ -133,6 +149,7 @@ export async function updateTwitchWatcher(
     messageContent?: string;
     mentionRoleIds?: string[];
     embedConfig?: SocialEmbedConfig;
+    options?: SocialWatcherOptions;
     enabled?: boolean;
   },
 ): Promise<SocialTwitchWatcherRow | null> {
@@ -143,6 +160,7 @@ export async function updateTwitchWatcher(
       ...(patch.messageContent !== undefined ? { messageContent: patch.messageContent } : {}),
       ...(patch.mentionRoleIds !== undefined ? { mentionRoleIds: JSON.stringify(patch.mentionRoleIds) } : {}),
       ...(patch.embedConfig !== undefined ? { embedConfig: JSON.stringify(patch.embedConfig) } : {}),
+      ...(patch.options !== undefined ? { options: JSON.stringify(patch.options) } : {}),
       ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
       updatedAt: new Date(),
     })
@@ -174,4 +192,44 @@ export async function deleteTwitchWatcher(guildId: string, id: number): Promise<
     .returning()
     .get();
   return row ? mapRow(row) : null;
+}
+
+/** Store options changed by the bot itself (e.g. the milestone it last announced). */
+export async function setTwitchWatcherOptions(id: number, options: SocialWatcherOptions): Promise<void> {
+  await getDb().update(socialTwitchWatchers).set({ options: JSON.stringify(options) }).where(eq(socialTwitchWatchers.id, id)).run();
+}
+
+/** Keep stored names/avatars fresh (channels rename and change avatars). */
+export async function refreshTwitchWatcherProfile(
+  sourceId: string,
+  profile: { name: string; avatarUrl: string | null; handle?: string | null },
+): Promise<void> {
+  await getDb()
+    .update(socialTwitchWatchers)
+    .set({ sourceUserDisplayName: profile.name, sourceUserAvatarUrl: profile.avatarUrl })
+    .where(eq(socialTwitchWatchers.sourceUserId, sourceId))
+    .run();
+}
+
+/** Record that a poll saw them live (stream-end detection waits a few minutes past this). */
+export async function markTwitchSeenLive(id: number, at: Date = new Date()): Promise<void> {
+  await getDb().update(socialTwitchWatchers).set({ lastSeenLiveAt: at, lastCheckedAt: at }).where(eq(socialTwitchWatchers.id, id)).run();
+}
+
+/** The session ended and has been handled: clear the live marker. */
+export async function clearTwitchSeenLive(id: number): Promise<void> {
+  await getDb().update(socialTwitchWatchers).set({ lastSeenLiveAt: null }).where(eq(socialTwitchWatchers.id, id)).run();
+}
+
+/** Re-seed the checkpoint (used when a paused creator is resumed). */
+export async function reseedTwitchCheckpoint(id: number, stream: { streamId: string; startedAt: Date } | null): Promise<void> {
+  await getDb()
+    .update(socialTwitchWatchers)
+    .set(
+      stream
+        ? { lastStreamId: stream.streamId, lastLiveAt: stream.startedAt, lastSeenLiveAt: null }
+        : { lastSeenLiveAt: null },
+    )
+    .where(eq(socialTwitchWatchers.id, id))
+    .run();
 }

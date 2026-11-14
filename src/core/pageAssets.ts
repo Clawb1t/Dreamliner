@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 /**
- * Images a server uploads for its public pages (Passport, Appeals backgrounds), stored under
+ * Images a server uploads for its public pages (Passport, Appeals, Team Control kiosk backgrounds), stored under
  * data/guild-assets/<guildId>/<folder>/<assetId>.png. Every upload is decoded and re-encoded
  * as a PNG, so whatever reaches disk (and later a browser) is a plain image, never the raw bytes
  * someone sent.
@@ -20,7 +20,7 @@ const MAX_DIMENSION = 2000;
 /** Oldest uploads beyond this are deleted, so repeated uploads can't fill the disk. */
 const MAX_ASSETS_PER_FOLDER = 10;
 
-export type PageAssetFolder = "passport" | "appeals" | "characters" | "store" | "radio";
+export type PageAssetFolder = "passport" | "appeals" | "characters" | "store" | "radio" | "team_kiosk";
 
 /** Bot-wide images (the Store catalog) are kept under this key instead of a server id. */
 export const GLOBAL_ASSET_KEY = "global";

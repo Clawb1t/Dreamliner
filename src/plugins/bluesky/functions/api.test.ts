@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractPostUrls, mapPostView, normalizeActorInput, parseAtUri, parsePostUrl } from "./api.js";
+import { extractPostUrls, mapPostView, normalizeActorInput, parseAtUri, parseCollectionUrl, parsePostUrl } from "./api.js";
 
 test("parsePostUrl reads handle and DID post links", () => {
   assert.deepEqual(parsePostUrl("https://bsky.app/profile/alice.bsky.social/post/3kabc123"), {
@@ -67,7 +67,7 @@ test("mapPostView classifies replies/quotes and pulls media out of recordWithMed
   });
   assert.equal(quote.kind, "quote");
   assert.equal(quote.url, "https://bsky.app/profile/a.test/post/1");
-  assert.deepEqual(quote.images, [{ url: "https://cdn/1.jpg", alt: "one" }]);
+  assert.deepEqual(quote.images, [{ url: "https://cdn/1.jpg", alt: "one", thumbUrl: "https://cdn/1.jpg" }]);
   assert.equal(quote.quoted?.text, "original");
   assert.equal(quote.quoted?.url, "https://bsky.app/profile/b.test/post/9");
   assert.equal(quote.quoted?.author.displayName, "b.test", "falls back to handle");
@@ -80,4 +80,50 @@ test("mapPostView classifies replies/quotes and pulls media out of recordWithMed
   });
   assert.equal(reply.kind, "reply");
   assert.equal(reply.replyParentUri, "at://did:plc:c/app.bsky.feed.post/5");
+});
+
+test("parseCollectionUrl reads list and starter pack links", () => {
+  assert.deepEqual(parseCollectionUrl("https://bsky.app/profile/alice.bsky.social/lists/3kabcxyz"), {
+    kind: "list",
+    actor: "alice.bsky.social",
+    rkey: "3kabcxyz",
+  });
+  assert.deepEqual(parseCollectionUrl("bsky.app/profile/did:plc:abc123/lists/3kl?ref=x"), {
+    kind: "list",
+    actor: "did:plc:abc123",
+    rkey: "3kl",
+  });
+  assert.deepEqual(parseCollectionUrl("https://bsky.app/starter-pack/bob.com/3jpack"), {
+    kind: "starter_pack",
+    actor: "bob.com",
+    rkey: "3jpack",
+  });
+  assert.deepEqual(parseCollectionUrl("https://www.bsky.app/start/did:plc:xyz/3jpack/"), {
+    kind: "starter_pack",
+    actor: "did:plc:xyz",
+    rkey: "3jpack",
+  });
+  assert.deepEqual(parseCollectionUrl("https://go.bsky.app/AbC123"), { kind: "short_link", code: "AbC123" });
+  assert.deepEqual(parseCollectionUrl("at://did:plc:abc/app.bsky.graph.list/3kl"), {
+    kind: "list",
+    actor: "did:plc:abc",
+    rkey: "3kl",
+  });
+  assert.deepEqual(parseCollectionUrl("at://did:plc:abc/app.bsky.graph.starterpack/3sp"), {
+    kind: "starter_pack",
+    actor: "did:plc:abc",
+    rkey: "3sp",
+  });
+});
+
+test("parseCollectionUrl rejects profiles, posts and other sites", () => {
+  assert.equal(parseCollectionUrl(""), null);
+  assert.equal(parseCollectionUrl("https://bsky.app/profile/alice.bsky.social"), null);
+  assert.equal(parseCollectionUrl("https://bsky.app/profile/alice.bsky.social/post/3k"), null);
+  assert.equal(parseCollectionUrl("https://bsky.app/profile/alice.bsky.social/lists"), null);
+  assert.equal(parseCollectionUrl("https://example.com/profile/a/lists/b"), null);
+  assert.equal(parseCollectionUrl("https://bsky.app.evil.com/starter-pack/a/b"), null);
+  assert.equal(parseCollectionUrl("https://go.bsky.app/a/b"), null);
+  assert.equal(parseCollectionUrl("at://did:plc:abc/app.bsky.feed.post/3k"), null);
+  assert.equal(parseCollectionUrl("not a link"), null);
 });

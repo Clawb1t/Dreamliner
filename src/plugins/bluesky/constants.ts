@@ -13,6 +13,8 @@ export const BLUESKY_EMOJIS = {
   people: "<:icons_people:1544417371215626262>",
   reply: "<:icons_reply:1544417399879770265>",
   quote: "<:icons_quotes:1544417577453748224>",
+  trophy: "<:icons_trophy:1544418249721126922>",
+  up: "<:icons_up_arrow:1544418259363700856>",
 } as const;
 
 /** Reactions that like a post: blue heart and light blue heart. */

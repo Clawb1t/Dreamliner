@@ -12,7 +12,8 @@ import { createPruner } from "../../../core/mapPrune.js";
 const log = getLogger("bluesky");
 
 export type ActionFailure = "not_connected" | "expired" | "not_configured" | "unavailable" | "rate_limited" | "failed";
-export type ActionResult = { ok: true; state: "on" | "off"; handle: string } | { ok: false; reason: ActionFailure };
+/** `changed` is false when nothing was created or deleted (already liked, nothing to undo). */
+export type ActionResult = { ok: true; state: "on" | "off"; handle: string; changed: boolean } | { ok: false; reason: ActionFailure };
 
 const WINDOW_MS = 60_000;
 const MAX_ACTIONS_PER_WINDOW = 20;
@@ -95,7 +96,7 @@ async function run(
   const existing = await getAction(discordUserId, subject.uri, kind);
   const turnOff = mode === "off" || (mode === "toggle" && existing !== null);
   // Nothing Dreamliner made to undo (e.g. removing a reaction that never liked anything).
-  if (turnOff && !existing) return { ok: true, state: "off", handle: "" };
+  if (turnOff && !existing) return { ok: true, state: "off", handle: "", changed: false };
 
   if (throttled(discordUserId)) return { ok: false, reason: "rate_limited" };
   const auth = await getSession(discordUserId);
@@ -108,13 +109,13 @@ async function run(
         await deleteRecord(session, existing);
         await deleteAction(discordUserId, subject.uri, kind);
       }
-      return { ok: true, state: "off", handle: account.handle };
+      return { ok: true, state: "off", handle: account.handle, changed: true };
     }
-    if (existing) return { ok: true, state: "on", handle: account.handle };
+    if (existing) return { ok: true, state: "on", handle: account.handle, changed: false };
 
     const recordUri = await createRecord(session, kind, subject);
     await saveAction(discordUserId, subject.uri, kind, recordUri);
-    return { ok: true, state: "on", handle: account.handle };
+    return { ok: true, state: "on", handle: account.handle, changed: true };
   } catch (error) {
     log.warn(`[bluesky] ${kind} ${turnOff ? "undo" : "create"} failed for ${account.did}:`, error);
     return { ok: false, reason: "failed" };

@@ -13,6 +13,7 @@ import {
   type GuildMember,
   type MessageActionRowComponentBuilder,
 } from "discord.js";
+import { getTeamKioskUrl, siteLinkRow } from "../../core/docsUrl.js";
 import { embedField, type ResultContainer } from "../../core/embeds.js";
 import { hasPermission } from "../../core/permissionRoles.js";
 import { containerReply, deferReplyOptions, resultEdit, resultReply, slashResultOptions } from "../../core/responses.js";
@@ -109,6 +110,7 @@ const data = new SlashCommandBuilder()
       )
       .addSubcommand((s) => s.setName("break").setDescription("Start or end a break"))
       .addSubcommand((s) => s.setName("end").setDescription("Clock out"))
+      .addSubcommand((s) => s.setName("kiosk").setDescription("Open the web clock-in kiosk"))
       .addSubcommand((s) => s.setName("status").setDescription("Who's on shift, or one member's shift").addUserOption(userOpt(false)))
       .addSubcommand((s) =>
         s
@@ -309,6 +311,22 @@ export const teamControlCommands: SlashCommandDefinition[] = [
         const auth = await authorize(ctx, "can_shift", { teamPasses: true });
         if (!auth) return;
         const { config } = auth.runtime;
+        if (sub === "kiosk") {
+          if (!config.kiosk.enabled || !config.shifts.enabled) {
+            await reply(ctx, t("team_control.kioskOff", "This server hasn't turned on the web clock-in kiosk. A manager can turn it on in Team Control on the dashboard."), "warning");
+            return;
+          }
+          await interaction.reply(
+            resultReply(
+              t("team_control.title", "Team"),
+              t("team_control.kioskLink", "{emoji} Sign in with Discord on the kiosk to clock in, take breaks and clock out from any browser.", { emoji: APP_EMOJI.clock }),
+              true,
+              slashResultOptions(ctx, { tone: "neutral" }),
+              [siteLinkRow({ label: t("team_control.kioskOpen", "Open kiosk"), url: getTeamKioskUrl(interaction.guildId!) })],
+            ),
+          );
+          return;
+        }
         if (sub === "start") {
           const types = allowedShiftTypes(config, auth.member);
           const typeId = interaction.options.getString("type") ?? (types.length === 1 ? types[0]!.id : null);

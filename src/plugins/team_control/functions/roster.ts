@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type Client, type Guild } from "discord.js";
 import type { TeamControlConfig } from "../../../config/schemas/teamControl.js";
+import { getTeamKioskUrl } from "../../../core/docsUrl.js";
 import { baseEmbed } from "../../../core/embeds.js";
 import { fetchGuildTextChannel } from "../../../core/guildChannel.js";
 import { getLogger } from "../../../core/logger.js";
@@ -72,18 +73,21 @@ export function buildRosterPayload(guild: Guild, config: TeamControlConfig) {
     .setFooter({
       text: `${onDuty} on duty · ${onBreak} on break · ${team.length} staff · ${STATUS_DOTS.on_duty} on duty ${STATUS_DOTS.on_break} break ${STATUS_DOTS.loa} LOA ${STATUS_DOTS.ra} RA ${STATUS_DOTS.suspended} suspended`,
     });
-  const rows =
-    config.roster.show_buttons && config.shifts.enabled
-      ? [
-          new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}in`).setLabel("Clock in").setEmoji(APP_EMOJI.join).setStyle(ButtonStyle.Success),
-            ...(config.shifts.allow_breaks
-              ? [new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}break`).setLabel("Break").setEmoji(APP_EMOJI.idle).setStyle(ButtonStyle.Secondary)]
-              : []),
-            new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}out`).setLabel("Clock out").setEmoji(APP_EMOJI.leave).setStyle(ButtonStyle.Danger),
-          ),
-        ]
-      : [];
+  const buttons: ButtonBuilder[] = [];
+  if (config.roster.show_buttons && config.shifts.enabled) {
+    buttons.push(
+      new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}in`).setLabel("Clock in").setEmoji(APP_EMOJI.join).setStyle(ButtonStyle.Success),
+      ...(config.shifts.allow_breaks
+        ? [new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}break`).setLabel("Break").setEmoji(APP_EMOJI.idle).setStyle(ButtonStyle.Secondary)]
+        : []),
+      new ButtonBuilder().setCustomId(`${ROSTER_BUTTON}out`).setLabel("Clock out").setEmoji(APP_EMOJI.leave).setStyle(ButtonStyle.Danger),
+    );
+  }
+  // The web kiosk opens in the browser, so it shows even when the shift buttons are hidden.
+  if (config.kiosk.enabled && config.shifts.enabled) {
+    buttons.push(new ButtonBuilder().setLabel("Web kiosk").setEmoji(APP_EMOJI.clock).setStyle(ButtonStyle.Link).setURL(getTeamKioskUrl(guild.id)));
+  }
+  const rows = buttons.length ? [new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)] : [];
   const payload = containerReply(card, false, rows);
   const fingerprint = createHash("sha1").update(JSON.stringify(payload.components)).digest("hex");
   return { payload, fingerprint };

@@ -10839,7 +10839,7 @@
           "properties": {
             "enabled": {
               "type": "boolean",
-              "default": false,
+              "default": true,
               "description": "Turn this plugin on or off for the server.",
               "title": "Enabled"
             },
@@ -17086,6 +17086,204 @@
                   "default": {},
                   "title": "Roster"
                 },
+                "kiosk": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "A web page where staff sign in with Discord to clock in, take breaks and clock out.",
+                      "title": "Enabled"
+                    },
+                    "title": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "default": "Staff clock-in",
+                      "description": "Headline on the kiosk. Supports {guild}.",
+                      "title": "Title"
+                    },
+                    "welcome": {
+                      "type": "string",
+                      "maxLength": 300,
+                      "default": "Clock in to start your shift. Your time is tracked until you clock out.",
+                      "description": "Short text under the headline. Supports {guild} and {user}.",
+                      "title": "Welcome"
+                    },
+                    "clock_in_label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32,
+                      "default": "Clock in",
+                      "description": "Label on the main button when off shift.",
+                      "title": "Clock In Label"
+                    },
+                    "clock_out_label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32,
+                      "default": "Clock out",
+                      "description": "Label on the button that ends a shift.",
+                      "title": "Clock Out Label"
+                    },
+                    "inherit_accent": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Use the server's public accent colour on the kiosk.",
+                      "title": "Inherit Accent"
+                    },
+                    "accent_color": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215,
+                      "default": 5661429,
+                      "description": "Kiosk accent when inherit_accent is off.",
+                      "title": "Accent Color",
+                      "x-dreamliner": {
+                        "kind": "color",
+                        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                      }
+                    },
+                    "background": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "color",
+                        "url",
+                        "guild_banner",
+                        "asset"
+                      ],
+                      "default": "none",
+                      "description": "What sits behind the kiosk card.",
+                      "title": "Background"
+                    },
+                    "background_color": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215,
+                      "default": 16053751,
+                      "description": "Solid background when background is color.",
+                      "title": "Background Color",
+                      "x-dreamliner": {
+                        "kind": "color",
+                        "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                      }
+                    },
+                    "background_url": {
+                      "type": "string",
+                      "maxLength": 512,
+                      "default": "",
+                      "description": "Background image link when background is url.",
+                      "title": "Background Url"
+                    },
+                    "background_asset_id": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "default": "",
+                      "description": "Uploaded background image when background is asset.",
+                      "title": "Background Asset Id",
+                      "x-dreamliner": {
+                        "kind": "snowflake",
+                        "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                      }
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "split",
+                        "centered"
+                      ],
+                      "default": "split",
+                      "description": "split = clock beside the summary on wide screens; centered = one column.",
+                      "title": "Layout"
+                    },
+                    "clock_format": {
+                      "type": "string",
+                      "enum": [
+                        "auto",
+                        "12h",
+                        "24h"
+                      ],
+                      "default": "auto",
+                      "description": "Wall clock format. auto follows each viewer's device.",
+                      "title": "Clock Format"
+                    },
+                    "show_server_icon": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the server icon.",
+                      "title": "Show Server Icon"
+                    },
+                    "show_server_name": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the server name.",
+                      "title": "Show Server Name"
+                    },
+                    "show_wall_clock": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the current time and date.",
+                      "title": "Show Wall Clock"
+                    },
+                    "show_rank": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the signed-in member's rank.",
+                      "title": "Show Rank"
+                    },
+                    "show_on_duty": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show how many staff are on shift right now.",
+                      "title": "Show On Duty"
+                    },
+                    "show_today": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show time worked today.",
+                      "title": "Show Today"
+                    },
+                    "show_period": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show time worked this activity period.",
+                      "title": "Show Period"
+                    },
+                    "show_quota": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show quota progress (when activity tracking is on).",
+                      "title": "Show Quota"
+                    },
+                    "show_recent": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Show the member's recent shifts.",
+                      "title": "Show Recent"
+                    },
+                    "allow_breaks": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Allow breaks from the kiosk (breaks must also be on in shift settings).",
+                      "title": "Allow Breaks"
+                    },
+                    "require_type": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Make staff pick a shift type before clocking in (when shift types exist).",
+                      "title": "Require Type"
+                    },
+                    "confirm_clock_out": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Ask before clocking out.",
+                      "title": "Confirm Clock Out"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Kiosk"
+                },
                 "feedback": {
                   "type": "object",
                   "properties": {
@@ -17377,6 +17575,33 @@
                   "channel_id": null,
                   "show_buttons": true,
                   "title": "Team roster"
+                },
+                "kiosk": {
+                  "enabled": false,
+                  "title": "Staff clock-in",
+                  "welcome": "Clock in to start your shift. Your time is tracked until you clock out.",
+                  "clock_in_label": "Clock in",
+                  "clock_out_label": "Clock out",
+                  "inherit_accent": true,
+                  "accent_color": 5661429,
+                  "background": "none",
+                  "background_color": 16053751,
+                  "background_url": "",
+                  "background_asset_id": "",
+                  "layout": "split",
+                  "clock_format": "auto",
+                  "show_server_icon": true,
+                  "show_server_name": true,
+                  "show_wall_clock": true,
+                  "show_rank": true,
+                  "show_on_duty": true,
+                  "show_today": true,
+                  "show_period": true,
+                  "show_quota": true,
+                  "show_recent": true,
+                  "allow_breaks": true,
+                  "require_type": false,
+                  "confirm_clock_out": true
                 },
                 "feedback": {
                   "enabled": true,

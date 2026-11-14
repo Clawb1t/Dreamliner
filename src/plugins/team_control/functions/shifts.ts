@@ -1,12 +1,14 @@
 import type { Client, Guild, GuildMember } from "discord.js";
 import { configManager } from "../../../config/manager.js";
+import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { TeamControlConfig } from "../../../config/schemas/teamControl.js";
 import { embedField } from "../../../core/embeds.js";
 import { getLogger } from "../../../core/logger.js";
+import { hasPermission } from "../../../core/permissionRoles.js";
 import { safeAddRole, safeRemoveRole } from "../../../core/roles.js";
-import { channelOr, formatMinutes, unix } from "./config.js";
+import { channelOr, formatMinutes, PLUGIN, unix } from "./config.js";
 import { dmTeamCard, postTeamMessage, teamCard } from "./messages.js";
-import { memberRank, usableStatusRole } from "./ranks.js";
+import { isOnTeam, memberRank, usableStatusRole } from "./ranks.js";
 import { scheduleRosterUpdate } from "./roster.js";
 import { closeBreak, isOverMax, isTooShort, shiftWorkedSeconds } from "./shiftMath.js";
 import {
@@ -24,6 +26,20 @@ const log = getLogger("team_control");
 const DUTY_REASON = "Dreamliner Team Control: shift";
 
 export type ShiftResult = { ok: true; shift: ShiftRow; voided?: boolean } | { ok: false; error: string };
+
+/** Where a member clocked themselves in or out from, for the shift log. Discord is the default. */
+export type ShiftSource = "discord" | "kiosk";
+
+const viaText = (via: ShiftSource | undefined) => (via === "kiosk" ? " from the web kiosk" : "");
+
+/**
+ * Whether a member may clock themselves in and out: anyone holding a rank, or anyone granted
+ * `can_shift` (admins pass through the usual bypass). Used by /team shift, the roster board's
+ * buttons and the web kiosk, so all three let the same people shift.
+ */
+export async function maySelfShift(member: GuildMember, guildConfig: GuildConfig, config: TeamControlConfig): Promise<boolean> {
+  return isOnTeam(member, config.ranks) || (await hasPermission(member.guild.id, PLUGIN, "can_shift", member, guildConfig));
+}
 
 export function shiftTypeName(config: TeamControlConfig, typeId: string | null): string | null {
   if (!typeId) return null;
@@ -69,7 +85,12 @@ async function logShift(client: Client, guild: Guild, config: TeamControlConfig,
 }
 
 /** Clocks a member in. The caller has already checked they may shift. */
-export async function startShift(member: GuildMember, config: TeamControlConfig, typeId: string | null): Promise<ShiftResult> {
+export async function startShift(
+  member: GuildMember,
+  config: TeamControlConfig,
+  typeId: string | null,
+  options: { via?: ShiftSource } = {},
+): Promise<ShiftResult> {
   const guild = member.guild;
   if (!config.shifts.enabled) return { ok: false, error: "Shifts are turned off on this server." };
   if (getActiveShift(guild.id, member.id)) return { ok: false, error: "You're already on shift. Use `/team shift end` to clock out." };
@@ -104,7 +125,7 @@ export async function startShift(member: GuildMember, config: TeamControlConfig,
     nickApplied: extras.nickApplied,
   });
   const typeName = shiftTypeName(config, type);
-  await logShift(member.client, guild, config, "Shift started", `<@${member.id}> clocked in${typeName ? ` for **${typeName}**` : ""}.`, [], "success");
+  await logShift(member.client, guild, config, "Shift started", `<@${member.id}> clocked in${typeName ? ` for **${typeName}**` : ""}${viaText(options.via)}.`, [], "success");
   scheduleRosterUpdate(guild.id);
   return { ok: true, shift };
 }
@@ -131,7 +152,7 @@ export async function endShiftRecord(
   config: TeamControlConfig,
   shift: ShiftRow,
   endedBy: "self" | "admin" | "auto",
-  options: { member?: GuildMember | null; note?: string | null; editorId?: string | null; at?: number } = {},
+  options: { member?: GuildMember | null; note?: string | null; editorId?: string | null; at?: number; via?: ShiftSource } = {},
 ): Promise<{ shift: ShiftRow; voided: boolean }> {
   const at = options.at ?? Date.now();
   const breakSeconds = closeBreak(shift, at);
@@ -158,7 +179,7 @@ export async function endShiftRecord(
     voided ? "Shift voided" : "Shift ended",
     voided
       ? `<@${shift.userId}>'s shift was ended${by} and voided: it was shorter than ${config.shifts.min_minutes} minutes.`
-      : `<@${shift.userId}> clocked out${by}.`,
+      : `<@${shift.userId}> clocked out${by}${endedBy === "self" ? viaText(options.via) : ""}.`,
     voided
       ? []
       : [
@@ -172,10 +193,10 @@ export async function endShiftRecord(
   return { shift: updated, voided };
 }
 
-export async function endOwnShift(member: GuildMember, config: TeamControlConfig): Promise<ShiftResult> {
+export async function endOwnShift(member: GuildMember, config: TeamControlConfig, options: { via?: ShiftSource } = {}): Promise<ShiftResult> {
   const shift = getActiveShift(member.guild.id, member.id);
   if (!shift) return { ok: false, error: "You aren't on shift." };
-  const result = await endShiftRecord(member.guild, config, shift, "self", { member });
+  const result = await endShiftRecord(member.guild, config, shift, "self", { member, via: options.via });
   return { ok: true, shift: result.shift, voided: result.voided };
 }
 

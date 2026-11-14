@@ -1,8 +1,12 @@
 # Member identity plugin
 
-Saves a member's server identity when they leave (and optionally while they are still in the server) so chosen parts can be restored when they rejoin. This plugin has no commands — configure it on the dashboard or in guild YAML.
+Saves a member's server identity when they leave (and optionally while they are still in the server) so chosen parts can be restored when they rejoin. Configure it on the dashboard or in guild YAML.
 
 Dreamliner stores nickname, role IDs, and timeout expiry. Guild avatars and banners belong to the user account and cannot be restored.
+
+## Identity cards
+
+`/identity [user]` replies (only to you) with a link to that member's identity card on the website, `/identity/<serverId>/<userId>`. The card shows what is saved (nickname, roles, timeout, last saved time) and, for each part, whether it would come back on rejoin under the server's current settings, with the reason when it would not (deleted role, role above Dreamliner, managed role, restore turned off, missing permission). Anyone currently in the server can open anyone's card for that server; people outside the server see nothing.
 
 ## Configuration
 

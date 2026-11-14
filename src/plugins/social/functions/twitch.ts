@@ -157,3 +157,114 @@ export async function fetchLiveStream(userId: string): Promise<LiveStream | null
     startedAt: stream.started_at ? new Date(stream.started_at) : new Date(),
   };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Batched lookups (Helix takes up to 100 ids per call; all of these work with the app token)
+// ---------------------------------------------------------------------------------------------
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+type TwitchStreamWithUser = TwitchStream & { user_id: string };
+
+function toLiveStream(stream: TwitchStream): LiveStream {
+  return {
+    streamId: stream.id,
+    title: stream.title ?? "Live now",
+    url: `https://www.twitch.tv/${stream.user_login}`,
+    thumbnailUrl: (stream.thumbnail_url ?? "").replace("{width}", "1280").replace("{height}", "720"),
+    gameName: stream.game_name ?? "",
+    viewerCount: stream.viewer_count ?? 0,
+    startedAt: stream.started_at ? new Date(stream.started_at) : new Date(),
+  };
+}
+
+/** Live streams for many users at once, keyed by user id. Offline users are simply absent. */
+export async function fetchLiveStreams(userIds: string[]): Promise<Map<string, LiveStream>> {
+  const out = new Map<string, LiveStream>();
+  const unique = [...new Set(userIds.filter(Boolean))];
+  for (const ids of chunk(unique, 100)) {
+    const data = (await helixGet("/streams", { user_id: ids, first: "100" })) as { data?: TwitchStreamWithUser[] };
+    for (const stream of data.data ?? []) out.set(stream.user_id, toLiveStream(stream));
+  }
+  return out;
+}
+
+export type TwitchUserInfo = {
+  userId: string;
+  login: string;
+  displayName: string;
+  avatarUrl: string | null;
+  /** The image Twitch shows while they're offline; the closest thing to a channel banner. */
+  offlineImageUrl: string | null;
+  description: string;
+  url: string;
+};
+
+type TwitchUserFull = TwitchUser & { offline_image_url?: string; description?: string };
+
+/** Profiles for many users at once, keyed by user id. */
+export async function fetchTwitchUsers(userIds: string[]): Promise<Map<string, TwitchUserInfo>> {
+  const out = new Map<string, TwitchUserInfo>();
+  const unique = [...new Set(userIds.filter(Boolean))];
+  for (const ids of chunk(unique, 100)) {
+    const data = (await helixGet("/users", { id: ids })) as { data?: TwitchUserFull[] };
+    for (const user of data.data ?? []) {
+      out.set(user.id, {
+        userId: user.id,
+        login: user.login,
+        displayName: user.display_name,
+        avatarUrl: user.profile_image_url || null,
+        offlineImageUrl: user.offline_image_url || null,
+        description: (user.description ?? "").slice(0, 300),
+        url: `https://www.twitch.tv/${user.login}`,
+      });
+    }
+  }
+  return out;
+}
+
+export type TwitchSearchChannel = {
+  userId: string;
+  login: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isLive: boolean;
+  gameName: string;
+};
+
+type TwitchSearchResult = {
+  id: string;
+  broadcaster_login: string;
+  display_name: string;
+  thumbnail_url?: string;
+  is_live?: boolean;
+  game_name?: string;
+};
+
+/** Channel name search (Helix search/channels), for the add-a-creator typeahead. */
+export async function searchTwitchChannels(query: string, limit = 8): Promise<TwitchSearchChannel[]> {
+  const data = (await helixGet("/search/channels", { query, first: String(Math.min(20, limit)) })) as {
+    data?: TwitchSearchResult[];
+  };
+  return (data.data ?? []).slice(0, limit).map((c) => ({
+    userId: c.id,
+    login: c.broadcaster_login,
+    displayName: c.display_name,
+    avatarUrl: c.thumbnail_url || null,
+    isLive: Boolean(c.is_live),
+    gameName: c.game_name ?? "",
+  }));
+}
+
+type TwitchVideo = { id: string; stream_id?: string | null; url?: string; duration?: string };
+
+/** The VOD (past broadcast) of a stream, if the channel saves them and it's published yet. */
+export async function fetchStreamVod(userId: string, streamId: string): Promise<string | null> {
+  const data = (await helixGet("/videos", { user_id: userId, type: "archive", first: "5" })) as { data?: TwitchVideo[] };
+  const match = (data.data ?? []).find((video) => video.stream_id === streamId);
+  return match ? (match.url ?? `https://www.twitch.tv/videos/${match.id}`) : null;
+}

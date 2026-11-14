@@ -574,7 +574,8 @@ export const zNameHistoryPluginSection = zPluginSection(zNameHistoryConfig.shape
 export const zUsernameSaverPluginSection = zPluginSection(zUsernameSaverConfig.shape);
 export const zMemberIdentityPluginSection = zPluginSection(zMemberIdentityConfig.shape);
 export const zLocateUserPluginSection = zPluginSection(zLocateUserConfig.shape);
-export const zStatsPluginSection = zPluginSection(zStatsConfig.shape);
+// On by default: stats are useful from day one and cost nothing to leave running.
+export const zStatsPluginSection = zPluginSection(zStatsConfig.shape, true);
 export type StatsConfig = z.infer<typeof zStatsConfig>;
 export const zDreamCommandsPluginSection = zPluginSection(zDreamCommandsConfig.shape);
 export const zBotCustomisationPluginSection = zPluginSection(zBotCustomisationConfig.shape);
