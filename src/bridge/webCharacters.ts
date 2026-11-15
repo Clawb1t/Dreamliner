@@ -370,7 +370,10 @@ export async function createWebCharacter(guild: Guild, userId: string, body: Rec
   try {
     verdict = await reviewCharacter(definition);
   } catch (err) {
-    if (err instanceof ReviewUnavailableError) return fail(400, "The character review couldn't run right now. Please try again in a minute.");
+    if (err instanceof ReviewUnavailableError) {
+      log.warn(`Character review unavailable: ${err.message}`);
+      return fail(400, "The character review couldn't run right now. Please try again in a minute.");
+    }
     throw err;
   }
   if (!verdict.approved && verdict.category === "name" && verdict.field === "name") {
@@ -439,7 +442,10 @@ export async function updateWebCharacter(guild: Guild, id: number, body: Record<
     try {
       verdict = await reviewCharacter(next);
     } catch (err) {
-      if (err instanceof ReviewUnavailableError) return fail(400, "The character review couldn't run right now. Please try again in a minute.");
+      if (err instanceof ReviewUnavailableError) {
+      log.warn(`Character review unavailable: ${err.message}`);
+      return fail(400, "The character review couldn't run right now. Please try again in a minute.");
+    }
       throw err;
     }
     if (!verdict.approved && verdict.category === "name" && verdict.field === "name") {
