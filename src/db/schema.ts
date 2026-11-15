@@ -267,8 +267,14 @@ export const starboardPosts = sqliteTable(
     starboardMessageId: text("starboard_message_id").notNull(),
     starCount: integer("star_count").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    /** Source message author, for Activity Rewards' starboard-post milestones. Null on posts made
+     *  before this column existed, filled in the next time the post's star count changes. */
+    authorId: text("author_id"),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.boardName, table.sourceMessageId] })],
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.boardName, table.sourceMessageId] }),
+    index("starboard_posts_guild_author").on(table.guildId, table.authorId),
+  ],
 );
 
 /** Starboard economy bonuses already paid. Kept when the starboard post is removed, so dropping
@@ -1668,6 +1674,24 @@ export const raidMeshInvites = sqliteTable("raid_mesh_invites", {
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Short-TTL watchlist: accounts named in a Raid Mesh alert this guild received from a linked
+ *  server, flagged if they join here before `expires_at`. Pruned hourly and on read. */
+export const raidMeshWatchlist = sqliteTable(
+  "raid_mesh_watchlist",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    sourceGuildId: text("source_guild_id").notNull(),
+    sourceGuildName: text("source_guild_name").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    index("raid_mesh_watchlist_expires_idx").on(table.expiresAt),
+  ],
+);
+
 // --- Impersonation Detection ------------------------------------------------------
 // Lives in the Automod hub. Tracks identity changes (username/display name/nickname/
 // avatar) per member and flags anyone whose identity closely matches a protected role
@@ -1999,6 +2023,8 @@ export const giveaways = sqliteTable(
     bypassRoleIds: text("bypass_role_ids").notNull().default("[]"),
     minAccountAgeDays: integer("min_account_age_days", { mode: "number" }).notNull().default(0),
     minJoinAgeDays: integer("min_join_age_days", { mode: "number" }).notNull().default(0),
+    /** Verified members only: entrants must have passed Passport (ignored while Passport is off). */
+    requirePassport: integer("require_passport", { mode: "boolean" }).notNull().default(false),
     /** JSON: [{roleId, weight}] */
     bonusRoleWeights: text("bonus_role_weights").notNull().default("[]"),
     boosterBonusWeight: real("booster_bonus_weight").notNull().default(0),

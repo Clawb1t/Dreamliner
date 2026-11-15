@@ -43,6 +43,18 @@ export const RAID_SIGNAL_WEIGHT = 20;
 /** A Scam Protect trip (posting in the honeypot channel) is unambiguous. */
 export const SCAM_PROTECT_SIGNAL_WEIGHT = 9;
 
+/** Invite Tracker's burst guard (many joins through one invite). Reaches Medium alone but, unlike
+ * Automod's raid detector, not High: a big promo or a streamer link can look the same, so it needs
+ * a second source (or the correlation bonus) before High-tier actions run. */
+export const INVITE_RAID_SIGNAL_WEIGHT = 12;
+
+/** Passport linked a newly verified member to an account with an active ban here. A direct
+ * exact-IP link is near-certain; a subnet link is strong but shared networks exist. */
+export const BAN_EVASION_SIGNAL_WEIGHTS = { high: 12, medium: 8 } as const;
+
+/** Someone named in a linked server's Raid Mesh alert joined here within the watch window. */
+export const MESH_WATCHLIST_SIGNAL_WEIGHT = 7;
+
 /** Impersonation Detection's 0-100 match score scaled down to a 1-10 weight. */
 export function weightForImpersonationScore(score: number): number {
   return Math.min(10, Math.max(1, Math.round(score / 10)));

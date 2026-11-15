@@ -3,6 +3,7 @@ import { discordTimestamp } from "../../core/datetime.js";
 import { getGuildMessageCount } from "../utility/functions/messageCounts.js";
 import { parseDuration } from "../infraction/functions/duration.js";
 import { translatorFor, type Translator } from "../../i18n/index.js";
+import { checkPassportRequirement } from "../../core/verifiedOnly.js";
 
 export type EligibilityConfig = {
   min_messages?: number;
@@ -13,6 +14,8 @@ export type EligibilityConfig = {
   blocked_roles?: string[];
   ignored_channels?: string[];
   command_channels?: string[];
+  /** Verified members only: must have passed Passport (ignored while Passport is off). */
+  require_passport?: boolean;
 };
 
 export type EligibilityResult = { ok: true } | { ok: false; message: string };
@@ -71,6 +74,9 @@ export async function checkFeedbackEligibility(options: {
   if (config.allowed_roles?.length && !memberHasAnyRole(member, config.allowed_roles)) {
     return { ok: false, message: t("feedback.roleRequired", "You need a required role to use this feature.") };
   }
+
+  const passport = await checkPassportRequirement(member, config.require_passport, t);
+  if (!passport.ok) return passport;
 
   const accountAge = ageOk(t, member.user.createdTimestamp, config.min_account_age, "account age");
   if (!accountAge.ok) return accountAge;

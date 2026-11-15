@@ -10,6 +10,7 @@ import {
   postCaseLog,
 } from "../../infraction/functions/infractions.js";
 import { formatReason } from "../../infraction/functions/moderation.js";
+import { dmAutomatedCase } from "../../infraction/functions/automatedNotify.js";
 import type { ImpersonationMatch } from "./detect.js";
 
 /** Runs the guild's configured `auto_action` against a flagged member, best-effort — a
@@ -41,6 +42,10 @@ export async function applyAutoAction(options: {
     nameSimilarity: match.nameSimilarity,
     avatarDistance: match.avatarDistance,
   };
+  // Same DM a moderator's case sends (server's Infractions DM settings, plus the Appeal button when
+  // Appeals allows it). Kicks and bans DM first, while the bot still shares the server.
+  const notify = (record: { id: number; type: string; expiresAt?: Date | null }) =>
+    dmAutomatedCase({ guild, guildConfig, user, record, reason, actorLabel: "Impersonation Detection" });
 
   if (config.auto_action === "timeout") {
     const durationMs = clampTimeoutMs(config.auto_action_duration_ms && config.auto_action_duration_ms > 0 ? config.auto_action_duration_ms : 3_600_000);
@@ -58,11 +63,11 @@ export async function applyAutoAction(options: {
     await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user, {
       durationLabel: `${Math.round(durationMs / 60_000)}m`,
     }).catch(() => null);
+    await notify(record);
     return `timeout #${record.id}`;
   }
 
   if (config.auto_action === "kick") {
-    if (member?.kickable) await member.kick(reason).catch(() => null);
     const record = await createInfraction({
       guildId: guild.id,
       userId: user.id,
@@ -72,14 +77,13 @@ export async function applyAutoAction(options: {
       active: false,
       metadata,
     });
+    await notify(record);
+    if (member?.kickable) await member.kick(reason).catch(() => null);
     await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
     return `kick #${record.id}`;
   }
 
   if (config.auto_action === "ban") {
-    if (guild.members.me?.permissions.has(PermissionFlagsBits.BanMembers)) {
-      await guild.members.ban(user.id, { reason }).catch(() => null);
-    }
     const record = await createInfraction({
       guildId: guild.id,
       userId: user.id,
@@ -89,6 +93,10 @@ export async function applyAutoAction(options: {
       active: true,
       metadata,
     });
+    await notify(record);
+    if (guild.members.me?.permissions.has(PermissionFlagsBits.BanMembers)) {
+      await guild.members.ban(user.id, { reason }).catch(() => null);
+    }
     await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
     return `ban #${record.id}`;
   }

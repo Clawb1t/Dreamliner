@@ -43,9 +43,16 @@ function resolveMilestone(config: ActivityRewardsConfig, milestoneId: unknown): 
 
 /** Progress exactly at the milestone, so {messages}/{voice_time} read like the real moment. */
 function sampleProgress(milestone: ActivityMilestone): ActivityProgress {
-  return milestone.metric === "messages"
-    ? { messages: milestone.threshold, voiceSeconds: 0 }
-    : { messages: 0, voiceSeconds: milestone.threshold * 60 };
+  switch (milestone.metric) {
+    case "messages":
+      return { messages: milestone.threshold, voiceSeconds: 0 };
+    case "voice_minutes":
+      return { messages: 0, voiceSeconds: milestone.threshold * 60 };
+    case "starboard_posts":
+      return { messages: 0, voiceSeconds: 0, starboardPosts: milestone.threshold };
+    case "suggestions_implemented":
+      return { messages: 0, voiceSeconds: 0, suggestionsImplemented: milestone.threshold };
+  }
 }
 
 export async function previewActivityAnnouncement(

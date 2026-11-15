@@ -118,7 +118,7 @@ export async function buildWelcomePreview(
 export async function sendWelcomeTest(
   guild: Guild,
   member: GuildMember,
-  target: WelcomeTarget | "milestone",
+  target: WelcomeTarget | "milestone" | "welcome_back",
   draftConfig?: unknown,
   milestoneIndex?: number,
 ): Promise<{ ok: boolean; detail: string }> {
@@ -152,6 +152,12 @@ export async function sendWelcomeTest(
         : zWelcomeMemberMilestone.parse({ count: Math.max(2, guild.memberCount) });
     if (!milestone) return { ok: false, detail: "That milestone doesn't exist." };
     return sendMemberMilestone(member, milestones, milestone);
+  }
+
+  if (target === "welcome_back") {
+    // Sent as if the tester just rejoined, even when the toggle is still off in the draft.
+    const forced = { ...config, welcome_back: { ...config.welcome_back, enabled: true } };
+    return sendWelcomeEvent("join", member, forced, { returning: true });
   }
 
   return sendWelcomeEvent(target, member, config);

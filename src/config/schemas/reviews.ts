@@ -21,6 +21,10 @@ export const zReviewsConfig = z.strictObject({
     .string()
     .default("3d")
     .describe("Minimum time in this server before reviewing, e.g. `1d` or `1w`. Empty string disables."),
+  require_passport: z
+    .boolean()
+    .default(false)
+    .describe("Works with Passport. Verified members only: members must pass Passport before reviewing. Ignored while Passport is off."),
   cooldown: z
     .string()
     .default("7d")

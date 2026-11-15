@@ -26,6 +26,7 @@ export function metricsLine(member: Pick<TeamMemberSummary, "metrics">, countsMe
   if (countsMessages) parts.push(`${m.staffMessages} msgs`);
   parts.push(`${formatMinutes(m.voiceMinutes)} voice`);
   if (m.points !== null) parts.push(`**${m.points}** pts`);
+  if (m.overturnedCases) parts.push(`${m.overturnedCases} overturned on appeal`);
   return parts.join(" · ");
 }
 

@@ -8,8 +8,15 @@ import {
   zWelcomeRichMessage,
 } from "./welcome.js";
 
-export const ACTIVITY_METRICS = ["messages", "voice_minutes"] as const;
+/** Activity tracks counted by Activity Rewards itself (leaderboards, /rewards adjust). */
+export const ACTIVITY_TRACKED_METRICS = ["messages", "voice_minutes"] as const;
+/** Contribution milestones, counted from other plugins' records: starboard posts and
+ *  implemented suggestions. Roles only, like every milestone (never coins). */
+export const ACTIVITY_CONTRIBUTION_METRICS = ["starboard_posts", "suggestions_implemented"] as const;
+export const ACTIVITY_METRICS = [...ACTIVITY_TRACKED_METRICS, ...ACTIVITY_CONTRIBUTION_METRICS] as const;
 export type ActivityMetric = (typeof ACTIVITY_METRICS)[number];
+export type ActivityTrackedMetric = (typeof ACTIVITY_TRACKED_METRICS)[number];
+export type ActivityContributionMetric = (typeof ACTIVITY_CONTRIBUTION_METRICS)[number];
 
 /** Where the shared announcement goes: a fixed channel, the channel the member was active in
  *  (their message's channel, or their voice channel's built-in text chat), or their DMs. */
@@ -28,14 +35,16 @@ export const zActivityMilestone = z.strictObject({
   metric: z
     .enum(ACTIVITY_METRICS)
     .default("messages")
-    .describe("What members progress towards: messages sent, or minutes spent in voice."),
+    .describe(
+      "What members progress towards: messages sent, minutes spent in voice, their messages on the Starboard (works with Starboard), or their suggestions marked implemented (works with Suggestions).",
+    ),
   threshold: z
     .number()
     .int()
     .min(1)
     .max(100_000_000)
     .default(100)
-    .describe("Messages (or voice minutes) needed to reach this milestone."),
+    .describe("Messages, voice minutes, starboard posts or implemented suggestions needed to reach this milestone."),
   roles: z.array(z.string()).max(10).default([]).describe("Roles granted when a member reaches this milestone."),
   remove_roles: z
     .array(z.string())

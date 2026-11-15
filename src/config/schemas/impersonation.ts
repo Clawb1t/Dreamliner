@@ -18,6 +18,12 @@ export const zImpersonationConfig = z.strictObject({
     .describe(
       "Anyone whose name or avatar closely matches a current holder of one of these roles gets flagged — the easiest way to protect staff without hand-picking every mod.",
     ),
+  protect_team_ranks: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Works with Team Control: everyone holding a Team Control staff rank role is protected too, on top of Protected roles. Needs Team Control turned on.",
+    ),
   compare_scope: z
     .enum(IMPERSONATION_COMPARE_SCOPES)
     .default("protected_only")

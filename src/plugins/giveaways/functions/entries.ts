@@ -3,6 +3,8 @@ import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { isBoosting } from "../../../core/boosterStatus.js";
 import { loadEconomyConfig } from "../../economy/functions/config.js";
 import { formatServer } from "../../economy/functions/format.js";
+import { checkPassportRequirement } from "../../../core/verifiedOnly.js";
+import { translatorFor } from "../../../i18n/index.js";
 import * as store from "./store.js";
 import type { Giveaway } from "./store.js";
 
@@ -69,6 +71,14 @@ export async function enterGiveaway(guild: Guild, giveaway: Giveaway, userId: st
 
   const check = checkEntryRequirements(member, giveaway);
   if (!check.ok) return check;
+
+  // Bypass roles skip every requirement, Passport included.
+  const bypass = giveaway.bypassRoleIds.some((id) => member.roles.cache.has(id));
+  if (giveaway.requirePassport && !bypass) {
+    const { t } = await translatorFor(userId);
+    const passport = await checkPassportRequirement(member, true, t);
+    if (!passport.ok) return { ok: false, reason: passport.message };
+  }
 
   const existing = await store.getEntry(giveaway.id, userId);
   if (existing) {

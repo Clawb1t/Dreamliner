@@ -2,9 +2,10 @@ import { PermissionFlagsBits, type Guild, type User } from "discord.js";
 import type { Client } from "discord.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
-import { createInfraction, postCaseLog } from "../../infraction/functions/infractions.js";
+import { createInfraction, deleteInfraction, postCaseLog } from "../../infraction/functions/infractions.js";
 import { formatReason } from "../../infraction/functions/moderation.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
+import { dmAutomatedCase } from "../../infraction/functions/automatedNotify.js";
 
 export async function softbanForScamProtect(options: {
   client: Client;
@@ -35,17 +36,8 @@ export async function softbanForScamProtect(options: {
     options.reason ?? "Scam Protect: posted in the honeypot channel",
   );
 
-  try {
-    await guild.members.ban(user.id, {
-      reason,
-      deleteMessageSeconds: deleteDays * 86400,
-    });
-    await guild.members.unban(user.id, "Scam Protect softban");
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Softban failed.";
-    return { ok: false, error: message };
-  }
-
+  // The case is created first so the DM (sent while the bot still shares the server) can carry
+  // its Appeal button; it's removed again if the softban itself fails.
   const record = await createInfraction({
     guildId: guild.id,
     userId: user.id,
@@ -55,6 +47,19 @@ export async function softbanForScamProtect(options: {
     active: false,
     metadata: { source: "scam_protect" },
   });
+  await dmAutomatedCase({ guild, guildConfig, user, record, reason, actorLabel: "Scam Protect" });
+
+  try {
+    await guild.members.ban(user.id, {
+      reason,
+      deleteMessageSeconds: deleteDays * 86400,
+    });
+    await guild.members.unban(user.id, "Scam Protect softban");
+  } catch (err) {
+    await deleteInfraction(guild.id, record.id).catch(() => null);
+    const message = err instanceof Error ? err.message : "Softban failed.";
+    return { ok: false, error: message };
+  }
 
   await postCaseLog(client, guildConfig, pluginConfig, record, user, client.user).catch(() => null);
   return { ok: true, caseId: record.id };

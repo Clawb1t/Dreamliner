@@ -142,7 +142,7 @@ export const AUTOMOD_RULE_META: AutomodRuleMeta[] = [
     id: "domain_intel",
     name: "Domain Intelligence",
     description:
-      "Checks linked domains against a live malware/phishing feed (abuse.ch URLhaus) plus heuristics for lookalike, IP-literal, and freebie-TLD scam links — catches dangerous domains Link Spam's static blocklist won't.",
+      "Checks linked domains against a live malware/phishing feed (abuse.ch URLhaus) plus heuristics for lookalike, IP-literal, and freebie-TLD scam links. Catches dangerous domains Link Spam's static blocklist won't.",
     group: "mentions_links",
     event: "message",
   },

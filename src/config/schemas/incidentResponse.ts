@@ -8,7 +8,16 @@ export type IncidentSeverity = (typeof INCIDENT_SEVERITIES)[number];
 export const INCIDENT_STATUSES = ["open", "acknowledged", "resolved", "dismissed"] as const;
 export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];
 
-export const INCIDENT_SOURCES = ["automod", "raid", "impersonation", "scam_protect", "nuke_detection"] as const;
+export const INCIDENT_SOURCES = [
+  "automod",
+  "raid",
+  "impersonation",
+  "scam_protect",
+  "nuke_detection",
+  "invite_raid",
+  "ban_evasion",
+  "mesh_watchlist",
+] as const;
 export type IncidentSource = (typeof INCIDENT_SOURCES)[number];
 
 export const INCIDENT_ACTION_TYPES = [
@@ -52,6 +61,12 @@ export const zIncidentSeverityPolicy = z.strictObject({
     .default([])
     .describe("Punitive/lockdown actions to run the first time an incident reaches this severity. Empty = alert only."),
   notify_roles: roleIdList("Roles pinged in the incident alert when this severity is first reached."),
+  notify_on_shift: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Works with Team Control: ping up to 5 staff who are clocked in (not on break or leave) instead of the roles above. Falls back to the roles when nobody is on shift or Team Control is off.",
+    ),
 });
 
 export const zIncidentResponseConfig = z.strictObject({
@@ -81,6 +96,15 @@ export const zIncidentResponseConfig = z.strictObject({
         .boolean()
         .default(true)
         .describe("Watch the audit log for mass channel/role deletion, mass bans/kicks, webhook bursts, and surprise admin grants."),
+      invite_raid: z.boolean().default(true).describe("Feed Invite Tracker's invite-burst raid guard into Incident Response."),
+      ban_evasion: z
+        .boolean()
+        .default(true)
+        .describe("Feed Passport ban-evasion matches (a new member linked to an account banned here) into Incident Response."),
+      mesh_watchlist: z
+        .boolean()
+        .default(true)
+        .describe("Feed joins by accounts named in a recent Raid Defense Mesh alert into Incident Response."),
     })
     .default({}),
   nuke: z

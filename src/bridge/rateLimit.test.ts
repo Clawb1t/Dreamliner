@@ -73,6 +73,25 @@ describe("bridgeRateLimit", () => {
     assert.equal(bucketFor("GET", `${base}/kits/5`), "read");
   });
 
+  it("puts bulk suggestion actions in the send bucket, single actions in write", () => {
+    const base = "/bridge/guilds/123456789012345678/suggestions";
+    assert.equal(bucketFor("POST", `${base}/bulk`), "send");
+    assert.equal(bucketFor("POST", `${base}/12/approve`), "write");
+    assert.equal(bucketFor("POST", `${base}/blocks`), "write");
+    assert.equal(bucketFor("GET", `${base}/blocks`), "read");
+  });
+
+  it("puts ticket replies and bulk ticket actions in the send bucket, other ticket actions in write", () => {
+    const base = "/bridge/guilds/123456789012345678/tickets";
+    assert.equal(bucketFor("POST", `${base}/12/reply`), "send");
+    assert.equal(bucketFor("POST", `${base}/bulk`), "send");
+    assert.equal(bucketFor("POST", `${base}/12/claim`), "write");
+    assert.equal(bucketFor("POST", `${base}/12/close`), "write");
+    assert.equal(bucketFor("GET", `${base}/12`), "read");
+    // The AI Responder's routes stay in the ai bucket.
+    assert.equal(bucketFor("POST", `${base}/ai/test`), "ai");
+  });
+
   it("caps a server's Message Kits sends at 30 a minute even without a userId", () => {
     const url = new URL("http://x/bridge/guilds/223456789012345678/message-kits/kits/1/send");
     let limitedAt = -1;

@@ -7,6 +7,8 @@ export const APP_EMOJI = {
   globe: "<:icons_globe:1544417296703815710>",
   translate: "<:icons_translate:1544417978261438614>",
   flag: "<:icons_flag:1544417544251772999>",
+  /** "Verified members only" refusals (Passport requirement on Suggestions, Tickets, etc). */
+  verified: "<:icons_verified:1544417456922304534>",
   /** Animated: shown in front of a character's "is typing…" placeholder. */
   typing: "<a:typing:1561913718978256906>",
   // Team Control: duty statuses, quota marks, checklists and leaderboard places.

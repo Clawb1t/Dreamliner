@@ -19,11 +19,20 @@ import {
 import { sendModerationLog } from "../../../core/logging/send.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { containerReply } from "../../../core/responses.js";
-import { ticketClaimId, ticketCloseId, ticketDeleteId, ticketUnclaimId } from "../constants.js";
+import { ticketClaimId, ticketCloseId, ticketDeleteId, ticketMemberContextId, ticketUnclaimId } from "../constants.js";
+import { getGuildTicketsDashboardUrl, getIdentityCardUrl } from "../../../core/docsUrl.js";
 import { isBlacklisted } from "./blacklist.js";
-import { aiHandlesCategory, startTicketAi } from "./ai/responder.js";
+import { checkPassportRequirement } from "../../../core/verifiedOnly.js";
+import { aiHandlesCategory, onTicketMessage, startTicketAi } from "./ai/responder.js";
 import { learnFromClosedTicket } from "./ai/learn.js";
-import { addMemberOverwrite, archiveContainer, createTicketContainer, removeMemberOverwrite, syncTicketStatusToChannel } from "./channels.js";
+import {
+  addMemberOverwrite,
+  archiveContainer,
+  createTicketContainer,
+  removeMemberOverwrite,
+  restoreContainerAccess,
+  syncTicketStatusToChannel,
+} from "./channels.js";
 import { buildTicketClaimedEmbed, buildTicketClosedEmbed, buildTicketOpenedEmbed } from "./embeds.js";
 import { buildTranscript, dmTranscript, postTranscriptLog, saveTranscript } from "./transcripts.js";
 import {
@@ -35,18 +44,30 @@ import {
   getTicket,
   nextTicketNumber,
   removeMember,
+  reopenTicket as reopenTicketRow,
   setSubStatus,
   touchActivity,
+  touchStaffReply,
   unclaimTicket,
   type TicketFormAnswer,
   type TicketRecord,
 } from "./tickets.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
+import { baseEmbed, setEmbedAuthor } from "../../../core/embeds.js";
+import { getLogger } from "../../../core/logger.js";
+
+const log = getLogger("tickets");
 
 export type CreateTicketResult = { ticket: TicketRecord } | { error: string };
 
-/** Action row attached to a freshly-opened ticket's welcome message. */
-export function ticketActionRow(ticketId: number, claimed: boolean, t: Translator = defaultTranslator): ActionRowBuilder<ButtonBuilder> {
+/** Action row attached to a freshly-opened ticket's welcome message. With `links`, it also carries the
+ *  staff-only Member context button and links to the ticket on the dashboard and the opener's identity card. */
+export function ticketActionRow(
+  ticketId: number,
+  claimed: boolean,
+  t: Translator = defaultTranslator,
+  links?: { guildId: string; openerId: string },
+): ActionRowBuilder<ButtonBuilder> {
   const row = new ActionRowBuilder<ButtonBuilder>();
   if (!claimed) {
     row.addComponents(new ButtonBuilder().setCustomId(ticketClaimId(ticketId)).setLabel(t("tickets.button.claim", "Claim")).setStyle(ButtonStyle.Primary));
@@ -54,6 +75,25 @@ export function ticketActionRow(ticketId: number, claimed: boolean, t: Translato
     row.addComponents(new ButtonBuilder().setCustomId(ticketUnclaimId(ticketId)).setLabel(t("tickets.button.unclaim", "Unclaim")).setStyle(ButtonStyle.Secondary));
   }
   row.addComponents(new ButtonBuilder().setCustomId(ticketCloseId(ticketId)).setLabel(t("tickets.button.close", "Close")).setStyle(ButtonStyle.Danger));
+  if (links) {
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId(ticketMemberContextId(ticketId))
+        .setLabel(t("tickets.button.memberContext", "Member context"))
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("<:icons_Person:1544417372260278353>"),
+      new ButtonBuilder()
+        .setLabel(t("tickets.button.openOnDashboard", "Open on dashboard"))
+        .setStyle(ButtonStyle.Link)
+        .setURL(getGuildTicketsDashboardUrl(links.guildId, ticketId))
+        .setEmoji("<:icons_link:1544417328597434500>"),
+      new ButtonBuilder()
+        .setLabel(t("tickets.button.identityCard", "Identity card"))
+        .setStyle(ButtonStyle.Link)
+        .setURL(getIdentityCardUrl(links.guildId, links.openerId))
+        .setEmoji("<:icons_id:1544417556868104274>"),
+    );
+  }
   return row;
 }
 
@@ -87,6 +127,9 @@ export async function createTicketForMember(opts: {
         : t("tickets.actions.blocked", "You cannot open a ticket right now."),
     };
   }
+
+  const passport = await checkPassportRequirement(member, pluginConfig.require_passport, t);
+  if (!passport.ok) return { error: passport.message };
 
   const categoryLimit = category.max_open_per_user;
   if (categoryLimit === 0) {
@@ -141,7 +184,7 @@ export async function createTicketForMember(opts: {
 
     const embed = buildTicketOpenedEmbed(ticket, category, guild, client, guildConfig.emojis, t);
     await channel
-      .send(containerReply(embed, false, [ticketActionRow(ticket.id, false, t)]))
+      .send(containerReply(embed, false, [ticketActionRow(ticket.id, false, t, { guildId: guild.id, openerId: member.id })]))
       .catch(() => null);
 
     if (aiFirst) {
@@ -403,6 +446,107 @@ export function canCloseTicket(closePermission: string, isOpenerAllowed: boolean
   if (closePermission === "opener") return isOpenerAllowed;
   if (closePermission === "staff") return isStaffAllowed;
   return isOpenerAllowed || isStaffAllowed;
+}
+
+/**
+ * What every human message in an open ticket sets off: the activity / staff-reply clocks (SLA
+ * ladder, first response time), the AI Responder stepping back for staff, and automatic status
+ * updates. Shared by the MessageCreate handler and replies sent from the dashboard, so both
+ * behave the same. `containerId` is the channel (or thread) the message was posted in.
+ */
+export async function recordTicketMessage(
+  client: Client,
+  guildConfig: GuildConfig,
+  pluginConfig: TicketsConfig,
+  ticket: TicketRecord,
+  containerId: string,
+  authorId: string,
+  isStaff: boolean,
+): Promise<void> {
+  if (isStaff) {
+    await touchStaffReply(ticket.guildId, containerId, authorId).catch(() => null);
+  } else {
+    await touchActivity(ticket.guildId, containerId).catch(() => null);
+  }
+
+  // AI Responder: a member message gets an AI reply; a staff reply means staff took over.
+  if (pluginConfig.ai_responder.enabled) onTicketMessage(client, ticket, authorId, isStaff);
+
+  if (pluginConfig.auto_status_updates) {
+    const nextStatus = isStaff ? "awaiting_response" : "in_progress";
+    if (ticket.subStatus !== nextStatus) {
+      await performSetStatus(client, guildConfig, pluginConfig, ticket, nextStatus, authorId).catch((err) => {
+        log.error("Auto status update failed:", err);
+      });
+    }
+  }
+}
+
+/** Longest reply the dashboard can post (Discord allows 2000 characters, the header takes the rest). */
+export const WEB_REPLY_MAX_LENGTH = 1800;
+
+/** A dashboard reply as posted in the ticket: a small header naming the staff member, then their text. */
+export function formatWebReply(staffName: string, text: string, t: Translator = defaultTranslator): string {
+  const name = staffName.replace(/[*_`~|\\<>@#]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) || "Staff";
+  const header = t("tickets.webReply.header", "-# <:icons_reply:1544417399879770265> **{name}** replied from the dashboard", { name });
+  return `${header}\n${text.trim().slice(0, WEB_REPLY_MAX_LENGTH)}`;
+}
+
+/**
+ * Posts a staff reply into an open ticket from the dashboard. Nobody is pinged. Afterwards it
+ * counts exactly like a staff message sent in Discord (first response, SLA reset, AI hand-off,
+ * automatic status).
+ */
+export async function performWebReply(
+  client: Client,
+  guildConfig: GuildConfig,
+  pluginConfig: TicketsConfig,
+  ticket: TicketRecord,
+  staffId: string,
+  staffName: string,
+  text: string,
+  t: Translator = defaultTranslator,
+): Promise<{ messageId: string } | { error: string }> {
+  if (ticket.status === "closed") return { error: "This ticket is closed. Reopen it to reply." };
+  const body = text.trim();
+  if (!body) return { error: "Write a message first." };
+  if (body.length > WEB_REPLY_MAX_LENGTH) return { error: `Replies can be up to ${WEB_REPLY_MAX_LENGTH} characters.` };
+  const containerId = ticket.threadId ?? ticket.channelId;
+  const channel = await fetchGuildChannel(client, ticket.guildId, containerId);
+  if (!channel?.isTextBased() || !("send" in channel)) return { error: "The ticket's channel can't be reached. It may have been deleted." };
+  const sent = await channel
+    .send({ content: formatWebReply(staffName, body, t), allowedMentions: { parse: [] } })
+    .catch(() => null);
+  if (!sent) return { error: "Dreamliner couldn't post in the ticket's channel. Check its permissions there." };
+  await recordTicketMessage(client, guildConfig, pluginConfig, ticket, containerId, staffId, true);
+  return { messageId: sent.id };
+}
+
+/**
+ * Reopens a closed ticket: the row goes back to open, the opener and added members get their
+ * access back (thread unlocked and unarchived), and a note is posted in the ticket.
+ */
+export async function performReopen(
+  client: Client,
+  guild: Guild,
+  ticket: TicketRecord,
+  actorId: string,
+  t: Translator = defaultTranslator,
+): Promise<{ ok: true } | { error: string }> {
+  const current = await getTicket(ticket.guildId, ticket.id);
+  if (!current) return { error: "Ticket not found" };
+  if (current.status !== "closed") return { error: "This ticket is already open." };
+  const containerId = current.threadId ?? current.channelId;
+  const channel = await fetchGuildChannel(client, ticket.guildId, containerId);
+  if (!channel) return { error: "The ticket's channel was deleted, so it can't be reopened." };
+  await reopenTicketRow(ticket.guildId, ticket.id);
+  await restoreContainerAccess(guild, current);
+  if (channel.isTextBased() && "send" in channel) {
+    const embed = setEmbedAuthor(baseEmbed(), t("tickets.reopen.title", "Ticket reopened"), client, { tone: "success" });
+    embed.setDescription(t("tickets.reopen.body", "<@{actor}> reopened ticket #{number}.", { actor: actorId, number: current.number }));
+    await channel.send(containerReply(embed)).catch(() => null);
+  }
+  return { ok: true };
 }
 
 export { buildTicketClaimedEmbed };

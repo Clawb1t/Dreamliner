@@ -31,6 +31,7 @@ import {
 import { findOpening, loadApplicationsConfig, modalTitle, openingName, PLUGIN } from "./config.js";
 import { clearDraft, getDraft, saveDraft } from "./drafts.js";
 import { applyBlocker } from "./eligibility.js";
+import { checkPassportRequirement } from "../../../core/verifiedOnly.js";
 import { decide, postForReview, resolveReviewChannel } from "./review.js";
 import { createApplication } from "./store.js";
 
@@ -102,6 +103,11 @@ async function handleApply(interaction: ButtonInteraction, ctx: Ctx, openingId: 
   const blocker = applyBlocker(ctx.member, opening, t);
   if (blocker) {
     await reply(interaction, ctx, t("applications.cantApplyTitle", "Can't apply"), blocker, "warning");
+    return;
+  }
+  const passport = await checkPassportRequirement(ctx.member, opening.require_passport, t);
+  if (!passport.ok) {
+    await reply(interaction, ctx, t("verifiedOnly.title", "Verified members only"), passport.message, "warning");
     return;
   }
 

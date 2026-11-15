@@ -151,6 +151,12 @@ export const zTicketEscalationStep = z
       .enum(TICKET_ESCALATION_ACTIONS)
       .describe("ping_role: mention a role in the ticket. notify_channel: post an alert to another channel. set_priority: bump the ticket's priority. close: auto-close the ticket."),
     role_id: roleId("Role to ping in the ticket channel. Only used by ping_role."),
+    on_shift_only: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Works with Team Control: ping up to 5 staff who are clocked in (not on break or leave) instead of the whole role, preferring on-shift staff who hold the role. Falls back to the role when nobody is on shift or Team Control is off. Only used by ping_role.",
+      ),
     channel_id: channelId("Channel to post the alert to. Only used by notify_channel."),
     priority: z.enum(TICKET_PRIORITIES).optional().describe("Priority to set. Only used by set_priority."),
     message: z.string().max(500).default("").describe("Optional note appended to the ping/alert."),
@@ -307,6 +313,10 @@ export const zTicketsConfig = z.strictObject({
     .default(1)
     .describe("Plugin-wide default limit on how many tickets one member may have open at once."),
   blacklist_notify: z.boolean().default(true).describe("Tell blacklisted members why their ticket attempt was blocked."),
+  require_passport: z
+    .boolean()
+    .default(false)
+    .describe("Works with Passport. Verified members only: members must pass Passport before opening a ticket. Ignored while Passport is off."),
   sync_status_to_topic: z
     .boolean()
     .default(false)

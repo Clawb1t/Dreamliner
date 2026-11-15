@@ -9,6 +9,7 @@ import { isLogEventEnabled } from "./toggles.js";
 import type { LogButton, LogCard } from "./types.js";
 import { getLogger } from "../logger.js";
 import { fetchGuildChannel } from "../../core/guildChannel.js";
+import { getGuildCasesDashboardUrl, getIdentityCardUrl } from "../docsUrl.js";
 
 const log = getLogger("logs");
 
@@ -69,19 +70,40 @@ function jumpToMessageButton(guildId: string, channelId: string, messageId: stri
   };
 }
 
-/** Adds a Jump to Message button when useful, on top of any card-specific ones. */
+/** Case logs (every case_* event except a deleted case) link to the case and the member's card. */
+export function caseLogButtons(meta: Pick<LogEmitMeta, "guildId" | "eventType" | "caseId" | "targetId">): LogButton[] {
+  if (!meta.eventType.startsWith("case_") || meta.eventType === "case_delete" || !meta.caseId) return [];
+  const buttons: LogButton[] = [
+    {
+      label: "Open on dashboard",
+      url: getGuildCasesDashboardUrl(meta.guildId, meta.caseId),
+      style: "link",
+      emoji: "<:icons_link:1544417328597434500>",
+    },
+  ];
+  if (meta.targetId && /^\d{17,20}$/.test(meta.targetId)) {
+    buttons.push({
+      label: "Identity card",
+      url: getIdentityCardUrl(meta.guildId, meta.targetId),
+      style: "link",
+      emoji: "<:icons_id:1544417556868104274>",
+    });
+  }
+  return buttons;
+}
+
+/** Adds case links and a Jump to Message button when useful, on top of any card-specific ones. */
 function withAutoButtons(
   card: LogCard,
   meta: LogEmitMeta,
   options?: EmitLogOptions,
 ): LogCard {
   if (options?.skipAutoButtons) return card;
-  if (!meta.channelId || !meta.messageId) return card;
+  const caseButtons = caseLogButtons(meta);
+  const jump = meta.channelId && meta.messageId ? [jumpToMessageButton(meta.guildId, meta.channelId, meta.messageId)] : [];
+  if (caseButtons.length === 0 && jump.length === 0) return card;
 
-  const buttons: LogButton[] = [
-    ...(card.buttons ?? []),
-    jumpToMessageButton(meta.guildId, meta.channelId, meta.messageId),
-  ];
+  const buttons: LogButton[] = [...(card.buttons ?? []), ...caseButtons, ...jump];
 
   return { ...card, buttons: buttons.slice(0, 5) };
 }

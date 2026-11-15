@@ -4,6 +4,7 @@ import type { TeamControlConfig } from "../../../config/schemas/teamControl.js";
 import { embedField, memberAccentColor, type ContainerField, type ResultContainer } from "../../../core/embeds.js";
 import { neutralizeMentions } from "../../../core/templates.js";
 import { describeAction } from "./actions.js";
+import { acceptedApplicationFor, acceptedApplicationLine } from "./application.js";
 import { ACTION_LABELS, formatMinutes, LEAVE_LABELS, STATUS_DOTS, unix, type LeaveKind, type TeamActionType, type TeamStatus } from "./config.js";
 import { teamCard } from "./messages.js";
 import { historyCutoff } from "./oneGate.js";
@@ -88,6 +89,8 @@ export function buildProfileCard(
     const progress = checklistProgress(guild.id, summary.userId, config);
     fields.push(embedField("Onboarding", `${progress.done}/${progress.total} done`, true));
   }
+  const application = acceptedApplicationFor(guildConfig, guild.id, summary.userId);
+  if (application) fields.push(embedField("Application", acceptedApplicationLine(application)));
 
   const actions = listActions(guild.id, { userId: summary.userId, since }, options.manager ? 8 : 5).rows;
   if (actions.length) {

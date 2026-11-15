@@ -42,6 +42,11 @@ export function ticketDeleteId(ticketId: number): string {
   return `${TICKET_PREFIX}delete:${ticketId}`;
 }
 
+/** Staff-only "Member context" button on the ticket-opened message: an ephemeral summary of the opener. */
+export function ticketMemberContextId(ticketId: number): string {
+  return `${TICKET_PREFIX}context:${ticketId}`;
+}
+
 /** Modal text-input field custom ID for the Nth (0-indexed) form question. */
 export function ticketQuestionFieldId(index: number): string {
   return `${TICKET_PREFIX}q:${index}`;
@@ -57,7 +62,8 @@ export type ParsedTicketCustomId =
   | { kind: "closeyes"; ticketId: number }
   | { kind: "closeno"; ticketId: number }
   | { kind: "closemodal"; ticketId: number }
-  | { kind: "delete"; ticketId: number };
+  | { kind: "delete"; ticketId: number }
+  | { kind: "context"; ticketId: number };
 
 const UUID = "[0-9a-fA-F-]{36}";
 
@@ -74,9 +80,9 @@ export function parseTicketCustomId(customId: string): ParsedTicketCustomId | nu
   match = new RegExp(`^modal:(${UUID}):(${UUID})$`).exec(rest);
   if (match) return { kind: "modal", panelId: match[1]!, categoryId: match[2]! };
 
-  match = /^(claim|unclaim|close|closeyes|closeno|closemodal|delete):(\d+)$/.exec(rest);
+  match = /^(claim|unclaim|close|closeyes|closeno|closemodal|delete|context):(\d+)$/.exec(rest);
   if (match) {
-    const kind = match[1] as "claim" | "unclaim" | "close" | "closeyes" | "closeno" | "closemodal" | "delete";
+    const kind = match[1] as "claim" | "unclaim" | "close" | "closeyes" | "closeno" | "closemodal" | "delete" | "context";
     return { kind, ticketId: Number(match[2]) } as ParsedTicketCustomId;
   }
 

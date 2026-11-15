@@ -27,7 +27,7 @@ import {
 } from "./config.js";
 import { postInviteLog, sendJoinMessage, sendLeaveMessage, type InviteMessageFacts } from "./messages.js";
 import { joinQueue } from "./queue.js";
-import { raidDetector, recordRaidJoin } from "./raidActions.js";
+import { raidDetector, raidJoiners, recordRaidJoin } from "./raidActions.js";
 import {
   activeTrackedCodes,
   closeStaleJoins,
@@ -83,6 +83,7 @@ export async function syncGuildCache(guild: Guild): Promise<void> {
 export function forgetGuild(guildId: string): void {
   dropGuild(guildId);
   raidDetector.forget(guildId);
+  raidJoiners.forget(guildId);
 }
 
 export function handleInviteCreate(invite: Invite): void {
@@ -205,7 +206,12 @@ export async function handleMemberAdd(member: GuildMember): Promise<void> {
     });
   });
 
-  void recordRaidJoin(guild, config, { code: join.code, source: join.source }).catch((error) => {
+  void recordRaidJoin(guild, config, {
+    code: join.code,
+    source: join.source,
+    memberId: member.id,
+    username: member.user.username,
+  }).catch((error) => {
     log.warn(`Raid check failed in ${guild.id}: ${error instanceof Error ? error.message : error}`);
   });
   // Pending joins wait for Passport: onInviteMemberVerified gives the roles and message then.

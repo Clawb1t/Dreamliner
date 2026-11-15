@@ -9,6 +9,7 @@ import { recordIdentityChange } from "./history.js";
 import { buildCandidateFromMember, findImpersonationMatch, isIgnored, isProtectedByRole } from "./detect.js";
 import { createAlert, type AlertTrigger } from "./alerts.js";
 import { applyAutoAction } from "./actions.js";
+import { withTeamRankProtection } from "./teamProtection.js";
 import { weightForImpersonationScore } from "../../incident_response/functions/weights.js";
 import { getLogger } from "../../../core/logger.js";
 import { translatorFor } from "../../../i18n/index.js";
@@ -22,7 +23,10 @@ function parseImpersonationConfig(raw: unknown): ImpersonationConfig {
 async function loadConfig(guildId: string) {
   const guildConfig = await configManager.getEffectiveConfig(guildId);
   if (guildConfig.plugins.impersonation?.enabled !== true) return null;
-  const config = parseImpersonationConfig(guildConfig.plugins.impersonation?.config ?? {});
+  const config = await withTeamRankProtection(
+    guildId,
+    parseImpersonationConfig(guildConfig.plugins.impersonation?.config ?? {}),
+  );
   return { guildConfig, config };
 }
 

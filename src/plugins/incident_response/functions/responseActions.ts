@@ -10,6 +10,7 @@ import {
   postCaseLog,
 } from "../../infraction/functions/infractions.js";
 import { formatReason } from "../../infraction/functions/moderation.js";
+import { dmAutomatedCase } from "../../infraction/functions/automatedNotify.js";
 import { lockChannel, lockdownServer } from "./lockdown.js";
 import type { IncidentRow } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
@@ -88,6 +89,10 @@ async function runAction(
   const member = await guild.members.fetch(userId).catch(() => null);
   const user = member?.user ?? (await client.users.fetch(userId).catch(() => null));
   if (!user) return null;
+  // Same DM a moderator's case sends (server's Infractions DM settings, plus the Appeal button when
+  // Appeals allows it). Kicks and bans DM first, while the bot still shares the server.
+  const notify = (record: { id: number; type: string; expiresAt?: Date | null }) =>
+    dmAutomatedCase({ guild, guildConfig, user, record, reason, actorLabel: "Incident Response" });
 
   if (action.type === "timeout") {
     const durationMs = clampTimeoutMs(action.duration_ms && action.duration_ms > 0 ? action.duration_ms : 3_600_000);
@@ -105,33 +110,37 @@ async function runAction(
     await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user, {
       durationLabel: `${Math.round(durationMs / 60_000)}m`,
     }).catch(() => null);
+    await notify(record);
     return `timeout #${record.id}`;
   }
 
   if (action.type === "kick") {
-    if (member?.kickable) await member.kick(reason).catch(() => null);
     const record = await createInfraction({ guildId: guild.id, userId, modId, type: "kick", reason, active: false, metadata });
+    await notify(record);
+    if (member?.kickable) await member.kick(reason).catch(() => null);
     await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
     return `kick #${record.id}`;
   }
 
   if (action.type === "softban") {
+    const record = await createInfraction({ guildId: guild.id, userId, modId, type: "softban", reason, active: false, metadata });
+    await notify(record);
     if (guild.members.me?.permissions.has(PermissionFlagsBits.BanMembers)) {
       const deleteSeconds = (action.delete_message_days ?? 1) * 86_400;
       await guild.members.ban(userId, { reason, deleteMessageSeconds: deleteSeconds }).catch(() => null);
       await guild.members.unban(userId, "Incident Response softban").catch(() => null);
     }
-    const record = await createInfraction({ guildId: guild.id, userId, modId, type: "softban", reason, active: false, metadata });
     await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
     return `softban #${record.id}`;
   }
 
   if (action.type === "ban") {
+    const record = await createInfraction({ guildId: guild.id, userId, modId, type: "ban", reason, active: true, metadata });
+    await notify(record);
     if (guild.members.me?.permissions.has(PermissionFlagsBits.BanMembers)) {
       const deleteSeconds = (action.delete_message_days ?? 0) * 86_400;
       await guild.members.ban(userId, { reason, deleteMessageSeconds: deleteSeconds }).catch(() => null);
     }
-    const record = await createInfraction({ guildId: guild.id, userId, modId, type: "ban", reason, active: true, metadata });
     await postCaseLog(client, guildConfig, infractionConfig, record, user, client.user).catch(() => null);
     return `ban #${record.id}`;
   }

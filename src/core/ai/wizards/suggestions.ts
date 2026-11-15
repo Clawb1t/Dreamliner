@@ -48,6 +48,7 @@ const TOGGLES = [
   "auto_thread",
   "notify_author",
   "follow_on_upvote",
+  "require_passport",
 ] as const;
 
 export function suggestionsConfigSchema(): Record<string, unknown> {
@@ -171,7 +172,8 @@ export const suggestionsWizard: AiWizardDefinition = {
     "number and one unit) or \"\" to turn that limit off; min_messages (messages sent here first), " +
     "max_open (open approved suggestions per member, 0 = unlimited), min_length and max_length " +
     "(suggestion text length, 1 to 2000), anonymous (allow anonymous suggestions, staff still see " +
-    "the author), allow_attachments (image attachments).\n" +
+    "the author), allow_attachments (image attachments), require_passport (verified members only: " +
+    "members must pass Passport verification before suggesting, ignored while Passport is off).\n" +
     "- Voting: voting_enabled, mid_vote_enabled (a neutral middle button), allow_self_vote, " +
     "show_vote_count (live totals on the buttons), public_votes (a View votes button that shows " +
     "anyone who voted and how), auto_thread (start a discussion thread on each suggestion when it's " +

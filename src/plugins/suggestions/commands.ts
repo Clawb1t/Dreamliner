@@ -89,6 +89,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
           min_messages: config.min_messages,
           min_account_age: config.min_account_age,
           min_member_age: config.min_member_age,
+          require_passport: config.require_passport,
           cooldown: config.cooldown,
           allowed_roles: config.allowed_suggest_roles,
           blocked_roles: config.blocked_suggest_roles,

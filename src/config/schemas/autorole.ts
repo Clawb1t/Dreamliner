@@ -24,6 +24,18 @@ export const zAutoroleConfig = z.strictObject({
   bot_roles: zAutoroleRoleList.describe(
     `Roles for bots only. Assigned when a bot joins. ${roleListDescription}`,
   ),
+  wait_for_passport: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Works with Passport: give human autoroles once the member passes Passport verification instead of on join. Per-role delays then count from verification. Ignored while Passport is off.",
+    ),
+  skip_if_restored: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Works with Member Identity: skip autoroles for a rejoining member whose saved roles Member Identity just gave back.",
+    ),
 });
 
 export const zAutorolePluginSection = zPluginSection(zAutoroleConfig.shape);

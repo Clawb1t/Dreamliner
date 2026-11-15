@@ -3,12 +3,14 @@ import type { InviteTrackerConfig } from "../../../config/schemas/inviteTracker.
 import { getLogger } from "../../../core/logger.js";
 import { onInviteDeleted } from "./cache.js";
 import { postInviteLog } from "./messages.js";
-import { clampPauseMinutes, RaidDetector } from "./raid.js";
+import { clampPauseMinutes, RaidDetector, RecentRaidJoiners } from "./raid.js";
+import { INVITE_RAID_SIGNAL_WEIGHT } from "../../incident_response/functions/weights.js";
 
 const log = getLogger("invite_tracker");
 const RAID_REASON = "Dreamliner Invite Tracker: join burst";
 
 export const raidDetector = new RaidDetector();
+export const raidJoiners = new RecentRaidJoiners();
 
 /** When Discord's invite pause ends, or null when invites aren't paused. */
 export function invitesPausedUntil(guild: Guild, now = Date.now()): Date | null {
@@ -54,15 +56,18 @@ export async function resumeInvites(guild: Guild): Promise<void> {
 export async function recordRaidJoin(
   guild: Guild,
   config: InviteTrackerConfig,
-  join: { code: string | null; source: string },
+  join: { code: string | null; source: string; memberId: string; username: string },
 ): Promise<void> {
   if (!config.raid.enabled) return;
   const key = join.code ?? `source:${join.source}`;
-  const tripped = raidDetector.record(guild.id, key, Date.now(), {
+  const now = Date.now();
+  raidJoiners.record(guild.id, key, { id: join.memberId, username: join.username, joinedAt: now }, config.raid.window_seconds);
+  const tripped = raidDetector.record(guild.id, key, now, {
     threshold: config.raid.threshold_joins,
     windowSeconds: config.raid.window_seconds,
   });
   if (!tripped) return;
+  const joiners = raidJoiners.take(guild.id, key);
 
   const through = join.code ? `invite \`${join.code}\`` : join.source === "vanity" ? "the vanity URL" : "unknown invites";
   const lines = [
@@ -93,4 +98,48 @@ export async function recordRaidJoin(
     tone: "warning",
     pingRoleId: config.raid.alert_role_id,
   });
+
+  await feedSafetyMesh(guild, config, { through, joiners });
+}
+
+/**
+ * Works with Raid Defense Mesh and Incident Response, the same way Automod's raid detector does:
+ * linked servers get a mesh alert naming the burst's accounts, and Incident Response gets a
+ * guild-scoped signal. Each target checks its own plugin is on; any failure is logged, never thrown.
+ */
+async function feedSafetyMesh(
+  guild: Guild,
+  config: InviteTrackerConfig,
+  burst: { through: string; joiners: { id: string; username: string; joinedAt: number }[] },
+): Promise<void> {
+  const windowMs = config.raid.window_seconds * 1000;
+  if (config.raid.share_with_mesh) {
+    try {
+      const { broadcastRaidAlert } = await import("../../raid_mesh/functions/mesh.js");
+      await broadcastRaidAlert(guild.client, guild.id, {
+        joinCount: config.raid.threshold_joins,
+        windowMs,
+        joiners: burst.joiners,
+      });
+    } catch (error) {
+      log.warn(`Raid Defense Mesh broadcast failed in ${guild.id}: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+  if (config.raid.report_incidents) {
+    try {
+      const { reportSignal } = await import("../../incident_response/functions/signalBus.js");
+      await reportSignal(guild.client, {
+        guildId: guild.id,
+        source: "invite_raid",
+        signalType: "invite_burst",
+        weight: INVITE_RAID_SIGNAL_WEIGHT,
+        entityType: "guild",
+        entityId: guild.id,
+        entityLabel: guild.name,
+        reason: `Invite burst: ${config.raid.threshold_joins}+ joins through ${burst.through.replace(/`/g, "")} in ${config.raid.window_seconds}s`,
+      });
+    } catch (error) {
+      log.warn(`Incident Response signal failed in ${guild.id}: ${error instanceof Error ? error.message : error}`);
+    }
+  }
 }

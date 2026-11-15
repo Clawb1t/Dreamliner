@@ -16,7 +16,9 @@ export const memberIdentityPlugin = definePlugin({
       execute: async (_client, member: unknown) => {
         const m = member as import("discord.js").GuildMember;
         if (!m.guild) return;
-        await restoreMemberIdentity(m).catch(() => null);
+        // Not awaited: with delay_ms set this resolves only after the delay. Autorole's
+        // skip_if_restored shares the same restore through restoreMemberIdentity's per-join memo.
+        void restoreMemberIdentity(m).catch(() => false);
       },
     },
     {

@@ -244,6 +244,17 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       ctx.target.avatarUrl,
       "modSevere",
     ),
+  passport_ban_evasion: (ctx) =>
+    buildGenericServerLog(
+      "Possible Ban Evasion",
+      [
+        `Member: <@${ctx.target.id}> (\`${ctx.target.id}\`)`,
+        `Linked to: <@${ctx.actor.id}> (\`${ctx.actor.id}\`), active ban case **#42**. Match: High (same network)`,
+        "Passport alt detection linked this newly verified member to a banned account. Review the Alts tab before acting.",
+      ],
+      ctx.target.avatarUrl,
+      "modSevere",
+    ),
   appeal_submitted: (ctx) =>
     buildAppealLog({ title: "Appeal Submitted", appealId: 12, user: ctx.target, subject: "Ban (case #42)" }),
   appeal_approved: (ctx) =>

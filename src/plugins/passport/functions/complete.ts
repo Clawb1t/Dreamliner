@@ -44,6 +44,10 @@ export async function completePassportVerification(options: {
   if (method === "web" && config.alt_detection && network?.ip) {
     // Best-effort; never blocks verification if it fails.
     await recordPassportNetworkSignal(member.guild.id, member.id, network.ip).catch(() => {});
+    // Ban-evasion alert (alt linked to an active ban here); runs in the background.
+    void import("./banEvasion.js")
+      .then(({ checkBanEvasion }) => checkBanEvasion({ client, member, guildConfig, config }))
+      .catch(() => null);
   }
 
   const pending = await getPassportPending(member.guild.id, member.id);
@@ -55,6 +59,13 @@ export async function completePassportVerification(options: {
   if (!alreadyVerified) {
     await sendWelcomeAfterPassportVerification(member).catch(() => null);
     await onInviteMemberVerified(member).catch(() => null);
+    // Autorole's "wait for Passport": gives the autoroles it held at join (no-op when that's off).
+    try {
+      const { scheduleAutorolesAfterPassport } = await import("../../autorole/functions/joinFlow.js");
+      await scheduleAutorolesAfterPassport(member);
+    } catch {
+      // Autorole unavailable: never blocks verification.
+    }
   }
 
   await emitLog(

@@ -188,6 +188,8 @@ plugins:
     config:
       roles: []
       bot_roles: []
+      wait_for_passport: false
+      skip_if_restored: false
   member_identity:
     enabled: false
     config:
@@ -236,6 +238,7 @@ plugins:
     config:
       ignored_roles: []
       protected_roles: []
+      protect_team_ranks: false
       compare_scope: protected_only
       check_on_join: true
       check_username: true
@@ -262,6 +265,9 @@ plugins:
         impersonation: true
         scam_protect: true
         nuke_detection: true
+        invite_raid: true
+        ban_evasion: true
+        mesh_watchlist: true
       nuke:
         channel_delete_count: 3
         channel_delete_window_ms: 30000
@@ -277,19 +283,26 @@ plugins:
       policy_low:
         actions: []
         notify_roles: []
+        notify_on_shift: false
       policy_medium:
         actions: []
         notify_roles: []
+        notify_on_shift: false
       policy_high:
         actions: []
         notify_roles: []
+        notify_on_shift: false
       policy_critical:
         actions: []
         notify_roles: []
+        notify_on_shift: false
       can_manage: false
   raid_mesh:
     enabled: false
-    config: {}
+    config:
+      watchlist:
+        enabled: true
+        hours: 24
   scam_protect:
     enabled: false
     config:
@@ -382,6 +395,7 @@ plugins:
         disabled_body: This server isn't using Passport right now.
       remember_verifications: true
       alt_detection: false
+      alt_ban_evasion_alerts: true
       min_account_age_seconds: 0
       bypass_role_ids: []
       timeout_action: none
@@ -592,6 +606,53 @@ plugins:
         enabled: false
         label: Wave
         emoji: <:icons_wave:1544418074172727328>
+      welcome_back:
+        enabled: false
+        message:
+          content: Welcome back {user}! Good to see you in **{guild}** again.
+          embed:
+            enabled: false
+            title: ""
+            description: ""
+            color: 5661429
+            author_name: ""
+            author_icon: none
+            author_icon_url: ""
+            thumbnail: avatar
+            thumbnail_url: ""
+            image: none
+            image_url: ""
+            footer_text: ""
+            footer_icon: none
+            footer_icon_url: ""
+            timestamp: false
+            fields: []
+          card:
+            enabled: false
+            background_type: color
+            background_color: 1974050
+            background_url: ""
+            background_asset_id: ""
+            avatar_layout: left
+            text_layout: beside
+            avatar_style: circle
+            show_avatar: true
+            show_accent_bar: true
+            greeting_text: Welcome back {user_display}!
+            subtitle_text: "Member #{guild_member_count}"
+            text_color: 16777215
+            accent_color: 5661429
+            border_color: 5661429
+            border_width: 0
+            border_radius: 24
+            avatar_size: 180
+            avatar_offset_x: 0
+            avatar_offset_y: 0
+            text_offset_x: 0
+            text_offset_y: 0
+            greeting_size: 44
+            subtitle_size: 24
+            avatar_ring_width: 6
       require_passport_verification: false
       member_milestones:
         enabled: false
@@ -810,6 +871,7 @@ plugins:
       min_messages: 50
       min_account_age: 7d
       min_member_age: 3d
+      require_passport: false
       cooldown: 7d
       allow_edit: true
       allowed_roles: []
@@ -838,6 +900,7 @@ plugins:
       min_messages: 25
       min_account_age: 7d
       min_member_age: 1d
+      require_passport: false
       command_channels: []
       ignored_channels: []
       allow_attachments: true
@@ -881,6 +944,7 @@ plugins:
       feedback_enabled: false
       max_open_tickets_per_user: 1
       blacklist_notify: true
+      require_passport: false
       sync_status_to_topic: false
       auto_status_updates: false
       panels: []
@@ -1219,6 +1283,8 @@ plugins:
         action: alert
         pause_minutes: 60
         alert_role_id: null
+        report_incidents: true
+        share_with_mesh: true
       retention_days: 365
       can_view: true
       can_view_others: true
@@ -1275,6 +1341,7 @@ plugins:
         report_channel_id: null
         scheduled_reports: false
         points_mode: false
+        show_overturned_cases: false
         weights:
           shift_hour: 10
           mod_action: 2

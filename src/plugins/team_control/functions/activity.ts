@@ -19,10 +19,37 @@ function idList(ids: string[]) {
 }
 
 /**
- * Every metric for a set of members over [from, to): shift minutes (breaks excluded), moderation
- * cases they opened, tickets they closed, staff-channel messages and voice minutes.
+ * How many of each moderator's cases were overturned on appeal (an approved appeal that reversed
+ * the case) with the decision in [from, to). appeals.decided_at is milliseconds (mod_cases is
+ * seconds, but only its mod_id is read here). Informational only.
  */
-export function computeMetrics(guildId: string, userIds: string[], from: Date, to: Date, now = Date.now()): Map<string, TeamMetrics> {
+export function computeOverturnedCases(guildId: string, userIds: string[], from: Date, to: Date): Map<string, number> {
+  const out = new Map<string, number>();
+  if (userIds.length === 0) return out;
+  const rows = getDb().all<{ id: string; n: number }>(sql`
+    SELECT c.mod_id AS id, COUNT(DISTINCT c.id) AS n FROM appeals a
+    JOIN mod_cases c ON c.id = a.case_id AND c.guild_id = a.guild_id
+    WHERE a.guild_id = ${guildId} AND a.reversed = 1 AND c.mod_id IN (${idList(userIds)})
+      AND COALESCE(a.decided_at, a.updated_at) >= ${from.getTime()} AND COALESCE(a.decided_at, a.updated_at) < ${to.getTime()}
+    GROUP BY c.mod_id
+  `);
+  for (const row of rows) out.set(row.id, Number(row.n) || 0);
+  return out;
+}
+
+/**
+ * Every metric for a set of members over [from, to): shift minutes (breaks excluded), moderation
+ * cases they opened, tickets they closed, staff-channel messages and voice minutes. With
+ * `includeOverturned`, also their cases overturned on appeal (display only, see TeamMetrics).
+ */
+export function computeMetrics(
+  guildId: string,
+  userIds: string[],
+  from: Date,
+  to: Date,
+  now = Date.now(),
+  options: { includeOverturned?: boolean } = {},
+): Map<string, TeamMetrics> {
   const out = new Map<string, TeamMetrics>();
   for (const id of userIds) out.set(id, { ...EMPTY_METRICS });
   if (userIds.length === 0) return out;
@@ -60,6 +87,10 @@ export function computeMetrics(guildId: string, userIds: string[], from: Date, t
   `);
   for (const row of voice) out.get(row.id)!.voiceMinutes = Number(row.n) || 0;
   for (const m of out.values()) m.shiftMinutes = Math.round(m.shiftMinutes);
+  if (options.includeOverturned) {
+    const overturned = computeOverturnedCases(guildId, userIds, from, to);
+    for (const [id, m] of out) m.overturnedCases = overturned.get(id) ?? 0;
+  }
   return out;
 }
 
@@ -138,7 +169,9 @@ export function evaluateTeam(
   now = Date.now(),
 ): Map<string, MemberQuota> {
   const userIds = [...rankIds.keys()];
-  const metrics = computeMetrics(guildId, userIds, range.start, range.end, now);
+  const metrics = computeMetrics(guildId, userIds, range.start, range.end, now, {
+    includeOverturned: config.activity.show_overturned_cases,
+  });
   const leave = config.leave.exempt_from_quota ? leaveOverlapping(guildId, range.start, range.end) : [];
   const leaveByUser = new Map<string, typeof leave>();
   for (const row of leave) leaveByUser.set(row.userId, [...(leaveByUser.get(row.userId) ?? []), row]);

@@ -3151,12 +3151,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const suggestionsMatch = /^\/bridge\/guilds\/(\d+)\/suggestions$/.exec(url.pathname);
+        // Bulk actions, and the blocked-members list (/blocks, /blocks/:userId).
+        const suggestionExtraMatch =
+          /^\/bridge\/guilds\/(\d+)\/suggestions\/(bulk|blocks)(?:\/(\d{15,22}))?$/.exec(url.pathname);
         const suggestionCommentOneMatch =
           /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/comments\/(\d+)$/.exec(url.pathname);
         const suggestionCommentsMatch =
           /^\/bridge\/guilds\/(\d+)\/suggestions\/(\d+)\/comments$/.exec(url.pathname);
         const ticketActionMatch =
-          /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)\/(close|claim|unclaim|assign|unassign|status|reopen|add|remove|rename)$/.exec(
+          /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)\/(close|claim|unclaim|assign|unassign|status|reopen|add|remove|rename|priority|reply)$/.exec(
             url.pathname,
           );
         const ticketPanelPublishMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/panels\/([0-9a-fA-F-]{36})\/publish$/.exec(
@@ -3166,6 +3169,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const ticketStatsMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/stats$/.exec(url.pathname);
+        // Bulk close / claim / assign / delete from View Tickets.
+        const ticketBulkMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/bulk$/.exec(url.pathname);
         const ticketOneMatch = /^\/bridge\/guilds\/(\d+)\/tickets\/(\d+)$/.exec(url.pathname);
         const ticketsMatch = /^\/bridge\/guilds\/(\d+)\/tickets$/.exec(url.pathname);
         // Web transcript page: participants + staff, checked inside (not Manage Server only).
@@ -3231,6 +3236,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const nameHistoryMatch = /^\/bridge\/guilds\/(\d+)\/name-history$/.exec(url.pathname);
         // Website identity card: any current member of the server may view anyone's card there.
         const memberIdentityCardMatch = /^\/bridge\/guilds\/(\d+)\/identity\/(\d{17,20})$/.exec(url.pathname);
+        // Member 360 hub (staff only, Manage Server): one member's cases, tickets, appeals and more.
+        const memberHubMatch = /^\/bridge\/guilds\/(\d+)\/members\/(\d{17,20})\/hub$/.exec(url.pathname);
         const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
         const permissionRolesMatch =
           /^\/bridge\/guilds\/(\d+)\/permission-roles(?:\/(\d+)(?:\/(targets|grants))?)?$/.exec(url.pathname);
@@ -3337,10 +3344,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !suggestionOneMatch &&
           !suggestionStatsMatch &&
           !suggestionsMatch &&
+          !suggestionExtraMatch &&
           !ticketActionMatch &&
           !ticketPanelPublishMatch &&
           !ticketBlacklistMatch &&
           !ticketStatsMatch &&
+          !ticketBulkMatch &&
           !ticketOneMatch &&
           !ticketsMatch &&
           !ticketTranscriptMatch &&
@@ -3372,6 +3381,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !passportAltsMatch &&
           !nameHistoryMatch &&
           !memberIdentityCardMatch &&
+          !memberHubMatch &&
           !economyMatch &&
           !permissionRolesMatch &&
           !permissionCatalogMatch &&
@@ -3462,10 +3472,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           suggestionOneMatch?.[1] ??
           suggestionStatsMatch?.[1] ??
           suggestionsMatch?.[1] ??
+          suggestionExtraMatch?.[1] ??
           ticketActionMatch?.[1] ??
           ticketPanelPublishMatch?.[1] ??
           ticketBlacklistMatch?.[1] ??
           ticketStatsMatch?.[1] ??
+          ticketBulkMatch?.[1] ??
           ticketOneMatch?.[1] ??
           ticketsMatch?.[1] ??
           ticketTranscriptMatch?.[1] ??
@@ -3498,6 +3510,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           passportAssetMatch?.[1] ??
           nameHistoryMatch?.[1] ??
           memberIdentityCardMatch?.[1] ??
+          memberHubMatch?.[1] ??
           economyMatch?.[1] ??
           permissionRolesMatch?.[1] ??
           permissionCatalogMatch?.[1] ??
@@ -4853,8 +4866,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const targetRaw = (body.target ?? "join").trim();
-            if (targetRaw !== "join" && targetRaw !== "leave" && targetRaw !== "dm" && targetRaw !== "milestone") {
-              sendJson(res, 400, { error: "target must be join, leave, dm, or milestone" });
+            if (targetRaw !== "join" && targetRaw !== "leave" && targetRaw !== "dm" && targetRaw !== "milestone" && targetRaw !== "welcome_back") {
+              sendJson(res, 400, { error: "target must be join, leave, dm, milestone, or welcome_back" });
               return;
             }
             const member = await guild.members.fetch(userId).catch(() => null);
@@ -5761,6 +5774,31 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (memberHubMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const requesterId = url.searchParams.get("userId")?.trim() ?? "";
+          if (!/^\d{17,20}$/.test(requesterId)) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          // Same gate as Cases and Watchdog: moderation data is for Manage Server only.
+          if (!(await memberCanManage(guild, requesterId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { buildMemberHub } = await import("./webMemberHub.js");
+          const hub = await buildMemberHub(client, guild, memberHubMatch[2]!, requesterId);
+          if (!hub) {
+            sendJson(res, 404, { error: "User not found.", code: "user_not_found" });
+            return;
+          }
+          sendJson(res, 200, hub);
           return;
         }
 
@@ -7700,6 +7738,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               reason?: string;
               silent?: boolean;
               status?: string;
+              /** Optional staff comment posted on the suggestion after the action. */
+              note?: string;
+              /** Deny as a duplicate of this suggestion number. */
+              duplicateOf?: number;
             } = {};
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
@@ -7707,7 +7749,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 400, { error: "Invalid JSON body" });
               return;
             }
-            const userId = body.userId?.trim();
+            const userId = body.userId?.trim() || url.searchParams.get("userId")?.trim();
             if (!userId) {
               sendJson(res, 400, { error: "userId is required" });
               return;
@@ -7724,30 +7766,38 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               webDenySuggestion,
               webMarkSuggestion,
               getWebSuggestion,
+              isDisplayStatus,
+              addWebSuggestionComment,
             } = await import("./webSuggestions.js");
 
             let result: { suggestion: unknown; error?: string };
             if (action === "approve") {
               result = await webApproveSuggestion(guild, suggestionId, userId);
             } else if (action === "deny") {
-              result = await webDenySuggestion(guild, suggestionId, userId, body.reason, body.silent);
+              const duplicateOf =
+                typeof body.duplicateOf === "number" && Number.isInteger(body.duplicateOf) && body.duplicateOf > 0
+                  ? body.duplicateOf
+                  : null;
+              result = await webDenySuggestion(guild, suggestionId, userId, body.reason, body.silent, duplicateOf);
             } else {
               const status = body.status?.trim();
-              if (!status) {
-                sendJson(res, 400, { error: "status is required" });
+              if (!isDisplayStatus(status)) {
+                sendJson(res, 400, { error: "status must be one of none, considered, progress, implemented, no" });
                 return;
               }
-              result = await webMarkSuggestion(
-                guild,
-                suggestionId,
-                userId,
-                status as import("../config/schemas/suggestions.js").SuggestionDisplayStatus,
-              );
+              result = await webMarkSuggestion(guild, suggestionId, userId, status);
             }
 
             if (result.error || !result.suggestion) {
               sendJson(res, 400, { error: result.error ?? "Action failed" });
               return;
+            }
+            // The optional staff note goes through the normal comment flow (post refresh, log, DMs).
+            const note = typeof body.note === "string" ? body.note.trim() : "";
+            let noteError: string | null = null;
+            if (note && action !== "deny") {
+              const commented = await addWebSuggestionComment(guild, suggestionId, userId, note);
+              if ("error" in commented) noteError = commented.error;
             }
             const actionLabel =
               action === "approve" ? "approved" : action === "deny" ? "denied" : "marked";
@@ -7766,6 +7816,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 200, {
               guild: { id: guild.id, name: guild.name, icon: guild.icon },
               suggestion: detail,
+              noteError,
             });
             return;
           }
@@ -7822,7 +7873,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           if (req.method === "DELETE") {
-            const result = await webDeleteSuggestion(guild, suggestionId, userId);
+            const result = await webDeleteSuggestion(guild, suggestionId, userId, url.searchParams.get("silent") === "true");
             if (result.error || !result.suggestion) {
               sendJson(res, 400, { error: result.error ?? "Delete failed" });
               return;
@@ -7847,15 +7898,151 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const byNumber = url.searchParams.get("byNumber") === "true";
-          const detail = await getWebSuggestion(guild, suggestionId, byNumber);
+          if (byNumber) {
+            const found = await getWebSuggestion(guild, suggestionId, true);
+            if (!found) {
+              sendJson(res, 404, { error: "Suggestion not found" });
+              return;
+            }
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, suggestion: found });
+            return;
+          }
+          const { getWebSuggestionDetail } = await import("./webSuggestions.js");
+          const detail = await getWebSuggestionDetail(guild, suggestionId);
           if (!detail) {
             sendJson(res, 404, { error: "Suggestion not found" });
             return;
           }
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
-            suggestion: detail,
+            ...detail,
           });
+          return;
+        }
+
+        if (suggestionExtraMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const kind = suggestionExtraMatch[2];
+          const targetUserId = suggestionExtraMatch[3] ?? null;
+          const web = await import("./webSuggestions.js");
+          const guildInfo = { id: guild.id, name: guild.name, icon: guild.icon };
+
+          if (kind === "bulk") {
+            if (req.method !== "POST" || targetUserId) {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            let body: { ids?: unknown; action?: string; reason?: string; status?: string; silent?: boolean } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const { parseBulkIds } = await import("../plugins/suggestions/functions/states.js");
+            const ids = parseBulkIds(body.ids, 50);
+            const action = body.action;
+            if (ids.length === 0) {
+              sendJson(res, 400, { error: "Pick at least one suggestion." });
+              return;
+            }
+            if (action !== "approve" && action !== "deny" && action !== "mark" && action !== "delete") {
+              sendJson(res, 400, { error: "action must be approve, deny, mark or delete" });
+              return;
+            }
+            if (action === "mark" && !web.isDisplayStatus(body.status)) {
+              sendJson(res, 400, { error: "status must be one of none, considered, progress, implemented, no" });
+              return;
+            }
+            const result = await web.webBulkSuggestions(guild, userId, {
+              ids,
+              action,
+              reason: typeof body.reason === "string" ? body.reason : undefined,
+              status: web.isDisplayStatus(body.status) ? body.status : undefined,
+              silent: body.silent === true,
+            });
+            if (result.ok.length > 0) {
+              const verb =
+                action === "approve" ? "approved" : action === "deny" ? "denied" : action === "mark" ? "marked" : "deleted";
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_suggestion",
+                title: "Suggestions updated in bulk",
+                summary: `${result.ok.length} suggestion${result.ok.length === 1 ? " was" : "s were"} ${verb} from the dashboard.`,
+                details: [
+                  action === "mark" && body.status ? `Status: \`${body.status}\`` : "",
+                  action === "deny" && body.reason?.trim() ? `Reason: ${body.reason.trim()}` : "",
+                ],
+                payload: { action, ids: result.ok, status: body.status ?? null },
+              });
+            }
+            sendJson(res, 200, { guild: guildInfo, ...result });
+            return;
+          }
+
+          // Blocked members.
+          if (targetUserId) {
+            if (req.method !== "DELETE") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            const removed = await web.webUnblockSuggester(guild, targetUserId);
+            if (removed) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_suggestion",
+                title: "Member unblocked from suggesting",
+                summary: `<@${targetUserId}> can suggest again (unblocked from the dashboard).`,
+                targetId: targetUserId,
+                payload: { action: "unblock", userId: targetUserId },
+              });
+            }
+            sendJson(res, 200, { guild: guildInfo, ok: removed });
+            return;
+          }
+          if (req.method === "GET") {
+            sendJson(res, 200, { guild: guildInfo, blocks: await web.listWebSuggestionBlocks(guild) });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: { targetUserId?: string; reason?: string; duration?: string } = {};
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const target = String(body.targetUserId ?? "").trim();
+            const result = await web.webBlockSuggester(guild, userId, {
+              userId: target,
+              reason: body.reason,
+              duration: body.duration,
+            });
+            if ("error" in result) {
+              sendJson(res, 400, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_suggestion",
+              title: "Member blocked from suggesting",
+              summary: `<@${target}> was blocked from suggesting from the dashboard.`,
+              details: [
+                body.reason?.trim() ? `Reason: ${body.reason.trim()}` : "",
+                body.duration?.trim() ? `For: ${body.duration.trim()}` : "",
+              ],
+              targetId: target,
+              payload: { action: "block", userId: target, duration: body.duration ?? null },
+            });
+            sendJson(res, 200, { guild: guildInfo, ...result });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 
@@ -8070,7 +8257,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (ticketsMatch || ticketOneMatch || ticketStatsMatch || ticketActionMatch || ticketPanelPublishMatch || ticketBlacklistMatch) {
+        if (ticketsMatch || ticketOneMatch || ticketStatsMatch || ticketBulkMatch || ticketActionMatch || ticketPanelPublishMatch || ticketBlacklistMatch) {
           const userId = url.searchParams.get("userId")?.trim();
           if (!userId) {
             sendJson(res, 400, { error: "userId is required" });
@@ -8087,6 +8274,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             getGuildTicket,
             getGuildTicketStats,
             performTicketAction,
+            performTicketBulk,
             deleteGuildTicket,
             webRenameTicket,
             publishTicketPanel,
@@ -8106,6 +8294,37 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
 
+          if (ticketBulkMatch) {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            let raw: unknown;
+            try {
+              raw = JSON.parse(await readBody(req));
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const { parseTicketBulkBody } = await import("./webTicketsLogic.js");
+            const parsed = parseTicketBulkBody(raw);
+            if ("error" in parsed) {
+              sendJson(res, 400, { error: parsed.error });
+              return;
+            }
+            const result = await performTicketBulk(guild, userId, parsed);
+            if (result.ok.length) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_ticket",
+                title: `Tickets: bulk ${parsed.action}`,
+                summary: `${result.ok.length} ticket${result.ok.length === 1 ? " was" : "s were"} ${parsed.action === "close" ? "closed" : parsed.action === "claim" ? "claimed" : parsed.action === "assign" ? "assigned" : "deleted"} from the dashboard.`,
+                payload: { action: `bulk_${parsed.action}`, ids: result.ok },
+              });
+            }
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...result });
+            return;
+          }
+
           if (ticketBlacklistMatch) {
             if (req.method === "GET") {
               sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, blacklist: await listGuildTicketBlacklist(guild) });
@@ -8119,7 +8338,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
                 sendJson(res, 400, { error: "Invalid JSON body" });
                 return;
               }
-              if (!body.targetId) {
+              if (!body.targetId || !/^\d{15,22}$/.test(body.targetId)) {
                 sendJson(res, 400, { error: "targetId is required" });
                 return;
               }
@@ -8182,7 +8401,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 405, { error: "Method not allowed" });
               return;
             }
-            let body: { reason?: string; userId?: string; name?: string; status?: string } = {};
+            let body: {
+              reason?: string;
+              userId?: string;
+              targetUserId?: string;
+              name?: string;
+              status?: string;
+              priority?: string;
+              content?: string;
+            } = {};
             try {
               body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
@@ -8209,7 +8436,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const result = await performTicketAction(
               guild,
               ticketId,
-              action as "close" | "claim" | "unclaim" | "assign" | "unassign" | "status" | "reopen" | "add" | "remove",
+              action as import("./webTickets.js").TicketAction,
               userId,
               body,
             );
@@ -8220,7 +8447,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const actionSummary =
               action === "status"
                 ? `set to \`${body.status}\``
-                : `${action}${action.endsWith("e") ? "d" : "ed"}`;
+                : action === "priority"
+                  ? `set to \`${body.priority}\` priority`
+                  : action === "reply"
+                    ? "replied to"
+                    : `${action}${action.endsWith("e") ? "d" : "ed"}`;
             trackDashboardAction(client, guildId, userId, {
               eventType: "dashboard_ticket",
               title: `Ticket ${action}`,

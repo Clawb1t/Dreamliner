@@ -3,7 +3,7 @@ import { definePlugin } from "../../core/plugin.js";
 import { zAutoroleConfig, type AutoroleConfig } from "../../config/schemas/autorole.js";
 import { configManager } from "../../config/manager.js";
 import { getAutorolePluginConfig } from "../../core/guildHelpers.js";
-import { scheduleAutoroles } from "./functions/applyRoles.js";
+import { handleAutoroleJoin } from "./functions/joinFlow.js";
 
 export const autorolePlugin = definePlugin({
   name: "autorole",
@@ -21,7 +21,7 @@ export const autorolePlugin = definePlugin({
         if (section?.enabled === false) return;
 
         const pluginConfig = getAutorolePluginConfig(guildConfig) as AutoroleConfig;
-        scheduleAutoroles(m, pluginConfig);
+        await handleAutoroleJoin(m, pluginConfig);
       },
     },
   ],

@@ -1918,12 +1918,26 @@
                     "kind": "role",
                     "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                   }
+                },
+                "wait_for_passport": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Works with Passport: give human autoroles once the member passes Passport verification instead of on join. Per-role delays then count from verification. Ignored while Passport is off.",
+                  "title": "Wait For Passport"
+                },
+                "skip_if_restored": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Works with Member Identity: skip autoroles for a rejoining member whose saved roles Member Identity just gave back.",
+                  "title": "Skip If Restored"
                 }
               },
               "additionalProperties": false,
               "default": {
                 "roles": [],
-                "bot_roles": []
+                "bot_roles": [],
+                "wait_for_passport": false,
+                "skip_if_restored": false
               },
               "title": "Config"
             }
@@ -2732,6 +2746,12 @@
                     "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                   }
                 },
+                "protect_team_ranks": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Works with Team Control: everyone holding a Team Control staff rank role is protected too, on top of Protected roles. Needs Team Control turned on.",
+                  "title": "Protect Team Ranks"
+                },
                 "compare_scope": {
                   "type": "string",
                   "enum": [
@@ -2846,6 +2866,7 @@
               "default": {
                 "ignored_roles": [],
                 "protected_roles": [],
+                "protect_team_ranks": false,
                 "compare_scope": "protected_only",
                 "check_on_join": true,
                 "check_username": true,
@@ -2958,6 +2979,24 @@
                       "default": true,
                       "description": "Watch the audit log for mass channel/role deletion, mass bans/kicks, webhook bursts, and surprise admin grants.",
                       "title": "Nuke Detection"
+                    },
+                    "invite_raid": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Feed Invite Tracker's invite-burst raid guard into Incident Response.",
+                      "title": "Invite Raid"
+                    },
+                    "ban_evasion": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Feed Passport ban-evasion matches (a new member linked to an account banned here) into Incident Response.",
+                      "title": "Ban Evasion"
+                    },
+                    "mesh_watchlist": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Feed joins by accounts named in a recent Raid Defense Mesh alert into Incident Response.",
+                      "title": "Mesh Watchlist"
                     }
                   },
                   "additionalProperties": false,
@@ -3130,6 +3169,12 @@
                         "kind": "role",
                         "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                       }
+                    },
+                    "notify_on_shift": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Works with Team Control: ping up to 5 staff who are clocked in (not on break or leave) instead of the roles above. Falls back to the roles when nobody is on shift or Team Control is off.",
+                      "title": "Notify On Shift"
                     }
                   },
                   "additionalProperties": false,
@@ -3206,6 +3251,12 @@
                         "kind": "role",
                         "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                       }
+                    },
+                    "notify_on_shift": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Works with Team Control: ping up to 5 staff who are clocked in (not on break or leave) instead of the roles above. Falls back to the roles when nobody is on shift or Team Control is off.",
+                      "title": "Notify On Shift"
                     }
                   },
                   "additionalProperties": false,
@@ -3282,6 +3333,12 @@
                         "kind": "role",
                         "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                       }
+                    },
+                    "notify_on_shift": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Works with Team Control: ping up to 5 staff who are clocked in (not on break or leave) instead of the roles above. Falls back to the roles when nobody is on shift or Team Control is off.",
+                      "title": "Notify On Shift"
                     }
                   },
                   "additionalProperties": false,
@@ -3358,6 +3415,12 @@
                         "kind": "role",
                         "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                       }
+                    },
+                    "notify_on_shift": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Works with Team Control: ping up to 5 staff who are clocked in (not on break or leave) instead of the roles above. Falls back to the roles when nobody is on shift or Team Control is off.",
+                      "title": "Notify On Shift"
                     }
                   },
                   "additionalProperties": false,
@@ -3388,7 +3451,10 @@
                   "raid": true,
                   "impersonation": true,
                   "scam_protect": true,
-                  "nuke_detection": true
+                  "nuke_detection": true,
+                  "invite_raid": true,
+                  "ban_evasion": true,
+                  "mesh_watchlist": true
                 },
                 "nuke": {
                   "channel_delete_count": 3,
@@ -3405,19 +3471,23 @@
                 },
                 "policy_low": {
                   "actions": [],
-                  "notify_roles": []
+                  "notify_roles": [],
+                  "notify_on_shift": false
                 },
                 "policy_medium": {
                   "actions": [],
-                  "notify_roles": []
+                  "notify_roles": [],
+                  "notify_on_shift": false
                 },
                 "policy_high": {
                   "actions": [],
-                  "notify_roles": []
+                  "notify_roles": [],
+                  "notify_on_shift": false
                 },
                 "policy_critical": {
                   "actions": [],
-                  "notify_roles": []
+                  "notify_roles": [],
+                  "notify_on_shift": false
                 },
                 "can_manage": false
               },
@@ -3448,10 +3518,37 @@
                     "kind": "channel",
                     "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
                   }
+                },
+                "watchlist": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Remember the accounts named in an incoming mesh alert and flag them if they join this server.",
+                      "title": "Enabled"
+                    },
+                    "hours": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 168,
+                      "default": 24,
+                      "description": "How long accounts from an incoming alert stay on the watchlist (1 to 168 hours).",
+                      "title": "Hours"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Watchlist"
                 }
               },
               "additionalProperties": false,
-              "default": {},
+              "default": {
+                "watchlist": {
+                  "enabled": true,
+                  "hours": 24
+                }
+              },
               "title": "Config"
             }
           },
@@ -4225,6 +4322,12 @@
                   "description": "Collect network signals during verification to flag likely alt accounts in the Alts tab.",
                   "title": "Alt Detection"
                 },
+                "alt_ban_evasion_alerts": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "With alt detection on, alert staff when a newly verified member is linked to an account with an active ban in this server.",
+                  "title": "Alt Ban Evasion Alerts"
+                },
                 "min_account_age_seconds": {
                   "type": "integer",
                   "minimum": 0,
@@ -4394,6 +4497,7 @@
                 },
                 "remember_verifications": true,
                 "alt_detection": false,
+                "alt_ban_evasion_alerts": true,
                 "min_account_age_seconds": 0,
                 "bypass_role_ids": [],
                 "timeout_action": "none",
@@ -7069,6 +7173,438 @@
                   "default": {},
                   "title": "Wave Button"
                 },
+                "welcome_back": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Post this message in the join channel instead of the normal welcome when someone who was here before rejoins.",
+                      "title": "Enabled"
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "string",
+                          "maxLength": 2000,
+                          "default": "",
+                          "description": "Optional message content above the embed/card. Supports placeholders.",
+                          "title": "Content"
+                        },
+                        "embed": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Include a Discord embed in the message.",
+                              "title": "Enabled"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Embed title. Supports placeholders.",
+                              "title": "Title"
+                            },
+                            "description": {
+                              "type": "string",
+                              "maxLength": 4096,
+                              "default": "",
+                              "description": "Embed description. Supports placeholders.",
+                              "title": "Description"
+                            },
+                            "color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Embed accent color as a decimal integer (0–16777215).",
+                              "default": 5661429,
+                              "title": "Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "author_name": {
+                              "type": "string",
+                              "maxLength": 256,
+                              "default": "",
+                              "description": "Optional embed author name.",
+                              "title": "Author Name"
+                            },
+                            "author_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Author icon source.",
+                              "title": "Author Icon"
+                            },
+                            "author_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Author icon URL when mode is url.",
+                              "title": "Author Icon Url"
+                            },
+                            "thumbnail": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "avatar",
+                              "description": "Thumbnail image source.",
+                              "title": "Thumbnail"
+                            },
+                            "thumbnail_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Thumbnail URL when mode is url.",
+                              "title": "Thumbnail Url"
+                            },
+                            "image": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Large embed image. Image cards attach as files, not embed images.",
+                              "title": "Image"
+                            },
+                            "image_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Image URL when mode is url.",
+                              "title": "Image Url"
+                            },
+                            "footer_text": {
+                              "type": "string",
+                              "maxLength": 2048,
+                              "default": "",
+                              "description": "Footer text. Supports placeholders.",
+                              "title": "Footer Text"
+                            },
+                            "footer_icon": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "avatar",
+                                "guild",
+                                "url"
+                              ],
+                              "default": "none",
+                              "description": "Footer icon source.",
+                              "title": "Footer Icon"
+                            },
+                            "footer_icon_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Footer icon URL when mode is url.",
+                              "title": "Footer Icon Url"
+                            },
+                            "timestamp": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Show the current time in the embed footer.",
+                              "title": "Timestamp"
+                            },
+                            "fields": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 256,
+                                    "default": "",
+                                    "description": "Embed field name.",
+                                    "title": "Name"
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "maxLength": 1024,
+                                    "default": "",
+                                    "description": "Embed field value. Supports placeholders.",
+                                    "title": "Value"
+                                  },
+                                  "inline": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Display the field inline.",
+                                    "title": "Inline"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "maxItems": 25,
+                              "default": [],
+                              "description": "Optional embed fields.",
+                              "title": "Fields"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Embed"
+                        },
+                        "card": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Generate and attach a welcome/leave image card.",
+                              "title": "Enabled"
+                            },
+                            "background_type": {
+                              "type": "string",
+                              "enum": [
+                                "color",
+                                "url",
+                                "asset"
+                              ],
+                              "default": "color",
+                              "description": "Card background source.",
+                              "title": "Background Type"
+                            },
+                            "background_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Solid background color when type is color.",
+                              "default": 1974050,
+                              "title": "Background Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "background_url": {
+                              "type": "string",
+                              "maxLength": 512,
+                              "default": "",
+                              "description": "Background image URL when type is url.",
+                              "title": "Background Url"
+                            },
+                            "background_asset_id": {
+                              "type": "string",
+                              "maxLength": 128,
+                              "default": "",
+                              "description": "Uploaded background asset id when type is asset.",
+                              "title": "Background Asset Id",
+                              "x-dreamliner": {
+                                "kind": "snowflake",
+                                "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
+                              }
+                            },
+                            "avatar_layout": {
+                              "type": "string",
+                              "enum": [
+                                "left",
+                                "center",
+                                "right"
+                              ],
+                              "default": "left",
+                              "description": "Preset position for the member avatar.",
+                              "title": "Avatar Layout"
+                            },
+                            "text_layout": {
+                              "type": "string",
+                              "enum": [
+                                "beside",
+                                "below",
+                                "overlay_center",
+                                "overlay_bottom"
+                              ],
+                              "default": "beside",
+                              "description": "Preset position for greeting and subtitle text.",
+                              "title": "Text Layout"
+                            },
+                            "avatar_style": {
+                              "type": "string",
+                              "enum": [
+                                "circle",
+                                "rounded_square"
+                              ],
+                              "default": "circle",
+                              "description": "Avatar shape.",
+                              "title": "Avatar Style"
+                            },
+                            "show_avatar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the member avatar on the card.",
+                              "title": "Show Avatar"
+                            },
+                            "show_accent_bar": {
+                              "type": "boolean",
+                              "default": true,
+                              "description": "Draw the left accent bar.",
+                              "title": "Show Accent Bar"
+                            },
+                            "greeting_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Welcome {user_display}!",
+                              "description": "Primary card text. Supports placeholders.",
+                              "title": "Greeting Text"
+                            },
+                            "subtitle_text": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "default": "Member #{guild_member_count}",
+                              "description": "Secondary card text. Supports placeholders.",
+                              "title": "Subtitle Text"
+                            },
+                            "text_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card text color.",
+                              "default": 16777215,
+                              "title": "Text Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "accent_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Accent bar / avatar ring color.",
+                              "default": 5661429,
+                              "title": "Accent Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_color": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16777215,
+                              "description": "Card border color.",
+                              "default": 5661429,
+                              "title": "Border Color",
+                              "x-dreamliner": {
+                                "kind": "color",
+                                "setup": "Pick a color for embeds. Stored as a decimal integer (0–16777215)."
+                              }
+                            },
+                            "border_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 32,
+                              "default": 0,
+                              "description": "Card border thickness in pixels.",
+                              "title": "Border Width"
+                            },
+                            "border_radius": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 80,
+                              "default": 24,
+                              "description": "Card corner radius in pixels.",
+                              "title": "Border Radius"
+                            },
+                            "avatar_size": {
+                              "type": "integer",
+                              "minimum": 64,
+                              "maximum": 240,
+                              "default": 180,
+                              "description": "Avatar size in pixels.",
+                              "title": "Avatar Size"
+                            },
+                            "avatar_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal avatar nudge in pixels.",
+                              "title": "Avatar Offset X"
+                            },
+                            "avatar_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical avatar nudge in pixels.",
+                              "title": "Avatar Offset Y"
+                            },
+                            "text_offset_x": {
+                              "type": "integer",
+                              "minimum": -400,
+                              "maximum": 400,
+                              "default": 0,
+                              "description": "Horizontal text nudge in pixels.",
+                              "title": "Text Offset X"
+                            },
+                            "text_offset_y": {
+                              "type": "integer",
+                              "minimum": -200,
+                              "maximum": 200,
+                              "default": 0,
+                              "description": "Vertical text nudge in pixels.",
+                              "title": "Text Offset Y"
+                            },
+                            "greeting_size": {
+                              "type": "integer",
+                              "minimum": 18,
+                              "maximum": 72,
+                              "default": 44,
+                              "description": "Greeting font size in pixels.",
+                              "title": "Greeting Size"
+                            },
+                            "subtitle_size": {
+                              "type": "integer",
+                              "minimum": 12,
+                              "maximum": 48,
+                              "default": 24,
+                              "description": "Subtitle font size in pixels.",
+                              "title": "Subtitle Size"
+                            },
+                            "avatar_ring_width": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 16,
+                              "default": 6,
+                              "description": "Avatar ring thickness in pixels.",
+                              "title": "Avatar Ring Width"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {},
+                          "title": "Card"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "default": {
+                        "content": "Welcome back {user}! Good to see you in **{guild}** again.",
+                        "card": {
+                          "greeting_text": "Welcome back {user_display}!"
+                        }
+                      },
+                      "description": "The welcome back message. Supports the same placeholders as the join message.",
+                      "title": "Message"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "default": {},
+                  "title": "Welcome Back"
+                },
                 "require_passport_verification": {
                   "type": "boolean",
                   "default": false,
@@ -8132,6 +8668,57 @@
                   "enabled": false,
                   "label": "Wave",
                   "emoji": "<:icons_wave:1544418074172727328>"
+                },
+                "welcome_back": {
+                  "enabled": false,
+                  "message": {
+                    "content": "Welcome back {user}! Good to see you in **{guild}** again.",
+                    "embed": {
+                      "enabled": false,
+                      "title": "",
+                      "description": "",
+                      "color": 5661429,
+                      "author_name": "",
+                      "author_icon": "none",
+                      "author_icon_url": "",
+                      "thumbnail": "avatar",
+                      "thumbnail_url": "",
+                      "image": "none",
+                      "image_url": "",
+                      "footer_text": "",
+                      "footer_icon": "none",
+                      "footer_icon_url": "",
+                      "timestamp": false,
+                      "fields": []
+                    },
+                    "card": {
+                      "enabled": false,
+                      "background_type": "color",
+                      "background_color": 1974050,
+                      "background_url": "",
+                      "background_asset_id": "",
+                      "avatar_layout": "left",
+                      "text_layout": "beside",
+                      "avatar_style": "circle",
+                      "show_avatar": true,
+                      "show_accent_bar": true,
+                      "greeting_text": "Welcome back {user_display}!",
+                      "subtitle_text": "Member #{guild_member_count}",
+                      "text_color": 16777215,
+                      "accent_color": 5661429,
+                      "border_color": 5661429,
+                      "border_width": 0,
+                      "border_radius": 24,
+                      "avatar_size": 180,
+                      "avatar_offset_x": 0,
+                      "avatar_offset_y": 0,
+                      "text_offset_x": 0,
+                      "text_offset_y": 0,
+                      "greeting_size": 44,
+                      "subtitle_size": 24,
+                      "avatar_ring_width": 6
+                    }
+                  }
                 },
                 "require_passport_verification": false,
                 "member_milestones": {
@@ -11064,6 +11651,12 @@
                   "description": "Minimum time in this server before reviewing, e.g. `1d` or `1w`. Empty string disables.",
                   "title": "Min Member Age"
                 },
+                "require_passport": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Works with Passport. Verified members only: members must pass Passport before reviewing. Ignored while Passport is off.",
+                  "title": "Require Passport"
+                },
                 "cooldown": {
                   "type": "string",
                   "default": "7d",
@@ -11204,6 +11797,7 @@
                 "min_messages": 50,
                 "min_account_age": "7d",
                 "min_member_age": "3d",
+                "require_passport": false,
                 "cooldown": "7d",
                 "allow_edit": true,
                 "allowed_roles": [],
@@ -11406,6 +12000,12 @@
                   "default": "1d",
                   "description": "Minimum time in this server, e.g. `1d`. Empty string disables.",
                   "title": "Min Member Age"
+                },
+                "require_passport": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Works with Passport. Verified members only: members must pass Passport before suggesting. Ignored while Passport is off.",
+                  "title": "Require Passport"
                 },
                 "command_channels": {
                   "type": "array",
@@ -11721,6 +12321,7 @@
                 "min_messages": 25,
                 "min_account_age": "7d",
                 "min_member_age": "1d",
+                "require_passport": false,
                 "command_channels": [],
                 "ignored_channels": [],
                 "allow_attachments": true,
@@ -11827,6 +12428,12 @@
                   "default": true,
                   "description": "Tell blacklisted members why their ticket attempt was blocked.",
                   "title": "Blacklist Notify"
+                },
+                "require_passport": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Works with Passport. Verified members only: members must pass Passport before opening a ticket. Ignored while Passport is off.",
+                  "title": "Require Passport"
                 },
                 "sync_status_to_topic": {
                   "type": "boolean",
@@ -12353,6 +12960,12 @@
                                       "setup": "Use a Discord snowflake ID. Enable Developer Mode, then right-click the channel, role, or user → Copy ID."
                                     }
                                   },
+                                  "on_shift_only": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Works with Team Control: ping up to 5 staff who are clocked in (not on break or leave) instead of the whole role, preferring on-shift staff who hold the role. Falls back to the role when nobody is on shift or Team Control is off. Only used by ping_role.",
+                                    "title": "On Shift Only"
+                                  },
                                   "channel_id": {
                                     "type": "string",
                                     "description": "Channel to post the alert to. Only used by notify_channel. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
@@ -12831,6 +13444,7 @@
                 "feedback_enabled": false,
                 "max_open_tickets_per_user": 1,
                 "blacklist_notify": true,
+                "require_passport": false,
                 "sync_status_to_topic": false,
                 "auto_status_updates": false,
                 "panels": [],
@@ -13577,10 +14191,12 @@
                         "type": "string",
                         "enum": [
                           "messages",
-                          "voice_minutes"
+                          "voice_minutes",
+                          "starboard_posts",
+                          "suggestions_implemented"
                         ],
                         "default": "messages",
-                        "description": "What members progress towards: messages sent, or minutes spent in voice.",
+                        "description": "What members progress towards: messages sent, minutes spent in voice, their messages on the Starboard (works with Starboard), or their suggestions marked implemented (works with Suggestions).",
                         "title": "Metric"
                       },
                       "threshold": {
@@ -13588,7 +14204,7 @@
                         "minimum": 1,
                         "maximum": 100000000,
                         "default": 100,
-                        "description": "Messages (or voice minutes) needed to reach this milestone.",
+                        "description": "Messages, voice minutes, starboard posts or implemented suggestions needed to reach this milestone.",
                         "title": "Threshold"
                       },
                       "roles": {
@@ -16184,6 +16800,18 @@
                         "kind": "role",
                         "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                       }
+                    },
+                    "report_incidents": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Also raise an Incident Response signal when a burst trips (only if Incident Response is on).",
+                      "title": "Report Incidents"
+                    },
+                    "share_with_mesh": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Also alert servers linked through Raid Defense Mesh, naming the accounts in the burst (only if Raid Defense Mesh is on).",
+                      "title": "Share With Mesh"
                     }
                   },
                   "additionalProperties": false,
@@ -16419,7 +17047,9 @@
                   "window_seconds": 60,
                   "action": "alert",
                   "pause_minutes": 60,
-                  "alert_role_id": null
+                  "alert_role_id": null,
+                  "report_incidents": true,
+                  "share_with_mesh": true
                 },
                 "retention_days": 365,
                 "can_view": true,
@@ -16998,6 +17628,12 @@
                       "description": "Measure quotas in weighted points instead of per-metric targets (Dreamliner One).",
                       "title": "Points Mode"
                     },
+                    "show_overturned_cases": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Works with Appeals: show how many of each moderator's cases were overturned on appeal. Informational only, it never counts toward quotas, points, strikes or automatic actions.",
+                      "title": "Show Overturned Cases"
+                    },
                     "weights": {
                       "type": "object",
                       "properties": {
@@ -17562,6 +18198,7 @@
                   "report_channel_id": null,
                   "scheduled_reports": false,
                   "points_mode": false,
+                  "show_overturned_cases": false,
                   "weights": {
                     "shift_hour": 10,
                     "mod_action": 2,
@@ -19491,6 +20128,12 @@
                           "kind": "role",
                           "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                         }
+                      },
+                      "require_passport": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Works with Passport. Verified members only: applicants must pass Passport first. Ignored while Passport is off.",
+                        "title": "Require Passport"
                       },
                       "min_account_age_days": {
                         "type": "integer",

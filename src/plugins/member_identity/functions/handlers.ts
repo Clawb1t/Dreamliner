@@ -8,6 +8,7 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { getMemberIdentity, upsertMemberIdentity, type MemberIdentitySnapshot } from "./store.js";
+import { capMap, createPruner } from "../../../core/mapPrune.js";
 
 const RESTORE_REASON = "Dreamliner member identity";
 
@@ -96,15 +97,17 @@ function filterRestorableRoles(member: GuildMember, roleIds: string[], config: M
     });
 }
 
+/** Applies a snapshot; resolves true when at least one role was given back. */
 async function applySnapshot(
   member: GuildMember,
   snapshot: MemberIdentitySnapshot,
   config: MemberIdentityConfig,
-): Promise<void> {
+): Promise<boolean> {
+  let restoredRoles = false;
   if (config.restore_roles) {
     const roles = filterRestorableRoles(member, snapshot.roleIds, config);
     if (roles.length > 0) {
-      await member.roles.add(roles, RESTORE_REASON).catch(() => null);
+      restoredRoles = Boolean(await member.roles.add(roles, RESTORE_REASON).catch(() => null));
     }
   }
 
@@ -118,33 +121,72 @@ async function applySnapshot(
       await member.disableCommunicationUntil(snapshot.timeoutUntil, RESTORE_REASON).catch(() => null);
     }
   }
+  return restoredRoles;
 }
 
-export async function restoreMemberIdentity(member: GuildMember): Promise<void> {
+async function runRestore(member: GuildMember): Promise<boolean> {
   const guild = member.guild;
-  if (!guild) return;
+  if (!guild) return false;
 
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
-  if (!pluginEnabled(guildConfig, "member_identity")) return;
+  if (!pluginEnabled(guildConfig, "member_identity")) return false;
 
   const config = getMemberIdentityConfig(guildConfig);
-  if (config.ignore_bots && member.user.bot) return;
-  if (!config.restore_nickname && !config.restore_roles && !config.restore_timeout) return;
+  if (config.ignore_bots && member.user.bot) return false;
+  if (!config.restore_nickname && !config.restore_roles && !config.restore_timeout) return false;
 
   const snapshot = await getMemberIdentity(guild.id, member.id);
-  if (!snapshot) return;
-
-  const run = async () => {
-    const stillEnabled = pluginEnabled(await configManager.getEffectiveConfig(guild.id), "member_identity");
-    if (!stillEnabled) return;
-    const refreshed = await guild.members.fetch(member.id).catch(() => null);
-    if (!refreshed) return;
-    await applySnapshot(refreshed, snapshot, config);
-  };
+  if (!snapshot) return false;
 
   if (config.delay_ms > 0) {
-    setTimeout(() => void run(), config.delay_ms);
-    return;
+    await new Promise((resolve) => setTimeout(resolve, config.delay_ms));
   }
-  await run();
+  const stillEnabled = pluginEnabled(await configManager.getEffectiveConfig(guild.id), "member_identity");
+  if (!stillEnabled) return false;
+  const refreshed = await guild.members.fetch(member.id).catch(() => null);
+  if (!refreshed) return false;
+  return applySnapshot(refreshed, snapshot, config);
+}
+
+/** One restore per join, shared by every caller (see restoreMemberIdentity). Settled entries are
+ *  kept a while so a late caller still gets the same answer instead of restoring again. */
+const restores = new Map<string, { promise: Promise<boolean>; settledAt: number | null }>();
+const RESTORE_REMEMBER_MS = 24 * 60 * 60_000;
+const pruneRestores = createPruner(
+  restores,
+  (entry, now) => entry.settledAt !== null && now - entry.settledAt >= RESTORE_REMEMBER_MS,
+  10 * 60_000,
+);
+
+function restoreKey(member: GuildMember): string {
+  return `${member.guild.id}:${member.id}:${member.joinedTimestamp ?? 0}`;
+}
+
+/**
+ * Restores a rejoining member's saved nickname, roles and timeout (after `delay_ms`). Resolves
+ * true when roles were given back. Idempotent per join: Member Identity's own GuildMemberAdd
+ * handler and Autorole's `skip_if_restored` check both call this, and whichever runs first starts
+ * the restore while the other awaits the same promise, so handler order doesn't matter.
+ */
+export function restoreMemberIdentity(member: GuildMember): Promise<boolean> {
+  const key = restoreKey(member);
+  const existing = restores.get(key);
+  if (existing) return existing.promise;
+
+  pruneRestores();
+  capMap(restores, 10_000);
+  const entry: { promise: Promise<boolean>; settledAt: number | null } = { promise: Promise.resolve(false), settledAt: null };
+  entry.promise = runRestore(member)
+    .catch(() => false)
+    .then((restored) => {
+      entry.settledAt = Date.now();
+      return restored;
+    });
+  restores.set(key, entry);
+  return entry.promise;
+}
+
+/** The outcome of this join's restore if one already ran or is running, without starting one. */
+export function peekMemberRestore(member: GuildMember): Promise<boolean> | null {
+  return restores.get(restoreKey(member))?.promise ?? null;
 }

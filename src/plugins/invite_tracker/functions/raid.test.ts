@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clampPauseMinutes, RAID_COOLDOWN_MS, RaidDetector } from "./raid.js";
+import { clampPauseMinutes, RAID_COOLDOWN_MS, RaidDetector, RecentRaidJoiners } from "./raid.js";
 
 const opts = { threshold: 3, windowSeconds: 60 };
 
@@ -49,4 +49,14 @@ test("pause length is clamped to 15 minutes – 24 hours", () => {
   assert.equal(clampPauseMinutes(60), 60);
   assert.equal(clampPauseMinutes(5000), 1440);
   assert.equal(clampPauseMinutes(Number.NaN), 60);
+});
+
+test("RecentRaidJoiners names the burst's joiners newest first, within the window, then forgets them", () => {
+  const joiners = new RecentRaidJoiners();
+  joiners.record("g", "abc", { id: "1", username: "old", joinedAt: 0 }, 60);
+  joiners.record("g", "abc", { id: "2", username: "two", joinedAt: 100_000 }, 60);
+  joiners.record("g", "abc", { id: "3", username: "three", joinedAt: 110_000 }, 60);
+  joiners.record("g", "other", { id: "4", username: "four", joinedAt: 110_000 }, 60);
+  assert.deepEqual(joiners.take("g", "abc").map((j) => j.id), ["3", "2"]);
+  assert.deepEqual(joiners.take("g", "abc"), []);
 });

@@ -1,7 +1,7 @@
-import { and, desc, eq, isNotNull, like, lte, or } from "drizzle-orm";
+import { and, desc, eq, isNotNull, like, lte, or, sql } from "drizzle-orm";
 import type { ActionRowBuilder, Client, Guild, GuildMember, MessageActionRowComponentBuilder, User } from "discord.js";
 import { getDb } from "../../../db/client.js";
-import { modCases } from "../../../db/schema.js";
+import { appeals, modCases } from "../../../db/schema.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import type { InfractionType } from "../../../config/schemas/infraction.js";
@@ -27,13 +27,31 @@ export function rowToRecord(row: typeof modCases.$inferSelect): InfractionRecord
 
 const EXCLUDED_INFRACTION_COUNT_TYPES = ["note", "unmute", "unban"];
 
-export async function countUserInfractions(guildId: string, userId: string): Promise<number> {
+/** SQL condition: the mod case was NOT overturned by an approved appeal (`appeals.reversed = 1`).
+ * Filters on the appeal rather than `mod_cases.active`, because kicks/softbans are created inactive. */
+export function notOverturnedOnAppeal() {
+  return sql`NOT EXISTS (SELECT 1 FROM ${appeals} WHERE ${appeals.caseId} = ${modCases.id} AND ${appeals.guildId} = ${modCases.guildId} AND ${appeals.reversed} = 1)`;
+}
+
+export async function countUserInfractions(
+  guildId: string,
+  userId: string,
+  options: { excludeOverturned?: boolean; excludeCaseId?: number | null } = {},
+): Promise<number> {
   const db = getDb();
   const rows = await db
     .select()
     .from(modCases)
-    .where(and(eq(modCases.guildId, guildId), eq(modCases.userId, userId)));
-  return rows.filter((r) => !EXCLUDED_INFRACTION_COUNT_TYPES.includes(r.type)).length;
+    .where(
+      and(
+        eq(modCases.guildId, guildId),
+        eq(modCases.userId, userId),
+        options.excludeOverturned ? notOverturnedOnAppeal() : undefined,
+      ),
+    );
+  return rows.filter(
+    (r) => !EXCLUDED_INFRACTION_COUNT_TYPES.includes(r.type) && (options.excludeCaseId == null || r.id !== options.excludeCaseId),
+  ).length;
 }
 
 export async function countUserInfractionsGlobal(userId: string): Promise<number> {

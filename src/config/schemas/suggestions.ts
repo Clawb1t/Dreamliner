@@ -75,6 +75,10 @@ export const zSuggestionsConfig = z.strictObject({
     .string()
     .default("1d")
     .describe("Minimum time in this server, e.g. `1d`. Empty string disables."),
+  require_passport: z
+    .boolean()
+    .default(false)
+    .describe("Works with Passport. Verified members only: members must pass Passport before suggesting. Ignored while Passport is off."),
   command_channels: snowflakeList(
     "If non-empty, /suggest may only be used in these channels.",
   ),

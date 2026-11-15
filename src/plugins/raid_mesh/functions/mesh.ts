@@ -9,6 +9,7 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import type { RaidMeshConfig } from "../../../config/schemas/raidMesh.js";
 import type { RaidJoinRecord } from "../../automod/functions/detectors/index.js";
+import { forgetWatchlistFrom, rememberMeshAlertJoiners } from "./watchlist.js";
 
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_JOINERS_SHARED = 15;
@@ -75,6 +76,9 @@ export async function unlink(guildId: string, otherGuildId: string): Promise<voi
         and(eq(raidMeshLinks.guildId, otherGuildId), eq(raidMeshLinks.linkedGuildId, guildId)),
       ),
     );
+  // Ids shared over the link stop applying once it's gone.
+  await forgetWatchlistFrom(guildId, otherGuildId).catch(() => null);
+  await forgetWatchlistFrom(otherGuildId, guildId).catch(() => null);
 }
 
 /** Deletes invites past their TTL. Called periodically, see src/plugins/raid_mesh/index.ts. */
@@ -133,6 +137,11 @@ export async function broadcastRaidAlert(
         caseLogOverride: raidMeshConfig.alert_channel_id,
       },
     ).catch(() => null);
+
+    // Watchlist: flag these accounts if they join the linked server within its watch window.
+    await rememberMeshAlertJoiners(linkedGuildId, raidMeshConfig, { id: sourceGuild.id, name: sourceGuild.name }, joiners).catch(
+      () => 0,
+    );
   }
 }
 

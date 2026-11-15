@@ -8,6 +8,9 @@ export type TeamMetrics = {
   voiceMinutes: number;
   /** Weighted points, only in points mode. */
   points: number | null;
+  /** Their cases overturned on appeal in the period, only with `activity.show_overturned_cases`.
+   *  Informational only: never read by quotas, points, strikes or automatic actions. */
+  overturnedCases?: number | null;
 };
 
 export type QuotaKey = "shift_hours" | "mod_actions" | "tickets" | "messages" | "voice_hours" | "points";

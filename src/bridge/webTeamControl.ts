@@ -22,6 +22,7 @@ import { shiftDaily } from "../plugins/team_control/functions/activity.js";
 import { shiftWorkedSeconds } from "../plugins/team_control/functions/shiftMath.js";
 import { endShiftRecord, shiftTypeName } from "../plugins/team_control/functions/shifts.js";
 import { checklistProgress } from "../plugins/team_control/functions/onboarding.js";
+import { acceptedApplicationFor } from "../plugins/team_control/functions/application.js";
 import {
   countPendingLeave,
   deleteNote,
@@ -396,9 +397,22 @@ async function getMemberDetail(guild: Guild, runtime: Runtime, memberId: string,
   const actions = listActions(guild.id, { userId: memberId, since }, 100).rows;
   const onboarding = runtime.config.onboarding.enabled && runtime.config.onboarding.checklist.length > 0 ? checklistProgress(guild.id, memberId, runtime.config) : null;
   const doneBy = onboarding ? await resolvePeople(guild, onboarding.items.map((i) => i.doneBy)) : new Map<string, TeamPerson>();
+  // Works with Applications: the accepted application that got them onto the team.
+  const application = acceptedApplicationFor(runtime.guildConfig, guild.id, memberId);
+  const applicationReviewer = application?.reviewerId ? ((await resolvePeople(guild, [application.reviewerId])).get(application.reviewerId) ?? null) : null;
   return {
     ok: true,
     member: row!,
+    application: application
+      ? {
+          id: application.id,
+          openingName: application.openingName,
+          submittedAt: application.submittedAt.toISOString(),
+          decidedAt: application.decidedAt?.toISOString() ?? null,
+          reviewer: applicationReviewer,
+          reviewUrl: application.reviewUrl,
+        }
+      : null,
     rankHistory: await actionRows(
       guild,
       runtime,
@@ -563,6 +577,10 @@ async function getActivity(guild: Guild, runtime: Runtime, query: URLSearchParam
     totals.staffMessages += s.metrics.staffMessages;
     totals.voiceMinutes += s.metrics.voiceMinutes;
     if (totals.points !== null) totals.points = Math.round((totals.points + (s.metrics.points ?? 0)) * 10) / 10;
+  }
+  // Works with Appeals: display only, never part of quotas (see TeamMetrics.overturnedCases).
+  if (runtime.config.activity.show_overturned_cases) {
+    totals.overturnedCases = summaries.reduce((sum, s) => sum + (s.metrics.overturnedCases ?? 0), 0);
   }
   return {
     ok: true,

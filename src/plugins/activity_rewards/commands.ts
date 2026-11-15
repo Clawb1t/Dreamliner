@@ -1,5 +1,10 @@
 import { PermissionFlagsBits, SlashCommandBuilder, type GuildMember } from "discord.js";
-import type { ActivityMetric, ActivityRewardsConfig } from "../../config/schemas/activityRewards.js";
+import {
+  ACTIVITY_METRICS,
+  type ActivityMetric,
+  type ActivityRewardsConfig,
+  type ActivityTrackedMetric,
+} from "../../config/schemas/activityRewards.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
 import type { SlashCommandContext, SlashCommandDefinition } from "../../core/types.js";
@@ -16,6 +21,7 @@ import {
   type ActivityProgress,
 } from "./functions/config.js";
 import { processMember } from "./functions/rewards.js";
+import { withContributions } from "./functions/contributions.js";
 import { addProgress, getProgress, memberRank, topMembers } from "./functions/store.js";
 import { resetMemberRewards } from "./functions/sync.js";
 
@@ -30,9 +36,16 @@ function progressBar(fraction: number, width = 10): string {
 }
 
 function formatTrackValue(progress: ActivityProgress, metric: ActivityMetric): string {
-  return metric === "messages"
-    ? `${formatCount(progress.messages)} messages`
-    : formatVoiceSeconds(progress.voiceSeconds);
+  switch (metric) {
+    case "messages":
+      return `${formatCount(progress.messages)} messages`;
+    case "voice_minutes":
+      return formatVoiceSeconds(progress.voiceSeconds);
+    case "starboard_posts":
+      return `${formatCount(progress.starboardPosts ?? 0)} on the starboard`;
+    case "suggestions_implemented":
+      return `${formatCount(progress.suggestionsImplemented ?? 0)} implemented`;
+  }
 }
 
 function trackSummary(
@@ -47,11 +60,19 @@ function trackSummary(
   if (milestones.length === 0) return null;
 
   const value = metricValue(progress, metric);
-  const rank = memberRank(guildId, metric === "messages" ? progress.messages : progress.voiceSeconds, metric);
+  // Leaderboard rank only exists for the tracks Activity Rewards counts itself.
+  const rank =
+    metric === "messages" || metric === "voice_minutes"
+      ? memberRank(guildId, metric === "messages" ? progress.messages : progress.voiceSeconds, metric)
+      : null;
   const heading =
     metric === "messages"
       ? t("activity_rewards.trackMessages", "Messages")
-      : t("activity_rewards.trackVoice", "Voice time");
+      : metric === "voice_minutes"
+        ? t("activity_rewards.trackVoice", "Voice time")
+        : metric === "starboard_posts"
+          ? t("activity_rewards.trackStarboard", "Starboard posts")
+          : t("activity_rewards.trackSuggestions", "Suggestions implemented");
   const rankText = rank ? ` · #${rank}` : "";
   const lines = [`**${heading}:** ${formatTrackValue(progress, metric)}${rankText}`];
 
@@ -144,8 +165,8 @@ export const activityRewardsCommands: SlashCommandDefinition[] = [
           await reply(ctx, title, t("activity_rewards.memberNotFound", "That member isn't in this server."), "warning");
           return;
         }
-        const progress = getProgress(guildId, target.id);
-        const tracks = (["messages", "voice_minutes"] as ActivityMetric[])
+        const progress = withContributions(guildId, target.id, getProgress(guildId, target.id), config);
+        const tracks = ACTIVITY_METRICS
           .map((metric) => trackSummary(ctx, config, guildId, progress, metric))
           .filter((line): line is string => Boolean(line));
         if (tracks.length === 0) {
@@ -185,7 +206,7 @@ export const activityRewardsCommands: SlashCommandDefinition[] = [
       if (sub === "top") {
         const auth = await requirePluginPermission(ctx, PLUGIN, "can_view");
         if (!auth) return;
-        const metric = (ctx.interaction.options.getString("track") ?? "messages") as ActivityMetric;
+        const metric = (ctx.interaction.options.getString("track") ?? "messages") as ActivityTrackedMetric;
         const rows = topMembers(guildId, metric, 10);
         if (rows.length === 0) {
           await reply(ctx, title, t("activity_rewards.noActivity", "No activity has been tracked yet."));
@@ -242,7 +263,7 @@ export const activityRewardsCommands: SlashCommandDefinition[] = [
           await reply(ctx, title, t("activity_rewards.noSelfAdjust", "You can't adjust your own progress."), "warning");
           return;
         }
-        const metric = ctx.interaction.options.getString("track", true) as ActivityMetric;
+        const metric = ctx.interaction.options.getString("track", true) as ActivityTrackedMetric;
         const amount = ctx.interaction.options.getInteger("amount", true);
         const progress = addProgress(
           guildId,

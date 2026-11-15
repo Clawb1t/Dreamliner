@@ -138,6 +138,12 @@ export const zTeamControlConfig = z.strictObject({
       report_channel_id: nullableChannelId("Channel activity reports are posted in."),
       scheduled_reports: z.boolean().default(false).describe("Post a report at the end of every period (Dreamliner One)."),
       points_mode: z.boolean().default(false).describe("Measure quotas in weighted points instead of per-metric targets (Dreamliner One)."),
+      show_overturned_cases: z
+        .boolean()
+        .default(false)
+        .describe(
+          "Works with Appeals: show how many of each moderator's cases were overturned on appeal. Informational only, it never counts toward quotas, points, strikes or automatic actions.",
+        ),
       weights: z
         .strictObject({
           shift_hour: z.number().min(0).max(100).default(10),

@@ -51,3 +51,41 @@ export class RaidDetector {
     return this.guilds.size;
   }
 }
+
+export type RaidJoiner = { id: string; username: string; joinedAt: number };
+
+/** How many of a burst's accounts are kept for the Raid Defense Mesh alert (it shares at most 15). */
+export const MAX_RAID_JOINERS = 15;
+
+/**
+ * The most recent joiners per invite key, so a tripped burst can name the accounts involved
+ * (for Raid Defense Mesh). Capped per key and pruned to the burst window, so it stays tiny.
+ */
+export class RecentRaidJoiners {
+  private readonly lists = new Map<string, RaidJoiner[]>();
+
+  record(guildId: string, key: string, joiner: RaidJoiner, windowSeconds: number): void {
+    const mapKey = `${guildId}:${key}`;
+    const cutoff = joiner.joinedAt - windowSeconds * 1000;
+    const list = (this.lists.get(mapKey) ?? []).filter((j) => j.joinedAt >= cutoff && j.id !== joiner.id);
+    list.push(joiner);
+    while (list.length > MAX_RAID_JOINERS) list.shift();
+    this.lists.set(mapKey, list);
+    // Drop this guild's other keys once they've gone quiet.
+    for (const [other, items] of this.lists) {
+      if (other !== mapKey && other.startsWith(`${guildId}:`) && (items.at(-1)?.joinedAt ?? 0) < cutoff) this.lists.delete(other);
+    }
+  }
+
+  /** The joiners for a key, newest first, and forgets them. */
+  take(guildId: string, key: string): RaidJoiner[] {
+    const mapKey = `${guildId}:${key}`;
+    const list = this.lists.get(mapKey) ?? [];
+    this.lists.delete(mapKey);
+    return [...list].reverse();
+  }
+
+  forget(guildId: string): void {
+    for (const key of this.lists.keys()) if (key.startsWith(`${guildId}:`)) this.lists.delete(key);
+  }
+}

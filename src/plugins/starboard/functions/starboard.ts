@@ -317,7 +317,7 @@ async function processBoard(
       const starboardMessage = await starboardChannel.messages.fetch(existing.starboardMessageId).catch(() => null);
       const edited = starboardMessage ? await starboardMessage.edit(payload).catch(() => null) : null;
       if (edited) {
-        await updateStarboardPostStarCount(message.guild!.id, boardName, message.id, starCount);
+        await updateStarboardPostStarCount(message.guild!.id, boardName, message.id, starCount, message.author?.id);
         return;
       }
       // The starboard message is gone or couldn't be edited (deleted manually,
@@ -337,7 +337,16 @@ async function processBoard(
       sourceChannelId: message.channel.id,
       starboardMessageId: posted.id,
       starCount,
+      authorId: message.author?.id ?? null,
     });
+
+    // Activity Rewards' starboard-post milestones (roles only). Guarded: never blocks the post.
+    if (!existing && message.author && !message.author.bot) {
+      const authorId = message.author.id;
+      void import("../../activity_rewards/functions/contributions.js")
+        .then(({ onContributionChanged }) => onContributionChanged(message.guild!, authorId))
+        .catch(() => null);
+    }
 
     if (!existing && board.economy_bonus > 0 && message.author && !message.author.bot) {
       try {

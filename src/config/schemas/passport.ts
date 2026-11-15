@@ -147,6 +147,12 @@ export const zPassportConfig = z.strictObject({
     .describe(
       "Collect network signals during verification to flag likely alt accounts in the Alts tab.",
     ),
+  alt_ban_evasion_alerts: z
+    .boolean()
+    .default(true)
+    .describe(
+      "With alt detection on, alert staff when a newly verified member is linked to an account with an active ban in this server.",
+    ),
   min_account_age_seconds: z
     .number()
     .int()

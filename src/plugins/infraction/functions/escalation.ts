@@ -9,11 +9,13 @@ import {
   clampTimeoutMs,
   createInfraction,
   DISCORD_TIMEOUT_MAX_MS,
+  notOverturnedOnAppeal,
   postCaseLog,
 } from "./infractions.js";
 
 /** Exported so other plugins (e.g. Automod's escalation bridge) can count real infraction history
- * with the same type-filter/time-window semantics maybeEscalate itself uses. */
+ * with the same type-filter/time-window semantics maybeEscalate itself uses. Cases overturned on
+ * appeal (an approved appeal that reversed them) never count. */
 export async function countQualifyingInfractions(
   guildId: string,
   userId: string,
@@ -24,7 +26,7 @@ export async function countQualifyingInfractions(
   const rows = await db
     .select()
     .from(modCases)
-    .where(and(eq(modCases.guildId, guildId), eq(modCases.userId, userId)));
+    .where(and(eq(modCases.guildId, guildId), eq(modCases.userId, userId), notOverturnedOnAppeal()));
   const cutoff = windowMs > 0 ? Date.now() - windowMs : null;
   return rows.filter((row) => types.includes(row.type) && (cutoff === null || row.createdAt.getTime() >= cutoff))
     .length;

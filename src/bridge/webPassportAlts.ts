@@ -7,6 +7,7 @@ import {
   deletePassportNetworkSignals,
   dismissPassportAltPair,
 } from "../plugins/passport/functions/altSignals.js";
+import { activeBansFor } from "../plugins/passport/functions/banEvasion.js";
 import type { WebPerson } from "./webModeration.js";
 
 export type WebAltCluster = {
@@ -14,6 +15,8 @@ export type WebAltCluster = {
   confidenceTier: AltConfidenceTier;
   signalTypes: AltSignalType[];
   members: WebPerson[];
+  /** Members of this cluster with an ACTIVE ban case in this server (per-guild only). */
+  activeBans: { userId: string; caseId: number; type: string }[];
   firstSeenAt: string;
   lastSeenAt: string;
 };
@@ -41,6 +44,9 @@ export async function listWebPassportAlts(guild: Guild): Promise<WebPassportAlts
   if (!enabled) return { enabled: false, clusters: [] };
 
   const clusters = await findLikelyAlts(guild.id);
+  const bans = await activeBansFor(guild.id, [...new Set(clusters.flatMap((c) => c.memberIds))]).catch(
+    () => new Map<string, { caseId: number; type: string }>(),
+  );
   const memberCache = new Map<string, WebPerson>();
   const resolved: WebAltCluster[] = [];
 
@@ -59,6 +65,10 @@ export async function listWebPassportAlts(guild: Guild): Promise<WebPassportAlts
       confidenceTier: cluster.confidenceTier,
       signalTypes: cluster.signalTypes,
       members,
+      activeBans: cluster.memberIds.flatMap((userId) => {
+        const ban = bans.get(userId);
+        return ban ? [{ userId, caseId: ban.caseId, type: ban.type }] : [];
+      }),
       firstSeenAt: cluster.firstSeenAt.toISOString(),
       lastSeenAt: cluster.lastSeenAt.toISOString(),
     });

@@ -119,6 +119,14 @@ export const zInviteTrackerConfig = z.strictObject({
         .default(60)
         .describe("How long pause_all pauses invites for (at most 24 hours)."),
       alert_role_id: z.string().nullable().default(null).describe("Optional role pinged with raid alerts."),
+      report_incidents: z
+        .boolean()
+        .default(true)
+        .describe("Also raise an Incident Response signal when a burst trips (only if Incident Response is on)."),
+      share_with_mesh: z
+        .boolean()
+        .default(true)
+        .describe("Also alert servers linked through Raid Defense Mesh, naming the accounts in the burst (only if Raid Defense Mesh is on)."),
     })
     .default({}),
   retention_days: z

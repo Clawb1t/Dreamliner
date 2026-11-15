@@ -1,40 +1,65 @@
 import type { Guild } from "discord.js";
 import { fetchMemberCached, fetchUserCached } from "./people.js";
 import { configManager } from "../config/manager.js";
-import { zTicketsConfig, type TicketsConfig } from "../config/schemas/tickets.js";
-import { getPluginSettings } from "../core/permissionRoles.js";
 import {
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+  TICKET_STATUS_LABELS,
+  zTicketsConfig,
+  type TicketPriority,
+  type TicketStatus,
+  type TicketsConfig,
+} from "../config/schemas/tickets.js";
+import { getPluginSettings, hasPermission } from "../core/permissionRoles.js";
+import { fetchGuildChannel } from "../core/guildChannel.js";
+import { containerReply } from "../core/responses.js";
+import {
+  deleteTicket as deleteTicketRow,
   getTicket,
   getTicketHandlerStats,
   getTicketStats,
   queryTickets,
   renameTicket,
+  setPriority,
   type TicketHandlerStatsSummary,
   type TicketQueryFilters,
   type TicketRecord,
 } from "../plugins/tickets/functions/tickets.js";
-import { TICKET_STATUSES, TICKET_STATUS_LABELS, type TicketStatus } from "../config/schemas/tickets.js";
 import { addToBlacklist, listBlacklist, removeFromBlacklist } from "../plugins/tickets/functions/blacklist.js";
 import {
+  buildTicketClaimedEmbed,
   performAddMember,
   performAssign,
   performClaim,
   performClose,
   performRemoveMember,
+  performReopen,
   performSetStatus,
   performUnassign,
   performUnclaim,
+  performWebReply,
 } from "../plugins/tickets/functions/actions.js";
 import {
   getLatestTranscriptForTicket,
   getTranscriptRecord,
   isTranscriptParticipant,
+  mapTranscriptMessage,
   type TranscriptMessage,
 } from "../plugins/tickets/functions/transcripts.js";
-import { hasPermission } from "../core/permissionRoles.js";
+import { buildMemberContextSummary, gatherMemberContext } from "../plugins/tickets/functions/memberContext.js";
 import { postPanel } from "../plugins/tickets/functions/panels.js";
-import { deleteTicket as deleteTicketRow } from "../plugins/tickets/functions/tickets.js";
 import { deleteContainer } from "../plugins/tickets/functions/channels.js";
+import {
+  parseTicketSort,
+  parseTicketView,
+  sortTickets,
+  summarizeTickets,
+  ticketMatchesView,
+  ticketWaitInfo,
+  type WebTicketBulkAction,
+  type WebTicketSort,
+  type WebTicketView,
+} from "./webTicketsLogic.js";
 
 export type WebPerson = {
   id: string;
@@ -76,7 +101,14 @@ export type WebTicket = {
   firstResponder: WebPerson | null;
   /** Index of the highest escalation step already fired since the last staff reply. -1 = none yet. */
   escalationStep: number;
-  transcript?: { id: string; messages: unknown[] } | null;
+  /** Open and waiting on a staff reply right now. */
+  awaitingStaff: boolean;
+  /** Since when it has been waiting on staff (null when it isn't). */
+  waitingSince: string | null;
+  /** Waiting on staff and an SLA escalation step already fired. */
+  slaBreached: boolean;
+  /** The saved transcript (closed tickets), without its messages. */
+  transcript?: { id: string; messageCount: number } | null;
 };
 
 const DEFAULT_LIMIT = 40;
@@ -85,16 +117,25 @@ const MAX_LIMIT = 100;
 export type WebTicketsQuery = TicketQueryFilters & {
   /** Free-text search: ticket number ("12" or "#12"), category label, or channel/thread id or name. */
   q?: string;
+  /** Status chip on the list; wins over `status` when both are given. */
+  view?: WebTicketView;
+  sort?: WebTicketSort;
 };
+
+const SNOWFLAKE = /^\d{15,22}$/;
 
 export function parseWebTicketsQuery(url: URL): WebTicketsQuery {
   const status = url.searchParams.get("status")?.trim();
+  const openerId = url.searchParams.get("openerId")?.trim();
+  const claimedBy = url.searchParams.get("claimedBy")?.trim();
   return {
     status: status === "open" || status === "closed" ? status : undefined,
+    view: parseTicketView(url.searchParams.get("view")?.trim()),
+    sort: parseTicketSort(url.searchParams.get("sort")?.trim()),
     categoryId: url.searchParams.get("categoryId")?.trim() || undefined,
     panelId: url.searchParams.get("panelId")?.trim() || undefined,
-    openerId: url.searchParams.get("openerId")?.trim() || undefined,
-    claimedBy: url.searchParams.get("claimedBy")?.trim() || undefined,
+    openerId: openerId && SNOWFLAKE.test(openerId) ? openerId : undefined,
+    claimedBy: claimedBy && SNOWFLAKE.test(claimedBy) ? claimedBy : undefined,
     q: url.searchParams.get("q")?.trim().slice(0, 100) || undefined,
     limit: Math.min(MAX_LIMIT, Math.max(1, Number(url.searchParams.get("limit") ?? DEFAULT_LIMIT) || DEFAULT_LIMIT)),
     offset: Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0),
@@ -113,9 +154,24 @@ async function resolvePerson(guild: Guild, userId: string | null | undefined): P
   };
 }
 
+function personOrId(person: WebPerson | null, id: string): WebPerson {
+  return person ?? { id, name: id, username: null, avatar: null };
+}
+
 function toIso(value: Date | null | undefined): string | null {
   if (!value) return null;
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function labelsFor(pluginConfig: TicketsConfig, ticket: Pick<TicketRecord, "panelId" | "categoryId">) {
+  const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
+  const category = panel?.categories.find((c) => c.id === ticket.categoryId);
+  return {
+    panel,
+    category,
+    panelName: panel?.name?.trim() || "Unknown panel",
+    categoryLabel: category?.label?.trim() || "Unknown category",
+  };
 }
 
 async function toWebTicket(
@@ -132,16 +188,16 @@ async function toWebTicket(
     includeTranscript && ticket.status === "closed" ? getLatestTranscriptForTicket(guild.id, ticket.id) : Promise.resolve(null),
   ]);
 
-  const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
-  const category = panel?.categories.find((c) => c.id === ticket.categoryId);
+  const { panelName, categoryLabel } = labelsFor(pluginConfig, ticket);
+  const wait = ticketWaitInfo(ticket);
 
   return {
     id: ticket.id,
     number: ticket.number,
     panelId: ticket.panelId,
-    panelName: panel?.name?.trim() || "Unknown panel",
+    panelName,
     categoryId: ticket.categoryId,
-    categoryLabel: category?.label?.trim() || "Unknown category",
+    categoryLabel,
     channelId: ticket.channelId,
     threadId: ticket.threadId,
     mode: ticket.mode,
@@ -149,7 +205,7 @@ async function toWebTicket(
     subStatus: ticket.subStatus,
     subStatusLabel: ticket.subStatus ? TICKET_STATUS_LABELS[ticket.subStatus] : null,
     priority: ticket.priority,
-    opener: opener ?? { id: ticket.openerId, name: ticket.openerId, username: null, avatar: null },
+    opener: personOrId(opener, ticket.openerId),
     claimedBy,
     members: ticket.memberIds,
     formResponses: ticket.formResponses,
@@ -164,7 +220,10 @@ async function toWebTicket(
     firstStaffReplyAt: toIso(ticket.firstStaffReplyAt),
     firstResponder,
     escalationStep: ticket.escalationStep,
-    ...(includeTranscript ? { transcript } : {}),
+    awaitingStaff: wait.awaitingStaff,
+    waitingSince: toIso(wait.waitingSince),
+    slaBreached: wait.slaBreached,
+    ...(includeTranscript ? { transcript: transcript ? { id: transcript.id, messageCount: transcript.messages.length } : null } : {}),
   };
 }
 
@@ -177,6 +236,7 @@ function ticketMatchesSearch(guild: Guild, ticket: TicketRecord, pluginConfig: T
   const needle = q.toLowerCase();
   const number = needle.replace(/^#/, "");
   if (/^\d+$/.test(number) && ticket.number === Number(number)) return true;
+  if (ticket.openerId === q) return true;
   const channelIds = [ticket.channelId, ticket.threadId].filter((id): id is string => Boolean(id));
   if (channelIds.includes(q)) return true;
   if (channelIds.some((id) => guild.channels.cache.get(id)?.name.toLowerCase().includes(needle))) return true;
@@ -188,30 +248,181 @@ function ticketMatchesSearch(guild: Guild, ticket: TicketRecord, pluginConfig: T
 
 export async function listGuildTickets(guild: Guild, query: WebTicketsQuery) {
   const pluginConfig = await getTicketsConfig(guild.id);
-  let result: { tickets: TicketRecord[]; total: number };
-  if (query.q) {
-    // Search needs config labels and live channel names, so filter the full (already filtered) set here.
-    const all = await queryTickets(guild.id, { ...query, limit: Number.MAX_SAFE_INTEGER, offset: 0 });
-    const matched = all.tickets.filter((t) => ticketMatchesSearch(guild, t, pluginConfig, query.q!));
-    const offset = query.offset ?? 0;
-    result = { tickets: matched.slice(offset, offset + (query.limit ?? DEFAULT_LIMIT)), total: matched.length };
-  } else {
-    result = await queryTickets(guild.id, query);
-  }
-  const items = await Promise.all(result.tickets.map((t) => toWebTicket(guild, t, false, pluginConfig)));
+  const view = query.view;
+  // The bot's query filters by open/closed only; the claimed/unclaimed split, search and the
+  // sorts run here on the (already filtered) set.
+  const status = view === "closed" ? "closed" : view === "open" || view === "claimed" || view === "unclaimed" ? "open" : view === "all" ? undefined : query.status;
+  const all = await queryTickets(guild.id, { ...query, status, limit: Number.MAX_SAFE_INTEGER, offset: 0 });
+  let matched = all.tickets;
+  if (view) matched = matched.filter((t) => ticketMatchesView(t, view));
+  if (query.q) matched = matched.filter((t) => ticketMatchesSearch(guild, t, pluginConfig, query.q!));
+  matched = sortTickets(matched, query.sort ?? "newest");
+  const offset = query.offset ?? 0;
+  const limit = query.limit ?? DEFAULT_LIMIT;
+  const page = matched.slice(offset, offset + limit);
+  const items = await Promise.all(page.map((t) => toWebTicket(guild, t, false, pluginConfig)));
   return {
     tickets: items,
-    total: result.total,
-    limit: query.limit ?? DEFAULT_LIMIT,
-    offset: query.offset ?? 0,
+    total: matched.length,
+    limit,
+    offset,
+    // Category filter options, from this server's panels.
+    categories: pluginConfig.panels.flatMap((p) =>
+      p.categories.map((c) => ({ id: c.id, label: c.label.trim() || "Untitled category", panelId: p.id, panelName: p.name.trim() || "Panel" })),
+    ),
   };
 }
 
-export async function getGuildTicket(guild: Guild, ticketId: number): Promise<WebTicket | null> {
+export type WebTicketMessage = TranscriptMessage;
+
+export type WebTicketMemberContext = {
+  cases: { active: number; total: number; overturned: number; notes: number; latest: { id: number; type: string; createdAt: string } | null };
+  openAppeal: { id: number; status: string; caseId: number | null } | null;
+  passport: { state: "verified" | "pending" | "unverified" | "off"; verifiedAt: string | null };
+  previousTickets: { count: number; open: number; capped: boolean };
+};
+
+export type WebTicketDetail = WebTicket & {
+  /** What to show as the conversation: the live channel for open tickets, the saved transcript for closed ones. */
+  conversation: {
+    source: "live" | "transcript" | "none";
+    messages: WebTicketMessage[];
+    /** Only the latest messages are shown (the channel has more). */
+    truncated: boolean;
+    error: string | null;
+  };
+  mentions: WebTranscriptMentions;
+  memberContext: WebTicketMemberContext | null;
+  otherTickets: Array<{ id: number; number: number; status: string; categoryLabel: string; createdAt: string; closedAt: string | null }>;
+  /** People added to the ticket with /ticket add. */
+  people: WebPerson[];
+  openerBlacklist: { reason: string | null; createdAt: string } | null;
+  ai: {
+    enabled: boolean;
+    handlesCategory: boolean;
+    state: { mode: string; aiReplies: number; reason: string | null; changedBy: WebPerson | null; escalatedAt: string | null } | null;
+  };
+  /** True when the ticket's channel or thread no longer exists in Discord. */
+  channelGone: boolean;
+};
+
+const LIVE_MESSAGE_LIMIT = 100;
+
+async function liveConversation(guild: Guild, ticket: TicketRecord): Promise<{ channelGone: boolean; conversation: WebTicketDetail["conversation"] }> {
+  const channel = await fetchGuildChannel(guild.client, guild.id, ticket.threadId ?? ticket.channelId);
+  if (!channel) {
+    return { channelGone: true, conversation: { source: "none", messages: [], truncated: false, error: "The ticket's channel no longer exists in Discord." } };
+  }
+  if (!channel.isTextBased()) {
+    return { channelGone: false, conversation: { source: "none", messages: [], truncated: false, error: "The ticket's channel can't be read." } };
+  }
+  const batch = await channel.messages.fetch({ limit: LIVE_MESSAGE_LIMIT }).catch(() => null);
+  if (!batch) {
+    return {
+      channelGone: false,
+      conversation: { source: "none", messages: [], truncated: false, error: "Dreamliner can't read this channel's messages. Check its permissions there." },
+    };
+  }
+  const messages = [...batch.values()].reverse().map((m) => mapTranscriptMessage(m));
+  return { channelGone: false, conversation: { source: "live", messages, truncated: batch.size >= LIVE_MESSAGE_LIMIT, error: null } };
+}
+
+async function memberContextFor(guild: Guild, ticket: TicketRecord): Promise<WebTicketMemberContext | null> {
+  try {
+    const guildConfig = await configManager.getEffectiveConfig(guild.id);
+    const data = await gatherMemberContext(guild, guildConfig, ticket.openerId, ticket.id);
+    const summary = buildMemberContextSummary(data);
+    const latest = data.cases.find((c) => !c.overturned && !["note", "unmute", "unban"].includes(c.type)) ?? null;
+    return {
+      cases: {
+        active: summary.activeCases,
+        total: summary.totalCases,
+        overturned: summary.overturnedCases,
+        notes: summary.notes,
+        latest: latest ? { id: latest.id, type: latest.type, createdAt: latest.createdAt.toISOString() } : null,
+      },
+      openAppeal: data.openAppeal,
+      passport: {
+        state: data.passport.state,
+        verifiedAt: data.passport.state === "verified" ? data.passport.verifiedAt.toISOString() : null,
+      },
+      previousTickets: {
+        count: data.previousTickets.length,
+        open: data.previousTickets.filter((t) => t.status !== "closed").length,
+        capped: Boolean(data.previousTicketsCapped),
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getGuildTicket(guild: Guild, ticketId: number): Promise<WebTicketDetail | null> {
   const ticket = await getTicket(guild.id, ticketId);
   if (!ticket) return null;
   const pluginConfig = await getTicketsConfig(guild.id);
-  return toWebTicket(guild, ticket, true, pluginConfig);
+  const base = await toWebTicket(guild, ticket, true, pluginConfig);
+
+  let conversation: WebTicketDetail["conversation"];
+  let channelGone = false;
+  if (ticket.status === "closed") {
+    const transcript = await getLatestTranscriptForTicket(guild.id, ticket.id);
+    conversation = transcript
+      ? { source: "transcript", messages: transcript.messages, truncated: false, error: null }
+      : { source: "none", messages: [], truncated: false, error: null };
+    channelGone = !(await fetchGuildChannel(guild.client, guild.id, ticket.threadId ?? ticket.channelId));
+  } else {
+    const live = await liveConversation(guild, ticket);
+    conversation = live.conversation;
+    channelGone = live.channelGone;
+  }
+
+  const [memberContext, others, people, blacklist, aiModule, aiStore] = await Promise.all([
+    memberContextFor(guild, ticket),
+    queryTickets(guild.id, { openerId: ticket.openerId, limit: 11 }),
+    Promise.all(ticket.memberIds.slice(0, 25).map(async (id) => personOrId(await resolvePerson(guild, id), id))),
+    listBlacklist(guild.id),
+    import("../plugins/tickets/functions/ai/responder.js"),
+    import("../plugins/tickets/functions/ai/store.js"),
+  ]);
+
+  const aiConfig = aiModule.aiConfigOf(pluginConfig);
+  const aiState = aiStore.getTicketAiState(ticket.id);
+  const blacklisted = blacklist.find((e) => e.targetType === "user" && e.targetId === ticket.openerId) ?? null;
+
+  return {
+    ...base,
+    conversation,
+    mentions: resolveTranscriptMentions(guild, conversation.messages),
+    memberContext,
+    otherTickets: others.tickets
+      .filter((t) => t.id !== ticket.id)
+      .slice(0, 10)
+      .map((t) => ({
+        id: t.id,
+        number: t.number,
+        status: t.status,
+        categoryLabel: labelsFor(pluginConfig, t).categoryLabel,
+        createdAt: toIso(t.createdAt) ?? new Date(0).toISOString(),
+        closedAt: toIso(t.closedAt),
+      })),
+    people,
+    openerBlacklist: blacklisted ? { reason: blacklisted.reason, createdAt: blacklisted.createdAt.toISOString() } : null,
+    ai: {
+      enabled: aiConfig.enabled,
+      handlesCategory: aiConfig.enabled && aiModule.aiHandlesCategory(aiConfig, ticket.categoryId),
+      state: aiState
+        ? {
+            mode: aiState.mode,
+            aiReplies: aiState.aiReplies,
+            reason: aiState.reason,
+            changedBy: aiState.changedBy ? await resolvePerson(guild, aiState.changedBy) : null,
+            escalatedAt: toIso(aiState.escalatedAt),
+          }
+        : null,
+    },
+    channelGone,
+  };
 }
 
 export type WebTicketHandlerStat = {
@@ -226,7 +437,7 @@ export type WebTicketHandlerStat = {
 async function resolveHandlerStats(guild: Guild, summary: TicketHandlerStatsSummary): Promise<WebTicketHandlerStat[]> {
   return Promise.all(
     summary.handlers.map(async (h) => ({
-      staff: (await resolvePerson(guild, h.staffId)) ?? { id: h.staffId, name: h.staffId, username: null, avatar: null },
+      staff: personOrId(await resolvePerson(guild, h.staffId), h.staffId),
       activeAssigned: h.activeAssigned,
       ticketsClosed: h.ticketsClosed,
       avgResolutionMs: h.avgResolutionMs,
@@ -238,49 +449,84 @@ async function resolveHandlerStats(guild: Guild, summary: TicketHandlerStatsSumm
 
 /** Mirrors what `/ticket stats` shows in Discord, so the dashboard's ticket list can surface
  * the same time-tracking numbers (resolution/response time, per-handler breakdown) without
- * anyone needing to run the command. */
+ * anyone needing to run the command. `overview` is the list's stats row and status chip counts
+ * (always all-time); `overall` and `handlers` follow `sinceDays`. */
 export async function getGuildTicketStats(guild: Guild, opts: { sinceDays?: number } = {}) {
   const stats = await getTicketStats(guild.id);
   const topClaimers = await Promise.all(
     stats.topClaimers.map(async (entry) => ({
-      staff: (await resolvePerson(guild, entry.staffId)) ?? { id: entry.staffId, name: entry.staffId, username: null, avatar: null },
+      staff: personOrId(await resolvePerson(guild, entry.staffId), entry.staffId),
       count: entry.count,
     })),
   );
   const handlerSummary = await getTicketHandlerStats(guild.id, {
     sinceMs: opts.sinceDays ? Date.now() - opts.sinceDays * 86_400_000 : undefined,
   });
+  const allTime = opts.sinceDays ? await getTicketHandlerStats(guild.id) : handlerSummary;
   const handlers = await resolveHandlerStats(guild, handlerSummary);
-  return { ...stats, topClaimers, overall: handlerSummary.overall, handlers };
+  const all = await queryTickets(guild.id, { limit: Number.MAX_SAFE_INTEGER });
+  return {
+    ...stats,
+    topClaimers,
+    overall: handlerSummary.overall,
+    handlers,
+    overview: { ...summarizeTickets(all.tickets), avgFirstResponseMs: allTime.overall.avgFirstResponseMs, avgResolutionMs: allTime.overall.avgResolutionMs },
+  };
 }
 
 export const TICKET_STATUS_OPTIONS = TICKET_STATUSES.map((value) => ({ value, label: TICKET_STATUS_LABELS[value] }));
 
-export type TicketAction = "close" | "claim" | "unclaim" | "assign" | "unassign" | "status" | "reopen" | "add" | "remove";
+export type TicketAction =
+  | "close"
+  | "claim"
+  | "unclaim"
+  | "assign"
+  | "unassign"
+  | "status"
+  | "reopen"
+  | "add"
+  | "remove"
+  | "priority"
+  | "reply";
+
+export type TicketActionBody = {
+  reason?: string;
+  /** Who to assign / add / remove. (The site always sends its session user as `userId`, the actor, so never read that as the target.) */
+  targetUserId?: string;
+  status?: string;
+  priority?: string;
+  content?: string;
+};
 
 export async function performTicketAction(
   guild: Guild,
   ticketId: number,
   action: TicketAction,
   actorId: string,
-  body: { reason?: string; userId?: string; status?: string },
+  body: TicketActionBody,
 ): Promise<{ ticket: WebTicket } | { error: string }> {
   const ticket = await getTicket(guild.id, ticketId);
   if (!ticket) return { error: "Ticket not found" };
 
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   const pluginConfig = await getTicketsConfig(guild.id);
-  const panel = pluginConfig.panels.find((p) => p.id === ticket.panelId);
-  const category = panel?.categories.find((c) => c.id === ticket.categoryId);
+  const { category } = labelsFor(pluginConfig, ticket);
+  const targetId = body.targetUserId?.trim();
+  const needsOpen = ["claim", "assign", "unassign", "status", "close", "reply", "add", "remove", "priority"];
+  if (ticket.status === "closed" && needsOpen.includes(action)) return { error: "This ticket is closed." };
 
   if (action === "claim") {
-    if (ticket.status === "closed") return { error: "Ticket is already closed" };
     await performClaim(guild.client, guildConfig, pluginConfig, ticket, actorId);
+    // Same note the Claim button posts, so members can see someone picked it up.
+    const channel = await fetchGuildChannel(guild.client, guild.id, ticket.threadId ?? ticket.channelId);
+    if (channel?.isTextBased() && "send" in channel) {
+      await channel.send(containerReply(buildTicketClaimedEmbed(ticket, actorId, guild.client, guildConfig.emojis))).catch(() => null);
+    }
   } else if (action === "unclaim") {
     await performUnclaim(ticket);
   } else if (action === "assign") {
-    if (!body.userId) return { error: "userId is required" };
-    await performAssign(guild.client, guildConfig, pluginConfig, ticket, body.userId, actorId);
+    if (!targetId || !SNOWFLAKE.test(targetId)) return { error: "Pick who to assign it to." };
+    await performAssign(guild.client, guildConfig, pluginConfig, ticket, targetId, actorId);
   } else if (action === "unassign") {
     await performUnassign(guild.client, guildConfig, pluginConfig, ticket, actorId);
   } else if (action === "status") {
@@ -288,26 +534,73 @@ export async function performTicketAction(
       return { error: `status must be one of: ${TICKET_STATUSES.join(", ")}` };
     }
     await performSetStatus(guild.client, guildConfig, pluginConfig, ticket, body.status as TicketStatus, actorId);
+  } else if (action === "priority") {
+    if (!body.priority || !(TICKET_PRIORITIES as readonly string[]).includes(body.priority)) {
+      return { error: `priority must be one of: ${TICKET_PRIORITIES.join(", ")}` };
+    }
+    await setPriority(guild.id, ticket.id, body.priority as TicketPriority);
   } else if (action === "close") {
-    if (ticket.status === "closed") return { error: "Ticket is already closed" };
-    await performClose(guild.client, guild, guildConfig, pluginConfig, category, ticket, actorId, body.reason ?? null);
+    const reason = body.reason?.trim().slice(0, 500) || null;
+    if (category?.require_close_reason && !reason) return { error: "This category needs a close reason." };
+    await performClose(guild.client, guild, guildConfig, pluginConfig, category, ticket, actorId, reason);
   } else if (action === "reopen") {
-    const { reopenTicket } = await import("../plugins/tickets/functions/tickets.js");
-    const { restoreContainerAccess } = await import("../plugins/tickets/functions/channels.js");
-    await reopenTicket(guild.id, ticketId);
-    await restoreContainerAccess(guild, ticket);
+    const result = await performReopen(guild.client, guild, ticket, actorId);
+    if ("error" in result) return result;
+  } else if (action === "reply") {
+    const staff = await resolvePerson(guild, actorId);
+    const result = await performWebReply(guild.client, guildConfig, pluginConfig, ticket, actorId, staff?.name ?? "Staff", body.content ?? "");
+    if ("error" in result) return result;
   } else if (action === "add" || action === "remove") {
-    if (!body.userId) return { error: "userId is required" };
+    if (!targetId || !SNOWFLAKE.test(targetId)) return { error: "Pick a member." };
     const updated =
       action === "add"
-        ? await performAddMember(guild, ticket, body.userId)
-        : await performRemoveMember(guild, ticket, body.userId);
+        ? await performAddMember(guild, ticket, targetId)
+        : await performRemoveMember(guild, ticket, targetId);
     if (!updated) return { error: "Could not update ticket members" };
   }
 
   const refreshed = await getTicket(guild.id, ticketId);
   if (!refreshed) return { error: "Ticket not found after update" };
   return { ticket: await toWebTicket(guild, refreshed, true, pluginConfig) };
+}
+
+/** Runs one action on up to WEB_TICKET_BULK_MAX tickets, one after another, through the same
+ * paths as single actions. Tickets it can't act on are reported back, not fatal. */
+export async function performTicketBulk(
+  guild: Guild,
+  actorId: string,
+  request: { ids: number[]; action: WebTicketBulkAction; reason?: string; assigneeId?: string },
+): Promise<{ ok: number[]; failed: Array<{ id: number; error: string }> }> {
+  const ok: number[] = [];
+  const failed: Array<{ id: number; error: string }> = [];
+  for (const id of request.ids) {
+    try {
+      if (request.action === "delete") {
+        const result = await deleteGuildTicket(guild, id);
+        if ("error" in result) failed.push({ id, error: result.error });
+        else ok.push(id);
+        continue;
+      }
+      const ticket = await getTicket(guild.id, id);
+      if (!ticket) {
+        failed.push({ id, error: "Ticket not found" });
+        continue;
+      }
+      if (request.action === "claim" && ticket.claimedBy === actorId) {
+        ok.push(id);
+        continue;
+      }
+      const result = await performTicketAction(guild, id, request.action, actorId, {
+        reason: request.reason,
+        targetUserId: request.assigneeId,
+      });
+      if ("error" in result) failed.push({ id, error: `#${ticket.number}: ${result.error}` });
+      else ok.push(id);
+    } catch {
+      failed.push({ id, error: "Something went wrong" });
+    }
+  }
+  return { ok, failed };
 }
 
 export async function deleteGuildTicket(guild: Guild, ticketId: number): Promise<{ deleted: boolean } | { error: string }> {
@@ -339,18 +632,42 @@ export async function publishTicketPanel(guild: Guild, panelId: string, actorId:
   return { messageId };
 }
 
-export async function listGuildTicketBlacklist(guild: Guild) {
-  return listBlacklist(guild.id);
+export type WebTicketBlacklistEntry = {
+  targetId: string;
+  targetType: "user" | "role";
+  reason: string | null;
+  createdAt: string;
+  person: WebPerson | null;
+  role: { name: string; color: number } | null;
+};
+
+/** Members and roles that can't open tickets (same list as /ticket blacklist), newest first. */
+export async function listGuildTicketBlacklist(guild: Guild): Promise<WebTicketBlacklistEntry[]> {
+  const entries = await listBlacklist(guild.id);
+  const sorted = [...entries].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return Promise.all(
+    sorted.map(async (entry) => {
+      const role = entry.targetType === "role" ? guild.roles.cache.get(entry.targetId) : null;
+      return {
+        targetId: entry.targetId,
+        targetType: entry.targetType,
+        reason: entry.reason,
+        createdAt: entry.createdAt.toISOString(),
+        person: entry.targetType === "user" ? personOrId(await resolvePerson(guild, entry.targetId), entry.targetId) : null,
+        role: role ? { name: role.name, color: role.color } : null,
+      };
+    }),
+  );
 }
 
 export async function addGuildTicketBlacklist(guild: Guild, targetId: string, targetType: "user" | "role", reason?: string) {
-  await addToBlacklist(guild.id, targetId, targetType, reason);
-  return listBlacklist(guild.id);
+  await addToBlacklist(guild.id, targetId, targetType, reason?.trim().slice(0, 500) || null);
+  return listGuildTicketBlacklist(guild);
 }
 
 export async function removeGuildTicketBlacklist(guild: Guild, targetId: string) {
   await removeFromBlacklist(guild.id, targetId);
-  return listBlacklist(guild.id);
+  return listGuildTicketBlacklist(guild);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -425,6 +742,28 @@ export function collectTranscriptMentionIds(messages: TranscriptMessage[]): { us
   return { users, roles, channels };
 }
 
+/** Names for the users, roles and channels mentioned in a set of messages, from the cache only. */
+export function resolveTranscriptMentions(guild: Guild, messages: TranscriptMessage[]): WebTranscriptMentions {
+  const ids = collectTranscriptMentionIds(messages);
+  const authorNames = new Map(messages.map((m) => [m.authorId, m.authorName ?? m.authorTag]));
+  const mentions: WebTranscriptMentions = { users: {}, roles: {}, channels: {} };
+  for (const id of ids.users) {
+    const member = guild.members.cache.get(id);
+    const user = member?.user ?? guild.client.users.cache.get(id);
+    const name = authorNames.get(id) ?? member?.displayName ?? user?.globalName ?? user?.username;
+    if (name) mentions.users[id] = name;
+  }
+  for (const id of ids.roles) {
+    const role = guild.roles.cache.get(id);
+    if (role) mentions.roles[id] = { name: role.name, color: role.color };
+  }
+  for (const id of ids.channels) {
+    const channel = guild.channels.cache.get(id);
+    if (channel) mentions.channels[id] = channel.name;
+  }
+  return mentions;
+}
+
 /**
  * Who may read a transcript: anyone who was part of the ticket, server managers (`canManage`,
  * checked by the bridge), and members with the tickets `can_view_all` permission. Never fetches
@@ -470,23 +809,7 @@ export async function getWebTranscript(
     };
   });
 
-  const ids = collectTranscriptMentionIds(messages);
-  const authorNames = new Map(messages.map((m) => [m.authorId, m.authorName ?? m.authorTag]));
-  const mentions: WebTranscriptMentions = { users: {}, roles: {}, channels: {} };
-  for (const id of ids.users) {
-    const member = guild.members.cache.get(id);
-    const user = member?.user ?? guild.client.users.cache.get(id);
-    const name = authorNames.get(id) ?? member?.displayName ?? user?.globalName ?? user?.username;
-    if (name) mentions.users[id] = name;
-  }
-  for (const id of ids.roles) {
-    const role = guild.roles.cache.get(id);
-    if (role) mentions.roles[id] = { name: role.name, color: role.color };
-  }
-  for (const id of ids.channels) {
-    const channel = guild.channels.cache.get(id);
-    if (channel) mentions.channels[id] = channel.name;
-  }
+  const mentions = resolveTranscriptMentions(guild, messages);
 
   let ticketMeta: WebTranscriptPayload["ticket"] = null;
   if (ticket) {

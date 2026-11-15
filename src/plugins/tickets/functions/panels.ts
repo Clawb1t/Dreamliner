@@ -45,6 +45,7 @@ import type { TicketFormAnswer } from "./tickets.js";
 import { getLogger } from "../../../core/logger.js";
 import { defaultTranslator, translatorFor, type Translator } from "../../../i18n/index.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
+import { checkPassportRequirement } from "../../../core/verifiedOnly.js";
 const log = getLogger("tickets");
 
 export type BuiltPanelMessage = {
@@ -259,6 +260,12 @@ async function openOrPromptModal(
   const { category, panel } = found;
 
   if (category.form_questions.length > 0) {
+    // Refuse before the form, so an unverified member doesn't fill it in for nothing.
+    const passport = await checkPassportRequirement(member, config.require_passport, t);
+    if (!passport.ok) {
+      await interaction.reply(resultReply(t("verifiedOnly.title", "Verified members only"), passport.message, true, guildResultOptions(interaction.client, guildConfig, { tone: "warning" })));
+      return;
+    }
     const modal = buildFormModal({
       customId: ticketModalId(panelId, categoryId),
       title: category.label,
@@ -350,11 +357,11 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
     if (parsed.kind === "claim") {
       await performClaim(interaction.client, guildConfig, config, ticket, member.id);
       const embed = buildTicketClaimedEmbed(ticket, member.id, interaction.client, guildConfig.emojis, t);
-      await interaction.message.edit(containerEdit(openedContainer, [ticketActionRow(ticket.id, true, t)])).catch(() => null);
+      await interaction.message.edit(containerEdit(openedContainer, [ticketActionRow(ticket.id, true, t, { guildId: ticket.guildId, openerId: ticket.openerId })])).catch(() => null);
       if ("send" in interaction.channel!) await (interaction.channel as import("discord.js").TextChannel).send(containerReply(embed)).catch(() => null);
     } else {
       await performUnclaim(ticket);
-      await interaction.message.edit(containerEdit(openedContainer, [ticketActionRow(ticket.id, false, t)])).catch(() => null);
+      await interaction.message.edit(containerEdit(openedContainer, [ticketActionRow(ticket.id, false, t, { guildId: ticket.guildId, openerId: ticket.openerId })])).catch(() => null);
     }
     return true;
   }
@@ -425,6 +432,38 @@ export async function handleTicketButtonInteraction(interaction: ButtonInteracti
     }
     await interaction.update(resultEdit(t("tickets.closingTitle", "Closing..."), t("tickets.generatingTranscriptBody", "Generating transcript and closing the ticket."), guildResultOptions(interaction.client, guildConfig)));
     await performClose(interaction.client, interaction.guild, guildConfig, config, category, ticket, member.id, null, t);
+    return true;
+  }
+
+  if (parsed.kind === "context") {
+    const ticket = await getTicket(interaction.guildId!, parsed.ticketId);
+    if (!ticket) {
+      await interaction.reply(resultReply(t("tickets.notFoundTitle", "Not found"), t("tickets.ticketNoLongerExistsBody", "That ticket no longer exists."), true));
+      return true;
+    }
+    // Same staff check as the AI Responder's staff buttons: Manage Server, or the category's
+    // support roles (falling back to the plugin-wide staff roles).
+    const config = await resolveTicketsConfig(guildConfig, member, interaction.channelId ?? "");
+    const category = config.panels.find((p) => p.id === ticket.panelId)?.categories.find((c) => c.id === ticket.categoryId);
+    const isStaff =
+      member.permissions.has(PermissionFlagsBits.ManageGuild) ||
+      staffRoleIdsFor(category, config).some((id) => member.roles.cache.has(id));
+    if (!isStaff) {
+      await interaction.reply(resultReply(t("tickets.permissionDeniedTitle", "Permission denied"), t("tickets.memberContext.staffOnly", "Only ticket staff can see member context."), true, guildResultOptions(interaction.client, guildConfig, { tone: "error" })));
+      return true;
+    }
+    await interaction.deferReply({ ephemeral: true });
+    const { gatherMemberContext, buildMemberContextSummary, memberContextLinkRow } = await import("./memberContext.js");
+    const data = await gatherMemberContext(interaction.guild, guildConfig, ticket.openerId, ticket.id);
+    const summary = buildMemberContextSummary(data);
+    await interaction.editReply(
+      resultEdit(
+        t("tickets.memberContext.title", "Member context"),
+        summary.lines.join("\n"),
+        guildResultOptions(interaction.client, guildConfig, { emoji: "<:icons_Person:1544417372260278353>" }),
+        [memberContextLinkRow(interaction.guildId!, ticket.openerId)],
+      ),
+    );
     return true;
   }
 

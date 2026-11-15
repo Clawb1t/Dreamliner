@@ -48,6 +48,7 @@ export async function createStarboardPost(input: {
   sourceChannelId: string;
   starboardMessageId: string;
   starCount: number;
+  authorId?: string | null;
 }): Promise<void> {
   await getDb()
     .insert(starboardPosts)
@@ -59,6 +60,7 @@ export async function createStarboardPost(input: {
       starboardMessageId: input.starboardMessageId,
       starCount: input.starCount,
       createdAt: new Date(),
+      authorId: input.authorId ?? null,
     });
 }
 
@@ -67,10 +69,12 @@ export async function updateStarboardPostStarCount(
   boardName: string,
   sourceMessageId: string,
   starCount: number,
+  /** Fills in the author on posts made before starboard_posts.author_id existed. */
+  authorId?: string | null,
 ): Promise<void> {
   await getDb()
     .update(starboardPosts)
-    .set({ starCount })
+    .set(authorId ? { starCount, authorId } : { starCount })
     .where(
       and(
         eq(starboardPosts.guildId, guildId),

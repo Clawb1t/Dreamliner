@@ -38,6 +38,9 @@ function summarizeRequirements(giveaway: Giveaway): string[] {
   if (giveaway.minJoinAgeDays > 0) {
     lines.push(`server member for ${giveaway.minJoinAgeDays}+ day(s)`);
   }
+  if (giveaway.requirePassport) {
+    lines.push("verified with Passport");
+  }
   return lines;
 }
 

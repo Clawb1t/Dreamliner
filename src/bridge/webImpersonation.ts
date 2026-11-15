@@ -12,6 +12,7 @@ import {
 import { listAlerts, setAlertStatus, type AlertStatus, type ImpersonationAlert } from "../plugins/impersonation/functions/alerts.js";
 import { getIdentityHistory, type IdentityHistoryEntry } from "../plugins/impersonation/functions/history.js";
 import { buildCandidateFromMember, findImpersonationMatch, type ImpersonationMatch } from "../plugins/impersonation/functions/detect.js";
+import { withTeamRankProtection } from "../plugins/impersonation/functions/teamProtection.js";
 import { hashAvatarUrl } from "../plugins/impersonation/functions/watchlist.js";
 import { computeDHash } from "../plugins/automod/functions/imageHash.js";
 
@@ -122,7 +123,7 @@ export async function testWebImpersonation(
 ): Promise<WebImpersonationTestResult> {
   const guild = client.guilds.cache.get(guildId);
   if (!guild) throw new Error("Bot is not in that server.");
-  const { config } = await getWebImpersonationState(guildId);
+  const config = await withTeamRankProtection(guildId, (await getWebImpersonationState(guildId)).config);
 
   let username: string;
   let displayName: string;

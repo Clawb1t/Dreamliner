@@ -5,6 +5,7 @@ import { embedField } from "../../../core/embeds.js";
 import { neutralizeMentions } from "../../../core/templates.js";
 import { channelOr, DAY_MS, TEAM_PREFIX, unix } from "./config.js";
 import { dmTeamCard, postTeamMessage, teamCard } from "./messages.js";
+import { acceptedApplicationFor, acceptedApplicationLine } from "./application.js";
 import { listOnboarding, upsertTeamMember, type TeamMemberRecord } from "./store.js";
 import { APP_EMOJI } from "../../../core/appEmojis.js";
 
@@ -88,6 +89,7 @@ export async function postTrialReview(client: Client, row: TeamMemberRecord, con
   const guildConfig = await configManager.getEffectiveConfig(guild.id);
   const progress = checklistProgress(guild.id, row.userId, config);
   const rank = config.ranks.find((r) => r.id === row.rankId);
+  const application = acceptedApplicationFor(guildConfig, guild.id, row.userId);
   await postTeamMessage(
     client,
     guild,
@@ -97,6 +99,7 @@ export async function postTrialReview(client: Client, row: TeamMemberRecord, con
       fields: [
         embedField("On the team since", `<t:${unix(row.joinedAt)}:D>`, true),
         ...(progress.total ? [embedField("Checklist", `${progress.done}/${progress.total} done`, true)] : []),
+        ...(application ? [embedField("Application", acceptedApplicationLine(application))] : []),
       ],
     }),
     { rows: [trialReviewRow(row.userId)], pingRoleIds: config.manager_role_ids },

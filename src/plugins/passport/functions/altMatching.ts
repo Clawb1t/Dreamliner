@@ -198,3 +198,68 @@ export async function findLikelyAlts(guildId: string): Promise<AltCluster[]> {
   ]);
   return clusterAltSignals(rows, dismissals);
 }
+
+export type DirectAltLink = { userId: string; tier: AltConfidenceTier; signalTypes: AltSignalType[] };
+
+/**
+ * The accounts directly linked to `userId` by their own network signal (not through a chain of
+ * other accounts), with the strongest tier per account. Dismissed pairs are skipped. Same signal
+ * rules as `clusterAltSignals`: exact IP = high, same subnet = medium (high with the same city),
+ * same city only = low.
+ */
+export function directAltLinks(
+  rows: PassportNetworkSignalRow[],
+  dismissals: AltDismissalRow[],
+  userId: string,
+): DirectAltLink[] {
+  const self = rows.find((row) => row.userId === userId);
+  if (!self) return [];
+  const dismissed = new Set(dismissals.map((d) => pairKey(d.userIdA, d.userIdB)));
+  const selfSubnet = subnetKey(self.ipAddress);
+  const links = new Map<string, DirectAltLink>();
+
+  for (const row of rows) {
+    if (row.userId === userId || dismissed.has(pairKey(userId, row.userId))) continue;
+    const sameCity = Boolean(self.city && row.city && self.city === row.city);
+    const found: { tier: AltConfidenceTier; type: AltSignalType }[] = [];
+    if (row.ipAddress === self.ipAddress) found.push({ tier: "high", type: "exact_ip" });
+    const subnet = subnetKey(row.ipAddress);
+    if (selfSubnet && subnet === selfSubnet) found.push({ tier: sameCity ? "high" : "medium", type: "subnet" });
+    if (sameCity) found.push({ tier: "low", type: "city_only" });
+    if (found.length === 0) continue;
+
+    const link = links.get(row.userId) ?? { userId: row.userId, tier: "low" as AltConfidenceTier, signalTypes: [] };
+    for (const f of found) {
+      if (TIER_WEIGHT[f.tier] > TIER_WEIGHT[link.tier]) link.tier = f.tier;
+      if (!link.signalTypes.includes(f.type)) link.signalTypes.push(f.type);
+    }
+    links.set(row.userId, link);
+  }
+  return [...links.values()];
+}
+
+export type BanEvasionMatch = {
+  bannedUserId: string;
+  caseId: number;
+  caseType: string;
+  tier: Exclude<AltConfidenceTier, "low">;
+};
+
+/**
+ * The ban-evasion decision: a newly verified member's direct links whose account has an ACTIVE
+ * ban case in this server. City-only links never count (too many people share a city), so only
+ * exact-IP and same-subnet links can raise an alert. Strongest match first.
+ */
+export function banEvasionMatches(
+  links: DirectAltLink[],
+  activeBans: Map<string, { caseId: number; type: string }>,
+): BanEvasionMatch[] {
+  const matches: BanEvasionMatch[] = [];
+  for (const link of links) {
+    if (link.tier === "low") continue;
+    const ban = activeBans.get(link.userId);
+    if (!ban) continue;
+    matches.push({ bannedUserId: link.userId, caseId: ban.caseId, caseType: ban.type, tier: link.tier });
+  }
+  return matches.sort((a, b) => TIER_WEIGHT[b.tier] - TIER_WEIGHT[a.tier] || b.caseId - a.caseId);
+}

@@ -17,6 +17,26 @@ async function getTicketsConfigForGuild(guildId: string): Promise<TicketsConfig>
   return zTicketsConfig.parse(getPluginSettings(guildConfig, "tickets"));
 }
 
+type EscalationPing = { content: string; allowedMentions: { users: string[]; roles: string[]; parse: [] } };
+
+/** The step's role, or (with `on_shift_only`) up to 5 clocked-in Team Control staff, falling
+ *  back to the role when nobody is on shift or Team Control is off. */
+async function resolveEscalationPing(guild: Guild, step: TicketEscalationStep, roleId: string): Promise<EscalationPing> {
+  const rolePing: EscalationPing = {
+    content: `<@&${roleId}>`,
+    allowedMentions: { users: [], roles: [roleId], parse: [] },
+  };
+  if (!step.on_shift_only) return rolePing;
+  try {
+    const { resolveOnShiftPing } = await import("../../team_control/functions/onShift.js");
+    const ping = await resolveOnShiftPing(guild, [roleId]);
+    return ping.content ? ping : rolePing;
+  } catch (err) {
+    log.error("On-shift ping lookup failed:", err);
+    return rolePing;
+  }
+}
+
 async function applyEscalationStep(
   client: Client,
   guild: Guild,
@@ -38,13 +58,15 @@ async function applyEscalationStep(
           }),
       );
       // Components V2 messages can't carry `content`, so the ping lives in its own text
-      // component ahead of the container. No `allowedMentions` override here — this is the
-      // one escalation action that's supposed to ping.
+      // component ahead of the container. This is the one escalation action that's supposed to
+      // ping: allowedMentions is limited to exactly who the ping names.
+      const ping = await resolveEscalationPing(guild, step, step.role_id);
       const payload = containerReply(embed);
       await channel
         .send({
           flags: MessageFlags.IsComponentsV2,
-          components: [pingComponent(`<@&${step.role_id}>`), ...payload.components!],
+          components: [pingComponent(ping.content), ...payload.components!],
+          allowedMentions: ping.allowedMentions,
         })
         .catch(() => null);
     }

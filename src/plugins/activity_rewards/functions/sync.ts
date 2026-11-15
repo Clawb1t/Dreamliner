@@ -2,6 +2,7 @@ import type { Guild, GuildMember } from "discord.js";
 import type { ActivityRewardsConfig } from "../../../config/schemas/activityRewards.js";
 import { managedRoleIds } from "./config.js";
 import { forgetAwarded, processMember } from "./rewards.js";
+import { withContributions } from "./contributions.js";
 import { getProgress, resetMember } from "./store.js";
 
 /**
@@ -20,8 +21,10 @@ export async function syncGuildMembers(
   let rewarded = 0;
   for (const member of members.values()) {
     if (member.user.bot) continue;
-    const progress = getProgress(guild.id, member.id);
-    if (progress.messages === 0 && progress.voiceSeconds === 0) continue;
+    // Contribution counts too, so contribution milestones backfill for members with no activity.
+    const progress = withContributions(guild.id, member.id, getProgress(guild.id, member.id), config);
+    const contributed = (progress.starboardPosts ?? 0) > 0 || (progress.suggestionsImplemented ?? 0) > 0;
+    if (progress.messages === 0 && progress.voiceSeconds === 0 && !contributed) continue;
     checked++;
     const result = await processMember(member, config, progress, { announce: false, resync: true }).catch(() => null);
     if (result && result.newlyReached.length > 0) rewarded++;

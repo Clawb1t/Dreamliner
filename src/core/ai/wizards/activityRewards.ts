@@ -1,6 +1,6 @@
 import {
   ACTIVITY_ANNOUNCE_DESTINATIONS,
-  ACTIVITY_METRICS,
+  ACTIVITY_TRACKED_METRICS,
   MAX_ACTIVITY_MILESTONES,
 } from "../../../config/schemas/activityRewards.js";
 import { WELCOME_MILESTONE_MESSAGE_MODES } from "../../../config/schemas/welcome.js";
@@ -52,7 +52,7 @@ function richMessageSchema(): Record<string, unknown> {
 
 function milestoneSchema(): Record<string, unknown> {
   return obj({
-    metric: oneOf(ACTIVITY_METRICS),
+    metric: oneOf(ACTIVITY_TRACKED_METRICS),
     threshold: int(),
     name: nullable(str()),
     enabled: nullable(bool()),

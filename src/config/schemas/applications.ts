@@ -82,6 +82,10 @@ export const zApplicationOpening = z.strictObject({
 
   required_roles: z.array(z.string()).default([]).describe("Members need at least one of these roles to apply."),
   blocked_roles: z.array(z.string()).default([]).describe("Members with any of these roles can't apply."),
+  require_passport: z
+    .boolean()
+    .default(false)
+    .describe("Works with Passport. Verified members only: applicants must pass Passport first. Ignored while Passport is off."),
   min_account_age_days: z
     .number()
     .int()

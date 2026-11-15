@@ -33,6 +33,7 @@ export type Giveaway = {
   bypassRoleIds: string[];
   minAccountAgeDays: number;
   minJoinAgeDays: number;
+  requirePassport: boolean;
   bonusRoleWeights: BonusRoleWeight[];
   boosterBonusWeight: number;
   entryCost: number;
@@ -120,6 +121,7 @@ function mapGiveaway(row: typeof giveaways.$inferSelect): Giveaway {
     bypassRoleIds: safeJsonArray<string>(row.bypassRoleIds),
     minAccountAgeDays: row.minAccountAgeDays,
     minJoinAgeDays: row.minJoinAgeDays,
+    requirePassport: row.requirePassport,
     bonusRoleWeights: safeJsonArray<BonusRoleWeight>(row.bonusRoleWeights),
     boosterBonusWeight: row.boosterBonusWeight,
     entryCost: row.entryCost,
@@ -185,6 +187,7 @@ export type NewGiveawayInput = {
   bypassRoleIds: string[];
   minAccountAgeDays: number;
   minJoinAgeDays: number;
+  requirePassport?: boolean;
   bonusRoleWeights: BonusRoleWeight[];
   boosterBonusWeight: number;
   entryCost: number;
@@ -228,6 +231,7 @@ export async function createGiveaway(input: NewGiveawayInput): Promise<Giveaway>
       bypassRoleIds: JSON.stringify(input.bypassRoleIds),
       minAccountAgeDays: input.minAccountAgeDays,
       minJoinAgeDays: input.minJoinAgeDays,
+      requirePassport: input.requirePassport ?? false,
       bonusRoleWeights: JSON.stringify(input.bonusRoleWeights),
       boosterBonusWeight: input.boosterBonusWeight,
       entryCost: input.entryCost,
@@ -294,6 +298,7 @@ export async function updateGiveaway(id: number, patch: GiveawayPatch): Promise<
       ...(patch.bypassRoleIds !== undefined ? { bypassRoleIds: JSON.stringify(patch.bypassRoleIds) } : {}),
       ...(patch.minAccountAgeDays !== undefined ? { minAccountAgeDays: patch.minAccountAgeDays } : {}),
       ...(patch.minJoinAgeDays !== undefined ? { minJoinAgeDays: patch.minJoinAgeDays } : {}),
+      ...(patch.requirePassport !== undefined ? { requirePassport: patch.requirePassport } : {}),
       ...(patch.bonusRoleWeights !== undefined ? { bonusRoleWeights: JSON.stringify(patch.bonusRoleWeights) } : {}),
       ...(patch.boosterBonusWeight !== undefined ? { boosterBonusWeight: patch.boosterBonusWeight } : {}),
       ...(patch.entryCost !== undefined ? { entryCost: patch.entryCost } : {}),

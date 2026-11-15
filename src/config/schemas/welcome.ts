@@ -217,6 +217,22 @@ export const zWelcomeWaveButton = z.strictObject({
     .describe("Button emoji (unicode, emoji id, or <:name:id>)."),
 });
 
+/** Welcome back: a separate join-channel message for members who were in the server before. */
+export const zWelcomeBack = z.strictObject({
+  enabled: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Post this message in the join channel instead of the normal welcome when someone who was here before rejoins.",
+    ),
+  message: zWelcomeRichMessage
+    .default({
+      content: "Welcome back {user}! Good to see you in **{guild}** again.",
+      card: { greeting_text: "Welcome back {user_display}!" },
+    })
+    .describe("The welcome back message. Supports the same placeholders as the join message."),
+});
+
 export const zWelcomeMessageConfig = z.strictObject({
   join: zWelcomeEventConfig.default({
     enabled: true,
@@ -230,6 +246,7 @@ export const zWelcomeMessageConfig = z.strictObject({
     .default(false)
     .describe("Delete the join welcome message if the member leaves within 24 hours."),
   wave_button: zWelcomeWaveButton.default({}),
+  welcome_back: zWelcomeBack.default({}),
   require_passport_verification: z
     .boolean()
     .default(false)

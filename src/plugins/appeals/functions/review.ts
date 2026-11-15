@@ -73,7 +73,11 @@ export async function loadReviewContext(appeal: AppealRecord): Promise<ReviewCon
   const question = latestQuestion(appeal.id);
   const replies = listEvents(appeal.id, false).filter((event) => event.kind === "info_replied");
   return {
-    otherInfractions: Math.max(0, (await countUserInfractions(appeal.guildId, appeal.userId).catch(() => 0)) - (appeal.caseId ? 1 : 0)),
+    // Cases overturned on appeal (including this one, once reversed) don't count as other infractions.
+    otherInfractions: await countUserInfractions(appeal.guildId, appeal.userId, {
+      excludeOverturned: true,
+      excludeCaseId: appeal.caseId,
+    }).catch(() => 0),
     pastAppeals: listUserAppeals(appeal.guildId, appeal.userId).filter((item) => item.id !== appeal.id),
     question: question?.body ?? null,
     reply: replies.at(-1)?.body ?? null,

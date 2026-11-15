@@ -101,6 +101,10 @@ export function bucketFor(method: string, pathname: string): Bucket {
   if (method !== "GET" && SERVER_AUTOPILOT_HEAVY.test(pathname)) return "send";
   if (/\/ai(?:\/|$)/.test(pathname) || /\/characters\/\d+\/test$/.test(pathname)) return "ai";
   if (method !== "GET" && MESSAGE_KITS_HEAVY.test(pathname)) return "send";
+  // Bulk suggestion actions edit, post and DM for up to 50 suggestions per call.
+  if (method !== "GET" && /\/suggestions\/bulk$/.test(pathname)) return "send";
+  // Ticket replies post in Discord; bulk ticket actions close, claim or delete up to 25 per call.
+  if (method !== "GET" && /\/tickets\/(?:\d+\/reply|bulk)$/.test(pathname)) return "send";
   if (method !== "GET" && /\/(?:assets|images|evidence|upload|avatar|banner|brand-art)(?:\/|$)/.test(pathname)) return "upload";
   return method === "GET" || method === "HEAD" ? "read" : "write";
 }

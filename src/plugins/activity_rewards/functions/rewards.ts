@@ -1,8 +1,8 @@
 import type { GuildMember, MessageCreateOptions, SendableChannels } from "discord.js";
-import type {
-  ActivityMetric,
-  ActivityMilestone,
-  ActivityRewardsConfig,
+import {
+  ACTIVITY_METRICS,
+  type ActivityMilestone,
+  type ActivityRewardsConfig,
 } from "../../../config/schemas/activityRewards.js";
 import type { WelcomeEventConfig } from "../../../config/schemas/welcome.js";
 import { getLogger } from "../../../core/logger.js";
@@ -18,6 +18,7 @@ import {
   type ActivityProgress,
 } from "./config.js";
 import { listAwarded, markAwarded } from "./store.js";
+import { withContributions } from "./contributions.js";
 import { autoGrantableRoleIds } from "../../../core/roles.js";
 
 const log = getLogger("activity_rewards");
@@ -72,7 +73,7 @@ export function evaluateRoles(
   const wanted = new Set<string>();
   const unwanted = new Set<string>();
 
-  for (const metric of ["messages", "voice_minutes"] as ActivityMetric[]) {
+  for (const metric of ACTIVITY_METRICS) {
     const reached = activeMilestones(config, metric).filter((m) => hasReached(progress, m));
     if (reached.length === 0) continue;
     const keep = config.stacking ? reached : [reached[reached.length - 1]!];
@@ -132,6 +133,8 @@ export function milestoneTemplateVars(
     messages: formatCount(progress.messages),
     voice_time: formatVoiceSeconds(progress.voiceSeconds),
     voice_hours: (Math.floor(progress.voiceSeconds / 360) / 10).toString(),
+    starboard_posts: formatCount(progress.starboardPosts ?? 0),
+    suggestions_implemented: formatCount(progress.suggestionsImplemented ?? 0),
     reward_roles: milestone.roles.map((id) => `<@&${id}>`).join(", "),
     next_milestone: next ? milestoneLabel(next) : "",
   };
@@ -240,6 +243,9 @@ export async function processMember(
   progress: ActivityProgress,
   options: { activityChannelId?: string | null; announce?: boolean; resync?: boolean } = {},
 ): Promise<ProcessResult> {
+  // Contribution counts (starboard posts, implemented suggestions) are looked up here, only when
+  // the guild has such milestones, so every caller (messages, voice, sync) sees existing counts.
+  progress = withContributions(member.guild.id, member.id, progress, config);
   const reached = activeMilestones(config).filter((m) => hasReached(progress, m));
   const empty: ProcessResult = { toAdd: [], toRemove: [], newlyReached: [] };
   if (reached.length === 0 && !options.resync) return empty;
@@ -256,7 +262,7 @@ export async function processMember(
   }
 
   if (options.announce !== false) {
-    for (const metric of ["messages", "voice_minutes"] as ActivityMetric[]) {
+    for (const metric of ACTIVITY_METRICS) {
       const top = newlyReached.filter((m) => m.metric === metric).at(-1);
       if (!top || !milestoneAnnounces(config, top)) continue;
       await sendAnnouncement(member, config, top, progress, options.activityChannelId).catch(() => null);

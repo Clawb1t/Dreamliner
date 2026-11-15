@@ -56,6 +56,7 @@ export type WebGiveaway = {
   bypassRoleIds: string[];
   minAccountAgeDays: number;
   minJoinAgeDays: number;
+  requirePassport: boolean;
   bonusRoleWeights: BonusRoleWeight[];
   boosterBonusWeight: number;
   entryCost: number;
@@ -110,6 +111,7 @@ export type CreateGiveawayInput = {
   bypassRoleIds?: string[];
   minAccountAgeDays?: number;
   minJoinAgeDays?: number;
+  requirePassport?: boolean;
   bonusRoleWeights?: BonusRoleWeight[];
   boosterBonusWeight?: number;
   entryCost?: number;
@@ -165,6 +167,7 @@ async function toWebGiveaway(giveaway: Giveaway): Promise<WebGiveaway> {
     bypassRoleIds: giveaway.bypassRoleIds,
     minAccountAgeDays: giveaway.minAccountAgeDays,
     minJoinAgeDays: giveaway.minJoinAgeDays,
+    requirePassport: giveaway.requirePassport,
     bonusRoleWeights: giveaway.bonusRoleWeights,
     boosterBonusWeight: giveaway.boosterBonusWeight,
     entryCost: giveaway.entryCost,
@@ -310,6 +313,7 @@ export async function createGuildGiveaway(
     bypassRoleIds: input.bypassRoleIds ?? [],
     minAccountAgeDays: input.minAccountAgeDays ?? 0,
     minJoinAgeDays: input.minJoinAgeDays ?? 0,
+    requirePassport: input.requirePassport === true,
     bonusRoleWeights: input.bonusRoleWeights ?? [],
     boosterBonusWeight: input.boosterBonusWeight ?? config.default_booster_bonus_weight,
     entryCost: input.entryCost ?? config.default_entry_cost,
@@ -382,6 +386,7 @@ export async function updateGuildGiveaway(
     ...(patch.bypassRoleIds !== undefined ? { bypassRoleIds: patch.bypassRoleIds } : {}),
     ...(patch.minAccountAgeDays !== undefined ? { minAccountAgeDays: patch.minAccountAgeDays } : {}),
     ...(patch.minJoinAgeDays !== undefined ? { minJoinAgeDays: patch.minJoinAgeDays } : {}),
+    ...(typeof patch.requirePassport === "boolean" ? { requirePassport: patch.requirePassport } : {}),
     ...(patch.bonusRoleWeights !== undefined ? { bonusRoleWeights: patch.bonusRoleWeights } : {}),
     ...(patch.boosterBonusWeight !== undefined ? { boosterBonusWeight: patch.boosterBonusWeight } : {}),
     ...(patch.entryCost !== undefined ? { entryCost: patch.entryCost } : {}),
@@ -583,6 +588,7 @@ export async function buildGiveawayPreview(
     bypassRoleIds: [],
     minAccountAgeDays: typeof raw.minAccountAgeDays === "number" ? raw.minAccountAgeDays : 0,
     minJoinAgeDays: typeof raw.minJoinAgeDays === "number" ? raw.minJoinAgeDays : 0,
+    requirePassport: raw.requirePassport === true,
     bonusRoleWeights: [],
     boosterBonusWeight: 0,
     entryCost: 0,

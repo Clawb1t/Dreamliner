@@ -6,6 +6,7 @@ import type {
 } from "../../../config/schemas/welcome.js";
 import { buildDynamicExtras, keysReferencedIn } from "../../../core/templateExtras.js";
 import { hasMemberPassedPassport } from "../../passport/functions/gate.js";
+import { isReturningMember } from "../../../core/returningMember.js";
 import { armFirstMessageReact, clearFirstMessageReact } from "./firstMessageReact.js";
 import { loadWelcomeConfig } from "./loadConfig.js";
 import { handleMemberMilestoneJoin } from "./memberMilestones.js";
@@ -41,6 +42,19 @@ function collectTemplateText(event: WelcomeEventConfig | WelcomeDmConfig): strin
   return texts;
 }
 
+/** Swaps in the welcome back message body for a returning member's join-channel welcome. The
+ *  channel, enable switch and wave button stay the join message's own. */
+export function applyWelcomeBack<T extends WelcomeEventConfig | WelcomeDmConfig>(
+  event: T,
+  target: WelcomeTarget,
+  config: WelcomeMessageConfig,
+  returning: boolean | undefined,
+): T {
+  if (target !== "join" || !returning || !config.welcome_back?.enabled) return event;
+  const { content, embed, card } = config.welcome_back.message;
+  return { ...event, content, embed, card };
+}
+
 async function deliverWelcome(
   target: WelcomeTarget,
   options: {
@@ -49,9 +63,11 @@ async function deliverWelcome(
     member?: GuildMember | null;
     user?: User | null;
     config: WelcomeMessageConfig;
+    /** A rejoining member: the join channel gets the welcome back message when it's on. */
+    returning?: boolean;
   },
 ): Promise<{ ok: boolean; detail: string; messageId?: string; channelId?: string }> {
-  const event = getWelcomeEventConfig(options.config, target);
+  const event = applyWelcomeBack(getWelcomeEventConfig(options.config, target), target, options.config, options.returning);
   if (!event.enabled) {
     return { ok: false, detail: `${target} messages are disabled.` };
   }
@@ -113,6 +129,7 @@ export async function sendWelcomeEvent(
   target: WelcomeTarget,
   member: GuildMember,
   config: WelcomeMessageConfig,
+  options: { returning?: boolean } = {},
 ): Promise<{ ok: boolean; detail: string }> {
   const result = await deliverWelcome(target, {
     guildId: member.guild.id,
@@ -120,6 +137,7 @@ export async function sendWelcomeEvent(
     member,
     user: member.user,
     config,
+    returning: options.returning,
   });
 
   if (
@@ -147,6 +165,9 @@ export async function handleWelcomeMemberAdd(member: GuildMember): Promise<void>
   const config = await loadWelcomeConfig(member.guild.id);
   if (!config) return;
 
+  // Captured first, before other join handlers touch the member (see core/returningMember.ts).
+  const returning = config.welcome_back?.enabled && !member.user.bot ? isReturningMember(member) : false;
+
   // Before the bot check: a bot join moves the member count too, so it can land on a milestone.
   await handleMemberMilestoneJoin(member, config.member_milestones);
   if (member.user.bot) return;
@@ -160,7 +181,7 @@ export async function handleWelcomeMemberAdd(member: GuildMember): Promise<void>
 
   if (!waitForPassport) {
     if (config.join.enabled && config.join.channel_id) {
-      await sendWelcomeEvent("join", member, config);
+      await sendWelcomeEvent("join", member, config, { returning });
     }
 
     if (config.dm.enabled) {
@@ -184,8 +205,10 @@ export async function sendWelcomeAfterPassportVerification(member: GuildMember):
   const config = await loadWelcomeConfig(member.guild.id);
   if (!config || !config.require_passport_verification) return;
 
+  // Remembered from the join (see core/returningMember.ts), so verifying later doesn't change it.
+  const returning = config.welcome_back?.enabled ? isReturningMember(member) : false;
   if (config.join.enabled && config.join.channel_id) {
-    await sendWelcomeEvent("join", member, config);
+    await sendWelcomeEvent("join", member, config, { returning });
   }
 
   if (config.dm.enabled) {

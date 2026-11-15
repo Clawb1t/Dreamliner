@@ -7,9 +7,8 @@ import { ticketCommands } from "./commands/ticket.js";
 import { processInactiveTickets } from "./functions/autoclose.js";
 import { processTicketEscalations } from "./functions/escalation.js";
 import { refreshDynamicTicketPanels } from "./functions/panels.js";
-import { getTicketByChannel, touchActivity, touchStaffReply } from "./functions/tickets.js";
-import { performSetStatus } from "./functions/actions.js";
-import { onTicketMessage } from "./functions/ai/responder.js";
+import { getTicketByChannel } from "./functions/tickets.js";
+import { recordTicketMessage } from "./functions/actions.js";
 import { startAutotrainScheduler } from "./functions/ai/autotrain.js";
 import { getLogger } from "../../core/logger.js";
 const log = getLogger("tickets");
@@ -66,23 +65,7 @@ export const ticketsPlugin = definePlugin({
         const member = msg.member as GuildMember | null;
         const isStaff = Boolean(member && staffRoleIds.some((id) => member.roles.cache.has(id)));
 
-        if (isStaff) {
-          await touchStaffReply(msg.guild.id, msg.channel.id, msg.author.id).catch(() => null);
-        } else {
-          await touchActivity(msg.guild.id, msg.channel.id).catch(() => null);
-        }
-
-        // AI Responder: a member message gets an AI reply; a staff reply means staff took over.
-        if (pluginConfig.ai_responder.enabled) onTicketMessage(client, ticket, msg.author.id, isStaff);
-
-        if (pluginConfig.auto_status_updates) {
-          const nextStatus = isStaff ? "awaiting_response" : "in_progress";
-          if (ticket.subStatus !== nextStatus) {
-            await performSetStatus(client, guildConfig, pluginConfig, ticket, nextStatus, msg.author.id).catch((err) => {
-              log.error("Auto status update failed:", err);
-            });
-          }
-        }
+        await recordTicketMessage(client, guildConfig, pluginConfig, ticket, msg.channel.id, msg.author.id, isStaff);
       },
     },
   ],

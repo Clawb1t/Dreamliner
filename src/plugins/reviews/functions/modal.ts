@@ -208,6 +208,7 @@ export async function handleReviewModalSubmit(
       min_messages: pluginConfig.min_messages,
       min_account_age: pluginConfig.min_account_age,
       min_member_age: pluginConfig.min_member_age,
+      require_passport: pluginConfig.require_passport,
       cooldown: pluginConfig.cooldown,
       allowed_roles: pluginConfig.allowed_roles,
       blocked_roles: pluginConfig.blocked_roles,

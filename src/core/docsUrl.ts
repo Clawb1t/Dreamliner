@@ -86,9 +86,29 @@ export function getGuildLogsDashboardUrl(guildId: string): string {
   return `${getGuildDashboardUrl(guildId)}?section=logs`;
 }
 
-/** Guild dashboard opened on the moderation Cases section. */
-export function getGuildCasesDashboardUrl(guildId: string): string {
-  return `${getGuildDashboardUrl(guildId)}?section=cases`;
+/** A positive integer id, or null for anything else (so a bad id never ends up in a link). */
+function positiveId(id: number | string | null | undefined): string | null {
+  if (id == null) return null;
+  const text = String(id).trim();
+  return /^\d{1,12}$/.test(text) && Number(text) > 0 ? text : null;
+}
+
+/** Guild dashboard opened on the moderation Cases section, optionally with one case's modal open. */
+export function getGuildCasesDashboardUrl(guildId: string, caseId?: number | null): string {
+  const id = positiveId(caseId);
+  return `${getGuildDashboardUrl(guildId)}?section=cases${id ? `&case=${id}` : ""}`;
+}
+
+/** Guild dashboard opened on View Tickets, optionally with one ticket open. */
+export function getGuildTicketsDashboardUrl(guildId: string, ticketId?: number | string | null): string {
+  const id = positiveId(ticketId);
+  return `${getGuildDashboardUrl(guildId)}?section=tickets${id ? `&ticket=${id}` : ""}`;
+}
+
+/** Staff-only Member 360 hub on the dashboard: everything this server knows about one member. */
+export function getGuildMemberHubUrl(guildId: string, userId: string): string {
+  const id = /^\d{17,20}$/.test(userId) ? userId : "";
+  return `${getGuildDashboardUrl(guildId)}?section=member${id ? `&user=${id}` : ""}`;
 }
 
 /** Guild dashboard opened on the Commands plugin page. */

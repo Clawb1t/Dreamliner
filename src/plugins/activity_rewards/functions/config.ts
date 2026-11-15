@@ -1,4 +1,5 @@
 import {
+  ACTIVITY_METRICS,
   zActivityRewardsConfig,
   type ActivityMetric,
   type ActivityMilestone,
@@ -15,6 +16,10 @@ export const PLUGIN = "activity_rewards";
 export type ActivityProgress = {
   messages: number;
   voiceSeconds: number;
+  /** Contribution counts, filled in only when the guild has contribution milestones
+   *  (see contributions.ts). Missing means 0. */
+  starboardPosts?: number;
+  suggestionsImplemented?: number;
 };
 
 // configManager hands back the same GuildConfig object until the guild's config is saved again,
@@ -42,12 +47,23 @@ export async function loadActiveActivityRewards(guildId: string): Promise<Activi
 export function activeMilestones(config: ActivityRewardsConfig, metric?: ActivityMetric): ActivityMilestone[] {
   return config.milestones
     .filter((m) => m.enabled !== false && (!metric || m.metric === metric))
-    .sort((a, b) => (a.metric === b.metric ? a.threshold - b.threshold : a.metric === "messages" ? -1 : 1));
+    .sort((a, b) =>
+      a.metric === b.metric ? a.threshold - b.threshold : ACTIVITY_METRICS.indexOf(a.metric) - ACTIVITY_METRICS.indexOf(b.metric),
+    );
 }
 
-/** A member's value on a milestone's track, in the milestone's own unit (messages or minutes). */
+/** A member's value on a milestone's track, in the milestone's own unit. */
 export function metricValue(progress: ActivityProgress, metric: ActivityMetric): number {
-  return metric === "messages" ? progress.messages : Math.floor(progress.voiceSeconds / 60);
+  switch (metric) {
+    case "messages":
+      return progress.messages;
+    case "voice_minutes":
+      return Math.floor(progress.voiceSeconds / 60);
+    case "starboard_posts":
+      return progress.starboardPosts ?? 0;
+    case "suggestions_implemented":
+      return progress.suggestionsImplemented ?? 0;
+  }
 }
 
 export function hasReached(progress: ActivityProgress, milestone: ActivityMilestone): boolean {
@@ -75,9 +91,18 @@ export function formatVoiceSeconds(seconds: number): string {
 }
 
 export function requirementLabel(milestone: Pick<ActivityMilestone, "metric" | "threshold">): string {
-  return milestone.metric === "messages"
-    ? `${formatCount(milestone.threshold)} message${milestone.threshold === 1 ? "" : "s"}`
-    : `${formatVoiceMinutes(milestone.threshold)} in voice`;
+  const n = milestone.threshold;
+  const s = n === 1 ? "" : "s";
+  switch (milestone.metric) {
+    case "messages":
+      return `${formatCount(n)} message${s}`;
+    case "voice_minutes":
+      return `${formatVoiceMinutes(n)} in voice`;
+    case "starboard_posts":
+      return `${formatCount(n)} starboard post${s}`;
+    case "suggestions_implemented":
+      return `${formatCount(n)} implemented suggestion${s}`;
+  }
 }
 
 export function milestoneLabel(milestone: ActivityMilestone): string {

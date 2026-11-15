@@ -1,7 +1,10 @@
 import type { Client } from "discord.js";
 import { configManager } from "../../../config/manager.js";
-import type { IncidentResponseConfig, IncidentSource } from "../../../config/schemas/incidentResponse.js";
+import type { IncidentResponseConfig, IncidentSeverityPolicy, IncidentSource } from "../../../config/schemas/incidentResponse.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
+import { fetchGuildChannel } from "../../../core/guildChannel.js";
+import { resolveLogChannelId } from "../../../core/logging/channels.js";
+import { isLogEventEnabled } from "../../../core/logging/toggles.js";
 import { buildIncidentLog } from "../../../core/logging/format.js";
 import { emitLog } from "../../../core/logging/send.js";
 import { correlateSignal, markResponded } from "./correlate.js";
@@ -103,7 +106,10 @@ export async function reportSignal(client: Client, input: ReportSignalInput): Pr
     const signals = await listIncidentSignals(incident.id);
     const reasons = [...new Set(signals.map((s) => s.reason))].slice(0, 6);
     const policy = config[SEVERITY_POLICY_KEY[incident.severity]];
-    const pingPrefix = policy.notify_roles.length ? `${policy.notify_roles.map((r) => `<@&${r}>`).join(" ")} ` : "";
+    // Log cards never ping (allowedMentions parse: []), so the mentions shown on the card are
+    // display only; the actual page goes out as its own message below (pageIncidentStaff).
+    const ping = await resolveIncidentPing(client, input.guildId, policy);
+    const pingPrefix = ping.content ? `${ping.content} ` : "";
 
     await emitLog(
       client,
@@ -129,5 +135,41 @@ export async function reportSignal(client: Client, input: ReportSignalInput): Pr
         caseLogOverride: config.log_channel_id,
       },
     ).catch((err) => log.error("Failed to post incident log:", err));
+
+    if (ping.content && isLogEventEnabled(guildConfig, "incident_response")) {
+      const channelId = resolveLogChannelId(guildConfig, "incident_response", config.log_channel_id);
+      const channel = channelId ? await fetchGuildChannel(client, input.guildId, channelId).catch(() => null) : null;
+      if (channel?.isTextBased() && "send" in channel) {
+        await channel
+          .send({
+            content: `${ping.content} Incident #${incident.id} is ${incident.severity}.`,
+            allowedMentions: ping.allowedMentions,
+          })
+          .catch((err) => log.error("Failed to page staff for incident:", err));
+      }
+    }
+  }
+}
+
+type IncidentPing = { content: string; allowedMentions: { users: string[]; roles: string[]; parse: [] } };
+
+/** The severity's notify roles, or (with `notify_on_shift`) up to 5 clocked-in Team Control
+ *  staff, falling back to the roles when nobody is on shift or Team Control is off. */
+async function resolveIncidentPing(client: Client, guildId: string, policy: IncidentSeverityPolicy): Promise<IncidentPing> {
+  const roles = [...new Set(policy.notify_roles)];
+  const rolePing: IncidentPing = {
+    content: roles.map((r) => `<@&${r}>`).join(" "),
+    allowedMentions: { users: [], roles, parse: [] },
+  };
+  if (!policy.notify_on_shift) return rolePing;
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) return rolePing;
+  try {
+    const { resolveOnShiftPing } = await import("../../team_control/functions/onShift.js");
+    const ping = await resolveOnShiftPing(guild, roles);
+    return ping.content ? ping : rolePing;
+  } catch (err) {
+    log.error("On-shift ping lookup failed:", err);
+    return rolePing;
   }
 }

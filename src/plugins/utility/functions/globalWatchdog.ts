@@ -2,11 +2,13 @@ import { PermissionFlagsBits, type GuildMember } from "discord.js";
 import { checkGlobalWatchdog } from "../../../bridge/globalWatchdog.js";
 import { buildGlobalWatchdogHitLog } from "../../../core/logging/format.js";
 import { sendModerationLog } from "../../../core/logging/send.js";
+import { getGuildMemberHubUrl, getIdentityCardUrl } from "../../../core/docsUrl.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import type { InfractionConfig } from "../../../config/schemas/infraction.js";
 import type { UtilityConfig } from "../../../config/schemas/utility.js";
 import { createInfraction, postCaseLog } from "../../infraction/functions/infractions.js";
 import { formatReason } from "../../infraction/functions/moderation.js";
+import { dmAutomatedCase } from "../../infraction/functions/automatedNotify.js";
 
 /**
  * Checks a joining member against the platform-wide Global Watchdog list (superuser-curated,
@@ -34,12 +36,6 @@ export async function handleGlobalWatchdogMemberAdd(member: GuildMember): Promis
     const infractionConfig = getPluginSettings(guildConfig, "infractions") as InfractionConfig;
     const modId = client.user!.id;
 
-    if (action === "kick" && member.kickable) {
-      await member.kick(reason).catch(() => null);
-    } else if (action === "ban" && guild.members.me?.permissions.has(PermissionFlagsBits.BanMembers)) {
-      await guild.members.ban(member.id, { reason }).catch(() => null);
-    }
-
     const record = await createInfraction({
       guildId: guild.id,
       userId: member.id,
@@ -49,22 +45,38 @@ export async function handleGlobalWatchdogMemberAdd(member: GuildMember): Promis
       active: action === "ban",
       metadata: { source: "global_watchdog", evidenceUrl: entry.evidenceUrl },
     });
+    // Same DM a moderator's case sends (this server's Infractions DM settings, plus the Appeal
+    // button when Appeals allows it), sent before acting while the bot still shares the server.
+    await dmAutomatedCase({ guild, guildConfig, user: member.user, record, reason, actorLabel: "Global Watchdog" });
+
+    if (action === "kick" && member.kickable) {
+      await member.kick(reason).catch(() => null);
+    } else if (action === "ban" && guild.members.me?.permissions.has(PermissionFlagsBits.BanMembers)) {
+      await guild.members.ban(member.id, { reason }).catch(() => null);
+    }
     await postCaseLog(client, guildConfig, infractionConfig, record, member.user, client.user).catch(() => null);
   }
 
+  const hitCard = buildGlobalWatchdogHitLog({
+    user: {
+      id: member.id,
+      name: member.user.username,
+      avatarUrl: member.user.displayAvatarURL({ size: 128 }),
+    },
+    reason: entry.reason,
+    evidenceUrl: entry.evidenceUrl,
+    action,
+  });
+  // Straight to the staff-only Member 360 hub and the member's identity card.
+  hitCard.buttons = [
+    ...(hitCard.buttons ?? []),
+    { label: "Open on dashboard", url: getGuildMemberHubUrl(guild.id, member.id), style: "link" as const, emoji: "<:icons_link:1544417328597434500>" },
+    { label: "Identity card", url: getIdentityCardUrl(guild.id, member.id), style: "link" as const, emoji: "<:icons_id:1544417556868104274>" },
+  ].slice(0, 5);
   await sendModerationLog(
     client,
     guildConfig,
-    buildGlobalWatchdogHitLog({
-      user: {
-        id: member.id,
-        name: member.user.username,
-        avatarUrl: member.user.displayAvatarURL({ size: 128 }),
-      },
-      reason: entry.reason,
-      evidenceUrl: entry.evidenceUrl,
-      action,
-    }),
+    hitCard,
     {
       guildId: guild.id,
       eventType: "global_watchdog",

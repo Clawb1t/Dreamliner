@@ -358,6 +358,20 @@ async function refreshMessagesWithComments(
   }
 }
 
+/** Re-renders a suggestion's live posts after something outside the normal flows changed what
+ *  they show (e.g. a comment deleted from the dashboard), so Discord matches the database. */
+export async function refreshSuggestionPosts(options: {
+  client: Client;
+  guild: Guild;
+  config: SuggestionsConfig;
+  suggestionId: number;
+  t?: Translator;
+}): Promise<void> {
+  const suggestion = await getSuggestionById(options.suggestionId);
+  if (!suggestion || suggestion.guildId !== options.guild.id) return;
+  await refreshMessagesWithComments(options.client, options.config, suggestion, options.t ?? defaultTranslator);
+}
+
 export async function approveSuggestion(options: {
   client: Client;
   guild: Guild;
@@ -578,6 +592,10 @@ export async function markSuggestion(options: {
 
   if (options.displayStatus === "implemented") {
     await maybeGrantRole(options.guild, suggestion.authorId, options.config.implemented_role);
+    // Activity Rewards' "suggestions implemented" milestones (roles only). Guarded: never blocks.
+    void import("../../activity_rewards/functions/contributions.js")
+      .then(({ onContributionChanged }) => onContributionChanged(options.guild, suggestion.authorId))
+      .catch(() => null);
     const archive = await resolveTextChannel(options.client, options.guild.id, options.config.archive_channel_id);
     if (archive) {
       const votes = await getVoteTotals(updated.id);
