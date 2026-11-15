@@ -1,4 +1,4 @@
-import type { Client } from "discord.js";
+import type { Client, Guild } from "discord.js";
 import { CommandProgramError, validateProgram, type CommandProgram } from "../plugins/dream_commands/functions/program.js";
 import type { ConfigManager } from "../config/manager.js";
 import {
@@ -15,9 +15,16 @@ import {
 } from "../plugins/dream_commands/functions/store.js";
 import {
   DREAM_COMMAND_CAP,
+  getReservedCommandNames,
   isReservedCommandName,
   syncGuildDreamSlashCommands,
 } from "../plugins/dream_commands/functions/guildSlash.js";
+import {
+  getDreamCommandsUsage,
+  type DreamCommandUsage,
+  type DreamCommandsUsageSummary,
+} from "../plugins/dream_commands/functions/usage.js";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import { getLogger } from "../core/logger.js";
 const log = getLogger("bridge");
 
@@ -61,22 +68,72 @@ function validateProgramInput(input: unknown): CommandProgramValidation {
 // saved command actually replies when run (see handleDreamCommandSlash), the same
 // way a server can draft/edit any other plugin's config while it's disabled.
 
+/** Who made a command, for the dashboard's member chip (falls back to the raw ID). */
+export type BridgeDreamCommandPerson = { id: string; name: string; username: string | null; avatar: string | null };
+
+async function resolveCreator(guild: Guild, userId: string): Promise<BridgeDreamCommandPerson | null> {
+  if (!/^\d{15,22}$/.test(userId)) return null;
+  const member = await fetchMemberCached(guild, userId);
+  const user = member?.user ?? (await fetchUserCached(guild.client, userId));
+  return {
+    id: userId,
+    name: member?.displayName ?? user?.displayName ?? user?.username ?? userId,
+    username: user?.username ?? null,
+    avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
+  };
+}
+
+/** A list row: the command plus its usage and creator (both only on the list endpoint). */
+export type BridgeDreamCommandListRow = BridgeDreamCommand & {
+  usage: DreamCommandUsage;
+  creator: BridgeDreamCommandPerson | null;
+};
+
 export async function listBridgeDreamCommands(
   _configManager: ConfigManager,
   guildId: string,
+  guild?: Guild,
 ): Promise<
-  | { ok: true; commands: BridgeDreamCommand[]; count: number; maxCommands: number }
+  | {
+      ok: true;
+      commands: BridgeDreamCommandListRow[];
+      count: number;
+      maxCommands: number;
+      usage: Omit<DreamCommandsUsageSummary, "byName">;
+      reservedNames: string[];
+    }
   | { ok: false; error: string; status: number }
 > {
   const [commands, count] = await Promise.all([
     listDreamCommands(guildId),
     countDreamCommands(guildId),
   ]);
+  const names = commands.map((row) => row.name);
+  const [usage, creators] = await Promise.all([
+    getDreamCommandsUsage(guildId, names).catch((error) => {
+      log.warn("[bridge] custom command usage lookup failed:", error);
+      return null;
+    }),
+    guild
+      ? Promise.all([...new Set(commands.map((row) => row.createdBy))].map(async (id) => [id, await resolveCreator(guild, id).catch(() => null)] as const))
+      : Promise.resolve([] as Array<readonly [string, BridgeDreamCommandPerson | null]>),
+  ]);
+  const creatorById = new Map(creators);
+  const none: DreamCommandUsage = { total: 0, last7d: 0, last30d: 0, lastUsedDate: null };
   return {
     ok: true,
-    commands: commands.map(serializeCommand),
+    commands: commands.map((row) => ({
+      ...serializeCommand(row),
+      usage: usage?.byName[row.name] ?? none,
+      creator: creatorById.get(row.createdBy) ?? null,
+    })),
     count,
     maxCommands: MAX_DREAM_COMMANDS,
+    usage: usage
+      ? { total: usage.total, last7d: usage.last7d, last30d: usage.last30d, daily: usage.daily }
+      : { total: 0, last7d: 0, last30d: 0, daily: [] },
+    // Built-in command names a custom command can't use, so the dashboard can say so while typing.
+    reservedNames: [...getReservedCommandNames()].sort(),
   };
 }
 

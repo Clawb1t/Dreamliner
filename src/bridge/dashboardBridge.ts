@@ -9008,7 +9008,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const {
               listBridgeDreamCommands,
             } = await import("./dreamCommands.js");
-            const result = await listBridgeDreamCommands(configManager, guildId);
+            const result = await listBridgeDreamCommands(configManager, guildId, guild);
             if (!result.ok) {
               sendJson(res, result.status, { error: result.error });
               return;
@@ -9018,6 +9018,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               commands: result.commands,
               count: result.count,
               maxCommands: result.maxCommands,
+              usage: result.usage,
+              reservedNames: result.reservedNames,
             });
             return;
           }
