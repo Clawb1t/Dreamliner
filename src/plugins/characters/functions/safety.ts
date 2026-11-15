@@ -202,7 +202,7 @@ export async function reviewCharacter(
   try {
     raw = (
       await call({
-        maxTokens: 200,
+        maxTokens: 300,
         messages: [
           { role: "system", content: REVIEW_SYSTEM },
           { role: "user", content: `Review this character:\n\n${definitionText(def)}` },

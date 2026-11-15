@@ -12,6 +12,12 @@ import OpenAI from "openai";
 const DEFAULT_BASE_URL = "https://api.deepseek.com";
 const DEFAULT_MODEL = "deepseek-flash";
 const TIMEOUT_MS = 25_000;
+/**
+ * deepseek-flash thinks before it answers, and those reasoning tokens count against max_tokens.
+ * Callers pass the budget for the visible answer; this headroom is added on top so a long think
+ * can't use up the whole budget and leave an empty reply (finish_reason "length", no content).
+ */
+const REASONING_HEADROOM = 1000;
 
 export type DeepSeekMessage = { role: "system" | "user" | "assistant"; content: string };
 export type DeepSeekUsage = { input: number; output: number };
@@ -71,7 +77,7 @@ export async function chatCompletion(input: {
   const response = await withOneRetry(() =>
     getClient().chat.completions.create({
       model: deepSeekModel(),
-      max_tokens: input.maxTokens,
+      max_tokens: input.maxTokens + REASONING_HEADROOM,
       temperature: input.temperature,
       messages: input.messages,
     }),
@@ -95,7 +101,7 @@ export async function structured(input: {
     const response = await withOneRetry(() =>
       getClient().chat.completions.create({
         model: deepSeekModel(),
-        max_tokens: input.maxTokens ?? 400,
+        max_tokens: (input.maxTokens ?? 400) + REASONING_HEADROOM,
         temperature: 0,
         messages: input.messages,
         response_format: { type: "json_object" },
