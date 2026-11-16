@@ -114,7 +114,7 @@ export const reviewsCommands: SlashCommandDefinition[] = [
             : result.reviews.map((review) => {
                 const who = review.anonymous ? ctx.t("reviews.anonymous", "Anonymous") : `<@${review.userId}>`;
                 const snippet = review.content.trim().slice(0, 80) || ctx.t("reviews.list.noComment", "_no comment_");
-                return `**#${review.id}** ${starsForRating(review.rating)} · ${who} — ${snippet}`;
+                return `**#${review.id}** ${starsForRating(review.rating)} · ${who} · ${snippet}`;
               });
 
         const embed = setEmbedAuthor(baseEmbed(), ctx.t("reviews.list.title", "Reviews"), ctx.client, commandHeader(ctx.guildConfig));

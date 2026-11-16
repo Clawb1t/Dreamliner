@@ -6,10 +6,11 @@ import { fetchGuildChannel } from "../../../core/guildChannel.js";
 import { resolveLogChannelId } from "../../../core/logging/channels.js";
 import { isLogEventEnabled } from "../../../core/logging/toggles.js";
 import { buildIncidentLog } from "../../../core/logging/format.js";
+import { getGuildIncidentsDashboardUrl } from "../../../core/docsUrl.js";
 import { emitLog } from "../../../core/logging/send.js";
 import { correlateSignal, markResponded } from "./correlate.js";
 import { applyPolicyForSeverity } from "./responseActions.js";
-import { listIncidentSignals, type IncidentEntityType } from "./store.js";
+import { listIncidentSignals, recordIncidentEvent, type IncidentEntityType } from "./store.js";
 import { getLogger } from "../../../core/logger.js";
 
 const log = getLogger("incident_response");
@@ -98,6 +99,14 @@ export async function reportSignal(client: Client, input: ReportSignalInput): Pr
       });
     }
     await markResponded(incident.id, incident.severity, actionsTaken);
+    await recordIncidentEvent({
+      incidentId: incident.id,
+      guildId: input.guildId,
+      kind: "response",
+      actorId: null,
+      value: incident.severity,
+      content: actionsTaken.length ? actionsTaken.join(", ") : null,
+    });
   }
 
   // Always visible, regardless of policy: a brand-new incident, or a severity escalation.
@@ -111,20 +120,32 @@ export async function reportSignal(client: Client, input: ReportSignalInput): Pr
     const ping = await resolveIncidentPing(client, input.guildId, policy);
     const pingPrefix = ping.content ? `${ping.content} ` : "";
 
+    const card = buildIncidentLog({
+      id: incident.id,
+      severity: incident.severity,
+      entityLabel: `${pingPrefix}${input.entityLabel}`,
+      title: incident.title,
+      riskScore: incident.riskScore,
+      signalCount: incident.signalCount,
+      sourceCount: incident.sourceCount,
+      reasons,
+      actionsTaken,
+    });
     await emitLog(
       client,
       guildConfig,
-      buildIncidentLog({
-        id: incident.id,
-        severity: incident.severity,
-        entityLabel: `${pingPrefix}${input.entityLabel}`,
-        title: incident.title,
-        riskScore: incident.riskScore,
-        signalCount: incident.signalCount,
-        sourceCount: incident.sourceCount,
-        reasons,
-        actionsTaken,
-      }),
+      {
+        ...card,
+        buttons: [
+          ...(card.buttons ?? []),
+          {
+            label: "Open on dashboard",
+            url: getGuildIncidentsDashboardUrl(input.guildId, incident.id),
+            style: "link",
+            emoji: "<:icons_link:1544417328597434500>",
+          },
+        ],
+      },
       {
         guildId: input.guildId,
         eventType: "incident_response",

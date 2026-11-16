@@ -1,6 +1,6 @@
-import { and, count, desc, eq, gte } from "drizzle-orm";
+import { and, asc, count, countDistinct, desc, eq, gte, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
-import { incidents, incidentSignals } from "../../../db/schema.js";
+import { incidentEvents, incidentLockdowns, incidents, incidentSignals } from "../../../db/schema.js";
 import type {
   IncidentSeverity,
   IncidentSource,
@@ -276,27 +276,71 @@ export async function getIncident(guildId: string, id: number): Promise<Incident
   return row ? toIncident(row) : null;
 }
 
+export type IncidentSort = "recent" | "oldest" | "risk" | "signals" | "created";
+
 export type IncidentListFilters = {
   status?: IncidentStatus;
+  /** Several statuses at once (e.g. "active" = open + acknowledged). Ignored when `status` is set. */
+  statuses?: IncidentStatus[];
   severity?: IncidentSeverity;
+  source?: IncidentSource;
+  entityType?: IncidentEntityType;
+  /** Free text: "#12" or "12" matches the id, a snowflake matches the entity, anything else the title. */
+  q?: string;
+  sort?: IncidentSort;
   limit?: number;
   offset?: number;
 };
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
 
 export async function listIncidents(
   guildId: string,
   filters: IncidentListFilters = {},
 ): Promise<{ incidents: IncidentRow[]; total: number }> {
-  const conditions = [eq(incidents.guildId, guildId)];
+  const conditions: SQL[] = [eq(incidents.guildId, guildId)];
   if (filters.status) conditions.push(eq(incidents.status, filters.status));
+  else if (filters.statuses?.length) conditions.push(inArray(incidents.status, filters.statuses));
   if (filters.severity) conditions.push(eq(incidents.severity, filters.severity));
+  if (filters.entityType) conditions.push(eq(incidents.entityType, filters.entityType));
+  if (filters.source) {
+    // Scoped to this guild's signals too, so a source filter can never reach another server's rows.
+    const withSource = getDb()
+      .select({ id: incidentSignals.incidentId })
+      .from(incidentSignals)
+      .where(and(eq(incidentSignals.guildId, guildId), eq(incidentSignals.source, filters.source)));
+    conditions.push(inArray(incidents.id, withSource));
+  }
+  const q = filters.q?.trim();
+  if (q) {
+    const idMatch = /^#?(\d{1,9})$/.exec(q);
+    if (idMatch) {
+      conditions.push(eq(incidents.id, Number(idMatch[1])));
+    } else if (/^\d{15,22}$/.test(q)) {
+      conditions.push(eq(incidents.entityId, q));
+    } else {
+      conditions.push(sql`${incidents.title} LIKE ${`%${escapeLike(q)}%`} ESCAPE '\\'`);
+    }
+  }
 
   const where = and(...conditions);
   const limit = filters.limit ?? 40;
   const offset = filters.offset ?? 0;
+  const order =
+    filters.sort === "oldest"
+      ? [asc(incidents.lastSignalAt)]
+      : filters.sort === "risk"
+        ? [desc(incidents.riskScore), desc(incidents.lastSignalAt)]
+        : filters.sort === "signals"
+          ? [desc(incidents.signalCount), desc(incidents.lastSignalAt)]
+          : filters.sort === "created"
+            ? [desc(incidents.firstSignalAt)]
+            : [desc(incidents.lastSignalAt)];
 
   const [rows, [totalRow]] = await Promise.all([
-    getDb().select().from(incidents).where(where).orderBy(desc(incidents.lastSignalAt)).limit(limit).offset(offset),
+    getDb().select().from(incidents).where(where).orderBy(...order).limit(limit).offset(offset),
     getDb().select({ value: count() }).from(incidents).where(where),
   ]);
 
@@ -306,20 +350,222 @@ export async function listIncidents(
 export async function setIncidentStatus(
   guildId: string,
   id: number,
-  status: Extract<IncidentStatus, "resolved" | "dismissed" | "acknowledged">,
+  status: IncidentStatus,
   actorId: string,
 ): Promise<IncidentRow | null> {
+  const closing = status === "resolved" || status === "dismissed";
   const row = await getDb()
     .update(incidents)
     .set({
       status,
       updatedAt: new Date(),
-      ...(status === "resolved" || status === "dismissed"
-        ? { resolvedBy: actorId, resolvedAt: new Date() }
-        : {}),
+      // Reopening or acknowledging clears who closed it, so the closed-by line never goes stale.
+      ...(closing ? { resolvedBy: actorId, resolvedAt: new Date() } : { resolvedBy: null, resolvedAt: null }),
     })
     .where(and(eq(incidents.guildId, guildId), eq(incidents.id, id)))
     .returning()
     .get();
   return row ? toIncident(row) : null;
+}
+
+// --- Activity log (incident_events) -------------------------------------------------------
+
+export type IncidentEventKind = "note" | "status" | "response" | "unlock";
+
+export type IncidentEventRow = {
+  id: number;
+  incidentId: number;
+  kind: IncidentEventKind;
+  actorId: string | null;
+  value: string | null;
+  content: string | null;
+  createdAt: Date;
+};
+
+function toEvent(row: typeof incidentEvents.$inferSelect): IncidentEventRow {
+  return {
+    id: row.id,
+    incidentId: row.incidentId,
+    kind: row.kind as IncidentEventKind,
+    actorId: row.actorId,
+    value: row.value,
+    content: row.content,
+    createdAt: row.createdAt,
+  };
+}
+
+export async function insertIncidentEvent(input: {
+  incidentId: number;
+  guildId: string;
+  kind: IncidentEventKind;
+  actorId?: string | null;
+  value?: string | null;
+  content?: string | null;
+}): Promise<IncidentEventRow> {
+  const row = await getDb()
+    .insert(incidentEvents)
+    .values({
+      incidentId: input.incidentId,
+      guildId: input.guildId,
+      kind: input.kind,
+      actorId: input.actorId ?? null,
+      value: input.value ?? null,
+      content: input.content ?? null,
+      createdAt: new Date(),
+    })
+    .returning()
+    .get();
+  return toEvent(row);
+}
+
+/** Best-effort event write: the activity log must never break the action it describes. */
+export async function recordIncidentEvent(input: Parameters<typeof insertIncidentEvent>[0]): Promise<void> {
+  await insertIncidentEvent(input).catch(() => null);
+}
+
+export async function listIncidentEvents(guildId: string, incidentId: number): Promise<IncidentEventRow[]> {
+  const rows = await getDb()
+    .select()
+    .from(incidentEvents)
+    .where(and(eq(incidentEvents.guildId, guildId), eq(incidentEvents.incidentId, incidentId)))
+    .orderBy(asc(incidentEvents.createdAt), asc(incidentEvents.id));
+  return rows.map(toEvent);
+}
+
+/** Deletes one staff note. Only notes: status changes and automatic actions stay in the log. */
+export async function deleteIncidentNote(guildId: string, incidentId: number, eventId: number): Promise<boolean> {
+  const row = await getDb()
+    .delete(incidentEvents)
+    .where(
+      and(
+        eq(incidentEvents.guildId, guildId),
+        eq(incidentEvents.incidentId, incidentId),
+        eq(incidentEvents.id, eventId),
+        eq(incidentEvents.kind, "note"),
+      ),
+    )
+    .returning({ id: incidentEvents.id })
+    .get();
+  return Boolean(row);
+}
+
+// --- Lockdowns and stats --------------------------------------------------------------------
+
+export type IncidentLockdownRow = {
+  id: number;
+  channelId: string;
+  lockedAt: Date;
+  lockedBy: string;
+  unlockAt: Date | null;
+  unlockedAt: Date | null;
+  unlockedBy: string | null;
+};
+
+export async function listIncidentLockdowns(guildId: string, incidentId: number): Promise<IncidentLockdownRow[]> {
+  const rows = await getDb()
+    .select()
+    .from(incidentLockdowns)
+    .where(and(eq(incidentLockdowns.guildId, guildId), eq(incidentLockdowns.incidentId, incidentId)))
+    .orderBy(asc(incidentLockdowns.lockedAt));
+  return rows.map((row) => ({
+    id: row.id,
+    channelId: row.channelId,
+    lockedAt: row.lockedAt,
+    lockedBy: row.lockedBy,
+    unlockAt: row.unlockAt,
+    unlockedAt: row.unlockedAt,
+    unlockedBy: row.unlockedBy,
+  }));
+}
+
+export type IncidentStats = {
+  total: number;
+  byStatus: Record<IncidentStatus, number>;
+  /** Open or acknowledged incidents, by severity. */
+  activeBySeverity: Record<IncidentSeverity, number>;
+  /** Incidents with at least one signal from each source, last 30 days. */
+  bySource30d: Partial<Record<IncidentSource, number>>;
+  createdLast7d: number;
+  createdLast30d: number;
+  closedLast30d: number;
+  activeLockdowns: number;
+  /** New incidents per day, oldest first, last 30 days (today last). */
+  daily: number[];
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export async function getIncidentStats(guildId: string, now = new Date()): Promise<IncidentStats> {
+  const db = getDb();
+  const since30 = new Date(now.getTime() - 30 * DAY_MS);
+  const since7 = new Date(now.getTime() - 7 * DAY_MS);
+
+  const [statusRows, severityRows, sourceRows, recentRows, closedRow, lockRow] = await Promise.all([
+    db
+      .select({ status: incidents.status, value: count() })
+      .from(incidents)
+      .where(eq(incidents.guildId, guildId))
+      .groupBy(incidents.status),
+    db
+      .select({ severity: incidents.severity, value: count() })
+      .from(incidents)
+      .where(and(eq(incidents.guildId, guildId), inArray(incidents.status, ["open", "acknowledged"])))
+      .groupBy(incidents.severity),
+    db
+      .select({ source: incidentSignals.source, value: countDistinct(incidentSignals.incidentId) })
+      .from(incidentSignals)
+      .where(and(eq(incidentSignals.guildId, guildId), gte(incidentSignals.createdAt, since30)))
+      .groupBy(incidentSignals.source),
+    db
+      .select({ at: incidents.firstSignalAt })
+      .from(incidents)
+      .where(and(eq(incidents.guildId, guildId), gte(incidents.firstSignalAt, since30))),
+    db
+      .select({ value: count() })
+      .from(incidents)
+      .where(and(eq(incidents.guildId, guildId), gte(incidents.resolvedAt, since30)))
+      .get(),
+    db
+      .select({ value: count() })
+      .from(incidentLockdowns)
+      .where(and(eq(incidentLockdowns.guildId, guildId), isNull(incidentLockdowns.unlockedAt)))
+      .get(),
+  ]);
+
+  const byStatus: Record<IncidentStatus, number> = { open: 0, acknowledged: 0, resolved: 0, dismissed: 0 };
+  let total = 0;
+  for (const row of statusRows) {
+    total += row.value;
+    if (row.status in byStatus) byStatus[row.status as IncidentStatus] = row.value;
+  }
+  const activeBySeverity: Record<IncidentSeverity, number> = { low: 0, medium: 0, high: 0, critical: 0 };
+  for (const row of severityRows) {
+    if (row.severity in activeBySeverity) activeBySeverity[row.severity as IncidentSeverity] = row.value;
+  }
+  const bySource30d: Partial<Record<IncidentSource, number>> = {};
+  for (const row of sourceRows) bySource30d[row.source as IncidentSource] = row.value;
+
+  const daily = new Array<number>(30).fill(0);
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  let createdLast7d = 0;
+  for (const row of recentRows) {
+    const at = row.at.getTime();
+    if (at >= since7.getTime()) createdLast7d++;
+    const daysAgo = at >= todayStart.getTime() ? 0 : Math.ceil((todayStart.getTime() - at) / DAY_MS);
+    const index = 29 - daysAgo;
+    if (index >= 0 && index < 30) daily[index]! += 1;
+  }
+
+  return {
+    total,
+    byStatus,
+    activeBySeverity,
+    bySource30d,
+    createdLast7d,
+    createdLast30d: recentRows.length,
+    closedLast30d: closedRow?.value ?? 0,
+    activeLockdowns: lockRow?.value ?? 0,
+    daily,
+  };
 }

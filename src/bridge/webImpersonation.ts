@@ -1,4 +1,5 @@
-import type { Client } from "discord.js";
+import type { Client, Guild } from "discord.js";
+import { fetchMemberCached, fetchUserCached } from "./people.js";
 import { zImpersonationConfig, type ImpersonationConfig } from "../config/schemas/impersonation.js";
 import { configManager } from "../config/manager.js";
 import { fetchImageBuffer } from "../core/imageFetch.js";
@@ -84,20 +85,63 @@ export async function removeWebWatchlistEntry(guildId: string, id: string): Prom
   return removeWatchlistEntry(guildId, id);
 }
 
+/** An alert plus who the matched member actually is (the stored label is only why they're protected). */
+export type WebImpersonationAlert = ImpersonationAlert & {
+  /** Display name of the matched member, or null for watchlist matches / members we can't find. */
+  matchedName: string | null;
+  matchedUsername: string | null;
+  /** The stored label: the protected role's name, "Server member", or the watchlist entry's label. */
+  matchedReason: string;
+};
+
+async function withMatchedPeople(client: Client, guildId: string, alerts: ImpersonationAlert[]): Promise<WebImpersonationAlert[]> {
+  const guild: Guild | undefined = client.guilds.cache.get(guildId);
+  const ids = [...new Set(alerts.map((a) => a.matchedUserId).filter((id): id is string => Boolean(id)))];
+  const people = new Map<string, { name: string; username: string; avatarUrl: string | null }>();
+  await Promise.all(
+    ids.map(async (id) => {
+      const member = guild ? await fetchMemberCached(guild, id).catch(() => null) : null;
+      if (member) {
+        people.set(id, {
+          name: member.displayName,
+          username: member.user.username,
+          avatarUrl: member.displayAvatarURL({ size: 128 }),
+        });
+        return;
+      }
+      const user = await fetchUserCached(client, id).catch(() => null);
+      if (user) people.set(id, { name: user.globalName ?? user.username, username: user.username, avatarUrl: user.displayAvatarURL({ size: 128 }) });
+    }),
+  );
+  return alerts.map((alert) => {
+    const person = alert.matchedUserId ? people.get(alert.matchedUserId) : undefined;
+    return {
+      ...alert,
+      matchedName: person?.name ?? null,
+      matchedUsername: person?.username ?? null,
+      matchedReason: alert.matchedLabel,
+      matchedAvatarUrl: alert.matchedAvatarUrl ?? person?.avatarUrl ?? null,
+    };
+  });
+}
+
 export async function listWebAlerts(
+  client: Client,
   guildId: string,
   opts: { status?: AlertStatus; limit?: number } = {},
-): Promise<ImpersonationAlert[]> {
-  return listAlerts(guildId, opts);
+): Promise<WebImpersonationAlert[]> {
+  return withMatchedPeople(client, guildId, await listAlerts(guildId, opts));
 }
 
 export async function resolveWebAlert(
+  client: Client,
   guildId: string,
   id: string,
   status: Exclude<AlertStatus, "open">,
   userId: string,
-): Promise<ImpersonationAlert | null> {
-  return setAlertStatus(guildId, id, status, userId);
+): Promise<WebImpersonationAlert | null> {
+  const alert = await setAlertStatus(guildId, id, status, userId);
+  return alert ? ((await withMatchedPeople(client, guildId, [alert]))[0] ?? null) : null;
 }
 
 export async function getWebIdentityHistory(guildId: string, userId: string): Promise<IdentityHistoryEntry[]> {
@@ -110,13 +154,15 @@ export type WebImpersonationTestResult = {
     label: string;
     matchedUserId: string | null;
     matchedAvatarUrl: string | null;
+    matchedName: string | null;
+    matchedUsername: string | null;
   }) | null;
 };
 
 /** Non-mutating: builds a candidate identity (either a real member, or a manual name/image)
  * and runs it through the same matching pipeline live detection uses, without creating an
  * alert or taking any action. Lets staff sanity-check thresholds/watchlist entries directly. */
-export async function testWebImpersonation(
+async function runWebImpersonationTest(
   client: Client,
   guildId: string,
   input: { targetUserId?: string; name?: string; imageBase64?: string; imageUrl?: string },
@@ -146,6 +192,8 @@ export async function testWebImpersonation(
             label: match.protectedIdentity.label,
             matchedUserId: match.protectedIdentity.userId,
             matchedAvatarUrl: match.protectedIdentity.avatarUrl,
+            matchedName: null,
+            matchedUsername: null,
             nameSimilarity: match.nameSimilarity,
             avatarDistance: match.avatarDistance,
             score: match.score,
@@ -181,11 +229,34 @@ export async function testWebImpersonation(
           label: match.protectedIdentity.label,
           matchedUserId: match.protectedIdentity.userId,
           matchedAvatarUrl: match.protectedIdentity.avatarUrl,
+          matchedName: null,
+          matchedUsername: null,
           nameSimilarity: match.nameSimilarity,
           avatarDistance: match.avatarDistance,
           score: match.score,
         }
       : null,
+  };
+}
+
+export async function testWebImpersonation(
+  client: Client,
+  guildId: string,
+  input: { targetUserId?: string; name?: string; imageBase64?: string; imageUrl?: string },
+): Promise<WebImpersonationTestResult> {
+  const result = await runWebImpersonationTest(client, guildId, input);
+  const match = result.match;
+  if (!match?.matchedUserId) return result;
+  const guild = client.guilds.cache.get(guildId);
+  const member = guild ? await fetchMemberCached(guild, match.matchedUserId).catch(() => null) : null;
+  return {
+    ...result,
+    match: {
+      ...match,
+      matchedName: member?.displayName ?? null,
+      matchedUsername: member?.user.username ?? null,
+      matchedAvatarUrl: match.matchedAvatarUrl ?? member?.displayAvatarURL({ size: 128 }) ?? null,
+    },
   };
 }
 

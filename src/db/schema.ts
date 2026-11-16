@@ -826,6 +826,16 @@ export const reviews = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    /** Staff reply, shown under the review on its Discord post. */
+    reply: text("reply"),
+    replyBy: text("reply_by"),
+    replyAt: integer("reply_at", { mode: "timestamp" }),
+    /** Hidden by staff: kept (and still the member's review), but off Discord and out of the average. */
+    hiddenAt: integer("hidden_at", { mode: "timestamp" }),
+    hiddenBy: text("hidden_by"),
+    /** Featured by staff: listed first and pinned in the reviews channel when the bot can. */
+    featuredAt: integer("featured_at", { mode: "timestamp" }),
+    featuredBy: text("featured_by"),
   },
   (table) => [index("reviews_guild").on(table.guildId), index("reviews_user").on(table.userId)],
 );
@@ -1839,6 +1849,29 @@ export const incidentLockdowns = sqliteTable(
   ],
 );
 
+/** One incident's activity log (migration 0143): staff notes, status changes, the Response
+ * Policy Engine's automatic actions and manual unlocks. The dashboard's incident timeline. */
+export const incidentEvents = sqliteTable(
+  "incident_events",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    incidentId: integer("incident_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    kind: text("kind").notNull(), // "note" | "status" | "response" | "unlock"
+    /** Who did it; null for Dreamliner itself (automatic responses). */
+    actorId: text("actor_id"),
+    /** The new status ("status"), the severity reached ("response"), or the channel id ("unlock"). */
+    value: text("value"),
+    /** The note text, a status change's optional note, or the actions taken ("response"). */
+    content: text("content"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("incident_events_incident").on(table.incidentId),
+    index("incident_events_guild_created").on(table.guildId, table.createdAt),
+  ],
+);
+
 // --- Music: user-curated saved playlists (per-user, usable in any server) ---------------------
 
 export const musicPlaylists = sqliteTable(
@@ -2480,6 +2513,21 @@ export const applications = sqliteTable(
     index("applications_guild_status").on(table.guildId, table.status),
     index("applications_guild_user").on(table.guildId, table.userId, table.openingId),
   ],
+);
+
+/** Applications activity log: staff notes on one application (the dashboard's timeline). */
+export const applicationEvents = sqliteTable(
+  "application_events",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    applicationId: integer("application_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    kind: text("kind").notNull(), // "note"
+    actorId: text("actor_id"),
+    content: text("content"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("application_events_application").on(table.applicationId)],
 );
 
 /** Boosts each member has given, counted from Discord's boost announcements (the API doesn't

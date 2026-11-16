@@ -105,6 +105,12 @@ export function getGuildTicketsDashboardUrl(guildId: string, ticketId?: number |
   return `${getGuildDashboardUrl(guildId)}?section=tickets${id ? `&ticket=${id}` : ""}`;
 }
 
+/** Guild dashboard opened on the Incidents page, optionally with one incident open. */
+export function getGuildIncidentsDashboardUrl(guildId: string, incidentId?: number | string | null): string {
+  const id = positiveId(incidentId);
+  return `${getGuildDashboardUrl(guildId)}?section=incidents${id ? `&incident=${id}` : ""}`;
+}
+
 /** Staff-only Member 360 hub on the dashboard: everything this server knows about one member. */
 export function getGuildMemberHubUrl(guildId: string, userId: string): string {
   const id = /^\d{17,20}$/.test(userId) ? userId : "";

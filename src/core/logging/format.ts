@@ -647,7 +647,7 @@ export function buildIncidentLog(input: {
   actionsTaken?: string[];
 }): LogCard {
   return card(
-    `${INCIDENT_SEVERITY_EMOJI[input.severity] ?? "<:icons_dwhite:1544417252332273734>"} Incident #${input.id} — ${input.severity.toUpperCase()}`,
+    `${INCIDENT_SEVERITY_EMOJI[input.severity] ?? "<:icons_dwhite:1544417252332273734>"} Incident #${input.id}: ${input.severity.toUpperCase()}`,
     [
       `Time: ${logTimestamp()}`,
       `Entity: ${input.entityLabel}`,

@@ -14,6 +14,13 @@ export type Review = {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  reply: string | null;
+  replyBy: string | null;
+  replyAt: Date | null;
+  hiddenAt: Date | null;
+  hiddenBy: string | null;
+  featuredAt: Date | null;
+  featuredBy: string | null;
 };
 
 function mapRow(row: typeof reviews.$inferSelect): Review {
@@ -29,6 +36,13 @@ function mapRow(row: typeof reviews.$inferSelect): Review {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt,
+    reply: row.reply ?? null,
+    replyBy: row.replyBy ?? null,
+    replyAt: row.replyAt ?? null,
+    hiddenAt: row.hiddenAt ?? null,
+    hiddenBy: row.hiddenBy ?? null,
+    featuredAt: row.featuredAt ?? null,
+    featuredBy: row.featuredBy ?? null,
   };
 }
 
@@ -84,6 +98,13 @@ export async function updateReview(
     channelId: string | null;
     messageId: string | null;
     deletedAt: Date | null;
+    reply: string | null;
+    replyBy: string | null;
+    replyAt: Date | null;
+    hiddenAt: Date | null;
+    hiddenBy: string | null;
+    featuredAt: Date | null;
+    featuredBy: string | null;
   }>,
 ): Promise<Review | null> {
   const updated = await getDb()
@@ -111,7 +132,8 @@ export type ListReviewsQuery = {
 
 export async function listReviews(guildId: string, query: ListReviewsQuery) {
   const filters: SQL[] = [eq(reviews.guildId, guildId)];
-  if (!query.includeDeleted) filters.push(isNull(reviews.deletedAt));
+  // Hidden reviews are staff-only: /review list leaves them out like deleted ones.
+  if (!query.includeDeleted) filters.push(isNull(reviews.deletedAt), isNull(reviews.hiddenAt));
   if (query.rating != null) filters.push(eq(reviews.rating, query.rating));
   if (query.userId) filters.push(eq(reviews.userId, query.userId));
   if (query.q) {
@@ -149,7 +171,7 @@ export async function averageRating(guildId: string): Promise<{ average: number;
       count: count(),
     })
     .from(reviews)
-    .where(and(eq(reviews.guildId, guildId), isNull(reviews.deletedAt)))
+    .where(and(eq(reviews.guildId, guildId), isNull(reviews.deletedAt), isNull(reviews.hiddenAt)))
     .get();
   return {
     average: Number(row?.average ?? 0),

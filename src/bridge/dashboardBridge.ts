@@ -3129,6 +3129,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const watchdogMatch = /^\/bridge\/guilds\/(\d+)\/watchdog$/.exec(url.pathname);
         const reviewOneMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)$/.exec(url.pathname);
         const reviewsMatch = /^\/bridge\/guilds\/(\d+)\/reviews$/.exec(url.pathname);
+        // Staff actions on one review (reply, hide/unhide, feature/unfeature) and whole-server stats.
+        const reviewActionMatch =
+          /^\/bridge\/guilds\/(\d+)\/reviews\/(\d+)\/(reply|hide|unhide|feature|unfeature)$/.exec(url.pathname);
+        const reviewStatsMatch = /^\/bridge\/guilds\/(\d+)\/reviews\/stats$/.exec(url.pathname);
+        // Applications: staff notes (/:id/notes[/:noteId]), stats and bulk accept/deny.
+        const applicationNoteMatch = /^\/bridge\/guilds\/(\d+)\/applications\/(\d+)\/notes(?:\/(\d+))?$/.exec(url.pathname);
+        const applicationExtraMatch = /^\/bridge\/guilds\/(\d+)\/applications\/(stats|bulk)$/.exec(url.pathname);
         // Appeals: /page, /stats, /diagnostics, /assets (upload) and /background/:assetId (public
         // image); the appellant's /mine/:id[/reply|/withdraw];
         // staff /:id[/decision|/info|/note]; and the bare path (GET list, POST submit).
@@ -3236,6 +3243,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const nameHistoryMatch = /^\/bridge\/guilds\/(\d+)\/name-history$/.exec(url.pathname);
         // Website identity card: any current member of the server may view anyone's card there.
         const memberIdentityCardMatch = /^\/bridge\/guilds\/(\d+)\/identity\/(\d{17,20})$/.exec(url.pathname);
+        // Dashboard Identity Lookup (staff, Manage Server): saved identities list, one member, clear/save.
+        const memberIdentityStaffMatch = /^\/bridge\/guilds\/(\d+)\/member-identity(?:\/(\d{17,20})(?:\/(save))?)?$/.exec(
+          url.pathname,
+        );
         // Member 360 hub (staff only, Manage Server): one member's cases, tickets, appeals and more.
         const memberHubMatch = /^\/bridge\/guilds\/(\d+)\/members\/(\d{17,20})\/hub$/.exec(url.pathname);
         const economyMatch = /^\/bridge\/guilds\/(\d+)\/economy(?:\/(.*))?$/.exec(url.pathname);
@@ -3278,7 +3289,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const impersonationMatch = /^\/bridge\/guilds\/(\d+)\/impersonation$/.exec(url.pathname);
         const incidentResponseConfigMatch = /^\/bridge\/guilds\/(\d+)\/incident-response$/.exec(url.pathname);
         const incidentsMatch =
-          /^\/bridge\/guilds\/(\d+)\/incidents(?:\/(\d+)(?:\/(resolve|dismiss))?)?$/.exec(url.pathname);
+          /^\/bridge\/guilds\/(\d+)\/incidents(?:\/(\d+)(?:\/(resolve|dismiss|acknowledge|reopen|notes))?)?$/.exec(
+            url.pathname,
+          );
+        const incidentNoteOneMatch = /^\/bridge\/guilds\/(\d+)\/incidents\/(\d+)\/notes\/(\d+)$/.exec(url.pathname);
+        const incidentExtraMatch = /^\/bridge\/guilds\/(\d+)\/incidents\/(stats|bulk)$/.exec(url.pathname);
         const incidentUnlockMatch =
           /^\/bridge\/guilds\/(\d+)\/incidents\/lockdowns\/(\d+)\/unlock$/.exec(url.pathname);
         const musicSearchMatch = /^\/bridge\/guilds\/(\d+)\/music\/search$/.exec(url.pathname);
@@ -3336,6 +3351,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !watchdogMatch &&
           !reviewOneMatch &&
           !reviewsMatch &&
+          !reviewActionMatch &&
+          !reviewStatsMatch &&
+          !applicationNoteMatch &&
+          !applicationExtraMatch &&
           !applicationsMatch &&
           !appealsMatch &&
           !suggestionActionMatch &&
@@ -3381,6 +3400,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !passportAltsMatch &&
           !nameHistoryMatch &&
           !memberIdentityCardMatch &&
+          !memberIdentityStaffMatch &&
           !memberHubMatch &&
           !economyMatch &&
           !permissionRolesMatch &&
@@ -3406,6 +3426,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !impersonationMatch &&
           !incidentResponseConfigMatch &&
           !incidentsMatch &&
+          !incidentNoteOneMatch &&
+          !incidentExtraMatch &&
           !incidentUnlockMatch &&
           !musicSearchMatch &&
           !musicQueueMatch &&
@@ -3464,6 +3486,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           watchdogMatch?.[1] ??
           reviewOneMatch?.[1] ??
           reviewsMatch?.[1] ??
+          reviewActionMatch?.[1] ??
+          reviewStatsMatch?.[1] ??
+          applicationNoteMatch?.[1] ??
+          applicationExtraMatch?.[1] ??
           applicationsMatch?.[1] ??
           appealsMatch?.[1] ??
           suggestionActionMatch?.[1] ??
@@ -3510,6 +3536,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           passportAssetMatch?.[1] ??
           nameHistoryMatch?.[1] ??
           memberIdentityCardMatch?.[1] ??
+          memberIdentityStaffMatch?.[1] ??
           memberHubMatch?.[1] ??
           economyMatch?.[1] ??
           permissionRolesMatch?.[1] ??
@@ -3535,6 +3562,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           impersonationMatch?.[1] ??
           incidentResponseConfigMatch?.[1] ??
           incidentsMatch?.[1] ??
+          incidentNoteOneMatch?.[1] ??
+          incidentExtraMatch?.[1] ??
           incidentUnlockMatch?.[1] ??
           musicSearchMatch?.[1] ??
           musicQueueMatch?.[1] ??
@@ -3950,7 +3979,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             const status = url.searchParams.get("status");
             sendJson(res, 200, {
               ok: true,
-              alerts: await listWebAlerts(guildId, {
+              alerts: await listWebAlerts(client, guildId, {
                 status: status === "open" || status === "resolved" || status === "dismissed" ? status : undefined,
               }),
             });
@@ -3975,7 +4004,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const status = impersonationAlertsMatch[3] === "resolve" ? "resolved" : "dismissed";
-            const alert = await resolveWebAlert(guildId, impersonationAlertsMatch[2]!, status, userId);
+            const alert = await resolveWebAlert(client, guildId, impersonationAlertsMatch[2]!, status, userId);
             if (!alert) {
               sendJson(res, 404, { error: "Alert not found." });
               return;
@@ -5829,6 +5858,56 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (memberIdentityStaffMatch) {
+          const targetId = memberIdentityStaffMatch[2] ?? null;
+          const sub = memberIdentityStaffMatch[3] ?? null;
+          const method = req.method ?? "GET";
+          const allowed = !targetId ? method === "GET" : sub === "save" ? method === "POST" : method === "GET" || method === "DELETE";
+          if (!allowed) {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          // Always from the query string (the website's session user), so the per-user limits apply.
+          const userId = url.searchParams.get("userId")?.trim() ?? "";
+          if (!/^\d{17,20}$/.test(userId)) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const {
+            buildStaffIdentityDetail,
+            buildStaffIdentityList,
+            clearStaffIdentity,
+            parseStaffIdentityListQuery,
+            saveStaffIdentityNow,
+          } = await import("./webMemberIdentity.js");
+
+          if (!targetId) {
+            sendJson(res, 200, await buildStaffIdentityList(client, guild, parseStaffIdentityListQuery(url)));
+            return;
+          }
+          if (sub === "save") {
+            const result = await saveStaffIdentityNow(client, guild, targetId, userId);
+            sendJson(res, result.ok ? 200 : 400, result);
+            return;
+          }
+          if (method === "DELETE") {
+            const deleted = await clearStaffIdentity(client, guild, targetId, userId);
+            sendJson(res, deleted ? 200 : 404, deleted ? { ok: true } : { error: "Nothing is saved for this member.", code: "not_found" });
+            return;
+          }
+          const detail = await buildStaffIdentityDetail(client, guild, targetId, userId);
+          if (!detail) {
+            sendJson(res, 404, { error: "User not found.", code: "user_not_found" });
+            return;
+          }
+          sendJson(res, 200, detail);
+          return;
+        }
+
         if (nameHistoryMatch) {
           if (req.method !== "GET") {
             sendJson(res, 405, { error: "Method not allowed" });
@@ -6171,7 +6250,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (incidentsMatch) {
-          const { dismissWebIncident, getWebIncident, listWebIncidents, parseWebIncidentsQuery, resolveWebIncident } =
+          const { addWebIncidentNote, getWebIncident, listWebIncidents, parseWebIncidentsQuery, setWebIncidentStatus } =
             await import("./webIncidents.js");
           const incidentId = incidentsMatch[2] ? Number(incidentsMatch[2]) : null;
           const action = incidentsMatch[3] ?? null;
@@ -6203,30 +6282,128 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           if (incidentId && action && req.method === "POST") {
-            let body: { userId?: string };
+            let body: { userId?: string; note?: unknown; content?: unknown };
             try {
-              body = JSON.parse(await readBody(req)) as { userId?: string };
+              body = JSON.parse(await readBody(req)) as typeof body;
             } catch {
               sendJson(res, 400, { error: "Invalid JSON body" });
               return;
             }
-            const userId = body.userId?.trim();
+            // The website sends userId in the query (so the per-user rate limit applies); older
+            // callers sent it in the body.
+            const userId = (url.searchParams.get("userId") ?? body.userId)?.trim();
             if (!userId || !(await memberCanManage(guild, userId))) {
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
-            const incident =
-              action === "resolve"
-                ? await resolveWebIncident(guild, incidentId, userId)
-                : await dismissWebIncident(guild, incidentId, userId);
+
+            if (action === "notes") {
+              const result = await addWebIncidentNote(guild, incidentId, userId, body.content);
+              if ("error" in result) {
+                sendJson(res, result.status, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_incident_response",
+                title: "Incident note added",
+                summary: `Added a note to incident \`#${incidentId}\` from the dashboard.`,
+                targetId: String(incidentId),
+                payload: { incidentId, action: "note_add" },
+              });
+              sendJson(res, 200, { ok: true, ...result });
+              return;
+            }
+
+            const incident = await setWebIncidentStatus(guild, incidentId, action as import("./webIncidents.js").WebIncidentAction, userId, body.note);
             if (!incident) {
               sendJson(res, 404, { error: "Incident not found." });
               return;
             }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_incident_response",
+              title: "Incident updated",
+              summary: `Incident \`#${incidentId}\` is now ${incident.status} (from the dashboard).`,
+              targetId: String(incidentId),
+              payload: { incidentId, action, status: incident.status },
+            });
             sendJson(res, 200, { ok: true, incident });
             return;
           }
 
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        if (incidentNoteOneMatch) {
+          if (req.method !== "DELETE") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId || !(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { deleteWebIncidentNote } = await import("./webIncidents.js");
+          const incidentId = Number(incidentNoteOneMatch[2]);
+          const noteId = Number(incidentNoteOneMatch[3]);
+          if (!(await deleteWebIncidentNote(guild, incidentId, noteId))) {
+            sendJson(res, 404, { error: "Note not found." });
+            return;
+          }
+          trackDashboardAction(client, guildId, userId, {
+            eventType: "dashboard_incident_response",
+            title: "Incident note deleted",
+            summary: `Deleted a note on incident \`#${incidentId}\` from the dashboard.`,
+            targetId: String(incidentId),
+            payload: { incidentId, noteId, action: "note_delete" },
+          });
+          sendJson(res, 200, { ok: true, deleted: noteId });
+          return;
+        }
+
+        if (incidentExtraMatch) {
+          const { bulkWebIncidents, getWebIncidentStats } = await import("./webIncidents.js");
+          const kind = incidentExtraMatch[2];
+          if (kind === "stats" && req.method === "GET") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            sendJson(res, 200, await getWebIncidentStats(guild));
+            return;
+          }
+          if (kind === "bulk" && req.method === "POST") {
+            const userId = url.searchParams.get("userId")?.trim();
+            if (!userId || !(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission." });
+              return;
+            }
+            let body: { ids?: unknown; action?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const action = body.action;
+            if (action !== "resolve" && action !== "dismiss" && action !== "acknowledge" && action !== "reopen") {
+              sendJson(res, 400, { error: "Unknown action" });
+              return;
+            }
+            const result = await bulkWebIncidents(guild, body.ids, action, userId);
+            if (result.ok.length > 0) {
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_incident_response",
+                title: "Incidents updated",
+                summary: `${result.ok.length} incident${result.ok.length === 1 ? "" : "s"} updated from the dashboard (${action}).`,
+                payload: { ids: result.ok, action },
+              });
+            }
+            sendJson(res, 200, result);
+            return;
+          }
           sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
@@ -6244,13 +6421,22 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 400, { error: "Invalid JSON body" });
             return;
           }
-          const userId = body.userId?.trim();
+          const userId = (url.searchParams.get("userId") ?? body.userId)?.trim();
           if (!userId || !(await memberCanManage(guild, userId))) {
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
           const channelId = incidentUnlockMatch[2]!;
           const result = await unlockWebChannel(guild, channelId, userId);
+          if (result.ok) {
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_incident_response",
+              title: "Channel unlocked",
+              summary: `<#${channelId}> was unlocked from the dashboard.`,
+              targetId: channelId,
+              payload: { channelId, action: "unlock" },
+            });
+          }
           sendJson(res, result.ok ? 200 : 400, result);
           return;
         }
@@ -7485,6 +7671,101 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (applicationNoteMatch || applicationExtraMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const web = await import("./webApplications.js");
+          let body: Record<string, unknown> = {};
+          if (req.method === "POST") {
+            try {
+              body = JSON.parse((await readBody(req)) || "{}") as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+          }
+
+          if (applicationExtraMatch) {
+            const kind = applicationExtraMatch[2];
+            if (kind === "stats" && req.method === "GET") {
+              sendJson(res, 200, web.getWebApplicationStats(guild));
+              return;
+            }
+            if (kind === "bulk" && req.method === "POST") {
+              if (body.decision !== "accepted" && body.decision !== "denied") {
+                sendJson(res, 400, { error: "decision must be accepted or denied" });
+                return;
+              }
+              const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 1000) || null : null;
+              const result = await web.bulkDecideWebApplications(guild, body.ids, body.decision, userId, reason);
+              if ("error" in result) {
+                sendJson(res, 400, { error: result.error });
+                return;
+              }
+              if (result.ok.length > 0) {
+                trackDashboardAction(client, guildId, userId, {
+                  eventType: "dashboard_config",
+                  title: body.decision === "accepted" ? "Applications accepted" : "Applications denied",
+                  summary: `${result.ok.length} application${result.ok.length === 1 ? " was" : "s were"} ${body.decision} from the dashboard.`,
+                  details: [
+                    `Applications: ${result.ok.map((id) => `\`#${id}\``).join(", ")}`.slice(0, 1000),
+                    ...(reason ? [`Reason: ${reason}`] : []),
+                  ],
+                  payload: { action: "application_bulk_decision", ids: result.ok, decision: body.decision },
+                });
+              }
+              sendJson(res, 200, result);
+              return;
+            }
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+
+          const applicationId = Number(applicationNoteMatch![2]);
+          const noteIdRaw = applicationNoteMatch![3];
+          if (!noteIdRaw && req.method === "POST") {
+            const result = await web.addWebApplicationNote(guild, applicationId, userId, body.content);
+            if ("error" in result) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: "Application note added",
+              summary: `Added a staff note to application \`#${applicationId}\` from the dashboard.`,
+              targetId: String(applicationId),
+              payload: { action: "application_note_add", applicationId },
+            });
+            sendJson(res, 200, { ok: true, ...result });
+            return;
+          }
+          if (noteIdRaw && req.method === "DELETE") {
+            const noteId = Number(noteIdRaw);
+            if (!web.deleteWebApplicationNote(guild, applicationId, noteId)) {
+              sendJson(res, 404, { error: "Note not found." });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: "Application note deleted",
+              summary: `Deleted a staff note on application \`#${applicationId}\` from the dashboard.`,
+              targetId: String(applicationId),
+              payload: { action: "application_note_delete", applicationId, noteId },
+            });
+            sendJson(res, 200, { ok: true, deleted: noteId });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
         if (applicationsMatch) {
           const userId = url.searchParams.get("userId")?.trim();
           if (!userId) {
@@ -7495,7 +7776,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 403, { error: "Missing Manage Server permission." });
             return;
           }
-          const { decideWebApplication, getWebApplication, listWebApplications, parseApplicationsQuery, publishOpening } =
+          const { decideWebApplication, listWebApplications, parseApplicationsQuery, publishOpening } =
             await import("./webApplications.js");
           const [, , applicationIdRaw, decisionPath, openingId] = applicationsMatch;
 
@@ -7568,12 +7849,69 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             sendJson(res, 405, { error: "Method not allowed" });
             return;
           }
-          const application = await getWebApplication(guild, applicationId);
-          if (!application) {
+          const { getWebApplicationDetail } = await import("./webApplications.js");
+          const detail = await getWebApplicationDetail(guild, applicationId);
+          if (!detail) {
             sendJson(res, 404, { error: "Application not found" });
             return;
           }
-          sendJson(res, 200, { application });
+          sendJson(res, 200, detail);
+          return;
+        }
+
+        if (reviewActionMatch || reviewStatsMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { actOnWebReview, getWebReviewStats } = await import("./webReviews.js");
+          if (reviewStatsMatch) {
+            if (req.method !== "GET") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            sendJson(res, 200, await getWebReviewStats(guild));
+            return;
+          }
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { reply?: unknown } = {};
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const reviewId = Number(reviewActionMatch![2]);
+          const action = reviewActionMatch![3] as import("./webReviews.js").WebReviewAction;
+          const result = await actOnWebReview(guild, reviewId, action, userId, body);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          const titles: Record<typeof action, string> = {
+            reply: result.review.reply ? "Review reply saved" : "Review reply removed",
+            hide: "Review hidden",
+            unhide: "Review shown again",
+            feature: "Review featured",
+            unfeature: "Review unfeatured",
+          };
+          trackDashboardAction(client, guildId, userId, {
+            eventType: "dashboard_review",
+            title: titles[action],
+            summary: `Review \`#${reviewId}\`: ${titles[action].toLowerCase()} from the dashboard.`,
+            details: action === "reply" && result.review.reply ? [`Reply: ${result.review.reply.slice(0, 500)}`] : [],
+            targetId: String(reviewId),
+            payload: { reviewId, action },
+          });
+          sendJson(res, 200, { ok: true, review: result.review, note: result.note });
           return;
         }
 
@@ -7644,7 +7982,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           sendJson(res, 200, {
             guild: { id: guild.id, name: guild.name, icon: guild.icon },
-            review: detail,
+            ...detail,
           });
           return;
         }

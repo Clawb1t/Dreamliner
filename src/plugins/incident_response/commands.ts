@@ -3,7 +3,7 @@ import type { SlashCommandDefinition } from "../../core/types.js";
 import type { Translator } from "../../i18n/index.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
-import { getIncident, listIncidents, setIncidentStatus } from "./functions/store.js";
+import { getIncident, listIncidents, recordIncidentEvent, setIncidentStatus } from "./functions/store.js";
 import { unlockChannelManually } from "./functions/lockdown.js";
 
 const SEVERITY_EMOJI: Record<string, string> = { low: "<:icons_dgreen:1544417216227709049>", medium: "<:icons_dyellow:1544417259374518423>", high: "<:icons_dred:1544417250528723215>", critical: "<:icons_outage:1544417573410701322>" };
@@ -151,7 +151,11 @@ export const incidentResponseCommands: SlashCommandDefinition[] = [
 
       if (sub === "resolve" || sub === "dismiss") {
         const id = ctx.interaction.options.getInteger("id", true);
-        const incident = await setIncidentStatus(guildId, id, sub === "resolve" ? "resolved" : "dismissed", ctx.interaction.user.id);
+        const status = sub === "resolve" ? "resolved" : "dismissed";
+        const incident = await setIncidentStatus(guildId, id, status, ctx.interaction.user.id);
+        if (incident) {
+          await recordIncidentEvent({ incidentId: id, guildId, kind: "status", actorId: ctx.interaction.user.id, value: status });
+        }
         await ctx.interaction.reply(
           resultReply(
             incident ? ctx.t("incident_response.updatedTitle", "Updated") : ctx.t("incident_response.notFoundTitle", "Not found"),

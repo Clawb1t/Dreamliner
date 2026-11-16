@@ -4,6 +4,7 @@ import { getDb } from "../../../db/client.js";
 import { incidentLockdowns } from "../../../db/schema.js";
 import { getLogger } from "../../../core/logger.js";
 import type { Translator } from "../../../i18n/index.js";
+import { recordIncidentEvent } from "./store.js";
 
 const log = getLogger("incident_response");
 
@@ -152,6 +153,9 @@ export async function unlockChannelManually(
     };
   }
   await unlockLockdownRow(guild, row, unlockedBy);
+  if (row.incidentId) {
+    await recordIncidentEvent({ incidentId: row.incidentId, guildId: guild.id, kind: "unlock", actorId: unlockedBy, value: channelId });
+  }
   return { ok: true };
 }
 

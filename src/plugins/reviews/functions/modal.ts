@@ -287,7 +287,10 @@ export async function handleReviewModalSubmit(
     return;
   }
 
-  const channel = await resolveTextChannel(interaction.client, interaction.guildId!, pluginConfig.review_channel_id);
+  // A review staff hid stays off Discord, even after the member edits it.
+  const channel = review.hiddenAt
+    ? null
+    : await resolveTextChannel(interaction.client, interaction.guildId!, pluginConfig.review_channel_id);
   if (channel) {
     const embed = buildReviewEmbed({
       client: interaction.client,

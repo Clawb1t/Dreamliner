@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   getGuildCasesDashboardUrl,
   getGuildDashboardUrl,
+  getGuildIncidentsDashboardUrl,
   getGuildMemberHubUrl,
   getGuildTicketsDashboardUrl,
   getIdentityCardUrl,
@@ -26,6 +27,12 @@ test("tickets URL opens the section, optionally on one ticket", () => {
   assert.equal(getGuildTicketsDashboardUrl(GUILD, 7), `${base}?section=tickets&ticket=7`);
   assert.equal(getGuildTicketsDashboardUrl(GUILD, "7"), `${base}?section=tickets&ticket=7`);
   assert.equal(getGuildTicketsDashboardUrl(GUILD, "7&x=1"), `${base}?section=tickets`);
+});
+
+test("incidents URL opens the section, optionally on one incident", () => {
+  assert.equal(getGuildIncidentsDashboardUrl(GUILD), `${base}?section=incidents`);
+  assert.equal(getGuildIncidentsDashboardUrl(GUILD, 12), `${base}?section=incidents&incident=12`);
+  assert.equal(getGuildIncidentsDashboardUrl(GUILD, "12&x=1"), `${base}?section=incidents`);
 });
 
 test("member hub URL carries only a valid snowflake", () => {
