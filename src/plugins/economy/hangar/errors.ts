@@ -56,8 +56,23 @@ export class HangarError extends Error {
   }
 }
 
+/** An ISO timestamp passed as a var (e.g. a cooldown's end). Discord shows these as <t:...> tags. */
+export const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+/** Plain-text fallback for a timestamp (the website and logs): "18 Nov 2026, 12:24 UTC". */
+function readableTime(iso: string): string {
+  const date = new Date(iso);
+  const day = date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const time = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  return `${day}, ${time} UTC`;
+}
+
 function fillVars(message: string, vars: Record<string, string | number>): string {
-  return message.replace(/\{(\w+)\}/g, (match, key: string) => (key in vars ? String(vars[key]) : match));
+  return message.replace(/\{(\w+)\}/g, (match, key: string) => {
+    if (!(key in vars)) return match;
+    const value = vars[key]!;
+    return typeof value === "string" && ISO_TIME.test(value) ? readableTime(value) : String(value);
+  });
 }
 
 export function hangarError(code: HangarErrorCode, template: string, vars: Record<string, string | number> = {}): HangarError {

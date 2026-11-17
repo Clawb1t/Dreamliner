@@ -13,7 +13,7 @@ import { formatAmount } from "../../functions/format.js";
 import { getPlaneTypeById } from "../../functions/catalog.js";
 import { RARITY_META, type Livery, type Rarity } from "../constants.js";
 import type { CopyRow } from "../copies.js";
-import { HangarError } from "../errors.js";
+import { HangarError, ISO_TIME } from "../errors.js";
 import { renderCopy, renderFace } from "../render.js";
 import type { HangarCopyView } from "../view.js";
 import { HE, buttonEmoji } from "./emojis.js";
@@ -64,7 +64,17 @@ export function copyLine(view: HangarCopyView, t: Translator): string {
 /** Translates a Hangar rule error, keyed by its template so each message is translatable. */
 export function errorText(error: HangarError, t: Translator): string {
   const slug = error.template.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 48);
-  return t(`economy.hangar.err.${slug}`, error.template, error.vars);
+  // Timestamps become Discord timestamp tags, shown in each reader's own time zone.
+  const vars: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(error.vars)) {
+    if (typeof value === "string" && ISO_TIME.test(value)) {
+      const unix = Math.floor(new Date(value).getTime() / 1000);
+      vars[key] = `<t:${unix}:f> (<t:${unix}:R>)`;
+    } else {
+      vars[key] = value;
+    }
+  }
+  return t(`economy.hangar.err.${slug}`, error.template, vars);
 }
 
 export function noticeContainer(title: string, body: string, tone: "success" | "error" | "info" = "info"): TopLevelComponentData {
