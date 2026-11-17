@@ -3075,6 +3075,23 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Public global boards besides Messages: per-user totals across every server.
+        const globalBoardMatch = /^\/bridge\/stats\/global\/public-leaderboard\/([a-z]+)$/.exec(url.pathname);
+        if (globalBoardMatch && req.method === "GET") {
+          const { buildWebGlobalPublicBoard, isGlobalPublicBoard } = await import("./webStats.js");
+          const board = globalBoardMatch[1]!;
+          if (!isGlobalPublicBoard(board)) {
+            sendJson(res, 404, { error: "Unknown leaderboard" });
+            return;
+          }
+          const limit = Math.min(50, Math.max(5, Number(url.searchParams.get("limit") ?? 25) || 25));
+          const payload = await leaderboardCached(leaderboardKeys.globalBoard(board, limit), LEADERBOARD_TTL_MS, () =>
+            buildWebGlobalPublicBoard(client, board, limit),
+          );
+          sendJson(res, 200, payload);
+          return;
+        }
+
         // Public case share pages, looked up by share token, not scoped to a guild path
         // segment (the caller doesn't know the guild id, only the link they were given).
         const publicCaseFileMatch = /^\/bridge\/public\/cases\/([\w-]+)\/files\/([\w-]+)$/.exec(
@@ -3110,6 +3127,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard$/.exec(url.pathname);
         const publicVoiceLeaderboardMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/public-voice-leaderboard$/.exec(url.pathname);
+        // The server leaderboard's extra boards (streaks, fleet), public like the two above.
+        const publicBoardMatch =
+          /^\/bridge\/guilds\/(\d+)\/stats\/public-leaderboard\/([a-z]+)$/.exec(url.pathname);
         const publicGuildMatch = /^\/bridge\/guilds\/(\d+)\/public$/.exec(url.pathname);
         const customChartOneMatch =
           /^\/bridge\/guilds\/(\d+)\/stats\/custom-charts\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
@@ -3364,6 +3384,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (
           !publicLeaderboardMatch &&
           !publicVoiceLeaderboardMatch &&
+          !publicBoardMatch &&
           !publicGuildMatch &&
           !customChartOneMatch &&
           !customChartsMatch &&
@@ -3499,6 +3520,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const guildId = (
           publicLeaderboardMatch?.[1] ??
           publicVoiceLeaderboardMatch?.[1] ??
+          publicBoardMatch?.[1] ??
           publicGuildMatch?.[1] ??
           customChartOneMatch?.[1] ??
           customChartsMatch?.[1] ??
@@ -6936,6 +6958,25 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
           const payload = await leaderboardCached(leaderboardKeys.voice(guild.id, limit), LEADERBOARD_TTL_MS, () =>
             buildWebPublicVoiceLeaderboard(guild, limit),
+          );
+          sendJson(res, 200, payload);
+          return;
+        }
+
+        if (publicBoardMatch) {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { buildWebPublicGuildBoard, isGuildPublicBoard } = await import("./webStats.js");
+          const board = publicBoardMatch[2]!;
+          if (!isGuildPublicBoard(board)) {
+            sendJson(res, 404, { error: "Unknown leaderboard" });
+            return;
+          }
+          const limit = Math.min(50, Math.max(5, Number(url.searchParams.get("limit") ?? 25) || 25));
+          const payload = await leaderboardCached(leaderboardKeys.guildBoard(guild.id, board, limit), LEADERBOARD_TTL_MS, () =>
+            buildWebPublicGuildBoard(guild, board, limit),
           );
           sendJson(res, 200, payload);
           return;

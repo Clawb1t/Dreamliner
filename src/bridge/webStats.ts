@@ -1,4 +1,5 @@
 import type { Client, Guild, User } from "discord.js";
+import { publicChannelChecker } from "./publicChannels.js";
 import { leaderboardCosmetics, type LeaderboardCosmetics } from "../core/cosmetics/types.js";
 import { fetchMemberCached } from "./people.js";
 import {
@@ -25,7 +26,9 @@ import {
 import {
   getActiveVoiceUserCount,
   getFilledVoiceDailyStats,
+  getGlobalVoiceTotals,
   getGuildTotalVoiceMinutes,
+  getTopGlobalVoiceUsers,
   getTopVoiceChannels,
   getTopVoiceUsers,
 } from "../plugins/stats/functions/voice.js";
@@ -455,9 +458,95 @@ export async function buildWebPublicVoiceLeaderboard(guild: Guild, limit = 25) {
   };
 }
 
+/** The server leaderboard's boards besides Messages and Voice (which keep their own builders). */
+export const GUILD_PUBLIC_BOARDS = ["streaks", "fleet"] as const;
+export type GuildPublicBoard = (typeof GUILD_PUBLIC_BOARDS)[number];
+
+export function isGuildPublicBoard(value: string): value is GuildPublicBoard {
+  return (GUILD_PUBLIC_BOARDS as readonly string[]).includes(value);
+}
+
+/**
+ * One of the extra public server boards, the per-server counterpart of buildWebGlobalPublicBoard.
+ * - streaks: longest live `/daily server` streaks in this guild (economy_server_accounts)
+ * - fleet: this guild's current members ranked by their (global) Hangar Fleet Value, each row with
+ *   its Pilot Rank. Membership is resolved by hangarMembersOf and applied in SQL, so the board
+ *   never includes anyone outside this guild.
+ * Both are part of the economy plugin, so with it disabled in this guild the board comes back
+ * `available: false` and empty.
+ */
+export async function buildWebPublicGuildBoard(guild: Guild, board: GuildPublicBoard, limit = 25) {
+  const capped = Math.min(50, Math.max(5, limit));
+  const { configManager } = await import("../config/manager.js");
+  const { pluginEnabled } = await import("../core/pluginCommand.js");
+  const { getDreamlinerOnePublicStatusWithRefresh } = await import("./dreamlinerOne.js");
+  const [guildConfig, oneStatus] = await Promise.all([
+    configManager.getEffectiveConfig(guild.id),
+    getDreamlinerOnePublicStatusWithRefresh(guild.id),
+  ]);
+  const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
+  const available = pluginEnabled(guildConfig, "economy");
+
+  let entries: Array<{ userId: string; count: number }> = [];
+  let shareBase = 0;
+  let total = 0;
+  let ranked = 0;
+  let pilotRanks: Map<string, { key: string; label: string; color: string }> | null = null;
+  if (available && board === "streaks") {
+    const { topLiveServerDailyStreaks } = await import("../plugins/economy/functions/money.js");
+    const { rows, live } = topLiveServerDailyStreaks(guild.id, capped);
+    entries = rows.map((row) => ({ userId: row.userId, count: row.streak }));
+    // Streaks don't add up to a meaningful whole, so each row's ring shows it against the leader's.
+    shareBase = rows[0]?.streak ?? 0;
+    total = rows[0]?.streak ?? 0;
+    ranked = live;
+  } else if (available && board === "fleet") {
+    const { hangarMembersOf } = await import("../plugins/economy/hangar/guildMembers.js");
+    const { leaderboard, globalFleetTotals } = await import("../plugins/economy/hangar/leaderboards.js");
+    const { pilotRankView } = await import("../plugins/economy/hangar/score.js");
+    const memberIds = await hangarMembersOf(guild);
+    const top = leaderboard("fleet_value", { limit: capped, memberIds });
+    const totals = globalFleetTotals(memberIds);
+    entries = top.map((row) => ({ userId: row.userId, count: row.value }));
+    shareBase = totals.total;
+    total = totals.total;
+    ranked = totals.players;
+    pilotRanks = new Map(
+      top.map((row) => {
+        const rank = pilotRankView(row.value);
+        return [row.userId, { key: rank.key, label: rank.label, color: rank.color }];
+      }),
+    );
+  }
+
+  const people = await resolvePeople(guild, entries, shareBase, { includeAccents: !overrideUserAccents });
+  const leaders = pilotRanks ? people.map((row) => ({ ...row, pilotRank: pilotRanks.get(row.id) ?? null })) : people;
+  return {
+    scope: "server" as const,
+    board,
+    available,
+    guild: {
+      id: guild.id,
+      name: guild.name,
+      icon: guild.icon,
+      memberCount: guild.memberCount,
+    },
+    total,
+    ranked,
+    theme: {
+      accentColor: colorIntToHex(guildConfig.server_accent_color),
+      overrideUserAccents,
+    },
+    oneActive: oneStatus.active,
+    oneActiveSince: oneStatus.since,
+    leaders,
+    partial: leaders.some((row) => "unresolved" in row),
+  };
+}
+
 async function resolveGlobalPeople(
   client: Client,
-  entries: Array<{ userId: string; count: number }>,
+  entries: Array<{ userId: string; count: number; seconds?: number }>,
   trafficTotal: number,
 ) {
   const userIds = entries.map((entry) => entry.userId);
@@ -488,6 +577,7 @@ async function resolveGlobalPeople(
       avatar: identity.avatar,
       bannerUrl: identity.bannerUrl,
       count: entry.count,
+      seconds: entry.seconds ?? null,
       sharePct: sharePctValue(entry.count, trafficTotal),
       shareLabel: formatSharePct(entry.count, trafficTotal),
       accentColor: accents.get(entry.userId) ?? null,
@@ -503,28 +593,32 @@ async function resolveGlobalPeople(
   return result;
 }
 
-function resolveGlobalChannels(
+/** Global top channels for the public stats page: only channels an ordinary member of that server
+ *  can see (@everyone or a Passport-verified role), so private and staff channels never show. */
+async function resolveGlobalChannels(
   client: Client,
   entries: Array<{ channelId: string; guildId: string; count: number }>,
   trafficTotal: number,
+  limit = 15,
 ) {
-  return entries.map((entry, index) => {
+  const isPublic = publicChannelChecker();
+  const visible: Array<{ entry: (typeof entries)[number]; channelName: string; guildName: string }> = [];
+  for (const entry of entries) {
+    if (visible.length >= limit) break;
     const channel = client.channels.cache.get(entry.channelId);
     const guild = client.guilds.cache.get(entry.guildId);
-    const channelName =
-      channel && "name" in channel && typeof channel.name === "string"
-        ? `#${channel.name}`
-        : `#${entry.channelId}`;
-    const guildName = guild?.name ?? "Unknown server";
-    return {
-      rank: index + 1,
-      id: entry.channelId,
-      name: `${guildName} · ${channelName}`,
-      count: entry.count,
-      sharePct: sharePctValue(entry.count, trafficTotal),
-      shareLabel: formatSharePct(entry.count, trafficTotal),
-    };
-  });
+    if (!channel || !guild || !("guild" in channel) || !("name" in channel) || typeof channel.name !== "string") continue;
+    if (!(await isPublic(guild, channel))) continue;
+    visible.push({ entry, channelName: `#${channel.name}`, guildName: guild.name });
+  }
+  return visible.map(({ entry, channelName, guildName }, index) => ({
+    rank: index + 1,
+    id: entry.channelId,
+    name: `${guildName} · ${channelName}`,
+    count: entry.count,
+    sharePct: sharePctValue(entry.count, trafficTotal),
+    shareLabel: formatSharePct(entry.count, trafficTotal),
+  }));
 }
 
 /** Public all-time global messagers leaderboard across every tracked guild. */
@@ -550,6 +644,61 @@ export async function buildWebGlobalPublicMessagerLeaderboard(client: Client, li
     windowLabel: "All time · all servers",
     totalMessages: allTimeTrafficTotal,
     activeMessagers,
+    leaders,
+    partial: leaders.some((row) => "unresolved" in row),
+  };
+}
+
+/** The global leaderboard's boards besides Messages (which keeps its own builder above). */
+export const GLOBAL_PUBLIC_BOARDS = ["voice", "streaks", "fleet"] as const;
+export type GlobalPublicBoard = (typeof GLOBAL_PUBLIC_BOARDS)[number];
+
+export function isGlobalPublicBoard(value: string): value is GlobalPublicBoard {
+  return (GLOBAL_PUBLIC_BOARDS as readonly string[]).includes(value);
+}
+
+/**
+ * One of the public global boards, per user across every server. Rows carry only a user's own
+ * totals (no server names or per-server splits), same as the global messages board.
+ * - voice: all-time voice time summed across servers
+ * - streaks: longest live global /daily streaks
+ * - fleet: Hangar Fleet Value
+ */
+export async function buildWebGlobalPublicBoard(client: Client, board: GlobalPublicBoard, limit = 25) {
+  const capped = Math.min(50, Math.max(5, limit));
+  let entries: Array<{ userId: string; count: number; seconds?: number }>;
+  let shareBase: number;
+  let total: number;
+  let ranked: number;
+  if (board === "voice") {
+    const [top, totals] = await Promise.all([getTopGlobalVoiceUsers(capped), getGlobalVoiceTotals()]);
+    entries = top.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds }));
+    shareBase = totals.minutes;
+    total = totals.minutes;
+    ranked = totals.users;
+  } else if (board === "streaks") {
+    const { topLiveGlobalDailyStreaks } = await import("../plugins/economy/functions/money.js");
+    const top = topLiveGlobalDailyStreaks(capped);
+    entries = top.map((row) => ({ userId: row.userId, count: row.streak }));
+    // Streaks don't add up to a meaningful whole, so each row's ring shows it against the leader's.
+    shareBase = top[0]?.streak ?? 0;
+    total = top[0]?.streak ?? 0;
+    ranked = top.length;
+  } else {
+    const { leaderboard, globalFleetTotals } = await import("../plugins/economy/hangar/leaderboards.js");
+    const top = leaderboard("fleet_value", { limit: capped });
+    const totals = globalFleetTotals();
+    entries = top.map((row) => ({ userId: row.userId, count: row.value }));
+    shareBase = totals.total;
+    total = totals.total;
+    ranked = totals.players;
+  }
+  const leaders = await resolveGlobalPeople(client, entries, shareBase);
+  return {
+    scope: "global" as const,
+    board,
+    total,
+    ranked,
     leaders,
     partial: leaders.some((row) => "unresolved" in row),
   };
@@ -583,7 +732,8 @@ export async function buildWebGlobalStats(client: Client, query: WebStatsQuery) 
     getGlobalTrackedMessagesTotal(),
     getTopGlobalMessagers(15),
     allTime ? getTopGlobalMessagers(15) : getTopGlobalUsersByDaily(query.days, 15),
-    getTopGlobalChannelsByDaily(query.days, 15),
+    // Over-fetch: channels members can't see are dropped before the top 15 is shown.
+    getTopGlobalChannelsByDaily(query.days, 60),
     getGlobalActiveMessagerCount(),
     getFilledGlobalDailyActiveUsers(query.days),
     getTrackedGlobalMessagesTotal(query.days),
@@ -747,7 +897,7 @@ export async function buildWebGlobalStats(client: Client, query: WebStatsQuery) 
       },
       topMessagersWindow: topRecentResolved,
       topMessagersAllTime: topAllTimeResolved,
-      topChannels: resolveGlobalChannels(client, topChannels, channelTrafficTotal),
+      topChannels: await resolveGlobalChannels(client, topChannels, channelTrafficTotal),
       topCommandsWindow: resolveCommandLeaders(topCommandsWindow, commandUsesWindow),
       topCommandsAllTime: resolveCommandLeaders(topCommandsAllTime, commandUsesLifetime),
     },

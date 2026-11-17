@@ -1,4 +1,5 @@
 import { ChannelType, GuildFeature, GuildVerificationLevel, type Client, type Guild } from "discord.js";
+import { channelPubliclyVisible, publicAudienceRoleIds } from "./publicChannels.js";
 import { configManager } from "../config/manager.js";
 import { getDreamlinerOnePublicStatusWithRefresh } from "./dreamlinerOne.js";
 import { getTopChannelsByDaily } from "../plugins/stats/functions/queries.js";
@@ -18,11 +19,14 @@ const MAX_ACTIVE_CHANNELS = 6;
 /** Voice channels with someone in them right now, most populated first. Excludes the AFK
  *  channel — anyone parked there isn't meaningfully "active". Reads straight from the cached
  *  voice state (populated on connect, kept live by voice state updates), no extra API calls. */
-function buildVoiceActivity(guild: Guild) {
+async function buildVoiceActivity(guild: Guild) {
   const channels: { channelId: string; channelName: string; memberCount: number; members: { id: string; name: string; avatar: string }[] }[] = [];
+  // Only channels @everyone (or a Passport-verified member) can see: private calls stay private.
+  const audience = await publicAudienceRoleIds(guild);
 
   for (const channel of guild.channels.cache.values()) {
     if (!channel.isVoiceBased() || channel.id === guild.afkChannelId) continue;
+    if (!channelPubliclyVisible(channel, audience)) continue;
     const members = [...channel.members.values()];
     if (members.length === 0) continue;
     channels.push({
@@ -44,14 +48,20 @@ function buildVoiceActivity(guild: Guild) {
  *  stand-in for "what's active right now" using the same daily counters the Stats plugin
  *  already keeps, rather than anything live/per-message. */
 async function buildActiveChannels(guild: Guild) {
-  const rows = await getTopChannelsByDaily(guild.id, 1, MAX_ACTIVE_CHANNELS);
+  // Over-fetch, since private channels are dropped below.
+  const [rows, audience] = await Promise.all([
+    getTopChannelsByDaily(guild.id, 1, MAX_ACTIVE_CHANNELS * 4),
+    publicAudienceRoleIds(guild),
+  ]);
   return rows
     .map((row) => {
       const channel = guild.channels.cache.get(row.channelId);
       if (!channel || !("name" in channel) || row.count <= 0) return null;
+      if (!channelPubliclyVisible(channel, audience)) return null;
       return { channelId: row.channelId, channelName: channel.name, messageCount: row.count };
     })
-    .filter((entry): entry is { channelId: string; channelName: string; messageCount: number } => entry !== null);
+    .filter((entry): entry is { channelId: string; channelName: string; messageCount: number } => entry !== null)
+    .slice(0, MAX_ACTIVE_CHANNELS);
 }
 
 function buildBoostStatus(guild: Guild) {

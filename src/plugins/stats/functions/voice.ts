@@ -710,3 +710,41 @@ export async function getGuildVoiceHourlyHeatmap(
   }
   return grid;
 }
+
+/** Top users by all-time voice time summed across every server (the global voice leaderboard).
+ *  Only per-user totals leave this function, never which servers the time came from. A full
+ *  aggregate over the daily table, so it's cached and recomputed in the background. */
+export function getTopGlobalVoiceUsers(limit = 50): Promise<{ userId: string; minutes: number; seconds: number }[]> {
+  return cachedSwr(`global:voice-top:${limit}`, 5 * 60_000, 60 * 60_000, () => computeTopGlobalVoiceUsers(limit));
+}
+
+export const computeTopGlobalVoiceUsers = offloaded("plugins/stats/functions/voice", "computeTopGlobalVoiceUsers", async function computeTopGlobalVoiceUsers(
+  limit: number,
+): Promise<{ userId: string; minutes: number; seconds: number }[]> {
+  const db = getDb();
+  const secondsExpr = effectiveSecondsExpr(guildStatsUserVoiceDaily.seconds, guildStatsUserVoiceDaily.minutes);
+  const total = sql<number>`coalesce(sum(${secondsExpr}), 0)`;
+  const rows = await db
+    .select({ userId: guildStatsUserVoiceDaily.userId, seconds: total })
+    .from(guildStatsUserVoiceDaily)
+    .groupBy(guildStatsUserVoiceDaily.userId)
+    .having(sql`${total} > 0`)
+    .orderBy(desc(total), guildStatsUserVoiceDaily.userId)
+    .limit(limit);
+  return rows.map((row) => ({ userId: row.userId, minutes: Math.round(Number(row.seconds) / 60), seconds: Number(row.seconds) }));
+});
+
+/** All-time voice minutes and distinct voice users across every server (display totals). */
+export function getGlobalVoiceTotals(): Promise<{ minutes: number; users: number }> {
+  return cachedSwr("global:voice-totals", 5 * 60_000, 60 * 60_000, computeGlobalVoiceTotals);
+}
+
+export const computeGlobalVoiceTotals = offloaded("plugins/stats/functions/voice", "computeGlobalVoiceTotals", async function computeGlobalVoiceTotals(): Promise<{ minutes: number; users: number }> {
+  const db = getDb();
+  const secondsExpr = effectiveSecondsExpr(guildStatsVoiceDaily.seconds, guildStatsVoiceDaily.minutes);
+  const [totalRow, usersRow] = await Promise.all([
+    db.select({ total: sql<number>`coalesce(sum(${secondsExpr}), 0)` }).from(guildStatsVoiceDaily).get(),
+    db.select({ total: countDistinct(guildStatsUserVoiceDaily.userId) }).from(guildStatsUserVoiceDaily).get(),
+  ]);
+  return { minutes: Math.round(Number(totalRow?.total ?? 0) / 60), users: Number(usersRow?.total ?? 0) };
+});

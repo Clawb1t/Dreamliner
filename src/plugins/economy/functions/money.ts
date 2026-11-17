@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { economyExchangeDaily, economyGlobalAccounts, economyServerAccounts } from "../../../db/schema.js";
 import { EXCHANGE_DAILY_GLOBAL_CAP } from "./format.js";
@@ -87,6 +87,50 @@ export type DailyClaimResult = { amount: number; streak: number; nextAt: Date };
 
 const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1_000;
 const DAILY_STREAK_GRACE_MS = 48 * 60 * 60 * 1_000;
+
+/**
+ * The longest live global /daily streaks (the global leaderboard's Streaks board). A streak only
+ * counts while it can still be continued: one whose last claim is past the grace window is
+ * already broken, even though the stored number isn't reset until the next claim.
+ */
+export function topLiveGlobalDailyStreaks(limit = 50, at = Date.now()): Array<{ userId: string; streak: number }> {
+  const since = new Date(at - DAILY_STREAK_GRACE_MS);
+  return getDb()
+    .select({ userId: economyGlobalAccounts.userId, streak: economyGlobalAccounts.dailyStreak })
+    .from(economyGlobalAccounts)
+    .where(and(gt(economyGlobalAccounts.dailyStreak, 0), gte(economyGlobalAccounts.lastDailyAt, since)))
+    .orderBy(desc(economyGlobalAccounts.dailyStreak), economyGlobalAccounts.userId)
+    .limit(Math.max(1, Math.min(100, limit)))
+    .all();
+}
+
+/**
+ * The longest live per-server `/daily server` streaks in one guild (the server leaderboard's
+ * Streaks board), plus how many live streaks it has. Same liveness rule as
+ * topLiveGlobalDailyStreaks: a streak past the grace window is already broken.
+ */
+export function topLiveServerDailyStreaks(
+  guildId: string,
+  limit = 50,
+  at = Date.now(),
+): { rows: Array<{ userId: string; streak: number }>; live: number } {
+  const since = new Date(at - DAILY_STREAK_GRACE_MS);
+  const where = and(
+    eq(economyServerAccounts.guildId, guildId),
+    gt(economyServerAccounts.dailyStreak, 0),
+    gte(economyServerAccounts.lastDailyAt, since),
+  );
+  const db = getDb();
+  const rows = db
+    .select({ userId: economyServerAccounts.userId, streak: economyServerAccounts.dailyStreak })
+    .from(economyServerAccounts)
+    .where(where)
+    .orderBy(desc(economyServerAccounts.dailyStreak), economyServerAccounts.userId)
+    .limit(Math.max(1, Math.min(100, limit)))
+    .all();
+  const live = db.select({ n: count() }).from(economyServerAccounts).where(where).get();
+  return { rows, live: Number(live?.n ?? 0) };
+}
 
 /** When the daily cooldown following `lastDailyAt` ends, or null if it's never been claimed. */
 export function nextDailyClaimAt(lastDailyAt: Date | null): Date | null {

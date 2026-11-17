@@ -68,3 +68,19 @@ export function globalFleetRank(userId: string): number | null {
   if (!row || !row.fleet) return null;
   return Number(row.position);
 }
+
+/**
+ * Total Fleet Value and number of ranked collectors across everyone (global board totals), or
+ * across `memberIds` only (a server's members, applied in SQL like leaderboard()).
+ */
+export function globalFleetTotals(memberIds?: string[] | null): { total: number; players: number } {
+  if (memberIds && memberIds.length === 0) return { total: 0, players: 0 };
+  const conditions = [gt(planeCardUserState.fleetValue, 0)];
+  if (memberIds) conditions.push(inArray(planeCardUserState.userId, memberIds));
+  const row = getDb()
+    .select({ total: sql<number>`COALESCE(SUM(${planeCardUserState.fleetValue}), 0)`, players: sql<number>`COUNT(*)` })
+    .from(planeCardUserState)
+    .where(and(...conditions))
+    .get();
+  return { total: Number(row?.total ?? 0), players: Number(row?.players ?? 0) };
+}

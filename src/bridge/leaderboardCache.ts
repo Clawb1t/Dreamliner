@@ -8,10 +8,14 @@ const log = getLogger("leaderboards");
  *  both fill the same entries. */
 export const leaderboardKeys = {
   global: (limit: number) => `leaderboard:global:${limit}`,
+  globalBoard: (board: string, limit: number) => `leaderboard:global:${board}:${limit}`,
   guild: (guildId: string, limit: number) => `leaderboard:guild:${guildId}:${limit}`,
   voice: (guildId: string, limit: number) => `leaderboard:voice:guild:${guildId}:${limit}`,
+  guildBoard: (guildId: string, board: string, limit: number) => `leaderboard:${board}:guild:${guildId}:${limit}`,
 };
 export const LEADERBOARD_TTL_MS = 60_000;
+/** Rows the website's global leaderboard page asks for on every board (it pages through them). */
+export const GLOBAL_PAGE_LIMIT = 50;
 
 /**
  * A leaderboard through the page cache. A payload with names still being looked up (`partial`) is
@@ -36,13 +40,25 @@ export async function leaderboardCached<T extends { partial?: boolean }>(key: st
 export const PREWARM_TOP_GUILDS = 5;
 export const PREWARM_INTERVAL_MS = 5 * 60_000;
 export async function prewarmLeaderboards(client: Client, topGuilds = PREWARM_TOP_GUILDS): Promise<void> {
-  const { buildWebPublicMessagerLeaderboard, buildWebPublicVoiceLeaderboard, buildWebGlobalPublicMessagerLeaderboard } = await import("./webStats.js");
+  const {
+    buildWebPublicMessagerLeaderboard,
+    buildWebPublicVoiceLeaderboard,
+    buildWebGlobalPublicMessagerLeaderboard,
+    buildWebGlobalPublicBoard,
+    GLOBAL_PUBLIC_BOARDS,
+  } = await import("./webStats.js");
   const started = Date.now();
   const yieldLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
 
-  await leaderboardCached(leaderboardKeys.global(25), LEADERBOARD_TTL_MS, () => buildWebGlobalPublicMessagerLeaderboard(client, 25)).catch(
-    (error) => log.warn(`prewarm of the global leaderboard failed: ${error instanceof Error ? error.message : error}`),
-  );
+  await leaderboardCached(leaderboardKeys.global(GLOBAL_PAGE_LIMIT), LEADERBOARD_TTL_MS, () =>
+    buildWebGlobalPublicMessagerLeaderboard(client, GLOBAL_PAGE_LIMIT),
+  ).catch((error) => log.warn(`prewarm of the global leaderboard failed: ${error instanceof Error ? error.message : error}`));
+  for (const board of GLOBAL_PUBLIC_BOARDS) {
+    await yieldLoop();
+    await leaderboardCached(leaderboardKeys.globalBoard(board, GLOBAL_PAGE_LIMIT), LEADERBOARD_TTL_MS, () =>
+      buildWebGlobalPublicBoard(client, board, GLOBAL_PAGE_LIMIT),
+    ).catch((error) => log.warn(`prewarm of the global ${board} board failed: ${error instanceof Error ? error.message : error}`));
+  }
 
   const guilds: Guild[] = [...client.guilds.cache.values()].sort((a, b) => b.memberCount - a.memberCount).slice(0, topGuilds);
   for (const guild of guilds) {
