@@ -432,6 +432,17 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
           .get(),
       ),
     },
+    {
+      key: "plane_hangar",
+      label: "Plane cards Hangar",
+      description:
+        "Your plane cards, Parts, flights, trades, market listings and Pilot Rank. Open trades and listings are cancelled, and your cards leave circulation.",
+      total: (async () => {
+        const { exportUserHangarData } = await import("../plugins/economy/hangar/erase.js");
+        const data = exportUserHangarData(userId);
+        return data.copies.length + data.state.length + data.flights.length + data.trades.length + data.listings.length;
+      })(),
+    },
   ];
 
   const items: UserDataInventoryItem[] = await Promise.all(
@@ -580,6 +591,8 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     "automod_hits",
     db.delete(automodHits).where(eq(automodHits.userId, userId)).returning(),
   );
+  const { deleteUserHangarData } = await import("../plugins/economy/hangar/erase.js");
+  deleted.plane_hangar = deleteUserHangarData(userId);
   await wipe(
     "welcome_join_messages",
     db.delete(welcomeJoinMessages).where(eq(welcomeJoinMessages.memberId, userId)).returning(),

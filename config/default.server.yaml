@@ -421,6 +421,14 @@ plugins:
       can_buy_pack: false
       can_give: false
       can_sell: false
+      can_boarding: false
+      can_salvage: false
+      can_craft: false
+      can_repaint: false
+      can_upgrade: false
+      can_fly: false
+      can_trade: false
+      can_market: false
   persist:
     enabled: false
     config:

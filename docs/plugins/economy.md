@@ -24,9 +24,7 @@ Two independent currencies:
 | `/economy settings` | Change this server's currency name, denominator, emoji, and whether message rewards are on (managers) |
 | `/exchange <amount>` | Convert server currency into global coins, at a rate set by this server's own stock price |
 | `/stock` | Links to the Dreamliner Exchange on the site |
-| `/planes inventory [user]` | Browse a hangar (card collection) |
-| `/planes pack buy` | Buy and open a card pack with global coins |
-| `/planes card view\|list\|give` | View a card's stats, list the catalog, or give a card to another member |
+| `/planes ...` | The Hangar: plane and airline cards (see below) |
 
 ## Architecture
 
@@ -78,24 +76,41 @@ The same `0.1x`–`3x` rate also scales the `/daily` server-currency payout (`ge
 `SERVER_DAILY_BASE_AMOUNT` of 5) — a booming server pays its members a better daily too, not just a better
 exchange. Both are read-only market effects; there is no admin control over either.
 
-## Trading cards (planes and airlines)
+## The Hangar (plane and airline cards)
 
-`/planes` — collect, open packs, and give collectible plane/airline cards — is part of the economy plugin rather
-than a separate one, since packs are bought with **global coins** (`src/plugins/economy/functions/packs.ts`) and
-sold cards (`can_sell`) credit global coins back. The card catalog and pack price/size are **global** (bot-wide),
-not per-guild — managed only through the dashboard's superuser catalog page (`src/bridge/planeCards.ts`), never
-through `/economy settings` or guild YAML.
+`/planes` is part of the economy plugin because packs cost **global coins**. The catalog, packs, sets and
+market are **global** (bot-wide), managed on the dashboard's superuser pages, never in guild YAML. Code lives in
+`src/plugins/economy/hangar/`; every tunable is in `hangar/constants.ts`. The website talks to it through
+`src/bridge/webHangar.ts` (contract: [docs/hangar-bridge.md](../hangar-bridge.md)).
 
-- **SQLite** — `plane_card_types` (the catalog), `plane_card_inventory` (who owns what), `plane_card_pack_openings`
-  (a pack-purchase ledger), `plane_global_settings` (pack price/size, one row).
-- Card sell prices scale with rarity (`common`–`legendary`) and are randomised ±20%, capped at legendary's own
-  $100 base — see `functions/value.ts`. Selling removes the card and credits global coins atomically
-  (`functions/inventory.ts`'s `sellCard`).
+- **Nothing mints coins.** Coins only leave (pack prices, the 5% market fee, repaints, hangar slots) or move
+  between players (market sales, coins in trades). `hangar/ledger.ts` has no credit function, only `burnCoins`
+  and the zero-sum `transferCoins`; every movement is a `plane_coin_ledger` row.
+- **Parts** are a card-only currency (`plane_parts_ledger`): earned by salvage, flights, set bonuses and boarding
+  pass streaks, spent on crafting (4x salvage value) and upgrades. Never convertible to coins.
+- **Copies:** every card is a numbered copy (`plane_card_copies`) with a serial, livery (Standard, Gold,
+  Prototype), First Edition flag (serials 1 to 100), level and XP. Print runs retire a card when used up.
+- **Packs** (`plane_card_packs`) draw rarity first, then a card; guarantees and First Class pity apply.
+- **Flights**, **trades** (48h) and the **market** (7 days) lock the copies involved; settlement is atomic.
+- **Fleet Value / Pilot Rank** are cached per user in `plane_card_user_state` and recomputed on every change.
+
+| Command | Description |
+|---|---|
+| `/planes hangar [user]` | Browse a hangar |
+| `/planes boarding` | Free daily card, Parts bonus every 7 days in a row |
+| `/planes salvage`, `craft`, `repaint`, `upgrade` | Workshop |
+| `/planes rank`, `leaderboard`, `sets`, `showcase` | Ranking and profile |
+| `/planes pack list`, `open` | Packs |
+| `/planes card view`, `inspect`, `give`, `list` | Catalog and copies |
+| `/planes fly start`, `claim`, `status` | Flights |
+| `/planes trade offer`, `view` | Trades (accept, decline and counter by button) |
+| `/planes market list`, `browse`, `buy`, `cancel` | Market |
 
 ## Permissions
 
-Member defaults (`>=0`) can use `/economy balance`, `/economy daily`, `/exchange`, and all of `/planes`
-(`can_view`, `can_buy_pack`, `can_give`, `can_sell`). Managers (`>=50`) get `/economy admin`.
+Member defaults can use `/balance`, `/daily`, `/exchange` and all of `/planes`: `can_view`, `can_buy_pack`,
+`can_give`, `can_boarding`, `can_salvage`, `can_craft`, `can_repaint`, `can_upgrade`, `can_fly`, `can_trade`,
+`can_market`. `can_sell` is kept for old configs but no longer used.
 
 ## Logging
 

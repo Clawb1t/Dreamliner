@@ -84,7 +84,27 @@ const reviews = sqlMetric(
 
 const planeCards = sqlMetric(
   { id: "plane_cards", label: "Plane cards collected", unit: "cards", description: "Different plane cards in their collection" },
-  (f) => sql`SELECT user_id, COUNT(*) AS value FROM plane_card_inventory WHERE quantity > 0 AND user_id ${f} GROUP BY user_id`,
+  (f) => sql`SELECT owner_id AS user_id, COUNT(DISTINCT card_type_id) AS value FROM plane_card_copies WHERE owner_id ${f} GROUP BY owner_id`,
+);
+
+const fleetValue = sqlMetric(
+  { id: "fleet_value", label: "Fleet Value", unit: "Fleet Value", description: "Their Hangar collection score" },
+  (f) => sql`SELECT user_id, fleet_value AS value FROM plane_card_user_state WHERE user_id ${f}`,
+);
+
+const setsCompleted = sqlMetric(
+  { id: "sets_completed", label: "Card sets completed", unit: "sets", description: "Hangar sets they currently have complete" },
+  (f) => sql`SELECT user_id, sets_completed AS value FROM plane_card_user_state WHERE user_id ${f}`,
+);
+
+const flightsFlown = sqlMetric(
+  { id: "flights_flown", label: "Flights flown", unit: "flights", description: "Hangar flights they've completed" },
+  (f) => sql`SELECT user_id, COUNT(*) AS value FROM plane_card_flights WHERE claimed_at IS NOT NULL AND user_id ${f} GROUP BY user_id`,
+);
+
+const mythicsOwned = sqlMetric(
+  { id: "mythics_owned", label: "Mythic cards owned", unit: "Mythic cards", description: "Mythic plane cards in their collection" },
+  (f) => sql`SELECT user_id, mythics_owned AS value FROM plane_card_user_state WHERE user_id ${f}`,
 );
 
 const dailyStreak = sqlMetric(
@@ -164,6 +184,10 @@ export const METRICS: BadgeMetric[] = [
   suggestions,
   reviews,
   planeCards,
+  fleetValue,
+  setsCompleted,
+  flightsFlown,
+  mythicsOwned,
   dailyStreak,
   accountAge,
   oneServers,

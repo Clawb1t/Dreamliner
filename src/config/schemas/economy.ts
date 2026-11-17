@@ -43,13 +43,21 @@ export const zEconomyConfig = z.strictObject({
   can_daily: boolPerm("claim the daily reward"),
   can_exchange: boolPerm("exchange server currency for global coins"),
 
-  // Trading cards (/planes — planes and airlines). The card catalog and packs are global
-  // (bot-wide), not per-server — managed only via the dashboard's superuser catalog page, never
-  // through this per-guild config (see functions/settings.ts).
-  can_view: boolPerm("view the plane card catalog, card details, and inventories"),
+  // The Hangar (/planes, plane and airline cards). The card catalog, packs and market are global
+  // (bot-wide), not per-server, and managed only on the dashboard's superuser pages. These flags
+  // only decide who can use each part of /planes in this server.
+  can_view: boolPerm("view hangars, cards, ranks, sets and leaderboards, and set their showcase"),
   can_buy_pack: boolPerm("buy and open plane card packs"),
-  can_give: boolPerm("give a plane card (1 at a time) to another member"),
-  can_sell: boolPerm("sell a plane card for global coins"),
+  can_give: boolPerm("give a plane card to another member"),
+  can_sell: boolPerm("use the old sell button (no longer used: cards are salvaged for Parts with can_salvage instead)"),
+  can_boarding: boolPerm("claim the free daily boarding pass"),
+  can_salvage: boolPerm("salvage plane cards for Parts"),
+  can_craft: boolPerm("craft plane cards with Parts"),
+  can_repaint: boolPerm("repaint a plane card's livery for coins"),
+  can_upgrade: boolPerm("level plane cards up with Parts"),
+  can_fly: boolPerm("send plane cards on flights"),
+  can_trade: boolPerm("trade plane cards with other members"),
+  can_market: boolPerm("list and buy plane cards on the market"),
 });
 
 export const zEconomyPluginSection = zPluginSection(zEconomyConfig.shape, false);

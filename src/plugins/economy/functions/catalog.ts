@@ -2,20 +2,12 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../../db/client.js";
 import { planeCardTypes } from "../../../db/schema.js";
 
-export const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "legendary"] as const;
-export type Rarity = (typeof RARITY_ORDER)[number];
+import { RARITIES, RARITY_META, isRarity, type Rarity } from "../hangar/constants.js";
 
-export function isRarity(value: string): value is Rarity {
-  return (RARITY_ORDER as readonly string[]).includes(value);
-}
-
-export const RARITY_META: Record<Rarity, { label: string; color: number; weight: number }> = {
-  common: { label: "Common", color: 0x9aa4b2, weight: 55 },
-  uncommon: { label: "Uncommon", color: 0x3ba55d, weight: 27 },
-  rare: { label: "Rare", color: 0x3b82f6, weight: 12 },
-  epic: { label: "Epic", color: 0x9b59b6, weight: 5 },
-  legendary: { label: "Legendary", color: 0xf1c40f, weight: 1 },
-};
+/** Rarities low to high (re-exported from hangar/constants.ts, the single source of truth). */
+export const RARITY_ORDER = RARITIES;
+export { RARITY_META, isRarity };
+export type { Rarity };
 
 /** Descending rarity, common last; used to sort catalog/inventory listings so the good stuff is up top. */
 function rarityRank(rarity: string): number {
@@ -103,6 +95,7 @@ export type CreatePlaneTypeInput = {
   safety: number;
   imageKey: string;
   createdBy: string;
+  printRun?: number | null;
 } & (
   | { cardType: "plane"; speed: number; agility: number; passengerCount: number }
   | { cardType: "airline"; reputation: number; fleetSize: number; destinations: number }
@@ -133,6 +126,7 @@ export function createPlaneType(input: CreatePlaneTypeInput): PlaneTypeRow {
       safety: input.safety,
       ...stats,
       imageKey: input.imageKey.trim(),
+      printRun: input.printRun ?? null,
       enabled: true,
       createdBy: input.createdBy,
       createdAt: timestamp,
@@ -155,6 +149,8 @@ export type UpdatePlaneTypeInput = Partial<{
   destinations: number;
   imageKey: string;
   enabled: boolean;
+  printRun: number | null;
+  retiredAt: Date | null;
 }>;
 
 export function updatePlaneType(id: number, patch: UpdatePlaneTypeInput): PlaneTypeRow {
@@ -168,8 +164,8 @@ export function updatePlaneType(id: number, patch: UpdatePlaneTypeInput): PlaneT
   return getPlaneTypeById(id)!;
 }
 
-/** Soft-remove: disables the card so it stops appearing in packs/catalog browsing, without
- *  breaking existing inventory rows that already reference it. */
+/** Soft-remove: disables the card so it stops dropping from packs, without touching the copies
+ *  people already own (disabled cards stay viewable and tradeable). */
 export function disablePlaneType(id: number): PlaneTypeRow {
   return updatePlaneType(id, { enabled: false });
 }

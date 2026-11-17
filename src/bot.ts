@@ -113,17 +113,7 @@ import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { LANGUAGE_SELECT_PREFIX, handleLanguageSelectInteraction } from "./plugins/language/index.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
 import { handleTimeAutocomplete } from "./plugins/utility/functions/time.js";
-import {
-  handlePlanesAutocomplete,
-  handlePlaneInventoryButtonInteraction,
-  handlePlanePackButtonInteraction,
-  handlePlaneSellButtonInteraction,
-  handlePlaneStatsButtonInteraction,
-  PLANE_INVENTORY_PREFIX,
-  PLANE_PACK_PREFIX,
-  PLANE_SELL_PREFIX,
-  PLANE_STATS_PREFIX,
-} from "./plugins/economy/index.js";
+import { handleHangarButton, handleHangarModal, handlePlanesAutocomplete, isHangarComponent } from "./plugins/economy/index.js";
 import { applyBotPresence } from "./core/presence.js";
 import { loadDefaultConfig } from "./config/default.js";
 import type { BotContext, ContextMenuCommandDefinition, SlashCommandDefinition } from "./core/types.js";
@@ -364,7 +354,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         });
         return;
       }
-      if (interaction.commandName === "planes" || interaction.commandName === "planesadmin") {
+      if (interaction.commandName === "planes") {
         await handlePlanesAutocomplete(interaction).catch((error) => {
           log.error("Planes autocomplete error:", error);
         });
@@ -486,20 +476,8 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Expand/delete button", () => handleExpandDeleteButtonInteraction(interaction));
         if (handled) return;
       }
-      if (interaction.customId.startsWith(PLANE_STATS_PREFIX)) {
-        const handled = await safeHandle(interaction, "Plane stats button", () => handlePlaneStatsButtonInteraction(interaction));
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(PLANE_PACK_PREFIX)) {
-        const handled = await safeHandle(interaction, "Plane pack button", () => handlePlanePackButtonInteraction(interaction));
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(PLANE_INVENTORY_PREFIX)) {
-        const handled = await safeHandle(interaction, "Plane inventory button", () => handlePlaneInventoryButtonInteraction(interaction));
-        if (handled) return;
-      }
-      if (interaction.customId.startsWith(PLANE_SELL_PREFIX)) {
-        const handled = await safeHandle(interaction, "Plane sell button", () => handlePlaneSellButtonInteraction(interaction));
+      if (isHangarComponent(interaction.customId)) {
+        const handled = await safeHandle(interaction, "Hangar button", () => handleHangarButton(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(ROLE_BUTTON_PREFIX)) {
@@ -566,6 +544,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(MK_PREFIX)) {
         const handled = await safeHandle(interaction, "Message Kit form", () => handleKitModal(interaction));
+        if (handled) return;
+      }
+      if (isHangarComponent(interaction.customId)) {
+        const handled = await safeHandle(interaction, "Hangar modal", () => handleHangarModal(interaction));
         if (handled) return;
       }
       if (interaction.customId === REVIEW_MODAL_ID) {

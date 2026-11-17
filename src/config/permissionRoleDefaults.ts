@@ -46,8 +46,15 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "economy.can_daily",
     "economy.can_exchange",
     "economy.can_give",
-    "economy.can_sell",
     "economy.can_view",
+    "economy.can_boarding",
+    "economy.can_salvage",
+    "economy.can_craft",
+    "economy.can_repaint",
+    "economy.can_upgrade",
+    "economy.can_fly",
+    "economy.can_trade",
+    "economy.can_market",
     // images
     "images.can_use",
     // reminders (a member only ever sees and cancels their own)

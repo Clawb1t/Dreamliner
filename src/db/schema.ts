@@ -1481,11 +1481,12 @@ export const ticketBlacklist = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.targetId] })],
 );
 
-// --- Plane cards (Dreamliner trading cards) -----------------------------------
-// A global catalog of plane "card types" (real aircraft, added by the bot's
-// developers). Users buy packs with global economy coins, opening them adds
-// random cards to a per-user inventory (stacked by quantity, not unique
-// serials), and cards can be given one at a time to another user.
+/// --- Plane cards ("The Hangar") -----------------------------------------------
+// A global catalog of plane and airline "card types", added by superusers on the dashboard.
+// Every owned card is a numbered copy (serial, livery, First Edition flag, level). Coins only
+// ever leave the system (packs, the market fee, repaints, hangar slots) or move between players
+// (market sales, coins in trades): nothing here creates coins. Parts are a card-only currency.
+// See src/plugins/economy/hangar/ and docs/hangar-bridge.md.
 
 export const planeCardTypes = sqliteTable("plane_card_types", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
@@ -1495,6 +1496,7 @@ export const planeCardTypes = sqliteTable("plane_card_types", {
   cardType: text("card_type").notNull().default("plane"),
   /** Free-text subtitle shown in card footers: manufacturer for planes, e.g. hub/founded for airlines. */
   subtitle: text("subtitle").notNull().default(""),
+  /** common | uncommon | rare | epic | legendary | mythic (see hangar/constants.ts). */
   rarity: text("rarity").notNull().default("common"),
   // Plane-only stats.
   speed: integer("speed", { mode: "number" }).notNull().default(50),
@@ -1506,27 +1508,133 @@ export const planeCardTypes = sqliteTable("plane_card_types", {
   destinations: integer("destinations", { mode: "number" }).notNull().default(0),
   // Shared by both card types.
   safety: integer("safety", { mode: "number" }).notNull().default(50),
-  /** File name of the card art in assets/planes/, e.g. "a350.png"; served as a Discord attachment, not a URL. */
+  /** File name of the card art in assets/planes/, e.g. "a350.png". */
   imageKey: text("image_key").notNull().default(""),
+  /** Disabled cards stay viewable and tradeable but never drop from packs. */
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  /** Optional cap on how many copies can ever be minted; null means unlimited. */
+  printRun: integer("print_run", { mode: "number" }),
+  /** Set when the print run runs out (or by hand): retired cards are never minted again. */
+  retiredAt: integer("retired_at", { mode: "timestamp" }),
   createdBy: text("created_by").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
-export const planeCardInventory = sqliteTable(
-  "plane_card_inventory",
+/** One numbered card. Serials are per card type and never reused (see planeCardMintCounters). */
+export const planeCardCopies = sqliteTable(
+  "plane_card_copies",
   {
-    userId: text("user_id").notNull(),
-    planeTypeId: integer("plane_type_id", { mode: "number" }).notNull(),
-    quantity: integer("quantity", { mode: "number" }).notNull().default(0),
-    firstObtainedAt: integer("first_obtained_at", { mode: "timestamp" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    cardTypeId: integer("card_type_id", { mode: "number" }).notNull(),
+    ownerId: text("owner_id").notNull(),
+    serial: integer("serial", { mode: "number" }).notNull(),
+    /** standard | gold | prototype */
+    livery: text("livery").notNull().default("standard"),
+    firstEdition: integer("first_edition", { mode: "boolean" }).notNull().default(false),
+    level: integer("level", { mode: "number" }).notNull().default(1),
+    xp: integer("xp", { mode: "number" }).notNull().default(0),
+    flights: integer("flights", { mode: "number" }).notNull().default(0),
+    /** pack | boarding_pass | craft | trade | market | gift | flight | migration */
+    obtainedVia: text("obtained_via").notNull(),
+    /** listing | trade | flight, null when free. A locked copy can't be salvaged, given, listed or traded. */
+    lockedReason: text("locked_reason"),
+    /** The listing/trade/flight id holding the lock. */
+    lockedRef: integer("locked_ref", { mode: "number" }),
+    /** When this copy last started a flight (each copy flies once per UTC day). */
+    lastFlightAt: integer("last_flight_at", { mode: "timestamp" }),
+    mintedAt: integer("minted_at", { mode: "timestamp" }).notNull(),
+    acquiredAt: integer("acquired_at", { mode: "timestamp" }).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.planeTypeId] })],
+  (table) => [
+    uniqueIndex("plane_card_copies_type_serial").on(table.cardTypeId, table.serial),
+    index("plane_card_copies_owner").on(table.ownerId, table.cardTypeId),
+  ],
 );
 
-/** Log of every pack purchase, mainly for the dashboard/superuser tooling. */
+/** Per card type, the next serial to mint (so minted count = nextSerial - 1). */
+export const planeCardMintCounters = sqliteTable("plane_card_mint_counters", {
+  cardTypeId: integer("card_type_id", { mode: "number" }).primaryKey(),
+  nextSerial: integer("next_serial", { mode: "number" }).notNull().default(1),
+});
+
+/** A copy's history: mint, transfers, repaints, levels, flights, listings, salvage. */
+export const planeCardCopyEvents = sqliteTable(
+  "plane_card_copy_events",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    copyId: integer("copy_id", { mode: "number" }).notNull(),
+    kind: text("kind").notNull(),
+    fromUserId: text("from_user_id"),
+    toUserId: text("to_user_id"),
+    /** Small JSON blob with event details (price, livery change, level, route...). */
+    detail: text("detail"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("plane_card_copy_events_copy").on(table.copyId, table.id)],
+);
+
+/** Superuser-defined collections ("Fleets"). Completing one pays bonusParts once per user. */
+export const planeCardSets = sqliteTable("plane_card_sets", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  bonusParts: integer("bonus_parts", { mode: "number" }).notNull().default(0),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const planeCardSetMembers = sqliteTable(
+  "plane_card_set_members",
+  {
+    setId: integer("set_id", { mode: "number" }).notNull(),
+    cardTypeId: integer("card_type_id", { mode: "number" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.setId, table.cardTypeId] }), index("plane_card_set_members_card").on(table.cardTypeId)],
+);
+
+/** First time a user completed a set (the one-off Parts bonus is paid when this row is written). */
+export const planeCardSetCompletions = sqliteTable(
+  "plane_card_set_completions",
+  {
+    userId: text("user_id").notNull(),
+    setId: integer("set_id", { mode: "number" }).notNull(),
+    completedAt: integer("completed_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.setId] })],
+);
+
+/** Pack tiers. Odds are JSON maps of weights (any scale, normalised when drawn). */
+export const planeCardPacks = sqliteTable("plane_card_packs", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  /** Global coins. Packs are never sold for Credits or Miles. */
+  price: real("price").notNull(),
+  size: integer("size", { mode: "number" }).notNull(),
+  /** JSON { common, uncommon, rare, epic, legendary, mythic } weights. */
+  rarityOdds: text("rarity_odds").notNull(),
+  /** JSON { standard, gold, prototype } weights. */
+  liveryOdds: text("livery_odds").notNull(),
+  /** At least one card per pack is this rarity or better (null for none). */
+  guaranteeRarity: text("guarantee_rarity"),
+  /** Pity: a pityRarity-or-better card is guaranteed within pityAfter cards from this pack. */
+  pityRarity: text("pity_rarity"),
+  pityAfter: integer("pity_after", { mode: "number" }),
+  /** Limited packs only draw cards from this set. */
+  featuredSetId: integer("featured_set_id", { mode: "number" }),
+  startsAt: integer("starts_at", { mode: "timestamp" }),
+  endsAt: integer("ends_at", { mode: "timestamp" }),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order", { mode: "number" }).notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** Log of every pack opening and boarding pass pull: the "recent pulls" feed and odds checks. */
 export const planeCardPackOpenings = sqliteTable(
   "plane_card_pack_openings",
   {
@@ -1536,20 +1644,158 @@ export const planeCardPackOpenings = sqliteTable(
     cost: real("cost").notNull(),
     /** JSON array of plane_card_types ids drawn, in order. */
     planeTypeIds: text("plane_type_ids").notNull().default("[]"),
+    /** pack | boarding_pass */
+    source: text("source").notNull().default("pack"),
+    packKey: text("pack_key"),
+    /** JSON [{ copyId, cardTypeId, rarity, livery, forced }] (empty for pre-Hangar openings). */
+    pulls: text("pulls").notNull().default("[]"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
-  (table) => [index("plane_card_pack_openings_user_time").on(table.userId, table.createdAt)],
+  (table) => [
+    index("plane_card_pack_openings_user_time").on(table.userId, table.createdAt),
+    index("plane_card_pack_openings_time").on(table.createdAt),
+  ],
 );
 
-/** Single-row global pack settings (price/size). Bot-wide, not per-guild: managed only via
- *  /planesadmin, deliberately not exposed on the per-server dashboard config. */
-export const planeGlobalSettings = sqliteTable("plane_global_settings", {
-  id: text("id").primaryKey().default("global"),
-  packPrice: real("pack_price").notNull().default(10),
-  packSize: integer("pack_size", { mode: "number" }).notNull().default(1),
-  updatedBy: text("updated_by").notNull().default(""),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
+/** Parts movements. A balance is the sum of a user's deltas (same pattern as store_credit_ledger). */
+export const planePartsLedger = sqliteTable(
+  "plane_parts_ledger",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    delta: integer("delta", { mode: "number" }).notNull(),
+    /** salvage | flight | set_bonus | boarding_streak | craft | upgrade | grant */
+    kind: text("kind").notNull(),
+    copyId: integer("copy_id", { mode: "number" }),
+    ref: text("ref"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("plane_parts_ledger_user").on(table.userId, table.id), index("plane_parts_ledger_kind").on(table.kind)],
+);
+
+/** Every global-coin movement made by the card system. Burns (pack, market_fee, repaint,
+ *  hangar_slot) have no counterparty; transfers (market_buy/market_sale, trade_out/trade_in)
+ *  come in pairs that sum to zero. The ledger's total can never be positive. */
+export const planeCoinLedger = sqliteTable(
+  "plane_coin_ledger",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    delta: real("delta").notNull(),
+    kind: text("kind").notNull(),
+    counterpartyId: text("counterparty_id"),
+    ref: text("ref"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("plane_coin_ledger_user").on(table.userId, table.id), index("plane_coin_ledger_kind").on(table.kind)],
+);
+
+/** Flights: a plane copy (plus an optional airline operator) out on a route. Settled on claim. */
+export const planeCardFlights = sqliteTable(
+  "plane_card_flights",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    copyId: integer("copy_id", { mode: "number" }).notNull(),
+    operatorCopyId: integer("operator_copy_id", { mode: "number" }),
+    route: text("route").notNull(),
+    startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp" }).notNull(),
+    claimedAt: integer("claimed_at", { mode: "timestamp" }),
+    /** JSON { parts, xp, levelsGained, bonusCopyId } once claimed. */
+    reward: text("reward"),
+  },
+  (table) => [index("plane_card_flights_user").on(table.userId, table.claimedAt), index("plane_card_flights_claimed").on(table.claimedAt)],
+);
+
+/** Two-sided offers of copies plus coins. 48h expiry; settled atomically on accept. */
+export const planeCardTrades = sqliteTable(
+  "plane_card_trades",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    fromUserId: text("from_user_id").notNull(),
+    toUserId: text("to_user_id").notNull(),
+    fromCoins: real("from_coins").notNull().default(0),
+    toCoins: real("to_coins").notNull().default(0),
+    /** pending | accepted | declined | cancelled | countered | expired | failed */
+    status: text("status").notNull().default("pending"),
+    parentTradeId: integer("parent_trade_id", { mode: "number" }),
+    note: text("note"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    index("plane_card_trades_from").on(table.fromUserId, table.status),
+    index("plane_card_trades_to").on(table.toUserId, table.status),
+    index("plane_card_trades_status").on(table.status, table.expiresAt),
+  ],
+);
+
+export const planeCardTradeItems = sqliteTable(
+  "plane_card_trade_items",
+  {
+    tradeId: integer("trade_id", { mode: "number" }).notNull(),
+    copyId: integer("copy_id", { mode: "number" }).notNull(),
+    /** from: offered by fromUserId; to: asked of toUserId. */
+    side: text("side").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.tradeId, table.copyId] })],
+);
+
+/** Market listings: one copy for a coin price, 7-day expiry, 5% burned fee on sale. */
+export const planeCardListings = sqliteTable(
+  "plane_card_listings",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    sellerId: text("seller_id").notNull(),
+    copyId: integer("copy_id", { mode: "number" }).notNull(),
+    price: real("price").notNull(),
+    /** active | sold | cancelled | expired */
+    status: text("status").notNull().default("active"),
+    buyerId: text("buyer_id"),
+    fee: real("fee"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    index("plane_card_listings_status").on(table.status, table.createdAt),
+    index("plane_card_listings_seller").on(table.sellerId, table.status),
+    index("plane_card_listings_copy").on(table.copyId, table.status),
+  ],
+);
+
+/** Per-user Hangar state plus cached score columns (recomputed on every collection change,
+ *  read by leaderboards and progression badges). */
+export const planeCardUserState = sqliteTable(
+  "plane_card_user_state",
+  {
+    userId: text("user_id").primaryKey(),
+    boardingLastAt: integer("boarding_last_at", { mode: "timestamp" }),
+    boardingStreak: integer("boarding_streak", { mode: "number" }).notNull().default(0),
+    /** JSON { [packKey]: cardsSinceLastPityRarity } */
+    pity: text("pity").notNull().default("{}"),
+    /** JSON array of up to 3 copy ids. */
+    showcase: text("showcase").notNull().default("[]"),
+    hangarSlots: integer("hangar_slots", { mode: "number" }).notNull().default(100),
+    fleetValue: integer("fleet_value", { mode: "number" }).notNull().default(0),
+    setsCompleted: integer("sets_completed", { mode: "number" }).notNull().default(0),
+    distinctCards: integer("distinct_cards", { mode: "number" }).notNull().default(0),
+    copiesCount: integer("copies_count", { mode: "number" }).notNull().default(0),
+    mythicsOwned: integer("mythics_owned", { mode: "number" }).notNull().default(0),
+    rarestPoints: integer("rarest_points", { mode: "number" }).notNull().default(0),
+    rarestCopyId: integer("rarest_copy_id", { mode: "number" }),
+    /** Bumped when the score formula changes, so stale rows get recomputed on boot. */
+    scoreVersion: integer("score_version", { mode: "number" }).notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("plane_card_user_state_fleet").on(table.fleetValue),
+    index("plane_card_user_state_sets").on(table.setsCompleted),
+    index("plane_card_user_state_rarest").on(table.rarestPoints),
+  ],
+);
 
 /** Global per-account voice preference (not per-guild) — set via /tts voice or the website account page. */
 export const ttsUserVoices = sqliteTable("tts_user_voices", {

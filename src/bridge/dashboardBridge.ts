@@ -1989,6 +1989,52 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // The Hangar (plane cards), user-scoped: the website passes the signed-in user's id in the
+        // path. Contract: docs/hangar-bridge.md. Rate limited per user (see rateLimit.ts).
+        const userHangarMatch = /^\/bridge\/users\/(\d{15,22})\/hangar(?:\/(.*))?$/.exec(url.pathname);
+        if (userHangarMatch) {
+          const { handleUserHangar } = await import("./webHangar.js");
+          const hangarUserId = userHangarMatch[1]!;
+          let cachedBody: Record<string, unknown> | null = null;
+          const result = await handleUserHangar({
+            client,
+            userId: hangarUserId,
+            rest: (userHangarMatch[2] ?? "").replace(/\/+$/, ""),
+            method: req.method ?? "GET",
+            query: url.searchParams,
+            isSuperuser: isDashboardSuperuser(hangarUserId),
+            readJson: async () => {
+              if (cachedBody) return cachedBody;
+              const raw = await readBody(req);
+              let parsed: unknown = {};
+              try {
+                parsed = raw ? JSON.parse(raw) : {};
+              } catch {
+                parsed = null;
+              }
+              if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+                const { hangarError } = await import("../plugins/economy/hangar/errors.js");
+                throw hangarError("invalid", "Invalid JSON body");
+              }
+              cachedBody = parsed as Record<string, unknown>;
+              return cachedBody;
+            },
+          });
+          if ("binary" in result) sendBinary(res, result.status, result.binary, result.contentType);
+          else sendJson(res, result.status, result.body);
+          return;
+        }
+
+        // Rendered card faces (PNG): one copy with its serial, or a card type at a livery/level.
+        const hangarRenderMatch = /^\/bridge\/hangar\/render\/(copy|type)\/(\d{1,12})(?:\.png)?$/.exec(url.pathname);
+        if (hangarRenderMatch && req.method === "GET") {
+          const { handleHangarRender } = await import("./webHangar.js");
+          const result = await handleHangarRender(hangarRenderMatch[1] as "copy" | "type", Number(hangarRenderMatch[2]), url.searchParams);
+          if ("binary" in result) sendBinary(res, result.status, result.binary, result.contentType);
+          else sendJson(res, result.status, result.body);
+          return;
+        }
+
         // Public card catalog (not per-user) — used for marketing pages, e.g. the homepage's
         // decorative card stack, which just wants a handful of real card images to show off.
         const planeCardCatalogMatch = url.pathname === "/bridge/plane-cards/catalog";
@@ -2074,59 +2120,63 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (url.pathname === "/bridge/platform/plane-cards/settings") {
-          if (req.method === "GET") {
-            const requesterId = url.searchParams.get("userId")?.trim();
-            if (!requesterId || !isDashboardSuperuser(requesterId)) {
-              sendJson(res, 403, { error: "Platform access required." });
-              return;
-            }
-            const { getPlaneCardPackSettings } = await import("./planeCards.js");
-            sendJson(res, 200, { ok: true, settings: getPlaneCardPackSettings() });
+        // Card art upload (base64 PNG/JPEG/WebP/GIF, 4MB max) into assets/planes/. "images" in the
+        // path puts it in the upload rate-limit bucket.
+        if (url.pathname === "/bridge/platform/plane-cards/images/upload") {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
             return;
           }
-          if (req.method === "PUT") {
-            let body: { userId?: string; packPrice?: unknown; packSize?: unknown };
+          let body: { userId?: string; imageBase64?: unknown };
+          try {
+            body = JSON.parse(await readBody(req)) as typeof body;
+          } catch (error) {
+            if (error instanceof PayloadTooLargeError) {
+              sendJson(res, 413, { error: "That upload is too large." });
+              return;
+            }
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = body.userId?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { uploadPlaneCardArt } = await import("./planeCards.js");
+          try {
+            sendJson(res, 200, { ok: true, ...(await uploadPlaneCardArt(body.imageBase64)) });
+          } catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Upload failed." });
+          }
+          return;
+        }
+
+        // Hangar admin: sets, pack tiers (+ odds preview) and the economy health panel.
+        const platformHangarMatch = /^\/bridge\/platform\/plane-cards\/((?:sets|packs|health)(?:\/[a-z0-9_]{1,40}){0,2})$/.exec(url.pathname);
+        if (platformHangarMatch) {
+          let body: Record<string, unknown> = {};
+          if (req.method !== "GET") {
             try {
-              body = JSON.parse(await readBody(req)) as typeof body;
+              const raw = await readBody(req);
+              const parsed = raw ? (JSON.parse(raw) as unknown) : {};
+              if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
+              body = parsed as Record<string, unknown>;
             } catch {
               sendJson(res, 400, { error: "Invalid JSON body" });
               return;
             }
-            const actorId = body.userId?.trim();
-            if (!actorId || !isDashboardSuperuser(actorId)) {
-              sendJson(res, 403, { error: "Platform access required." });
-              return;
-            }
-            const { updatePlaneCardPackSettings } = await import("./planeCards.js");
-            try {
-              const patch: { packPrice?: number; packSize?: number } = {};
-              if (body.packPrice !== undefined) {
-                const price = Number(body.packPrice);
-                if (!Number.isFinite(price) || price < 0) {
-                  sendJson(res, 400, { error: "packPrice must be a non-negative number." });
-                  return;
-                }
-                patch.packPrice = price;
-              }
-              if (body.packSize !== undefined) {
-                const size = Math.round(Number(body.packSize));
-                if (!Number.isFinite(size) || size < 1 || size > 5) {
-                  sendJson(res, 400, { error: "packSize must be between 1 and 5." });
-                  return;
-                }
-                patch.packSize = size;
-              }
-              const settings = updatePlaneCardPackSettings(patch, actorId);
-              sendJson(res, 200, { ok: true, settings });
-            } catch (error) {
-              sendJson(res, 400, {
-                error: error instanceof Error ? error.message : "Failed to update pack settings.",
-              });
-            }
+          }
+          const actorId = (req.method === "GET" ? url.searchParams.get("userId") : typeof body.userId === "string" ? body.userId : "")?.trim();
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
             return;
           }
-          sendJson(res, 405, { error: "Method not allowed" });
+          const { handlePlatformHangar } = await import("./webHangar.js");
+          const { userId: _actor, ...rest } = body;
+          const result = await handlePlatformHangar({ rest: platformHangarMatch[1]!, method: req.method ?? "GET", query: url.searchParams, body: rest });
+          if ("binary" in result) sendBinary(res, result.status, result.binary, result.contentType);
+          else sendJson(res, result.status, result.body);
           return;
         }
 
@@ -2170,6 +2220,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
                 reputation: body.reputation,
                 fleetSize: body.fleetSize,
                 destinations: body.destinations,
+                printRun: body.printRun,
                 createdBy: actorId,
               });
               sendJson(res, 200, { ok: true, card });
@@ -2224,6 +2275,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               fleetSize: body.fleetSize,
               destinations: body.destinations,
               safety: body.safety,
+              printRun: body.printRun,
+              retired: body.retired,
             });
             sendJson(res, 200, { ok: true, card });
           } catch (error) {
@@ -5353,6 +5406,19 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               guild: { id: guild.id, name: guild.name, icon: guild.icon },
               ...payload,
             });
+            return;
+          }
+
+          // GET /economy/plane-cards/leaderboard?board= — this server's members ranked by the Hangar
+          // (Fleet Value by default). Staff only, like the rest of the economy page; only members of
+          // this guild are ever included.
+          if (segments[0] === "plane-cards" && segments[1] === "leaderboard" && segments.length === 2 && req.method === "GET") {
+            const userId = await requireManage(url.searchParams.get("userId"));
+            if (!userId) return;
+            const { guildHangarLeaderboard } = await import("./webHangar.js");
+            const result = await guildHangarLeaderboard(client, guild, url.searchParams);
+            if ("binary" in result) sendBinary(res, result.status, result.binary, result.contentType);
+            else sendJson(res, result.status, result.body);
             return;
           }
 

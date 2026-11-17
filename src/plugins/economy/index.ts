@@ -4,26 +4,21 @@ import { zEconomyConfig } from "../../config/schemas/economy.js";
 import { economyCommands } from "./commands.js";
 import { grantMessageRewards } from "./functions/activity.js";
 import { loadEconomyConfig } from "./functions/config.js";
+import { startHangarJobs } from "./hangar/jobs.js";
 import type { Message, GuildMember } from "discord.js";
 import { getLogger } from "../../core/logger.js";
 const log = getLogger("economy");
 
 export { handlePlanesAutocomplete } from "./commands.js";
-export {
-  handlePlaneStatsButtonInteraction,
-  PLANE_STATS_PREFIX,
-  handlePlanePackButtonInteraction,
-  PLANE_PACK_PREFIX,
-  handlePlaneInventoryButtonInteraction,
-  PLANE_INVENTORY_PREFIX,
-  handlePlaneSellButtonInteraction,
-  PLANE_SELL_PREFIX,
-} from "./functions/cardButtons.js";
+export { handleHangarButton, handleHangarModal, isHangarComponent } from "./hangar/discord/components.js";
 
 export const economyPlugin = definePlugin({
   name: "economy",
   configSchema: zEconomyConfig,
   slashCommands: economyCommands,
+  onLoad: async () => {
+    startHangarJobs();
+  },
   events: [
     {
       name: Events.MessageCreate,

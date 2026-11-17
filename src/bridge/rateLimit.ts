@@ -115,7 +115,8 @@ export function bucketFor(method: string, pathname: string): Bucket {
  */
 export function bridgeRateLimit(method: string, url: URL): number | null {
   const bucket = bucketFor(method, url.pathname);
-  const userId = url.searchParams.get("userId")?.trim();
+  // Hangar routes carry the signed-in user in the path (/bridge/users/:id/hangar/...), not the query.
+  const userId = url.searchParams.get("userId")?.trim() || /^\/bridge\/users\/(\d{15,22})\/hangar(?:\/|$)/.exec(url.pathname)?.[1];
   if (userId && /^\d{15,22}$/.test(userId)) {
     const result = USER_BUCKETS[bucket].take(userId);
     return result.ok ? null : Math.ceil(result.retryAfterMs / 1000);

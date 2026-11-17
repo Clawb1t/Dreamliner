@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { createCanvas } from "@napi-rs/canvas";
 import {
   CARD_TYPES,
   CatalogError,
@@ -5,22 +9,25 @@ import {
   disablePlaneType,
   getPlaneTypeById,
   isCardType,
-  isRarity,
   listPlaneTypes,
   updatePlaneType,
   type CardType,
   type PlaneTypeRow,
   type UpdatePlaneTypeInput,
 } from "../plugins/economy/functions/catalog.js";
-import { isValidImageKey, listPlaneImageFiles, planeImageExists } from "../plugins/economy/functions/images.js";
-import { getPackSettings, setPackSettings, type PackSettings } from "../plugins/economy/functions/settings.js";
+import { PLANE_IMAGES_DIR, isValidImageKey, listPlaneImageFiles, planeImageExists } from "../plugins/economy/functions/images.js";
+import { decodeBase64Upload } from "../core/pageAssets.js";
+import { loadImageSafe } from "../core/safeImage.js";
+import { ART_MAX_DIMENSION, ART_UPLOAD_MAX_BYTES, isRarity } from "../plugins/economy/hangar/constants.js";
+import { mintedCounts } from "../plugins/economy/hangar/copies.js";
+import { invalidateArt } from "../plugins/economy/hangar/render.js";
 
 export { CatalogError, CARD_TYPES, isCardType, isRarity };
-export type { CardType, PackSettings };
+export type { CardType };
 
 /**
  * Public, not-per-user card catalog data: used by the website's marketing pages (e.g. the
- * homepage's decorative card stack), as opposed to userPublicProfile.ts's per-user inventory.
+ * homepage's decorative card stack), as opposed to userPublicProfile.ts's per-user collection.
  */
 export type PlaneCardCatalogEntry = {
   key: string;
@@ -62,12 +69,15 @@ export type PlaneCardAdmin = {
   safety: number;
   imageKey: string;
   enabled: boolean;
+  printRun: number | null;
+  minted: number;
+  retiredAt: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
 };
 
-function toAdminCard(row: PlaneTypeRow): PlaneCardAdmin {
+function toAdminCard(row: PlaneTypeRow, minted = mintedCounts()): PlaneCardAdmin {
   return {
     id: row.id,
     key: row.key,
@@ -84,6 +94,9 @@ function toAdminCard(row: PlaneTypeRow): PlaneCardAdmin {
     safety: row.safety,
     imageKey: row.imageKey,
     enabled: row.enabled,
+    printRun: row.printRun ?? null,
+    minted: minted.get(row.id) ?? 0,
+    retiredAt: row.retiredAt ? row.retiredAt.toISOString() : null,
     createdBy: row.createdBy,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -92,7 +105,8 @@ function toAdminCard(row: PlaneTypeRow): PlaneCardAdmin {
 
 /** Every card, enabled or not, with every field: for the superuser dashboard's catalog table. */
 export function listAdminPlaneCards(): PlaneCardAdmin[] {
-  return listPlaneTypes({}).map(toAdminCard);
+  const minted = mintedCounts();
+  return listPlaneTypes({}).map((row) => toAdminCard(row, minted));
 }
 
 /** File names currently sitting in assets/planes/, for the dashboard's image-key picker. */
@@ -100,12 +114,40 @@ export function listPlaneCardImageFiles(): string[] {
   return listPlaneImageFiles();
 }
 
-export function getPlaneCardPackSettings(): PackSettings {
-  return getPackSettings();
-}
-
-export function updatePlaneCardPackSettings(patch: Partial<PackSettings>, updatedBy: string): PackSettings {
-  return setPackSettings(patch, updatedBy);
+/**
+ * Saves an uploaded card image (base64 or a data: URL) into assets/planes/ as a PNG and returns
+ * its image key. The bytes must decode as a real image (PNG, JPEG, WebP or GIF), at most 4MB;
+ * anything larger than ART_MAX_DIMENSION on a side is scaled down.
+ */
+export async function uploadPlaneCardArt(base64: unknown): Promise<{ imageKey: string; width: number; height: number; bytes: number }> {
+  if (typeof base64 !== "string" || !base64.trim()) throw new CatalogError("imageBase64 is required.", "invalid");
+  if (/^data:/i.test(base64) && !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(base64)) {
+    throw new CatalogError("Upload a PNG, JPEG, WebP or GIF image.", "invalid");
+  }
+  let raw: Buffer;
+  try {
+    raw = decodeBase64Upload(base64);
+  } catch (error) {
+    throw new CatalogError(error instanceof Error ? error.message : "Image must be 4MB or smaller.", "invalid");
+  }
+  if (!raw.length) throw new CatalogError("That upload is empty.", "invalid");
+  if (raw.length > ART_UPLOAD_MAX_BYTES) throw new CatalogError("Image must be 4MB or smaller.", "invalid");
+  let image: Awaited<ReturnType<typeof loadImageSafe>>;
+  try {
+    image = await loadImageSafe(raw);
+  } catch {
+    throw new CatalogError("That file isn't an image we can read. Use PNG, JPEG, WebP or GIF.", "invalid");
+  }
+  const scale = Math.min(ART_MAX_DIMENSION / image.width, ART_MAX_DIMENSION / image.height, 1);
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = createCanvas(width, height);
+  canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+  const png = canvas.toBuffer("image/png");
+  const imageKey = `u_${createHash("sha1").update(png).digest("hex").slice(0, 16)}.png`;
+  writeFileSync(join(PLANE_IMAGES_DIR, imageKey), png);
+  invalidateArt(imageKey);
+  return { imageKey, width, height, bytes: png.length };
 }
 
 function requireValidImageKey(imageKey: unknown): string {
@@ -113,7 +155,7 @@ function requireValidImageKey(imageKey: unknown): string {
     throw new CatalogError("imageKey must be a plain file name (png/jpg/jpeg/webp/gif).", "invalid");
   }
   if (!planeImageExists(imageKey)) {
-    throw new CatalogError(`No file named "${imageKey}" in assets/planes/. Drop it there first.`, "invalid");
+    throw new CatalogError(`No image named "${imageKey}". Upload it first.`, "invalid");
   }
   return imageKey;
 }
@@ -125,6 +167,11 @@ function numberField(value: unknown, name: string, opts: { min?: number; max?: n
   if (opts.min !== undefined && rounded < opts.min) throw new CatalogError(`${name} must be at least ${opts.min}.`, "invalid");
   if (opts.max !== undefined && rounded > opts.max) throw new CatalogError(`${name} must be at most ${opts.max}.`, "invalid");
   return rounded;
+}
+
+function printRunField(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  return numberField(value, "printRun", { min: 1, max: 1_000_000 });
 }
 
 export type CreateAdminPlaneCardInput = {
@@ -142,6 +189,7 @@ export type CreateAdminPlaneCardInput = {
   reputation?: unknown;
   fleetSize?: unknown;
   destinations?: unknown;
+  printRun?: unknown;
 };
 
 export function createAdminPlaneCard(input: CreateAdminPlaneCardInput): PlaneCardAdmin {
@@ -160,6 +208,7 @@ export function createAdminPlaneCard(input: CreateAdminPlaneCardInput): PlaneCar
     imageKey: requireValidImageKey(input.imageKey),
     createdBy: input.createdBy,
     safety: numberField(input.safety, "safety", { min: 0, max: 100 }),
+    printRun: printRunField(input.printRun),
   };
 
   const row =
@@ -195,6 +244,8 @@ export type UpdateAdminPlaneCardInput = Partial<{
   fleetSize: unknown;
   destinations: unknown;
   safety: unknown;
+  printRun: unknown;
+  retired: unknown;
 }>;
 
 export function updateAdminPlaneCard(id: number, input: UpdateAdminPlaneCardInput): PlaneCardAdmin {
@@ -220,6 +271,24 @@ export function updateAdminPlaneCard(id: number, input: UpdateAdminPlaneCardInpu
     if (typeof input.enabled !== "boolean") throw new CatalogError("enabled must be a boolean.", "invalid");
     patch.enabled = input.enabled;
   }
+  if (input.printRun !== undefined) {
+    const printRun = printRunField(input.printRun);
+    const minted = mintedCounts().get(id) ?? 0;
+    if (printRun !== null && printRun < minted) {
+      throw new CatalogError(`printRun can't be below the ${minted} copies already minted.`, "invalid");
+    }
+    patch.printRun = printRun;
+    // Raising (or removing) the cap un-retires a card that sold out; hitting it exactly retires it.
+    if (printRun === null || printRun > minted) {
+      if (existing.retiredAt && existing.printRun != null && minted >= existing.printRun) patch.retiredAt = null;
+    } else {
+      patch.retiredAt = existing.retiredAt ?? new Date();
+    }
+  }
+  if (input.retired !== undefined) {
+    if (typeof input.retired !== "boolean") throw new CatalogError("retired must be a boolean.", "invalid");
+    patch.retiredAt = input.retired ? (existing.retiredAt ?? new Date()) : null;
+  }
 
   const cardType = existing.cardType as CardType;
   if (cardType === "plane") {
@@ -243,11 +312,12 @@ export function updateAdminPlaneCard(id: number, input: UpdateAdminPlaneCardInpu
   }
   if (input.safety !== undefined) patch.safety = numberField(input.safety, "safety", { min: 0, max: 100 });
 
-  return toAdminCard(updatePlaneType(id, patch));
+  const updated = updatePlaneType(id, patch);
+  invalidateArt(updated.imageKey);
+  return toAdminCard(updated);
 }
 
-/** Soft-remove: disables the card so it stops appearing in packs/catalog browsing, without
- *  breaking existing inventory rows that already reference it. */
+/** Soft-remove: disables the card so it stops dropping from packs; owned copies are untouched. */
 export function disableAdminPlaneCard(id: number): PlaneCardAdmin {
   const existing = getPlaneTypeById(id);
   if (!existing) throw new CatalogError("That card doesn't exist.", "not_found");

@@ -10,7 +10,12 @@ import {
   listUserGuildSummaries,
   type UserGuildSummary,
 } from "./userActivity.js";
-import { getSortedInventory } from "../plugins/economy/functions/inventory.js";
+import { RARITIES, type Rarity } from "../plugins/economy/hangar/constants.js";
+import { getShowcase, listUserCopies } from "../plugins/economy/hangar/copies.js";
+import { pilotRankView } from "../plugins/economy/hangar/score.js";
+import { setsProgress } from "../plugins/economy/hangar/service.js";
+import { getUserState } from "../plugins/economy/hangar/state.js";
+import { copyViews, viewContext, type HangarCopyView } from "../plugins/economy/hangar/view.js";
 import type { CardType } from "../plugins/economy/functions/catalog.js";
 import { getEquippedStyle } from "../core/cosmetics/equip.js";
 import type { CosmeticStyle } from "../core/cosmetics/types.js";
@@ -240,50 +245,110 @@ export type PublicProfileCard = {
   subtitle: string;
   /** File name in assets/planes/ — fetch the art from GET /bridge/plane-cards/image/:imageKey. */
   imageKey: string;
+  /** Copies of this card type the user owns. */
   quantity: number;
+  /** When they got their earliest copy still held. */
   firstObtainedAt: string;
   stats: Record<string, number>;
+  /** Best livery among their copies (standard < gold < prototype). */
+  bestLivery: string;
+  hasFirstEdition: boolean;
+  highestLevel: number;
+  /** Rendered face of their best copy: GET /bridge/hangar/render/copy/:id.png */
+  renderUrl: string;
+  rarityLabel: string;
+  /** "#rrggbb" */
+  rarityColor: string;
+  /** Labels for bestLivery, e.g. "Gold". */
+  liveryLabel: string;
 };
 
 export type PublicProfileCards = {
+  /** False when the user hasn't opted in with showTradingCards: everything else is empty then. */
+  visible: boolean;
   totalUnique: number;
   totalCards: number;
+  fleetValue: number;
+  pilotRank: ReturnType<typeof pilotRankView> | null;
+  setsCompleted: number;
+  completedSets: { id: number; key: string; name: string }[];
+  /** Up to 3 copies the user picked to show off. */
+  showcase: HangarCopyView[];
+  /** Their highest-scoring single copy. */
+  rarest: HangarCopyView | null;
   cards: PublicProfileCard[];
 };
 
-function cardStats(plane: {
-  cardType: string;
-  speed: number;
-  agility: number;
-  passengerCount: number;
-  reputation: number;
-  fleetSize: number;
-  destinations: number;
-  safety: number;
-}): Record<string, number> {
-  if (plane.cardType === "airline") {
-    return { reputation: plane.reputation, fleetSize: plane.fleetSize, destinations: plane.destinations, safety: plane.safety };
-  }
-  return { speed: plane.speed, agility: plane.agility, passengerCount: plane.passengerCount, safety: plane.safety };
-}
-
-/** A user's plane/airline trading card collection, rarest-first, for the profile page. */
+/**
+ * A user's card collection for the profile page, rarest-first. Enforces the showTradingCards
+ * opt-in here on the bot side, so the endpoint never leaks a hidden collection.
+ */
 export async function buildPublicProfileCards(userId: string): Promise<PublicProfileCards> {
-  const owned = getSortedInventory(userId);
-  const cards: PublicProfileCard[] = owned.map(({ plane, quantity, firstObtainedAt }) => ({
-    key: plane.key,
-    name: plane.name,
-    cardType: plane.cardType as CardType,
-    rarity: plane.rarity,
-    subtitle: plane.subtitle,
-    imageKey: plane.imageKey,
-    quantity,
-    firstObtainedAt: firstObtainedAt.toISOString(),
-    stats: cardStats(plane),
-  }));
+  const profile = await getUserProfile(userId);
+  const empty: PublicProfileCards = {
+    visible: false,
+    totalUnique: 0,
+    totalCards: 0,
+    fleetValue: 0,
+    pilotRank: null,
+    setsCompleted: 0,
+    completedSets: [],
+    showcase: [],
+    rarest: null,
+    cards: [],
+  };
+  if (!profile.showTradingCards || !profile.profileVisible) return empty;
+
+  const ctx = viewContext();
+  const copies = listUserCopies(userId);
+  const views = copyViews(copies, ctx);
+  const byType = new Map<number, HangarCopyView[]>();
+  for (const view of views) {
+    const list = byType.get(view.card.id) ?? [];
+    list.push(view);
+    byType.set(view.card.id, list);
+  }
+  const cards: PublicProfileCard[] = [...byType.values()]
+    .map((list) => {
+      const best = [...list].sort((a, b) => b.points - a.points || a.serial - b.serial)[0]!;
+      const card = best.card;
+      return {
+        key: card.key,
+        name: card.name,
+        cardType: card.cardType as CardType,
+        rarity: card.rarity,
+        subtitle: card.subtitle,
+        imageKey: card.imageKey,
+        quantity: list.length,
+        firstObtainedAt: list.map((c) => c.acquiredAt).sort()[0]!,
+        stats: card.stats,
+        bestLivery: best.livery,
+        hasFirstEdition: list.some((c) => c.firstEdition),
+        highestLevel: Math.max(...list.map((c) => c.level)),
+        renderUrl: best.renderUrl,
+        rarityLabel: card.rarityLabel,
+        rarityColor: card.rarityColor,
+        liveryLabel: best.liveryLabel,
+      };
+    })
+    .sort((a, b) => RARITIES.indexOf(b.rarity as Rarity) - RARITIES.indexOf(a.rarity as Rarity) || a.name.localeCompare(b.name));
+
+  const state = getUserState(userId);
+  const fleetValue = state?.fleetValue ?? 0;
+  const showcaseIds = getShowcase(userId);
+  const showcase = showcaseIds.map((id) => views.find((v) => v.id === id)).filter((v): v is HangarCopyView => Boolean(v));
+  const rarest = state?.rarestCopyId ? (views.find((v) => v.id === state.rarestCopyId) ?? null) : null;
+  const completed = setsProgress(userId).filter((s) => s.completed);
   return {
+    visible: true,
     totalUnique: cards.length,
-    totalCards: cards.reduce((sum, c) => sum + c.quantity, 0),
+    totalCards: views.length,
+    fleetValue,
+    pilotRank: views.length ? pilotRankView(fleetValue) : null,
+    setsCompleted: completed.length,
+    completedSets: completed.map((s) => ({ id: s.id, key: s.key, name: s.name })),
+    showcase,
+    rarest,
     cards,
   };
 }

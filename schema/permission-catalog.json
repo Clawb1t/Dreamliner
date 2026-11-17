@@ -230,10 +230,24 @@
       },
       {
         "plugin": "economy",
+        "permission": "can_boarding",
+        "grantKey": "economy.can_boarding",
+        "title": "Boarding",
+        "description": "Allow members to claim the free daily boarding pass."
+      },
+      {
+        "plugin": "economy",
         "permission": "can_buy_pack",
         "grantKey": "economy.can_buy_pack",
         "title": "Buy Pack",
         "description": "Allow members to buy and open plane card packs."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_craft",
+        "grantKey": "economy.can_craft",
+        "title": "Craft",
+        "description": "Allow members to craft plane cards with Parts."
       },
       {
         "plugin": "economy",
@@ -251,24 +265,66 @@
       },
       {
         "plugin": "economy",
+        "permission": "can_fly",
+        "grantKey": "economy.can_fly",
+        "title": "Fly",
+        "description": "Allow members to send plane cards on flights."
+      },
+      {
+        "plugin": "economy",
         "permission": "can_give",
         "grantKey": "economy.can_give",
         "title": "Give",
-        "description": "Allow members to give a plane card (1 at a time) to another member."
+        "description": "Allow members to give a plane card to another member."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_market",
+        "grantKey": "economy.can_market",
+        "title": "Market",
+        "description": "Allow members to list and buy plane cards on the market."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_repaint",
+        "grantKey": "economy.can_repaint",
+        "title": "Repaint",
+        "description": "Allow members to repaint a plane card's livery for coins."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_salvage",
+        "grantKey": "economy.can_salvage",
+        "title": "Salvage",
+        "description": "Allow members to salvage plane cards for Parts."
       },
       {
         "plugin": "economy",
         "permission": "can_sell",
         "grantKey": "economy.can_sell",
         "title": "Sell",
-        "description": "Allow members to sell a plane card for global coins."
+        "description": "Allow members to use the old sell button (no longer used: cards are salvaged for Parts with can_salvage instead)."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_trade",
+        "grantKey": "economy.can_trade",
+        "title": "Trade",
+        "description": "Allow members to trade plane cards with other members."
+      },
+      {
+        "plugin": "economy",
+        "permission": "can_upgrade",
+        "grantKey": "economy.can_upgrade",
+        "title": "Upgrade",
+        "description": "Allow members to level plane cards up with Parts."
       },
       {
         "plugin": "economy",
         "permission": "can_view",
         "grantKey": "economy.can_view",
         "title": "View",
-        "description": "Allow members to view the plane card catalog, card details, and inventories."
+        "description": "Allow members to view hangars, cards, ranks, sets and leaderboards, and set their showcase."
       }
     ]
   },

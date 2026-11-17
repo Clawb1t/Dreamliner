@@ -104,6 +104,12 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
         await db.select().from(userCosmeticsEquipped).where(eq(userCosmeticsEquipped.userId, userId)).all(),
       ),
     },
+    plane_hangar: {
+      label: "Plane cards Hangar",
+      description:
+        "Your plane card copies and their history, Parts and card coin movements, pack openings, flights, trades, market listings, sets and Pilot Rank state.",
+      rows: serializable([(await import("../plugins/economy/hangar/erase.js")).exportUserHangarData(userId)]),
+    },
     avia_usage: {
       label: "Avia usage",
       description: "How many messages you sent Avia, the help centre assistant, each day. Conversations aren't stored.",

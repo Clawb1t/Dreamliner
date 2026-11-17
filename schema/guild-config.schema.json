@@ -4609,7 +4609,7 @@
                 "can_view": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to view the plane card catalog, card details, and inventories.",
+                  "description": "Allow members to view hangars, cards, ranks, sets and leaderboards, and set their showcase.",
                   "title": "View",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -4629,7 +4629,7 @@
                 "can_give": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to give a plane card (1 at a time) to another member.",
+                  "description": "Allow members to give a plane card to another member.",
                   "title": "Give",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -4639,8 +4639,88 @@
                 "can_sell": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to sell a plane card for global coins.",
+                  "description": "Allow members to use the old sell button (no longer used: cards are salvaged for Parts with can_salvage instead).",
                   "title": "Sell",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_boarding": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to claim the free daily boarding pass.",
+                  "title": "Boarding",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_salvage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to salvage plane cards for Parts.",
+                  "title": "Salvage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_craft": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to craft plane cards with Parts.",
+                  "title": "Craft",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_repaint": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to repaint a plane card's livery for coins.",
+                  "title": "Repaint",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_upgrade": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to level plane cards up with Parts.",
+                  "title": "Upgrade",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_fly": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to send plane cards on flights.",
+                  "title": "Fly",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_trade": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to trade plane cards with other members.",
+                  "title": "Trade",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_market": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to list and buy plane cards on the market.",
+                  "title": "Market",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
@@ -4662,7 +4742,15 @@
                 "can_view": false,
                 "can_buy_pack": false,
                 "can_give": false,
-                "can_sell": false
+                "can_sell": false,
+                "can_boarding": false,
+                "can_salvage": false,
+                "can_craft": false,
+                "can_repaint": false,
+                "can_upgrade": false,
+                "can_fly": false,
+                "can_trade": false,
+                "can_market": false
               },
               "title": "Config"
             }
