@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/" xmlns:media="http://search.yahoo.com/mrss/" >
+    <channel>
+        <title>Ars Technica</title>
+        <atom:link href="https://arstechnica.com/feed/" rel="self" type="application/rss+xml" />
+        <link>https://arstechnica.com</link>
+        <description>Serving the Technologist since 1998. News, reviews, and analysis.</description>
+        <lastBuildDate>Wed, 18 Nov 2026 20:51:47 +0000</lastBuildDate>
+        <language>en-US</language>
+        <sy:updatePeriod>
+            hourly        </sy:updatePeriod>
+        <sy:updateFrequency>
+            1        </sy:updateFrequency>
+        
+<image>
+	<url>https://cdn.arstechnica.net/wp-content/uploads/2016/10/cropped-ars-logo-512_480-60x60.png</url>
+	<title>Ars Technica</title>
+	<link>https://arstechnica.com</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+            <item>
+                <title>Windows Server 2028 trades compatibility for out-of-the-box security</title>
+                <link>https://arstechnica.com/gadgets/2026/11/windows-server-2028-public-preview-bets-on-a-security-first-approach/</link>
+                                    <comments>https://arstechnica.com/gadgets/2026/11/windows-server-2028-public-preview-bets-on-a-security-first-approach/#comments</comments>
+                
+                <dc:creator>
+                    <![CDATA[Nick Indge]]>
+                </dc:creator>
+                <pubDate>Wed, 18 Nov 2026 20:41:12 +0000</pubDate>
+                		<category><![CDATA[Tech]]></category>
+		<category><![CDATA[DISA STIG]]></category>
+		<category><![CDATA[Microsoft Windows Server 2028 Public Preview]]></category>
+		<category><![CDATA[Windows Server 2028]]></category>
+                <guid isPermaLink="true">https://arstechnica.com/gadgets/2026/11/windows-server-2028-public-preview-bets-on-a-security-first-approach/</guid>
+
+                                    <description>
+                        <![CDATA[Hardened defaults align with DoD standards, but there may be growing pains.]]>
+                    </description>
+                                                                <content:encoded>
+                            <![CDATA[<p>Microsoft's Ignite announcements this week went beyond the <a href="https://arstechnica.com/gadgets/2026/11/microsoft-calls-copilot-the-new-os-for-work-at-ignite-keynote/">Office-in-Copilot overhaul</a> with the reveal of the Windows Server 2028 Public Preview and its new security-by-default stance and what Microsoft calls <a href="https://techcommunity.microsoft.com/blog/windowsservernewsandbestpractices/announcing-hardened-server-core-for-windows-server-insiders/4574239">Hardened Server Core</a>. Windows Server 2028 will implement a default security framework that Microsoft says is aligned with hardened DoD benchmarks, such as the <a href="https://www.disa.mil/">Defense Information Systems Agency's</a> (DISA) <a href="https://www.cyber.mil/stigs/compilations/">Security Technical Implementation Guide</a> (STIG).</p>
+<p>STIGs work by providing a standard security framework for system administrators to follow recommended guidance. In the past, Windows Server admins were left to start from a blank canvas and then implement hardening configurations for operations. Secure baselines were available but not the default. Microsoft says that concern is now managed: "The s<span data-contrast="auto">ecure configuration is the starting state, not a project you run after setup. That closes the window where a newly deployed server sits exposed while it waits to be hardened.</span><span data-ccp-props="{}">" </span></p>
+<p>The new Windows Server 2028 hardened-by-default state will only be available for the <a href="https://learn.microsoft.com/en-us/windows-server/administration/server-core/what-is-server-core">Server Core</a> installs. <a href="https://learn.microsoft.com/en-us/windows-server/get-started/install-options-server-core-desktop-experience">Windows Server Desktop Experience</a> installs do not include the changed stance.</p><p><a href="https://arstechnica.com/gadgets/2026/11/windows-server-2028-public-preview-bets-on-a-security-first-approach/">Read full article</a></p>
+<p><a href="https://arstechnica.com/gadgets/2026/11/windows-server-2028-public-preview-bets-on-a-security-first-approach/#comments">Comments</a></p>
+]]>
+                        </content:encoded>
+                                    
+                                    <slash:comments>2</slash:comments>
+                
+                
+                <media:content url="https://cdn.arstechnica.net/wp-content/uploads/2026/08/data-center-server-room-1152x648.jpg" type="image/jpeg" medium="image" width="1152" height="648">
+<media:thumbnail url="https://cdn.arstechnica.net/wp-content/uploads/2026/08/data-center-server-room-500x500.jpg" width="500" height="500" />
+<media:credit>Getty Images</media:credit></media:content>
+            </item>
+                    <item>
+                <title>Best Buy sells Blu-rays online and in-store again</title>
+                <link>https://arstechnica.com/gadgets/2026/11/best-buy-sells-blu-rays-again-after-quitting-the-business-in-2024/</link>
+                                    <comments>https://arstechnica.com/gadgets/2026/11/best-buy-sells-blu-rays-again-after-quitting-the-business-in-2024/#comments</comments>
+                
+                <dc:creator>
+                    <![CDATA[Scharon Harding]]>
+                </dc:creator>
+                <pubDate>Wed, 18 Nov 2026 19:31:17 +0000</pubDate>
+                		<category><![CDATA[Tech]]></category>
+		<category><![CDATA[best buy]]></category>
+		<category><![CDATA[Blu-ray]]></category>
+		<category><![CDATA[dvd]]></category>
+                <guid isPermaLink="true">https://arstechnica.com/gadgets/2026/11/best-buy-sells-blu-rays-again-after-quitting-the-business-in-2024/</guid>
+
+                                    <description>
+                        <![CDATA[Popular titles like <em>The Odyssey</em> are being “sold &#038; shipped by Best Buy."  ]]>
+                    </description>
+                                                                <content:encoded>
+                            <![CDATA[<p>Best Buy is selling Blu-rays directly through its website and in physical stores again after exiting Blu-ray and DVD sales in 2023.</p>
+<p>The Best Buy website’s movie section currently lists 15 Blu-rays (including one two-pack) that are “sold &amp; shipped by Best Buy.” New titles available include <a href="https://arstechnica.com/culture/2026/08/review-yes-were-still-arguing-about-nolans-the-odyssey/"><em>The Odyssey</em></a> (2026), <a href="https://arstechnica.com/culture/2026/03/project-hail-mary-is-in-theaters-but-do-the-linguistics-work/"><em>Project Hail Mary</em></a> (2026), <a href="https://arstechnica.com/culture/2026/07/review-supergirl-is-not-the-disaster-its-low-box-office-suggests/"><em>Supergirl</em></a> (2026), <em>Super Mario Galaxy</em> (2026), and <em>Obsession</em> (2025). Best Buy is also selling some older titles on Blu-ray, including <em>It’s a Wonderful Life</em> (1943), <em>Saving Private Ryan</em> (1998), and <em>The Godfather</em> (1972).</p>
+<p>Most of the Blu-rays are available for purchase online and can be delivered to an address or picked up at a Best Buy store within a few days. As of this writing, <em>The Odyssey</em> appears to be in stock at Best Buy stores, as it’s currently listed as available for pickup within as little as an hour.</p><p><a href="https://arstechnica.com/gadgets/2026/11/best-buy-sells-blu-rays-again-after-quitting-the-business-in-2024/">Read full article</a></p>
+<p><a href="https://arstechnica.com/gadgets/2026/11/best-buy-sells-blu-rays-again-after-quitting-the-business-in-2024/#comments">Comments</a></p>
+]]>
+                        </content:encoded>
+                                    
+                                    <slash:comments>32</slash:comments>
+                
+                
+                <media:content url="https://cdn.arstechnica.net/wp-content/uploads/2026/07/odyssey16-1152x648.jpg" type="image/jpeg" medium="image" width="1152" height="648">
+<media:thumbnail url="https://cdn.arstechnica.net/wp-content/uploads/2026/07/odyssey16-500x500.jpg" width="500" height="500" />
+<media:credit>Universal Pictures</media:credit><media:text>Best Buy is selling Christopher Nolan's &lt;em&gt;The Odyssey&lt;/em&gt; on Blu-ray. </media:text></media:content>
+            </item>
+                    <item>
+                <title>Muse privacy invasions are freaking out Meta staffers, internal chats show</title>
+                <link>https://arstechnica.com/tech-policy/2026/11/muse-privacy-invasions-are-freaking-out-meta-staffers-internal-chats-show/</link>
+                                    <comments>https://arstechnica.com/tech-policy/2026/11/muse-privacy-invasions-are-freaking-out-meta-staffers-internal-chats-show/#comments</comments>
+                
+                <dc:creator>
+                    <![CDATA[Ashley Belanger]]>
+                </dc:creator>
+                <pubDate>Wed, 18 Nov 2026 19:19:33 +0000</pubDate>
+                		<category><![CDATA[AI]]></category>
+		<category><![CDATA[Policy]]></category>
+		<category><![CDATA[AI Agent]]></category>
+		<category><![CDATA[ai hallucinations]]></category>
+		<category><![CDATA[Artificial Intelligence]]></category>
+		<category><![CDATA[chat logs]]></category>
+		<category><![CDATA[meta]]></category>
+		<category><![CDATA[muse ai agent]]></category>
+		<category><![CDATA[online privacy]]></category>
+                <guid isPermaLink="true">https://arstechnica.com/tech-policy/2026/11/muse-privacy-invasions-are-freaking-out-meta-staffers-internal-chats-show/</guid>
+
+                                    <description>
+                        <![CDATA[Erratic Muse outputs sharing random bank, bitcoin balances aren’t real, Meta says.]]>
+                    </description>
+                                                                <content:encoded>
+                            <![CDATA[<p>After some early adopters of Meta’s Muse AI agent complained that it was spying on private messages and behaving unpredictably earlier this fall, Reuters <a href="https://www.reuters.com/investigations/meta-bets-big-muse-ai-agent-early-safety-mishaps-surface-2026-11-18/">exposed</a> internal chats showing that Meta staff had raised the same alarms.</p>
+<p>When testing the agent, staff warned that Muse appeared to be accessing encrypted private messages that users did not expect the bot to review, could be mixing up conversations between users, and even potentially sharing sensitive information users would never expect to be exposed.</p>
+<p>Some unexpected Muse outputs responded to questions that staffers never asked.</p><p><a href="https://arstechnica.com/tech-policy/2026/11/muse-privacy-invasions-are-freaking-out-meta-staffers-internal-chats-show/">Read full article</a></p>
+<p><a href="https://arstechnica.com/tech-policy/2026/11/muse-privacy-invasions-are-freaking-out-meta-staffers-internal-chats-show/#comments">Comments</a></p>
+]]>
+                        </content:encoded>
+                                    
+                                    <slash:comments>38</slash:comments>
+                
+                
+                <media:content url="https://cdn.arstechnica.net/wp-content/uploads/2026/11/GettyImages-2299665210-1024x648.jpg" type="image/jpeg" medium="image" width="1024" height="648">
+<media:thumbnail url="https://cdn.arstechnica.net/wp-content/uploads/2026/11/GettyImages-2299665210-500x500-1795023220.jpg" width="500" height="500" />
+<media:credit>Smith Collection/Gado / Contributor | Archive Photos</media:credit></media:content>
+            </item>
+</channel>
+</rss>

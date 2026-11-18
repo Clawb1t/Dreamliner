@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Discord Status - Incident History</title>
+    <link>https://discordstatus.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 09:15:04 -0800</pubDate>
+    <item>
+      <title>Issues detected</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:00&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:00&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:59&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to investigate this issue. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:57&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Mon, 16 Nov 2026 17:00:31 -0800</pubDate>
+      <link>https://discordstatus.com/incidents/9x7ysmxtswkn</link>
+      <guid>https://discordstatus.com/incidents/9x7ysmxtswkn</guid>
+    </item>
+    <item>
+      <title>Connectivity Issue w/ Discord's Homepage and Marketing Sites</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 9&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:05&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - We&apos;ve recently recovered from a networking issue routing traffic to our homepage and other marketing services. Service should be restored. &lt;/p&gt;      </description>
+      <pubDate>Mon, 09 Nov 2026 09:05:03 -0800</pubDate>
+      <link>https://discordstatus.com/incidents/nrwykczfny3n</link>
+      <guid>https://discordstatus.com/incidents/nrwykczfny3n</guid>
+    </item>
+    <item>
+      <title>Issues establishing voice call</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:43&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:40&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:26&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Sat, 31 Oct 2026 14:43:44 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/bg4s23tyzw6l</link>
+      <guid>https://discordstatus.com/incidents/bg4s23tyzw6l</guid>
+    </item>
+    <item>
+      <title>Issues establishing voice calls</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:18&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:43&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:43&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:23&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Fri, 30 Oct 2026 09:18:51 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/fyf18nfvtqm7</link>
+      <guid>https://discordstatus.com/incidents/fyf18nfvtqm7</guid>
+    </item>
+    <item>
+      <title>Elevated API error rate</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;13:52&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:48&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Thu, 01 Oct 2026 13:52:47 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/yb8bzhp6nd87</link>
+      <guid>https://discordstatus.com/incidents/yb8bzhp6nd87</guid>
+    </item>
+    <item>
+      <title>Age group status mismatch across devices</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;23&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:32&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved.&lt;br /&gt;https://x.com/discord/status/2102964092189475028?s=20 &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;23&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:05&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring results.&lt;br /&gt;Please close and refresh your app to get the fix for adult status. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;23&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:10&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We’re aware of an issue where users are seeing mismatched age group statuses across devices. For example, appearing as “unconfirmed” on an older mobile app version, but &quot;adult&quot; on web/desktop. We’re aware of the issue and actively working on a fix. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;23&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:08&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We’re aware of an issue where users are seeing mismatched age group statuses across devices. For example, appearing as “unconfirmed” on an older mobile app version, but &quot;adult&quot; on web/desktop. We’re aware of the issue and actively working on a fix. &lt;/p&gt;      </description>
+      <pubDate>Wed, 23 Sep 2026 20:32:10 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/t00495fymyd6</link>
+      <guid>https://discordstatus.com/incidents/t00495fymyd6</guid>
+    </item>
+    <item>
+      <title>Issue / Delay in establishing call connection</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;13:39&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;13:17&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;13:00&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:18&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Thu, 17 Sep 2026 13:39:23 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/610vfhw9wjcj</link>
+      <guid>https://discordstatus.com/incidents/610vfhw9wjcj</guid>
+    </item>
+    <item>
+      <title>Issue establishing voice call</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:35&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:15&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:45&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:32&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Wed, 16 Sep 2026 15:35:09 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/c9vn3xqlhzyl</link>
+      <guid>https://discordstatus.com/incidents/c9vn3xqlhzyl</guid>
+    </item>
+    <item>
+      <title>API Errors</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:28&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:20&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:03&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Wed, 16 Sep 2026 12:28:01 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/chpjjdyk63yt</link>
+      <guid>https://discordstatus.com/incidents/chpjjdyk63yt</guid>
+    </item>
+    <item>
+      <title>Google Pay Outage</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:43&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:15&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We&apos;re currently experiencing an issue that prevents users from completing purchases (including Nitro subscriptions and Shop items) through the Android app. This is caused by an ongoing outage with Google Play.&lt;br /&gt;&lt;br /&gt;Purchases on other platforms (iOS, web, and desktop) are unaffected, and existing subscriptions remain active.&lt;br /&gt;&lt;br /&gt;We&apos;re monitoring Google&apos;s status and will post an update as soon as service is restored. No action is needed on your part — please try again later.&lt;br /&gt;https://pay.google.com/status/incidents/gQJsjf662F7KwPyiNqav &lt;/p&gt;      </description>
+      <pubDate>Wed, 16 Sep 2026 09:43:18 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/1z5kbv8r5pkv</link>
+      <guid>https://discordstatus.com/incidents/1z5kbv8r5pkv</guid>
+    </item>
+    <item>
+      <title>Session Unavailability</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;15&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:16&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;15&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:58&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are currently monitoring recovery of services. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;15&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:42&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and we are working to restore service. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;15&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:26&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Tue, 15 Sep 2026 08:16:18 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/btdsd2y407t5</link>
+      <guid>https://discordstatus.com/incidents/btdsd2y407t5</guid>
+    </item>
+    <item>
+      <title>Media Proxy Latency High</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:46&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:39&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:27&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:24&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating an issue involving high error-rates for image downloads. &lt;/p&gt;      </description>
+      <pubDate>Fri, 11 Sep 2026 10:46:19 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/5sp34swnxkh0</link>
+      <guid>https://discordstatus.com/incidents/5sp34swnxkh0</guid>
+    </item>
+    <item>
+      <title>Issue with establishing voice calls</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:42&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:20&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;21:21&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Thu, 10 Sep 2026 23:42:28 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/d82z44sn4fpx</link>
+      <guid>https://discordstatus.com/incidents/d82z44sn4fpx</guid>
+    </item>
+    <item>
+      <title>Some Servers Unavailable</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:27&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:06&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:31&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We&apos;ve identified an issue causing some servers to appear unavailable in the client &lt;/p&gt;      </description>
+      <pubDate>Thu, 03 Sep 2026 15:27:33 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/nt3d1xvkb9q8</link>
+      <guid>https://discordstatus.com/incidents/nt3d1xvkb9q8</guid>
+    </item>
+    <item>
+      <title>Some servers unavailable</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:37&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:01&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:56&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:35&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - Some servers may appear unavailable in the client. We are investigating &lt;/p&gt;      </description>
+      <pubDate>Thu, 03 Sep 2026 08:37:47 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/lf84xp6q5qjc</link>
+      <guid>https://discordstatus.com/incidents/lf84xp6q5qjc</guid>
+    </item>
+    <item>
+      <title>Voice endpoint selection issues</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:42&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:35&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We&apos;ve identified an issue with our endpoint selection service and are applying a mitigation now. We are seeing recovery to endpoint selection now. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:26&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are investigating problems with voice endpoint selection. Your calls may fail to start or may fail to get an endpoint. &lt;/p&gt;      </description>
+      <pubDate>Wed, 02 Sep 2026 16:42:44 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/h3xfmqrqhqw3</link>
+      <guid>https://discordstatus.com/incidents/h3xfmqrqhqw3</guid>
+    </item>
+    <item>
+      <title>Server Unavailability</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:26&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:18&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - We have recovered. We are still investigating the root cause and will post an update once we have more information &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:51&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are still investigating the issue, some servers are continuing to have a degraded experience &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:04&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to investigate this issue &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:12&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re investigating an issue where some servers are offline. &lt;/p&gt;      </description>
+      <pubDate>Wed, 02 Sep 2026 11:26:50 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/ty5bs3l7xgcf</link>
+      <guid>https://discordstatus.com/incidents/ty5bs3l7xgcf</guid>
+    </item>
+    <item>
+      <title>Some servers and other services (voice calls, activities) not available for some users</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:49&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:56&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We are taking steps to remediate the issue &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:38&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are taking steps to remediate the issue &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:26&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - some servers will appear unavailable for some users, and some other services may also be impacted (voice calls, activities) &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;31&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:54&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - Some users may not be able to connect to some of their servers &lt;/p&gt;      </description>
+      <pubDate>Mon, 31 Aug 2026 17:49:17 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/xpz8zbrdkgs2</link>
+      <guid>https://discordstatus.com/incidents/xpz8zbrdkgs2</guid>
+    </item>
+    <item>
+      <title>Issue with establishing a call</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:24&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:14&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:09&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Thu, 13 Aug 2026 23:24:04 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/xtbm1jcfkbcs</link>
+      <guid>https://discordstatus.com/incidents/xtbm1jcfkbcs</guid>
+    </item>
+    <item>
+      <title>Issues sending messages for bots and users</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 7&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:02&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This issue has been fully resolved &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 7&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:42&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - We&apos;ve recovered service and are continuing to monitor for recovery. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 7&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:26&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - This issue has expanded and is now affecting all Discord interactions. We&apos;re continuing to work towards mitigating the issue. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 7&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:21&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We&apos;re aware of an issue preventing users and bots from sending messages, we&apos;re working on fully restoring service &lt;/p&gt;      </description>
+      <pubDate>Fri, 07 Aug 2026 16:02:18 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/pcg3nsfq6l2y</link>
+      <guid>https://discordstatus.com/incidents/pcg3nsfq6l2y</guid>
+    </item>
+    <item>
+      <title>Messaging failures</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;13:17&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:59&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We&apos;re seeing significant positive impact from our earlier fix; nearly all users should be recovered at this point. We are monitoring closely. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:53&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - We have a fix in place are seeing recovery, although some users may still be seeing impact. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:36&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are actively working toward system recovery and will post another update in 10 minutes. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:50&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to work on a fix for this issue. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:49&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We are currently investigating an issue that is impacting users&apos; ability to send direct messages. Other functionality including interactions, shop, and SDK integrations are also affected. &lt;/p&gt;      </description>
+      <pubDate>Tue, 04 Aug 2026 13:17:15 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/73wgk29dznv4</link>
+      <guid>https://discordstatus.com/incidents/73wgk29dznv4</guid>
+    </item>
+    <item>
+      <title>session starts, DM message delivery down</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:05&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:48&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - You may have issues logging in or not receiving DM messages live &lt;/p&gt;      </description>
+      <pubDate>Mon, 27 Jul 2026 11:05:48 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/0gz6pdq1c141</link>
+      <guid>https://discordstatus.com/incidents/0gz6pdq1c141</guid>
+    </item>
+    <item>
+      <title>unable to establish voice connection</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:57&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:49&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:32&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Wed, 22 Jul 2026 16:57:46 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/g196lnx3h2cz</link>
+      <guid>https://discordstatus.com/incidents/g196lnx3h2cz</guid>
+    </item>
+    <item>
+      <title>API Errors</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:48&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:51&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We&apos;ve identified an upstream latency issue, and we&apos;re working to mitigate its impacts. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:49&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Thu, 16 Jul 2026 20:48:44 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/vwmnnymc48b9</link>
+      <guid>https://discordstatus.com/incidents/vwmnnymc48b9</guid>
+    </item>
+    <item>
+      <title>Issues with billing operations</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;12:33&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:11&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jul &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:49&lt;/var&gt; PDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating this issue. &lt;/p&gt;      </description>
+      <pubDate>Fri, 10 Jul 2026 12:33:31 -0700</pubDate>
+      <link>https://discordstatus.com/incidents/yj1xklr7ynwg</link>
+      <guid>https://discordstatus.com/incidents/yj1xklr7ynwg</guid>
+    </item>
+  </channel>
+</rss>

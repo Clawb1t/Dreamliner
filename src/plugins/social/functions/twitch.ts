@@ -9,6 +9,8 @@ export class TwitchResolveError extends Error {}
 
 const API_BASE = "https://api.twitch.tv/helix";
 const TOKEN_URL = "https://id.twitch.tv/oauth2/token";
+/** Every Helix call gives up after this long. */
+const API_TIMEOUT_MS = 10_000;
 
 function clientId(): string {
   const id = process.env.TWITCH_CLIENT_ID?.trim();
@@ -42,7 +44,7 @@ async function getAppAccessToken(): Promise<string> {
   url.searchParams.set("client_secret", clientSecret());
   url.searchParams.set("grant_type", "client_credentials");
 
-  const res = await fetch(url.toString(), { method: "POST" });
+  const res = await fetch(url.toString(), { method: "POST", signal: AbortSignal.timeout(API_TIMEOUT_MS) });
   if (!res.ok) {
     throw new TwitchResolveError(`Twitch auth error (${res.status}). Check TWITCH_CLIENT_ID/SECRET.`);
   }
@@ -60,6 +62,7 @@ async function helixGet(path: string, params: Record<string, string | string[]>)
   const token = await getAppAccessToken();
   const res = await fetch(url.toString(), {
     headers: { "Client-Id": clientId(), Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
   if (res.status === 401) {
     // Token may have been revoked/expired early; retry once with a fresh one.
@@ -67,6 +70,7 @@ async function helixGet(path: string, params: Record<string, string | string[]>)
     const retryToken = await getAppAccessToken();
     const retryRes = await fetch(url.toString(), {
       headers: { "Client-Id": clientId(), Authorization: `Bearer ${retryToken}` },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!retryRes.ok) throw new TwitchResolveError(`Twitch API error (${retryRes.status}).`);
     return retryRes.json();

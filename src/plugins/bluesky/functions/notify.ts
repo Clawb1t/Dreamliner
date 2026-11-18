@@ -1,5 +1,5 @@
 import { MessageFlags, type Client, type TopLevelComponentData } from "discord.js";
-import { interpolateTokens } from "../../social/functions/notifyShared.js";
+import { interpolateTokens } from "../../social/feeds/render.js";
 import { pingComponent } from "../../../core/responses.js";
 import { getLogger } from "../../../core/logger.js";
 import type { BlueskyActor, BlueskyPost, BlueskyPostKind, BlueskyProfile } from "./api.js";

@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Windows Blog</title>
+	<atom:link href="https://blogs.windows.com/feed/" rel="self" type="application/rss+xml" />
+	<link>https://blogs.windows.com/</link>
+	<description></description>
+	<lastBuildDate>Wed, 18 Nov 2026 20:02:15 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.9.11</generator>
+
+<image>
+	<url>https://blogs.windows.com/wp-content/uploads/2022/09/cropped-Windows11IconTransparent512-32x32.png</url>
+	<title>Windows Blog</title>
+	<link>https://blogs.windows.com/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Edge for Business becomes the most used enterprise browser and unveils Ignite 2026 innovations</title>
+		<link>https://blogs.windows.com/msedgedev/2026/11/17/edge-for-business-ignite-2026-innovations/</link>
+		
+		<dc:creator><![CDATA[Patrick Brosset]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:40:43 +0000</pubDate>
+				<category><![CDATA[Uncategorized]]></category>
+		<category><![CDATA[Agent 365]]></category>
+		<category><![CDATA[agentic browsing]]></category>
+		<category><![CDATA[browser data loss prevention]]></category>
+		<category><![CDATA[browser extension security]]></category>
+		<category><![CDATA[browser security for AI]]></category>
+		<category><![CDATA[Cowork in Edge for Business]]></category>
+		<category><![CDATA[enterprise browser]]></category>
+		<category><![CDATA[enterprise browser security]]></category>
+		<category><![CDATA[inforcer]]></category>
+		<category><![CDATA[managed browsing for agents]]></category>
+		<category><![CDATA[managed service provider]]></category>
+		<category><![CDATA[Microsoft Edge for Business]]></category>
+		<category><![CDATA[Microsoft Entra Global Secure Access]]></category>
+		<category><![CDATA[Microsoft Ignite 2026]]></category>
+		<category><![CDATA[Microsoft Sentinel]]></category>
+		<category><![CDATA[most used enterprise browser in the world]]></category>
+		<category><![CDATA[multi-tenant management]]></category>
+		<category><![CDATA[reduce AI token usage]]></category>
+		<guid isPermaLink="false">https://blogs.windows.com/blog/2026/11/17/edge-for-business-ignite-2026-innovations/</guid>
+
+					<description><![CDATA[<p>https://www.youtube.com/watch?v=eK7msluMltY</p>
+<p><em><strong>Summary:</strong> Edge for Business is the most used enterprise browser in the world. At Microsoft Ignite 2026, we're introducing new ways for users and agents to get more done. Deeper integrat</p>
+<p>The post <a href="https://blogs.windows.com/msedgedev/2026/11/17/edge-for-business-ignite-2026-innovations/">Edge for Business becomes the most used enterprise browser and unveils Ignite 2026 innovations</a> appeared first on <a href="https://blogs.windows.com">Windows Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[https://www.youtube.com/watch?v=eK7msluMltY
+
+<em><strong>Summary:</strong> Edge for Business is the most used enterprise browser in the world. At Microsoft Ignite 2026, we're introducing new ways for users and agents to get more done. Deeper integration with Microsoft 365 security capabilities helps IT protect and manage browser activity. We're also expanding our focus, supporting managed service providers (MSPs) with multi-tenant browser policy management through inforcer.</em>
+
+The browser looms large in a cloud-centered world. By an industry estimate, roughly 85% of work is now happening in the browser <sup><small><a href="#footnote-1">1</a></small></sup>. Increasingly, it's a platform on which AI agents can act alongside people across websites and apps, inside an authenticated enterprise session. Reflecting these shifts, Forrester recently stated that the browser has evolved to a "first-class endpoint" in its "Top 10 Trends Shaping Endpoint Security in 2026" report.
+
+For IT and security teams, that raises the bar for the browser. Today, Edge for Business is the most used enterprise browser in the world <sup><small><a href="#footnote-2">2</a></small></sup>. This milestone is built on your trust. You do the critical work behind the scenes to keep your organizations secure and productive, and we're grateful for the opportunity to support you.
+
+Looking ahead, our vision is to deliver the best enterprise browser for humans and agents—and expand our impact by helping managed service providers (MSPs) secure work for their customers. Read on to discover how we're starting to bring that vision to life at Microsoft Ignite 2026.
+<h2>Jump to</h2>
+<ul>
+ 	<li><a href="#agents-that-work-your-way">Agents that work your way, on your terms</a>: Reusable skills, faster skills, fewer tokens, agents in managed browsing, and more on governance and a system of safety.</li>
+ 	<li><a href="#everyday-browsing-made-smarter">Everyday browsing, made smarter</a>: Update web experiences without code, create an interactive brief from tabs, write and plan with context from your work.</li>
+ 	<li><a href="#browser-security-in-a-high-velocity-threat-environment">Browser security in a high-velocity threat environment</a>: Updates with less disruption, manage extension risk, browser signals in Microsoft Sentinel, private web apps without a VPN, on-screen redaction.</li>
+ 	<li><a href="#browser-security-strengthened-by-our-partner-ecosystem">Browser security, strengthened by our partner ecosystem</a>: Multi-tenant policy management with inforcer, partner connectors on more platforms, and Akamai Workforce Protector on mobile.</li>
+ 	<li><a href="#how-should-it-teams-get-started">How should IT teams get started? It's EZ</a></li>
+</ul>
+<h2 id="agents-that-work-your-way">Agents that work your way, on your terms</h2>
+Your organization is probably already juggling more than one agent. Alongside Microsoft Copilot, your users may rely on agents such as Claude or ChatGPT, in dedicated apps, command-line tools, or custom builds. Users want the power. You need the control.
+
+Whatever the agent, Microsoft or otherwise, it should do its best work in Edge for Business: faster, with fewer tokens, and more accurate results. IT and security teams get predictability too: agents can run in the managed browser you've configured, under your control and visibility. Today we're sharing the first building blocks.
+<h3>Delegate everyday browsing tasks to Cowork</h3>
+<em>At a glance: Cowork in Edge for Business now includes agentic browsing: it can complete multi-step tasks across websites on users' behalf.</em>
+
+At Ignite last year, we introduced AI browsing with Copilot in Edge for Business, and many of you put it to work in preview. Thank you. We're excited to share agentic browsing is now part of Cowork, available via the sidepane, the new tab page, and web. With this, users have one place to delegate work, from creating docs to prepping for meetings or completing a task on the web. It's an easy way for users to get comfortable with agentic work, starting with small, everyday tasks, so they can get back to the work that takes creativity, judgment, and complex thinking.
+
+https://www.youtube.com/watch?v=-oSn_uaNILs
+
+<em>Generally available. Requires Microsoft 365 Copilot license with usage-based billing enabled.</em>
+<h3>Turn complex tasks into Cowork skills by simply recording them</h3>
+<em>At a glance: Skills recorder in Edge for Business turns a workflow into a reusable, sharable Cowork skill.</em>
+
+Cowork handles everyday tasks well. But some work is more complex: it can take many steps, span multiple systems, and depend on specialized knowledge. With skills recorder, a user can record themselves completing an end-to-end process once and turn it into a skill that can be shared with teammates. And because the skill follows the same proven steps every time, that means fewer tokens spent and more consistent results.
+
+https://www.youtube.com/watch?v=pEnuYGyqdUY
+
+<em>Available in preview by end of year. Requires Microsoft 365 Copilot license with usage-based billing enabled.</em>
+<h3>Faster skills that use fewer tokens</h3>
+<em>At a glance: Edge for Business is working to help any agent complete common web tasks faster and with fewer tokens.</em>
+
+We're working on optimizing how agents carry out the most common actions on the world's most popular websites. Regardless of the agent being used, Edge for Business will take the most token-efficient path to task completion. Early internal tests show an average of 30% less token usage. It's early, but the direction is clear: faster results, fewer tokens per task, and more consistent execution.
+
+https://www.youtube.com/watch?v=pS05FFr7Z0Q
+<h3>Put browser agents on managed ground</h3>
+<em>At a glance: The managed agent browsing experience in Edge for Business helps IT bring Microsoft and other providers into a governed browser, under the policies IT already manages.</em>
+
+Every agent that opens a browser raises the same practical questions: Can the agent access more than the person it represents? Do data protections still apply? Can users and admins tell whether a person or an agent is working?
+
+The new managed agent browsing experience enables IT to help enforce the use of Edge for Business by agents from Microsoft and other providers. This helps ensure that whenever an agentic task needs a browser, it occurs within the bounds of a governed browser. Each agent works in a dedicated window with its own Microsoft Entra agent identity, and operates within the user's existing permissions and organizational policies. Visual cues make it clear when a window belongs to an agent.
+
+<em>Available in preview with Microsoft 365 E5 license.</em>
+<h3>What's next: see and govern browser agents alongside other agents</h3>
+<em>At a glance: Our vision is to bring browser agents into Agent 365 and Microsoft Entra logs, so you can govern them alongside other agents and tell their actions apart from a person's.</em>
+
+Our vision is to make agents running in Edge for Business visible and governable across Microsoft's identity and management tools. Because each agent session carries its own Entra agent identity, you'll be able to view browser agents in Agent 365 alongside the rest of your organization's agents. In the future, see which agents are in use and who's using them, apply policies, and block or quarantine an agent that isn't approved or is exhibiting risky behavior. When you need to investigate, Microsoft Entra logs will show which agent took an action and which user it was acting for, so agent actions are easy to tell apart from those of a person.
+
+https://www.youtube.com/watch?v=0_R0vy13KTY
+<h3>An integrated system of safety for built-in AI</h3>
+<em>At a glance: AI built into Edge for Business is backed by existing enterprise protections, policy-based rollout, and safeguards for agentic browsing.</em>
+
+The business wants AI now. You want to keep that progress secure. With Edge for Business, you don't have to choose. Its system of safety for built-in AI is anchored on a philosophy of "controls-in-depth":
+<ul>
+ 	<li><strong>Start with a secure enterprise browser foundation:</strong> Edge for Business provides a governed base. It enforces your organization's existing protections on built-in AI experiences, including Purview Data Loss Prevention and session controls. In preview, Protected session creates an isolated, secure chat session where Copilot can interact with protected content while helping preserve organizational data policies.</li>
+ 	<li><strong>Enterprise data protection (EDP):</strong> You already know and trust EDP for email and other files – the same promise applies to Copilot. Prompts, responses, and files stay within your tenant and aren't used to train models.</li>
+ 	<li><strong>Policy-based control</strong>: Advanced AI capabilities come with policies, so IT can configure and manage how they're used across your organization.</li>
+ 	<li><strong>Purpose-built agentic safeguards:</strong> Cowork browses within the user's existing permissions and organizational policies. Users stay in control: Cowork hands back sign-ins and payments, asks before sensitive actions, and can be watched or stopped at any time.</li>
+</ul>
+<h2 id="everyday-browsing-made-smarter">Everyday browsing, made smarter</h2>
+Not every task needs an agent. Built-in AI in Edge for Business helps make existing workflows faster and better, from writing to reshaping the sites users rely on.
+<h3>Make web experiences better with Remix</h3>
+<em>At a glance: Remix in Edge for Business lets users customize how a website looks and works without writing code or changing the underlying site.</em>
+
+Users often rely on poorly designed or hard-to-navigate sites, including legacy apps and dashboards without developer support. With Remix, they can clear away clutter, add missing tools, or change a page's look—without waiting for a fix or writing code. To remix a page, they can choose from preset themes and fonts, or describe a custom Remix in plain words. Remixes are stored locally, and users can turn them on and off with a simple toggle.
+
+https://www.youtube.com/watch?v=Yh4xwjzNicQ
+
+<em>Generally available.</em>
+<h3>Turn information across tabs into an interactive brief</h3>
+<em>At a glance: Interactive brief in Edge for Business quickly turns information across your browser tabs into a polished, interactive page you can explore and share.</em>
+
+An executive asks for a status update. You have the data, but it's scattered and you don't know what they want to dig into. Instead of building a presentation to anticipate every question, interactive brief quickly turns the information across your browser tabs into an interactive page that can be explored during the meeting and shared afterward.
+
+Each brief is saved to your OneDrive as a snapshot, shared just like any other OneDrive file, and governed by the policies IT already manages. No new shadow IT problem.
+
+https://www.youtube.com/watch?v=OKISxyWcqE4
+
+<em>Available in preview by end of year. Requires Microsoft 365 Copilot license with usage-based billing enabled.</em>
+<h3>Get writing help, informed by your work</h3>
+<em>At a glance: Writing assistance in Edge for Business helps users write in any form field with context from their work.</em>
+
+Writing assistance in Edge for Business helps users draft and edit text in form fields, including on internal and line-of-business sites that rarely have writing help built in. Connected to Work IQ, it can write using context from the user's calendar, files, and more.
+
+https://www.youtube.com/watch?v=nxx8UrxDpCQ
+
+<em>Available in preview. Work grounding requires a Microsoft 365 Copilot license.</em>
+<h3>Get suggested next steps with Journeys</h3>
+<em>At a glance: Journeys in Edge for Business suggests next steps based on your work and browsing.</em>
+
+Piecing together status and action items across calendars, emails, and chats takes time. Journeys—shown as "Get things done" on a new tab page—performs that legwork and suggests next steps on workstreams, based on the user's work and browsing context.
+
+<em>Available in preview. Requires Microsoft 365 Copilot license.</em>
+<h2 id="browser-security-in-a-high-velocity-threat-environment">Browser security in a high-velocity threat environment</h2>
+The best enterprise browser for humans and agents needs more than agent guardrails: a rock-solid security foundation for today's enterprise browsing must be in place. With cyberthreats moving at a historic pace, you need practical security solutions now.
+<h3>Apply urgent browser updates with less disruption</h3>
+<em>At a glance: Edge for Business helps you apply security fixes faster with fewer interruptions to users. Restart to update on idle, Security Insights, and Security Update Alerts are available today, and Microsoft is exploring seamless updates that avoid restarts.</em>
+
+Applying urgent security fixes is critical. The challenge is doing so without repeatedly interrupting employees. Microsoft is exploring seamless updates to update Edge without closing work or requiring restarts. An early prototype demonstrates the ambition and invites industry discussion.
+
+Available today, Restart to update on idle can relaunch Edge for Business during an idle period. This shrinks the gap between patch availability and installation. To monitor Edge versions across your estate, turn on Security Insights. To help improve the signal-to-noise ratio, set Security Update Alerts to notify when updates meet your chosen severity threshold.
+
+<em>Learn more in <a href="https://blogs.windows.com/msedgedev/2026/10/15/faster-protection-fewer-interruptions-how-microsoft-edge-is-rethinking-updates/">our recent blog</a>.</em>
+<h3>See and control extension risk</h3>
+<em>At a glance: Edge for Business helps you assess extension risk with Extension safety, and protect page content with Extension leak control.</em>
+
+Extensions can expand what employees can do, but they are often vectors of risk.
+
+Extension safety provides an organization-wide inventory with Akamai and Spin.AI risk scores at the extension and version level. Now it's easier for admins to assess risk and make allow and block decisions.
+
+<a href="https://winblogs.thesourcemediaassets.com/sites/33/2026/11/extension-safety.jpg"><img class="alignnone size-full wp-image-26326" src="https://winblogs.thesourcemediaassets.com/sites/33/2026/11/extension-safety.jpg" alt="Microsoft 365 admin center, with the Microsoft Edge for Business page displayed. The Extensions monitoring tab is shown, listing installed extensions." width="1900" height="1069" /></a>
+
+<em>Generally available. Requires Microsoft 365 license.</em>
+
+An approved extension may still need boundaries. Only on Edge for Business, extension leak control prevents organization-installed extensions from reading content on protected pages. Those extensions can still work on other pages.
+
+https://www.youtube.com/watch?v=zVRkf_640QM
+
+<em>Available in preview. Requires Microsoft 365 E3 licensing.</em>
+<h3>Bring browser signals into Microsoft Sentinel</h3>
+<em>At a glance: A new connector brings Edge for Business browser activity into Microsoft Sentinel.</em>
+
+A new native connector for Edge for Business brings browser security events and audit logs into Microsoft Sentinel, adding context for SOC teams and eliminating a browser blind spot.
+
+<a href="https://winblogs.thesourcemediaassets.com/sites/33/2026/11/sentinel-integration.jpg"><img class="alignnone size-full wp-image-26327" src="https://winblogs.thesourcemediaassets.com/sites/33/2026/11/sentinel-integration.jpg" alt="Microsoft Defender, showing the Edge for Business connector setting screen, which enables you to ingest Exchange, SharePoint, and Teams activity logs into Microsoft Sentinel to monitor collaboration and productivity workloads for threats." width="1900" height="1069" /></a>
+
+<em>Available in preview. Requires Microsoft Sentinel licensing.</em>
+<h3>Access private web apps without a separate VPN client</h3>
+<em>At a glance: Microsoft Entra Global Secure Access in Edge for Business lets users reach private web apps with just their work profile, no VPN client required.</em>
+
+VPN and VDI have been the traditional solutions for secure access to private company web apps from a personal laptop. This requires software installation, extra user steps, and another client for IT to support.
+
+Microsoft Entra Global Secure Access in Edge for Business lets users reach approved private web apps simply through their signed-in Edge work profile, skipping a separate VPN or access client altogether. IT targets the access path and Global Secure Access policies to employees' work accounts. Work identity is now the key to secure private access.
+
+https://www.youtube.com/watch?v=Gj9wIWbvAcs
+
+<em>Available in preview. Requires Microsoft 365 E7 license.</em>
+<h3>Reduce sensitive information exposed on screen</h3>
+<em>At a glance: Redaction leak control in Edge for Business blurs sensitive information on protected pages, and users can reveal it when needed.</em>
+
+In call centers and other shared environments, IT needs to obscure sensitive on-screen data without blocking legitimate access or disrupting work. Redaction leak control visually blurs supported sensitive information on data loss prevention-protected pages. Users can reveal a value when needed, then hide it again.
+
+https://www.youtube.com/watch?v=ggTo0XJ_nBs
+
+<em>Available in preview with Microsoft 365 E5 license.</em>
+<h3>Easily turn release notes into action</h3>
+<em>At a glance: AI insights in the Edge management service turns release notes into tailored recommendations for your tenant.</em>
+
+Release notes can be dense, but you need to know which browser policies affect your environment. AI insights in the Edge management service summarizes the latest release notes and recommends next steps for your tenant.
+
+<a href="https://winblogs.thesourcemediaassets.com/sites/33/2026/11/ai-insights-edge.jpg"><img class="alignnone size-full wp-image-26329" src="https://winblogs.thesourcemediaassets.com/sites/33/2026/11/ai-insights-edge.jpg" alt="Microsoft 365 admin center, showing the Microsoft Edge for Business page. The Overview tab is selected, showing a list of What's new in Microsoft Edge for Business entries. The For your organization filter is enabled, and the list contains items such as Your managed devices need the Edge 140.0.3485.54 security updates." width="1900" height="1069" /></a>
+
+<em>Available in preview with no additional licensing required.</em>
+<h2 id="browser-security-strengthened-by-our-partner-ecosystem">Browser security, strengthened by our partner ecosystem</h2>
+We're expanding our focus to support MSPs, who do critical work managing security for small and medium-sized businesses. We're also helping customers build on their existing security investments—not just Microsoft's. Our connector program helps bring the security tools you already use into the browser—and we're expanding support across more platforms.
+<h3>Manage browser policies across customer tenants with inforcer</h3>
+<em>At a glance: Through inforcer, MSPs can apply a recommended Edge for Business security baseline across multiple customer tenants on Windows and macOS.</em>
+
+For MSPs, managing browser policies customer by customer takes time and can lead to settings drift. Edge for Business is introducing a recommended browser security baseline with inforcer, built on Microsoft and CIS security guidance and inforcer's experience across real MSP tenants. In inforcer, MSPs can apply the managed baseline across multiple tenants and choose how strictly to align each, or build their own.
+
+This not only saves time but also gives MSPs a foundation for managed browser security offerings. The baseline supports Windows and macOS, and each customer tenant requires a Microsoft Intune license.
+
+https://www.youtube.com/watch?v=bBk9JGm1frI
+
+<em>Multi-tenant browser policy configuration through inforcer is generally available.</em>
+<h3>Extend partner security connectors to macOS, iOS, and Android</h3>
+<em>At a glance: Edge for Business' reporting connectors now support macOS, iOS, and Android, and device trust connectors now support macOS.</em>
+
+The Edge for Business connector ecosystem enables you to bring the security tools you already use into the browser. Now, we're extending that reach to more platforms.
+
+Our reporting connector now supports macOS, Android, and iOS in addition to Windows, with partners including Devicie. This gives IT teams a more complete view of browser activity across devices, helping ensure consistent monitoring and policy enforcement.
+
+We're also expanding secure access. The device trust connector now supports macOS in addition to Windows, with partners including Cisco Duo and Omnissa.
+
+<em>Visit <a href="https://go.microsoft.com/fwlink/?LinkId=2325446">Reporting connectors</a> and <a href="https://go.microsoft.com/fwlink/?LinkId=2361890">Device trust connectors</a> to learn more.</em>
+<h3>Bring Akamai Workforce Protector policies to iOS and Android</h3>
+<em>At a glance: Organizations using Akamai Workforce Protector can now apply its AI, data loss prevention, and web security policies in Edge for Business on iOS and Android.</em>
+
+Organizations using Akamai Workforce Protector can now apply the same AI usage, web and SaaS data loss prevention, and web security policies in Edge for Business on managed iOS and Android devices. IT deploys the extension through policy, so protection follows employees to mobile in Edge for Business.
+
+<em><a href="https://aka.ms/Edge/Akamai">Read the announcement from Akamai</a></em>
+<h2 id="how-should-it-teams-get-started">How should IT teams get started? It's EZ.</h2>
+<em>At a glance: To get started with Edge for Business, go to <a href="https://aka.ms/ConfigureEdgeEZ">aka.ms/ConfigureEdgeEZ</a> and choose a guided path for configuring common scenarios.</em>
+
+You don't need a multi-year plan to improve your browser security posture. Do just one thing: go to <a href="https://aka.ms/ConfigureEdgeEZ">aka.ms/ConfigureEdgeEZ</a>. Choose a common browser security scenario, and follow a guided path for configuration.
+<div style="margin: 2.5rem 0;font-size: 1.2rem"><a style="background: #8ed1fc;margin: 0 auto;padding: 15px 30px;color: black;text-decoration: none;text-align: center;max-width: max-content;border-radius: 100vw" href="https://aka.ms/ConfigureEdgeEZ"><strong>Configure now</strong></a></div>
+You're doing critical work behind the scenes. We see you. We're here to make it easier for you.
+
+<small style="font-size: .8rem"><sup id="footnote-1">1</sup> Source: "The State of Workforce Security: Key Insights for IT and Security Leaders", Omdia, 2025.</small>
+
+<small style="font-size: .8rem"><sup id="footnote-2">2</sup> Based on worldwide share of browser minutes of use on Windows devices at organizations with more than 1,000 employees. Windows is the world's most widely used enterprise PC operating system.</small>]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Microsoft Ignite 2026: Building Windows for the next era of work</title>
+		<link>https://blogs.windows.com/windowsexperience/2026/11/17/microsoft-ignite-2026-building-windows-for-the-next-era-of-work/</link>
+		
+		<dc:creator><![CDATA[Pavan Davuluri, Executive Vice President, Windows + Devices]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:20:56 +0000</pubDate>
+				<category><![CDATA[PC]]></category>
+		<guid isPermaLink="false">https://blogs.windows.com/blog/2026/11/17/microsoft-ignite-2026-building-windows-for-the-next-era-of-work/</guid>
+
+					<description><![CDATA[<p><span class="TextRun SCXW67107576 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW67107576 BCX8">Every major shift in computing has changed what people can do at work, and </span><span class="NormalTextRun SCXW
+</p>
+<p>The post <a href="https://blogs.windows.com/windowsexperience/2026/11/17/microsoft-ignite-2026-building-windows-for-the-next-era-of-work/">Microsoft Ignite 2026: Building Windows for the next era of work</a> appeared first on <a href="https://blogs.windows.com">Windows Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<span class="TextRun SCXW67107576 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW67107576 BCX8">Every major shift in computing has changed what people can do at work, and </span><span class="NormalTextRun SCXW67107576 BCX8">Windows has been at the center. </span><span class="NormalTextRun SCXW67107576 BCX8">Today, it runs</span><span class="NormalTextRun SCXW67107576 BCX8"> critical work</span><span class="NormalTextRun SCXW67107576 BCX8"> inside your organizations</span><span class="NormalTextRun SCXW67107576 BCX8">, on over a billion devices across the world</span><span class="NormalTextRun SCXW67107576 BCX8">.</span> <span class="NormalTextRun SCXW67107576 BCX8">That</span><span class="NormalTextRun SCXW67107576 BCX8"> is a privilege and </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW67107576 BCX8">a responsibility</span><span class="NormalTextRun SCXW67107576 BCX8">.</span> <span class="NormalTextRun SCXW67107576 BCX8">I</span><span class="NormalTextRun SCXW67107576 BCX8">t’s</span><span class="NormalTextRun SCXW67107576 BCX8"> why, </span><span class="NormalTextRun SCXW67107576 BCX8">above all else</span><span class="NormalTextRun SCXW67107576 BCX8">, </span><span class="NormalTextRun SCXW67107576 BCX8">we’re</span><span class="NormalTextRun SCXW67107576 BCX8"> moving faster than ever </span><span class="NormalTextRun SCXW67107576 BCX8">on </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW67107576 BCX8">security</span><span class="NormalTextRun SCXW67107576 BCX8"> so you can build on a foundation of trust and lead in the era of Hybrid Intelligence</span><span class="NormalTextRun SCXW67107576 BCX8">.</span></span>
+
+<span class="TextRun SCXW37152147 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW37152147 BCX8">Agents are the next shift</span><span class="NormalTextRun SCXW37152147 BCX8"> in computing</span><span class="NormalTextRun SCXW37152147 BCX8">.</span> <span class="NormalTextRun SCXW37152147 BCX8">Over the past year, organizations have moved AI from pilots into daily work, and agents are now taking on tasks across apps, files</span><span class="NormalTextRun SCXW37152147 BCX8">,</span><span class="NormalTextRun SCXW37152147 BCX8"> and systems. In conversations with technology leaders, the questions </span><span class="NormalTextRun SCXW37152147 BCX8">they’re</span><span class="NormalTextRun SCXW37152147 BCX8"> asking </span><span class="NormalTextRun SCXW37152147 BCX8">have </span><span class="NormalTextRun SCXW37152147 BCX8">evolved</span><span class="NormalTextRun SCXW37152147 BCX8">. They </span><span class="NormalTextRun SCXW37152147 BCX8">are past debating whether to adopt AI</span><span class="NormalTextRun SCXW37152147 BCX8">. They</span><span class="NormalTextRun SCXW37152147 BCX8"> are</span><span class="NormalTextRun SCXW37152147 BCX8"> turning to agents and</span><span class="NormalTextRun SCXW37152147 BCX8"> want to know how to run </span><span class="NormalTextRun SCXW37152147 BCX8">them</span><span class="NormalTextRun SCXW37152147 BCX8"> securely, and how to scale outcomes without cost </span><span class="NormalTextRun SCXW37152147 BCX8">or </span><span class="NormalTextRun SCXW37152147 BCX8">risk growing faster than value.</span></span>
+
+<span data-contrast="auto">Today at Ignite, we announced:</span><span data-ccp-props="{}"> </span>
+<ul>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="1" data-aria-level="1"><b><span data-contrast="auto">A trusted, secure, and more resilient foundation.</span></b><span data-contrast="auto"> The Windows endpoint security platform and Windows administrator protection are now generally available, Windows baseline protection is in preview, and Windows Autopatch customers deploy updates over 40% faster than with on-premises management.</span></li>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="1" data-aria-level="1"><b><span data-contrast="auto">The most secure platform for agents.</span></b><span data-contrast="auto"> New containment capabilities in Microsoft Execution Containers (MXC), which OpenAI and Meta are already building on, and Windows 365 for Agents, now eligible for Copilot Credits.</span></li>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="1" data-aria-level="1"><b><span data-contrast="auto">Hybrid Intelligence at work.</span></b><span data-contrast="auto"> GitHub Copilot Fusion can now route coding work to local models on developer PCs, in preview, and local context, actions and models are coming soon to Copilot on Copilot+ PCs.</span></li>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="1" data-aria-level="1"><b><span data-contrast="auto">One estate, from the PC to Azure built as connected AI infrastructure.</span></b><span data-contrast="auto"> Direct Stream for Windows 365, and Windows Server 2028 in public preview, with Microsoft Foundry and support for new AI hardware from AMD and NVIDIA.</span></li>
+</ul>
+<h2><strong>A trusted, secure, and more resilient foundation</strong></h2>
+<span data-contrast="auto">Critical work happens on Windows, and staying protected while threats evolve has never been more important. That starts with a trusted, secure, and more resilient Windows foundation. We are making investments to harden the platform, make it easier to protect and manage devices, and keep them current.</span>
+
+<span data-contrast="auto">Historically, some security protections ran in the Windows kernel, where one failure could affect the entire device. In 2024, we started working with our security partners on a more resilient approach. Today, the Windows endpoint security platform is </span><a href="https://aka.ms/WESPblog"><span data-contrast="none">generally available</span></a><span data-contrast="auto">. It lets security providers move critical protections from kernel mode to user mode, making Windows more resilient while preserving the protection customers expect. We are deeply grateful to the ecosystem partners who have built on the platform with us, including Bitdefender, CrowdStrike, ESET, SentinelOne, Sophos, Trellix and TrendAI.</span>
+
+<img class="alignnone size-full wp-image-180604" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/Windows-Endpoint-Security-Platform.png" alt="Windows Endpoint Security Platform" width="972" height="324" />
+
+<span data-contrast="auto">We’re also making device security easier to verify. Windows baseline protection, </span><a href="https://aka.ms/WBPblog"><span data-contrast="none">now in preview</span></a><span data-contrast="auto"> in the Windows Insider Program, brings foundational protections like secure boot, virtualization-based security and memory integrity together into one verifiable security state. People get better visibility into the security posture of their PC, and IT gets a clear yes-or-no answer for every device in the fleet. Application developers can use baseline protection to verify that the devices running their applications meet their security requirements. The baseline will continue to evolve as we raise the bar in security. </span><span data-ccp-props="{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;201341983&quot;:0,&quot;335551550&quot;:1,&quot;335551620&quot;:1,&quot;335559685&quot;:0,&quot;335559737&quot;:0,&quot;335559738&quot;:0,&quot;335559739&quot;:160,&quot;335559740&quot;:276}"> </span>
+
+<span data-contrast="auto">We are proud to be collaborating with partners from across the ecosystem to see how Windows baseline protection helps meet their needs.</span>
+
+<img class="alignnone size-large wp-image-180605" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/Windows-Baseline-Protection-partner-ecosystem-1024x341.png" alt="Windows Baseline Protection partner ecosystem" width="1024" height="341" />
+
+<span data-contrast="auto">We’re also making it easier to protect your devices from the risks that come with elevated privilege. With Windows administrator protection, now generally available, IT can enable local administrators to run with standard user privileges by default. When a task needs administrator rights, Windows Hello verifies the user and grants those rights to that task alone. When the task ends, so do the elevated privileges, and the risk that came with them.</span>
+
+https://www.youtube.com/watch?v=lGpmGHrrZNg
+
+<span data-contrast="auto">The same AI that’s helping organizations scale is also helping attackers move faster. Our latest </span><a href="https://www.microsoft.com/en-us/corporate-responsibility/topics/cybersecurity/reports/microsoft-digital-defense-report/"><span data-contrast="none">Microsoft Digital Defense Report</span></a><span data-contrast="auto"> found that weaponizing a vulnerability, which once took expert skills, now takes just one prompt. New vulnerabilities across the industry are on track to double this year. We’re using AI to stay ahead. </span><a href="https://blogs.windows.com/windowsexperience/2026/07/09/evolving-windows-vulnerability-management-to-meet-the-speed-of-ai-powered-discovery/"><span data-contrast="none">MDASH</span></a><span data-contrast="auto">, Microsoft Security’s multi-model agentic scanning harness, now scans Windows code at a scale we’ve never had before, finding vulnerabilities earlier and fixing them faster. In October alone, we shipped fixes for more than 1,100 vulnerabilities, more than in all of 2025. Those fixes only protect your employees once they reach your devices.</span>
+
+<img class="alignnone size-large wp-image-180606" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/Customers-deploy-updates-within-one-week-1024x341.png" alt="Customers deploy updates within one week" width="1024" height="341" />
+
+<span data-contrast="auto">Our fastest customers deploy security updates to more than two-thirds of their devices within a week. Windows Autopatch helps more organizations move at that speed: on average, Autopatch customers deploy updates over 40% faster than customers using on-premises management, and usage has grown more than 50% in the last year, to over 150 million enrolled devices. Autopatch now also gives IT more control over updates, better visibility into the features they include and fewer interruptions, with one reboot a month.</span>
+
+<span data-contrast="auto">The same management principles now apply to apps. With Microsoft Intune Enterprise App Management, IT can deploy and manage apps at scale and can now preview automatic updates not just for the applications they deploy, but the applications people install themselves, with the same controls and deadlines they know from Windows Autopatch.</span>
+
+<span data-contrast="auto">Windows is also standardizing on declarative management, so devices keep themselves in the state IT defines. Policies such as Wi-Fi and VPN apply, within minutes and stay protected from drift, even when a device is offline.</span>
+
+<span data-contrast="auto">All of this builds on the improvements we’ve made to </span><a href="https://blogs.windows.com/windows-insider/2026/03/20/our-commitment-to-windows-quality/"><span data-contrast="none">Windows quality</span></a><span data-contrast="auto"> throughout the year, across performance, reliability and craft.</span>
+
+<a href="https://aka.ms/WinSecurity26IgniteBlog"><span data-contrast="none">Learn more about Windows security and management at Ignite.</span></a>
+<h2><strong>Hybrid Intelligence on Windows</strong></h2>
+<span data-contrast="auto">The same trusted foundation that applies to your employees extends to AI and agents on Windows. </span><span data-contrast="auto">When an agent acts on your behalf, you need to know what it can access and what it does. That's where Hybrid Intelligence begins. Hybrid Intelligence on Windows brings together a secure agent platform and intelligent model routing across a broad range of Windows PCs powered by capable silicon. </span><span data-ccp-props="{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;201341983&quot;:0,&quot;335551550&quot;:1,&quot;335551620&quot;:1,&quot;335559685&quot;:0,&quot;335559737&quot;:0,&quot;335559738&quot;:0,&quot;335559739&quot;:160,&quot;335559740&quot;:276}"> </span>
+
+<span data-contrast="auto">Hybrid Intelligence uses the right model and compute for each task, on the device or in the cloud. The result is AI that's secure by design, smarter about token spend, and more useful every day.</span><span data-ccp-props="{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;201341983&quot;:0,&quot;335551550&quot;:1,&quot;335551620&quot;:1,&quot;335559685&quot;:0,&quot;335559737&quot;:0,&quot;335559738&quot;:0,&quot;335559739&quot;:160,&quot;335559740&quot;:276}"> </span>
+<h3><b><span data-contrast="auto">Building Windows to be the most secure platform for agents</span></b><span data-ccp-props="{}"> </span></h3>
+<span data-contrast="auto">Agents bring big productivity gains, and because they can work across files, networks and apps, they also bring new security risks. Customers shouldn't have to choose between giving agents free rein and blocking them entirely. That's why we're building containment, identity and manageability into Windows to run and manage agents securely:</span><span data-ccp-props="{}"> </span>
+
+<b><span data-contrast="auto">Containment:</span></b> <span data-contrast="auto">limit what an agent can access and do.</span><span data-ccp-props="{&quot;335559738&quot;:180,&quot;335559739&quot;:60}"> </span>
+
+<b><span data-contrast="auto">Identity:</span></b> <span data-contrast="auto">tell an agent's activity apart from a person's.</span><span data-ccp-props="{&quot;335559738&quot;:180,&quot;335559739&quot;:60}"> </span>
+
+<b><span data-contrast="auto">Manageability:</span></b> <span data-contrast="auto">govern access and monitor what agents do. </span><span data-ccp-props="{&quot;335559738&quot;:180,&quot;335559739&quot;:60}"> </span>
+
+<span data-contrast="auto">Microsoft Execution Containers (MXC) has been generally available on Windows 11 since October. MXC gives each agent a contained environment, with policies for which files and networks it can reach, enforced by Windows at runtime. MXC works on Windows, Linux and macOS, and on Windows it’s built into the operating system, which gives organizations more control of their data and a broader range of containment options, from process and session containers to WSL containers, virtual machines and Windows 365 for Agents.</span><span data-ccp-props="{&quot;335559738&quot;:180,&quot;335559739&quot;:60}"> </span>
+
+<span data-contrast="auto">Since general availability, we’ve improved quality and made agent identity harder to tamper with. At Ignite, we’re adding:</span><span data-ccp-props="{}"> </span>
+<ul>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="5" data-aria-level="1"><b><span data-contrast="auto">Process container improvements</span></b><span data-contrast="auto">, in preview, which give each agent a protected workspace with clear limits on what it can talk to, which networks it can reach and how it proves its identity, reducing the risk that an agent reaches the wrong data or affects the rest of the device.</span></li>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="5" data-aria-level="1"><b><span data-contrast="auto">Learning and permissive modes</span></b><span data-contrast="auto">, now generally available, which let IT observe how an agent normally works with system services before enforcing restrictions, so policies roll out without breaking legitimate work.</span></li>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="5" data-aria-level="1"><b><span data-contrast="auto">Local Micro VMs,</span></b><span data-contrast="auto"> now experiment</span><span data-contrast="auto">al, give higher-risk workloads a hardware-backed virtualized boundary, with hardware-enforced isolation.</span></li>
+</ul>
+<img class="alignnone size-full wp-image-180607" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/Partners-building-on-MXC.png" alt="Partners building on MXC" width="940" height="313" />
+
+<span class="TextRun SCXW234130503 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW234130503 BCX8">Leading </span><span class="NormalTextRun SCXW234130503 BCX8">a</span><span class="NormalTextRun SCXW234130503 BCX8">gent builders </span><span class="NormalTextRun SCXW234130503 BCX8">and c</span><span class="NormalTextRun SCXW234130503 BCX8">ustomers </span><span class="NormalTextRun SCXW234130503 BCX8">are </span><span class="NormalTextRun SCXW234130503 BCX8">integrating with MXC</span><span class="NormalTextRun SCXW234130503 BCX8">. OpenAI has turned MXC on by default in </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW234130503 BCX8">Codex,</span><span class="NormalTextRun SCXW234130503 BCX8"> Meta is running MXC on tens of thousands of Windows devices, and more than 20 agent and app builders, including Anthropic, Box, Perplexity and </span><span class="NormalTextRun SpellingErrorV2Themed SCXW234130503 BCX8">Replit</span><span class="NormalTextRun SCXW234130503 BCX8">, are building on MXC.</span></span>
+
+https://www.youtube.com/watch?v=FXvmLQVadwg
+
+<span class="TextRun SCXW148959685 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW148959685 BCX8">Agent 365 </span><span class="NormalTextRun SCXW148959685 BCX8">governance and policies </span><span class="NormalTextRun SCXW148959685 BCX8">extend to local agents, </span><span class="NormalTextRun ContextualSpellingAndGrammarErrorV2Themed SCXW148959685 BCX8">including on</span><span class="NormalTextRun SCXW148959685 BCX8"> Windows, so together with Microsoft Entra, Intune, Defender and Purview, organizations can govern agents with the practices they already use.</span></span>
+
+<a href="https://blogs.windows.com/windowsdeveloper/2026/11/17/enterprise-deployment-of-governed-agents-on-windows/">Learn more about agent governance on Windows.</a>
+<h3><strong>Windows 365 for Agents</strong></h3>
+<span data-contrast="auto">Some agents need a computer of their own. Windows 365 for Agents gives them secure Cloud PCs, joined to Microsoft Entra and managed in Intune like any other PC in your fleet. Agents use them the way people do. They see the screen, click, type and move data between apps, so they can work in line-of-business, browser, legacy and on-premises Windows apps, including apps without an API.</span>
+
+<span data-contrast="auto">Windows 365 for Agents is available as a computer-use tool in Microsoft Copilot Studio, is coming to Microsoft Foundry in preview early next year and is now eligible for Copilot Credits, bringing it into one billing, governance and cost-management experience.</span>
+
+<span data-contrast="auto">Agents can now reach on-premises apps using agent identities, in preview, and persistent agent Cloud PCs for long-running, always-on work are coming to Frontier preview. Microsoft’s own business operations team uses Windows 365 for Agents to process orders and has cut processing time by 60%.</span>
+
+<a href="https://aka.ms/W365Ignite26Blog">Learn more about Windows 365 for Agents.</a>
+<h3><strong>Bringing local context, actions, and diagnostics to Copilot </strong><strong>with Hybrid Intelligence</strong></h3>
+<span data-contrast="auto">Copilot is AI built for work, and on Windows it can do even more. Three local capabilities are coming soon to Copilot+ PCs, and they'll make Copilot more helpful in the moments that matter most at work.</span>
+
+<span data-contrast="auto">The first is </span><b><span data-contrast="auto">local context</span></b><span data-contrast="auto">. Much of what people work on lives on their PC: the files they have open, the apps they're using, and the current state of their device. With permission, Copilot can use that information to offer better help, bringing local context into the flow of work.</span>
+
+<span data-contrast="auto">The second is </span><b><span data-contrast="auto">local actions</span></b><span data-contrast="auto">. Helpful AI doesn't stop at answers. Copilot will be able to take action across Windows, from working with files to helping diagnose PC issues, while the user stays in control.</span>
+
+<span data-contrast="auto">The third is </span><b><span data-contrast="auto">local models</span></b><span data-contrast="auto">. Not every task needs the cloud. Copilot will increasingly use models running right on the PC and reach to the cloud when a task calls for it, so each task runs where it makes the most sense, making token costs go further.</span><span data-ccp-props="{&quot;201341983&quot;:0,&quot;335559739&quot;:0,&quot;335559740&quot;:240}"> </span>
+
+https://www.youtube.com/watch?v=R6WkUkvIcC8
+
+<span class="TextRun SCXW88145480 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW88145480 BCX8">Here's</span><span class="NormalTextRun SCXW88145480 BCX8"> what that looks like in practice. With </span></span><span class="TextRun SCXW88145480 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW88145480 BCX8">local file actions in Copilot</span></span><span class="TextRun SCXW88145480 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW88145480 BCX8">, people can ask Copilot in plain language to find, organize, move, </span><span class="NormalTextRun SCXW88145480 BCX8">copy</span><span class="NormalTextRun SCXW88145480 BCX8"> or rename files. Tidying a cluttered </span><span class="NormalTextRun SCXW88145480 BCX8">D</span><span class="NormalTextRun SCXW88145480 BCX8">ownloads folder or pulling project files together takes a sentence</span><span class="NormalTextRun SCXW88145480 BCX8">,</span><span class="NormalTextRun SCXW88145480 BCX8"> and </span><span class="NormalTextRun SCXW88145480 BCX8">your employees can </span><span class="NormalTextRun SCXW88145480 BCX8">spend time on </span><span class="NormalTextRun SCXW88145480 BCX8">more important activities while Copilot does the </span><span class="NormalTextRun SCXW88145480 BCX8">work on Windows</span><span class="NormalTextRun SCXW88145480 BCX8">.</span></span>
+
+https://www.youtube.com/watch?v=1TVVgqdlWOg
+
+<b><span data-contrast="auto">Local PC diagnostics</span></b><span data-contrast="auto"> brings the same simplicity to troubleshooting. Copilot can run a read-only scan of the system to help find the root cause of errors or performance issues, then explain what's going on in clear terms. Figuring out why your Bluetooth audio isn’t working or why your network connection is slow takes a quick question instead of a support call.</span>
+
+<span data-contrast="auto">These capabilities can help resolve many of the most common reasons people call IT support. Employees get time back, and IT teams spend less time on tickets and more on work that moves the business forward.</span>
+
+<span data-contrast="auto">And building on the </span><a href="https://blogs.windows.com/windows-insider/2026/10/07/from-searching-to-doing-building-a-faster-more-streamlined-windows-search/"><span data-contrast="none">new Windows Search experience</span></a><span data-contrast="auto"> that makes it faster to find what you need and take action, we’re also now making it seamless to move into Copilot right from that very flow, for people who choose it.</span>
+<h3><strong>Bringing Hybrid Intelligence to GitHub Copilot on Windows</strong></h3>
+<span data-contrast="auto">Developers are some of the biggest consumers of AI tokens. GitHub Copilot Fusion routes each coding task to the right model, and it can now tap into local models like MAI Code 1.1 Flash on developer PCs powered by NVIDIA RTX Spark and </span><b><span data-contrast="auto">now extending to AMD Ryzen™ AI Max Series and Ryzen™ AI Max 400 Series processors</span></b><span data-contrast="auto">. Hybrid Intelligence is available on the GitHub Copilot app, CLI and VS Code in preview. Several Fortune 500 companies are already piloting this experience.</span>
+
+<span data-contrast="auto">We’re also working with </span><b><span data-contrast="auto">Adobe</span></b><span data-contrast="auto">, </span><b><span data-contrast="auto">Autodesk</span></b><span data-contrast="auto">, </span><b><span data-contrast="auto">Dell</span></b><span data-contrast="auto">, </span><b><span data-contrast="auto">HP</span></b><span data-contrast="auto">, </span><b><span data-contrast="auto">Insight</span></b><span data-contrast="auto">, </span><b><span data-contrast="auto">NVIDIA</span></b><span data-contrast="auto"> and </span><b><span data-contrast="auto">PwC</span></b><span data-contrast="auto"> in the Windows Hybrid Intelligence pilot to bring local models into their development workflows.</span>
+
+<img class="alignnone size-large wp-image-180608" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/GitHub-Copilot-with-Hybrid-Intelligence-1024x341.png" alt="GitHub Copilot with Hybrid Intelligence" width="1024" height="341" />
+<p style="padding-left: 40px"><em>“Adobe’s flagship Windows apps like Premiere and After Effects already use local AI to deliver creative value to our users. Like many leading organizations, we’re looking to optimize growing AI spend, both ours and our customers’, without giving up access to frontier capabilities. We’re excited for more ways to harness hybrid intelligence to empower our developers to run key workflows in the right place, whether that’s local or cloud.”</em></p>
+<p style="padding-left: 40px">— Ely Greenfield, CTO and EVP of Adobe’s Creative Products</p>
+<span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">Agent builders </span><span class="NormalTextRun SCXW263908905 BCX8">like </span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">Hermes</span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">, </span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">OpenClaw</span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">,</span> </span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">Perplexity</span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">,</span> </span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SpellingErrorV2Themed SCXW263908905 BCX8">Replit</span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8"> and more</span> <span class="NormalTextRun SCXW263908905 BCX8">are</span><span class="NormalTextRun SCXW263908905 BCX8"> building local AI experiences on Windows. </span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">Christie’s</span></span><span class="TextRun SCXW263908905 BCX8" lang="EN-US" xml:lang="EN-US" data-contrast="auto"><span class="NormalTextRun SCXW263908905 BCX8">, the fine art and luxury auction house, uses </span><span class="NormalTextRun SpellingErrorV2Themed SCXW263908905 BCX8">Replit’s</span><span class="NormalTextRun SCXW263908905 BCX8"> agent on Windows to work with private art collection data that never leaves the device.</span></span>
+
+https://www.youtube.com/watch?v=0fjfAhKT0sA
+<h3><strong>One estate, from the PC to Azure built as connected AI infrastructure</strong></h3>
+<span data-contrast="auto">Hybrid intelligence extends across your entire Windows estate. Windows connects PCs, servers and Azure as one system, with trust and intelligence spanning them all, so you can match the model and the compute to the work. That makes your PCs and servers part of your AI infrastructure, and that infrastructure becomes how you grow your core business, scale expertise and accelerate time to market.</span><span data-ccp-props="{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;201341983&quot;:0,&quot;335551550&quot;:1,&quot;335551620&quot;:1,&quot;335559685&quot;:0,&quot;335559737&quot;:0,&quot;335559738&quot;:0,&quot;335559739&quot;:160,&quot;335559740&quot;:276}"> </span>
+
+<b><span data-contrast="auto">PCs for every role.</span></b><span data-contrast="auto"> For knowledge work, that’s a Copilot+ PC, many powered by Intel Core Ultra. For builders, Windows supports the broadest range of devices, from PCs powered by NVIDIA RTX Spark, like Surface Laptop Ultra, to PCs with AMD Ryzen AI Max processors. For teams that need frontier models on device, NVIDIA DGX Station for Windows brings trillion-parameter models to the deskside. AMD, Intel, NVIDIA and Qualcomm bring this portfolio to life at every tier, in devices from every major PC maker.</span><span data-ccp-props="{}"> </span>
+
+<b><span data-contrast="auto">Cloud PCs for everyone.</span></b><span data-contrast="auto"> Windows 365 is the same Windows, with the same apps and the same identity, streamed from the Microsoft Cloud, and tens of thousands of organizations rely on it. Today, we’re introducing </span><b><span data-contrast="auto">Direct Stream</span></b><span data-contrast="auto">, the streaming technology behind Windows 365 and Azure Virtual Desktop. It brings together years of work on connection reliability, speed, transport security and in-session performance to make a Cloud PC feel like a local PC. People connect within seconds, with nearly 300% improvement in connection reliability on challenging networks compared with when Windows 365 first launched. With NVIDIA, GPU-enabled Cloud PCs, coming in preview early next year, will stream full 4:4:4-equivalent color and sharper text to up to two 4K displays at 60 frames per second, with low latency and less bandwidth. Cloud PCs, including GPU-enabled configurations, can also run compatible AI models, giving developers more compute with predictable subscription costs.</span><span data-ccp-props="{}"> </span>
+
+<span data-contrast="auto">That changes who Windows 365 is for. Now it’s an option for everyone in your organization, and knowledge workers can make it their everyday PC. With IT budgets tight, it can also extend the life of PCs you aren’t ready to replace, giving anyone more compute in minutes with no new hardware.</span><span data-ccp-props="{}"> </span>
+
+<a href="https://aka.ms/W365Ignite26Blog"><span data-contrast="none">Learn more about what’s new in Windows 365, including Windows 365 for Agents.</span></a>
+
+<b><span data-contrast="auto">Servers that run AI next to your data.</span></b><span data-contrast="auto"> Your servers hold the mission-critical apps and data your business depends on. </span><a href="https://aka.ms/WindowsServer2028Announcement"><b><span data-contrast="none">Windows Server 2028</span></b><span data-contrast="none">, now in public preview</span></a><span data-contrast="auto">, extends the trusted foundation to the datacenter with new security hardening, including Trusted Launch virtual machines, post-quantum cryptography and a hardened OS baseline. For the first time, endpoint teams can manage servers and PCs as one Windows fleet with Intune and Windows Autopatch, while infrastructure teams use Azure Arc.</span><span data-ccp-props="{}"> </span>
+
+<span data-contrast="auto">Your servers will become token factories, built for intelligence you can own. That’s why we’re </span><b><span data-contrast="auto">extending Microsoft Foundry to Windows Server 2028</span></b><span data-contrast="auto"> and expanding hardware choice. </span><a href="https://www.amd.com/en/blogs/2026/more-ai-more-control-amd-instinct-mi350p-comes-to-windows.html"><b><span data-contrast="none">AMD’s MI350P accelerator</span></b></a><b><span data-contrast="auto"> will be available in preview</span></b><span data-contrast="auto"> in the first half of 2027 for Windows Server 2025 and later, and </span><a href="https://www.nvidia.com/en-us/products/workstations/dgx-station-for-windows/"><b><span data-contrast="none">NVIDIA DGX Station for Windows</span></b></a><span data-contrast="auto">, with the GB300 Grace Blackwell Ultra Desktop Superchip and up to 748 GB of coherent memory, will support Windows Server 2028 at general availability. Organizations building agents on an open model like NVIDIA Nemotron now have one path: build on a Windows PC, run on Windows Server next to their data and scale to Azure when they need more.</span><span data-ccp-props="{}"> </span>
+<h2><b><span data-contrast="none">Where to start in 2027</span></b><span data-ccp-props="{&quot;134245418&quot;:true,&quot;335559738&quot;:360,&quot;335559739&quot;:120}"> </span></h2>
+<span data-contrast="auto">Every hardware decision you make in the next 12 to 18 months is an AI decision. It will shape what your teams can do, and what your tokens cost, until your next refresh. As you plan for 2027, here’s where to start:</span><span data-ccp-props="{}"> </span>
+<ul>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="8" data-aria-level="1"><b><span data-contrast="auto">Strengthen the foundation now.</span></b><span data-contrast="auto"> Deploy updates with Windows Autopatch, turn on Windows administrator protection and evaluate Windows baseline protection.</span></li>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="8" data-aria-level="1"><b><span data-contrast="auto">Secure your agentic workflows.</span></b><span data-contrast="auto"> Set MXC policies with Intune to control what your agents can access within your organization.</span></li>
+</ul>
+<ul>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="9" data-aria-level="1"><b><span data-contrast="auto">Start piloting Hybrid Intelligence in GitHub Copilot on Windows.</span></b><span data-contrast="auto"> For your developers, start leveraging Copilot Fusion on Windows to route coding workflows to local models and save tokens.</span></li>
+</ul>
+<ul>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="10" data-aria-level="1"><b><span data-contrast="auto">Plan your refresh by role,</span></b><span data-contrast="auto"> with Copilot+ PCs and Windows 365 in one plan, so every person gets the compute their work needs.</span></li>
+</ul>
+<ul>
+ 	<li data-leveltext="•" data-font="" data-listid="2" data-list-defn-props="{&quot;335552541&quot;:1,&quot;335559685&quot;:540,&quot;335559991&quot;:270,&quot;469769242&quot;:[8226],&quot;469777803&quot;:&quot;left&quot;,&quot;469777804&quot;:&quot;•&quot;,&quot;469777815&quot;:&quot;hybridMultilevel&quot;}" data-aria-posinset="11" data-aria-level="1"><b><span data-contrast="auto">Bring AI to your data.</span></b><span data-contrast="auto"> Test Windows Server 2028 in the </span><a href="https://www.microsoft.com/en-us/windowsinsider/for-business-getting-started-server"><span data-contrast="none">Windows Insider Program for Windows Server</span></a><span data-contrast="auto">, or apply to the </span><a href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbRxJsFmKcaMlKrFIKRB0HjjZUOTgzNlBJT0hIWDMwSkY1Q1YzQk0zNFgxOC4u"><span data-contrast="none">Windows Server TAP</span></a><span data-contrast="auto"> for earlier access.</span><span data-ccp-props="{}"> </span></li>
+</ul>
+<span data-contrast="auto">Leaders shouldn’t have to choose between moving quickly and moving carefully. That’s why we’re building Windows to be the OS for hybrid intelligence: the most secure platform for agents, an AI budget that goes further and an estate built as connected AI infrastructure, so intelligence reaches every person in your organization.</span><span data-ccp-props="{}"> </span>
+
+<a href="https://ignite.microsoft.com/en-US/sessions/1787856658187001Etji-1789751959279001dn4k?source=sessions"><span data-contrast="none">Join me today at 2 p.m. PT for our innovation session</span></a><span data-contrast="auto">, where PwC’s Digital Workplace team will share how they’re deciding where AI runs across more than 360,000 devices in over 130 countries. We hope you have a great Ignite!</span>]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Windows security at Ignite 2026: Start secure, protect what matters, prepare for AI</title>
+		<link>https://blogs.windows.com/windowsexperience/2026/11/17/windows-security-at-ignite-2026-start-secure-protect-what-matters-prepare-for-ai/</link>
+		
+		<dc:creator><![CDATA[cstewart]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:15:58 +0000</pubDate>
+				<category><![CDATA[PC]]></category>
+		<guid isPermaLink="false">https://blogs.windows.com/blog/2026/11/17/windows-security-at-ignite-2026-start-secure-protect-what-matters-prepare-for-ai/</guid>
+
+					<description><![CDATA[<p><strong>AI is changing the threat landscape as fast as it is changing the way we work. </strong>Attackers are using AI to find vulnerabilities, build exploits and scale their campaigns faster than ever, shrinking the time between a weakness being dis</p>
+<p>The post <a href="https://blogs.windows.com/windowsexperience/2026/11/17/windows-security-at-ignite-2026-start-secure-protect-what-matters-prepare-for-ai/">Windows security at Ignite 2026: Start secure, protect what matters, prepare for AI</a> appeared first on <a href="https://blogs.windows.com">Windows Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<strong>AI is changing the threat landscape as fast as it is changing the way we work. </strong>Attackers are using AI to find vulnerabilities, build exploits and scale their campaigns faster than ever, shrinking the time between a weakness being discovered and being used against an organization.
+
+In this environment, the fundamentals matter more than ever. Devices that are configured securely and patched quickly remain one of the most effective defenses, and the security strategy you have for your users and data must now extend to AI and agents as well.
+
+Windows can help enforce identity and security controls on the devices where people, apps, and data intersect. Together with Microsoft security and management solutions, as well as tools like Agent 365, Windows provides a trusted foundation that helps organizations start secure, protect what matters, and manage AI securely.
+
+At Microsoft Ignite 2026, we're advancing that foundation across Windows with stronger protections by default, hardware-backed security, updated passwordless experiences, resilience and recovery, and new controls for AI agents. These investments extend <a href="https://blogs.windows.com/windowsdeveloper/2026/06/02/windows-platform-security-for-ai-agents/">the work we shared at Build 2026</a>, and take the next step toward a Windows environment designed for the security demands of the AI era.
+<h2>Helping organizations start secure and stay secure<strong> </strong></h2>
+<strong>The Windows security foundation is evolving. </strong>Windows is becoming more secure and resilient, out of the box, to help organizations and users stay productive and protected. At Ignite, we’re sharing investments that strengthen Windows from hardware and cryptography through the operating system and security ecosystem.
+
+Last year, we <a href="https://blogs.windows.com/windowsexperience/2025/06/26/the-windows-resiliency-initiative-building-resilience-for-a-future-ready-enterprise/">shared</a> how Windows was working with security partners to evolve our platform to better integrate with the ecosystem, while remaining resilient. We can now share that the<strong> Windows endpoint security platform is reaching general availability on Windows 11. </strong>This marks an important milestone in Microsoft's work with the security ecosystem to reduce reliance on kernel drivers while preserving the capabilities security solutions depend on. We thank the partners who have joined us on this journey:
+
+[caption id="attachment_180595" align="alignnone" width="940"]<img class="wp-image-180595 size-full" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/Ignite-Partners.png" alt="" width="940" height="181" /> Partners collaborating with the Windows endpoint security platform[/caption]
+
+Alongside the Driver Quality Initiative and broader work to reduce kernel exposure and strengthen recovery, these investments are helping make Windows more resilient by design.
+
+<a href="https://aka.ms/WinSecurity26IgniteBlog_WESP"><strong>See what's changing with Windows endpoint security platform GA, driver quality and ecosystem resilience</strong></a>
+
+We also know how important it is for users and organizations to better understand the security state of their devices. With <strong>Windows baseline protection, now available in preview</strong>, Windows brings foundational protections, including secure boot, virtualization-based security, and memory integrity together into a single, versioned security state. Instead of requiring customers and applications to understand and check individual protections, baseline protection makes it easier for users and IT to understand whether a device is in a measurable security state, to keep it up to date with the latest security safeguards, and, when stronger assurance is required, verify that state through hardware-backed attestation. It also provides developers a way to ensure that a Windows device running their applications is operating in a secure state. Windows baseline protection will continue to evolve as more security capabilities are added.
+
+[caption id="attachment_180591" align="alignnone" width="1024"]<img class="size-large wp-image-180591" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/Windows-baseline-protection-in-Windows-settings-1024x664.png" alt="Windows baseline protection as part of the Windows settings experience" width="1024" height="664" /> Windows baseline protection as part of the Windows settings experience[/caption]
+
+Baseline protection will show up in an updated <strong>Windows Settings experience</strong>, making security and privacy protections easier for people to understand.
+
+<a href="https://aka.ms/WinSecurity26IgniteBlog_WindowsBaselineProtection"><strong>Learn how Windows is making its security foundation easier to establish, understand and verify with baseline protection</strong></a>
+
+A trusted foundation must also prepare for threats that emerge before they become practical at scale. At Ignite, Windows is <strong>expanding post-quantum protection in the Windows TLS stack, </strong>including pure post-quantum key exchange and authentication, while advancing a broader crypto-agile foundation across the platform. These investments give organizations practical steps they can begin taking now while preparing for a multi-year transition across applications, infrastructure and identity.
+
+<a href="https://aka.ms/WinSecurity26IgniteBlog_PostQuantum"><strong>Explore the new post-quantum TLS capabilities and how to begin preparing</strong></a>
+
+Together, these investments help organizations establish a known and measurable security state, build on a more resilient platform, and prepare that foundation for emerging threats.
+<h2>Protect what matters to your organization, wherever the work happens</h2>
+<strong>A secure starting point isn’t enough. </strong>Organizations must remain confident in their IT security as technology evolves. Windows, Microsoft Entra, Microsoft Purview and Microsoft Intune help organizations do exactly that: protect identity and data, manage apps and devices, and stay current and recoverable throughout the device lifecycle.
+
+For identity and access management, Windows continues to offer new and improved ways of signing in securely with more passwordless options. <strong>Windows Hello improvements</strong> make passwordless sign-in more consistent and get you to your desktop faster, <strong>new observability</strong> gives IT greater insight into whether users authenticate using biometrics or PIN, <strong>expanded Web sign-in </strong>brings passwordless access to more devices. There are also improvements to <strong>security key sign-in,</strong> with Windows showing you where to tap on the display, and <strong>security key management </strong>make security keys easier to use and manage.
+
+[caption id="attachment_180592" align="alignnone" width="931"]<img class="size-full wp-image-180592" src="https://blogs.windows.com/wp-content/uploads/sites/2/2026/11/Windows-Hello-Face-and-PIN-sign-in-available-at-Windows-sign-in.png" alt="Windows Hello Face and PIN sign in available at Windows sign-in" width="931" height="584" /> Windows Hello Face and PIN sign in available at Windows sign-in[/caption]
+
+<strong>Administrator protection</strong> helps users operate with standard permissions by default and elevate privileges when needed, reducing the risk associated with standing administrator access.
+
+<strong><a href="https://aka.ms/WinSecurity26IgniteBlog_Passwordless">Dive into passwordless, hardware-backed credentials and expanded authentication scenarios</a></strong>
+
+Keeping a device secure is an ongoing process, not a one-time configuration. Investments across <strong>Windows Autopatch, declarative management, and recovery</strong> help IT maintain intended state, respond to risk, and restore operations after disruption.
+
+<strong><a href="https://aka.ms/WinSecurity26IgniteBlog_WindowsMgmt">See how Windows management and recovery capabilities help organizations stay secure through change</a></strong>
+
+<strong> </strong>We're also advancing how organizations manage the broader Windows estate. <strong>New Intune capabilities simplify application deployment, inventory, and lifecycle management</strong>, helping applications remain current and governed alongside the devices where they run.
+
+Microsoft is also<strong> extending Intune and Windows Autopatch to eligible Windows Server scenarios, </strong>in preview, helping endpoint teams manage configuration, compliance, applications, updates, and security across Windows clients and supported servers. This extends consistent management and security across more of the Windows estate, while complementing Azure Arc for cloud-native server management.
+
+<strong><a href="https://aka.ms/IntuneatIgnite">Learn more about Microsoft Intune’s new capabilities across Windows Server, app management and more</a></strong>
+<h2>Manage agents securely</h2>
+<strong>AI introduces new security risks. </strong>Agents can access resources, use tools, and take action on behalf of people and organizations. That means agentic security isn’t just about securing the agents themselves — it’s about giving users the ability to trust and control the agents running on their devices. People need confidence that agents act only in ways they have authorized, don’t harm their devices or data, and that every action an agent takes is governed.
+
+Windows is building that foundation through agent identity, containment, isolation, policy, observability, and governance. Announced <a href="https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/">last month</a>, <strong>Microsoft Execution Containers</strong> provide governed boundaries for agent execution, helping organizations contain agent activity and maintain control over access to resources and tools. Together with Microsoft management and security solutions, these protections help organizations move agents from experimentation toward enterprise deployment without giving up control.
+
+<a href="https://aka.ms/WinSecurity26IgniteBlog_AIGovernance"><strong>Learn how to take governed AI agents from experimentation toward enterprise deployment</strong></a>
+
+Together, these capabilities help organizations give agents room to act while keeping identity, permissions, data access, tools, and execution boundaries under enterprise control.
+<h2>One connected system of protection<strong> </strong></h2>
+<strong>Organizations shouldn't have to stitch protections together.</strong> Windows brings identity, security and management together where work happens, providing a trusted foundation for protecting your users, data, apps and AI. Together with Microsoft Security and Microsoft Intune, Windows helps you secure and manage your organization through one connected platform, wherever you are on your AI journey.
+<h2>Experience Windows Security at Ignite<strong> </strong></h2>
+At Microsoft Ignite, customers can explore this story through sessions spanning a more secure-by-default Windows, platform and credential protection, modern management, resilience and recovery, and governed AI agents.
+
+In particular, Windows security principles and latest technology will be shared in the following sessions:<strong> </strong>
+<ul>
+ 	<li><a href="https://aka.ms/WinSecurityIgnite26BRK405">BRK405 | What's new in Windows security: Start secure, protect what matters, prepare for the AI era </a></li>
+ 	<li><a href="https://aka.ms/WinSecurityIgnite26BRK398">BRK398 | From Prevention to Recovery: building a more resilient Windows estate</a></li>
+ 	<li><a href="https://aka.ms/WinSecurityIgnite26BRK392">BRK392 | Future-proof your App: Prepare for evolving Windows security standards </a></li>
+</ul>
+<h2>Learn more</h2>
+Explore the Windows Security Guide and Microsoft Learn for practical guidance on establishing a secure foundation, protecting your organization as technology evolves, and preparing for the AI era.
+<ul>
+ 	<li><a href="https://aka.ms/Windows1126SecurityGuide">Explore the Windows Security Guide</a></li>
+ 	<li><a href="https://learn.microsoft.com/windows/security/">Visit Windows Security on Microsoft Learn</a></li>
+</ul>]]></content:encoded>
+					
+		
+		
+			</item>
+</channel>
+</rss>

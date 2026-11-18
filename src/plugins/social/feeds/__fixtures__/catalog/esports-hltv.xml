@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+  <title>HLTV.org - The home of competitive Counter-Strike</title>
+  <description>HLTV.org is the leading Counter-Strike site in the world, featuring news, demos, pictures, statistics, on-site coverage and much much more!</description>
+  <link>https://www.hltv.org/</link>
+  <language>en</language>
+  <ttl>60</ttl>
+  <image>
+    <url>https://www.hltv.org/img/static/openGraphHltvLogo.png</url>
+    <title>HLTV.org - The home of competitive Counter-Strike</title>
+    <link>https://www.hltv.org/</link>
+  </image>
+  <link xmlns="http://www.w3.org/2005/Atom" rel="self" type="application/rss+xml" href="https://www.hltv.org/rss/news"></link>
+  <item>
+    <title>Short news: Week 45 </title>
+    <description>Catch up with more Counter-Strike news in bite-sized pieces. </description>
+    <link>https://www.hltv.org/news/45999/short-news-week-45</link>
+    <guid isPermaLink="false">hltvnews45999</guid>
+    <pubDate>Wed, 18 Nov 2026 20:51:00 GMT</pubDate>
+  </item>
+  <item>
+    <title>Media: Inner Circle owner detained in Italy </title>
+    <description>Reports from Ukraine say that Oleksandr Slobozhenko has been arrested on charges of tax evasion. </description>
+    <link>https://www.hltv.org/news/46012/media-inner-circle-owner-detained-in-italy</link>
+    <guid isPermaLink="false">hltvnews46012</guid>
+    <pubDate>Wed, 18 Nov 2026 17:48:00 GMT</pubDate>
+    <media:content url="https://img-cdn.hltv.org/gallerypicture/cAAjtS0ni_gNRIVwMuTVS8.png?auto=compress&amp;ixlib=java-2.1.0&amp;q=75&amp;w=800&amp;s=92070332320213924ac4a4985b93300c"></media:content>
+  </item>
+  <item>
+    <title>ENCE through the years: Success, setbacks and reinvention </title>
+    <description>As the Finnish organization closes its doors, we look back at the highs and lows of its time in Counter-Strike. </description>
+    <link>https://www.hltv.org/news/45953/ence-through-the-years-success-setbacks-and-reinvention</link>
+    <guid isPermaLink="false">hltvnews45953</guid>
+    <pubDate>Wed, 18 Nov 2026 15:00:00 GMT</pubDate>
+    <media:content url="https://img-cdn.hltv.org/gallerypicture/aEJA6huOpwZ58f_bKJbRjM.jpg?auto=compress&amp;ixlib=java-2.1.0&amp;q=75&amp;rect=1091%2C1196%2C2994%2C1990&amp;w=800&amp;s=df787e9c0ae32527af6cfed6b0495f63"></media:content>
+  </item>
+</channel>
+</rss>

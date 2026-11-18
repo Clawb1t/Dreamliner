@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Zoom Status - Incident History</title>
+    <link>https://www.zoomstatus.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 12:29:41 -0800</pubDate>
+    <item>
+      <title>Scheduled Zoom Software Quarterly Lifecycle Update: February 06, 2027</title>
+      <description>
+&lt;p&gt;&lt;strong&gt;THIS IS A SCHEDULED EVENT Feb &lt;var data-var=&apos;date&apos;&gt;6&lt;/var&gt;, &lt;var data-var=&apos;year&apos;&gt;2027&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:00&lt;/var&gt; - &lt;var data-var=&apos;time&apos;&gt;18:00&lt;/var&gt; PST&lt;/strong&gt;&lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 6&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;00:51&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - Zoom will be enforcing a new minimum version for the following areas, approximately 90 days from now, on February 6, 2027:&lt;br /&gt;&lt;br /&gt;Zoom Rooms&lt;br /&gt;&lt;br /&gt;Zoom Node - Agent&lt;br /&gt;&lt;br /&gt;Zoom Phone Local Survivability (ZPLS) module&lt;br /&gt;&lt;br /&gt;Meeting SDK (Windows)&lt;br /&gt;&lt;br /&gt;For more information, such as specific versions we are enforcing, refer to the Zoom Software Quarterly Lifecycle Policy support article: https://support.zoom.com/hc/en/article?id=zm_kb&amp;sysparm_article=KB0061130&lt;br /&gt;&lt;br /&gt;To assist with checking the client versions on your account, refer to the Dashboard support article: https://support.zoom.com/hc/en/article?id=zm_kb&amp;sysparm_article=KB0062208#h_13ce9a73-91e5-4df6-9cb5-c815b1605cf5 &lt;/p&gt;      </description>
+      <pubDate>Sat, 06 Feb 2027 17:00:00 -0800</pubDate>
+      <maintenanceEndDate>Sat, 06 Feb 2027 18:00:00 -0800</maintenanceEndDate>
+      <link>https://www.zoomstatus.com/incidents/l5qcg1bm3z2z</link>
+      <guid>https://www.zoomstatus.com/incidents/l5qcg1bm3z2z</guid>
+    </item>
+    <item>
+      <title>Zoom Support Maintenance: December 11, 2026</title>
+      <description>
+&lt;p&gt;&lt;strong&gt;THIS IS A SCHEDULED EVENT Dec &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:00&lt;/var&gt; - &lt;var data-var=&apos;time&apos;&gt;20:30&lt;/var&gt; PST&lt;/strong&gt;&lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:05&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - We will be performing maintenance on Zoom Support Ticketing and Knowledge Base.  Users may experience degraded performance and up to 30 minutes of downtime for Zoom Support’s Knowledge Base and Ticketing during the maintenance window. &lt;/p&gt;      </description>
+      <pubDate>Fri, 11 Dec 2026 16:00:00 -0800</pubDate>
+      <maintenanceEndDate>Fri, 11 Dec 2026 20:30:00 -0800</maintenanceEndDate>
+      <link>https://www.zoomstatus.com/incidents/ywdylq9cmymt</link>
+      <guid>https://www.zoomstatus.com/incidents/ywdylq9cmymt</guid>
+    </item>
+    <item>
+      <title>Zoom Phone India Maintenance (Mumbai) : December 04, 2026</title>
+      <description>
+&lt;p&gt;&lt;strong&gt;THIS IS A SCHEDULED EVENT Dec &lt;var data-var=&apos;date&apos;&gt;4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;04:00&lt;/var&gt; PST &amp;nbsp;-&amp;nbsp; Dec &lt;var data-var=&apos;date&apos;&gt;5&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:00&lt;/var&gt; PST&lt;/strong&gt;&lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;21:28&lt;/var&gt; PST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - Zoom Phone users registered to the India (Mumbai) Data Center will be automatically registered in an alternative datacenter (Hyderabad) starting at 04th December 2026 04:00 AM PST (5:30 PM IST on 04th December 2026). During the maintenance window, a brief disconnection may be experienced and notifications may be missed. If you get disconnected, the system will attempt to reconnect you automatically. &lt;br /&gt;&lt;br /&gt;If you are a BYOC (Bring Your Own Carrier) customer, please ensure that your Session Border Controller (SBC) is configured with alternate routing to alternate India (Hyderabad) Data Center in addition to the India (Mumbai) Data Center. During the maintenance window, connectivity to Zoom’s Mumbai Data Center will be blocked which will force calls from the Session Border Controller (SBC) to failover to Zoom’s India (Hyderabad) Data Center. Traffic will continue to be routed through the Zoom&apos;s India (Mumbai) Data Center once the maintenance is completed. &lt;br /&gt;&lt;br /&gt;For customers that use hardware phones, refer to this link for the devices support the alternative datacenter process as described above: https://support.zoom.com/hc/en/article?id=zm_kb&amp;sysparm_article=KB0061373#h_01GNZ783VT6YXHES8NSXBA5M9A &lt;/p&gt;      </description>
+      <pubDate>Fri, 04 Dec 2026 04:00:00 -0800</pubDate>
+      <maintenanceEndDate>Sat, 05 Dec 2026 10:00:00 -0800</maintenanceEndDate>
+      <link>https://www.zoomstatus.com/incidents/t5gdrhbtrqc3</link>
+      <guid>https://www.zoomstatus.com/incidents/t5gdrhbtrqc3</guid>
+    </item>
+</channel>
+</rss>

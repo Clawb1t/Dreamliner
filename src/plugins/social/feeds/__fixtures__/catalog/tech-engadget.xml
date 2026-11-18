@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+    xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+            xmlns:media="http://search.yahoo.com/mrss/"
+        
+    >
+    <channel>
+        <title>Engadget - Technology News &amp; Expert Reviews</title>
+        <atom:link href="https://www.engadget.com/feed/" rel="self" type="application/rss+xml" />
+        <link>https://www.engadget.com/</link>
+        <description>Breaking news from the worlds of technology and entertainment, and expert reviews of the latest consumer tech products.</description>
+        <lastBuildDate>Wed, 18 Nov 2026 20:20:01 +0000</lastBuildDate>
+        <language>en-US</language>
+        <sy:updatePeriod>hourly</sy:updatePeriod>
+        <sy:updateFrequency>1</sy:updateFrequency>
+                                <item>
+                    <title><![CDATA[GTA 6's cops will remember you thanks to the 'Heat' system]]></title>
+                    <link>https://www.engadget.com/2320983/gta-6s-cops-will-remember-you-thanks-to-the-heat-system/</link>
+                    <pubDate>Wed, 18 Nov 2026 19:34:34 +0000</pubDate>
+                                            <author>staff@engadget.com (Igor Bonifacic)</author>
+                                                            		<category><![CDATA[Gaming]]></category>
+                    <guid>https://www.engadget.com/2320983/gta-6s-cops-will-remember-you-thanks-to-the-heat-system/</guid>
+                                            <description><![CDATA[It's a fun evolution of the iconic Wanted mechanic.]]></description>
+
+                                                                                    <content:encoded><![CDATA[It's a fun evolution of the iconic Wanted mechanic.<p><img src="https://www.engadget.com/img/gallery/gta-6s-cops-will-remember-you-thanks-to-the-heat-system/intro-1795030355.jpg" /></p>]]></content:encoded>
+                                                                                                                    <media:thumbnail url="https://www.engadget.com/img/gallery/gta-6s-cops-will-remember-you-thanks-to-the-heat-system/l-intro-1795030355.jpg"/>
+                        <enclosure url="https://www.engadget.com/img/gallery/gta-6s-cops-will-remember-you-thanks-to-the-heat-system/l-intro-1795030355.jpg" type="image/jpg" length="316350"/>
+                                    </item>
+                                    <item>
+                    <title><![CDATA[Xreal Aura review: Solid AR glasses hampered by Google's half-baked Android XR]]></title>
+                    <link>https://www.engadget.com/2320945/xreal-aura-review/</link>
+                    <pubDate>Wed, 18 Nov 2026 19:30:00 +0000</pubDate>
+                                            <author>staff@engadget.com (Devindra Hardawar)</author>
+                                                            		<category><![CDATA[Reviews]]></category>
+                    <guid>https://www.engadget.com/2320945/xreal-aura-review/</guid>
+                                            <description><![CDATA[For $1,099, we should expect more.]]></description>
+
+                                                                                    <content:encoded><![CDATA[For $1,099, we should expect more.<p><img src="https://www.engadget.com/img/gallery/xreal-aura-review-solid-ar-glasses-hampered-by-googles-half-baked-android-xr/intro-1795027922.jpg" /></p>]]></content:encoded>
+                                                                                                                    <media:thumbnail url="https://www.engadget.com/img/gallery/xreal-aura-review-solid-ar-glasses-hampered-by-googles-half-baked-android-xr/l-intro-1795027922.jpg"/>
+                        <enclosure url="https://www.engadget.com/img/gallery/xreal-aura-review-solid-ar-glasses-hampered-by-googles-half-baked-android-xr/l-intro-1795027922.jpg" type="image/jpg" length="461122"/>
+                                    </item>
+                                    <item>
+                    <title><![CDATA[You can finally edit an Instagram Story without deleting it]]></title>
+                    <link>https://www.engadget.com/2320953/you-can-finally-edit-an-instagram-story-without-deleting-it/</link>
+                    <pubDate>Wed, 18 Nov 2026 19:14:19 +0000</pubDate>
+                                            <author>staff@engadget.com (Karissa Bell)</author>
+                                                            		<category><![CDATA[Meta]]></category>
+                    <guid>https://www.engadget.com/2320953/you-can-finally-edit-an-instagram-story-without-deleting-it/</guid>
+                                            <description><![CDATA[There's a 15-minute window to fix typos and make other changes.]]></description>
+
+                                                                                    <content:encoded><![CDATA[There's a 15-minute window to fix typos and make other changes.<p><img src="https://www.engadget.com/img/gallery/you-can-finally-edit-an-instagram-story-without-deleting-it/intro-1795029225.jpg" /></p>]]></content:encoded>
+                                                                                                                    <media:thumbnail url="https://www.engadget.com/img/gallery/you-can-finally-edit-an-instagram-story-without-deleting-it/l-intro-1795029225.jpg"/>
+                        <enclosure url="https://www.engadget.com/img/gallery/you-can-finally-edit-an-instagram-story-without-deleting-it/l-intro-1795029225.jpg" type="image/jpg" length="285010"/>
+                                    </item>
+</channel>
+</rss>

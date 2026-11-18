@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Unity Status - Incident History</title>
+    <link>https://status.unity.com</link>
+    <atom:link rel="self" href="https://status.unity.com/history.rss" type="application/rss+xml"/>
+    <description>Incident history of Unity Services</description>
+    <pubDate>Sun, 15 Nov 2026 10:00:00 +0000</pubDate>
+    <item>
+      <title>Scheduled Unity Version Control Maintenance</title>
+      <pubDate>Sun, 15 Nov 2026 10:00:00 +0000</pubDate>
+      <category domain="event:start">Sun, 15 Nov 2026 08:00:00 +0000</category>
+      <category domain="event:end">Sun, 15 Nov 2026 10:00:00 +0000</category>
+      <description>&lt;p&gt;&lt;strong&gt;Scheduled maintenance&lt;/strong&gt; - Collaboration / Unity DevOps, Unity Version Control, Europe node, North America node, East Asia node, North East Asia node&lt;/p&gt;&lt;p&gt;&lt;small&gt;November  9, 2026 · 12:29 UTC&lt;/small&gt;&lt;br&gt;&lt;strong&gt;Scheduled&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;
+We’re always working to make our service faster, more reliable, and better suited to your needs. As part of that commitment, we’ll be carrying out a scheduled maintenance window on Sunday, November 15th, to make important infrastructure improvements.&lt;/p&gt;
+&lt;h3&gt;
+What to expect&lt;/h3&gt;
+&lt;p&gt;
+To keep disruption to a minimum, maintenance will be performed region by region rather than all at once. When maintenance begins in a given region, services there may be temporarily unavailable for approximately 15 to 30 minutes, after which they will resume as normal. Regions not undergoing maintenance at that moment will continue to operate without interruption.&lt;/p&gt;
+&lt;h3&gt;
+Do I need to take any action?&lt;/h3&gt;
+&lt;p&gt;
+No action is required on your part. We recommend planning any critical tasks outside the maintenance window where possible.&lt;/p&gt;
+&lt;p&gt;
+These improvements are an investment in the quality and stability of the service you rely on, and we’re excited about the benefits they’ll bring. We appreciate your patience and understanding while we complete this work.&lt;/p&gt;
+&lt;p&gt;
+Thank you for being with us.&lt;/p&gt;
+</description>
+      <link>https://status.unity.com/incidents/410466</link>
+      <guid>https://status.unity.com/incidents/410466</guid>
+    </item>
+    <item>
+      <title>Scheduled Maintenance Update for Mt1p</title>
+      <pubDate>Thu, 12 Nov 2026 16:30:00 +0000</pubDate>
+      <category domain="event:start">Thu, 12 Nov 2026 16:00:00 +0000</category>
+      <category domain="event:end">Thu, 12 Nov 2026 16:30:00 +0000</category>
+      <description>&lt;p&gt;&lt;strong&gt;Scheduled maintenance&lt;/strong&gt; - Comms and Safety, Vivox, mt1p Domain&lt;/p&gt;&lt;p&gt;&lt;small&gt;November 10, 2026 · 19:41 UTC&lt;/small&gt;&lt;br&gt;&lt;strong&gt;Scheduled&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;
+We will be performing a scheduled maintenance on &lt;strong&gt;mt1p.vivox.com&lt;/strong&gt; on Thursday 12th Nov 2026 at 11am EST. The maintenance is expected to last 1 hour with intermittent player interruption during the window. We will update on start and end of window.&lt;/p&gt;
+</description>
+      <link>https://status.unity.com/incidents/410723</link>
+      <guid>https://status.unity.com/incidents/410723</guid>
+    </item>
+    <item>
+      <title>Scheduled Maintenance Update for mt2p</title>
+      <pubDate>Tue, 10 Nov 2026 19:46:39 +0000</pubDate>
+      <category domain="event:start">Tue, 10 Nov 2026 19:46:08 +0000</category>
+      <category domain="event:end"/>
+      <description>&lt;p&gt;&lt;strong&gt;Scheduled maintenance&lt;/strong&gt; - Comms and Safety, Vivox, mt2p Domain&lt;/p&gt;&lt;p&gt;&lt;small&gt;November 10, 2026 · 19:46 UTC&lt;/small&gt;&lt;br&gt;&lt;strong&gt;Scheduled&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;
+We will be performing a scheduled maintenance on &lt;strong&gt;mt2p.vivox.com&lt;/strong&gt; on Thursday 12th Nov 2026 at 11:30 am EST. The maintenance is expected to last 1 hour with intermittent player interruption during the window. We will update on start and end of window.&lt;/p&gt;
+</description>
+      <link>https://status.unity.com/incidents/410724</link>
+      <guid>https://status.unity.com/incidents/410724</guid>
+    </item>
+</channel>
+</rss>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+      xmlns:content="http://purl.org/rss/1.0/modules/content/"
+      xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:atom="http://www.w3.org/2005/Atom"
+      xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+      xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+      xmlns:media="http://search.yahoo.com/mrss/"
+      >
+<channel>
+    <title>Dexerto Latest Posts</title>
+    <atom:link href="https://www.dexerto.com/feed/" rel="self" type="application/rss+xml" />
+    <link>https://www.dexerto.com</link>
+    <description>Esports, Gaming &amp; Influencer News</description>
+    <lastBuildDate>Wed, 18 Nov 2026 17:39:34 GMT</lastBuildDate>
+    <language>en-US</language>
+    <sy:updatePeriod>hourly</sy:updatePeriod>
+    <sy:updateFrequency>1</sy:updateFrequency>
+    <image>
+      <url>https://www.dexerto.com/cdn-image/wp-content/uploads/2020/10/dexerto-logo-1.png?width=1080&amp;quality=75&amp;format=auto</url>
+      <title>Dexerto Latest Posts</title>
+      <link>https://www.dexerto.com</link>
+      <width>144</width>
+      <height>14</height>
+    </image>
+    
+    <item>
+        <title>GTA 6 drops longtime hookup options and prostitution to focus on Jason and Lucia’s romance</title>
+        <link>https://www.dexerto.com/gta/gta-6-drops-longtime-hookup-options-and-prostitution-to-focus-on-jason-and-lucias-romance-3429539/</link>
+        <dc:creator><![CDATA[Zackerie Fairfax]]></dc:creator>
+        <pubDate>Wed, 18 Nov 2026 17:39:34 GMT</pubDate>
+        <category><![CDATA[Gaming]]></category>
+        <category><![CDATA[GTA]]></category>
+        <guid isPermaLink="true">https://www.dexerto.com/gta/gta-6-drops-longtime-hookup-options-and-prostitution-to-focus-on-jason-and-lucias-romance-3429539/</guid>
+        <description><![CDATA[GTA 6 cuts paid hookups and limits how far players can go with other characters, with private dances still available.]]></description>
+        <content:encoded><![CDATA[GTA 6 cuts paid hookups and limits how far players can go with other characters, with private dances still available.]]></content:encoded>
+        <enclosure url="https://www.dexerto.com/cdn-image/wp-content/uploads/2026/11/18/gta-6-jason-lucia-intimate.jpg?width=1080&amp;quality=75&amp;format=auto" type="image/jpeg" length="100747" />
+          <media:thumbnail url="https://www.dexerto.com/cdn-image/wp-content/uploads/2026/11/18/gta-6-jason-lucia-intimate.jpg?width=1080&amp;quality=75&amp;format=auto" />
+    </item>
+
+    <item>
+        <title>Hershey’s celebrates new movie with 5-cent chocolate bars: How to get them</title>
+        <link>https://www.dexerto.com/food/hersheys-celebrates-new-movie-with-5-cent-chocolate-bars-how-to-get-them-3429535/</link>
+        <dc:creator><![CDATA[Dylan Horetski]]></dc:creator>
+        <pubDate>Wed, 18 Nov 2026 17:39:15 GMT</pubDate>
+        <category><![CDATA[Entertainment]]></category>
+        <category><![CDATA[Food]]></category>
+        <guid isPermaLink="true">https://www.dexerto.com/food/hersheys-celebrates-new-movie-with-5-cent-chocolate-bars-how-to-get-them-3429535/</guid>
+        <description><![CDATA[Hershey’s is bringing back its original five-cent chocolate bar price for one day only to celebrate the theatrical release of its new movie.]]></description>
+        <content:encoded><![CDATA[Hershey’s is bringing back its original five-cent chocolate bar price for one day only to celebrate the theatrical release of its new movie.]]></content:encoded>
+        <enclosure url="https://www.dexerto.com/cdn-image/wp-content/uploads/2026/11/18/hersheydealfilm.jpg?width=1080&amp;quality=75&amp;format=auto" type="image/jpeg" length="481089" />
+          <media:thumbnail url="https://www.dexerto.com/cdn-image/wp-content/uploads/2026/11/18/hersheydealfilm.jpg?width=1080&amp;quality=75&amp;format=auto" />
+    </item>
+
+    <item>
+        <title>Free Christian GTA 6 parody game released where the devil hunts you instead of cops</title>
+        <link>https://www.dexerto.com/gta/free-christian-gta-6-parody-game-released-where-the-devil-hunts-you-instead-of-cops-3429453/</link>
+        <dc:creator><![CDATA[Nathan Warby]]></dc:creator>
+        <pubDate>Wed, 18 Nov 2026 17:01:25 GMT</pubDate>
+        <category><![CDATA[Gaming]]></category>
+        <category><![CDATA[GTA]]></category>
+        <guid isPermaLink="true">https://www.dexerto.com/gta/free-christian-gta-6-parody-game-released-where-the-devil-hunts-you-instead-of-cops-3429453/</guid>
+        <description><![CDATA[A free Christian parody of Grand Theft Auto is launching alongside GTA 6, and getting five stars will bring Satan after you instead of the cops.]]></description>
+        <content:encoded><![CDATA[A free Christian parody of Grand Theft Auto is launching alongside GTA 6, and getting five stars will bring Satan after you instead of the cops.]]></content:encoded>
+        <enclosure url="https://www.dexerto.com/cdn-image/wp-content/uploads/2026/11/18/Free-Christian-GTA-6-parody-game-released-where-the-devil-hunts-you-instead-of-cops.jpg?width=1080&amp;quality=75&amp;format=auto" type="image/jpeg" length="590716" />
+          <media:thumbnail url="https://www.dexerto.com/cdn-image/wp-content/uploads/2026/11/18/Free-Christian-GTA-6-parody-game-released-where-the-devil-hunts-you-instead-of-cops.jpg?width=1080&amp;quality=75&amp;format=auto" />
+    </item>
+</channel>
+</rss>

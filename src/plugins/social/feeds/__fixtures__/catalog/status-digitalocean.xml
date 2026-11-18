@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>DigitalOcean Status - Incident History</title>
+    <link>http://status.digitalocean.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 13:39:22 +0000</pubDate>
+    <item>
+      <title>App Platform Accessibility in Cloud Panel</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;21:40&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - Between 16:40 UTC and 18:22 UTC, our Engineering team observed an increase in 4xx error rates with App Platform operations via the Cloud Control Panel. During this time, users may have experienced errors while attempting to view or update their apps on the Cloud Panel. This was a UI-only issue and apps continued to run throughout the duration of the incident.&lt;br /&gt;&lt;br /&gt;Our Engineering team has resolved this issue. As of 18:22 UTC, users should no longer be experiencing this issue and all services should now be functioning normally.&lt;br /&gt;&lt;br /&gt;We apologize for any inconvenience, and if you are still experiencing any problems or have additional questions, please open a Support ticket within your account. &lt;/p&gt;      </description>
+      <pubDate>Mon, 16 Nov 2026 21:40:00 +0000</pubDate>
+      <link>https://status.digitalocean.com/incidents/fdvp47jv22nl</link>
+      <guid>https://status.digitalocean.com/incidents/fdvp47jv22nl</guid>
+    </item>
+    <item>
+      <title>Storage Network Maintenance Ongoing in TOR1</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;01:04&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:17&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:16&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - This is a continuation of the scheduled Storage Network Maintenance in TOR1 originally planned for Nov 13, 2026, 15:30-19:00 UTC (https://status.digitalocean.com/incidents/xbc94j0kdrng). The work did not finish within the initial maintenance window, so our Engineering team is continuing the upgrades to the storage system&apos;s network switches in the TOR1 region.&lt;br /&gt;&lt;br /&gt;Expected impact:&lt;br /&gt;&lt;br /&gt;The upgrades continue to be performed in a rolling fashion with automatic failover to ensure service continuity. We do not expect any customer impact. If an unexpected issue arises during the upgrade, there could be a temporary inability to create new Droplets, Backups may retry, and Snapshots may fail, in the TOR1 region. We will work to resolve any such situation promptly.&lt;br /&gt;&lt;br /&gt;We will post an update when the maintenance is complete.&lt;br /&gt;&lt;br /&gt;If you have any questions related to this issue, please send us a ticket from your cloud support page: https://cloudsupport.digitalocean.com/s/createticket &lt;/p&gt;      </description>
+      <pubDate>Sat, 14 Nov 2026 01:04:46 +0000</pubDate>
+      <maintenanceEndDate>Fri, 13 Nov 2026 22:17:00 +0000</maintenanceEndDate>
+      <link>https://status.digitalocean.com/incidents/rc8fz6zchslb</link>
+      <guid>https://status.digitalocean.com/incidents/rc8fz6zchslb</guid>
+    </item>
+    <item>
+      <title>Storage Network Maintenance in TOR1</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:30&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;05:39&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - Start: Nov 13, 2026, 15:30 UTC&lt;br /&gt;End: Nov 13, 2026, 19:00 UTC&lt;br /&gt;&lt;br /&gt;During the above window, our Storage Systems team will be performing upgrades to the storage system’s network switches in the TOR1 region to enhance infrastructure performance and stability.&lt;br /&gt;&lt;br /&gt;Expected impact:&lt;br /&gt;&lt;br /&gt;These upgrades are performed in a rolling fashion with automatic failover to ensure service continuity. We do not expect any customer impact during this maintenance window. If an unexpected issue arises during the upgrade, there could be a temporary inability to create new Droplets, Backups may retry, and Snapshots may fail, in the TOR1 region. We will work to resolve any such situation promptly.&lt;br /&gt;&lt;br /&gt;If you have any questions related to this issue, please send us a ticket from your cloud support page: https://cloudsupport.digitalocean.com/s/createticket &lt;/p&gt;      </description>
+      <pubDate>Fri, 13 Nov 2026 19:00:07 +0000</pubDate>
+      <maintenanceEndDate>Fri, 13 Nov 2026 19:00:00 +0000</maintenanceEndDate>
+      <link>https://status.digitalocean.com/incidents/xbc94j0kdrng</link>
+      <guid>https://status.digitalocean.com/incidents/xbc94j0kdrng</guid>
+    </item>
+</channel>
+</rss>

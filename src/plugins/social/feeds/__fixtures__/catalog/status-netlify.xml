@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Netlify Status - Incident History</title>
+    <link>https://www.netlifystatus.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 20:25:13 +0000</pubDate>
+    <item>
+      <title>Delayed Support Email Delivery to Microsoft 365 and Outlook Mailboxes</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;05:53&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:47&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - We are monitoring email delivery and will provide another update once delivery is back to normal. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:29&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We are aware that some Netlify Support email responses to customers using Microsoft 365 and Outlook-hosted mailboxes are experiencing delivery delays.&lt;br /&gt;&lt;br /&gt;These delays appear to be related to an ongoing Microsoft Exchange Online service disruption, with some messages being temporarily deferred by Microsoft&apos;s mail servers.&lt;br /&gt;&lt;br /&gt;Our Support team continues to process and respond to tickets, but affected customers may experience delays receiving our replies.&lt;br /&gt;&lt;br /&gt;We are monitoring email delivery and will provide an update as Microsoft&apos;s service recovers. &lt;/p&gt;      </description>
+      <pubDate>Sat, 14 Nov 2026 05:53:54 +0000</pubDate>
+      <link>https://www.netlifystatus.com/incidents/84jj827kqwzf</link>
+      <guid>https://www.netlifystatus.com/incidents/84jj827kqwzf</guid>
+    </item>
+    <item>
+      <title>Increase in errors for drag and drop deploys</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;12&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - Between 2026-11-12 09:00 UTC and 2026-11-13 17:27 UTC, a high number of drag and drop deploys were failing. The issue is now resolved. &lt;/p&gt;      </description>
+      <pubDate>Thu, 12 Nov 2026 09:00:00 +0000</pubDate>
+      <link>https://www.netlifystatus.com/incidents/1xv0zmgpt7zk</link>
+      <guid>https://www.netlifystatus.com/incidents/1xv0zmgpt7zk</guid>
+    </item>
+    <item>
+      <title>Elevated build and deploy failures</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:21&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:15&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - We’ve identified an issue at 16:43 UTC that can cause some builds to fail while functions deploy. These affected builds can fail with a system error during the deploy step. Our team is adding capacity and working on a fix. &lt;/p&gt;      </description>
+      <pubDate>Wed, 04 Nov 2026 17:21:17 +0000</pubDate>
+      <link>https://www.netlifystatus.com/incidents/cwf4lj7wnyt0</link>
+      <guid>https://www.netlifystatus.com/incidents/cwf4lj7wnyt0</guid>
+    </item>
+</channel>
+</rss>

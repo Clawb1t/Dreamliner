@@ -418,7 +418,7 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   social: {
     key: "social",
     name: "Social Notifications",
-    description: "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard.",
+    description: "YouTube, Twitch, RSS, Steam updates, game newswires, GitHub releases and status pages, posted to your channels with fully customisable messages.",
   },
   bluesky: {
     key: "bluesky",

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xml:base="https://www.gamedeveloper.com"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:media="http://search.yahoo.com/mrss/"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>gamedeveloper</title>
+        <link>https://www.gamedeveloper.com</link>
+        <description>Public RSS feed</description>
+                <language>en</language>
+        <atom:link href="https://www.gamedeveloper.com/feeds/rss.xml" rel="self" type="application/rss+xml" />
+                 <item>
+            <title><![CDATA[Clair Obscur: Expedition 33's narrative lead wants to change game funding]]></title>
+            <link><![CDATA[https://www.gamedeveloper.com/design/clair-obscur-expedition-33-s-narrative-lead-wants-to-change-game-funding]]></link>
+                        <description><![CDATA[After winning numerous awards, Clair Obscur narrative lead Jennifer Svedberg-Yen wants to change the story about priorities in game funding.]]></description>
+                                                        <pubDate>Wed, 18 Nov 2026 19:02:15 GMT</pubDate>
+                                                                <dc:creator>Imran Khan</dc:creator>
+                                    <guid isPermaLink="false"><![CDATA[https://www.gamedeveloper.com/design/clair-obscur-expedition-33-s-narrative-lead-wants-to-change-game-funding]]></guid>
+                             
+                <media:thumbnail url="https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blt91fa6c5cf153b000/69eb7b53d9eb8a86b83cb444/Clair_Obscur.png?width=720&amp;quality=80&amp;disable=upscale" />
+                <media:content url="https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blt91fa6c5cf153b000/69eb7b53d9eb8a86b83cb444/Clair_Obscur.png?width=720&amp;quality=80&amp;disable=upscale" medium="image">
+                    <media:title type="html">Clair_Obscur.png</media:title>
+                </media:content>
+                                    </item>        <item>
+            <title><![CDATA[PlayStation emerges victorious in a $2.6 billion lawsuit alleging a digital monopoly]]></title>
+            <link><![CDATA[https://www.gamedeveloper.com/console/playstation-emerges-victorious-in-a-2-6-billion-lawsuit-alleging-a-digital-monopoly]]></link>
+                        <description><![CDATA[The now-dismissed lawsuit accused PlayStation of setting &quot;excessive and unfair prices&quot; in the UK, but will not proceed any further.]]></description>
+                                                        <pubDate>Wed, 18 Nov 2026 18:14:35 GMT</pubDate>
+                                                                <dc:creator>Imran Khan</dc:creator>
+                                    <guid isPermaLink="false"><![CDATA[https://www.gamedeveloper.com/console/playstation-emerges-victorious-in-a-2-6-billion-lawsuit-alleging-a-digital-monopoly]]></guid>
+                             
+                <media:thumbnail url="https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blt8088c5c7b42593f5/69e750addf45793f21186eca/PlayStation_Header.png?width=720&amp;quality=80&amp;disable=upscale" />
+                <media:content url="https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blt8088c5c7b42593f5/69e750addf45793f21186eca/PlayStation_Header.png?width=720&amp;quality=80&amp;disable=upscale" medium="image">
+                    <media:title type="html">PlayStation_Header.png</media:title>
+                </media:content>
+                                    </item>        <item>
+            <title><![CDATA[European Game Worker unions publish manifesto warning against unchecked AI usage]]></title>
+            <link><![CDATA[https://www.gamedeveloper.com/production/europe-s-game-worker-unions-publish-a-manifesto-warning-against-unchecked-ai-usage]]></link>
+                        <description><![CDATA[Members in Ireland, Spain, and Milan have come together to outline concerns, grievances, pitfalls, and proposed solutions surrounding Generative AI use.]]></description>
+                                                        <pubDate>Tue, 17 Nov 2026 21:21:17 GMT</pubDate>
+                                                                <dc:creator>Imran Khan</dc:creator>
+                                    <guid isPermaLink="false"><![CDATA[https://www.gamedeveloper.com/production/europe-s-game-worker-unions-publish-a-manifesto-warning-against-unchecked-ai-usage]]></guid>
+                             
+                <media:thumbnail url="https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blta1ce58ce167cc749/6724d424a5a4251f1dbc9b48/IWGB_Game_Workers_Header.png?width=720&amp;quality=80&amp;disable=upscale" />
+                <media:content url="https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blta1ce58ce167cc749/6724d424a5a4251f1dbc9b48/IWGB_Game_Workers_Header.png?width=720&amp;quality=80&amp;disable=upscale" medium="image">
+                    <media:title type="html">IWGB_Game_Workers_Header.png</media:title>
+                </media:content>
+                                    </item>
+</channel>
+</rss>

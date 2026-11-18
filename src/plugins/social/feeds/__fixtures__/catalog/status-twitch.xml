@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Twitch Status - Incident History</title>
+    <link>https://status.twitch.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 20:25:21 +0000</pubDate>
+    <item>
+      <title>Identified Subscriptions Issue</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:07&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - 🛠 We have resolved all known issues with Subscriptions. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:39&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - 🛠 We have identified an issue with Subscriptions. We&apos;re currently working to resolve this issue. &lt;/p&gt;      </description>
+      <pubDate>Mon, 16 Nov 2026 20:07:31 +0000</pubDate>
+      <link>https://status.twitch.com/incidents/t29fj869wnsq</link>
+      <guid>https://status.twitch.com/incidents/t29fj869wnsq</guid>
+    </item>
+    <item>
+      <title>Identified Emotes Issues</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;21&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:07&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;21&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:04&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;21&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:33&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - 🛠 We have identified an issue causing emotes to not work for some users. We&apos;re currently working to resolve this issue. &lt;/p&gt;      </description>
+      <pubDate>Wed, 21 Oct 2026 19:07:05 +0000</pubDate>
+      <link>https://status.twitch.com/incidents/701g2vrzbqc2</link>
+      <guid>https://status.twitch.com/incidents/701g2vrzbqc2</guid>
+    </item>
+    <item>
+      <title>Identified Checkout Issues</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:47&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - 🛠 We have resolved all known issues causing some users to be unable to checkout. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:58&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - 🛠 We have identified an issue causing some users to be unable to checkout on Android devices. We&apos;re currently working to resolve this issue. &lt;/p&gt;      </description>
+      <pubDate>Wed, 16 Sep 2026 18:47:54 +0000</pubDate>
+      <link>https://status.twitch.com/incidents/s19kb6lm4012</link>
+      <guid>https://status.twitch.com/incidents/s19kb6lm4012</guid>
+    </item>
+</channel>
+</rss>

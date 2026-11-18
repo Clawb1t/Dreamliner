@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+     xmlns:slash="http://purl.org/rss/1.0/modules/slash/">
+	<channel>
+		<title>Anime Corner - RSS Feed</title>
+		<atom:link href="https://animecorner.me/feed/" rel="self" type="application/rss+xml" />
+		<link>https://animecorner.me/</link>
+		<description>News &#38; Features Straight From Japan</description>
+		<lastBuildDate>Wed, 18 Nov 2026 12:43:37 GMT</lastBuildDate>
+		<language>en-US</language>
+		<sy:updatePeriod>hourly</sy:updatePeriod>
+		<sy:updateFrequency>1</sy:updateFrequency>
+        		<item>
+            <title>KUKU-LOOP: The 100th Time's the Charm Anime Announced for 2027, Reveals Main Cast and Teaser Visual</title>
+            <link>https://animecorner.me/kuku-loop-the-100th-times-the-charm-anime-announced-for-2027-reveals-main-cast-and-teaser-visual/</link>
+            <dc:creator><![CDATA[Anime Corner]]></dc:creator>
+            <pubDate>Wed, 18 Nov 2026 12:43:37 GMT</pubDate>
+                        <category><![CDATA[Anime News]]></category>
+                        <category><![CDATA[News]]></category>
+                        <guid>https://animecorner.me/kuku-loop-the-100th-times-the-charm-anime-announced-for-2027-reveals-main-cast-and-teaser-visual/</guid>
+            <description><![CDATA[KUKU-LOOP: The 100th Time’s the Charm TV anime adaptation was officially announced for 2027, revealing a teaser visual, main cast, and staff.]]></description>
+        </item>
+        		<item>
+            <title>Spice and Wolf Season 2 Announces January 2027 Premiere</title>
+            <link>https://animecorner.me/spice-and-wolf-season-2-announces-january-2027-premiere/</link>
+            <dc:creator><![CDATA[Ken Pueyo]]></dc:creator>
+            <pubDate>Wed, 18 Nov 2026 11:24:40 GMT</pubDate>
+                        <category><![CDATA[Anime News]]></category>
+                        <category><![CDATA[News]]></category>
+                        <guid>https://animecorner.me/spice-and-wolf-season-2-announces-january-2027-premiere/</guid>
+            <description><![CDATA[Spice and Wolf: MERCHANT MEETS THE WISE WOLF Season 2 announced that the sequel&hellip;]]></description>
+        </item>
+        		<item>
+            <title>Sakamoto Days Season 2 Reveals Key Visual, Main Trailer, January 18 Premiere, Creepy Nuts Theme Song Artist</title>
+            <link>https://animecorner.me/sakamoto-days-season-2-reveals-key-visual-main-trailer-january-18-premiere-creepy-nuts-theme-song-artist/</link>
+            <dc:creator><![CDATA[Ken Pueyo]]></dc:creator>
+            <pubDate>Wed, 18 Nov 2026 01:57:52 GMT</pubDate>
+                        <category><![CDATA[Anime News]]></category>
+                        <category><![CDATA[News]]></category>
+                        <guid>https://animecorner.me/sakamoto-days-season-2-reveals-key-visual-main-trailer-january-18-premiere-creepy-nuts-theme-song-artist/</guid>
+            <description><![CDATA[Sakamoto Days Season 2 revealed a key visual, trailer, and a January 18 premiere&hellip;]]></description>
+        </item>
+</channel>
+</rss>

@@ -18,13 +18,17 @@ import { bridgeRateLimit, clipPasswordFailures } from "./rateLimit.js";
 import { getLogger } from "../core/logger.js";
 import type { WebMusicTrack } from "./webMusic.js";
 import type { CreateGiveawayInput } from "./webGiveaways.js";
-import type { SocialPlatform } from "./social.js";
 
 const log = getLogger("bridge");
 
-const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = {
+const FEED_TYPE_LABELS: Record<string, string> = {
   youtube: "YouTube",
   twitch: "Twitch",
+  rss: "RSS",
+  steam: "Steam",
+  github: "GitHub",
+  statuspage: "status",
+  newswire: "newswire",
 };
 
 export type BridgeGuildSnapshot = {
@@ -810,6 +814,12 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const clipVerifyPasswordMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/verify-password$/.exec(url.pathname);
         const clipMediaMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)\/media$/.exec(url.pathname);
         const clipMatch = /^\/bridge\/clips\/([a-zA-Z0-9-]+)$/.exec(url.pathname);
+
+        if (req.method === "GET" && url.pathname === "/bridge/feeds/catalog") {
+          const { getFeedCatalog } = await import("./feeds.js");
+          sendJson(res, 200, getFeedCatalog());
+          return;
+        }
 
         if (req.method === "GET" && url.pathname === "/bridge/tts/voices") {
           const { listTtsVoicesForWeb } = await import("./webTts.js");
@@ -2853,6 +2863,227 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Frontpage takeovers: superuser-built replacements for the home page hero ----------
+
+        if (url.pathname === "/bridge/platform/frontpage-takeovers") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listAdminTakeovers } = await import("./frontpageTakeovers.js");
+            sendJson(res, 200, { ok: true, takeovers: await listAdminTakeovers() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: Record<string, unknown> & { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = typeof body.userId === "string" ? body.userId.trim() : "";
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { createAdminTakeover, FrontpageTakeoverError } = await import("./frontpageTakeovers.js");
+            try {
+              const takeover = await createAdminTakeover({
+                name: body.name,
+                enabled: body.enabled,
+                startsAt: body.startsAt,
+                endsAt: body.endsAt,
+                priority: body.priority,
+                config: body.config,
+                createdBy: actorId,
+              });
+              (await import("./responseCache.js")).invalidateCached("frontpage-takeover");
+              log.info(`[takeovers] ${actorId} created takeover ${takeover.id} (${takeover.name}).`);
+              sendJson(res, 200, { ok: true, takeover });
+            } catch (error) {
+              if (!(error instanceof FrontpageTakeoverError)) throw error;
+              sendJson(res, 400, { error: error.message });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformTakeoverMatch = /^\/bridge\/platform\/frontpage-takeovers\/(\d{1,12})$/.exec(url.pathname);
+        if (platformTakeoverMatch) {
+          if (req.method !== "PUT" && req.method !== "DELETE") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> & { userId?: string };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = typeof body.userId === "string" ? body.userId.trim() : "";
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const takeoverId = Number(platformTakeoverMatch[1]);
+          const { deleteAdminTakeover, updateAdminTakeover, FrontpageTakeoverError } = await import("./frontpageTakeovers.js");
+
+          if (req.method === "DELETE") {
+            const ok = await deleteAdminTakeover(takeoverId);
+            (await import("./responseCache.js")).invalidateCached("frontpage-takeover");
+            if (!ok) {
+              sendJson(res, 404, { error: "Takeover not found." });
+              return;
+            }
+            log.info(`[takeovers] ${actorId} deleted takeover ${takeoverId}.`);
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          try {
+            const takeover = await updateAdminTakeover(takeoverId, {
+              name: body.name,
+              enabled: body.enabled,
+              startsAt: body.startsAt,
+              endsAt: body.endsAt,
+              priority: body.priority,
+              config: body.config,
+            });
+            (await import("./responseCache.js")).invalidateCached("frontpage-takeover");
+            if (!takeover) {
+              sendJson(res, 404, { error: "Takeover not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, takeover });
+          } catch (error) {
+            if (!(error instanceof FrontpageTakeoverError)) throw error;
+            sendJson(res, 400, { error: error.message });
+          }
+          return;
+        }
+
+        // Public: the live takeover (or null) for the website's home page. Marketing content for
+        // every visitor, so no superuser check; cached briefly and dropped on every admin write.
+        if (url.pathname === "/bridge/public/frontpage-takeover") {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { getActiveTakeover } = await import("./frontpageTakeovers.js");
+          sendJson(res, 200, { ok: true, takeover: await (await import("./responseCache.js")).cached("frontpage-takeover", 10_000, () => getActiveTakeover()) });
+          return;
+        }
+
+        // --- Sidebar tags: superuser-managed "New"/"Beta"/custom pills in the dashboard sidebar ---
+
+        if (url.pathname === "/bridge/platform/sidebar-tags") {
+          if (req.method === "GET") {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { listAdminSidebarTags } = await import("./sidebarTags.js");
+            sendJson(res, 200, { ok: true, tags: await listAdminSidebarTags() });
+            return;
+          }
+          if (req.method === "POST") {
+            let body: Record<string, unknown> & { userId?: string };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const actorId = typeof body.userId === "string" ? body.userId.trim() : "";
+            if (!actorId || !isDashboardSuperuser(actorId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const { createAdminSidebarTag, SidebarTagError } = await import("./sidebarTags.js");
+            try {
+              const { userId: _userId, ...input } = body;
+              const tag = await createAdminSidebarTag(input, actorId);
+              (await import("./responseCache.js")).invalidateCached("sidebar-tags");
+              log.info(`[sidebar-tags] ${actorId} created tag ${tag.id} (${tag.label} on ${tag.target}).`);
+              sendJson(res, 200, { ok: true, tag });
+            } catch (error) {
+              if (!(error instanceof SidebarTagError)) throw error;
+              sendJson(res, 400, { error: error.message });
+            }
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
+          return;
+        }
+
+        const platformSidebarTagMatch = /^\/bridge\/platform\/sidebar-tags\/(\d{1,12})$/.exec(url.pathname);
+        if (platformSidebarTagMatch) {
+          if (req.method !== "PUT" && req.method !== "DELETE") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> & { userId?: string };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = typeof body.userId === "string" ? body.userId.trim() : "";
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const tagId = Number(platformSidebarTagMatch[1]);
+          const { deleteAdminSidebarTag, updateAdminSidebarTag, SidebarTagError } = await import("./sidebarTags.js");
+
+          if (req.method === "DELETE") {
+            const ok = await deleteAdminSidebarTag(tagId);
+            (await import("./responseCache.js")).invalidateCached("sidebar-tags");
+            if (!ok) {
+              sendJson(res, 404, { error: "Tag not found." });
+              return;
+            }
+            log.info(`[sidebar-tags] ${actorId} deleted tag ${tagId}.`);
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+
+          try {
+            const { userId: _userId, ...input } = body;
+            const tag = await updateAdminSidebarTag(tagId, input);
+            (await import("./responseCache.js")).invalidateCached("sidebar-tags");
+            if (!tag) {
+              sendJson(res, 404, { error: "Tag not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true, tag });
+          } catch (error) {
+            if (!(error instanceof SidebarTagError)) throw error;
+            sendJson(res, 400, { error: error.message });
+          }
+          return;
+        }
+
+        // Public: the live sidebar tags for every dashboard visitor. Cached ~30s and dropped on every
+        // admin write; the site also hides any whose endsAt passes while cached.
+        if (url.pathname === "/bridge/public/sidebar-tags") {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const { listActiveSidebarTags } = await import("./sidebarTags.js");
+          sendJson(res, 200, { ok: true, tags: await (await import("./responseCache.js")).cached("sidebar-tags", 30_000, () => listActiveSidebarTags()) });
+          return;
+        }
+
         // --- Global Watchdog: platform-wide, superuser-curated bad-actor list --------------
 
         if (url.pathname === "/bridge/platform/global-watchdog") {
@@ -3147,18 +3378,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const commandsMatch = /^\/bridge\/guilds\/(\d+)\/commands$/.exec(url.pathname);
-        const socialResolveMatch = /^\/bridge\/guilds\/(\d+)\/social\/resolve$/.exec(url.pathname);
+        const feedsCollectionMatch = /^\/bridge\/guilds\/(\d+)\/feeds$/.exec(url.pathname);
+        const feedsExtraMatch = /^\/bridge\/guilds\/(\d+)\/feeds\/(preview|search|bulk)$/.exec(url.pathname);
+        const feedOneMatch = /^\/bridge\/guilds\/(\d+)\/feeds\/(\d+)$/.exec(url.pathname);
+        const feedActionMatch = /^\/bridge\/guilds\/(\d+)\/feeds\/(\d+)\/(test|items)$/.exec(url.pathname);
         const blueskyResolveMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/resolve$/.exec(url.pathname);
         const blueskyFeedTestMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds\/(\d+)\/test$/.exec(url.pathname);
         const blueskyFeedOneMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds\/(\d+)$/.exec(url.pathname);
         const blueskyFeedsMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds$/.exec(url.pathname);
         const blueskyExtraMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/(showcase|search|import\/preview|import)$/.exec(url.pathname);
-        const socialWatcherTestMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers\/(\d+)\/test$/.exec(
-          url.pathname,
-        );
-        const socialWatcherOneMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers\/(\d+)$/.exec(url.pathname);
-        const socialWatchersMatch = /^\/bridge\/guilds\/(\d+)\/social\/watchers$/.exec(url.pathname);
-        const socialExtraMatch = /^\/bridge\/guilds\/(\d+)\/social\/(showcase|search)$/.exec(url.pathname);
         const tagOneMatch = /^\/bridge\/guilds\/(\d+)\/tags\/([a-z0-9][a-z0-9_-]{0,63})$/i.exec(
           url.pathname,
         );
@@ -3392,11 +3620,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !statsIntelMatch &&
           !commandOneMatch &&
           !commandsMatch &&
-          !socialResolveMatch &&
-          !socialWatcherTestMatch &&
-          !socialWatcherOneMatch &&
-          !socialWatchersMatch &&
-          !socialExtraMatch &&
+          !feedsCollectionMatch &&
+          !feedsExtraMatch &&
+          !feedOneMatch &&
+          !feedActionMatch &&
           !blueskyResolveMatch &&
           !blueskyFeedTestMatch &&
           !blueskyFeedOneMatch &&
@@ -3528,11 +3755,10 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           statsIntelMatch?.[1] ??
           commandOneMatch?.[1] ??
           commandsMatch?.[1] ??
-          socialResolveMatch?.[1] ??
-          socialWatcherTestMatch?.[1] ??
-          socialWatcherOneMatch?.[1] ??
-          socialWatchersMatch?.[1] ??
-          socialExtraMatch?.[1] ??
+          feedsCollectionMatch?.[1] ??
+          feedsExtraMatch?.[1] ??
+          feedOneMatch?.[1] ??
+          feedActionMatch?.[1] ??
           blueskyResolveMatch?.[1] ??
           blueskyFeedTestMatch?.[1] ??
           blueskyFeedOneMatch?.[1] ??
@@ -9709,263 +9935,91 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (socialResolveMatch && req.method === "POST") {
-          let body: { userId?: string; platform?: string; input?: string };
-          try {
-            body = JSON.parse(await readBody(req)) as typeof body;
-          } catch {
-            sendJson(res, 400, { error: "Invalid JSON body" });
-            return;
+        if (feedsCollectionMatch || feedsExtraMatch || feedOneMatch || feedActionMatch) {
+          const feeds = await import("./feeds.js");
+          let body: { userId?: string } & Record<string, unknown> = {};
+          if (req.method === "POST" || req.method === "PATCH") {
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body", code: "bad_request" });
+              return;
+            }
           }
-          const requesterId = body.userId?.trim();
-          const platform = body.platform;
-          if (
-            !requesterId ||
-            (platform !== "youtube" && platform !== "twitch") ||
-            typeof body.input !== "string" ||
-            !body.input.trim()
-          ) {
-            sendJson(res, 400, { error: "userId, platform, and input are required" });
-            return;
-          }
-          if (!(await memberCanManage(guild, requesterId))) {
-            sendJson(res, 403, { error: "Missing Manage Server permission." });
-            return;
-          }
-          const { resolveBridgeSocialSource } = await import("./social.js");
-          const result = await resolveBridgeSocialSource(configManager, guildId, platform, body.input);
-          if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
-            return;
-          }
-          sendJson(res, 200, { channel: result.channel });
-          return;
-        }
-
-        if (socialWatcherTestMatch) {
-          if (req.method !== "POST") {
-            sendJson(res, 405, { error: "Method not allowed" });
-            return;
-          }
-          let body: { userId?: string; platform?: string };
-          try {
-            body = JSON.parse(await readBody(req)) as typeof body;
-          } catch {
-            sendJson(res, 400, { error: "Invalid JSON body" });
-            return;
-          }
-          const requesterId = body.userId?.trim();
-          const platform = body.platform;
-          if (!requesterId || (platform !== "youtube" && platform !== "twitch")) {
-            sendJson(res, 400, { error: "userId and platform are required" });
-            return;
-          }
-          if (!(await memberCanManage(guild, requesterId))) {
-            sendJson(res, 403, { error: "Missing Manage Server permission." });
-            return;
-          }
-          const { testSendBridgeSocialWatcher } = await import("./social.js");
-          const result = await testSendBridgeSocialWatcher(
-            client,
-            configManager,
-            guildId,
-            platform,
-            Number(socialWatcherTestMatch[2]),
-          );
-          if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
-            return;
-          }
-          sendJson(res, 200, { ok: true, sent: result.sent });
-          return;
-        }
-
-        if (socialExtraMatch) {
-          if (req.method !== "GET") {
-            sendJson(res, 405, { error: "Method not allowed" });
-            return;
-          }
-          const requesterId = url.searchParams.get("userId")?.trim();
+          const requesterId =
+            req.method === "GET" || req.method === "DELETE" ? url.searchParams.get("userId")?.trim() : body.userId?.trim();
           if (!requesterId) {
-            sendJson(res, 400, { error: "userId is required" });
+            sendJson(res, 400, { error: "userId is required", code: "bad_request" });
             return;
           }
-          if (!(await memberCanManage(guild, requesterId))) {
-            sendJson(res, 403, { error: "Missing Manage Server permission." });
+          if (!(await feeds.memberCanManageFeeds(guild, requesterId, await memberCanManage(guild, requesterId)))) {
+            sendJson(res, 403, { error: "You need Manage Server or the Notifications manage permission.", code: "forbidden" });
             return;
           }
-          const social = await import("./social.js");
-          const result =
-            socialExtraMatch[2] === "showcase"
-              ? await social.getBridgeSocialShowcase(guildId)
-              : await social.searchBridgeSocialSources(
-                  requesterId,
-                  url.searchParams.get("platform") ?? "",
-                  url.searchParams.get("q") ?? "",
-                );
+          const feedId = Number((feedOneMatch ?? feedActionMatch)?.[2]);
+          const extra = feedsExtraMatch?.[2];
+          const action = feedActionMatch?.[3];
+          const track = (title: string, feed: { id: number; source: { title: string; type: string } }, verb: string) =>
+            trackDashboardAction(client, guildId, requesterId, {
+              eventType: "dashboard_command",
+              title,
+              summary: `A ${FEED_TYPE_LABELS[feed.source.type] ?? "notification"} feed for **${feed.source.title}** was ${verb} from the dashboard.`,
+              targetId: String(feed.id),
+              payload: { source: feed.source.title, type: feed.source.type },
+            });
+          const checkTargets = async (): Promise<boolean> => {
+            const invalid = await validateGuildTargets(guild, feeds.feedTargets(body));
+            if (invalid) sendJson(res, 400, { error: invalid, code: "bad_request" });
+            return !invalid;
+          };
+
+          let result:
+            | { ok: true; [key: string]: unknown }
+            | { ok: false; status: number; code: string; error: string };
+          if (feedsCollectionMatch && req.method === "GET") {
+            result = await feeds.listBridgeFeeds(guildId);
+            if (result.ok) result = { ...result, guild: { id: guild.id, name: guild.name, icon: guild.icon } };
+          } else if (feedsCollectionMatch && req.method === "POST") {
+            if (!(await checkTargets())) return;
+            const created = await feeds.createBridgeFeed(client, guildId, requesterId, body);
+            if (created.ok) track("Notification feed created", created.feed, "created");
+            result = created;
+          } else if (extra === "preview" && req.method === "POST") {
+            result = await feeds.previewBridgeFeed(requesterId, body);
+          } else if (extra === "search" && req.method === "GET") {
+            result = await feeds.searchBridgeFeeds(requesterId, url.searchParams.get("type") ?? "", url.searchParams.get("q") ?? "");
+          } else if (extra === "bulk" && req.method === "POST") {
+            const set = (body.set && typeof body.set === "object" ? body.set : {}) as Record<string, unknown>;
+            const invalid = await validateGuildTargets(guild, feeds.feedTargets(set));
+            if (invalid) {
+              sendJson(res, 400, { error: invalid, code: "bad_request" });
+              return;
+            }
+            result = await feeds.bulkBridgeFeeds(guildId, body);
+          } else if (feedOneMatch && req.method === "GET") {
+            result = await feeds.getBridgeFeed(guildId, feedId);
+          } else if (feedOneMatch && req.method === "PATCH") {
+            if (!(await checkTargets())) return;
+            const updated = await feeds.updateBridgeFeed(guildId, feedId, body);
+            if (updated.ok) track("Notification feed updated", updated.feed, "updated");
+            result = updated;
+          } else if (feedOneMatch && req.method === "DELETE") {
+            const deleted = await feeds.deleteBridgeFeed(guildId, feedId);
+            if (deleted.ok) track("Notification feed deleted", deleted.feed, "deleted");
+            result = deleted;
+          } else if (action === "test" && req.method === "POST") {
+            result = await feeds.testBridgeFeed(client, guildId, feedId);
+          } else if (action === "items" && req.method === "GET") {
+            result = await feeds.listBridgeFeedItems(guildId, feedId, Number(url.searchParams.get("limit") ?? 20) || 20);
+          } else {
+            sendJson(res, 405, { error: "Method not allowed", code: "bad_request" });
+            return;
+          }
           if (!result.ok) {
-            sendJson(res, result.status, { error: result.error });
+            sendJson(res, result.status, { error: result.error, code: result.code });
             return;
           }
-          const { ok: _ok, ...payload } = result;
-          sendJson(res, 200, payload);
-          return;
-        }
-
-        if (socialWatchersMatch || socialWatcherOneMatch) {
-          const userId =
-            req.method === "GET" || req.method === "DELETE"
-              ? url.searchParams.get("userId")?.trim()
-              : undefined;
-
-          if (socialWatchersMatch && req.method === "GET") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { listBridgeSocialWatchers } = await import("./social.js");
-            const result = await listBridgeSocialWatchers(configManager, guildId);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            sendJson(res, 200, {
-              guild: { id: guild.id, name: guild.name, icon: guild.icon },
-              watchers: result.watchers,
-              count: result.count,
-              maxWatchers: result.maxWatchers,
-              stats: result.stats,
-              totals: result.totals,
-              recent: result.recent,
-              platforms: result.platforms,
-            });
-            return;
-          }
-
-          if (socialWatchersMatch && req.method === "POST") {
-            let body: { userId?: string } & Record<string, unknown>;
-            try {
-              body = JSON.parse(await readBody(req)) as typeof body;
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return;
-            }
-            const requesterId = body.userId?.trim();
-            if (!requesterId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, requesterId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            {
-              const invalid = await validateGuildTargets(guild, body as { discordChannelId?: unknown; mentionRoleIds?: unknown });
-              if (invalid) {
-                sendJson(res, 400, { error: invalid });
-                return;
-              }
-            }
-            const { createBridgeSocialWatcher } = await import("./social.js");
-            const result = await createBridgeSocialWatcher(configManager, guildId, requesterId, body);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, requesterId, {
-              eventType: "dashboard_command",
-              title: "Social notification created",
-              summary: `A ${SOCIAL_PLATFORM_LABELS[result.watcher.platform]} notification for **${result.watcher.sourceChannelName}** was created from the dashboard.`,
-              targetId: String(result.watcher.id),
-              payload: { sourceChannelName: result.watcher.sourceChannelName },
-            });
-            sendJson(res, 200, { ok: true, watcher: result.watcher });
-            return;
-          }
-
-          if (socialWatcherOneMatch && req.method === "PATCH") {
-            let body: { userId?: string } & Record<string, unknown>;
-            try {
-              body = JSON.parse(await readBody(req)) as typeof body;
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return;
-            }
-            const requesterId = body.userId?.trim();
-            if (!requesterId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, requesterId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            {
-              const invalid = await validateGuildTargets(guild, body as { discordChannelId?: unknown; mentionRoleIds?: unknown });
-              if (invalid) {
-                sendJson(res, 400, { error: invalid });
-                return;
-              }
-            }
-            const { updateBridgeSocialWatcher } = await import("./social.js");
-            const result = await updateBridgeSocialWatcher(
-              configManager,
-              guildId,
-              Number(socialWatcherOneMatch[2]),
-              body,
-            );
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, requesterId, {
-              eventType: "dashboard_command",
-              title: "Social notification updated",
-              summary: `A ${SOCIAL_PLATFORM_LABELS[result.watcher.platform]} notification for **${result.watcher.sourceChannelName}** was updated from the dashboard.`,
-              targetId: String(result.watcher.id),
-              payload: { sourceChannelName: result.watcher.sourceChannelName },
-            });
-            sendJson(res, 200, { ok: true, watcher: result.watcher });
-            return;
-          }
-
-          if (socialWatcherOneMatch && req.method === "DELETE") {
-            const platform = url.searchParams.get("platform");
-            if (!userId || (platform !== "youtube" && platform !== "twitch")) {
-              sendJson(res, 400, { error: "userId and platform are required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { deleteBridgeSocialWatcher } = await import("./social.js");
-            const result = await deleteBridgeSocialWatcher(
-              configManager,
-              guildId,
-              platform,
-              Number(socialWatcherOneMatch[2]),
-            );
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, userId, {
-              eventType: "dashboard_command",
-              title: "Social notification deleted",
-              summary: `A ${SOCIAL_PLATFORM_LABELS[result.watcher.platform]} notification for **${result.watcher.sourceChannelName}** was deleted from the dashboard.`,
-              targetId: String(result.watcher.id),
-              payload: { sourceChannelName: result.watcher.sourceChannelName },
-            });
-            sendJson(res, 200, { ok: true, watcher: result.watcher });
-            return;
-          }
-
-          sendJson(res, 405, { error: "Method not allowed" });
+          sendJson(res, 200, result);
           return;
         }
 

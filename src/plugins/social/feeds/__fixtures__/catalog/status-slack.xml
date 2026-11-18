@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <channel>
+            <title>Slack System Status</title>
+            <link>https://slack-status.com</link>
+            <description>History of Slack System Status</description>
+            <lastBuildDate>Thu, 28 May 2026 08:22:05 -0700</lastBuildDate>
+                        <item>
+                <title>Incident: Trouble with Slack - General Slack functionality issues</title>
+                <description>
+                    This issue is now resolved for all users.Current status and recent actions taken: We deployed a series of configuration adjustments and infrastructure fixes to restore services. Messaging, Workflows, Apps, and Connections were progressively restored over the last several hours. Some users continued to experience permissions-related issues, including inability to manage channels and Canvas edits not saving, as a result of residual stale cache data. Cache deployment activities completed at 14:13 UTC on May 28, 2026, fully resolving the issue.&amp;nbsp;Scope: This issue affected Slack users globally.Previous impact to end users: Slack users experienced difficulties accessing Slack features, including Messaging, Workflows, Apps, Integrations, APIs, Canvas, and Connections, beginning at 22:21 UTC on May 27, 2026. Following an infrastructure change, a cascading scheduling failure caused widespread service impact across all regions and clients. Slack services largely returned to normal operational levels at 05:45 UTC on May 27, with residual impact that remained during the deployment. A brief issue with Canvas surfaced at 10:00 UTC on May 28‌ that lasted until approximately 12:30 UTC. &amp;nbsp;Required resolution steps: No steps required.We apologize for any disruptions to your day. We&apos;ll undertake a full investigation of the incident, establishing the technical trigger, the mechanism of failure, and preventative measures to avoid further disruptions.&amp;nbsp;
+                </description>
+                <pubDate>Thu, 28 May 2026 08:22:05 -0700</pubDate>
+                <link>
+                https://slack-status.com/2026-05/46d9d5d41fbedd9f
+                </link>
+                <guid>
+                    https://slack-status.com/2026-05/46d9d5d41fbedd9f
+                </guid>
+            </item>
+                        <item>
+                <title>Incident: Partial Degradation Impacting Usergroups</title>
+                <description>
+                    Our investigation has determined that the issue is isolated to a single customer environment and is not impacting the broader service. As a result, this incident will be removed from the status page and we will continue to work directly with the affected customer to address their issue.
+                </description>
+                <pubDate>Sun, 31 May 2026 20:05:22 -0700</pubDate>
+                <link>
+                https://slack-status.com/2026-05/8f583746d60de2fc
+                </link>
+                <guid>
+                    https://slack-status.com/2026-05/8f583746d60de2fc
+                </guid>
+            </item>
+                        <item>
+                <title>Incident: Connectivity Issues Affecting Some Users in Europe</title>
+                <description>
+                    Current status: The Slack engineering team investigated connectivity issues that affected some users between approximately 13:30 and 14:00 UTC on June 2, 2026. The issue has been resolved and no further impact has been reported.Scope: Some users, primarily in Europe, may have experienced difficulty loading or sending Slack messages during this windowWe apologize for any inconvenience this may have caused.
+                </description>
+                <pubDate>Tue, 02 Jun 2026 09:16:37 -0700</pubDate>
+                <link>
+                https://slack-status.com/2026-06/2e2e3eb0560b8566
+                </link>
+                <guid>
+                    https://slack-status.com/2026-06/2e2e3eb0560b8566
+                </guid>
+            </item>
+</channel>
+</rss>

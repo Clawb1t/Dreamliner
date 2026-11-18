@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1" version="2.0">
+<channel>
+<language>en</language>
+<title>Old School RuneScape Recent News</title>
+<description>The latest news for RuneScape, the massively-multiplayer online game developed and published by Jagex.</description>
+<link>https://secure.runescape.com/m=news</link>
+<docs>http://www.rssboard.org/rss-specification</docs>
+<generator>JagexRssFeedGenerator</generator>
+<ttl>30</ttl>
+<copyright></copyright>
+<lastBuildDate>Wed, 18 Nov 2026 21:05:35 GMT</lastBuildDate>
+<image>
+<link>https://secure.runescape.com/m=news</link>
+<title>Old School RuneScape Recent News</title>
+<url>https://www.runescape.com/img/responsive/common/logos/rss.svg</url>
+</image>
+<item>
+<title>Quest Month Week 3 &amp; TFA Practice Mode</title>
+<dc:creator></dc:creator>
+<enclosure type="image/png" length="0" url="https://cdn.runescape.com/assets/img/external/oldschool/2026/Newsposts/2026-11-17/thm.png" />
+<description>
+As we move into the third week of Quest Month, two more fresh adventures await, along with handy new rewards to unlock!
+</description>
+<category>Game Updates</category>
+<link>https://secure.runescape.com/m=news/quest-month-week-3--tfa-practice-mode?oldschool=1</link>
+<pubDate>Wed, 18 Nov 2026 00:00:00 GMT</pubDate>
+<guid isPermaLink="true">https://secure.runescape.com/m=news/quest-month-week-3--tfa-practice-mode?oldschool=1</guid>
+</item>
+<item>
+<title>Jagex Accounts Now Required: Here&apos;s What To Do</title>
+<dc:creator></dc:creator>
+<enclosure type="image/png" length="0" url="https://cdn.runescape.com/assets/img/external/oldschool/2023/newsposts/thumbnail/THUMBNAIL-Statement.png" />
+<description>
+Legacy accounts are finally being universally upgraded to a more modern, secure account system.
+</description>
+<category>Technical</category>
+<link>https://secure.runescape.com/m=news/jagex-accounts-now-required-heres-what-to-do?oldschool=1</link>
+<pubDate>Tue, 17 Nov 2026 00:00:00 GMT</pubDate>
+<guid isPermaLink="true">https://secure.runescape.com/m=news/jagex-accounts-now-required-heres-what-to-do?oldschool=1</guid>
+</item>
+<item>
+<title>Melvor Idle 2: A RuneScape Adventure - Early Access Out Now!</title>
+<dc:creator></dc:creator>
+<enclosure type="image/jpeg" length="0" url="https://cdn.runescape.com/assets/img/external/oldschool/2026/Newsposts/2026-11-17/Newspost.jpg" />
+<description>
+Melvor Idle 2: A RuneScape Adventure is out now in Early Access!
+</description>
+<category>Community</category>
+<link>https://secure.runescape.com/m=news/melvor-idle-2-a-runescape-adventure---early-access-out-now?oldschool=1</link>
+<pubDate>Tue, 17 Nov 2026 00:00:00 GMT</pubDate>
+<guid isPermaLink="true">https://secure.runescape.com/m=news/melvor-idle-2-a-runescape-adventure---early-access-out-now?oldschool=1</guid>
+</item>
+</channel>
+</rss>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:cc="http://web.resource.org/cc/" xmlns:steam="http://www.steampowered.com" xmlns="http://purl.org/rss/1.0/">
+	<channel rdf:about="http://www.steampowered.com">
+		<title>Steam RSS News Feed</title> 
+		<link>http://www.steampowered.com/</link> 
+		<description>All Steam news, all the time!</description> 
+		<language>en</language> 
+				<pubDate>Wed, 04 Nov 2026 09:39:19 -0800</pubDate>
+		<generator>http://www.steampowered.com/</generator> 
+		<items>
+			<rdf:Seq>
+							<rdf:li rdf:resource="https://store.steampowered.com/news/290724/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/289665/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/289185/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/286827/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/285796/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/285564/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/285419/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/285134/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/276347/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/276074/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/275791/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/275718/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/275469/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/274747/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/271749/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/271650/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/270398/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/265516/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/265126/" />
+							<rdf:li rdf:resource="https://store.steampowered.com/news/260304/" />
+						</rdf:Seq>
+		</items>
+	</channel>
+					<item rdf:about="https://store.steampowered.com/news/290724/">
+			<title><![CDATA[Now Available on Steam - Domino VR]]></title>
+			<link><![CDATA[https://store.steampowered.com/news/290724/]]></link>
+			<guid isPermaLink="true"><![CDATA[https://store.steampowered.com/news/290724/]]></guid>
+			<comments>https://steamcommunity.com//discussions/</comments>
+			<pubDate>Wed, 04 Nov 2026 09:39:19 -0800</pubDate>
+			<author>Valve</author>
+			<category>Valve news update</category>
+			<dc:subject>Valve news update</dc:subject>
+			<dc:creator>Valve</dc:creator>
+			<dc:date>2026-11-04T09:39:19-0800</dc:date>
+						<content:encoded><![CDATA[<a href='http://store.steampowered.com/app/508680/'>Domino VR</a> is Now Available on Steam!<br><br>Build domino chains as big and silly as you like, then give them a push. Domino VR is a VR physics sandbox with real-scale dominoes, contraptions, 24 puzzle levels, a level editor and Steam Workshop sharing.<br><a href="http://store.steampowered.com/app/508680/"><img src="https://cdn.fastly.steamstatic.com/steam/apps/508680/header.jpg" style=" float: left; margin-right: 12px; height: 181px; width: 467px;"></a>]]></content:encoded>
+					</item>
+					<item rdf:about="https://store.steampowered.com/news/289665/">
+			<title><![CDATA[Team Fortress 2 Update Released]]></title>
+			<link><![CDATA[https://store.steampowered.com/news/289665/]]></link>
+			<guid isPermaLink="true"><![CDATA[https://store.steampowered.com/news/289665/]]></guid>
+			<comments>https://steamcommunity.com//discussions/</comments>
+			<pubDate>Fri, 30 Oct 2026 16:18:00 -0700</pubDate>
+			<author>Valve</author>
+			<category>Valve news update</category>
+			<dc:subject>Valve news update</dc:subject>
+			<dc:creator>Valve</dc:creator>
+			<dc:date>2026-10-30T16:18:00-0700</dc:date>
+						<content:encoded><![CDATA[An update to Team Fortress 2 has been released. The update will be applied automatically when you restart Team Fortress 2. The major changes include:<br/><br><ul style="padding-bottom: 0px; margin-bottom: 0px;" ><li>Updated cp_wildcat_event to fix missing model for Spies disguised as pumpkins<br><li>Updated/Added some tournament medals<br></ul>]]></content:encoded>
+					</item>
+					<item rdf:about="https://store.steampowered.com/news/289185/">
+			<title><![CDATA[Team Fortress 2 Update Released]]></title>
+			<link><![CDATA[https://store.steampowered.com/news/289185/]]></link>
+			<guid isPermaLink="true"><![CDATA[https://store.steampowered.com/news/289185/]]></guid>
+			<comments>https://steamcommunity.com//discussions/</comments>
+			<pubDate>Thu, 29 Oct 2026 13:29:00 -0700</pubDate>
+			<author>Valve</author>
+			<category>Valve news update</category>
+			<dc:subject>Valve news update</dc:subject>
+			<dc:creator>Valve</dc:creator>
+			<dc:date>2026-10-29T13:29:00-0700</dc:date>
+						<content:encoded><![CDATA[An update to Team Fortress 2 has been released. The update will be applied automatically when you restart Team Fortress 2. The major changes include:<br/><br><ul style="padding-bottom: 0px; margin-bottom: 0px;" ><li>Fixed smoke effect regression for Le Sapeur<br><li>Updated the Chief Executor, Vested Investor's Vest, and Standing Offer to fix clipping issues<br><li>Updated cp_wildcat_event<ul style="padding-bottom: 0px; margin-bottom: 0px;" ><li>Added +1 minute to the round timer<br><li>Fixed a bug that allowed pumpkin-disguised players to cap at 15x speed<br><li>Fixed pumpkin-disguised players not displaying as Ubercharged if they have a Voodoo-Cursed Soul cosmetic equipped<br><li>Fixed buildings being able to be built inside the shutter door in the connector between A and B<br><li>Fixed some jack-o-lanterns around the map not rendering during the waiting for players period<br><li>Fixed equipped Powerup Canteens rendering while pumpkin-disguised</ul><li>Updated Updated zi_atoll, zi_blazehattan, zi_devastation_final1, zi_murky, zi_sanitarium, and zi_woods<ul style="padding-bottom: 0px; margin-bottom: 0px;" ><li>Lowered edicts across the board<br><li>Zombie Sniper's Spit now deals critical hits to airborne targets <br><li>Fixed Zombie Engineer building status being visible upon initial infection<br><li>Fixed Reveal outline persisting on players into the next round</ul><li>Updated zi_atoll (additional changes)<ul style="padding-bottom: 0px; margin-bottom: 0px;" ><li>Fixed a visual bug where water would disappear in certain parts of the map<br><li>Added more cover in front of the shack<br><li>Enabled every BLU spawn point no matter where RED players are located</ul></ul>]]></content:encoded>
+					</item>
+</rdf:RDF>

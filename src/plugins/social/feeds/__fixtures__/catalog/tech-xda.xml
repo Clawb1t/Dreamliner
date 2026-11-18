@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+     xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+             xmlns:media="http://search.yahoo.com/mrss/"
+>
+                                                            
+        
+                            <channel>
+        <title> XDA </title>
+        <atom:link rel="self" href="https://www.xda-developers.com/feed/" type="application/rss+xml"/>
+        <link>https://www.xda-developers.com </link>
+        <description>The world’s best source for computing news, reviews, editorials guides, and more.</description>
+        <lastBuildDate>Wed, 18 Nov 2026 21:01:22 GMT</lastBuildDate>
+        <language>en-US</language>
+                <sy:updatePeriod>hourly</sy:updatePeriod>
+        <sy:updateFrequency>60</sy:updateFrequency>
+                                                                                <item><title><![CDATA[Open-source replacements used to mean settling for less, but the ones I switched to this year are just better]]></title><link>https://www.xda-developers.com/open-source-replacements-used-to-mean-settling-for-less-but-the-ones-i-switched-to-are-better/</link><dc:creator><![CDATA[Nolen Jonker]]></dc:creator><enclosure url="https://static0.xdaimages.com/wordpress/wp-content/uploads/wm/2026/10/figcraft-dev-mode-on-desktop-pc.jpeg" length="2718" type="image/jpeg"/><category><![CDATA[Software and Services]]></category><category><![CDATA[Open Source]]></category><description><![CDATA[
+                                            Paid apps have some catching up to do
+                                        ]]></description><content:encoded><![CDATA[
+                                                                                                                                    <p>It used to be the case that choosing an open-source app over the paid version came with an unspoken deal. You skip the subscription in exchange for an interface that looks like it's from ten years ago, and spend your evenings on forums trying to figure out why a feature isn't behaving. Many are actually perfectly fine with that trade, myself included to an extent.</p>                                        ]]></content:encoded><pubDate>Wed, 18 Nov 2026 21:01:22 GMT</pubDate><guid isPermaLink="true">https://www.xda-developers.com/open-source-replacements-used-to-mean-settling-for-less-but-the-ones-i-switched-to-are-better/</guid></item>                                                                <item><title><![CDATA[Amazon's Fire TV Stick 4K Plus drops to just $29.99, and it's a steal for 4K streaming]]></title><link>https://www.xda-developers.com/amazons-fire-tv-stick-4k-plus-drops-to-just-2999-and-its-a-steal-for-4k-streaming/</link><dc:creator><![CDATA[XDA Deals Desk]]></dc:creator><enclosure url="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/05/amazon-fire-tv-stick-4k-plus-edited.jpg" length="419" type="image/jpeg"/><category><![CDATA[Entertainment]]></category><category><![CDATA[Deals]]></category><category><![CDATA[Black Friday]]></category><description><![CDATA[
+                                            Wi-Fi 6, Dolby Vision, and a steep discount
+                                        ]]></description><content:encoded><![CDATA[
+                                                                                                                                    <p>If you've been meaning to turn an older TV into a smart one, or your current streaming stick has started to lag, this one is worth a look. Now you can get the <a href="https://www.amazon.com/dp/B0F7Z4QZTT?tag=xdadev04-20&ascsubtag=UUxdaUeUpU1037363&asc_refurl=https%3A%2F%2Fwww.xda-developers.com%2Famazons-fire-tv-stick-4k-plus-drops-to-just-2999-and-its-a-steal-for-4k-streaming%2F&asc_campaign=Affiliate" rel="noopener sponsored nofollow" target="_blank" class="norewrite noskim">Amazon Fire TV Stick 4K Plus</a> for $29.99 as part of an early Black Friday deal, down from its regular price of $69.99 on Amazon.</p>                                        ]]></content:encoded><pubDate>Wed, 18 Nov 2026 20:50:51 GMT</pubDate><guid isPermaLink="true">https://www.xda-developers.com/amazons-fire-tv-stick-4k-plus-drops-to-just-2999-and-its-a-steal-for-4k-streaming/</guid></item>                                                                <item><title><![CDATA[My Raspberry Pi Pico 2 lacks an OS and onboard network features, yet it’s more reliable than every Pi in my house for one task]]></title><link>https://www.xda-developers.com/my-raspberry-pi-pico-runs-one-task-with-no-operating-system/</link><dc:creator><![CDATA[Abhishek Kumar Mishra]]></dc:creator><enclosure url="https://static0.xdaimages.com/wordpress/wp-content/uploads/wm/2026/11/pico-dashboard-server-usb-ncm.jpg" length="3523" type="image/jpeg"/><category><![CDATA[Microcontrollers]]></category><category><![CDATA[Raspberry Pi Pico 2]]></category><description><![CDATA[
+                                            A headless Pico2 transformed into a tiny web dashboard via USB NCM and Arduino-Pico, serving live Docker metrics.
+                                        ]]></description><content:encoded><![CDATA[
+                                                                                                                                    <p>Raspberry Pi has launched multiple boards and even different series in the last ten years. You might be familiar with the mainstream Raspberry Pi boards like the Raspberry Pi 4 Model B or <a href="https://www.xda-developers.com/raspberry-pi-5-excellent-hardware-with-identity-crisis/" target="_blank">Raspberry Pi 5</a>. In addition, you can pick the Raspberry Pi Zero series, which is best for single-purpose roles, and the Raspberry Pi Pico series, which is for embedded computing. I have a Raspberry Pi 4 Model B, Raspberry Pi Zero 2 W, and recently bought a Raspberry Pi Pico board as well. I intended to find time to learn electronics and circuitry. But I didn't find the time or purpose for it, even after a month of having it.</p>                                        ]]></content:encoded><pubDate>Wed, 18 Nov 2026 20:31:22 GMT</pubDate><guid isPermaLink="true">https://www.xda-developers.com/my-raspberry-pi-pico-runs-one-task-with-no-operating-system/</guid></item>
+</channel>
+</rss>

@@ -1,4 +1,5 @@
 import { loadImage, type Image } from "@napi-rs/canvas";
+import { SafeFetchError, safeFetch } from "./safeFetch.js";
 
 /**
  * Safe image decoding. Skia (inside @napi-rs/canvas) aborts the WHOLE PROCESS when it can't
@@ -107,33 +108,21 @@ export function assertDecodableImage(buf: Buffer): ImageDimensions {
   return dims;
 }
 
-const PRIVATE_HOST =
-  /^(?:localhost|.*\.localhost|.*\.internal|0\.0\.0\.0|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|169\.254\.\d+\.\d+|\[?::1\]?|\[?f[cd][0-9a-f]{2}:.*)$/i;
-
-/** Downloads an image URL with a size cap and timeout. http(s) only, never to private addresses. */
+/** Downloads an image URL with a size cap and timeout. http(s) only, never to private addresses
+ *  (DNS is resolved and pinned, and every redirect re-checked: see core/safeFetch.ts). */
 export async function fetchImageBuffer(url: string, maxBytes = MAX_IMAGE_BYTES): Promise<Buffer> {
-  let parsed: URL;
   try {
-    parsed = new URL(url);
-  } catch {
-    throw new UnsafeImageError("Invalid image URL.");
+    const result = await safeFetch(url, { timeoutMs: FETCH_TIMEOUT_MS, maxBytes, maxRedirects: 5 });
+    return result.body;
+  } catch (error) {
+    if (error instanceof SafeFetchError) {
+      if (error.code === "invalid_url") throw new UnsafeImageError(error.message.includes("http") ? "Image URLs must be http(s)." : "Invalid image URL.");
+      if (error.code === "blocked_address") throw new UnsafeImageError("That image address isn't allowed.");
+      if (error.code === "too_large") throw new UnsafeImageError("Image file is too large.");
+      throw new UnsafeImageError(error.status ? `Image request failed (${error.status}).` : "Image request failed.");
+    }
+    throw error;
   }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new UnsafeImageError("Image URLs must be http(s).");
-  if (PRIVATE_HOST.test(parsed.hostname)) throw new UnsafeImageError("That image address isn't allowed.");
-
-  const res = await fetch(parsed, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), redirect: "follow" });
-  if (!res.ok || !res.body) throw new UnsafeImageError(`Image request failed (${res.status}).`);
-  const declared = Number(res.headers.get("content-length") ?? 0);
-  if (declared > maxBytes) throw new UnsafeImageError("Image file is too large.");
-
-  const chunks: Buffer[] = [];
-  let total = 0;
-  for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
-    total += chunk.byteLength;
-    if (total > maxBytes) throw new UnsafeImageError("Image file is too large.");
-    chunks.push(Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
 }
 
 /** Decodes an image (buffer, http(s) URL, or data: URI) only after checking it's safe to. */

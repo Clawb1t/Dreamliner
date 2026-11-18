@@ -1,0 +1,962 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">Factorio Blog</title>
+  <id>https://www.factorio.com/blog/rss</id>
+  <updated>2026-10-23T00:00:00+00:00</updated>
+  <link href="https://www.factorio.com/" />
+  <link href="https://www.factorio.com/blog/rss" rel="self" />
+  <generator>Werkzeug</generator>
+  <entry xml:base="https://www.factorio.com/blog/rss">
+    <title type="text">Friday Facts #449 - 2.1 Stable</title>
+    <id>https://www.factorio.com/blog/post/fff-449</id>
+    <updated>2026-10-23T00:00:00Z</updated>
+    <link href="https://www.factorio.com/blog/post/fff-449" />
+    <author>
+      <name>Factorio team</name>
+    </author>
+    <content type="html">&lt;p&gt;
+  Hello,
+  &lt;br/&gt;Welcome to another Friday.
+&lt;/p&gt;
+
+&lt;p&gt;
+  This week marks exactly 2 years since the &lt;a href=&#34;https://factorio.com/blog/post/factorio-space-age-release&#34;&gt;Space Age release&lt;/a&gt;.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin: 20px auto 20px auto;&#34;&gt;
+  &lt;a href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-449-2-1-stable.png&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-449-2-1-stable.png&#34;&gt;
+  &lt;/a&gt;
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;2.1 Stable&lt;/h3&gt;
+
+&lt;p&gt;
+  After a long summer in experimental, 2.1 is now marked as stable. Thank you to everyone who played the experimental, reported bugs, and gave us feedback. A lot of the changes and tweaks since the first 2.1 release came directly from your reports.
+&lt;/p&gt;
+
+&lt;p&gt;
+  We took this opportunity to update our classic Factorio trailer one last time.
+&lt;/p&gt;
+
+&lt;div class=&#34;shadow iframe-container&#34;&gt;
+  &lt;iframe src=&#34;https://www.youtube.com/embed/oF1zCD7NwNY&#34; title=&#34;Factorio - Trailer 2026&#34;
+    allow=&#34;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share&#34;
+    referrerpolicy=&#34;strict-origin-when-cross-origin&#34; allowfullscreen&gt;&lt;/iframe&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+  As we said back in &lt;a href=&#34;https://factorio.com/blog/post/fff-440&#34;&gt;FFF-440&lt;/a&gt;, 2.1 isn&#39;t about new planets, enemies or research trees. Instead, it is a big collection of quality of life, small features, polish, and the things we wanted to do for 2.0 but didn&#39;t have time for. For those of you who stuck with 2.0 stable, here is a quick tour of what is waiting for you.
+&lt;/p&gt;
+
+
+&lt;h4&gt;Space logistics - &lt;a href=&#34;https://factorio.com/blog/post/fff-441&#34;&gt;FFF-441&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  Space platforms are the backbone of Space Age, and in 2.1 they are a lot more capable.
+  &lt;ul&gt;
+    &lt;li&gt;Mixed rockets: Rockets can now carry multiple different items in one launch, so no more sending a full stack of everything just to build a small platform.&lt;/li&gt;
+    &lt;li&gt;Import from Any: Leave the &#39;Import from&#39; slot blank to import items from all locations, perfect for fuel, ammo, and repair packs.&lt;/li&gt;
+    &lt;li&gt;Platform to platform transfers: Platforms can request items from, and provide items to, other platforms in orbit.&lt;/li&gt;
+    &lt;li&gt;Hub set requests: Control the space platform hub requests with the circuit network.&lt;/li&gt;
+    &lt;li&gt;Radar Universe mode: Send and receive circuit signals between planets and platforms on a shared channel.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin:auto; margin-top:20px; margin-bottom: 20px;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-441-import-from-platforms.png&#34;&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;Space platform balance - &lt;a href=&#34;https://factorio.com/blog/post/fff-448&#34;&gt;FFF-448&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  A couple of changes to how platforms fly and take damage.
+  &lt;ul&gt;
+    &lt;li&gt;Asteroid damage now depends on the asteroid&#39;s remaining health instead of its speed, so it is much more predictable.&lt;/li&gt;
+    &lt;li&gt;The space platform hub has more health and resistances, so it will be able to take a few more hits.&lt;/li&gt;
+    &lt;li&gt;Platform drag is now based on mass instead of width, so the &#39;pencil ship&#39; is no longer the only way to go fast.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;Landing pad unloading bay - &lt;a href=&#34;https://factorio.com/blog/post/fff-443&#34;&gt;FFF-443&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  A special cargo bay that inserters can take items out of, so you can unload your landing pad directly into trains, chests, belts or anything else inserters can interact with.
+  &lt;ul&gt;
+    &lt;li&gt;Can be placed in a limited area around the landing pad.&lt;/li&gt;
+    &lt;li&gt;Elevated rails can now be built over cargo bays.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin:auto; margin-top:20px; margin-bottom: 20px;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-443-unloader-01.png&#34;&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;Circuit network - &lt;a href=&#34;https://factorio.com/blog/post/fff-443&#34;&gt;FFF-443&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  More things to wire up, and a clearer way to wire them.
+  &lt;ul&gt;
+    &lt;li&gt;Input/Output split: Circuit reads and writes can be directed to different wire colors, replacing the old &#39;magic&#39; self-subtraction.&lt;/li&gt;
+    &lt;li&gt;Labs can set the current research based on circuit conditions.&lt;/li&gt;
+    &lt;li&gt;Boilers and heat exchangers can be connected to the circuit network, for easy backup power setups.&lt;/li&gt;
+    &lt;li&gt;Land mines can be used as tripwires and enemy detectors.&lt;/li&gt;
+    &lt;li&gt;Pipes can be connected to the circuit network, along with a new pipe GUI (&lt;a href=&#34;https://factorio.com/blog/post/fff-442&#34;&gt;FFF-442&lt;/a&gt;).&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin:auto; margin-top:20px; margin-bottom: 20px;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-443-input-output-assembler.png&#34;&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;Quality - &lt;a href=&#34;https://factorio.com/blog/post/fff-442&#34;&gt;FFF-442&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  Some changes for both lovers and haters of Quality.
+  &lt;ul&gt;
+    &lt;li&gt;Space Age can now be played without Quality. The Recycler has been split into its own mod, and Quality is a &#39;Recommended&#39; dependency that is enabled by default.&lt;/li&gt;
+    &lt;li&gt;Quality locomotives and wagons: Faster trains, bigger cargo wagons and fluid wagons.&lt;/li&gt;
+    &lt;li&gt;The &#39;Space casino&#39; is closed: Quality modules can no longer be used in asteroid reprocessing.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;Flipping and fluids - &lt;a href=&#34;https://factorio.com/blog/post/fff-442&#34;&gt;FFF-442&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  Fixing a few of the long standing annoyances.
+  &lt;ul&gt;
+    &lt;li&gt;Pumpjacks and burner miners can now be flipped.&lt;/li&gt;
+    &lt;li&gt;The drop arrow shows which lane of a belt a machine will drop to in ambiguous situations, and flipping blueprints won&#39;t change their behavior.&lt;/li&gt;
+    &lt;li&gt;Inserters always drop to the input side of splitters.&lt;/li&gt;
+    &lt;li&gt;Fluid mixing prevention is back: Pipelines with different fluids will not merge, and give a warning instead.&lt;/li&gt;
+    &lt;li&gt;Fluid flow scales properly with high throughput (looking at you, Legendary machines).&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;Enemy expansions - &lt;a href=&#34;https://factorio.com/blog/post/fff-445&#34;&gt;FFF-445&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  A holistic review of how the biters expand.
+  &lt;ul&gt;
+    &lt;li&gt;Expansion groups scale with evolution, so they are a meaningful challenge rather than lots of tiny annoying nests.&lt;/li&gt;
+    &lt;li&gt;Exploring the map early no longer reduces the expansions near your base.&lt;/li&gt;
+    &lt;li&gt;Biters choose more natural locations to build new bases.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;New graphics - &lt;a href=&#34;https://factorio.com/blog/post/fff-441&#34;&gt;FFF-441&lt;/a&gt;, &lt;a href=&#34;https://factorio.com/blog/post/fff-442&#34;&gt;FFF-442&lt;/a&gt;, &lt;a href=&#34;https://factorio.com/blog/post/fff-443&#34;&gt;FFF-443&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  Our last big pass over the graphics of the game.
+  &lt;ul&gt;
+    &lt;li&gt;New assembling machines, oil refinery, rocket silo, and heat exchanger.&lt;/li&gt;
+    &lt;li&gt;A new pump rendering system that can connect to fluid wagons no matter how cursed your station is.&lt;/li&gt;
+    &lt;li&gt;Diagonal flamethrower turret.&lt;/li&gt;
+    &lt;li&gt;Planets visible in the background of space platforms.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin:auto; margin-top:20px; margin-bottom: 20px;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-444-assembler-postcard.png&#34;&gt;
+&lt;/p&gt;
+
+&lt;h4&gt;ARM64 Linux - &lt;a href=&#34;https://factorio.com/blog/post/fff-446&#34;&gt;FFF-446&lt;/a&gt;&lt;/h4&gt;
+
+&lt;p&gt;
+  Factorio now runs natively on ARM64 Linux, which means the game runs on Steam Frame, Raspberry Pi (headless servers), Asahi Linux on Apple Silicon MacBooks, the free VPS you claimed from Oracle that one time, and other assorted hardware.
+&lt;/p&gt;
+
+&lt;h4&gt;Before you update&lt;/h4&gt;
+
+&lt;p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;2.0 save games will load, but some changes (such as the circuit Input/Output split) may break your existing factory designs.&lt;/li&gt;
+    &lt;li&gt;Once you&#39;ve updated, blueprints and save games cannot be downgraded to 2.0.&lt;/li&gt;
+    &lt;li&gt;We recommend backing up any saves and blueprints you care about.&lt;/li&gt;
+    &lt;li&gt;Most popular mods have been updated during the experimental period, but some you rely on may not be ready yet.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+
+&lt;hr&gt;
+
+&lt;p&gt;
+  As always, let us know your thoughts at the usual places.
+&lt;/p&gt;
+
+&lt;style&gt;
+
+.iframe-container {
+  position: relative;
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+}
+
+.iframe-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+&lt;/style&gt;</content>
+  </entry>
+  <entry xml:base="https://www.factorio.com/blog/rss">
+    <title type="text">Friday Facts #448 - Tuning platforms</title>
+    <id>https://www.factorio.com/blog/post/fff-448</id>
+    <updated>2026-10-09T00:00:00Z</updated>
+    <link href="https://www.factorio.com/blog/post/fff-448" />
+    <author>
+      <name>Bilka, CodeGreen, Carl</name>
+    </author>
+    <content type="html">&lt;p&gt;
+  Hello,
+  &lt;br/&gt;Welcome to another Friday.
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;Asteroid damage changes &lt;author&gt;Bilka&lt;/author&gt;&lt;/h3&gt;
+
+&lt;p&gt;
+  In 2.0, asteroids dealt damage to space platforms based on the relative speed of the asteroid and the collision would cause the asteroid to slow down. After an asteroid dealt a certain amount of damage, it would simply disappear.
+  It was a bit strange to have the asteroids suddenly disappear into thin air with no indication of when it would happen.
+&lt;/p&gt;
+
+&lt;p&gt;
+  As you may have already experienced, version 2.1 reworks this asteroid damage to be dependent on the health of the asteroid instead, combined with asteroids taking damage when they deal damage. However, asteroids no longer slow down as they deal damage to platforms. As you&#39;d expect, an asteroid is destroyed when it loses all its hitpoints by dealing damage. This makes the damage much more predictable, as it is a fixed number per asteroid type, and the remaining damage an asteroid will deal to the platform now directly depends on the asteroid&#39;s visible health bar and not an invisible counter of how much damage it already dealt. This means that if you manage to shoot and partially damage an asteroid before you collide with it, it will now deal less damage to the platform.
+&lt;/p&gt;
+
+&lt;h4&gt;Adjusting the impact&lt;/h4&gt;
+
+&lt;p&gt;
+  We &lt;a href=&#34;https://factorio.com/blog/post/fff-440&#34;&gt;playtested&lt;/a&gt; these changes during 2.1 development and immediately noticed a large drawback: medium asteroids would one-shot platforms in orbit around planets like Vulcanus. Before 2.1, the damage asteroids dealt to platforms in orbit would be greatly reduced since the platform isn&#39;t moving, but with the new speed-independent algorithm that was no longer the case. To counteract this, we buffed the health and resistances of the space platform hub, so that medium asteroids would no longer kill it in one hit. We decided to hold off on further asteroid damage nerfs, or related changes like buffing platform tile health, until we knew whether this change fixed the issue.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin: 20px auto 20px auto;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-448-problematic-skill-gap.png&#34;&gt;
+  &lt;br /&gt;&lt;i&gt;During the playtest, several of our platforms fell victim to medium asteroids.&lt;/i&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+  After the 2.1 release, we received your feedback that building platforms in Vulcanus orbit was too punishing even after the buff to the hub, so in 2.1.13 we reduced all asteroid damage to stationary platforms by 90%. A medium asteroid could previously do 3200 damage to a platform in orbit; after this change, it was only 320.
+&lt;/p&gt;
+
+&lt;p&gt;
+  While this massively reduced the frustration around parked platforms, the damage of medium asteroids was still too high compared to 2.0. Some experiments showed that in 2.0 a medium asteroid would deal around 1700 damage to a platform moving at a relatively slow 160&amp;nbsp;km/s, while it was 3200 damage in 2.1.13. We wanted to keep some of this increased asteroid damage, but not as much, so with 2.1.21 we reduced the damage of medium asteroids and halved again the damage to stationary platforms, so that a medium asteroid now deals 2000 damage to a moving platform and 100 to a stationary one. This is closer to the approximately 67 damage that a medium asteroid would deal to a stopped platform in 2.0. Additionally, we increased the damage dealt by huge asteroids to also be closer to the 2.0 damage numbers to discourage cheesing the trip to the edge by simply tanking the asteroid damage.
+&lt;/p&gt;
+
+&lt;p&gt;
+  So overall, the way asteroids deal damage to platforms is now more predictable by being directly dependent on asteroids&#39; remaining health and independent from their speed. Compared to earlier 2.1 versions, taking a hit on your first few flights or building platforms in dangerous orbits is now less punishing.
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;Space platform acceleration &amp;amp; drag &lt;author&gt;CodeGreen&lt;/author&gt;&lt;/h3&gt;
+
+&lt;p&gt;
+  Everyone who has designed and flown a space platform has knowingly or unknowingly experienced the effects of the space platform acceleration expression. This formula is what effectively determines the top speed of a platform, using variables for current speed, thrust, mass, width, and height, though height is unused. The existing formula has served us well for quite some time; however, I&#39;ve always felt unsatisfied with it. I am but a humble modder of 6 years though, not a dev, so my say in the matter is much smaller in comparison. Upon my request, I was told if I could come up with something better, it would be considered. To improve, we must first identify what to improve, which brings us to the next section:
+&lt;/p&gt;
+
+&lt;h4&gt;The problem&lt;/h4&gt;
+
+&lt;p&gt;
+  Besides thrust, the biggest influence on the top speed of a space platform by far is its width. It directly scales the drag component of the formula (yes, there&#39;s drag in space, deal with it). While being adequate enough to make flying space platforms fun, width has some aspects and implications that I, and many community members according to a &lt;a href=&#34;https://www.reddit.com/r/factorio/comments/1u49se6/&#34;&gt;poll&lt;/a&gt; I posted on reddit a while back, found less than ideal. Thank you to all who voted, and to those who took the time to voice their thoughts and opinions in the comments.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin: 20px auto 20px auto;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-448-poll.png&#34;&gt;
+  &lt;br /&gt;&lt;i&gt;~50% of voters didn&#39;t like width, and only ~10% did!&lt;/i&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+  The design of a space platform is an intricate process, one that oftentimes involves a sizeable amount of iteration and adjustment. Width is determined by the furthest left/right tiles of the platform, so if one of those adjustments happens to make the platform even one tile wider in one location, the top speed is reduced almost as much as if that whole column of tiles had been filled vertically. This felt unnecessarily punishing, especially since the effect of width on acceleration becomes much stronger the narrower the platform is.
+&lt;/p&gt;
+
+&lt;p&gt;
+  That leads to another aspect of width I found odd. Because width is so impactful, it became &#34;optimal&#34; to design platforms with minimal width and maximal height, which I call &#34;pencil ships&#34;. Encouraging some shape isn&#39;t necessarily bad, since that choice is mostly arbitrary, but I don&#39;t think pencil ships are the right shape to encourage. The existence of asteroids already incentivizes narrower designs. There&#39;s a natural tradeoff between making a wider platform for more area and the cost of defenses to protect said area. It doesn&#39;t make sense to me for the wider ships to also be slower. Because of that, there is virtually no reason to build wider (other than farming for asteroid chunks, I guess), and thus narrow platforms reign supreme.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin: 20px auto 20px auto;&#34;&gt;
+  &lt;video autoplay muted loop playsinline class=&#34;shadow&#34;&gt;
+    &lt;source src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-448-pencil.mp4&#34; type=&#39;video/mp4&#39; /&gt;
+    Mp4 playback not supported on your device.
+  &lt;/video&gt;
+  &lt;br /&gt;&lt;i&gt;A very small &#34;pencil ship&#34; in flight.&lt;/i&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+  On a separate note, thrusters are designed around not having any part of the space platform behind them. There wasn&#39;t a perfect method to prevent this, so thrusters were made to only prevent building behind them in a finite range. Naturally, some players exploited this behavior, resulting in platforms that have multiple layers of thrusters, AKA &#34;thruster stacking&#34;. Since the usual limiting factor to how many thrusters a platform can have is its width, thruster stacking sidesteps this organic restriction entirely. Combined with the aforementioned pencil ship, hyper-unrealistic speeds were achieved with platforms fifty times taller than they were wide. When it comes to balancing, thruster stacking can mostly be ignored, since the majority of players aren&#39;t doing it and it wasn&#39;t intended in the first place. It does, however, show how absurd narrow platforms can get with the existing formula.
+&lt;/p&gt;
+
+&lt;p&gt;
+  Lastly, even if none of what I mentioned above were an issue, the space platform tooltip on the right side of the screen doesn&#39;t mention width at all, only speed, mass, thrust, and damage taken. You had no indication that width mattered unless you already knew it did. Obviously, that can easily be solved by adding width to the tooltip, but that wouldn&#39;t be necessary if width were to be removed from the acceleration formula and replaced with something else entirely.
+&lt;/p&gt;
+
+&lt;h4&gt;The solution&lt;/h4&gt;
+
+&lt;p&gt;
+  If not width, then what? There are plenty of interesting ideas for how to balance drag, however only one stuck out to me as the clear winner: Mass. Making drag based on mass addresses everything I mentioned above, and introduces some new and interesting design implications at the same time.
+&lt;/p&gt;
+
+&lt;p&gt;
+  For starters, adding tiles to the side of a platform doesn&#39;t have as drastic an effect on drag anymore. There&#39;s still a downside, as every tile adds up, but it won&#39;t be as punishing as before. In fact, it doesn&#39;t matter where tiles are added anymore, as they all have the same effect on drag. Shifting the focus away from the shape of the platform and towards the amount of space it takes up encourages clever design, where keeping things compact rewards the effort put in to do so. The idea of doing more with less space also rather conveniently aligns particularly well with quality buildings and modules.
+&lt;/p&gt;
+
+&lt;p&gt;
+  If the shape of a platform doesn&#39;t have an effect on acceleration, the other aspects of design determine the shape much more than before. Most notably, making ships faster requires a better thrust-to-mass ratio, and the only way to do that is by having more thrusters or higher quality thrusters (or both). A platform twice as wide as it is tall allows fitting twice as many thrusters versus the other way around, so wider ships emergently have the capacity to fly faster, at least with the same amount of mass. The tradeoff between width and defense gains an impactful incentive for actually doing so. Of course, you can still make well-designed narrow ships, or ships of any shape; the point is to expand the design space, not switch what gets punished.
+&lt;/p&gt;
+
+&lt;h4&gt;The process&lt;/h4&gt;
+
+&lt;p&gt;
+  Hypothesizing a change is one thing, actually implementing it is another. To get a better understanding of what I was dealing with, I plotted the existing formula in Desmos. There were too many independent variables to have a useful graph for testing, so for consistency&#39;s sake I decided to make some of them dependent on each other: Mass (or weight as called internally) is scaled using &lt;code&gt;width * height&lt;/code&gt;, and thrust is scaled by &lt;code&gt;width / 4&lt;/code&gt;. Now the only variables to control are width and height, with the assumption that the platform uses the entire rectangle of space for tiles, and that the back of the platform has as many thrusters as it can fit. The point where the line crosses the X axis is the top speed of the platform, since that is the speed where 0 acceleration is gained.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin: 20px auto 20px auto;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-448-graph-1.png&#34;&gt;
+  &lt;br /&gt;&lt;i&gt;The acceleration graph for a 50x50 space platform.&lt;/i&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+  Now I could start trying out different ways of changing the formula to see how they would affect the graph. From the start, I limited myself to changing only the drag component, since I didn&#39;t want the shape of the line itself to change, only how it scales. After a few experiments, I settled on &lt;code&gt;(weight / 200) ^ b&lt;/code&gt; in place of &lt;code&gt;width * 0.5&lt;/code&gt;. The 200 comes from the mass of one space platform foundation tile, and &lt;code&gt;b&lt;/code&gt; is a magic number between 0 and 1 that depends on how much drag should scale with mass, which ended up being &lt;code&gt;0.8&lt;/code&gt; at the end. The predecessor mod &lt;a href=&#34;https://mods.factorio.com/mod/Rocs-Improved-Platform-Drag&#34;&gt;Simpler Platform Drag&lt;/a&gt; did something very similar, with an exponent of &lt;code&gt;0.5&lt;/code&gt; instead.
+&lt;/p&gt;
+
+&lt;p&gt;
+  Of course, making a change this significant cannot be done without extensive testing in game, and I knew my limited selection of space platforms from my own games wasn&#39;t going to cut it. Thankfully, I had turned to the reddit community for help in advance, asking for people to send in as many space platform blueprints as they could shortly after the poll. There are too many names to list, but thank you to everyone who sent me blueprints in this &lt;a href=&#34;https://www.reddit.com/r/factorio/comments/1ubg1tw&#34;&gt;post&lt;/a&gt;; I used almost all of them. A good portion of them were more optimized for width, which makes sense, but it&#39;s important to see how existing designs will be affected. There was still enough variety between all of them that I had a pretty good idea of how everything was affected overall.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin: 20px auto 20px auto;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-448-collage.png&#34;&gt;
+  &lt;br /&gt;&lt;i&gt;I couldn&#39;t fit all of them, but these are the beasts that helped shape the future.&lt;/i&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+  After much iteration, V453000 and I decided on the numbers together, which gave us the new formula present in 2.1.21. Here&#39;s a comparison of old (red) to new (blue) for a space platform 50 tiles tall, with width scaling up to 1000 tiles to see how it behaves as it gets wider.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin: 20px auto 20px auto;&#34;&gt;
+  &lt;video autoplay muted loop playsinline class=&#34;shadow&#34;&gt;
+    &lt;source src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-448-graph-2.mp4&#34; type=&#39;video/mp4&#39; /&gt;
+    Mp4 playback not supported on your device.
+  &lt;/video&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+  As you can see, it starts off slightly slower than the old formula, but as width increases, so does the top speed, with diminishing returns, until it reaches a point where it becomes worse to add more width. This lines up exactly with what we wanted, where building wider rewards the player with a higher speed, but not to the point where the optimal ship is an infinitely long wall. The only ships that were significantly hurt in testing were those making excessive use of the thruster stacking exploit; the rest of the skinnier ships didn&#39;t suffer too harshly. The wider ships and the tiny starter ships gained some speed, since they already had a decent thrust-to-mass ratio.
+&lt;/p&gt;
+
+&lt;p&gt;
+  With this change, narrow ships no longer have dominating speeds, wider ships don&#39;t get punished just for being wide, and designing space platforms should be more fun overall. 2.1 has been in experimental for quite some time now, and since this change retroactively affects all existing platforms, I apologize that this wasn&#39;t done earlier in development. I do hope you&#39;ll enjoy making more space platforms from this point on, and it&#39;ll be exciting to see what cool and unique ships everyone will be making. Many thanks to Wube for accepting the change and having me write this section, it&#39;s been a pleasure sharing the journey with you all.
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;Community spotlight - Biter Battles &lt;author&gt;Carl&lt;/author&gt;&lt;/h3&gt;
+
+&lt;p&gt;
+  Most of us enjoy Factorio as a peaceful (well, peaceful-ish) game where you build your factory at your own pace. But there are always a few who want a bit of a different challenge, and over the years a competitive scene we never really imagined has grown around the game.
+&lt;/p&gt;
+
+&lt;p&gt;
+  Biter Battles (BB) is a scenario originally written by M3wM3w at Comfy Factory back in 2018. Two (or more) teams build their factories side by side, and the goal is to feed science packs to the biters as fast as possible, which sends increasingly large waves of biters at the opposing team. Whoever destroys the other team&#39;s base first wins. Over the past 8 years the community has refined the mode a lot, and watching the top players today is genuinely impressive.
+&lt;/p&gt;
+
+&lt;p style=&#34;text-align: center; margin:auto; margin-top:20px; margin-bottom: 20px;&#34;&gt;
+&lt;div class=&#34;shadow iframe-container&#34;&gt;
+  &lt;iframe iframe width=&#34;1120&#34; height=&#34;630&#34; src=&#34;https://www.youtube.com/embed/B-8xmJjUNBQ&#34; title=&#34;The History of Biter Battles, 2018-2026&#34;
+  allow=&#34;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share&#34;
+  referrerpolicy=&#34;strict-origin-when-cross-origin&#34; allowfullscreen&gt;&lt;/iframe&gt;
+&lt;/div&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+  If you have already launched your rockets and built your megabase, and are looking for a completely different challenge, there are a few ways to get into it:
+&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;b&gt;Casual play&lt;/b&gt; - The BiterBattles.org server runs 24/7 on the latest stable vanilla version (no Space Age), with no mods or registration needed. Just find it under Multiplayer &amp;rarr; Browse public games. All skill levels are welcome.&lt;/li&gt;
+  &lt;li&gt;&lt;b&gt;Ranked play&lt;/b&gt; - The Biter Battles (BB) League is a continuously running ladder, free and open to everyone. You just need to link your Factorio account on &lt;a href=&#34;https://biterbattles.org/&#34;&gt;biterbattles.org&lt;/a&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;b&gt;Tournaments&lt;/b&gt; - The 3 vs 3 BB Cup runs about three times a year and features some of the fastest and most competitive Factorio players in the world. The matches are streamed on Twitch, and the last Summer Cup reached four-digit live viewer counts.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;
+  If you want to see what high-level play looks like, check out &lt;a href=&#34;https://www.twitch.tv/videos/2896006506&#34;&gt;Zaspar &amp;amp; Dalvos commentating a 3 vs 3 balance test for the upcoming Autumn Cup&lt;/a&gt;, or &lt;a href=&#34;https://www.twitch.tv/videos/2850798251&#34;&gt;AntiElitz&#39;s POV of the Summer Cup semi-final&lt;/a&gt;.
+&lt;/p&gt;
+
+&lt;hr&gt;
+
+&lt;p&gt;
+  As always, let us know what you think at the usual places.
+&lt;/p&gt;
+</content>
+  </entry>
+  <entry xml:base="https://www.factorio.com/blog/rss">
+    <title type="text">Friday Facts #447 - Factorio that you can touch</title>
+    <id>https://www.factorio.com/blog/post/fff-447</id>
+    <updated>2026-09-25T00:00:00Z</updated>
+    <link href="https://www.factorio.com/blog/post/fff-447" />
+    <author>
+      <name>Pard, Jarosław, Fearghall</name>
+    </author>
+    <content type="html">&lt;p&gt;
+  Hello,&lt;br /&gt;
+  we have very unusual Friday facts for you.
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;p style=&#34;text-align: center; margin:auto; margin-top:20px; margin-bottom: 20px;&#34;&gt;
+  &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-diorama.jpg&#34;&gt;
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;Journey to the physical world &lt;author&gt;Pard&lt;/author&gt;&lt;/h3&gt;
+&lt;p&gt;
+  It all started in the hot summer of 2024 when we worked really hard to finish the Space Age DLC. The game was almost ready, but we wanted some feedback from our players.
+  A decision was made to organise a playtesting event (&lt;a href=&#34;https://factorio.com/blog/post/fff-427&#34;&gt;FFF-427&lt;/a&gt;), where teams of players could play the game from start
+  to finish and provide us with in-person feedback and criticism to deliver the best product you all deserved.
+&lt;/p&gt;
+&lt;p&gt;
+  Since we are all geeks and love to tinker, we asked our friends at Prusa Research to join us and create some accompanying programmes and presentations for all attendees.
+&lt;/p&gt;
+&lt;p&gt;
+  Being fans of Factorio themselves, they agreed to join, and the plan was put into motion. When the event started, we realised that it would be cool to print some
+  Factorio models right at the event, so Fearghall quickly created a simple model of the Wriggler from everyone&#39;s favourite Gleba.
+&lt;/p&gt;
+
+&lt;div class=&#34;carousel&#34;&gt;
+  &lt;div&gt;&lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-lan-1.jpg&#34;&gt;&lt;/div&gt;
+  &lt;div&gt;&lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-lan-2.jpg&#34;&gt;&lt;/div&gt;
+  &lt;div&gt;&lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-lan-3.jpg&#34;&gt;&lt;/div&gt;
+  &lt;div&gt;&lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-lan-4.jpg&#34;&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+  With the conclusion of our event, everyone returned to work on Factorio, but we all wanted to return to the idea of Factorio models in the real world. In the months
+  following the release and subsequent bug-fixing and polishing period, we started working on some prototypes in our spare time. Several models were made, printed, and
+  painted, but they lacked a concept. We let it sit for a while and brainstormed what would be the best direction. The answer was actually very simple: transport belts.
+&lt;/p&gt;
+&lt;p&gt;
+  Belts are the core of every factory from the early hours to the very late game. Jarosław started designing the concept of a grid system where you could place every entity
+  closely following the game. The first version of inserters soon followed. During this phase, we were printing countless prototypes. It soon became clear that we needed
+  two versions of almost every model. One set of models is created with high precision, allowing push-fit assembly, and the other is made with high clearance in mind for
+  people who want to glue everything permanently or have clearance issues with their printers.
+&lt;/p&gt;
+&lt;p&gt;
+  While Jarosław was busy creating one player-built entity after the other, Fearghall started working on enemies. The first iteration of the biter spawner soon followed.
+  Then came chests, followed by the player character, then a stone furnace… Our model set grew nicely, but we knew that we had to draw a line somewhere, because trying to
+  release every Factorio entity would take too much time. With that in mind, we focused on the early game. We ended up with 15 model sets containing 65 individual models
+  in 247 STL files.
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;div class=&#34;carousel&#34;&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-1.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;1/17&lt;/div&gt;
+    &lt;p&gt;Testing how far we can push the limits of model size.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-2.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;2/17&lt;/div&gt;
+    &lt;p&gt;Painting of the first enemy prototype to ensure that models will look good both in plain plastic and fully painted...&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-3.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;3/17&lt;/div&gt;
+    &lt;p&gt;...Finished demolisher. The model was later scrapped because it wasn&#39;t really reflecting in-game visuals.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-4.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;4/17&lt;/div&gt;
+    &lt;p&gt;Several models in early stages of development. Belts were tested and fine-tuned for clearance issues. Enemies needed major updates.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-5.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;5/17&lt;/div&gt;
+    &lt;p&gt;Painting the biter spawner to determine whether the fully finished model adequately represents the original vision for the game...&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-6.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;6/17&lt;/div&gt;
+    &lt;p&gt;...The biter spawner is now fully finished. Unfortunately, we realized that substantial changes are still needed.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-14.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;7/17&lt;/div&gt;
+    &lt;p&gt;Most entities went through a series of iterations. Countless print runs were associated with this process.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-7.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;8/16&lt;/div&gt;
+    &lt;p&gt;First test print of the biter. It was later resized, and it received many improvements for a smooth printing experience.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-9.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;9/17&lt;/div&gt;
+    &lt;p&gt;Fine-tuning of printer limits regarding potential model details on the spitter.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-8.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;10/17&lt;/div&gt;
+    &lt;p&gt;The final version of the spitter, finding enemies outside the world of Factorio.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-16.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;11/17&lt;/div&gt;
+    &lt;p&gt;Test print of the late version of the electric mining drill with a coat of silver primer.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-10.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;12/17&lt;/div&gt;
+    &lt;p&gt;Our catalogue of models was starting to gain momentum. At this point, we were confident that a public release was possible.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-11.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;13/17&lt;/div&gt;
+    &lt;p&gt;The biter spawner finally received a model update. It still wasn&#39;t finished, but we were getting much closer to the finish line.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-13.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;14/17&lt;/div&gt;
+    &lt;p&gt;The belt lane balancer is painted with model grass added. It was clear that complete dioramas are possible.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-15.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;15/17&lt;/div&gt;
+    &lt;p&gt;One of the earlier tests of walls and their integration into the grid system.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-17.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;16/17&lt;/div&gt;
+    &lt;p&gt;Testing how far we can push the limits of model sizes in the opposite direction. Joint modification was needed.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-bts-12.jpg&#34;&gt;
+    &lt;div class=&#34;cntr&#34;&gt;17/17&lt;/div&gt;
+    &lt;p&gt;Finally, all the models are finished. Time to take some glamour shots.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+
+&lt;h3&gt;Why 3D Printing? &lt;author&gt;Pard&lt;/author&gt;&lt;/h3&gt;
+&lt;p&gt;
+  In the modern digital world, there is a decrease in physical memorabilia. Physical releases of games are now almost a relic of the past. We always thought about having
+  something for fans and ourselves as a reminder of times that we spent with the game. We at Wube are a software company, not a toy manufacturer, and we have the best
+  community in the world. Creating some expensive (limited) collector&#39;s items didn&#39;t sit right with us. We have decided to go with 3D models as a little &#34;thank you for
+  your support&#34; gift so anyone can download them and print them for themselves.
+&lt;/p&gt;
+&lt;p&gt;
+  A second equally important reason is that we love your creativity, and we want to give you a chance to iterate on things we created and give them your own spin. We can&#39;t wait to see it.
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;Reimagining of Factorio &lt;author&gt;Jarosław&lt;/author&gt;&lt;/h3&gt;
+&lt;p&gt;
+  I will not lie, I slept on 3D printing for a while. It&#39;s probably for the best - I do have a passion for miniature-based board games and background as a 3D artist.
+  So, when I finally took the risk and decided to look into it - well, let&#39;s say neither of my 3D printers has seen much downtime since then. Whether it&#39;s miniatures,
+  card organizers, inserts or wall-high paint-stands, there is always something new to print. And of course, in case you are wondering, that does not make my &#34;pile of shame&#34;
+  any smaller.
+&lt;/p&gt;
+&lt;p&gt;
+  With this premise, I know you can imagine why my ears perked up when the first hints of 3D printed models for Factorio started circulating in the office. Little did I know
+  I was soon to partake in one of the most fascinating endeavours I ever… well, partook in.
+&lt;/p&gt;
+&lt;p&gt;
+  If you are a regular in these here parts, you will likely know all our entities start their life as 3D models. That might make it seem like translating them into prints
+  would be an easy job - in all truth, I thought so, and I of all people should know better! The journey turned out to be a bit more complex than I originally imagined!
+&lt;/p&gt;
+
+&lt;br&gt;
+&lt;div style=&#34;display: flex; flex-wrap: wrap; justify-content: center; align-items: center;&#34;&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-transport-belts-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-transport-belts-1.jpg&#34; alt=&#34;Transport Belts 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-transport-belts-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-transport-belts-2.jpg&#34; alt=&#34;Transport Belts 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-1.jpg&#34; alt=&#34;Belt Items 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-2.jpg&#34; alt=&#34;Belt Items 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-3.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-3.jpg&#34; alt=&#34;Belt Items 3&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-4.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-belt-items-4.jpg&#34; alt=&#34;Belt Items 4&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-1.jpg&#34; alt=&#34;Chests 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-2.jpg&#34; alt=&#34;Chests 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-3.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-3.jpg&#34; alt=&#34;Chests 3&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-4.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-4.jpg&#34; alt=&#34;Chests 4&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-5.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-chests-5.jpg&#34; alt=&#34;Chests 5&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-walls.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-walls.jpg&#34; alt=&#34;Walls&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+&lt;br&gt;
+
+&lt;p&gt;
+  The most obvious problem concerning FDM printing is the issue of supports. If you are not well versed in how these printers work, you can imagine building a roof with
+  LEGO bricks. An angled roof is easy - you just offset each next brick by a single row, and there is your roof. If you wanted to make a perfectly flat one, though? The
+  bricks do not connect on the sides, so each next one would need to float in the air… unless there was something to support them from underneath. For our models, we
+  wanted to avoid extra supports wherever possible - they can be visually distracting when made to stay, otherwise they can be a bother to remove. As such, part of my
+  work was to find ways to separate our models into pieces that can be printed without supports and then connected into full models. Considering I am a fan of scale models
+  and gunplas, it was an incredible experience to create my own!
+&lt;/p&gt;
+&lt;p&gt;
+  Now, the other problem is a bit different in nature. How would I say it…? Factorio models tend to be really, really crazy (in the best possible way). Do you know the
+  adage &#34;what you see is what you get&#34;? Well, yeah, no. Not at all applicable in this case!
+&lt;/p&gt;
+
+&lt;br&gt;
+&lt;div style=&#34;display: flex; flex-wrap: wrap; justify-content: center; align-items: center;&#34;&gt;
+  &lt;a data-fancybox=&#34;gallery-entities&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-assembling-machine.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-assembling-machine.jpg&#34; alt=&#34;Assembling Machine&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-entities&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-electric-mining-drill.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-electric-mining-drill.jpg&#34; alt=&#34;Electric Mining Drill&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-entities&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-steel-furnace.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-steel-furnace.jpg&#34; alt=&#34;Steel Furnace&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-entities&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-stone-furnace.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-stone-furnace.jpg&#34; alt=&#34;Stone Furnace&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-entities&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-small-electric-pole.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-small-electric-pole.jpg&#34; alt=&#34;Small Electric Pole&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+&lt;br&gt;
+
+&lt;p&gt;
+  Factorio&#39;s isometric view gives a lot of space to experiment and play, and my fellow artists used that opportunity mercilessly. Sometimes what you see is, in fact,
+  merely a collection of free-floating objects that just happen to look like a machine when looked at from the exact correct perspective. It rarely gets quite that bad,
+  but the perspective is often a problem. There is a huge discrepancy between what the machines are and how they feel - all a function of the isometric view mixed with
+  some creative light-and-shadow tricks. If you were to take a measuring tape to the mining drill for example, you might discover the North-South and the West-East
+  variants are not quite identical - they do look like it, though! That problem goes double for height of the entities - in game, it is often restricted to fit in the
+  grid-space of one tile, yet made to look much taller than that suggests. That created a unique and somewhat contradictory problem: designing 3D models that looked
+  like Factorio models look, and not how they are.
+&lt;/p&gt;
+&lt;p&gt;
+  There is one more issue recreating models made for an isometric game - and that is the dark spaces. Just like the dark side of the Moon, the back-sides of our machines
+  are filled with horrors and sleeping eldritch-gods. Do not worry, though - I did replace them with freshly imagined, safe machinery :)
+&lt;/p&gt;
+&lt;p&gt;
+  Partaking in this journey was surely one of the most interesting challenges in my career. I would love to thank Wube and Prusa for making it possible - as well as for the
+  enthusiasm they shared! I honestly do hope more studios decide to share their work in such a way (looking at you, certain team of astronauts!)
+&lt;/p&gt;
+&lt;p&gt;
+  Special thanks go to my colleague, Pard, for his insatiable hunger to test my models. May thy filament never runeth dry, good sir!
+&lt;/p&gt;
+
+&lt;br&gt;
+&lt;div style=&#34;display: flex; flex-wrap: wrap; justify-content: center; align-items: center;&#34;&gt;
+  &lt;a data-fancybox=&#34;gallery-inserter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-1.jpg&#34; alt=&#34;Inserters 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-inserter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-2.jpg&#34; alt=&#34;Inserters 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-inserter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-3.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-3.jpg&#34; alt=&#34;Inserters 3&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-inserter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-4.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-4.jpg&#34; alt=&#34;Inserters 4&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-inserter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-5.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-5.jpg&#34; alt=&#34;Inserters 5&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-inserter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-6.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-inserters-6.jpg&#34; alt=&#34;Inserters 6&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+&lt;br&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;Designing enemies &lt;author&gt;Fearghall&lt;/author&gt;&lt;/h3&gt;
+&lt;p&gt;
+  While Jarosław toiled away hand crafting belts and assemblers and failing his &#34;lazy bastard&#34; run in the process, I set about the task of bringing the &#34;organic&#34; entities to life.
+  Thankfully for me, I was able to avoid the pain of the isometric perspective because most of the organic entities have fully rotating spritesheets, and so the models are
+  complete from most angles without too many tricks of the camera.
+&lt;/p&gt;
+&lt;p&gt;
+  However, the models were still designed for pre-rendering only, and as such had some unique challenges. For example, the biter spawner was covered by an invisible skin, and
+  almost all of the detail in the in-game images was confined to the texture data - something that cannot be transferred to a 3D printable file. However, after a week or so
+  of cleaning up and baking out the model, it now prints very well with no support or issues.
+&lt;/p&gt;
+&lt;p&gt;
+  It also became immediately obvious that most of the organic prints could not be made support-free like Jarosław has done so well with all the machines. The geometry is simply
+  too complex, and many of the parts would be far too small to print and attach together. I still endeavoured to make them easily printed, however. The idle engineer pose,
+  for example, has printed without supports many times, and the worm poses (aside from the 90-degree attacking pose) print entirely without support. But alas, there are some
+  things which are simply impossible to print without support, such as the running pose.
+&lt;/p&gt;
+
+&lt;br&gt;
+&lt;div style=&#34;display: flex; flex-wrap: wrap; justify-content: center; align-items: center;&#34;&gt;
+  &lt;a data-fancybox=&#34;gallery-worm&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-spawner-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-spawner-1.jpg&#34; alt=&#34;Biter Spawner 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-worm&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-spawner-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-spawner-2.jpg&#34; alt=&#34;Biter Spawner 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-worm&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-1.jpg&#34; alt=&#34;Worm 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-worm&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-2.jpg&#34; alt=&#34;Worm 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-worm&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-3.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-3.jpg&#34; alt=&#34;Worm 3&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-worm&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-4.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-4.jpg&#34; alt=&#34;Worm 4&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-worm&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-5.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-worm-5.jpg&#34; alt=&#34;Worm 5&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+&lt;br&gt;
+
+&lt;p&gt;
+  One of the main issues with the character and biter family was the damage left by the support interface. The surface where the print and support meet can be quite ugly,
+  so I was keen that none of the models should require so much support as to impact the visual quality.
+&lt;/p&gt;
+&lt;p&gt;
+  With the engineer it was quite simple, the backpack needed to be split off, and there needed to be a slot and pin added, but otherwise a slight angle was all that
+  was needed for decent printing.
+&lt;/p&gt;
+
+&lt;br&gt;
+&lt;div style=&#34;display: flex; flex-wrap: wrap; justify-content: center; align-items: center;&#34;&gt;
+  &lt;a data-fancybox=&#34;gallery-character&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-1.jpg&#34; alt=&#34;Player Character 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-character&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-2.jpg&#34; alt=&#34;Player Character 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-character&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-3.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-3.jpg&#34; alt=&#34;Player Character 3&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-character&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-4.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-4.jpg&#34; alt=&#34;Player Character 4&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-character&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-5.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-5.jpg&#34; alt=&#34;Player Character 5&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-character&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-6.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-player-character-6.jpg&#34; alt=&#34;Player Character 6&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+&lt;br&gt;
+
+&lt;p&gt;
+  With the biter family however, there was a little more work. There was the big issue of the legs: they would absolutely not have printed in the &#34;correct&#34; orientation,
+  and splitting in the centre of the biter and leaving a large seam was an absolute non-option. So the only sensible solution was to print them upside down! Simply
+  printing them like this as a single part would likely have worked, but would have left horrible scarring on the most visible surface of the model, so I decided the
+  shell needed to become its own part so it could be correctly oriented. This also had the benefit of meaning the shells are easily printed in the correct colour for the biter size!
+&lt;/p&gt;
+
+&lt;br&gt;
+&lt;div style=&#34;display: flex; flex-wrap: wrap; justify-content: center; align-items: center;&#34;&gt;
+  &lt;a data-fancybox=&#34;gallery-biter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-1.jpg&#34; alt=&#34;Biter 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-biter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-2.jpg&#34; alt=&#34;Biter 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-biter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-3.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-3.jpg&#34; alt=&#34;Biter 3&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-biter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-4.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-4.jpg&#34; alt=&#34;Biter 4&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-biter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-5.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-5.jpg&#34; alt=&#34;Biter 5&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-biter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-6.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-biter-6.jpg&#34; alt=&#34;Biter 6&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+&lt;br&gt;
+
+ &lt;p&gt;
+   With that in mind, I could arrange all the biter legs to require as little support as possible in the new orientation, and merged a few of the legs for added strength -
+   bearing in mind that they would need to stand on their own legs in reality. In order to make the shells attach, I sculpted in some extra reliefs and ensured both
+   surfaces had just the right level of clearance. The final result has almost no visible support interfacing, and a very satisfying &#34;snap!&#34;
+ &lt;/p&gt;
+&lt;br&gt;
+&lt;div style=&#34;display: flex; flex-wrap: wrap; justify-content: center; align-items: center;&#34;&gt;
+  &lt;a data-fancybox=&#34;gallery-spitter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-1.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-1.jpg&#34; alt=&#34;Spitter 1&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-spitter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-2.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-2.jpg&#34; alt=&#34;Spitter 2&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-spitter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-3.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-3.jpg&#34; alt=&#34;Spitter 3&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-spitter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-4.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-4.jpg&#34; alt=&#34;Spitter 4&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+  &lt;a data-fancybox=&#34;gallery-spitter&#34; class=&#34;tile-thumbnail&#34; href=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-5.jpg&#34;&gt;
+    &lt;img src=&#34;https://cdn.factorio.com/assets/blog-sync/fff-447-assets-model-spitter-5.jpg&#34; alt=&#34;Spitter 5&#34; style=&#34;box-shadow: none;&#34;&gt;
+  &lt;/a&gt;
+&lt;/div&gt;
+
+&lt;hr&gt;
+&lt;h3&gt;Where to download? &lt;author&gt;Pard&lt;/author&gt;&lt;/h3&gt;
+&lt;p&gt;
+  All models are available to download right now from our Prusa Brands profile on &lt;a href=&#34;https://www.printables.com/@WubeSoftware/models&#34;&gt;Printables&lt;/a&gt;. Special thanks go
+  to Štěpán Feik, who helped us make all of this happen. From joining us at our playtesting event to helping us cross the finish line this morning, he has been
+  part of the journey throughout. You can read his take on our collaboration &lt;a href=&#34;https://blog.prusa3d.com/factorio-has-arrived-on-printables_138519&#34;&gt;here&lt;/a&gt;.
+&lt;/p&gt;
+
+&lt;hr&gt;
+&lt;p&gt;
+  As always, let us know what you print at the usual places.
+&lt;/p&gt;
+
+&lt;!-- Fancybox --&gt;
+&lt;link rel=&#34;stylesheet&#34; href=&#34;https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css&#34; /&gt;
+&lt;script src=&#34;https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js&#34;&gt;&lt;/script&gt;
+&lt;script&gt;
+  $(function () {
+    $(&#39;[data-fancybox]&#39;).fancybox({
+      loop: true,
+      buttons: [
+        &#39;slideShow&#39;,
+        &#39;fullScreen&#39;,
+        &#39;thumbs&#39;,
+        &#39;close&#39;
+      ],
+      arrows: true,
+      infobar: true,
+      keyboard: true,
+      animationEffect: &#39;slide&#39;,
+      transitionEffect: &#39;slide&#39;,
+      thumbs: {
+        autoStart: true,
+        axis: &#39;x&#39;
+      }
+    });
+  });
+&lt;/script&gt;
+&lt;style&gt;
+  .fancybox-thumbs-x {
+    width: auto;
+    height: 95px;
+    background: #313031;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .fancybox-thumbs-x .fancybox-thumbs__list {
+    width: 100% !important;
+    display: flex;
+    justify-content: center;
+  }
+
+  .fancybox-show-thumbs .fancybox-inner {
+    right: 0;
+    bottom: 95px;
+  }
+
+  .fancybox-thumbs__list a.fancybox-thumbs-active:before {
+    border-color: #DD7A1F;
+  }
+
+  .tile-thumbnail {
+    display: inline-block;
+    margin: 3px;
+    max-width: 150px;
+    max-height: 150px;
+  }
+&lt;/style&gt;
+&lt;!-- Carousel --&gt;
+&lt;link rel=&#34;stylesheet&#34; type=&#34;text/css&#34; href=&#34;https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css&#34; /&gt;
+&lt;link rel=&#34;stylesheet&#34; type=&#34;text/css&#34; href=&#34;https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css&#34; /&gt;
+&lt;style&gt;
+  .carousel {
+    margin: 16px 0px;
+  }
+
+  .carousel div&gt;.cntr {
+    display: inline-block;
+    position: relative;
+    top: -23px;
+    left: 4px;
+    padding: 2px;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .carousel div&gt;p {
+    margin-top: -12px;
+    margin-bottom: 0;
+    display: block;
+    text-align: center;
+  }
+
+  .slick-prev,
+  .slick-next {
+    /* Position the arrows inside the carousel */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+
+  .slick-prev {
+    /* Position the previous arrow on the left */
+    left: 10px;
+  }
+
+  .slick-next {
+    /* Position the next arrow on the right */
+    right: 10px;
+  }
+
+  .slick-dots {
+    /* Move the dots closer to the image */
+    bottom: -24px;
+  }
+
+  .slick-dots li.slick-active button:before {
+    /* Change the color of the active dot to orange */
+    color: #ff9600;
+  }
+
+  .slick-dots li button:before {
+    /* Increase the size of the dots */
+    font-size: 16px;
+  }
+&lt;/style&gt;
+
+&lt;script
+  src=&#34;https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js&#34;
+  integrity=&#34;sha384-YGnnOBKslPJVs35GG0TtAZ4uO7BHpHlqJhs0XK3k6cuVb6EBtl+8xcvIIOKV5wB+&#34;
+  crossorigin=&#34;anonymous&#34;&gt;
+&lt;/script&gt;
+
+&lt;script&gt;
+  $(&#39;.carousel&#39;).slick({
+    dots: true,
+  });
+&lt;/script&gt;
+</content>
+  </entry>
+</feed>

@@ -18,7 +18,7 @@ import {
   withinCooldown,
 } from "./logic.js";
 import { extractVideoId } from "./youtube.js";
-import { parseSocialWatcherOptions } from "../../../config/schemas/social.js";
+import { parseFeedFilters, parseSocialWatcherOptions } from "../../../config/schemas/social.js";
 
 test("parseIsoDuration handles YouTube durations", () => {
   assert.equal(parseIsoDuration("PT45S"), 45);
@@ -59,10 +59,11 @@ test("classifyUpload: regular videos", () => {
 });
 
 test("upload type toggles, labels and per-type messages", () => {
-  const options = parseSocialWatcherOptions({ notify_shorts: false });
-  assert.equal(uploadKindEnabled(options, "video"), true);
-  assert.equal(uploadKindEnabled(options, "short"), false);
-  assert.equal(uploadKindEnabled(options, "live"), true);
+  const filters = parseFeedFilters({ youtube_shorts: false });
+  assert.equal(uploadKindEnabled(filters, "video"), true);
+  assert.equal(uploadKindEnabled(filters, "short"), false);
+  assert.equal(uploadKindEnabled(filters, "live"), true);
+  const options = parseSocialWatcherOptions({});
   assert.equal(uploadKindLabel("short"), "Short");
   assert.equal(uploadKindLabel("live", "upcoming"), "upcoming stream");
   assert.equal(uploadKindLabel("live", "live"), "livestream");
@@ -78,7 +79,8 @@ test("upload type toggles, labels and per-type messages", () => {
 
 test("old rows ('{}') parse to the original behaviour, bad fields fall back alone", () => {
   const options = parseSocialWatcherOptions({});
-  assert.equal(options.notify_videos && options.notify_shorts && options.notify_live, true);
+  const filters = parseFeedFilters({});
+  assert.equal(filters.youtube_videos && filters.youtube_shorts && filters.youtube_live, true);
   assert.equal(options.end_action, "none");
   assert.equal(options.milestones, false);
   assert.equal(options.milestone_last, MILESTONE_UNSEEDED);

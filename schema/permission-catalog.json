@@ -807,21 +807,21 @@
   {
     "plugin": "social",
     "pluginName": "Social Notifications",
-    "pluginDescription": "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard.",
+    "pluginDescription": "YouTube, Twitch, RSS, Steam updates, game newswires, GitHub releases and status pages, posted to your channels with fully customisable messages.",
     "entries": [
       {
         "plugin": "social",
         "permission": "can_manage",
         "grantKey": "social.can_manage",
         "title": "Manage",
-        "description": "Allow members to create, edit, and delete social notifications (dashboard)."
+        "description": "Allow members to create, edit, and delete notification feeds (dashboard), and pause/resume/test them with /notifications."
       },
       {
         "plugin": "social",
         "permission": "can_view",
         "grantKey": "social.can_view",
         "title": "View",
-        "description": "Allow members to view social notifications and run /social commands."
+        "description": "Allow members to view notification feeds and run /notifications list."
       }
     ]
   },

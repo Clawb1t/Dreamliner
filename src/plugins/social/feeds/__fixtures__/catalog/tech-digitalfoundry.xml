@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+	<channel>
+		<title>Digital Foundry | Latest Updates</title>
+		<link>https://www.digitalfoundry.net/feeds/latest</link>
+		<description></description>
+		<language>en</language>
+		<copyright>(c) 2026 Digital Foundry</copyright>
+		<lastBuildDate>Wed, 18 Nov 2026 21:05:02 GMT</lastBuildDate>
+		<docs>https://www.digitalfoundry.net/feeds</docs>
+		<generator>dgpCMS/1.0 https://hookshot.media</generator>
+		<webMaster>contact@digitalfoundry.net (Digital Foundry)</webMaster>
+		<ttl>5</ttl>
+		<image>
+			<url>https://images.digitalfoundry.net/site/icon/128x128.png</url>
+			<title>Digital Foundry</title>
+			<link>https://www.digitalfoundry.net/</link>
+			<width>128</width>
+			<height>128</height>
+		</image>
+		<atom:link href="https://www.digitalfoundry.net/feeds/latest" rel="self" type="application/rss+xml" />
+		<item>
+			<pubDate>Wed, 18 Nov 2026 15:17:00 GMT</pubDate>
+			<title>Feature: Why Didn&#039;t Rockstar Use FSR 4 on Series X for GTA 6? Microsoft&#039;s Stats Have the Answer</title>
+			<description><![CDATA[<p><strong>Plus: why does the base PS5 version not use QSSR?</strong></p><p>A common question we've seen online in the wake of <a href="https://www.digitalfoundry.net/reviews/grand-theft-auto-6-a-landmark-achievement-that-redefines-a-console-generation">GTA 6 reviews</a> going live is the conundrum over the Xbox Series X. The game renders at an internal resolution of 1440p, with an in-house TAA upscale to 4K. Why didn't Rockstar use the recently-released FSR 4 AI upscaler instead, as they did on Xbox Series S? Come to think of it, why didn't they use Sony's QSSR on base PS5 too?</p><p>Let's tackle the Series X question first. Here, the answer may be hiding in plain sight - after all, Microsoft published the <a href="https://www.digitalfoundry.net/news/2026/11/microsoft-reveals-critical-xbox-fsr-4-1-details-for-developers">critical FSR 4 stats for Xbox developers</a> just earlier this month. And within those figures, you can see that the frame-time cost of FSR 4, both the full-fat (3.86ms) and lite (2.75ms) versions, is likely to be significantly higher than the cost of Rockstar's in-house TAA.</p><p>Read the <a href="https://www.digitalfoundry.net/features/why-didnt-rockstar-use-fsr-4-on-series-x-for-gta-6-microsofts-stats-have-the-answer">full article on digitalfoundry.net</a></p>]]></description>
+			<guid isPermaLink="false">https://www.digitalfoundry.net/#article-209299</guid>
+			<link>https://www.digitalfoundry.net/features/why-didnt-rockstar-use-fsr-4-on-series-x-for-gta-6-microsofts-stats-have-the-answer</link>
+			<media:thumbnail url="https://images.digitalfoundry.net/923268f375f20/small.jpg" />
+			<media:content url="https://images.digitalfoundry.net/923268f375f20/large.jpg" medium="image" type="image/jpeg" />
+		</item>
+		<item>
+			<pubDate>Wed, 18 Nov 2026 13:38:00 GMT</pubDate>
+			<title>Feature: GTA 6: PS5 vs PS5 Pro, Xbox Series X and Series S: Which Console Plays Best?</title>
+			<description><![CDATA[<p><strong>Resolution, performance and visual settings compared.</strong></p><p><a id="ytF3lxGD8HX2k" class="external youtube-thumbnail" title="Play" href="https://www.youtube.com/watch?v=F3lxGD8HX2k"><img class="lazy" srcset="https://i.ytimg.com/vi/F3lxGD8HX2k/mqdefault.jpg 800w, https://i.ytimg.com/vi/F3lxGD8HX2k/maxresdefault.jpg" src="https://i.ytimg.com/vi/F3lxGD8HX2k/maxresdefault.jpg" width="960" height="540" loading="lazy" alt="YouTube Video" /></a></p><p>Grand Theft Auto 6 is here - and that means we can finally share the full details of how the game performs on each console platform: base PS5, PS5 Pro, Xbox Series X and Series S.</p><p>Read the <a href="https://www.digitalfoundry.net/features/gta-6-ps5-vs-ps5-pro-xbox-series-x-and-series-s-which-console-plays-best">full article on digitalfoundry.net</a></p>]]></description>
+			<guid isPermaLink="false">https://www.digitalfoundry.net/#article-209224</guid>
+			<link>https://www.digitalfoundry.net/features/gta-6-ps5-vs-ps5-pro-xbox-series-x-and-series-s-which-console-plays-best</link>
+			<media:thumbnail url="https://images.digitalfoundry.net/d3cff8e03c565/small.jpg" />
+			<media:content url="https://images.digitalfoundry.net/d3cff8e03c565/large.jpg" medium="image" type="image/jpeg" />
+		</item>
+		<item>
+			<pubDate>Wed, 18 Nov 2026 11:00:00 GMT</pubDate>
+			<title>Review: Grand Theft Auto 6: A Landmark Achievement That Redefines a Console Generation</title>
+			<description><![CDATA[<p><strong>Even more impressive than we expected - despite performance compromises.</strong></p><p><a id="ytqsBU0bcpONA" class="external youtube-thumbnail" title="Play" href="https://www.youtube.com/watch?v=qsBU0bcpONA"><img class="lazy" srcset="https://i.ytimg.com/vi/qsBU0bcpONA/mqdefault.jpg 800w, https://i.ytimg.com/vi/qsBU0bcpONA/maxresdefault.jpg" src="https://i.ytimg.com/vi/qsBU0bcpONA/maxresdefault.jpg" width="960" height="540" loading="lazy" alt="YouTube Video" /></a></p><p>Grand Theft Auto 6 marks a pivotal technical milestone for Rockstar Games, delivering arguably the most detailed, dense and convincing recreation of an urban environment yet seen in interactive media. Built entirely from the ground up for modern hardware, the sprawling depiction of Vice City and its surrounding state of Leonida leaves behind the generational compromises that constrained its predecessor. The result is an extraordinary simulation where sheer scale matches an obsessive attention to minute visual detail.</p><p>Read the <a href="https://www.digitalfoundry.net/reviews/grand-theft-auto-6-a-landmark-achievement-that-redefines-a-console-generation">full article on digitalfoundry.net</a></p>]]></description>
+			<guid isPermaLink="false">https://www.digitalfoundry.net/#article-209220</guid>
+			<link>https://www.digitalfoundry.net/reviews/grand-theft-auto-6-a-landmark-achievement-that-redefines-a-console-generation</link>
+			<media:thumbnail url="https://images.digitalfoundry.net/15b0e288ee4db/small.jpg" />
+			<media:content url="https://images.digitalfoundry.net/15b0e288ee4db/large.jpg" medium="image" type="image/jpeg" />
+		</item>
+</channel>
+</rss>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+	<title>News | FINAL FANTASY XIV, The Lodestone</title>
+	<link rel="alternate" type="text/html" href="https://na.finalfantasyxiv.com/lodestone/" />
+	<link rel="self" type="application/atom+xml" href="https://na.finalfantasyxiv.com/lodestone/news/news.xml" />
+	<id>tag:na.finalfantasyxiv.com,2023-04-01:/lodestone/news/news.xml</id>
+	<updated>2026-11-17T04:00:00Z</updated>
+	<generator uri="https://www.finalfantasyxiv.com/">FINAL FANTAXY XIV</generator>
+	
+		<entry>
+			<title>Ceremony of Eternal Bonding Reservation Restrictions</title>
+			<link rel="enclosure" href="https://lds-img.finalfantasyxiv.com/h/L/HkNRaE5rCnYnxc_V_LV6u6cc7A.png" type="image/png" />
+			<link rel="alternate" type="text/html" href="https://na.finalfantasyxiv.com/lodestone/news/detail/d969ac04b0e575d8099775da448c8d4b1d07e380" />
+			<id>tag:na.finalfantasyxiv.com,2023-04-01:/lodestone/lodestone/news/detail/d969ac04b0e575d8099775da448c8d4b1d07e380</id>
+
+			<published>2026-11-17T04:00:00Z</published>
+			<updated>2026-11-17T04:00:00Z</updated>
+
+			<summary>Ceremony of Eternal Bonding Reservation Restrictions</summary>
+			<author>
+				<name>FINAL FANTASY XIV, The Lodestone</name>
+			</author>
+			<category term="Notices" />
+			<content type="html" xml:lang="en-us" xml:base="https://na.finalfantasyxiv.com/lodestone/">Maintenance may cause your reserved Ceremony of Eternal Bonding to be cancelled, requiring a reservation for another date.&lt;br&gt;
+We ask that you please consider the information below before making your Ceremony of Eternal Bonding reservation.&lt;br&gt;
+&lt;br&gt;
+[Possible Maintenance]&lt;br&gt;
+&lt;br&gt;
+・Sometime between Nov. 16, 2026 8:00 p.m. and Nov. 17, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Nov. 17, 2026 8:00 p.m. and Nov. 18, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Nov. 18, 2026 8:00 p.m. and Nov. 19, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Nov. 23, 2026 8:00 p.m. and Nov. 24, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Nov. 24, 2026 8:00 p.m. and Nov. 25, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Nov. 25, 2026 8:00 p.m. and Nov. 26, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Nov. 30, 2026 8:00 p.m. and Dec. 1, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Dec. 1, 2026 8:00 p.m. and Dec. 2, 2026 3:00 a.m. (PST)&lt;br&gt;
+・Sometime between Dec. 2, 2026 8:00 p.m. and Dec. 3, 2026 3:00 a.m. (PST)&lt;br&gt;
+&lt;br&gt;
+*Subject to change.&lt;br&gt;
+*Emergency maintenance may occur outside of the times listed above.&lt;br&gt;
+&lt;br&gt;
+[Confirmed Maintenance]&lt;br&gt;
+&lt;br&gt;
+・None&lt;br&gt;
+&lt;br&gt;
+*Please reschedule if your reserved Ceremony of Eternal Bonding overlaps with confirmed maintenance.&lt;br&gt;
+&lt;br&gt;
+[Reservations Affected by Maintenance and Server Outages]&lt;br&gt;
+&lt;br&gt;
+*As of February 2018, reservations scheduled to be held post maintenance or server outages will remain valid and no longer need to be rescheduled.</content>
+		</entry>
+	
+		<entry>
+			<title>Recovery from Japan Data Center Instanced Areas Technical Difficulties (Nov. 15)</title>
+			<link rel="enclosure" href="https://lds-img.finalfantasyxiv.com/h/L/HkNRaE5rCnYnxc_V_LV6u6cc7A.png" type="image/png" />
+			<link rel="alternate" type="text/html" href="https://na.finalfantasyxiv.com/lodestone/news/detail/cdca6dae1fdc2304925b713d1c05b2fd7fa478ac" />
+			<id>tag:na.finalfantasyxiv.com,2023-04-01:/lodestone/lodestone/news/detail/cdca6dae1fdc2304925b713d1c05b2fd7fa478ac</id>
+
+			<published>2026-11-15T14:40:00Z</published>
+			<updated>2026-11-15T14:40:00Z</updated>
+
+			<summary>Recovery from Japan Data Center Instanced Areas Technical Difficulties (Nov. 15)</summary>
+			<author>
+				<name>FINAL FANTASY XIV, The Lodestone</name>
+			</author>
+			<category term="Status" />
+			<content type="html" xml:lang="en-us" xml:base="https://na.finalfantasyxiv.com/lodestone/">We are pleased to announce that the technical difficulties with the JP Data Center Worlds listed below have been resolved.&lt;br&gt;
+&lt;br&gt;
+We apologize for any inconvenience these may have caused and  thank you for your patience while the matter was being addressed.&lt;br&gt;
+&lt;br&gt;
+[Date &amp; Time]&lt;br&gt;
+Nov. 15, 2026 5:45 to 6:20 a.m. (PST)&lt;br&gt;
+&lt;br&gt;
+[Details]&lt;br&gt;
+- Disconnections from some instanced content&lt;br&gt;
+&lt;br&gt;
+[Cause]&lt;br&gt;
+Server Failure&lt;br&gt;
+&lt;br&gt;
+[Affected Worlds]&lt;br&gt;
+All JP Data Center Worlds</content>
+		</entry>
+	
+		<entry>
+			<title>Mog Station Maintenance (Nov. 16)</title>
+			<link rel="enclosure" href="https://lds-img.finalfantasyxiv.com/h/L/HkNRaE5rCnYnxc_V_LV6u6cc7A.png" type="image/png" />
+			<link rel="alternate" type="text/html" href="https://na.finalfantasyxiv.com/lodestone/news/detail/a1e7b4b48e2d3e6e107323290d79911821b3398a" />
+			<id>tag:na.finalfantasyxiv.com,2023-04-01:/lodestone/lodestone/news/detail/a1e7b4b48e2d3e6e107323290d79911821b3398a</id>
+
+			<published>2026-11-15T07:00:00Z</published>
+			<updated>2026-11-15T07:00:00Z</updated>
+
+			<summary>Mog Station Maintenance (Nov. 16)</summary>
+			<author>
+				<name>FINAL FANTASY XIV, The Lodestone</name>
+			</author>
+			<category term="Maintenance" />
+			<content type="html" xml:lang="en-us" xml:base="https://na.finalfantasyxiv.com/lodestone/">The Mog Station maintenance will take place at the following time, during which users will be unable to use the services listed below.&lt;br&gt;
+&lt;br&gt;
+・Upgrading from the Free Trial to the full version of the game&lt;br&gt;
+・Adding a new service account&lt;br&gt;
+・Adding expansion packages&lt;br&gt;
+・Adding other platforms&lt;br&gt;
+&lt;br&gt;
+We apologize for any inconvenience this may cause, and we thank you for your understanding.&lt;br&gt;
+&lt;br&gt;
+[Date &amp; Time]&lt;br&gt;
+Nov. 16, 2026 11:00 p.m. to Nov. 17, 2026 12:00 a.m. (PST)&lt;br&gt;
+*Completion time is subject to change.&lt;br&gt;
+&lt;br&gt;
+[Details]&lt;br&gt;
+- System maintenance&lt;br&gt;
+&lt;br&gt;
+[Affected Service]&lt;br&gt;
+- Mog Station</content>
+		</entry>
+</feed>

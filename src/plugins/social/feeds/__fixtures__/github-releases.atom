@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:https://github.com/sharkdp/fd/releases</id>
+  <link type="text/html" rel="alternate" href="https://github.com/sharkdp/fd/releases"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/sharkdp/fd/releases.atom"/>
+  <title>Release notes from fd</title>
+  <updated>2026-11-07T06:54:47Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.5.2</id>
+    <updated>2026-11-07T07:30:47Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.5.2"/>
+    <title>v10.5.2</title>
+    <content type="html">&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Fix invalid syntax in zsh completions. See &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;6226364542&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2216&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2216/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2216&quot;&gt;#2216&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Write raw bytes instead of replacing them with U+FFFD when &lt;code&gt;--format&lt;/code&gt; output goes to a pipe, so filenames that are not valid UTF-8 reach downstream tools unchanged; see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;5997836963&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2189&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2189/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2189&quot;&gt;#2189&lt;/a&gt;.&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.5.1</id>
+    <updated>2026-11-04T09:21:32Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.5.1"/>
+    <title>v10.5.1</title>
+    <content type="html">&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Fix &lt;code&gt;--absolute-path&lt;/code&gt; turning verbatim (&lt;code&gt;\\?\&lt;/code&gt;) search paths into relative paths on Windows: &lt;code&gt;\\?\UNC\server\share&lt;/code&gt; is now reported as &lt;code&gt;\\server\share&lt;/code&gt;, and &lt;code&gt;\\?\Volume{...}&lt;/code&gt; paths are kept intact, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;6114495043&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2207&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2207/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2207&quot;&gt;#2207&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/Duo-ee/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/Duo-ee&quot;&gt;@Duo-ee&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Make &lt;code&gt;--ignore&lt;/code&gt; and &lt;code&gt;--no-hidden&lt;/code&gt; after &lt;code&gt;-u&lt;/code&gt; override only their half of &lt;code&gt;-u&lt;/code&gt;, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;6026014289&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2192&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2192/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2192&quot;&gt;#2192&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/NavpreetSSidhu/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/NavpreetSSidhu&quot;&gt;@NavpreetSSidhu&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Fix inline case-insensitive regex flags incorrectly making other &lt;code&gt;--and&lt;/code&gt; patterns case-sensitive, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;5965977968&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2184&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2184/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2184&quot;&gt;#2184&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/mabunemeh/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/mabunemeh&quot;&gt;@mabunemeh&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Accept &lt;code&gt;--format&lt;/code&gt; templates that start with &lt;code&gt;-&lt;/code&gt; when passed as a separate argument, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;5379511674&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2126&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2126/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2126&quot;&gt;#2126&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/vulragrag-star/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/vulragrag-star&quot;&gt;@vulragrag-star&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Don&#39;t incorrectly escape newlines in error messages, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;5269061886&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2104&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2104/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2104&quot;&gt;#2104&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Restore jemalloc as default allocator on supported systems&lt;/li&gt;
+&lt;li&gt;Fix the &lt;code&gt;cargo binstall&lt;/code&gt; release URL, which named the crate (&lt;code&gt;fd-find&lt;/code&gt;) instead of the binary (&lt;code&gt;fd&lt;/code&gt;) and fell back to a third-party mirror&lt;/li&gt;
+&lt;li&gt;Fix integer overflow when parsing size constraints, rejecting values that exceed &lt;code&gt;u64::MAX&lt;/code&gt; instead of panicking, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;6049791175&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2196&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2196/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2196&quot;&gt;#2196&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/parneetsingh022/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/parneetsingh022&quot;&gt;@parneetsingh022&lt;/a&gt;).&lt;/li&gt;
+&lt;li&gt;Various fixes and updates to zsh completion&lt;/li&gt;
+&lt;li&gt;Fix --glob patterns when using --full-path on windows. See &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4945997568&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2067&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2067/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2067&quot;&gt;#2067&lt;/a&gt;.&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.5.0</id>
+    <updated>2026-08-26T08:02:30Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.5.0"/>
+    <title>10.5.0</title>
+    <content type="html">&lt;h2&gt;Features&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Add &lt;code&gt;--ignore-parent&lt;/code&gt; option to override &lt;code&gt;--no-ignore-parent&lt;/code&gt;, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4210013754&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1958&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1958/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1958&quot;&gt;#1958&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/tmchow/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/tmchow&quot;&gt;@tmchow&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Add &lt;code&gt;--exact&lt;/code&gt; option to match the entire filename exactly (literal, non-substring).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Sanitize control characters and bidirectional override characters in filenames&lt;br&gt;
+when output goes to a terminal, to prevent terminal escape-sequence injection.&lt;br&gt;
+Also reject a placeholder as the executable for &lt;code&gt;--exec-batch&lt;/code&gt;, while still&lt;br&gt;
+allowing it for &lt;code&gt;--exec&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Handle invalid working directories gracefully when using &lt;code&gt;--full-path&lt;/code&gt;, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4031377268&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1900&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1900/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1900&quot;&gt;#1900&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/Xavrir/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/Xavrir&quot;&gt;@Xavrir&lt;/a&gt;).&lt;/li&gt;
+&lt;li&gt;Fire the &quot;search pattern contains a path separator&quot; diagnostic for any pattern containing &lt;code&gt;/&lt;/code&gt;, not just patterns that happen to name an existing directory. Preserves the legacy Windows behaviour that also flags native &lt;code&gt;\&lt;/code&gt; separators when the pattern resolves to a real directory. See &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3815434257&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1873&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1873/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1873&quot;&gt;#1873&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Also fire the &quot;search pattern contains a path separator&quot; diagnostic for &lt;code&gt;--and&lt;/code&gt; patterns, not only the primary positional pattern. &lt;code&gt;--and&lt;/code&gt; patterns are matched against the file name just like the primary pattern, so a path separator in them silently returned zero results. See &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3815434257&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1873&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1873/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1873&quot;&gt;#1873&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Fix bug where passing &quot;-&quot; as a directory argument didn&#39;t actually search that directory, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;990385384&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/849&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/849/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/849&quot;&gt;#849&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/Sean-Kenneth-Doherty/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/Sean-Kenneth-Doherty&quot;&gt;@Sean-Kenneth-Doherty&lt;/a&gt;).&lt;/li&gt;
+&lt;li&gt;Fix panic when &lt;code&gt;--changed-before&lt;/code&gt;/&lt;code&gt;--changed-within&lt;/code&gt; is given an out-of-range &lt;code&gt;@&lt;/code&gt; Unix timestamp; the value is now rejected gracefully, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;5020973999&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2081&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/2081/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/2081&quot;&gt;#2081&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/nikolauspschuetz/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/nikolauspschuetz&quot;&gt;@nikolauspschuetz&lt;/a&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;New Contributors&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/liruiluo/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/liruiluo&quot;&gt;@liruiluo&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4074208494&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1924&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1924/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1924&quot;&gt;#1924&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/Xavrir/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/Xavrir&quot;&gt;@Xavrir&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4047070688&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1917&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1917/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1917&quot;&gt;#1917&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/rexkirshner/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/rexkirshner&quot;&gt;@rexkirshner&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4065724462&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1921&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1921/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1921&quot;&gt;#1921&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/Rohan5commit/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/Rohan5commit&quot;&gt;@Rohan5commit&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4098696232&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1934&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1934/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1934&quot;&gt;#1934&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/tmchow/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/tmchow&quot;&gt;@tmchow&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4210393320&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1959&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1959/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1959&quot;&gt;#1959&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/YoshKoz/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/YoshKoz&quot;&gt;@YoshKoz&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4294208254&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1979&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1979/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1979&quot;&gt;#1979&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/SAY-5/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/SAY-5&quot;&gt;@SAY-5&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4285414405&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1975&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1975/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1975&quot;&gt;#1975&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/skane-lukas/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/skane-lukas&quot;&gt;@skane-lukas&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3968841338&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1889&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1889/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1889&quot;&gt;#1889&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/Sean-Kenneth-Doherty/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/Sean-Kenneth-Doherty&quot;&gt;@Sean-Kenneth-Doherty&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4461483190&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2006&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2006/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2006&quot;&gt;#2006&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/stevenwalton/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/stevenwalton&quot;&gt;@stevenwalton&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4464284989&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2011&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2011/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2011&quot;&gt;#2011&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/DeflateAwning/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/DeflateAwning&quot;&gt;@DeflateAwning&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4312685552&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1983&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1983/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1983&quot;&gt;#1983&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/wyf027/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/wyf027&quot;&gt;@wyf027&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4461230521&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2001&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2001/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2001&quot;&gt;#2001&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/bonanza127/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/bonanza127&quot;&gt;@bonanza127&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4759730332&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2040&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2040/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2040&quot;&gt;#2040&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/mahirhir/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/mahirhir&quot;&gt;@mahirhir&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4750380647&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2036&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2036/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2036&quot;&gt;#2036&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/parneetsingh022/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/parneetsingh022&quot;&gt;@parneetsingh022&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4751635130&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2037&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2037/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2037&quot;&gt;#2037&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/curious-rabbit/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/curious-rabbit&quot;&gt;@curious-rabbit&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4287890854&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1976&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1976/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1976&quot;&gt;#1976&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/WilliamLeony/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/WilliamLeony&quot;&gt;@WilliamLeony&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4895553258&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2064&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2064/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2064&quot;&gt;#2064&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/kobihikri/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/kobihikri&quot;&gt;@kobihikri&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4891599539&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2063&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2063/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2063&quot;&gt;#2063&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/cmelaro/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/cmelaro&quot;&gt;@cmelaro&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4981950286&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2075&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2075/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2075&quot;&gt;#2075&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/nikolauspschuetz/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/nikolauspschuetz&quot;&gt;@nikolauspschuetz&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;5020980655&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/2082&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/2082/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/2082&quot;&gt;#2082&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Full Changelog&lt;/strong&gt;: &lt;a class=&quot;commit-link&quot; href=&quot;https://github.com/sharkdp/fd/compare/v10.4.2...v10.5.0&quot;&gt;&lt;tt&gt;v10.4.2...v10.5.0&lt;/tt&gt;&lt;/a&gt;&lt;/p&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.4.2</id>
+    <updated>2026-03-10T07:40:42Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.4.2"/>
+    <title>v10.4.2</title>
+    <content type="html">&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Fixed performance regression due to &lt;code&gt;--ignore-contain&lt;/code&gt;; see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4041356795&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1913&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1913/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1913&quot;&gt;#1913&lt;/a&gt; and &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;4042425986&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1914&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1914/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1914&quot;&gt;#1914&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.4.1</id>
+    <updated>2026-03-08T08:57:37Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.4.1"/>
+    <title>v10.4.1</title>
+    <content type="html">&lt;p&gt;This is just a re-release of 10.4.0 due to an issue with the 10.4.0 release.&lt;/p&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.4.0</id>
+    <updated>2026-03-07T07:04:04Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.4.0"/>
+    <title>v10.4.0</title>
+    <content type="html">&lt;h2&gt;Features&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Add &lt;code&gt;--ignore-contain&lt;/code&gt; option to ignore directories containing a named entry (e.g. to ignore &lt;a href=&quot;https://bford.info/cachedir/&quot; rel=&quot;nofollow&quot;&gt;&lt;code&gt;CACHEDIR.TAG&lt;/code&gt;&lt;/a&gt;); see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3084756918&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1727&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1727/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1727&quot;&gt;#1727&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/fischman/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/fischman&quot;&gt;@fischman&lt;/a&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Fix Windows hyperlink generation for paths with spaces. (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3815225221&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1872&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1872/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1872&quot;&gt;#1872&lt;/a&gt;)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;--print0&lt;/code&gt; combined with &lt;code&gt;--exec&lt;/code&gt; will now print a &lt;code&gt;\0&lt;/code&gt; between the output of each entry. Note that if there are multiple instances&lt;br&gt;
+of &lt;code&gt;--exec&lt;/code&gt;, the &lt;code&gt;\0&lt;/code&gt; will be between each &lt;em&gt;set&lt;/em&gt; of commands, &lt;em&gt;not&lt;/em&gt; between each individual command run. Fixes &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3438377229&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1797&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1797/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1797&quot;&gt;#1797&lt;/a&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Several bugs were fixed by an update to the &lt;code&gt;ignore&lt;/code&gt; library used for handling ignore rules&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2170163180&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1506&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1506/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1506&quot;&gt;#1506&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2825248022&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1667&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1667/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1667&quot;&gt;#1667&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3535390048&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1813&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1813/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1813&quot;&gt;#1813&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Changes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Minimum required rust version has been increased to 1.90.0. Notably, this means dropping fully support for intel Mac and Windows 7.&lt;/li&gt;
+&lt;li&gt;Statically link the CRT for MSVC builds via Cargo config to avoid runtime DLL dependencies, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3848377240&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1874&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1874/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1874&quot;&gt;#1874&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/FidelSch/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/FidelSch&quot;&gt;@FidelSch&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.3.0</id>
+    <updated>2025-08-26T08:25:19Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.3.0"/>
+    <title>v10.3.0</title>
+    <content type="html">&lt;h2&gt;Features&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Add a hidden &lt;code&gt;--mindepth&lt;/code&gt; alias for &lt;code&gt;--min-depth&lt;/code&gt;. (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2541575544&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1617&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1617/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1617&quot;&gt;#1617&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;h2&gt;Changes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Replace &lt;code&gt;humantime&lt;/code&gt; crate and &lt;code&gt;chrono&lt;/code&gt; crate with &lt;code&gt;jiff&lt;/code&gt; crate, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2913277367&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1690&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1690/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1690&quot;&gt;#1690&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/sorairolake/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/sorairolake&quot;&gt;@sorairolake&lt;/a&gt;). This has some small changes to the&lt;br&gt;
+way dates given to options such &lt;code&gt;--changed-within&lt;/code&gt; and &lt;code&gt;--changed-before&lt;/code&gt; including:
+&lt;ul&gt;
+&lt;li&gt;&#39;M&#39; no longer means &quot;month&quot;, as that could be confusing with minutes. Use &quot;mo&quot;, &quot;mos&quot;, &quot;month&quot; or &quot;months&quot; instead.&lt;/li&gt;
+&lt;li&gt;month and year now account for variability in the calander rather than being a hard-coded number of seconds. That is probably&lt;br&gt;
+what you would expect, but it is a slight change in behavior.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;aarch64 Windows was added to CI and release artifacts&lt;/li&gt;
+&lt;li&gt;Many dependencies were updated&lt;/li&gt;
+&lt;li&gt;Better support building on Illumos (there is no automated testing, but some known issues were fixed)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Other&lt;/h2&gt;
+&lt;p&gt;This will be the last release that has been tested on x86_64 Mac OS, since GitHub is&lt;br&gt;
+dropping support for runners with that hardware.&lt;/p&gt;
+&lt;p&gt;It may also be the last release to use a version of Rust with tier-1 support for&lt;br&gt;
+x86_64/intel Macs and Windows 7.&lt;/p&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.2.0</id>
+    <updated>2024-08-23T06:39:59Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.2.0"/>
+    <title>v10.2.0</title>
+    <content type="html">&lt;h2&gt;Features&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Add --hyperlink option to add OSC 8 hyperlinks to output&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Changes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Build windows releases with rust 1.77 so windows 7 is still supported&lt;/li&gt;
+&lt;li&gt;Deb packages now include symlink for fdfind to be more consistent with official packages&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;New Contributors&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/bryanhonof/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/bryanhonof&quot;&gt;@bryanhonof&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2348748248&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1574&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1574/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1574&quot;&gt;#1574&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/JCHacking/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/JCHacking&quot;&gt;@JCHacking&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2448326761&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1602&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1602/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1602&quot;&gt;#1602&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/RossSmyth/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/RossSmyth&quot;&gt;@RossSmyth&lt;/a&gt; made their first contribution in &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2422945688&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1596&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1596/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1596&quot;&gt;#1596&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Full Changelog&lt;/strong&gt;: &lt;a class=&quot;commit-link&quot; href=&quot;https://github.com/sharkdp/fd/compare/v10.1.0...v10.2.0&quot;&gt;&lt;tt&gt;v10.1.0...v10.2.0&lt;/tt&gt;&lt;/a&gt;&lt;/p&gt;</content>
+    <author>
+      <name>github-actions[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/in/15368?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.1.0</id>
+    <updated>2024-05-08T06:50:39Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.1.0"/>
+    <title>v10.1.0</title>
+    <content type="html">&lt;h2&gt;Features&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Allow passing an optional argument to &lt;code&gt;--strip-cwd-prefix&lt;/code&gt; of &quot;always&quot;, &quot;never&quot;, or &quot;auto&quot;. to force whether the cwd prefix is stripped or not.&lt;/li&gt;
+&lt;li&gt;Add a &lt;code&gt;--format&lt;/code&gt; option which allows using a format template for direct ouput similar to the template used for &lt;code&gt;--exec&lt;/code&gt;. (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;1273167594&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1043&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1043/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1043&quot;&gt;#1043&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Fix aarch64 page size again. This time it should actually work. (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;1338090412&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1085&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1085/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1085&quot;&gt;#1085&lt;/a&gt;, &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2281171308&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1549&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1549/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1549&quot;&gt;#1549&lt;/a&gt;) (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/tavianator/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/tavianator&quot;&gt;@tavianator&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Other&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;aarch64-apple-darwin target added to builds on the release page. Note that this is a tier 2 rust target.&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Repository/90793418/v10.0.0</id>
+    <updated>2024-05-06T06:10:26Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/sharkdp/fd/releases/tag/v10.0.0"/>
+    <title>v10.0.0</title>
+    <content type="html">&lt;h2&gt;Features&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Add &lt;code&gt;dir&lt;/code&gt; as an alias to &lt;code&gt;directory&lt;/code&gt; when using &lt;code&gt;-t&lt;/code&gt; \ &lt;code&gt;--type&lt;/code&gt;, see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2055475035&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1460&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1460/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1460&quot;&gt;#1460&lt;/a&gt; and &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2060847032&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1464&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1464/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1464&quot;&gt;#1464&lt;/a&gt; (@Ato2207).&lt;/li&gt;
+&lt;li&gt;Add support for @%s date format in time filters similar to GNU date (seconds since Unix epoch for --older/--newer), see &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2129785045&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1493&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1493/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1493&quot;&gt;#1493&lt;/a&gt; (&lt;a class=&quot;user-mention notranslate&quot; data-hovercard-type=&quot;user&quot; data-hovercard-url=&quot;/users/nabellows/hovercard&quot; data-octo-click=&quot;hovercard-link-click&quot; data-octo-dimensions=&quot;link_type:self&quot; href=&quot;https://github.com/nabellows&quot;&gt;@nabellows&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Breaking: No longer automatically ignore &lt;code&gt;.git&lt;/code&gt; when using &lt;code&gt;--hidden&lt;/code&gt; with vcs ignore enabled. This reverts the change in v9.0.0. While this feature&lt;br&gt;
+was often useful, it also broke some existing workflows, and there wasn&#39;t a good way to opt out of it. And there isn&#39;t really a good way for us to add&lt;br&gt;
+a way to opt out of it. And you can easily get similar behavior by adding &lt;code&gt;.git/&lt;/code&gt; to your global fdignore file.&lt;br&gt;
+See &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2051787416&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1457&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1457/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1457&quot;&gt;#1457&lt;/a&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Bugfixes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Respect NO_COLOR environment variable with &lt;code&gt;--list-details&lt;/code&gt; option. (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2049399628&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1455&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1455/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1455&quot;&gt;#1455&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Fix bug that would cause hidden files to be included despite gitignore rules&lt;br&gt;
+if search path is &quot;.&quot; (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2056926082&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1461&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/sharkdp/fd/issues/1461/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/issues/1461&quot;&gt;#1461&lt;/a&gt;, &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2075621471&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/BurntSushi/ripgrep/issues/2711&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/BurntSushi/ripgrep/pull/2711/hovercard&quot; href=&quot;https://github.com/BurntSushi/ripgrep/pull/2711&quot;&gt;BurntSushi/ripgrep#2711&lt;/a&gt;).&lt;/li&gt;
+&lt;li&gt;aarch64 builds now use 64k page sizes with jemalloc. This fixes issues on some systems, such as ARM Macs that&lt;br&gt;
+have a larger system page size than the system that the binary was built on. (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;2278292116&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/sharkdp/fd/issues/1547&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/sharkdp/fd/pull/1547/hovercard&quot; href=&quot;https://github.com/sharkdp/fd/pull/1547&quot;&gt;#1547&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;Address &lt;a href=&quot;https://blog.rust-lang.org/2024/04/09/cve-2024-24576.html&quot; rel=&quot;nofollow&quot;&gt;CVE-2024-24576&lt;/a&gt;, by increasing minimum rust version.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Changes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Minimum supported rust version is now 1.77.2&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>tmccombs</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/2541726?s=60&amp;v=4"/>
+  </entry>
+</feed>

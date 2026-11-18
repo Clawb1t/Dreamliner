@@ -1,0 +1,21 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+Error: Transform failed with 2 errors:
+C:\Users\coal1\AppData\Local\Temp\claude\4b548f47d73953d4\a86f4a2c-64ce-471c-8b4f-401835d349bb\scratchpad\feeds\steam.ts:6:14: ERROR: Top-level await is currently not supported with the "cjs" output format
+C:\Users\coal1\AppData\Local\Temp\claude\4b548f47d73953d4\a86f4a2c-64ce-471c-8b4f-401835d349bb\scratchpad\feeds\steam.ts:11:2: ERROR: Top-level await is currently not supported with the "cjs" output format
+    at failureErrorWithLog (C:\Users\coal1\OneDrive\Documents\Coal\Dreamliner\node_modules\tsx\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\Users\coal1\OneDrive\Documents\Coal\Dreamliner\node_modules\tsx\node_modules\esbuild\lib\main.js:1017:50
+    at responseCallbacks.<computed> (C:\Users\coal1\OneDrive\Documents\Coal\Dreamliner\node_modules\tsx\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket (C:\Users\coal1\OneDrive\Documents\Coal\Dreamliner\node_modules\tsx\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout (C:\Users\coal1\OneDrive\Documents\Coal\Dreamliner\node_modules\tsx\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23) {
+  name: 'TransformError'
+}
+
+Node.js v22.18.0

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:slash="http://purl.org/rss/1.0/modules/slash/">
+  <channel>
+    <title>Path of Exile News</title>
+    <description>Path of Exile News</description>
+    <image>
+      <url>http://www.pathofexile.com/image/logo/pathofexile128.png</url>
+      <title>Path of Exile</title>
+      <link>http://www.pathofexile.com</link>
+    </image>
+    <pubDate>Wed, 18 Nov 2026 21:05:35 +0000</pubDate>
+    <generator>Laminas_Feed_Writer 2 (https://getlaminas.org)</generator>
+    <link>https://www.pathofexile.com/</link>
+    <atom:link rel="self" type="application/rss+xml" href="https://www.pathofexile.com/news/rss"/>
+    <item>
+      <title>Improvements to Core Item Drops</title>
+      <description><![CDATA[In 3.30 we fundamentally changed how Items are generated in Path of Exile, with the goal of killing harder monsters resulting in better items. For currency specifically, this didn't go exactly to plan. Check out what we’re changing:
+<a href="https://www.pathofexile.com/forum/view-thread/4016748">Read More.</a>]]></description>
+      <pubDate>Wed, 18 Nov 2026 03:11:12 +0000</pubDate>
+      <link>https://www.pathofexile.com/forum/view-thread/4016748</link>
+      <guid>https://www.pathofexile.com/forum/view-thread/4016748</guid>
+      <category><![CDATA[news]]></category>
+      <slash:comments>0</slash:comments>
+    </item>
+    <item>
+      <title>Thread Difficulty and League Mechanic Changes</title>
+      <description><![CDATA[Thread difficulty is coming down, and league mechanic rewards are going up. Here’s a full rundown of the changes we’re making to Covens of Umbra based on your feedback, coming in a patch later this week.
+<a href="https://www.pathofexile.com/forum/view-thread/4016267">Read More.</a>]]></description>
+      <pubDate>Tue, 17 Nov 2026 06:42:49 +0000</pubDate>
+      <link>https://www.pathofexile.com/forum/view-thread/4016267</link>
+      <guid>https://www.pathofexile.com/forum/view-thread/4016267</guid>
+      <category><![CDATA[news]]></category>
+      <slash:comments>0</slash:comments>
+    </item>
+    <item>
+      <title>What We’re Working On: Endgame</title>
+      <description><![CDATA[Today we've posted about what we're working on, but obviously there's an elephant in the room that needs addressing. Currently from your feedback and our observations we're seeing big gaps in item drops between the highest and lowest performing league mechanics.
+<a href="https://www.pathofexile.com/forum/view-thread/4015729">Read More.</a>]]></description>
+      <pubDate>Mon, 16 Nov 2026 07:26:23 +0000</pubDate>
+      <link>https://www.pathofexile.com/forum/view-thread/4015729</link>
+      <guid>https://www.pathofexile.com/forum/view-thread/4015729</guid>
+      <category><![CDATA[news]]></category>
+      <slash:comments>0</slash:comments>
+    </item>
+</channel>
+</rss>

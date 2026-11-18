@@ -14,12 +14,22 @@ export function registerIntervalTask(task: ScheduledTask): void {
   if (tasks.has(task.id)) {
     clearInterval(tasks.get(task.id)!);
   }
+  // Overlap guard: a run that's still going when the next interval fires is not started twice
+  // (a slow poll would otherwise stack up copies of itself and double its work).
+  let running = false;
   tasks.set(
     task.id,
     setInterval(() => {
-      task.run(globalClient!).catch((err) => {
-        log.error(`Scheduled task "${task.id}" failed:`, err);
-      });
+      if (running) return;
+      running = true;
+      Promise.resolve()
+        .then(() => task.run(globalClient!))
+        .catch((err) => {
+          log.error(`Scheduled task "${task.id}" failed:`, err);
+        })
+        .finally(() => {
+          running = false;
+        });
     }, task.intervalMs),
   );
 }

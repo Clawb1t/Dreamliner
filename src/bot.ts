@@ -71,6 +71,7 @@ import { handleInviteTrackerButton } from "./plugins/invite_tracker/functions/in
 import { TEAM_PREFIX } from "./plugins/team_control/functions/config.js";
 import { handleTeamButton, handleTeamModal } from "./plugins/team_control/functions/interactions.js";
 import { handleTeamAutocomplete } from "./plugins/team_control/commands.js";
+import { handleNotificationsAutocomplete } from "./plugins/social/commands.js";
 import { MK_PREFIX } from "./plugins/message_kits/functions/constants.js";
 import { handleKitButton, handleKitModal, handleKitSelect } from "./plugins/message_kits/functions/interactions.js";
 import { handleBlueskyButtonInteraction } from "./plugins/bluesky/functions/interactions.js";
@@ -379,6 +380,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const { handleRadioAutocomplete } = await import("./plugins/music/commands/radio.js");
         await handleRadioAutocomplete(interaction).catch((error) => {
           log.error("Radio autocomplete error:", error);
+        });
+        return;
+      }
+      if (interaction.commandName === "notifications") {
+        await handleNotificationsAutocomplete(interaction).catch((error) => {
+          log.error("Notifications autocomplete error:", error);
         });
         return;
       }

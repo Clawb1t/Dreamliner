@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Cloudflare Status Status - Incident History</title>
+    <link>https://www.cloudflarestatus.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 16:15:25 +0000</pubDate>
+    <item>
+      <title>KIX (Osaka) on 2026-12-08</title>
+      <description>&#xA;&lt;p&gt;&lt;small&gt;Nov &lt;var data-var=&#39;date&#39;&gt;18&lt;/var&gt;, &lt;var data-var=&#39;time&#39;&gt;16:15&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt;&lt;strong&gt;Scheduled&lt;/strong&gt; - We will be performing scheduled maintenance in KIX (Osaka) datacenter on 2026-12-08 between 17:00 and 21:00 UTC.&#xA;&#xA;Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable.&lt;/p&gt; </description>
+      <pubDate>Tue, 08 Dec 2026 17:00:00 +0000</pubDate>
+      <maintenanceEndDate>Tue, 08 Dec 2026 21:00:00 +0000</maintenanceEndDate>
+      <link>https://www.cloudflarestatus.com/incidents/4zr79018lfur</link>
+      <guid>https://www.cloudflarestatus.com/incidents/4zr79018lfur</guid>
+    </item>
+    <item>
+      <title>MAA (Chennai) on 2026-12-07</title>
+      <description>&#xA;&lt;p&gt;&lt;small&gt;Nov &lt;var data-var=&#39;date&#39;&gt;18&lt;/var&gt;, &lt;var data-var=&#39;time&#39;&gt;16:15&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt;&lt;strong&gt;Scheduled&lt;/strong&gt; - We will be performing scheduled maintenance in MAA (Chennai) datacenter between 2026-12-07 21:00 and 2026-12-08 01:00 UTC.&#xA;&#xA;Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable.&lt;/p&gt; </description>
+      <pubDate>Mon, 07 Dec 2026 21:00:00 +0000</pubDate>
+      <maintenanceEndDate>Tue, 08 Dec 2026 01:00:00 +0000</maintenanceEndDate>
+      <link>https://www.cloudflarestatus.com/incidents/qm7udc5c046x</link>
+      <guid>https://www.cloudflarestatus.com/incidents/qm7udc5c046x</guid>
+    </item>
+    <item>
+      <title>BOM (Mumbai) on 2026-12-07</title>
+      <description>&#xA;&lt;p&gt;&lt;small&gt;Nov &lt;var data-var=&#39;date&#39;&gt;18&lt;/var&gt;, &lt;var data-var=&#39;time&#39;&gt;16:15&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt;&lt;strong&gt;Scheduled&lt;/strong&gt; - We will be performing scheduled maintenance in BOM (Mumbai) datacenter between 2026-12-07 21:00 and 2026-12-08 01:00 UTC.&#xA;&#xA;Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable.&lt;/p&gt; </description>
+      <pubDate>Mon, 07 Dec 2026 21:00:00 +0000</pubDate>
+      <maintenanceEndDate>Tue, 08 Dec 2026 01:00:00 +0000</maintenanceEndDate>
+      <link>https://www.cloudflarestatus.com/incidents/v5n5pu52dqw0</link>
+      <guid>https://www.cloudflarestatus.com/incidents/v5n5pu52dqw0</guid>
+    </item>
+</channel>
+</rss>

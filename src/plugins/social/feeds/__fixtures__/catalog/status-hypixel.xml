@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Hypixel Status - Incident History</title>
+    <link>https://status.hypixel.net</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 15:25:23 -0500</pubDate>
+    <item>
+      <title>SkyBlock Maintenance</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:08&lt;/var&gt; EST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;05:00&lt;/var&gt; EST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;12&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:29&lt;/var&gt; EST&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - SkyBlock will be undergoing maintenance to prepare and deploy 0.27.3 - Magic Find Rework &amp; Accessory Bag Revamp. During this time, SkyBlock will be unavailable. We are estimating this maintenance to take up to 10 hours, assuming no unforeseen issues occur. &lt;/p&gt;      </description>
+      <pubDate>Tue, 17 Nov 2026 11:08:58 -0500</pubDate>
+      <maintenanceEndDate>Tue, 17 Nov 2026 15:00:00 -0500</maintenanceEndDate>
+      <link>https://status.hypixel.net/incidents/mf592t4d3mcn</link>
+      <guid>https://status.hypixel.net/incidents/mf592t4d3mcn</guid>
+    </item>
+    <item>
+      <title>Forums Maintenance</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;04:18&lt;/var&gt; EDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;21&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;16:47&lt;/var&gt; EDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - Scheduled maintenance is still in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;21&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;02:54&lt;/var&gt; EDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;21&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;02:49&lt;/var&gt; EDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - The Hypixel Forums are undergoing scheduled maintenance and will be inaccessible during this time. &lt;/p&gt;      </description>
+      <pubDate>Thu, 22 Oct 2026 04:18:09 -0400</pubDate>
+      <maintenanceEndDate>Wed, 21 Oct 2026 14:55:00 -0400</maintenanceEndDate>
+      <link>https://status.hypixel.net/incidents/12mm6g2bz6pb</link>
+      <guid>https://status.hypixel.net/incidents/12mm6g2bz6pb</guid>
+    </item>
+    <item>
+      <title>SkyBlock Maintenance</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt; 6&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:58&lt;/var&gt; EDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt; 6&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:00&lt;/var&gt; EDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:41&lt;/var&gt; EDT&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - SkyBlock will be in maintenance to roll v0.27.2 &lt;/p&gt;      </description>
+      <pubDate>Tue, 06 Oct 2026 23:58:14 -0400</pubDate>
+      <maintenanceEndDate>Tue, 06 Oct 2026 14:00:00 -0400</maintenanceEndDate>
+      <link>https://status.hypixel.net/incidents/28dg8187c048</link>
+      <guid>https://status.hypixel.net/incidents/28dg8187c048</guid>
+    </item>
+</channel>
+</rss>

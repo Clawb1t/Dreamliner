@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Spotify Status - Incident History</title>
+    <link>https://spotify.statuspage.io</link>
+    <description>Statuspage</description>
+    <pubDate>Mon, 21 Sep 2026 09:14:14 +0000</pubDate>
+    <item>
+      <title>This is an example incident</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Jun &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:32&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - Empathize with those affected and let them know everything is operating as normal. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jun &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:22&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - Let your users know once a fix is in place, and keep communication clear and precise. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jun &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:28&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - As you continue to work through the incident, update your customers frequently. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Jun &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:58&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - When your product or service isn’t functioning as expected, let your customers know by creating an incident. Communicate early, even if you don’t know exactly what’s going on. &lt;/p&gt;      </description>
+      <pubDate>Sat, 01 Jun 2024 09:32:26 +0000</pubDate>
+      <link>https://spotify.statuspage.io/incidents/n0rrdc0l9q01</link>
+      <guid>https://spotify.statuspage.io/incidents/n0rrdc0l9q01</guid>
+    </item>
+</channel>
+</rss>

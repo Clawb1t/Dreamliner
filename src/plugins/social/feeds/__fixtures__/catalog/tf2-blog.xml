@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated on Wed, 18 Nov 2026 13:05:43 -0800 -->
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <atom:link href="https://www.teamfortress.com/rss.xml" rel="self" type="application/rss+xml" />
+    <title>TF2 Official Blog</title>
+    <link>https://www.teamfortress.com</link>
+    <description><![CDATA[Insight and announcements from the creators of Team Fortress 2]]></description>
+    <language>en-us</language>
+    <generator>TF2 Blog RSS</generator>
+    <item>
+      <title>Team Fortress 2 Update Released</title>
+      <description><![CDATA[An update to Team Fortress 2 has been released. The update will be applied automatically when you restart Team Fortress 2. The major changes include:<br/>
+<ul>
+<li>Updated cp_wildcat_event to fix missing model for Spies disguised as pumpkins
+<li>Updated/Added some tournament medals
+</ul>
+]]></description>
+      <link>https://www.teamfortress.com/post.php?id=289665</link>
+      <pubDate>Fri, 30 Oct 2026 23:18:00 +0000</pubDate>
+      <guid isPermaLink="true">https://www.teamfortress.com/post.php?id=289665</guid>
+    </item>
+    <item>
+      <title>Team Fortress 2 Update Released</title>
+      <description><![CDATA[An update to Team Fortress 2 has been released. The update will be applied automatically when you restart Team Fortress 2. The major changes include:<br/>
+<ul>
+<li>Fixed smoke effect regression for Le Sapeur
+<li>Updated the Chief Executor, Vested Investor's Vest, and Standing Offer to fix clipping issues
+<li>Updated cp_wildcat_event<ul>
+<li>Added +1 minute to the round timer
+<li>Fixed a bug that allowed pumpkin-disguised players to cap at 15x speed
+<li>Fixed pumpkin-disguised players not displaying as Ubercharged if they have a Voodoo-Cursed Soul cosmetic equipped
+<li>Fixed buildings being able to be built inside the shutter door in the connector between A and B
+<li>Fixed some jack-o-lanterns around the map not rendering during the waiting for players period
+<li>Fixed equipped Powerup Canteens rendering while pumpkin-disguised</ul>
+<li>Updated Updated zi_atoll, zi_blazehattan, zi_devastation_final1, zi_murky, zi_sanitarium, and zi_woods<ul>
+<li>Lowered edicts across the board
+<li>Zombie Sniper's Spit now deals critical hits to airborne targets 
+<li>Fixed Zombie Engineer building status being visible upon initial infection
+<li>Fixed Reveal outline persisting on players into the next round</ul>
+<li>Updated zi_atoll (additional changes)<ul>
+<li>Fixed a visual bug where water would disappear in certain parts of the map
+<li>Added more cover in front of the shack
+<li>Enabled every BLU spawn point no matter where RED players are located</ul>
+</ul>
+]]></description>
+      <link>https://www.teamfortress.com/post.php?id=289185</link>
+      <pubDate>Thu, 29 Oct 2026 20:29:00 +0000</pubDate>
+      <guid isPermaLink="true">https://www.teamfortress.com/post.php?id=289185</guid>
+    </item>
+    <item>
+      <title>Operation: Europa</title>
+      <description><![CDATA[<a href="https://europa.tf2maps.net/" target="_blank"><img src="https://steamcdn-a.akamaihd.net/steam/news/288891/europa_small.png?t=1516190994"></a>
+(Image Credit: Entropy Tempus, Arma and LazerSofa)<br><br>
+
+<p>Legend speaks of a forgotten place that holds untold riches, somewhere across the pond, where we need to establish control... Now it's time to visit this "Old World", again...</p><br>
+
+<p><b>Welcome to Europe!</b></p><br>
+
+<p>Operation: Europa is a <b>map-focused community project</b> that aims to bring <b>European environments</b> to TF2! There are so many places to go and see! We can't reasonably cover them all on our own, so the Operation: Europa Team calls on you, the community, to make your European maps for the project and help bring an authentic European experience to TF2!</p><br>
+
+<p>Additionally, they are collaborating with <b>TF2Maps.net</b> to bring you a <b>Major Mapping Contest</b> centered around Europe! If you think you have what it takes, read up on the contest thread below to familiarize yourself with the rules.</p><br>
+
+<p>It's not just maps, though! While maps are important for navigation, especially in a place like Europe, what's even more important? Style of course! A place as rich as Europe provides many opportunities for unique garments to dress yourself with so you blend right in! The project is also looking for <b>cosmetics, war paints, Unusual effects,</b> and anything else that can be submitted to the Workshop!</p><br>
+
+<p>Important Links:<ul>
+<li><a href="https://europa.tf2maps.net/" target="_blank">Official Website</a>
+<li><a href="https://discord.gg/PaGunEHbGp" target="_blank">Discord Server</a>
+<li><a href="https://tf2maps.net/threads/major-contest-19-operation-europa.56748/" target="_blank">TF2Maps.net Contest Thread</a>
+</ul>
+</p><br>]]></description>
+      <link>https://www.teamfortress.com/post.php?id=288891</link>
+      <pubDate>Thu, 29 Oct 2026 16:55:00 +0000</pubDate>
+      <guid isPermaLink="true">https://www.teamfortress.com/post.php?id=288891</guid>
+    </item>
+</channel>
+</rss>

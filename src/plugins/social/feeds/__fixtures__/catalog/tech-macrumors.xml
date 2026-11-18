@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>MacRumors: Mac News and Rumors - All Stories</title>
+	<atom:link href="https://feeds.macrumors.com/MacRumors-All" rel="self" type="application/rss+xml" />
+	<link>https://www.macrumors.com</link>
+	
+	<description>Apple, iPhone, iPad, Mac News and Rumors</description>
+	<lastBuildDate>Wed, 18 Nov 2026 20:41:58 +0000</lastBuildDate>
+
+	<language>en</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+	<generator>https://www.macrumors.com</generator>
+		
+		<item>
+		<title>HomeView 27.2.1 Update Fixes Siri Bugs</title>
+		<link>https://www.macrumors.com/2026/11/18/homeview-27-2-1-update-fixes-siri-bugs/</link>
+		<comments>https://forums.macrumors.com/threads/homeview-27-2-1-update-fixes-siri-bugs.2494766/</comments>
+		<pubDate>Wed, 18 Nov 2026 20:41:55 +0000</pubDate>
+		<guid isPermaLink="false">https://www.macrumors.com/2026/11/18/homeview-27-2-1-update-fixes-siri-bugs/</guid>
+		<dc:creator>Juli Clover</dc:creator>
+		<category>Featured</category>
+		<category>HomeView</category>
+		<category>Siri</category>
+		
+
+		<description><![CDATA[Apple today <a href="https://www.macrumors.com/2026/11/18/homeview-27-2-1-software/">released a new software update</a> for the HomeView, and it fixes two <a href="https://www.macrumors.com/guide/siri/">Siri</a> issues <a href="https://www.macrumors.com/2026/11/16/apple-homeview-smart-home-hub-has-some-issues/">users were running into</a>.<br/>
+<br/>
+<img src="https://images.macrumors.com/article-new/2026/10/Apple-HomeView-lineup-feature0.jpg" alt="" width="2500" height="1406" class="aligncenter size-full wp-image-1070613" /><br/>
+According to Apple, HomeView 27.2.1 fixes a bug that could cause &zwnj;Siri&zwnj; requests to fail if the HomeView is paired to an iPhone or <a href="https://www.macrumors.com/roundup/ipad/">iPad</a> running the iOS 27.3 or iPadOS 27.3 betas.<br/>
+<br/>
+It also addresses an issue that caused the HomeView to fail to download support for &zwnj;Siri&zwnj; when setting up a Shared Album on the <a href="https://www.macrumors.com/guide/photos/">Photos</a> face.<br/>
+<br/>
+A third fix prevents the HomeView from being removed from the home when connecting another home hub. From Apple's release notes:<br/>
+<blockquote>This update provides important bug fixes for your HomeView, including fixes for the following issues:<br/>
+- Setting up a Shared Album on the Photos face may prevent the device from downloading support for Siri, causing Siri to be unavailable<br/>
+- Pairing with an iPhone or iPad running the iOS or iPadOS 27.3 beta may cause Siri requests to fail<br/>
+- Connecting another home hub device may unexpectedly remove HomeView from your home</blockquote><br/>
+Shortly after the HomeView launched, complaints started rolling in. Users found the device would not set alarms or timers, and some users had problems downloading &zwnj;Siri&zwnj;. Music commands failed in some cases, and there were also delays in &zwnj;Siri&zwnj; responses. Apple's notes don't mention alarms, timers, or music, but the &zwnj;Siri&zwnj; fixes may address some of the issues.<br/>
+<br/>
+Reviewer Joanna Stern also ran into a bug that prevented &zwnj;Siri&zwnj; AI from unlocking door locks and garage doors by voice after authenticating with the camera. Apple said it will <a href="https://www.macrumors.com/2026/11/12/apple-plans-homeview-update-with-siri-fix/">fix the bug in December</a>.<br/>
+<br/>
+New HomeView software can be installed in the Settings app on the device or through the Home app on a connected iPhone, &zwnj;iPad&zwnj;, or Mac.<div class="linkback">Related Roundup: <a href="https://www.macrumors.com/roundup/apple-homeview/">Apple HomeView</a></div><div class="linkback">Tag: <a href="https://www.macrumors.com/guide/siri/">Siri</a></div><div class="linkback">Buyer's Guide: <a href="https://buyersguide.macrumors.com/#HomeView">HomeView (Buy Now)</a></div><div class="linkback">Related Forum: <a href="https://forums.macrumors.com/forums/homepod-homeview-carplay-–-home-auto-tech.193">HomePod, HomeView, CarPlay – Home & Auto Tech</a></div><br/>This article, &quot;<a href="https://www.macrumors.com/2026/11/18/homeview-27-2-1-update-fixes-siri-bugs/">HomeView 27.2.1 Update Fixes Siri Bugs</a>&quot; first appeared on <a href="https://www.macrumors.com">MacRumors.com</a><br/><br/><a href="https://forums.macrumors.com/threads/homeview-27-2-1-update-fixes-siri-bugs.2494766/">Discuss this article</a> in our forums<br/><br/>]]></description>
+		</item>
+		
+		<item>
+		<title>Apple Card Offers New Users Double Daily Cash for a Year</title>
+		<link>https://www.macrumors.com/2026/11/18/apple-card-double-daily-cash/</link>
+		<comments>https://forums.macrumors.com/threads/apple-card-offers-new-users-double-daily-cash-for-a-year.2494759/</comments>
+		<pubDate>Wed, 18 Nov 2026 19:47:57 +0000</pubDate>
+		<guid isPermaLink="false">https://www.macrumors.com/2026/11/18/apple-card-double-daily-cash/</guid>
+		<dc:creator>Juli Clover</dc:creator>
+		<category>Apple Card</category>
+		
+
+		<description><![CDATA[Apple is aiming to get people to sign up for the <a href="https://www.macrumors.com/guide/apple-card/">Apple Card</a> over the holidays by offering a 2X Daily Cash bonus for new users.<br/>
+<br/>
+<img src="https://images.macrumors.com/article-new/2023/06/Apple-Card-Balance.jpeg" alt="" width="1600" height="900" class="aligncenter size-full wp-image-898056" /><br/>
+iPhone users who <a href="https://learn.applecard.apple/double-your-daily-cash-promo">sign up for an Apple Card</a> by December 10 can earn up to six percent Daily Cash on purchases for the first year after opening the account, with Apple offering up to &#36;1,000 total bonus Daily Cash.<br/>
+<br/>
+The promo doubles the standard Daily Cash back rewards:<br/>
+<ul><br/>
+ 	<li><strong>6%</strong> - At Apple and participating merchants when using &zwnj;Apple Card&zwnj; with <a href="https://www.macrumors.com/roundup/apple-pay/">Apple Pay</a>.</li><br/>
+ 	<li><strong>4%</strong> - On purchases made using an &zwnj;Apple Card&zwnj; with &zwnj;Apple Pay&zwnj;.</li><br/>
+ 	<li><strong>2%</strong> - On purchases made with the physical &zwnj;Apple Card&zwnj; or virtual card number (no &zwnj;Apple Pay&zwnj;).</li><br/>
+</ul><br/>
+After a year or when the &#36;1,000 bonus Daily Cash limit is reached, Daily Cash will revert to the standard one, two, and three percent rewards. Getting the full bonus amount would require spending about &#36;33,333 at six percent, &#36;50,000 at four percent, or &#36;100,000 at two percent, so for many users, the bonus cash earned will be less than Apple's maximum.<br/>
+<br/>
+Those interested in the deal will need to <a href="https://learn.applecard.apple/double-your-daily-cash-promo">apply through the promo website</a>, as Apple says the deal may not be available elsewhere. The promotion is not available to current &zwnj;Apple Card&zwnj; holders or those who have had an &zwnj;Apple Card&zwnj; in the past.<br/>
+<br/>
+&zwnj;Apple Card&zwnj; continues to be available only in the U.S.<div class="linkback">Tag: <a href="https://www.macrumors.com/guide/apple-card/">Apple Card</a></div><br/>This article, &quot;<a href="https://www.macrumors.com/2026/11/18/apple-card-double-daily-cash/">Apple Card Offers New Users Double Daily Cash for a Year</a>&quot; first appeared on <a href="https://www.macrumors.com">MacRumors.com</a><br/><br/><a href="https://forums.macrumors.com/threads/apple-card-offers-new-users-double-daily-cash-for-a-year.2494759/">Discuss this article</a> in our forums<br/><br/>]]></description>
+		</item>
+		
+		<item>
+		<title>Apple Releases 27.2.1 HomeView Software Update</title>
+		<link>https://www.macrumors.com/2026/11/18/homeview-27-2-1-software/</link>
+		<comments>https://forums.macrumors.com/threads/apple-releases-27-2-1-homeview-software-update.2494754/</comments>
+		<pubDate>Wed, 18 Nov 2026 18:53:53 +0000</pubDate>
+		<guid isPermaLink="false">https://www.macrumors.com/2026/11/18/homeview-27-2-1-software/</guid>
+		<dc:creator>Juli Clover</dc:creator>
+		<category>HomeView</category>
+		
+
+		<description><![CDATA[Apple today released new 27.2.1 software for the HomeView, marking the first post-release software update for the device.<br/>
+<br/>
+<img src="https://images.macrumors.com/article-new/2026/10/homeview_home_screen_feature-2.jpg" alt="" width="2071" height="1165" class="aligncenter size-full wp-image-1071443" /><br/>
+There are no notes that mention what's new in the update, but Apple does have a <a href="https://support.apple.com/en-us/127196">HomeView software support document</a> that should have details in the near future. The 27.2.1 updates for other platforms were primarily focused on security, but the HomeView Software 27.2.1 does not include any published CVE entries. <br/>
+<br/>
+HomeView updates can be downloaded through the Settings app on the device itself or through the Home app.<div class="linkback">Related Roundup: <a href="https://www.macrumors.com/roundup/apple-homeview/">Apple HomeView</a></div><div class="linkback">Buyer's Guide: <a href="https://buyersguide.macrumors.com/#HomeView">HomeView (Buy Now)</a></div><div class="linkback">Related Forum: <a href="https://forums.macrumors.com/forums/homepod-homeview-carplay-–-home-auto-tech.193">HomePod, HomeView, CarPlay – Home & Auto Tech</a></div><br/>This article, &quot;<a href="https://www.macrumors.com/2026/11/18/homeview-27-2-1-software/">Apple Releases 27.2.1 HomeView Software Update</a>&quot; first appeared on <a href="https://www.macrumors.com">MacRumors.com</a><br/><br/><a href="https://forums.macrumors.com/threads/apple-releases-27-2-1-homeview-software-update.2494754/">Discuss this article</a> in our forums<br/><br/>]]></description>
+		</item>
+</channel>
+</rss>

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	xmlns:media="http://search.yahoo.com/mrss/">
+
+<channel>
+	<title>NVIDIA Blog</title>
+	<atom:link href="https://blogs.nvidia.com/feed/" rel="self" type="application/rss+xml" />
+	<link>https://blogs.nvidia.com/</link>
+	<description></description>
+	<lastBuildDate>Wed, 18 Nov 2026 16:32:03 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1.4</generator>
+	<item>
+		<title>NVIDIA RTX Spark Compact Desktops Out Now</title>
+		<link>https://blogs.nvidia.com/blog/rtx-spark-desktop-local-ai-available-now/</link>
+		
+		<dc:creator><![CDATA[Justin Walker]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 14:00:31 +0000</pubDate>
+				<category><![CDATA[AI]]></category>
+		<category><![CDATA[Agentic AI]]></category>
+		<category><![CDATA[Artificial Intelligence]]></category>
+		<category><![CDATA[DGX Spark]]></category>
+		<category><![CDATA[Local AI]]></category>
+		<category><![CDATA[NVIDIA RTX]]></category>
+		<category><![CDATA[Open Source]]></category>
+		<category><![CDATA[RTX Spark]]></category>
+		<guid isPermaLink="false">https://blogs.nvidia.com/?p=100079</guid>
+
+					<description><![CDATA[New NVIDIA RTX Spark compact desktops from ASUS, Dell and MSI are available today, bringing local AI agents, image and video generation, and model fine-tuning to a dedicated Windows PC. With up to 128GB of unified memory and NVIDIA’s AI software stack, these systems provide room for larger local models alongside RTX-accelerated creative and development [&#8230;]]]></description>
+										<content:encoded><![CDATA[<div id="bsf_rt_marker"></div><p><span style="font-weight: 400;">New </span><a target="_blank" href="https://www.nvidia.com/en-us/products/rtx-spark/"><span style="font-weight: 400;">NVIDIA RTX Spark compact desktops</span></a><span style="font-weight: 400;"> from ASUS, Dell and MSI are available today, bringing local AI agents, image and video generation, and model fine-tuning to a dedicated Windows PC.</span></p>
+<p><span style="font-weight: 400;">With up to 128GB of unified memory and NVIDIA’s AI software stack, these systems provide room for larger local models alongside RTX-accelerated creative and development tools. A dedicated desktop can keep agents and scheduled tasks running while a laptop travels or handles other work.</span></p>
+<p><span style="font-weight: 400;">Alongside the new desktops, an expanding software ecosystem brings more creative and development workflows to RTX Spark laptops and compact desktops.</span></p>
+<p><span style="font-weight: 400;">Native Windows on Arm applications from Adobe, the NVIDIA DLSS Ray Reconstruction feature in Blender and local generation workflows in ComfyUI expand what creators and developers can do on RTX Spark — all on one Windows PC.</span></p>
+<h2><b>A Windows PC Built for Local AI</b></h2>
+<p><span style="font-weight: 400;">As workflows expand to include local AI models and agents, more work can continue beyond an active editing session — from generating assets to processing long renders or scheduled tasks. </span></p>
+<p><span style="font-weight: 400;">RTX Spark compact desktops give developers, creators and AI enthusiasts a dedicated Windows PC for local models and always-on agents. They bring together image and video generation, model fine-tuning, creative applications and development tools in one compact system.</span></p>
+<p><span style="font-weight: 400;">Running supported models locally keeps locally processed code and files on the PC and avoids per-token cloud application programming interface (API) charges for those tasks.</span></p>
+<figure id="attachment_100083" aria-describedby="caption-attachment-100083" style="width: 1280px" class="wp-caption aligncenter"><a href="https://blogs.nvidia.com/wp-content/uploads/2026/11/11-18-Local-AI-Blog-copy-1.jpg"><img fetchpriority="high" decoding="async" class="size-full wp-image-100083" src="https://blogs.nvidia.com/wp-content/uploads/2026/11/11-18-Local-AI-Blog-copy-1.jpg" alt="" width="1280" height="680" srcset="https://blogs.nvidia.com/wp-content/uploads/2026/11/11-18-Local-AI-Blog-copy-1.jpg 1280w, https://blogs.nvidia.com/wp-content/uploads/2026/11/11-18-Local-AI-Blog-copy-1-960x510.jpg 960w, https://blogs.nvidia.com/wp-content/uploads/2026/11/11-18-Local-AI-Blog-copy-1-630x335.jpg 630w" sizes="(max-width: 1280px) 100vw, 1280px" /></a><figcaption id="caption-attachment-100083" class="wp-caption-text">RTX Spark compact desktops like the ASUS ProArt GR1X mini PC are built to run personal AI agents 24/7.</figcaption></figure>
+<p><span style="font-weight: 400;">RTX Spark desktops are equipped with a 20-core NVIDIA Grace CPU, an NVIDIA Blackwell RTX GPU with 6,144 CUDA cores and up to 128GB of unified memory, delivering up to 1 petaflop of AI performance. Ten-gigabit Ethernet connectivity enables fast transfers of large datasets, model files and creative assets between RTX Spark compact desktops and networked storage.</span></p>
+<p><span style="font-weight: 400;">This advanced hardware unlocks incredible capabilities for creators, developers and AI enthusiasts, including:</span></p>
+<ul>
+<li><span style="font-weight: 400;">Running massive 120-billion-parameter large language models locally</span></li>
+<li><span style="font-weight: 400;">Rendering 90GB+ 3D scenes in real time</span></li>
+<li><span style="font-weight: 400;">Smoothly editing 4:2:2 video in real time</span></li>
+</ul>
+<figure id="attachment_100090" aria-describedby="caption-attachment-100090" style="width: 1280px" class="wp-caption aligncenter"><a href="https://blogs.nvidia.com/wp-content/uploads/2026/11/MSI-EdgeMesa-N-AI-Series.png"><img decoding="async" class="size-full wp-image-100090" src="https://blogs.nvidia.com/wp-content/uploads/2026/11/MSI-EdgeMesa-N-AI-Series.png" alt="" width="1280" height="328" srcset="https://blogs.nvidia.com/wp-content/uploads/2026/11/MSI-EdgeMesa-N-AI-Series.png 1280w, https://blogs.nvidia.com/wp-content/uploads/2026/11/MSI-EdgeMesa-N-AI-Series-960x246.png 960w, https://blogs.nvidia.com/wp-content/uploads/2026/11/MSI-EdgeMesa-N-AI-Series-630x161.png 630w" sizes="(max-width: 1280px) 100vw, 1280px" /></a><figcaption id="caption-attachment-100090" class="wp-caption-text">The MSI EdgeMesa N AI+ Series RTX Spark compact desktop.</figcaption></figure>
+<p><span style="font-weight: 400;">New compact desktops are available for purchase from ASUS, Dell and MSI, joining the RTX Spark family of laptops available today. Mini PCs from Acer, GIGABYTE and HP are coming soon, along with the </span><a target="_blank" href="https://www.microsoft.com/en-us/surface/devices/surface-rtx-spark-dev-box"><span style="font-weight: 400;">Microsoft Surface RTX Spark Dev Box</span></a><span style="font-weight: 400;">.</span></p>
+<h2><b>From Local Agents to AI Creation</b></h2>
+<p><span style="font-weight: 400;">Native CUDA support and Linux development tools through Windows Subsystem for Linux give developers a foundation for building and running local AI workflows. Developers can set up agents with Hermes Agent or NVIDIA NemoClaw blueprints and fine-tune supported models using Unsloth.</span></p>
+<p><span style="font-weight: 400;">RTX Spark can run creative agents that connect familiar applications and local AI tools, helping creators move from an idea to finished work with natural-language instructions.</span></p>
+<p><span style="font-weight: 400;">NVIDIA Switchyard, now available in Hermes, automatically routes agent tasks between local and cloud models. Everyday tasks can run on device, while advanced reasoning draws on cloud models, helping manage cloud costs across creative workflows.</span></p>
+<p><span style="font-weight: 400;">These capabilities come together in creative workflows that connect Photoshop and ComfyUI through Hermes Agent. Using natural-language instructions, creators can turn sketches into rendered images and animations, or animate an image entirely on device by isolating a subject and defining its motion.</span></p>
+<p><iframe title="Adobe MAX 2026 NVIDIA RTX Spark Booth Activation" width="1200" height="675" src="https://www.youtube.com/embed/nypDHkAyJ5E?feature=oembed" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></p>
+<p style="text-align: center;"><i><span style="font-weight: 400;">NVIDIA brought these workflows to life at Adobe MAX, where attendees used natural-language instructions to turn sketches into rendered images and generate video for a shared digital Miami landscape.</span></i></p>
+<p><span style="font-weight: 400;">The RTX Video Frame Generation and RTX Video HDR features, already available in ComfyUI, extend the pipeline: a generated clip can be expanded to 60 frames per second and converted to high dynamic range for color grading, all within a single ComfyUI workflow on RTX Spark.</span></p>
+<h2><b>Adobe Accelerates the Full Creative Stack for RTX Spark</b></h2>
+<p><span style="font-weight: 400;">NVIDIA and Adobe are expanding native Windows on Arm support and RTX acceleration across Adobe’s creative applications, helping video editors, photographers, designers and 3D artists work more efficiently on RTX Spark.</span></p>
+<p><b>Adobe Premiere </b><span style="font-weight: 400;">accelerates a range of AI-powered editing features through </span><a target="_blank" href="https://developer.nvidia.com/tensorrt-rtx"><span style="font-weight: 400;">NVIDIA TensorRT-RTX</span></a><span style="font-weight: 400;">, including Enhance Speech, Object Mask, Scene Edit Detection and Auto Reframe — so editors spend less time waiting and more time cutting. </span></p>
+<p><span style="font-weight: 400;">GPU acceleration also extends to Film Impact transition and effects plug-ins. The update improves support for professional video formats, including Canon RAW, Red RAW, ARRI RAW, ARRICORE, ARRI HDE, H.264 and HEVC in MXF, ProRes RAW and long-GOP video. This lets editors realize more than 50% quicker turnaround on everyday H.264 video deliverables.</span></p>
+<p><b>Adobe Photoshop </b><span style="font-weight: 400;">adds TensorRT-RTX acceleration for the Remove Tool and ArmRTX Spark-native Camera Raw support, helping photographers remove unwanted objects faster and work with RAW images without relying on emulation. At Adobe MAX, Adobe previewed a next-generation image processing engine with extensive GPU acceleration, including interactive Gaussian blur and Light Leaks filters.</span></p>
+<p><b>Adobe Substance 3D Painter 12.2</b><span style="font-weight: 400;"> is now optimized for RTX Spark with native support on Arm for the first time in public beta. Artists in games, visual effects and visualization can run Substance Painter natively on RTX Spark laptops and compact desktops, with no compatibility layer required.</span></p>
+<p><b>Adobe Illustrator</b><span style="font-weight: 400;"> and </span><b>InDesign</b><span style="font-weight: 400;"> now offer native Windows on Arm versions optimized for RTX Spark. Adobe Illustrator delivers up to 30% higher performance than its emulated version, helping accelerate illustration, graphic design and page-layout workflows on RTX Spark.</span></p>
+<h2><b>Blender 5.3 Adds DLSS Ray Reconstruction to the Viewport</b></h2>
+<p><span style="font-weight: 400;">Blender 5.3 integrates DLSS 4.5 Ray Reconstruction into the Cycles viewport, helping artists evaluate lighting and materials with near-final-quality ray-traced previews as they work. </span></p>
+<p><span style="font-weight: 400;">The practical difference is immediate: instead of navigating a noisy, resolving preview, Ray Reconstruction delivers near-final-quality lighting, reflections and materials in the interactive viewport in real time. </span></p>
+<p><span style="font-weight: 400;">DLSS 4.5 Ray Reconstruction support requires Blender 5.3 and the latest NVIDIA Game Ready Driver or NVIDIA Studio Driver. Download the </span><a target="_blank" href="https://www.nvidia.com/en-us/software/nvidia-app/"><span style="font-weight: 400;">NVIDIA App</span></a><span style="font-weight: 400;"> to get automatic notifications when the latest drivers are available, optimize games and applications from a unified GPU control center, and discover the latest NVIDIA tools and software.</span></p>
+<h2><b>Windows Server 2028 Coming to DGX Station for Windows</b></h2>
+<p><span style="font-weight: 400;">Announced at Microsoft Ignite, Windows Server is evolving for organizations that need to run AI closer to their enterprise applications and data.</span></p>
+<p><span style="font-weight: 400;">Microsoft is expanding hardware choice through support for the latest AI silicon, helping customers take advantage of accelerated inference and increasingly capable models in their own environments. NVIDIA DGX Station for Windows platform powered by the GB300 Grace Blackwell Ultra Desktop Superchip is expanding to include support for Windows Server 2028. </span></p>
+<p><span style="font-weight: 400;">New accelerator platforms and the breadth of the Windows silicon ecosystem provide customers options at different capability levels and price points for advanced AI development, local inference, and agent workloads at scale.</span></p>
+<h2><b>Windows ML Updates Give Developers More Options</b></h2>
+<p><span style="font-weight: 400;">Also announced at Microsoft Ignite, developers can now bring any GGUF model from Hugging Face and run it within Windows ML using the llama.cpp backend.</span></p>
+<p><span style="font-weight: 400;">The DxCGC backend, now available as an experimental release, is an integration for game developers that compiles and runs machine learning models through DirectX 12, allowing them to execute AI workloads alongside graphics.</span></p>
+<p><span style="font-weight: 400;">Windows APIs let applications integrate platform-provided AI capabilities adding GPU support for AION Instruct and VSR.</span></p>
+<p><span style="font-weight: 400;">Developers can also build high-performance AI models for Windows ML using the command line interface. </span></p>
+<h2><b>#ICYMI: The Latest NVIDIA Local AI Updates </b></h2>
+<p><span style="font-weight: 400;"><img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f999.png" alt="🦙" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </span><b>llama.cpp v1.0.0</b><span style="font-weight: 400;"> marks a major milestone for building local AI apps. The open source inference engine introduces API versioning updates, alongside expanded model support and CUDA optimizations for NVFP4 inference. </span><a target="_blank" href="https://huggingface.co/blog/ggml-org/llama-cpp-v1"><span style="font-weight: 400;">Learn more</span></a><span style="font-weight: 400;">.</span></p>
+<p><b><img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f389.png" alt="🎉" class="wp-smiley" style="height: 1em; max-height: 1em;" /> Ricursive Intelligence</b><span style="font-weight: 400;"> introduced its first open model: Ripple-65B Preview. The full-stack AI lab builds self-improving systems by co-optimizing hardware, software and models. Ripple-65B Preview was trained on NVIDIA B300 GPUs, refined using NVIDIA Nemotron post-training datasets and runs locally on DGX Spark. Download the NVFP4 checkpoint from </span><a target="_blank" href="https://huggingface.co/ricursiveAI/Ripple-65B-Preview-NVFP4"><span style="font-weight: 400;">Hugging Face</span></a><span style="font-weight: 400;">.</span></p>
+<p><span style="font-weight: 400;"><img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f916.png" alt="🤖" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </span><b>Runway’s Praxis-1</b><span style="font-weight: 400;"> is a newly released 27-billion-parameter world action model that predicts video and actions together. Developers can run it locally on NVIDIA GeForce RTX 5090, NVIDIA RTX PRO 6000 Blackwell, DGX Spark and DGX Station, and adapt it to their own robots, cameras and tasks with LoRA fine-tuning. Download the NVFP4 checkpoint from </span><a target="_blank" href="https://huggingface.co/runwayml/praxis-1-droid-nvfp4"><span style="font-weight: 400;">Hugging Face</span></a><span style="font-weight: 400;">.</span></p>
+<p><span style="font-weight: 400;"><img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f6e0.png" alt="🛠" class="wp-smiley" style="height: 1em; max-height: 1em;" /> </span><b>NVIDIA TensorRT Edge-LLM</b><span style="font-weight: 400;"> helps run AI models locally on DGX Spark with just a few commands. Read the </span><a target="_blank" href="https://developer.nvidia.com/blog/run-ai-models-for-edge-application-development-with-just-a-few-commands/"><span style="font-weight: 400;">technical blog</span></a><span style="font-weight: 400;">, which walks through downloading Nemotron-3.5 Lightning, setting up optimized inference, testing prompts and serving the model through a local OpenAI-compatible API. </span></p>
+<p><i><span style="font-weight: 400;">Subscribe to the</span></i><a target="_blank" href="https://www.nvidia.com/en-us/ai-on-rtx/?modal=subscribe-ai"> <i><span style="font-weight: 400;">NVIDIA Local AI newsletter</span></i></a><i><span style="font-weight: 400;">. Follow NVIDIA RTX Spark on</span></i><a target="_blank" href="https://x.com/NVIDIARTXSpark"> <i><span style="font-weight: 400;">X</span></i></a><i><span style="font-weight: 400;">,</span></i><a target="_blank" href="https://www.instagram.com/nvidiartxspark/"> <i><span style="font-weight: 400;">Instagram</span></i></a><i><span style="font-weight: 400;">,</span></i><a target="_blank" href="https://www.tiktok.com/@nvidiartxspark"> <i><span style="font-weight: 400;">TikTok</span></i></a><i><span style="font-weight: 400;"> and</span></i><a target="_blank" href="https://www.facebook.com/NVIDIARTXSpark"> <i><span style="font-weight: 400;">Facebook</span></i></a><i><span style="font-weight: 400;">.</span></i></p>
+<p><i><span style="font-weight: 400;">See</span></i><a target="_blank" href="https://www.nvidia.com/en-eu/about-nvidia/terms-of-service/"> <i><span style="font-weight: 400;">notice</span></i></a><i><span style="font-weight: 400;"> regarding software product information.</span></i></p>
+]]></content:encoded>
+					
+		
+		
+				<media:content url="https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-2-1.jpg" type="image/jpeg" width="1280" height="680">
+			<media:thumbnail url="https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-2-1-842x450.jpg" width="842" height="450" />
+			<media:title type="html"><![CDATA[NVIDIA RTX Spark Compact Desktops Out Now]]></media:title>
+			<media:description type="html"></media:description>
+		</media:content>
+	</item>
+		<item>
+		<title>Ian Buck Kicks Off NVIDIA’s Week at SC26 as Science Enters the Age of Agents</title>
+		<link>https://blogs.nvidia.com/blog/ian-buck-sc26/</link>
+		
+		<dc:creator><![CDATA[Brian Caulfield]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 14:00:10 +0000</pubDate>
+				<category><![CDATA[Supercomputing]]></category>
+		<category><![CDATA[Events]]></category>
+		<category><![CDATA[SC26]]></category>
+		<guid isPermaLink="false">https://blogs.nvidia.com/?p=100058</guid>
+
+					<description><![CDATA[NVIDIA’s Ian Buck kicked off the company’s week at SC26 in Chicago on Monday with new tools for AI agents, software that can plan experiments, run code and check results on researchers’ own systems. In NVIDIA’s special address, Buck announced Nemotron for Science, the Rubin HPC GPU and an expanded Vera CPU platform for high-performance [&#8230;]]]></description>
+										<content:encoded><![CDATA[<div id="bsf_rt_marker"></div><p><span style="font-weight: 400;">NVIDIA’s Ian Buck kicked off the company’s week at SC26 in Chicago on Monday with new tools for AI agents, software that can plan experiments, run code and check results on researchers’ own systems.</span></p>
+<p><span style="font-weight: 400;">In NVIDIA’s special address, Buck announced</span><a target="_blank" href="https://nvidianews.nvidia.com/news/nvidia-introduces-nemotron-for-science-to-accelerate-discoveries-with-agents"> <span style="font-weight: 400;">Nemotron for Science</span></a><span style="font-weight: 400;">, the Rubin HPC GPU and an</span><a target="_blank" href="https://nvidianews.nvidia.com/news/nvidia-expands-vera-cpu-platform-to-accelerate-scientific-discovery"> <span style="font-weight: 400;">expanded Vera CPU platform for high-performance computing</span></a><span style="font-weight: 400;">. He also detailed a new collaboration in quantum computing with </span><a target="_blank" href="https://nvidianews.nvidia.com/news/nvidia-announces-collaboration-with-ibm-and-fermi-national-accelerator-laboratory-to-launch-quantum-classical-codesign-platform-plus-error-correction-breakthrough-to-advance-practical-quantum-computing"><span style="font-weight: 400;">IBM and Fermi National Accelerator Laboratory</span></a><span style="font-weight: 400;">.</span></p>
+<p><span style="font-weight: 400;">“The frontier of computing and the new scientific stack is going to be simulation, as always, but combined with AI and the future of quantum,” said Buck, vice president of hyperscale and high-performance computing at NVIDIA. </span></p>
+<p><span style="font-weight: 400;">Buck opened the talk by looking back to his first public talk on CUDA, at an SC06 tutorial in Tampa, Florida, 20 years ago. NVIDIA now offers more than 1,000</span><a href="https://blogs.nvidia.com/blog/20-years-cuda/"> <span style="font-weight: 400;">CUDA-X libraries</span></a><span style="font-weight: 400;">, he said.</span></p>
+<p><b>Open Models for Science Agents</b></p>
+<p><span style="font-weight: 400;">“[Agents] have been just a game changer in how we interface with our supercomputers, with our devices, our instruments and how we can do the research,” Buck said.</span></p>
+<p><span style="font-weight: 400;">Simulation remains the foundation of scientific computing, “which will always be on the top,” Buck said, with AI, quantum and now agents working alongside it.</span></p>
+<p><span style="font-weight: 400;">Nemotron for Science combines the Nemotron 3.5 Super VL open model with a new open chemistry dataset and post-training recipes for life sciences and chemistry, Buck explained. Researchers can run it locally on a DGX Spark, a workstation or their own supercomputer.</span></p>
+<p><span style="font-weight: 400;">At Argonne National Laboratory, Buck said, an agent built with the toolkit took a single prompt, planned and tested hypotheses, chose which simulations to run and identified two new binding sites.</span></p>
+<p><span style="font-weight: 400;">“You own your data. You own the model,” Buck said.</span></p>
+<p><span style="font-weight: 400;">Buck highlighted other agents already in use:</span></p>
+<ul>
+<li style="font-weight: 400;" aria-level="1"><b>GROMACS:</b><span style="font-weight: 400;"> An agent from KTH Royal Institute of Technology repairs broken GROMACS setups on its own. In one overnight run on a single DGX Spark, it fixed 81% of test cases.</span></li>
+<li style="font-weight: 400;" aria-level="1"><b>SETI Institute:</b><span style="font-weight: 400;"> At the Allen Telescope Array, an agent took a one-line prompt to plot a methanol line. Buck explained that it then retuned for Doppler shift on its own [NGC 869 vs. 896, check slide].</span></li>
+<li style="font-weight: 400;" aria-level="1"><b>Nsight AI Porting Agent:</b><span style="font-weight: 400;"> NVIDIA’s new agent ported a routine from the Weather Research and Forecasting (WRF) model to GPUs, Buck said, speeding it up more than 5x using about 150 million tokens.</span></li>
+</ul>
+<p><b>CPUs for the Agent Loop</b></p>
+<p><span style="font-weight: 400;">Agents lean on CPUs to run tool calls between model steps, Buck explained.</span></p>
+<p><span style="font-weight: 400;">“That’s exactly what agents need,” he said. “They need a CPU that can run, evaluate, run the tool, perform the operations, gather the results.” </span></p>
+<p><span style="font-weight: 400;">DKRZ, the German Climate Computing Center, has selected Vera CPUs for its HLRE-5 supercomputer, expected in early 2028. Buck said it joins Vera systems already announced at Texas Advanced Computing Center. </span></p>
+<p><b>A New GPU for Science</b></p>
+<p><span style="font-weight: 400;">Rubin HPC is a new GPU in the Vera Rubin platform, built for science, engineering, analytics and AI, Buck said. </span></p>
+<p><span style="font-weight: 400;">It supports precisions from FP64 to FP4, adds sparse-data acceleration and connects over seventh-generation NVIDIA NVLink. With more than 50,000 CUDA cores, it has about three times as many as Hopper, Buck said. It is expected in 2028.</span></p>
+<p><b>Quantum Error Correction</b></p>
+<p><span style="font-weight: 400;">Buck said a simulation on Jülich’s JUPITER supercomputer showed that a technique called magic state cultivation can cut the operations needed for one logical step tenfold. The work is being added to CUDA-Q.</span></p>
+<p><span style="font-weight: 400;">NVIDIA, IBM and Fermilab announced plans today for a quantum computing co-design platform to support error-correction and applications research. NVIDIA and IBM are pairing NVIDIA DGX B200 systems with IBM quantum computers, including those powered by IBM Quantum Nighthawk. </span></p>
+<p><span style="font-weight: 400;">Buck also introduced a new breakthrough for quantum decoding. The goal, Buck explained, is to cut decoding latency from about 300 microseconds to 10. A new CUDA-Q decoding algorithm, TCBP-JOBS, cuts error-correction research computation from 12 weeks to 45 minutes, he said.</span></p>
+<p><b>Networking</b></p>
+<p><span style="font-weight: 400;">Buck also showed one of the first deployments of </span><a href="https://blogs.nvidia.com/blog/lambda-photonics/"><span style="font-weight: 400;">NVIDIA Photonics co-packaged optics switches, at Lambda</span></a><span style="font-weight: 400;">. He said they are 15x more reliable on bit errors and link flaps. </span></p>
+<p><i><span style="font-weight: 400;">See</span></i><a target="_blank" href="https://www.nvidia.com/en-eu/about-nvidia/terms-of-service/"> <i><span style="font-weight: 400;">notice</span></i></a><i><span style="font-weight: 400;"> regarding software product information.</span></i><span style="font-weight: 400;"> </span></p>
+]]></content:encoded>
+					
+		
+		
+				<media:content url="https://blogs.nvidia.com/wp-content/uploads/2026/11/Buck-Talk-SC26-scaled.jpeg" type="image/jpeg" width="2048" height="1152">
+			<media:thumbnail url="https://blogs.nvidia.com/wp-content/uploads/2026/11/Buck-Talk-SC26-842x450.jpeg" width="842" height="450" />
+			<media:title type="html"><![CDATA[Ian Buck Kicks Off NVIDIA’s Week at SC26 as Science Enters the Age of Agents]]></media:title>
+			<media:description type="html"></media:description>
+		</media:content>
+	</item>
+		<item>
+		<title>NVIDIA DGX Spark Developer Kit Turns a Desk Into a Supercomputing Lab</title>
+		<link>https://blogs.nvidia.com/blog/dgx-spark-hpc-developer-kit-sc26/</link>
+		
+		<dc:creator><![CDATA[Allen Bourgoyne]]></dc:creator>
+		<pubDate>Mon, 16 Nov 2026 23:00:05 +0000</pubDate>
+				<category><![CDATA[AI]]></category>
+		<category><![CDATA[Agentic AI]]></category>
+		<category><![CDATA[Artificial Intelligence]]></category>
+		<category><![CDATA[DGX Spark]]></category>
+		<category><![CDATA[Local AI]]></category>
+		<category><![CDATA[Open Source]]></category>
+		<guid isPermaLink="false">https://blogs.nvidia.com/?p=100038</guid>
+
+					<description><![CDATA[At SC26, an annual supercomputing conference taking place this week in Chicago, NVIDIA is introducing the DGX Spark HPC Developer Kit for researchers, academics and developers. The kit is a four-node cluster of NVIDIA DGX Spark systems, each connected directly to its two neighbors in a ring, with an NVIDIA HPC SDK installation playbook coming [&#8230;]]]></description>
+										<content:encoded><![CDATA[<div id="bsf_rt_marker"></div><p><span style="font-weight: 400;">At SC26, an annual supercomputing conference taking place this week in Chicago, NVIDIA is introducing the DGX Spark HPC Developer Kit for researchers, academics and developers.</span></p>
+<p><span style="font-weight: 400;">The kit is a four-node cluster of </span><a target="_blank" href="https://www.nvidia.com/en-us/products/workstations/dgx-spark/"><span style="font-weight: 400;">NVIDIA DGX Spark systems</span></a><span style="font-weight: 400;">, each connected directly to its two neighbors in a ring, with an NVIDIA HPC SDK installation playbook coming soon. Researchers get a place at their desk to run multi-node scientific workloads, AI models and agents, instead of waiting for time on a shared GPU cluster. The kit puts the GB10 Grace Blackwell Superchip on researchers’ desks. </span></p>
+<h2><b>A Supercomputing Lab on Any Desk</b></h2>
+<p><span style="font-weight: 400;">The DGX Spark Developer Kit changes how researchers work.</span></p>
+<p>&nbsp;</p>
+<div style="margin: 0 !important; padding: 0 !important; text-align: center; line-height: 1;"><a style="display: inline-flex; align-items: center; justify-content: center; margin: 0 !important; padding: 10px !important; background-color: #76b900; color: #ffffff !important; font-family: 'NVIDIA Sans', Arial, sans-serif; font-size: 16px; font-weight: bold; line-height: 1 !important; text-align: center; text-decoration: none !important; white-space: nowrap; vertical-align: top;" href="https://blogs.nvidia.com/sc26-news/">Read All NVIDIA Announcements From SC26</a></div>
+<p>&nbsp;</p>
+<p><span style="font-weight: 400;">It scales from one system, or node, to four — linked directly to one another over NVIDIA ConnectX-7 networking, with no network switch to buy or set up. </span></p>
+<p><span style="font-weight: 400;">At four nodes, it provides 512GB of combined memory and 16TB of NVMe storage that provides researchers more capacity to distribute models and scientific workloads across the cluster. With NVFP4, researchers can deploy models with up to 700B parameters locally across the four DGX Spark clusters, such as DeepSeek V4.1.</span></p>
+<p><span style="font-weight: 400;">With that much power at the desk, researchers with a fixed compute and server allocation no longer have to wait in a queue for every job. Teams can develop and debug on their own, saving server hours for production runs and keeping unpublished results, and proprietary datasets on premises.</span></p>
+<p><span style="font-weight: 400;">The playbook for NVIDIA HPC SDK is coming soon, bringing GPU-accelerated C, C++ and Fortran compilers, libraries and message passing interface tools to the DGX Spark cluster — the same development tools used on NVIDIA-powered supercomputers. Teams can build and test scientific applications across four nodes, check how computation and data are distributed, and debug communication issues before scaling to larger systems.</span></p>
+<p><span style="font-weight: 400;">The kit brings scientific simulation and AI models and agents to the desktop, with demonstrated four-system workloads including LAMMPS with Kokkos for materials simulation and NAMD for molecular dynamics. The broader DGX Spark community has validated GROMACS for molecular dynamics, OpenFOAM for fluid dynamics, WRF for weather modeling and NVIDIA NIM microservices such as OpenFold3 and Boltz-2 for predicting biomolecular structures.</span></p>
+<p><span style="font-weight: 400;">Running on DGX Spark, new open dataset and post-training recipes for </span><a target="_blank" href="https://nvidianews.nvidia.com/news/nvidia-introduces-nemotron-for-science-to-accelerate-discoveries-with-agents"><span style="font-weight: 400;">Nemotron 3.5 Super VL</span></a><span style="font-weight: 400;"> help researchers adapt the model for life sciences and chemistry, enabling secure scientific workflows on infrastructure organizations control.</span></p>
+<h2><b>What Researchers Can Do With It</b></h2>
+<p><span style="font-weight: 400;">The kit opens up new possibilities for researchers. </span></p>
+<p><span style="font-weight: 400;">Researchers can explore agent-assisted workflows that prepare simulation inputs, launch runs and summarize results, while the scientists validate the setup and conclusions.  </span></p>
+<p><span style="font-weight: 400;">Researchers can also train AI models that approximate slow simulations, then use them to refine wing designs toward minimum drag. </span></p>
+<p><span style="font-weight: 400;">Before committing supercomputer time, a team can narrow a 10-million-cell simulation to the 50-500 dimensions that matter.</span></p>
+<ul>
+<li><a target="_blank" href="https://www.kvantify.com/blog/nvidia-dgx-spark"><span style="font-weight: 400;">Kvantify</span></a><span style="font-weight: 400;"> is using NVIDIA cuQuantum, and reports running tensor-network simulations of quantum-chemistry circuits with up to 70 qubits and 975 gates on a single DGX Spark, benchmarking circuits generated for penicillin ground-state energy calculations.</span></li>
+<li><a target="_blank" href="https://www.nvidia.com/en-us/case-studies/cyran-iit-delhi/"><span style="font-weight: 400;">CYRAN AI</span></a><span style="font-weight: 400;">, an IIT Delhi spin-out, uses DGX Spark and its PixelFlux library to accelerate JPEG 2000 decoding for large satellite images, supporting local geospatial analysis.</span></li>
+<li><a target="_blank" href="https://openfold.io/blog-finetuning-openfold3.html"><span style="font-weight: 400;">OpenFold</span></a><span style="font-weight: 400;"> shows how researchers can fine-tune OpenFold3 on NVIDIA DGX Spark to improve protein-ligand structure predictions for drug discovery.</span></li>
+<li><span style="font-weight: 400;">The </span><a target="_blank" href="https://www.therubinlab.org/research"><span style="font-weight: 400;">Rubin Lab at IGI</span></a><span style="font-weight: 400;"> at University of California, Berkeley is using a DGX Spark and NVIDIA Evo 2 model to predict bacterial traits directly from genome sequences by comparing embeddings from genomic and protein language models against the classical baselines. With no 11-hour cluster queue times, results arrived 15x sooner on DGX Spark.</span></li>
+<li><span style="font-weight: 400;">The </span><a target="_blank" href="https://hartwig.cchem.berkeley.edu/publications/?topic=10"><span style="font-weight: 400;">Hartwig Group at UC Berkeley</span></a><span style="font-weight: 400;"> is using a DGX Spark to perform LoRA fine-tuning on the Nemotron 3 Super 120B-A12B model for chemistry machine learning, training a prediction head on experimental values. By running locally on the Spark using NVFP4 quantization, the lab successfully fit a 120B-class model on a single device and bypassed multi-day cluster queue times, allowing them to run continuous eight- to 24-hour training fits back-to-back.</span></li>
+</ul>
+<h2><b>Where to Find the Kit</b></h2>
+<p><span style="font-weight: 400;">The developer kit is on display at SC26 and available for sale. DGX Spark products and cables can be purchased from top OEM partners and are also available through </span><a target="_blank" href="https://marketplace.nvidia.com/en-us/enterprise/personal-ai-supercomputers/?manufacturer=NVIDIA&amp;superchip=GB10&amp;page=1&amp;limit=15"><span style="font-weight: 400;">NVIDIA Marketplace</span></a><span style="font-weight: 400;">. </span></p>
+<p><span style="font-weight: 400;">Partners include Acer, ASUS, Dell Technologies, GIGABYTE, H3C, HP, Lenovo, MSI and xFusion.</span></p>
+<p><span style="font-weight: 400;">An NVIDIA playbook for building and running the NVIDIA HPC SDK, a software development kit for scientific computing, is coming soon. Once available, it will give scientists and researchers a local platform to develop multi-node GPU applications, explore FP32 and mixed-precision algorithms and run molecular dynamics and materials simulations using LAMMPS with Kokkos before scaling to data center systems.</span></p>
+<p><i><span style="font-weight: 400;">Learn more about</span></i><a target="_blank" href="https://www.nvidia.com/en-us/products/workstations/dgx-spark/"> <i><span style="font-weight: 400;">NVIDIA DGX Spark</span></i></a><i><span style="font-weight: 400;">. </span></i></p>
+<p><i><span style="font-weight: 400;">Subscribe to the</span></i><a target="_blank" href="https://www.nvidia.com/en-us/ai-on-rtx/?modal=subscribe-ai"> <i><span style="font-weight: 400;">NVIDIA Local AI newsletter</span></i></a><i><span style="font-weight: 400;">. Follow NVIDIA RTX Spark on</span></i><a target="_blank" href="https://x.com/NVIDIARTXSpark"> <i><span style="font-weight: 400;">X</span></i></a><i><span style="font-weight: 400;">,</span></i><a target="_blank" href="https://www.instagram.com/nvidiartxspark/"> <i><span style="font-weight: 400;">Instagram</span></i></a><i><span style="font-weight: 400;">,</span></i><a target="_blank" href="https://www.tiktok.com/@nvidiartxspark"> <i><span style="font-weight: 400;">TikTok</span></i></a><i><span style="font-weight: 400;"> and</span></i><a target="_blank" href="https://www.facebook.com/NVIDIARTXSpark"> <i><span style="font-weight: 400;">Facebook</span></i></a><i><span style="font-weight: 400;">.</span></i></p>
+<p><i><span style="font-weight: 400;">See</span></i> <a target="_blank" href="https://www.nvidia.com/en-eu/about-nvidia/terms-of-service/"><i><span style="font-weight: 400;">notice</span></i></a><i><span style="font-weight: 400;"> regarding software product information.</span></i></p>
+<p>&nbsp;</p>
+<div style="margin: 0 !important; padding: 0 !important; text-align: center; line-height: 1;"><a style="display: inline-flex; align-items: center; justify-content: center; margin: 0 !important; padding: 10px !important; background-color: #76b900; color: #ffffff !important; font-family: 'NVIDIA Sans', Arial, sans-serif; font-size: 16px; font-weight: bold; line-height: 1 !important; text-align: center; text-decoration: none !important; white-space: nowrap; vertical-align: top;" href="https://blogs.nvidia.com/sc26-news/">Read All NVIDIA Announcements From SC26</a></div>
+]]></content:encoded>
+					
+		
+		
+				<media:content url="https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-1.jpg" type="image/jpeg" width="1280" height="680">
+			<media:thumbnail url="https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-1-842x450.jpg" width="842" height="450" />
+			<media:title type="html"><![CDATA[NVIDIA DGX Spark Developer Kit Turns a Desk Into a Supercomputing Lab]]></media:title>
+			<media:description type="html"></media:description>
+		</media:content>
+	</item>
+</channel>
+</rss>

@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:discourse="http://www.discourse.org/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Announcements - Developer Forum | Roblox</title>
+    <link>https://devforum.roblox.com/c/updates/announcements/36</link>
+    <description>Topics in the &#39;Announcements&#39; category Official announcements about Roblox products and features</description>
+    <language>en</language>
+      <lastBuildDate>Fri, 13 Nov 2026 22:49:56 +0000</lastBuildDate>
+      <atom:link href="https://devforum.roblox.com/c/updates/announcements/36.rss" rel="self" type="application/rss+xml" />
+        <item>
+          <title>Weekly Recap: November 9 – 13, 2026</title>
+          <dc:creator><![CDATA[Bluff_006]]></dc:creator>
+          <category>Announcements</category>
+          <description><![CDATA[
+            <blockquote>
+<h3>Key Takeaways</h3>
+<p>This week, we announced cross-game Ban Lists, IARC age ratings in Australia, and new experiment metrics for custom events and rewarded video ads. Creators can also apply to the 2027 Roblox Incubator, while Team Test Client Logs and Remote Logs improve collaborative debugging.</p>
+<p>Check the full recap!</p>
+</blockquote>
+<hr>
+<p><img src="https://doy2mn9upadnk.cloudfront.net/images/emoji/twitter/star.png?v=15" title=":star:" class="emoji" alt=":star:" loading="lazy" width="20" height="20"> Check out our <a href="https://create.roblox.com/updates">Updates page</a> in Creator Hub where you can find a scrollable changelog of all product announcements and updates, updated in real time.</p>
+<h2><a name="p-15056153-betas-and-tests-1" class="anchor" href="https://devforum.roblox.com#p-15056153-betas-and-tests-1" aria-label="Heading link"></a>Betas and Tests</h2>
+<p><strong><a href="https://devforum.roblox.com/t/beta-translate-text-in-your-in-game-images-automatically/4984692">[Beta] Translate Text in Your In-Game Images Automatically</a></strong></p>
+<ul>
+<li>
+<p>Automatic image translation is now available in beta for seven languages: French, German, Indonesian, Italian, Korean, Portuguese, and Spanish.</p>
+</li>
+<li>
+<p>It translates text in your in-game images into each player’s language while keeping the original style; turn it on in Creator Hub &gt; Audience &gt; Localization.</p>
+</li>
+</ul>
+<p><strong><strong>[UPDATE]</strong> <a href="https://devforum.roblox.com/t/beta-if-local-statements-and-expressions/4918297/145">[Beta] if local Statements and Expressions</a></strong></p>
+<ul>
+<li>
+<p>Added <code>while local</code> and <code>while const</code> bindings to loop conditions, creating a fresh, type-narrowed binding each iteration and exiting when the value is <code>nil</code> or <code>false</code>.</p>
+</li>
+<li>
+<p>The syntax is included in the existing If Local/Const Bindings beta feature in Studio; <code>break</code> and <code>continue</code> work as usual.</p>
+</li>
+</ul>
+<hr>
+<h2><a name="p-15056153-luau-2" class="anchor" href="https://devforum.roblox.com#p-15056153-luau-2" aria-label="Heading link"></a>Luau</h2>
+<p><strong><a href="https://devforum.roblox.com/t/studio-beta-luau-modularity-export-values-and-cyclic-requires/4988432">[Studio Beta] Luau Modularity: export Values and Cyclic Requires</a></strong></p>
+<ul>
+<li>
+<p>Luau Modularity beta adds exported values, functions, and types so modules can export directly without manually building and returning a table; exported module tables are frozen after loading.</p>
+</li>
+<li>
+<p>Cyclic requires let modules mutually depend when every module in the cycle uses <code>export</code>; enable both features under Luau Modularity in Studio Beta Features and keep cross-module access inside functions that run after initialization.</p>
+</li>
+</ul>
+<hr>
+<h2><a name="p-15056153-updates-and-announcements-3" class="anchor" href="https://devforum.roblox.com#p-15056153-updates-and-announcements-3" aria-label="Heading link"></a>Updates and Announcements</h2>
+<p><strong><a href="https://devforum.roblox.com/t/introducing-iarc-age-ratings-in-australia/4985897">Introducing IARC Age Ratings in Australia</a></strong></p>
+<ul>
+<li>
+<p>Starting January 26, 2027, Kids &amp; Select games will need a completed IARC questionnaire to stay playable in Australia under the Australian Classification Board system.</p>
+</li>
+<li>
+<p>Reviewers will pre-fill questionnaires for existing and eligible new Kids &amp; Select games; creators only need to review, edit if needed, and accept. No action is required for other games.</p>
+</li>
+</ul>
+<p><strong><a href="https://devforum.roblox.com/t/experiments-measure-impact-with-custom-and-rewarded-ad-earning-metrics/4988305">Experiments: Measure Impact with Custom and Rewarded Ad Earning Metrics</a></strong></p>
+<ul>
+<li>
+<p>Experiments now have two new metric sets: Custom, for up to three metrics built from custom, economy, and funnel events; and Rewarded Video Ads, for measuring ad impressions, engagement, and earnings.</p>
+</li>
+<li>
+<p>Go to Creator Hub &gt; Configure &gt; Experiments &gt; Create experiment and pick a metric set.</p>
+</li>
+</ul>
+<p><strong><a href="https://devforum.roblox.com/t/team-test-output-and-remote-logs/4989734">Team Test Output and Remote Logs</a></strong></p>
+<ul>
+<li>
+<p>Team Test Client Logs let you see collaborators’ output in the Output window and read their logs with <code>LogService:GetLogHistoryAsync</code>, so your team can debug together.</p>
+</li>
+<li>
+<p>Start a Team Test with your collaborators and open the Output window to try it out today.</p>
+</li>
+</ul>
+<p><strong><a href="https://devforum.roblox.com/t/cross-game-player-moderation-improvements/4984348">Cross-Game Player Moderation Improvements</a></strong></p>
+<ul>
+<li>
+<p>Roblox will launch Ban Lists on January 29, 2027, enabling creators to moderate players across multiple games at once.</p>
+</li>
+<li>
+<p>Create, share, and link lists from Creator Dashboard; owners can share them with specific creators or publicly.</p>
+</li>
+</ul>
+<p><strong><a href="https://devforum.roblox.com/t/upcoming-fixes-for-wedge-part-collisions/4984595">Upcoming Fixes for Wedge Part Collisions</a></strong></p>
+<ul>
+<li>
+<p>Roblox is rolling out a fix for incorrect collision geometry on wedge parts.</p>
+</li>
+<li>
+<p>Wedge glides and wedge flings will no longer happen on their own after this fix, while emote corner clips and uplodges are not affected.</p>
+</li>
+</ul>
+<p><strong><strong>[UPDATE]</strong> <a href="https://devforum.roblox.com/t/getuser-api-will-stop-returning-user-descriptions/4768626#p-14653691-update-november-13-2026-2">GetUser API Will Stop Returning User Descriptions</a></strong></p>
+<ul>
+<li>
+<p>Starting December 7, users can restrict who sees their profile bios, giving them more control over shared information and helping meet regional requirements.</p>
+</li>
+<li>
+<p>Update Open Cloud tools to handle omitted <code>description</code> fields; no action is needed if your tools do not use this integration or already handle omitted descriptions.</p>
+</li>
+</ul>
+<p><strong><strong>[UPDATE]</strong> <a href="https://devforum.roblox.com/t/full-release-quad-support-for-editablemesh-apis/4890142">[Full Release] Quad Support for EditableMesh APIs</a></strong></p>
+<ul>
+<li><code>EditableMesh</code> quad support is now available for published games; continue sharing feedback on quad-related workflows.</li>
+</ul>
+<hr>
+<h2><a name="p-15056153-community-and-events-4" class="anchor" href="https://devforum.roblox.com#p-15056153-community-and-events-4" aria-label="Heading link"></a>Community and Events</h2>
+<p><strong><a href="https://devforum.roblox.com/t/apply-now-build-novel-games-for-18-players-with-the-2027-roblox-incubator/4984934">Apply Now: Build Novel Games for 18+ Players With the 2027 Roblox Incubator</a></strong></p>
+<ul>
+<li>
+<p>The 2027 Roblox Incubator is now open for creators building novel games for 18+ players.</p>
+</li>
+<li>
+<p>Apply by December 7, 2026 on the Roblox Incubator page on Creator Hub for hands-on support from Roblox engineers and designers.</p>
+</li>
+</ul>
+<hr>
+<h2><a name="p-15056153-release-notes-5" class="anchor" href="https://devforum.roblox.com#p-15056153-release-notes-5" aria-label="Heading link"></a>Release Notes</h2>
+<ul>
+<li><a href="https://create.roblox.com/docs/en-us/release-notes/release-notes-747">Release Notes for 747</a></li>
+</ul>
+            <p><small>10 posts - 9 participants</small></p>
+            <p><a href="https://devforum.roblox.com/t/weekly-recap-november-9-%E2%80%93-13-2026/4989855">Read full topic</a></p>
+          ]]></description>
+          <link>https://devforum.roblox.com/t/weekly-recap-november-9-%E2%80%93-13-2026/4989855</link>
+          <pubDate>Fri, 13 Nov 2026 22:49:56 +0000</pubDate>
+          <discourse:topicPinned>Yes</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">devforum.roblox.com-topic-4989855</guid>
+          <source url="https://devforum.roblox.com/t/weekly-recap-november-9-%E2%80%93-13-2026/4989855.rss">Weekly Recap: November 9 – 13, 2026</source>
+        </item>
+        <item>
+          <title>Team Test Output and Remote Logs</title>
+          <dc:creator><![CDATA[potato_bytes]]></dc:creator>
+          <category>Announcements</category>
+          <description><![CDATA[
+            <blockquote>
+<h2>Key Takeaways</h2>
+<p>Team Test Client Logs let you see collaborators’ output in your Output window and read their logs from scripts with <code>LogService:GetLogHistoryAsync</code>, so your team can debug together. Start a Team Test with your collaborators and open your Output window to try it out today.</p>
+</blockquote>
+<p>Hi Creators,</p>
+<p>Team Test lets you and your collaborators jump into your game together and test it live. Until now, each person could only see their own client’s output. When a bug appeared on another person’s screen, you had to ask them to copy the error, send a screenshot, or try to reproduce it yourself.</p>
+<p>With Team Test Client Logs, everyone’s client output can show up in your own Output window, labeled with who it came from. Scripts, plugins, command bar code and AI agents running in Studio can also read each other’s recent client log history (up to 512 messages) with <code>GetLogHistoryAsync</code>. Only your client output is shared, and only while you’re in the Team Test. To stop sharing, leave the Team Test.</p>
+<p>AI agents working in Studio can use these logs too. Through the Studio MCP, an agent can call <code>GetLogHistoryAsync</code> to read a collaborator’s or the server’s recent logs while you debug a live Team Test session. Together, these let you track down issues as a team without leaving Studio.</p>
+<h2><a name="p-15055823-getting-started-1" class="anchor" href="https://devforum.roblox.com#p-15055823-getting-started-1" aria-label="Heading link"></a>Getting Started</h2>
+<p>Open a Team Create place, choose Team Test in the ribbon’s test-mode selector, and click Start. Once others join, you’ll see the output from their session in your output window.</p>
+<h2><a name="p-15055823-viewing-your-collaborators-logs-2" class="anchor" href="https://devforum.roblox.com#p-15055823-viewing-your-collaborators-logs-2" aria-label="Heading link"></a>Viewing Your Collaborators’ Logs</h2>
+<p>During a Team Test, you can click the context filter dropdown at the top of the Output window to see a <strong>Sources</strong> section that lists everyone in the session:</p>
+<p></p><div class="lightbox-wrapper"><a class="lightbox" href="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/5/0/9/2/5092f8b6789441cc93740a216703fb1f01b40d89.png" data-download-href="/uploads/short-url/buN57SKoh2qMWDsx9MfVAQOITRn.png?dl=1" title="image" rel="noopener nofollow ugc"><img src="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/5/0/9/2/5092f8b6789441cc93740a216703fb1f01b40d89.png" alt="image" data-base62-sha1="buN57SKoh2qMWDsx9MfVAQOITRn" width="165" height="231"></a></div><p></p>
+<p><strong>Check a name to show their output</strong>. Their messages appear in your Output window prefixed with their name, for example <code>[builderman] Loaded 12 enemies</code>.</p>
+<p></p><div class="lightbox-wrapper"><a class="lightbox" href="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/6/e/f/c/6efcd3ae3a8962e217e59dec78779b86fd2c465b.png" data-download-href="/uploads/short-url/fPQcs0MsRHbgTqZagTeqincZov1.png?dl=1" title="image" rel="noopener nofollow ugc"><img src="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/6/e/f/c/6efcd3ae3a8962e217e59dec78779b86fd2c465b.png" alt="image" data-base62-sha1="fPQcs0MsRHbgTqZagTeqincZov1" width="170" height="235"></a></div><p></p>
+<p><strong>Use All</strong> to show everyone, including people who join later.</p>
+<p></p><div class="lightbox-wrapper"><a class="lightbox" href="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/5/9/e/2/59e2037601075156ed3de99c2379168a8548785f.png" data-download-href="/uploads/short-url/cP8J33A3ScsR0woZIVxf6e1gae3.png?dl=1" title="image" rel="noopener nofollow ugc"><img src="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/5/9/e/2/59e2037601075156ed3de99c2379168a8548785f.png" alt="image" data-base62-sha1="cP8J33A3ScsR0woZIVxf6e1gae3" width="172" height="227"></a></div><p></p>
+<p><strong>Nobody is shown when a Team Test starts</strong>, so your Output stays focused on your own client until you choose who to add. Your own output is never affected by who you select. It keeps following your usual Context and message-type filters.</p>
+<h3><a name="p-15055823-filtering-logs-3" class="anchor" href="https://devforum.roblox.com#p-15055823-filtering-logs-3" aria-label="Heading link"></a>Filtering Logs</h3>
+<p>To support this change, we’re making some changes to the filters at the top of the output window:</p>
+<ul>
+<li>
+<p><strong>A new Remote Client option</strong> in the context filter shows or hides everyone else’s output at once, separately from your own Client output. Each option shows its own message count.</p>
+</li>
+<li>
+<p><strong>Message-type filters</strong> (Output, Info, Warning, Error) apply to their messages too.</p>
+</li>
+<li>
+<p><strong>Filter and Find</strong> search across everyone’s output together.</p>
+</li>
+</ul>
+<p>When the Team Test ends, Studio restores the Output you had before the session started.</p>
+<h2><a name="p-15055823-reading-logs-from-scripts-4" class="anchor" href="https://devforum.roblox.com#p-15055823-reading-logs-from-scripts-4" aria-label="Heading link"></a>Reading Logs From Scripts</h2>
+<p>The new <code>LogService:GetLogHistoryAsync</code> method returns the log history of a collaborator’s Team Test client, or of the Team Test server itself. It’s useful for agents, plugins, and command bar tools that collect logs from a whole session. You can use this method from any context/script type within the client datamodel but keep in mind this will only work during a Team Test; it’s disabled for local solo play and live games.</p>
+<p>It takes the collaborator’s <code>Player.User</code>, and returns entries in the same format as <code>LogService:GetLogHistory</code>: a list of tables with <code>message</code>, <code>messageType</code>, and <code>timestamp</code>. To read the Team Test server’s log history instead, pass <code>User.fromId(0)</code>. Because it fetches logs over the network, it yields, and it can error, so wrap it in <code>pcall</code>:</p>
+<pre data-code-wrap="lua"><code class="lang-lua">local LogService = game:GetService("LogService")
+
+local Players = game:GetService("Players")
+
+
+
+for _, player in Players:GetPlayers() do
+
+	local ok, history = pcall(LogService.GetLogHistoryAsync, LogService, player.User)
+
+	if not ok then
+
+		warn(`Couldn't read {player.Name}'s logs: {history}`)
+
+		continue
+
+	end
+
+	for _, entry in history do
+
+		if entry.messageType == Enum.MessageType.MessageError then
+
+			print(`[{player.Name}] {entry.message}`)
+
+		end
+
+	end
+
+end
+
+
+-- The Team Test server's log history
+
+local ok, serverHistory = pcall(LogService.GetLogHistoryAsync, LogService, User.fromId(0))
+
+if ok then
+
+	print(`The server has {#serverHistory} log entries`)
+
+end
+</code></pre>
+<h2><a name="p-15055823-limitations-5" class="anchor" href="https://devforum.roblox.com#p-15055823-limitations-5" aria-label="Heading link"></a>Limitations</h2>
+<ul>
+<li>
+<p><strong>The Output window’s Sources section only shows collaborators’ client output.</strong> To read the Team Test server’s logs, use <code>GetLogHistoryAsync</code> with <code>User.fromId(0)</code>.</p>
+</li>
+<li>
+<p><strong><code>GetLogHistoryAsync</code> returns only a collaborator’s most recent messages, up to 512 by default</strong>. This is the same limit as <code>LogService:GetLogHistory</code>, so older messages from a long session aren’t included.</p>
+</li>
+</ul>
+<h2><a name="p-15055823-thank-you-6" class="anchor" href="https://devforum.roblox.com#p-15055823-thank-you-6" aria-label="Heading link"></a>Thank You!</h2>
+<p>Please try it with your team and let us know your feedback!</p>
+<p>Big thanks to <span class="mention">@dkoroskin</span> <a class="mention" href="https://devforum.roblox.com/u/icytides">@IcyTides</a> and <a class="mention" href="https://devforum.roblox.com/u/avienn_a">@avienn_a</a> for their work and guidance on this.</p>
+<p>The Roblox Studio Team</p>
+            <p><small>18 posts - 16 participants</small></p>
+            <p><a href="https://devforum.roblox.com/t/team-test-output-and-remote-logs/4989734">Read full topic</a></p>
+          ]]></description>
+          <link>https://devforum.roblox.com/t/team-test-output-and-remote-logs/4989734</link>
+          <pubDate>Fri, 13 Nov 2026 21:09:34 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">devforum.roblox.com-topic-4989734</guid>
+          <source url="https://devforum.roblox.com/t/team-test-output-and-remote-logs/4989734.rss">Team Test Output and Remote Logs</source>
+        </item>
+        <item>
+          <title>Experiments: Measure Impact with Custom and Rewarded Ad Earning Metrics</title>
+          <dc:creator><![CDATA[quazotheduck]]></dc:creator>
+          <category>Announcements</category>
+          <description><![CDATA[
+            <aside class="quote no-group">
+<blockquote>
+<h3>Key Takeaways</h3>
+<p>Experiments now have two new metric sets. The <strong>Custom</strong> metric set lets you add up to three of your own metrics built from your custom, economy and funnel events, so you can see exactly what changed in your game. The <strong>Rewarded Video Ads</strong> metric set measures ad impressions, engagement and earnings so you can test and tune your ads.</p>
+<p>Go to Creator Hub &gt; Configure &gt; Experiments &gt; Create experiment and pick a Metric set.</p>
+</blockquote>
+</aside>
+<hr>
+<p>Hi Creators,</p>
+<p>Until now, every experiment measured success with the same topline metrics, like playtime, retention and ARPU. But no two experiences are built the same, and these metrics don’t always tell the full story. They tell you whether a change moved the needle, but rarely why:</p>
+<ul>
+<li>
+<p>Did more players make it through your new tutorial?</p>
+</li>
+<li>
+<p>Are players spending more coins after your shop redesign?</p>
+</li>
+<li>
+<p>Is your rewarded ad placement helping you grow revenue while keeping players engaged?</p>
+</li>
+</ul>
+<p>To improve your experience, you need metrics built around the mechanics that matter in your game. We’re introducing two new metric sets for <a href="https://create.roblox.com/docs/production/experiments">experiments</a> to help you answer these questions:</p>
+<ul>
+<li>
+<p><strong>Rewarded Video Earnings</strong> help you optimize <a href="https://create.roblox.com/docs/production/promotion/rewarded-video-ads">rewarded video ad</a> placements. Track reach, impressions per user, and ads revenue directly against your total revenue to make sure ads are incrementally adding to your earnings.</p>
+</li>
+<li>
+<p><strong>Custom metrics</strong> enable you to optimize core loops unique to your game. You can layer up to three custom, economy, or funnel events logged with <a href="https://create.roblox.com/docs/reference/engine/classes/AnalyticsService">AnalyticsService</a>, like tutorial completion rates, currency spent or levels completed.</p>
+</li>
+</ul>
+<h1><a name="p-15052817-add-your-own-metrics-with-custom-economy-and-funnel-events-1" class="anchor" href="https://devforum.roblox.com#p-15052817-add-your-own-metrics-with-custom-economy-and-funnel-events-1" aria-label="Heading link"></a>Add Your Own Metrics With Custom, Economy and Funnel Events</h1>
+<p>With the Custom metric set, you can add up to three metrics built from events you already log with <a href="https://create.roblox.com/docs/production/analytics/event-types">Analytics events</a>. To create a metric:</p>
+<ol>
+<li>Select a source (Custom, Economy, or Funnel)</li>
+<li>Define your measurement target, such as a specific event, currency, or funnel step.</li>
+<li>Choose a calculation method, like average value or participation rate, and optionally apply custom filters to refine the data.</li>
+</ol>
+<p></p><div class="lightbox-wrapper"><a class="lightbox" href="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/0/1/7/a/017a02e45cef22c37b7f030ca23c1b912bbaf464.png" data-download-href="/uploads/short-url/d3STJZXQtT55p6sJiDsTjb3jla.png?dl=1" title="image1" rel="noopener nofollow ugc"><img src="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/0/1/7/a/017a02e45cef22c37b7f030ca23c1b912bbaf464_2_681x500.png" alt="image1" data-base62-sha1="d3STJZXQtT55p6sJiDsTjb3jla" width="681" height="500" srcset="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/0/1/7/a/017a02e45cef22c37b7f030ca23c1b912bbaf464_2_681x500.png, //devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/0/1/7/a/017a02e45cef22c37b7f030ca23c1b912bbaf464_2_1021x750.png 1.5x, //devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/0/1/7/a/017a02e45cef22c37b7f030ca23c1b912bbaf464.png 2x" data-dominant-color="111216"></a></div><p></p>
+<ol start="4">
+<li>Pick one metric as your primary goal. Any custom metric you don’t pick as the goal is still tracked as a learning metric. To reuse a metric from an earlier experiment, click <strong>Add from past experiments</strong> instead of building it again.</li>
+</ol>
+<p>In the example below, a creator is testing two new versions of their tutorial: a <strong>Shorter</strong> tutorial with fewer steps, and a <strong>bonus</strong> tutorial that gives players a bonus item when they finish. They set Onboarding funnel completion (per-user conversion % on the <a href="https://create.roblox.com/docs/production/analytics/funnel-events">Onboarding funnel event</a>) as the primary goal, and added Step 3 completion rate as a learning metric to check whether players were getting stuck in the middle.</p>
+<p>Both variants increased onboarding completion compared to control. The Shorter tutorial also increased playtime, ARPU and D7 retention, so it looks like the stronger option.</p>
+<p></p><div class="lightbox-wrapper"><a class="lightbox" href="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/0/9/a/a/09aa500071e03e42c48b9c516c18ebc9b370c1a1.png" data-download-href="/uploads/short-url/1nvbMJqDLANOo5xPYNyPULa7F85.png?dl=1" title="image2" rel="noopener nofollow ugc"><img src="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/0/9/a/a/09aa500071e03e42c48b9c516c18ebc9b370c1a1_2_669x500.png" alt="image2" data-base62-sha1="1nvbMJqDLANOo5xPYNyPULa7F85" width="669" height="500" srcset="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/0/9/a/a/09aa500071e03e42c48b9c516c18ebc9b370c1a1_2_669x500.png, //devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/0/9/a/a/09aa500071e03e42c48b9c516c18ebc9b370c1a1_2_1003x750.png 1.5x, //devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/0/9/a/a/09aa500071e03e42c48b9c516c18ebc9b370c1a1.png 2x" data-dominant-color="14171B"></a></div><p></p>
+<h2><a name="p-15052817-custom-metric-experiment-examples-2" class="anchor" href="https://devforum.roblox.com#p-15052817-custom-metric-experiment-examples-2" aria-label="Heading link"></a>Custom Metric Experiment Examples</h2>
+<div class="md-table">
+<table>
+<thead>
+<tr>
+<th>What you change</th>
+<th>What you want to know</th>
+<th><strong>Metric to add</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shorten your tutorial from 8 steps to 5</td>
+<td>Do more new players finish the tutorial?</td>
+<td>Funnel: Onboarding, per-user conversion % with the last step as completion</td>
+</tr>
+<tr>
+<td>Add a Daily Quests button to the main menu</td>
+<td>Do more players try daily quests?</td>
+<td>Custom: participation % on QuestStarted</td>
+</tr>
+<tr>
+<td>Lower the speed boost price from 100 to 50 coins</td>
+<td>Do players spend more coins in the shop?</td>
+<td>Economy: Coins, average sink delta, filtered to the speed boost item SKU</td>
+</tr>
+<tr>
+<td>Double the coins from daily login rewards</td>
+<td>Are players saving up too many coins?</td>
+<td>Economy: Coins, average net delta (coins earned minus coins spent)</td>
+</tr>
+</tbody>
+</table>
+</div><h2><a name="p-15052817-tips-for-using-custom-metrics-3" class="anchor" href="https://devforum.roblox.com#p-15052817-tips-for-using-custom-metrics-3" aria-label="Heading link"></a>Tips for Using Custom Metrics</h2>
+<ul>
+<li>
+<p><strong>Expect different numbers than Analytics:</strong> Experiment metrics add up over the full experiment and count each player once, while Analytics pages default to a daily view. Use Analytics to check that your events are firing correctly, and use experiment results to compare variants.</p>
+</li>
+<li>
+<p><strong>Wait for statistical significance:</strong> Custom metrics need enough players just like any other metric. If a change is not significant, do not act on it.</p>
+</li>
+</ul>
+<h1><a name="p-15052817-measure-rewarded-ads-impact-on-total-revenue-4" class="anchor" href="https://devforum.roblox.com#p-15052817-measure-rewarded-ads-impact-on-total-revenue-4" aria-label="Heading link"></a>Measure Rewarded Ads Impact on Total Revenue</h1>
+<p>Rewarded video ads can help you earn more from your game, including from players who don’t spend. However, where you place the ad, what the reward is, and how it fits into your economy all impact ad earnings and engagement. We built the Rewarded Video metric set to help you test and tune these decisions.</p>
+<p>With rewarded video ads metrics, you can measure metrics like <strong>total earnings per user</strong> (includes Ads revenue, private servers, paid access, passes, dev products) or <strong>Ad impressions per user</strong>.</p>
+<p>You will also see other topline learning metrics, so you can see how ads affect overall engagement and retention. Visit the <a href="https://create.roblox.com/docs/production/promotion/rewarded-video-ads">rewarded video hub</a> for tips and best practices.</p>
+<p></p><div class="lightbox-wrapper"><a class="lightbox" href="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/b/1/0/d/b10db9e65ea6d7686eb1e2e0ef428198b94aef23.png" data-download-href="/uploads/short-url/pghV4esH5xk75Lral82we96zm0z.png?dl=1" title="image3" rel="noopener nofollow ugc"><img src="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/b/1/0/d/b10db9e65ea6d7686eb1e2e0ef428198b94aef23_2_657x500.png" alt="image3" data-base62-sha1="pghV4esH5xk75Lral82we96zm0z" width="657" height="500" srcset="//devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/b/1/0/d/b10db9e65ea6d7686eb1e2e0ef428198b94aef23_2_657x500.png, //devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/optimized/5X/b/1/0/d/b10db9e65ea6d7686eb1e2e0ef428198b94aef23_2_985x750.png 1.5x, //devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/5X/b/1/0/d/b10db9e65ea6d7686eb1e2e0ef428198b94aef23.png 2x" data-dominant-color="14181C"></a></div><p></p>
+<h2><a name="p-15052817-rewarded-video-ads-experiment-examples-5" class="anchor" href="https://devforum.roblox.com#p-15052817-rewarded-video-ads-experiment-examples-5" aria-label="Heading link"></a>Rewarded Video Ads experiment Examples</h2>
+<div class="md-table">
+<table>
+<thead>
+<tr>
+<th><strong>Experiment</strong></th>
+<th><strong>What you change</strong></th>
+<th><strong>Metrics to watch</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rewarded ad placement</td>
+<td>Offer “Watch an ad to revive” after a loss vs. “Watch an ad for 2x coins” at the end of a round</td>
+<td>Goal: Total earnings per user. Learning: reach opt-in rate, Robux revenue per user, playtime</td>
+</tr>
+<tr>
+<td>Reward size</td>
+<td>Give 50 vs. 100 coins per rewarded ad</td>
+<td>Goal: Total earnings per user. Learning: Ad frequency, ad earnings per user, to check if bigger rewards replace purchases</td>
+</tr>
+<tr>
+<td>Ads for non-payers only</td>
+<td>Show rewarded ads to everyone vs. only to players who have not made a purchase (e.g. via <a href="https://create.roblox.com/docs/production/configs#target-configs-to-specific-players">conditional configs</a>)</td>
+<td>Goal: ARPU (total), Total earnings per user. Learning: payer conversion rate, impressions per user</td>
+</tr>
+</tbody>
+</table>
+</div><p>You can learn more about setting up custom and ads metrics in our <a href="https://create.roblox.com/docs/production/experiments#custom-metrics">documentation</a>. Please let us know if you have any feedback or questions in the comments below!</p>
+            <p><small>7 posts - 8 participants</small></p>
+            <p><a href="https://devforum.roblox.com/t/experiments-measure-impact-with-custom-and-rewarded-ad-earning-metrics/4988305">Read full topic</a></p>
+          ]]></description>
+          <link>https://devforum.roblox.com/t/experiments-measure-impact-with-custom-and-rewarded-ad-earning-metrics/4988305</link>
+          <pubDate>Thu, 12 Nov 2026 18:00:28 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">devforum.roblox.com-topic-4988305</guid>
+          <source url="https://devforum.roblox.com/t/experiments-measure-impact-with-custom-and-rewarded-ad-earning-metrics/4988305.rss">Experiments: Measure Impact with Custom and Rewarded Ad Earning Metrics</source>
+        </item>
+</channel>
+</rss>

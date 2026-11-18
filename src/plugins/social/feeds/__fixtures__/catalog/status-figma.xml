@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Figma Status - Incident History</title>
+    <link>https://status.figma.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 20:25:00 +0000</pubDate>
+    <item>
+      <title>Temporary Disruption with Sites</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:44&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved as of October 31 at 2:00 AM UTC. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:17&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and Sites should now be operational. We are continuing to monitor. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:38&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - Sites publishing is currently degraded due to an issue with a third party dependency. &lt;/p&gt;      </description>
+      <pubDate>Sun, 01 Nov 2026 20:44:50 +0000</pubDate>
+      <link>https://status.figma.com/incidents/t39th0dxrw4h</link>
+      <guid>https://status.figma.com/incidents/t39th0dxrw4h</guid>
+    </item>
+    <item>
+      <title>Figma agent and Figma Make increased errors rates.</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:52&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - The issue is now resolved fully. Some users saw elevated error rates in Figma&apos;s AI features, including AI chat and Figma Make. Affected requests may have failed or needed a retry. We identified an issue with one of our providers and moved traffic to an alternate. Error rates have fully recovered. We are continuing to work with the provider to prevent this from happening again. We apologize for the disruption. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:32&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - A fix has been implemented and we are monitoring the results. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:30&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:26&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to investigate this issue. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:25&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re investigating increased errors for Figma Make and Figma agent. &lt;/p&gt;      </description>
+      <pubDate>Tue, 13 Oct 2026 10:52:43 +0000</pubDate>
+      <link>https://status.figma.com/incidents/fnnhpdx1nbgw</link>
+      <guid>https://status.figma.com/incidents/fnnhpdx1nbgw</guid>
+    </item>
+    <item>
+      <title>Service disruption</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;02:32&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;01:18&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - Figma should now be operational. We are continuing to monitor. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;01:04&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating an issue where Figma Services are degraded or unavailable because of failures with AWS and other dependencies. &lt;/p&gt;      </description>
+      <pubDate>Sun, 27 Sep 2026 02:32:40 +0000</pubDate>
+      <link>https://status.figma.com/incidents/l376b3fy6y47</link>
+      <guid>https://status.figma.com/incidents/l376b3fy6y47</guid>
+    </item>
+</channel>
+</rss>

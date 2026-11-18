@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1" version="2.0">
+<channel>
+<language>en</language>
+<title>RuneScape Recent News</title>
+<description>The latest news for RuneScape, the massively-multiplayer online game developed and published by Jagex.</description>
+<link>https://secure.runescape.com/m=news</link>
+<docs>http://www.rssboard.org/rss-specification</docs>
+<generator>JagexRssFeedGenerator</generator>
+<ttl>30</ttl>
+<copyright></copyright>
+<lastBuildDate>Wed, 18 Nov 2026 21:05:37 GMT</lastBuildDate>
+<image>
+<link>https://secure.runescape.com/m=news</link>
+<title>RuneScape Recent News</title>
+<url>https://www.runescape.com/img/responsive/common/logos/rss.svg</url>
+</image>
+<item>
+<title>Adventure Guide &amp; Remastered Journey Preview Round Up</title>
+<dc:creator></dc:creator>
+<enclosure type="image/png" length="0" url="https://cdn.runescape.com/assets/img/external/news/2026/11/RTR2/bl2header.png" />
+<description>
+We&apos;re sprinting towards December 2nd and the launch of two major updates: the Adventure Guide and the Remastered Journey!
+</description>
+<category>Future Updates</category>
+<link>https://secure.runescape.com/m=news/adventure-guide--remastered-journey-preview-round-up</link>
+<pubDate>Wed, 18 Nov 2026 00:00:00 GMT</pubDate>
+<guid isPermaLink="true">https://secure.runescape.com/m=news/adventure-guide--remastered-journey-preview-round-up</guid>
+</item>
+<item>
+<title>Jagex Accounts Now Required - Here&#8217;s What To Do</title>
+<dc:creator></dc:creator>
+<enclosure type="image/jpeg" length="0" url="https://cdn.runescape.com/assets/img/external/news/2026/10/jthumb.jpg" />
+<description>
+After 25 years, Legacy accounts are finally being universally upgraded to a more modern, secure account system known as Jagex Accounts.
+</description>
+<category>Technical</category>
+<link>https://secure.runescape.com/m=news/jagex-accounts-now-required---heres-what-to-do</link>
+<pubDate>Tue, 17 Nov 2026 00:00:00 GMT</pubDate>
+<guid isPermaLink="true">https://secure.runescape.com/m=news/jagex-accounts-now-required---heres-what-to-do</guid>
+</item>
+<item>
+<title>Melvor Idle 2: A RuneScape Adventure, Early Access Out Now!</title>
+<dc:creator></dc:creator>
+<enclosure type="image/png" length="0" url="https://cdn.runescape.com/assets/img/external/news/2026/10/melvorheader.png" />
+<description>
+Melvor Idle 2: A RuneScape Adventure is out now in Early Access!
+</description>
+<category>Community</category>
+<link>https://secure.runescape.com/m=news/melvor-idle-2-a-runescape-adventure-early-access-out-now</link>
+<pubDate>Tue, 17 Nov 2026 00:00:00 GMT</pubDate>
+<guid isPermaLink="true">https://secure.runescape.com/m=news/melvor-idle-2-a-runescape-adventure-early-access-out-now</guid>
+</item>
+</channel>
+</rss>

@@ -3,7 +3,7 @@
  * logic.test.ts: YouTube upload-type detection, quiet hours, cooldowns, stream durations and the
  * stream-ended summary, and subscriber milestones.
  */
-import type { SocialWatcherOptions, YoutubeUploadKind } from "../../../config/schemas/social.js";
+import type { FeedFilters, SocialWatcherOptions, YoutubeUploadKind } from "../../../config/schemas/social.js";
 import { MILESTONE_UNSEEDED, milestoneAtOrBelow, milestoneToAnnounce } from "../../bluesky/functions/milestones.js";
 
 // ---------------------------------------------------------------------------------------------
@@ -49,11 +49,11 @@ export function classifyUpload(signals: UploadSignals): YoutubeUploadKind {
   return duration <= 60 ? "short" : "video";
 }
 
-/** Whether this upload type is switched on for the creator. */
-export function uploadKindEnabled(options: SocialWatcherOptions, kind: YoutubeUploadKind): boolean {
-  if (kind === "short") return options.notify_shorts;
-  if (kind === "live") return options.notify_live;
-  return options.notify_videos;
+/** Whether this upload type is switched on for the feed (its YouTube filters). */
+export function uploadKindEnabled(filters: Pick<FeedFilters, "youtube_videos" | "youtube_shorts" | "youtube_live">, kind: YoutubeUploadKind): boolean {
+  if (kind === "short") return filters.youtube_shorts;
+  if (kind === "live") return filters.youtube_live;
+  return filters.youtube_videos;
 }
 
 /** Word used for the {upload_type} token. */

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>Shacknews</title>
+		<link>http://www.shacknews.com/</link>
+		<description>Shacknews</description>
+		<atom:link href="http://www.shacknews.com/feeds/rss/" rel="self" type="application/rss+xml" />
+
+				<item>
+		<guid>/article/151414/how-to-get-headphones-gta6</guid>
+		<title><![CDATA[How to get headphones in GTA 6]]></title>
+		<link>/article/151414/how-to-get-headphones-gta6</link>
+		<pubDate>Wed, 18 Nov 2026 20:42:00 -0800</pubDate>
+		<description><![CDATA[Listen to music and podcasts outside of vehicles.]]></description>
+		<media:thumbnail url="https://d1lss44hh2trtw.cloudfront.net/assets/articles/2026/11/18/5c2f5139-f768-4af3-8fcd-2bf299c69fe6_688x387.jpg" height="525" width="295" />
+		</item>
+				<item>
+		<guid>/article/151413/shackstream-indie-licious-episode-221-tanuki-pons-summer</guid>
+		<title><![CDATA[ShackStream: Indie-licious Episode 221 - Tanuki: Pon’s Summer]]></title>
+		<link>/article/151413/shackstream-indie-licious-episode-221-tanuki-pons-summer</link>
+		<pubDate>Wed, 18 Nov 2026 20:30:00 -0800</pubDate>
+		<description><![CDATA[We’re revisiting the deliveries and BMX tricks of Tanuki: Pon’s Summer on this week’s indie game livestream!]]></description>
+		<media:thumbnail url="https://d1lss44hh2trtw.cloudfront.net/assets/article/2026/06/16/indielicious-205-tanuki-pons-summer_688x387.jpg" height="525" width="295" />
+		</item>
+				<item>
+		<guid>/article/151411/how-get-slim-jim-gta6</guid>
+		<title><![CDATA[How to get the Slim Jim in GTA 6]]></title>
+		<link>/article/151411/how-get-slim-jim-gta6</link>
+		<pubDate>Wed, 18 Nov 2026 18:45:00 -0800</pubDate>
+		<description><![CDATA[The Slim Jim is one of the most useful tools you can have in GTA 6.]]></description>
+		<media:thumbnail url="https://d1lss44hh2trtw.cloudfront.net/assets/articles/2026/11/18/gta6-jason_688x387.jpg" height="525" width="295" />
+		</item>
+</channel>
+</rss>

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-18T01:19:03.793Z",
+  "generatedAt": "2026-11-18T21:58:50.216Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -255,7 +255,7 @@
         {
           "key": "social",
           "name": "Social Notifications",
-          "description": "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard."
+          "description": "YouTube, Twitch, RSS, Steam updates, game newswires, GitHub releases and status pages, posted to your channels with fully customisable messages."
         },
         {
           "key": "bluesky",
@@ -614,7 +614,7 @@
     {
       "key": "social",
       "name": "Social Notifications",
-      "description": "Live YouTube upload and Twitch stream notifications with fully customisable embeds, built on the dashboard.",
+      "description": "YouTube, Twitch, RSS, Steam updates, game newswires, GitHub releases and status pages, posted to your channels with fully customisable messages.",
       "category": "Social",
       "categoryId": "social"
     },

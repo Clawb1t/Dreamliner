@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<atom:icon>http://www.bungie.net/img/Bungie-Logo-PicLens-white.png</atom:icon>
+		<title>Bungie.Net RSS Feed</title>
+		<link>http://www.bungie.net/en/rss/News?currentPage=0</link>
+		<description>Data from the Bungie.Net News, Forums, Jobs, and other information</description>
+		<language>en</language>
+		<pubDate>Wed, 18 Nov 2026 18:46:13 GMT</pubDate>
+		<docs>http://blogs.law.harvard.edu/tech/rss</docs>
+		<generator>BlamDotNet RSS Generator</generator>
+		<webMaster>webmaster@bungie.net (Bungie WebMaster)</webMaster>
+				<atom:link rel="self" href="http://www.bungie.net:45000/en/rss/News"></atom:link>
+					<atom:link rel="next" href="http://www.bungie.net/en/rss/News?currentPage=1"></atom:link>
+					<item>
+				<title>Dev Deep Dive: Expedition - Phase 1</title>
+				<link>/7/en/News/Article/dev_deep_dive_expedition_phase_1</link>
+				<pubDate>Thu, 12 Nov 2026 14:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt6df00070786020bf</guid>
+				<description>Symbiosis is the start of something new.</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt3fe29acb356f0d9b/6af4df796214fe37a16334a6/Expedition_Header_1080x1080.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt17fa004ad434f37f/6af4ddd66214fe4a49633496/Expedition_Header_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9.7</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9_7</link>
+				<pubDate>Tue, 10 Nov 2026 17:00:00 GMT</pubDate>
+				<guid isPermaLink="false">bltf7cecb9d2b7559b7</guid>
+				<description>The one about Ordnance Heist returning</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Symbiosis: Open Play Week and Crew Up Event</title>
+				<link>/7/en/News/Article/symbiosis_open_play_week_crew_up</link>
+				<pubDate>Tue, 10 Nov 2026 14:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt7a548789c2a5888e</guid>
+				<description>Play with your friends during Open Play Week</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt565fc1371ea8d018/6af2ede0fc76733b95c2fb58/Crew_Up_Blog_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/bltb0865a7ee337cbc2/6af2edd14316a6cd06e9eca8/Crew_Up_Blog_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Bungie Community Update &#8211; October 2026</title>
+				<link>/7/en/News/Article/bungiecommunityupdate_10_27</link>
+				<pubDate>Thu, 29 Oct 2026 16:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt3aa27954a315dfe5</guid>
+				<description>A chat with Josh Deane about Bungie.</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt3d0396da85f55db5/6ae272e91eff66bd1701f821/Alt_Bungie_Septagon_Blog_1920x1080.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/bltbeab0e10bd0b8773/6ae2548009de0e69d77adb7a/Alt_Bungie_Septagon_Blog_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9.6</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9_6</link>
+				<pubDate>Tue, 27 Oct 2026 16:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blta34d047bcdf350ff</guid>
+				<description>The one about the rogue dropship</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9.5</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9_5</link>
+				<pubDate>Tue, 20 Oct 2026 17:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt8ec372716aa3e1a9</guid>
+				<description>The one about Vault Breaker and C.A.R.R.I. returning</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Destiny 2 Update 9.7.0.6</title>
+				<link>/7/en/News/Article/destiny_2_update_9_7_0_6</link>
+				<pubDate>Tue, 20 Oct 2026 17:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt46ddf16b0dee1d9f</guid>
+				<description>The one&#8239;with just an Eververse fix</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt944e75b7538975e5/665d71a7fa7d9542c63f4897/Hotfix_PC_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt9e7c04121a57522c/684158a13010e31d8ce23740/Hotfix_Update_Patch_Notes_Mobile_1_1.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9.4</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9_4</link>
+				<pubDate>Tue, 13 Oct 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt70d1902d7028d8c0</guid>
+				<description>The one about the CyberAcme contracts</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9.3</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9_3</link>
+				<pubDate>Thu, 08 Oct 2026 17:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt223d607fa479be20</guid>
+				<description>The one about Night Marsh crashes</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Destiny 2 Update 9.7.0.5</title>
+				<link>/7/en/News/Article/destiny_2_update_9_7_0_5</link>
+				<pubDate>Wed, 07 Oct 2026 16:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt9cf6771940bc9aba</guid>
+				<description>The one about a back-end change</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt944e75b7538975e5/665d71a7fa7d9542c63f4897/Hotfix_PC_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt9e7c04121a57522c/684158a13010e31d8ce23740/Hotfix_Update_Patch_Notes_Mobile_1_1.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon: Nightfall Refresh and Symbiosis Roadmap</title>
+				<link>/7/en/News/Article/nighfall_refresh_symbiosis_roadmap</link>
+				<pubDate>Tue, 06 Oct 2026 16:30:00 GMT</pubDate>
+				<guid isPermaLink="false">blt7f7820f3c3c5f536</guid>
+				<description>Our Evolution Begins</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/bltfef31da3a90e215d/6abfc427e791e023d136313f/Nightfall_Refresh_Blog_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt11d94a7268b4d048/6abfc433b2d147506b772eac/Nightfall_Refresh_Blog_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9.2</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9_2</link>
+				<pubDate>Tue, 06 Oct 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt4ce852fb70535323</guid>
+				<description>The one about Nightfall Refresh</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>The Future of Marathon</title>
+				<link>/7/en/News/Article/futureofmarathon</link>
+				<pubDate>Thu, 24 Sep 2026 17:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt3856946949b41332</guid>
+				<description>What&#8217;s next for Marathon: Nightfall Refresh in October, Symbiosis in December, and more in March.</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/bltba4e96e4128e913b/6ab31a06a2b3c114e0c7f60f/Marathon_Future_Blog_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blteffdd61d08037560/6ab31a1c575fd850c059faad/Marathon_Future_Blog_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>The Next Chapter for Bungie</title>
+				<link>/7/en/News/Article/nextchapterofbungie</link>
+				<pubDate>Thu, 17 Sep 2026 16:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt700ad4c925ac2ab8</guid>
+				<description></description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blta268897f1ea8745c/6aac11d24d4dfe3b3e355763/Bungie_Crest_Blog_1920x1080.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt6a518292d4608d8d/6aac11ea11ab88e9f35b973d/Bungie_Crest_Blog_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9.1</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9_1</link>
+				<pubDate>Tue, 15 Sep 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt272296c3bc55fd16</guid>
+				<description>The one about an Overflow issue</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Development Update - Nightfall Refresh and Symbiosis</title>
+				<link>/7/en/News/Article/nightfallrefreshandsymbiosis</link>
+				<pubDate>Mon, 14 Sep 2026 17:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt47f9b19a717fba20</guid>
+				<description></description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/bltf0769e8391f40f58/6aa1dd7becbe18699b1e4b95/GOL_Crew2_Front_Page_Image_1920x1080.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt43dd7e578c0be721/6aa1dd7b72fa39c0d0998d29/GOL_Crew2_Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.9</title>
+				<link>/7/en/News/Article/marathon_update_1_1_9</link>
+				<pubDate>Tue, 01 Sep 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt2196828e06ce6564</guid>
+				<description>The one about Rook&apos;s inventory</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.5.5</title>
+				<link>/7/en/News/Article/marathon_update_1_1_5_5</link>
+				<pubDate>Tue, 25 Aug 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt0bb1a90a661f9944</guid>
+				<description>The one about the UESC Manifests</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.5.4</title>
+				<link>/7/en/News/Article/marathon_update_1_1_5_4</link>
+				<pubDate>Tue, 18 Aug 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt0a37e822f4c469c9</guid>
+				<description>The one about Ordnance Heist</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Ordnance Heist</title>
+				<link>/7/en/News/Article/ordnance_heist</link>
+				<pubDate>Mon, 17 Aug 2026 17:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt21d2e68fdcff14b0</guid>
+				<description>Hunt across Tau Ceti and secure an experimental power weapon.</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt612309d23720f609/6a7f815789eb5c1387ab57ad/Ordnance_Heist_1080x1080.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt612309d23720f609/6a7f815789eb5c1387ab57ad/Ordnance_Heist_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.5.3</title>
+				<link>/7/en/News/Article/marathon_update_1_1_5_3</link>
+				<pubDate>Tue, 11 Aug 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">bltcf82d923412b5b73</guid>
+				<description>The one about the FPS counter</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.5.2</title>
+				<link>/7/en/News/Article/marathon_update_1_1_5_2</link>
+				<pubDate>Tue, 04 Aug 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt29ae7b8291b48023</guid>
+				<description>The one about&#160;more Vault Breaker</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.5.1</title>
+				<link>/7/en/News/Article/marathon_update_1_1_5_1</link>
+				<pubDate>Tue, 28 Jul 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt9d6165a0a65798f9</guid>
+				<description>The one about&#160;VIP reward packages</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Update 1.1.5</title>
+				<link>/7/en/News/Article/marathon_update_1_1_5</link>
+				<pubDate>Tue, 21 Jul 2026 15:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt1a5bea4ef9ae178f</guid>
+				<description>The one about Vault Breaker</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt2da9ceda8d899126/69af552377fad000083ddd4a/Front_Page_Banner_1920x590.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt526e46856af251e8/69af5523856e0e000832ee88/Front_Page_Mobile_1080x1080.jpg</mobile_image>
+			</item>
+			<item>
+				<title>Marathon Mid-Season 2 Update Preview</title>
+				<link>/7/en/News/Article/mid_season_2_preview</link>
+				<pubDate>Thu, 16 Jul 2026 16:00:00 GMT</pubDate>
+				<guid isPermaLink="false">blt89a2eb0098e987cc</guid>
+				<description>Kick some ice.</description>
+					<image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt328843d32aeb531c/6a583951a5ab0d44efabdcbe/VB_Header_Logo_1080x1080.jpg</image>
+					<mobile_image>https://images.contentstack.io/v3/assets/blte410e3b15535c144/blt328843d32aeb531c/6a583951a5ab0d44efabdcbe/VB_Header_Logo_1080x1080.jpg</mobile_image>
+			</item>
+	</channel>
+</rss>

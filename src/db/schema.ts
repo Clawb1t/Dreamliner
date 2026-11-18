@@ -1271,102 +1271,120 @@ export const ticketTranscripts = sqliteTable(
   (table) => [index("ticket_transcripts_guild").on(table.guildId)],
 );
 
-/** Dashboard-configured YouTube upload watchers ("Social Notifications"). */
-export const socialYoutubeWatchers = sqliteTable(
-  "social_youtube_watchers",
+/**
+ * Notifications (`social` plugin) feeds engine. One `feed_sources` row per unique upstream (a
+ * YouTube channel, a Twitch streamer, an RSS URL, a Steam app, a catalogue newswire...), polled
+ * once and fanned out to every server subscribed to it.
+ */
+export const feedSources = sqliteTable(
+  "feed_sources",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    /** youtube | twitch | rss | steam | github | statuspage | newswire */
+    type: text("type").notNull(),
+    /** Unique: type plus the normalised URL, app id, channel id or catalogue key. */
+    key: text("key").notNull(),
+    /** JSON, adapter-specific (url, appId, channelId, catalogue key...). */
+    config: text("config").notNull().default("{}"),
+    title: text("title").notNull().default(""),
+    iconUrl: text("icon_url"),
+    siteUrl: text("site_url"),
+    /** JSON, adapter-owned bookkeeping (Twitch live session, first-fetch baseline watermark). */
+    state: text("state").notNull().default("{}"),
+    etag: text("etag"),
+    lastModified: text("last_modified"),
+    contentHash: text("content_hash"),
+    nextCheckAt: integer("next_check_at", { mode: "timestamp" }).notNull(),
+    intervalS: integer("interval_s", { mode: "number" }).notNull().default(900),
+    failCount: integer("fail_count", { mode: "number" }).notNull().default(0),
+    lastError: text("last_error"),
+    /** Set when the source auto-disabled after repeated failures; the dashboard shows it. */
+    disabledReason: text("disabled_reason"),
+    lastOkAt: integer("last_ok_at", { mode: "timestamp" }),
+    lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [uniqueIndex("feed_sources_key").on(table.key), index("feed_sources_due").on(table.nextCheckAt)],
+);
+
+/** One per server feed (replaces social_youtube_watchers / social_twitch_watchers). */
+export const feedSubscriptions = sqliteTable(
+  "feed_subscriptions",
   {
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
     guildId: text("guild_id").notNull(),
-    discordChannelId: text("discord_channel_id").notNull(),
-    sourceChannelId: text("source_channel_id").notNull(),
-    sourceChannelHandle: text("source_channel_handle"),
-    sourceChannelName: text("source_channel_name").notNull(),
-    sourceChannelAvatarUrl: text("source_channel_avatar_url"),
-    sourceChannelUrl: text("source_channel_url").notNull(),
-    uploadsPlaylistId: text("uploads_playlist_id").notNull(),
-    messageContent: text("message_content").notNull().default(""),
+    sourceId: integer("source_id", { mode: "number" }).notNull(),
+    channelId: text("channel_id").notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    /** JSON FeedMessage (text with tokens, optional card, link buttons). */
+    message: text("message").notNull().default("{}"),
     /** JSON string[] of role IDs to ping. */
     mentionRoleIds: text("mention_role_ids").notNull().default("[]"),
-    /** JSON-serialized SocialEmbedConfig. */
-    embedConfig: text("embed_config").notNull(),
-    lastVideoId: text("last_video_id"),
-    lastVideoPublishedAt: integer("last_video_published_at", { mode: "timestamp" }),
-    lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
-    /** JSON-serialized SocialWatcherOptions (upload types, cooldown, quiet hours, milestones). */
+    /** JSON FeedFilters. */
+    filters: text("filters").notNull().default("{}"),
+    /** JSON FeedOptions (quiet hours, cooldown, Twitch end action, milestones...). */
     options: text("options").notNull().default("{}"),
+    /** Items with an id at or below this were already there when the server subscribed. */
+    cursorItemId: integer("cursor_item_id", { mode: "number" }).notNull().default(0),
     /** All-time notifications sent (deliveries themselves are pruned after 180 days). */
     deliveredCount: integer("delivered_count", { mode: "number" }).notNull().default(0),
-    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    /** "youtube:<id>" / "twitch:<id>" for rows converted from the old watcher tables. */
+    legacyRef: text("legacy_ref"),
     createdBy: text("created_by").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
-  (table) => [index("social_youtube_watchers_guild").on(table.guildId)],
+  (table) => [index("feed_subscriptions_guild").on(table.guildId), index("feed_subscriptions_source").on(table.sourceId)],
 );
 
-export const socialTwitchWatchers = sqliteTable(
-  "social_twitch_watchers",
+/** Every item a source has produced (deduped per source on `item_key`). */
+export const feedItems = sqliteTable(
+  "feed_items",
   {
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    guildId: text("guild_id").notNull(),
-    discordChannelId: text("discord_channel_id").notNull(),
-    sourceUserId: text("source_user_id").notNull(),
-    sourceUserLogin: text("source_user_login").notNull(),
-    sourceUserDisplayName: text("source_user_display_name").notNull(),
-    sourceUserAvatarUrl: text("source_user_avatar_url"),
-    sourceUserUrl: text("source_user_url").notNull(),
-    messageContent: text("message_content").notNull().default(""),
-    /** JSON string[] of role IDs to ping. */
-    mentionRoleIds: text("mention_role_ids").notNull().default("[]"),
-    /** JSON-serialized SocialEmbedConfig. */
-    embedConfig: text("embed_config").notNull(),
-    /** Helix stream id of the last "went live" session we notified for. */
-    lastStreamId: text("last_stream_id"),
-    lastLiveAt: integer("last_live_at", { mode: "timestamp" }),
-    lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
-    /** Last poll that saw them live; a stream counts as ended a few minutes after this. */
-    lastSeenLiveAt: integer("last_seen_live_at", { mode: "timestamp" }),
-    /** JSON-serialized SocialWatcherOptions (stream end, live updates, cooldown, quiet hours). */
-    options: text("options").notNull().default("{}"),
-    /** All-time notifications sent (deliveries themselves are pruned after 180 days). */
-    deliveredCount: integer("delivered_count", { mode: "number" }).notNull().default(0),
-    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-    createdBy: text("created_by").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    sourceId: integer("source_id", { mode: "number" }).notNull(),
+    itemKey: text("item_key").notNull(),
+    title: text("title").notNull().default(""),
+    url: text("url").notNull().default(""),
+    imageUrl: text("image_url"),
+    summary: text("summary").notNull().default(""),
+    author: text("author"),
+    /** JSON string[] (categories / tags). */
+    tags: text("tags").notNull().default("[]"),
+    publishedAt: integer("published_at", { mode: "timestamp" }),
+    firstSeenAt: integer("first_seen_at", { mode: "timestamp" }).notNull(),
+    /** Already there on the source's first fetch: stored for dedupe, never posted. */
+    baseline: integer("baseline", { mode: "boolean" }).notNull().default(false),
+    /** JSON, type-specific extras (YouTube kind, Twitch game/viewers...). */
+    payload: text("payload").notNull().default("{}"),
   },
-  (table) => [index("social_twitch_watchers_guild").on(table.guildId)],
+  (table) => [uniqueIndex("feed_items_source_key").on(table.sourceId, table.itemKey), index("feed_items_source_id").on(table.sourceId, table.id)],
 );
 
-/** Every Social Notifications message the bot sent (not tests or milestone cards). Backs the
- *  dashboard stats and recent list, and maps a Twitch session back to its live message so it can
- *  be updated or edited when the stream ends. Pruned after 180 days. */
-export const socialDeliveries = sqliteTable(
-  "social_deliveries",
+/** One row per (subscription, item): the unique key is the dedupe, so a send can never repeat. */
+export const feedDeliveries = sqliteTable(
+  "feed_deliveries",
   {
     id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-    platform: text("platform").notNull(),
-    watcherId: integer("watcher_id", { mode: "number" }).notNull(),
+    subscriptionId: integer("subscription_id", { mode: "number" }).notNull(),
+    itemId: integer("item_id", { mode: "number" }).notNull(),
     guildId: text("guild_id").notNull(),
     channelId: text("channel_id").notNull(),
     messageId: text("message_id"),
-    /** "video" | "short" | "live" for YouTube, "stream" for Twitch. */
-    kind: text("kind").notNull(),
-    /** YouTube video id or Twitch stream id. */
-    itemId: text("item_id").notNull(),
-    title: text("title").notNull().default(""),
-    url: text("url").notNull().default(""),
-    thumbnailUrl: text("thumbnail_url"),
-    gameName: text("game_name"),
-    peakViewers: integer("peak_viewers", { mode: "number" }).notNull().default(0),
-    startedAt: integer("started_at", { mode: "timestamp" }),
-    endedAt: integer("ended_at", { mode: "timestamp" }),
+    /** pending | sent | failed | filtered | continued */
+    status: text("status").notNull(),
+    attempts: integer("attempts", { mode: "number" }).notNull().default(0),
+    error: text("error"),
+    /** JSON extras (Twitch peakViewers / gameName / startedAt / endedAt in ms, filter reason). */
+    payload: text("payload").notNull().default("{}"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [
-    index("social_deliveries_guild_created").on(table.guildId, table.createdAt),
-    index("social_deliveries_watcher").on(table.platform, table.watcherId, table.createdAt),
-    index("social_deliveries_created").on(table.createdAt),
+    uniqueIndex("feed_deliveries_sub_item").on(table.subscriptionId, table.itemId),
+    index("feed_deliveries_guild_created").on(table.guildId, table.createdAt),
+    index("feed_deliveries_sub_created").on(table.subscriptionId, table.createdAt),
+    index("feed_deliveries_created").on(table.createdAt),
   ],
 );
 
@@ -1906,6 +1924,53 @@ export const siteBannerAnnouncements = sqliteTable("site_banner_announcements", 
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+// --- Frontpage takeovers ----------------------------------------------------------
+// Superuser-built replacements for the website's home page hero. The live one is the
+// highest-priority enabled row inside its (optional) window. `config` is JSON validated by
+// src/bridge/frontpageTakeovers.ts. Migration 0148.
+export const frontpageTakeovers = sqliteTable(
+  "frontpage_takeovers",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    startsAt: integer("starts_at", { mode: "timestamp" }),
+    endsAt: integer("ends_at", { mode: "timestamp" }),
+    priority: integer("priority", { mode: "number" }).notNull().default(0),
+    config: text("config").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("frontpage_takeovers_enabled_idx").on(table.enabled, table.priority)],
+);
+
+// --- Sidebar tags -----------------------------------------------------------------
+// Superuser-managed pills ("New", "Beta", custom) next to items in the website's server dashboard
+// sidebar. `target` is the sidebar item key (plugin key, built-in section, or "plugin/page").
+// Validated by src/bridge/sidebarTagRules.ts. Migration 0149.
+export const sidebarTags = sqliteTable(
+  "sidebar_tags",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    target: text("target").notNull(),
+    kind: text("kind").notNull(),
+    label: text("label").notNull(),
+    color: text("color").notNull(),
+    textColor: text("text_color"),
+    icon: text("icon"),
+    style: text("style").notNull().default("solid"),
+    startsAt: integer("starts_at", { mode: "timestamp" }),
+    endsAt: integer("ends_at", { mode: "timestamp" }),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    sort: integer("sort", { mode: "number" }).notNull().default(0),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("sidebar_tags_enabled_idx").on(table.enabled, table.target)],
+);
 
 // --- Raid Defense Mesh -------------------------------------------------------------
 // Opt-in pairing between servers: when one side's existing raid-burst detector trips,

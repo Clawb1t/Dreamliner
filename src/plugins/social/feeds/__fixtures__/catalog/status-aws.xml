@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title><![CDATA[Amazon Web Services Service Status]]></title>
+    <link>https://status.aws.amazon.com/</link>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 18 Nov 2026 13:06:28 PST</lastBuildDate>
+    <generator>AWS Service Health Dashboard RSS Generator</generator>
+    <description><![CDATA[Receive the most recent update for events affecting the overall availability of Amazon Web Services. To receive personalized events about your specific AWS accounts and resources, try the aws.health source in EventBridge or the Health API.]]></description>
+    <ttl>5</ttl>
+
+
+	 <item>
+	  <title><![CDATA[Service disruption: Increased Error Rates]]></title>
+	  <link>https://status.aws.amazon.com/</link>
+	  <pubDate>Tue, 15 Sep 2026 03:27:10 PDT</pubDate>
+	  <guid isPermaLink="false">https://status.aws.amazon.com/#multipleservices-me-central-1_1789468030</guid>
+	  <description><![CDATA[We are providing an update on the disruption affecting the Middle East (UAE) (me-central-1) Region. After a thorough assessment, we have determined that we are unable to restore access to the resources and data hosted exclusively in the mec1-az2 Availability Zone. We continue to work on recovering regional resources, as well as zonal resources hosted in the other affected Availability Zones (mec1-az1 and mec1-az3).
+
+Since the disruption began in March, most customers have been able to re-establish their operations in other Regions by restoring backups or copying data that remained accessible. AWS Support remains available to help customers who need assistance moving their applications to alternate Regions.
+
+We remain committed to supporting our customers in the UAE. We are working on replacing the affected infrastructure and will provide an update on the restoration of our services in the coming months. We have notified the relevant authorities and continue to work with them toward that goal.]]></description>
+	 </item>
+
+	 <item>
+	  <title><![CDATA[Service disruption: Increased Error Rates]]></title>
+	  <link>https://status.aws.amazon.com/</link>
+	  <pubDate>Tue, 15 Sep 2026 03:22:28 PDT</pubDate>
+	  <guid isPermaLink="false">https://status.aws.amazon.com/#multipleservices-me-south-1_1789467748</guid>
+	  <description><![CDATA[We are providing an update on the disruption affecting the Middle East (Bahrain) (me-south-1) Region. The damage to our infrastructure spanned multiple Availability Zones and exceeded what our regional and multi-AZ services are designed to withstand. After a thorough assessment, we have determined that we are unable to restore access to the resources and data hosted exclusively in this Region.
+
+When the first Availability Zone was damaged in March, we began recommending that customers migrate their workloads to other Regions, and most did so before the Region became unavailable following the disruption of a second Availability Zone in April. Since then, we have supported the remaining customers in re-establishing their operations in alternate Regions, using backups where available or implementing alternative solutions to mitigate the impact of inaccessible data. In parallel, we assessed all affected infrastructure and exhausted every option for restoring data and resources that had not been migrated before the Region became unavailable.
+
+We remain committed to supporting our customers in Bahrain in the long term and will share a further update in early 2027. We have notified the relevant authorities and continue to work with them toward that goal.]]></description>
+	 </item>
+
+	 <item>
+	  <title><![CDATA[Service disruption: Increased Error Rates]]></title>
+	  <link>https://status.aws.amazon.com/</link>
+	  <pubDate>Thu, 30 Apr 2026 00:25:54 PDT</pubDate>
+	  <guid isPermaLink="false">https://status.aws.amazon.com/#multipleservices-me-central-1_1777533954</guid>
+	  <description><![CDATA[We are providing an update on the ongoing service disruption. The Middle East (UAE) Region (ME-CENTRAL-1) has suffered damage as a result of the conflict in the Middle East and is currently unable to reliably support customer applications. While some workloads continue to function normally, we strongly recommend customers migrate all accessible resources to other Regions and restore inaccessible resources from remote backups as soon as possible. Relevant billing operations are currently suspended while we restore normal operations in this AWS Region. This process is expected to take several months. ]]></description>
+	 </item>
+</channel>
+</rss>

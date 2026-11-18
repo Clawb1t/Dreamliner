@@ -3,7 +3,7 @@
  * channels' statistics come from channels.list, 50 channels per call (1 quota unit), and when one
  * has crossed a milestone since the last check, a celebration card goes to that creator's channel.
  *
- * The last announced milestone lives in the watcher's options (`milestone_last`). A creator that
+ * The last announced milestone lives in the feed's options (`milestone_last`). A creator that
  * was just switched on is "unseeded" (-1): its first check records where the channel is now,
  * without announcing, so turning the option on never celebrates milestones reached years ago.
  *
@@ -17,8 +17,8 @@ import { getLogger } from "../../../core/logger.js";
 import { formatMilestone, nextMilestone } from "../../bluesky/functions/milestones.js";
 import { MILESTONE_UNSEEDED, seedSubscriberMilestone, subscriberMilestoneToAnnounce } from "./logic.js";
 import { fetchChannelsInfo, type ChannelInfo } from "./youtube.js";
-import { listAllEnabledWatchers, refreshWatcherProfile, setWatcherOptions, type SocialWatcherRow } from "./store.js";
-import { SOCIAL_EMOJIS } from "./notifyTwitch.js";
+import { getSourcesByIds, listEnabledSubscriptionsOfType, setSubscriptionOptions, updateSource, type FeedSubscriptionRow } from "../feeds/store.js";
+import { FEED_EMOJIS as SOCIAL_EMOJIS } from "../feeds/catalog.js";
 import { configManager } from "../../../config/manager.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 const log = getLogger("social");
@@ -50,8 +50,8 @@ export function buildSubscriberMilestoneCard(
   return { container, row };
 }
 
-async function announce(client: Client, watcher: SocialWatcherRow, channel: ChannelInfo, milestone: number): Promise<void> {
-  const target = await fetchGuildChannel(client, watcher.guildId, watcher.discordChannelId);
+async function announce(client: Client, watcher: FeedSubscriptionRow, channel: ChannelInfo, milestone: number): Promise<void> {
+  const target = await fetchGuildChannel(client, watcher.guildId, watcher.channelId);
   if (!target || !target.isTextBased() || !("send" in target)) return;
   const { container, row } = buildSubscriberMilestoneCard(channel, milestone);
   try {
@@ -67,35 +67,38 @@ async function announce(client: Client, watcher: SocialWatcherRow, channel: Chan
 
 let running = false;
 
-/** One pass over every YouTube creator with milestones on. Overlapping calls are skipped. */
+/** One pass over every YouTube feed with milestones on. Overlapping calls are skipped. */
 export async function pollSubscriberMilestones(client: Client): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const watchers = (await listAllEnabledWatchers()).filter((w) => w.options.milestones);
+    const watchers = listEnabledSubscriptionsOfType("youtube").filter((w) => w.options.milestones);
     if (!watchers.length) return;
-    const channels = await fetchChannelsInfo(watchers.map((w) => w.sourceChannelId));
+    const sources = await getSourcesByIds(watchers.map((w) => w.sourceId));
+    const channelIdOf = (w: FeedSubscriptionRow) => String(sources.get(w.sourceId)?.config.channelId ?? "");
+    const channels = await fetchChannelsInfo(watchers.map(channelIdOf).filter(Boolean));
 
     const guildActive = new Map<string, boolean>();
-    const refreshed = new Set<string>();
+    const refreshed = new Set<number>();
     for (const watcher of watchers) {
-      const channel = channels.get(watcher.sourceChannelId);
-      if (!channel) continue;
+      const source = sources.get(watcher.sourceId);
+      const channel = channels.get(channelIdOf(watcher));
+      if (!source || !channel) continue;
 
-      if (
-        !refreshed.has(channel.channelId) &&
-        (channel.name !== watcher.sourceChannelName || channel.avatarUrl !== watcher.sourceChannelAvatarUrl)
-      ) {
-        refreshed.add(channel.channelId);
-        await refreshWatcherProfile(channel.channelId, { name: channel.name, avatarUrl: channel.avatarUrl, handle: channel.handle }).catch(
-          () => undefined,
-        );
+      // Keep the stored name/avatar fresh (channels rename and change avatars).
+      if (!refreshed.has(source.id) && (channel.name !== source.title || channel.avatarUrl !== source.iconUrl)) {
+        refreshed.add(source.id);
+        await updateSource(source.id, {
+          title: channel.name,
+          iconUrl: channel.avatarUrl,
+          config: { ...source.config, handle: channel.handle },
+        }).catch(() => undefined);
       }
 
       const last = watcher.options.milestone_last;
       if (last === MILESTONE_UNSEEDED) {
         const seed = seedSubscriberMilestone(channel.subscriberCount, channel.subscribersHidden);
-        if (seed !== MILESTONE_UNSEEDED) await setWatcherOptions(watcher.id, { ...watcher.options, milestone_last: seed });
+        if (seed !== MILESTONE_UNSEEDED) await setSubscriptionOptions(watcher.id, { ...watcher.options, milestone_last: seed });
         continue;
       }
       const milestone = subscriberMilestoneToAnnounce(last, channel.subscriberCount, channel.subscribersHidden);
@@ -107,7 +110,7 @@ export async function pollSubscriberMilestones(client: Client): Promise<void> {
       }
       // Plugin off: remember the milestone anyway, so turning it back on doesn't post a stale one.
       if (guildActive.get(watcher.guildId)) await announce(client, watcher, channel, milestone);
-      await setWatcherOptions(watcher.id, { ...watcher.options, milestone_last: milestone });
+      await setSubscriptionOptions(watcher.id, { ...watcher.options, milestone_last: milestone });
     }
   } finally {
     running = false;

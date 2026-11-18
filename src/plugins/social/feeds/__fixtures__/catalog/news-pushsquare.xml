@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+	<channel>
+		<title>Push Square | Latest Updates</title>
+		<link>https://www.pushsquare.com/feeds/latest</link>
+		<description></description>
+		<language>en</language>
+		<copyright>(c) 2026 Hookshot Media</copyright>
+		<lastBuildDate>Wed, 18 Nov 2026 21:05:00 GMT</lastBuildDate>
+		<docs>https://www.pushsquare.com/feeds</docs>
+		<generator>dgpCMS/1.0 https://hookshot.media</generator>
+		<webMaster>help@pushsquare.com (Push Square)</webMaster>
+		<ttl>5</ttl>
+		<image>
+			<url>https://images.pushsquare.com/site/icon/128x128.png</url>
+			<title>Push Square</title>
+			<link>https://www.pushsquare.com/</link>
+			<width>128</width>
+			<height>128</height>
+		</image>
+		<atom:link href="https://www.pushsquare.com/feeds/latest" rel="self" type="application/rss+xml" />
+		<item>
+			<pubDate>Wed, 18 Nov 2026 19:00:00 GMT</pubDate>
+			<title>GTA 6 Obliterates All-Time Streaming Record Before It&#039;s Even Fully Released</title>
+			<description><![CDATA[<p><strong>Across Twitch, YouTube, and more.</strong></p><p>You'd better get used to seeing <a href="https://www.pushsquare.com/games/ps5/grand_theft_auto_6">GTA 6</a> break records, because the game's not even out yet in most countries and it's already crushing long-standing numbers.</p><p>Indeed, the hype is so colossal that Rockstar's open worlder broke the all-time record for livestream viewers just <em>minutes</em> after its release in regions where it's already the 19th November.</p><p>Read the <a href="https://www.pushsquare.com/news/2026/11/gta-6-obliterates-all-time-streaming-record-before-its-even-fully-released">full article on pushsquare.com</a></p>]]></description>
+			<guid isPermaLink="false">https://www.pushsquare.com/#article-209303</guid>
+			<link>https://www.pushsquare.com/news/2026/11/gta-6-obliterates-all-time-streaming-record-before-its-even-fully-released</link>
+			<media:thumbnail url="https://images.pushsquare.com/8b7789a44d27e/small.jpg" />
+			<media:content url="https://images.pushsquare.com/8b7789a44d27e/large.jpg" medium="image" type="image/jpeg" />
+		</item>
+		<item>
+			<pubDate>Wed, 18 Nov 2026 18:00:00 GMT</pubDate>
+			<title>Round Up: GTA 6 Is Not Just the Most Acclaimed Game of 2026, It&#039;s the Highest-Rated Game of All Time</title>
+			<description><![CDATA[<p><strong>The reviews are in.</strong></p><p>The initial reviews have arrived for <a href="https://www.pushsquare.com/games/ps5/grand_theft_auto_6">GTA 6</a>, and it's safe to say the game has been an absolute smash hit with critics.</p><p>The <a class="external" href="https://www.metacritic.com/game/grand-theft-auto-vi/">metascore</a> has settled on a 99, making it one point off a "perfect" score of 100. In a year stuffed with fantastic games big and small, it's become the highest rated title of 2026.</p><p>Read the <a href="https://www.pushsquare.com/features/round-up-gta-6-is-not-just-the-most-acclaimed-game-of-2026-its-the-highest-rated-game-of-all-time">full article on pushsquare.com</a></p>]]></description>
+			<guid isPermaLink="false">https://www.pushsquare.com/#article-209239</guid>
+			<link>https://www.pushsquare.com/features/round-up-gta-6-is-not-just-the-most-acclaimed-game-of-2026-its-the-highest-rated-game-of-all-time</link>
+			<media:thumbnail url="https://images.pushsquare.com/ae06ac581a21a/small.jpg" />
+			<media:content url="https://images.pushsquare.com/ae06ac581a21a/large.jpg" medium="image" type="image/jpeg" />
+		</item>
+		<item>
+			<pubDate>Wed, 18 Nov 2026 17:00:00 GMT</pubDate>
+			<title>NBA Players Receive This Special GTA 6 PS5 Pro Console, and We&#039;re Not Jealous at All</title>
+			<description><![CDATA[<p><strong>Not one bit.</strong></p><p>On the eve of <a href="https://www.pushsquare.com/games/ps5/grand_theft_auto_6">GTA 6</a> finally making its debut, it seems a lucky few have been given a special way to play it.</p><p>Several NBA players, all belonging to the Miami Heat team, have received a crazy care package from Rockstar Games that includes a special edition PS5 Pro console that's not publicly available.</p><p>Read the <a href="https://www.pushsquare.com/news/2026/11/nba-players-receive-this-special-gta-6-ps5-pro-console-and-were-not-jealous-at-all">full article on pushsquare.com</a></p>]]></description>
+			<guid isPermaLink="false">https://www.pushsquare.com/#article-209297</guid>
+			<link>https://www.pushsquare.com/news/2026/11/nba-players-receive-this-special-gta-6-ps5-pro-console-and-were-not-jealous-at-all</link>
+			<media:thumbnail url="https://images.pushsquare.com/5ca10fe7ecf78/small.jpg" />
+			<media:content url="https://images.pushsquare.com/5ca10fe7ecf78/large.jpg" medium="image" type="image/jpeg" />
+		</item>
+</channel>
+</rss>

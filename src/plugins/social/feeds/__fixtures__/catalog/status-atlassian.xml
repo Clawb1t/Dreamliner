@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Atlassian Status - Incident History</title>
+    <link>https://status.atlassian.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 20:25:13 +0000</pubDate>
+    <item>
+      <title>MICROSCORE-4348 Micros API outage to upgrade RDSs from db.t4g.large to db.m8g.large</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Apr &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:43&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The database upgrades have been completed successfully as planned. No issues have been observed, and everything is operating normally. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Apr &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:31&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - The infrastructure upgrade for the commercial production environment has been completed. The process took approximately 2 minutes, during which some requests may have returned errors. Service has been fully restored. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Apr &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:04&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We&apos;ve initiated the deployment of the fix to production environments. You may experience brief service interruptions of approximately 2–3 minutes, expected to begin within the next 10–15 minutes. We&apos;ll provide a further update once the deployment is complete. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Apr &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;05:32&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - We are performing infrastructure upgrades to improve service performance. During this maintenance, you may experience two brief periods of service interruption, each lasting approximately 2–3 minutes. We will provide a further update once the upgrades are complete. &lt;/p&gt;      </description>
+      <pubDate>Wed, 30 Apr 2025 06:43:43 +0000</pubDate>
+      <maintenanceEndDate>Wed, 30 Apr 2025 07:00:00 +0000</maintenanceEndDate>
+      <link>https://status.atlassian.com/incidents/mt5zzmkk76s2</link>
+      <guid>https://status.atlassian.com/incidents/mt5zzmkk76s2</guid>
+    </item>
+    <item>
+      <title>Issues with 403 user authentication errors across Atlassian products</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Mar &lt;var data-var=&apos;date&apos;&gt; 4&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:31&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - We are aware of an issue that was impacting user authentication to Atlassian services between 6:10AM Tuesday 4th March UTC and 6:35AM Tuesday 4th March UTC.&lt;br /&gt;Users that were already logged in would not have been impacted by this issue.&lt;br /&gt;A deployment suspected of causing this issue was rolled back and the problem was subsequently resolved. &lt;/p&gt;      </description>
+      <pubDate>Tue, 04 Mar 2025 07:31:46 +0000</pubDate>
+      <link>https://status.atlassian.com/incidents/8xc8jr91pcjh</link>
+      <guid>https://status.atlassian.com/incidents/8xc8jr91pcjh</guid>
+    </item>
+    <item>
+      <title>Marketplace Maintenance Window</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Dec &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:02&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - Scheduled maintenance is now complete. The writes operations to Marketplace were stopped for 20 minutes. Now, all the operations are back to normal. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Dec &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:30&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Dec &lt;var data-var=&apos;date&apos;&gt;19&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:43&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - Marketplace will be undergoing a scheduled maintenance during this time window. We will be in read-only mode during this time. &lt;/p&gt;      </description>
+      <pubDate>Sun, 22 Dec 2024 09:02:18 +0000</pubDate>
+      <maintenanceEndDate>Sun, 22 Dec 2024 09:30:00 +0000</maintenanceEndDate>
+      <link>https://status.atlassian.com/incidents/8mv15ng7blzr</link>
+      <guid>https://status.atlassian.com/incidents/8mv15ng7blzr</guid>
+    </item>
+</channel>
+</rss>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Anime News Network</title>
+    <link>https://www.animenewsnetwork.com/</link>
+    <description>ANN RSS feed</description>
+    <language>en-US</language>
+    <copyright>&#xA9; Anime News Network LLC</copyright>
+    <lastBuildDate>Wed, 18 Nov 2026 15:11:23 -0500</lastBuildDate>
+    
+
+    <item>
+      <title>Online Retailer CDJapan Confirms Potential Customer Information Leaks Caused by Unauthorized Access</title>
+      <link>https://www.animenewsnetwork.com/news/2026-11-18/online-retailer-cdjapan-confirms-potential-customer-information-leaks-caused-by-unauthorized-access/.243951</link>
+      <guid isPermaLink="true">https://www.animenewsnetwork.com/cms/.243951</guid>
+      <description>Third-party exploited website vulnerability to access CDJapan, Neowing online stores on November 5</description>
+      <pubDate>Wed, 18 Nov 2026 15:01:00 -0500</pubDate>
+        <category>Industry</category>
+    </item>
+
+    <item>
+      <title>Singer/Songwriter Hiromi Ōta Dies at 71</title>
+      <link>https://www.animenewsnetwork.com/news/2026-11-18/singer-songwriter-hiromi-ota-dies-at-71/.243950</link>
+      <guid isPermaLink="true">https://www.animenewsnetwork.com/cms/.243950</guid>
+      <description>Ōta died on November 12 following battle with breast cancer</description>
+      <pubDate>Wed, 18 Nov 2026 14:00:00 -0500</pubDate>
+        <category>People</category>
+    </item>
+
+    <item>
+      <title>Sumikko Gurashi Franchise's New Switch 2 Game Launches on November 19</title>
+      <link>https://www.animenewsnetwork.com/news/2026-11-18/sumikko-gurashi-franchise-new-switch-2-game-launches-on-november-19/.243949</link>
+      <guid isPermaLink="true">https://www.animenewsnetwork.com/cms/.243949</guid>
+      <description>Players run hot spring in &lt;cite&gt;Sumikkogurashi Welcome to Poka Poka Onsen&lt;/cite&gt; game</description>
+      <pubDate>Wed, 18 Nov 2026 13:00:00 -0500</pubDate>
+        <category>Games</category>
+    </item>
+</channel>
+</rss>

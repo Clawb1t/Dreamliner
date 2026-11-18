@@ -47,7 +47,7 @@ Each plugin can be toggled and permission-gated in guild YAML. See individual do
 
 ## Social
 
-- [Social Notifications](./social.md): YouTube uploads and Twitch streams
+- [Notifications](./social.md): YouTube, Twitch, RSS, Steam, GitHub releases, status pages and newswires
 - [Bluesky](./bluesky.md): real-time post cards, plus liking, reposting and following from Discord
 
 ## Auto responses

@@ -14031,7 +14031,7 @@
                 "can_manage": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to create, edit, and delete social notifications (dashboard).",
+                  "description": "Allow members to create, edit, and delete notification feeds (dashboard), and pause/resume/test them with /notifications.",
                   "title": "Manage",
                   "x-dreamliner": {
                     "kind": "permission",
@@ -14041,7 +14041,7 @@
                 "can_view": {
                   "type": "boolean",
                   "default": false,
-                  "description": "Allow members to view social notifications and run /social commands.",
+                  "description": "Allow members to view notification feeds and run /notifications list.",
                   "title": "View",
                   "x-dreamliner": {
                     "kind": "permission",

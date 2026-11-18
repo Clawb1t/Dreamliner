@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>TechCrunch</title>
+	<atom:link href="https://techcrunch.com/feed/" rel="self" type="application/rss+xml" />
+	<link>https://techcrunch.com/</link>
+	<description>Startup and Technology News</description>
+	<lastBuildDate>Wed, 18 Nov 2026 20:52:17 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.9.12</generator>
+
+<image>
+	<url>https://techcrunch.com/wp-content/uploads/2015/02/cropped-cropped-favicon-gradient.png?w=32</url>
+	<title>TechCrunch</title>
+	<link>https://techcrunch.com/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Sam Altman says his life is so weird that he&#8217;s unfazed by Andrew Garfield portraying him in upcoming movie</title>
+		<link>https://techcrunch.com/2026/11/18/sam-altman-says-his-life-is-so-weird-that-hes-unfazed-by-andrew-garfield-portraying-him-in-upcoming-movie/</link>
+		
+		<dc:creator><![CDATA[Amanda Silberling]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 20:07:01 +0000</pubDate>
+				<category><![CDATA[AI]]></category>
+		<category><![CDATA[Media & Entertainment]]></category>
+		<category><![CDATA[OpenAI]]></category>
+		<category><![CDATA[sam altman]]></category>
+		<guid isPermaLink="false">https://techcrunch.com/?p=3190063</guid>
+
+					<description><![CDATA["It doesn't feel like it's in like the top 10 weirdest things about my life," Altman said.]]></description>
+		
+		
+		
+			</item>
+		<item>
+		<title>Snapchat now lets developers build AR Lenses with AI assistants like Claude Code and Cursor</title>
+		<link>https://techcrunch.com/2026/11/18/snapchat-now-lets-developers-build-ar-lenses-with-ai-coding-assistants-like-claude-code-and-cursor/</link>
+		
+		<dc:creator><![CDATA[Aisha Malik]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 19:56:39 +0000</pubDate>
+				<category><![CDATA[AI]]></category>
+		<category><![CDATA[Apps]]></category>
+		<category><![CDATA[Social]]></category>
+		<category><![CDATA[Snapchat]]></category>
+		<guid isPermaLink="false">https://techcrunch.com/?p=3189677</guid>
+
+					<description><![CDATA[Lens creators can describe the Lens they want in plain language, and their AI assistant handles the process from start to finish, Snapchat says.]]></description>
+		
+		
+		
+			</item>
+		<item>
+		<title>Spend management platform Payhawk announces $280M raise, 2B valuation</title>
+		<link>https://techcrunch.com/2026/11/18/spend-management-platform-payhawk-announces-280m-raise-2b-valuation/</link>
+		
+		<dc:creator><![CDATA[Dominic-Madori Davis]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 19:29:41 +0000</pubDate>
+				<category><![CDATA[Startups]]></category>
+		<category><![CDATA[Venture]]></category>
+		<category><![CDATA[corporate spend management]]></category>
+		<category><![CDATA[Fintech]]></category>
+		<category><![CDATA[In Brief]]></category>
+		<category><![CDATA[Payhawk]]></category>
+		<guid isPermaLink="false">https://techcrunch.com/?p=3190074</guid>
+
+					<description><![CDATA[Founded in 2018, Payhawk is an enterprise financial management platform that helps companies track and manage expenses and procurement using AI agents. ]]></description>
+		
+		
+		
+			</item>
+</channel>
+</rss>

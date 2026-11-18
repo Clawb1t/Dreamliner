@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Vercel Status - Incident History</title>
+    <link>https://www.vercel-status.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 20:55:25 +0000</pubDate>
+    <item>
+      <title>Delays in observability data</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;18&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:55&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;18&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:44&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are investigating an issue where observability and billing data is delayed. Run status on the Workflows dashboard on Vercel may be reported as “pending” even though the run may have already started or finished. Observability data on the AI Gateway dashboard is delayed and users may see low traffic. We will provide additional updates as we have them. &lt;/p&gt;      </description>
+      <pubDate>Wed, 18 Nov 2026 20:55:25 +0000</pubDate>
+      <link>https://www.vercel-status.com/incidents/c83fx5n8008f</link>
+      <guid>https://www.vercel-status.com/incidents/c83fx5n8008f</guid>
+    </item>
+    <item>
+      <title>Elevated Sandbox and Blob request latency and errors</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;21:04&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - On November 10, 2026, between 19:16 and 19:34 UTC, some Sandbox and Blob API requests in iad1 region experienced elevated latency and errors.&lt;br /&gt;&lt;br /&gt;A fix was applied, restoring service at 19:34 UTC and preventing this issue from recurring.&lt;br /&gt;&lt;br /&gt;This incident lasted 18 minutes and is being reported retroactively. We apologize for the disruption. &lt;/p&gt;      </description>
+      <pubDate>Tue, 10 Nov 2026 21:04:28 +0000</pubDate>
+      <link>https://www.vercel-status.com/incidents/5m8qxy05bly7</link>
+      <guid>https://www.vercel-status.com/incidents/5m8qxy05bly7</guid>
+    </item>
+    <item>
+      <title>Build delays and degraded Vercel Dashboard performance</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 5&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:50&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. The build backlog has been cleared. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 5&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:35&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - We are seeing recovery after taking corrective action to address latency. We are continuing to process delayed builds. Vercel CI has also been affected. We will provide additional updates as they become available. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 5&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:25&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;ve identified an issue where some customers may experience delayed builds, slow page loads, and failed actions in the Vercel Dashboard.&lt;br /&gt;&lt;br /&gt;We are investigating the cause. We will provide additional updates as they become available. &lt;/p&gt;      </description>
+      <pubDate>Thu, 05 Nov 2026 18:50:23 +0000</pubDate>
+      <link>https://www.vercel-status.com/incidents/w661l7k3kf4p</link>
+      <guid>https://www.vercel-status.com/incidents/w661l7k3kf4p</guid>
+    </item>
+</channel>
+</rss>

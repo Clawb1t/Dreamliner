@@ -8,6 +8,8 @@ import { parseIsoDuration } from "./logic.js";
 export class YoutubeResolveError extends Error {}
 
 const API_BASE = "https://www.googleapis.com/youtube/v3";
+/** Every Data API call gives up after this long (a hung request used to stall the whole poll). */
+const API_TIMEOUT_MS = 10_000;
 
 function apiKey(): string {
   const key = process.env.YOUTUBE_API_KEY?.trim();
@@ -36,7 +38,7 @@ async function ytGet<T>(path: string, params: Record<string, string>): Promise<T
   const url = new URL(`${API_BASE}/${path}`);
   url.searchParams.set("key", apiKey());
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
   if (!res.ok) {
     if (res.status === 403) {
       throw new YoutubeResolveError("YouTube API key is invalid, over quota, or missing the Data API v3.");
@@ -52,7 +54,7 @@ async function callChannelsList(params: Record<string, string>): Promise<Youtube
   url.searchParams.set("key", apiKey());
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
   if (!res.ok) {
     if (res.status === 403) {
       throw new YoutubeResolveError("YouTube API key is invalid, over quota, or missing the Data API v3.");
@@ -180,26 +182,9 @@ type YoutubePlaylistItem = {
   };
 };
 
-/** Fetch the most recent upload in a channel's uploads playlist, or null if the channel has none. */
-export async function fetchLatestUpload(uploadsPlaylistId: string): Promise<LatestUpload | null> {
-  const url = new URL(`${API_BASE}/playlistItems`);
-  url.searchParams.set("part", "snippet,contentDetails");
-  url.searchParams.set("playlistId", uploadsPlaylistId);
-  url.searchParams.set("maxResults", "1");
-  url.searchParams.set("key", apiKey());
-
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    if (res.status === 403) {
-      throw new YoutubeResolveError("YouTube API key is invalid, over quota, or missing the Data API v3.");
-    }
-    throw new YoutubeResolveError(`YouTube API error (${res.status}).`);
-  }
-  const data = (await res.json()) as { items?: YoutubePlaylistItem[] };
-  const item = data.items?.[0];
-  const videoId = item?.contentDetails?.videoId;
-  if (!item || !videoId) return null;
-
+function toUpload(item: YoutubePlaylistItem): LatestUpload | null {
+  const videoId = item.contentDetails?.videoId;
+  if (!videoId) return null;
   const publishedRaw = item.contentDetails?.videoPublishedAt ?? item.snippet?.publishedAt;
   return {
     videoId,
@@ -212,6 +197,24 @@ export async function fetchLatestUpload(uploadsPlaylistId: string): Promise<Late
       `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
     publishedAt: publishedRaw ? new Date(publishedRaw) : new Date(),
   };
+}
+
+/**
+ * The newest few uploads in a channel's uploads playlist (1 quota unit), newest first. Reading
+ * several (not just one) means two uploads close together are both seen.
+ */
+export async function fetchRecentUploads(uploadsPlaylistId: string, count = 5): Promise<LatestUpload[]> {
+  const data = await ytGet<{ items?: YoutubePlaylistItem[] }>("playlistItems", {
+    part: "snippet,contentDetails",
+    playlistId: uploadsPlaylistId,
+    maxResults: String(Math.min(10, Math.max(1, count))),
+  });
+  return (data.items ?? []).map(toUpload).filter((u): u is LatestUpload => u !== null);
+}
+
+/** The most recent upload in a channel's uploads playlist, or null if the channel has none. */
+export async function fetchLatestUpload(uploadsPlaylistId: string): Promise<LatestUpload | null> {
+  return (await fetchRecentUploads(uploadsPlaylistId, 1))[0] ?? null;
 }
 
 /** The newest few video ids in an uploads playlist (1 quota unit), newest first. */

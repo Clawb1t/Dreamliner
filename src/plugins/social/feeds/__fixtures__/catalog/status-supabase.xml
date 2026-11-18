@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>Supabase status</title>
+        <link>https://status.supabase.com/</link>
+        <description>Supabase status page updates</description>
+        <lastBuildDate>Wed, 18 Nov 2026 21:05:02 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>incident.io</generator>
+        <item>
+            <title><![CDATA[Edge Function Issues in ap-northeast-1]]></title>
+            <link>https://status.supabase.com//incidents/01M7NKK4DEZ9Q8WBV1XBGD92NN</link>
+            <guid>https://status.supabase.com//incidents/01M7NKK4DEZ9Q8WBV1XBGD92NN</guid>
+            <pubDate>Tue, 17 Nov 2026 23:43:21 GMT</pubDate>
+            <description><![CDATA[<b>Status: Resolved</b><br/><br/>The mitigation has successfully restored Edge Functions to normal operation in ap-northeast-1. This issue is resolved.<br/><br/><b>Affected components</b>
+          <ul>
+          <li>ap-northeast-1 (Operational)</li>
+          </ul>]]></description>
+            <content:encoded><![CDATA[<b>Status: Resolved</b><br/><br/>The mitigation has successfully restored Edge Functions to normal operation in ap-northeast-1. This issue is resolved.<br/><br/><b>Affected components</b>
+          <ul>
+          <li>ap-northeast-1 (Operational)</li>
+          </ul>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Projects in sa-east-1 experiencing delayed event ingestion]]></title>
+            <link>https://status.supabase.com//incidents/01M7KTJ9JF2ZX7934BENS430HX</link>
+            <guid>https://status.supabase.com//incidents/01M7KTJ9JF2ZX7934BENS430HX</guid>
+            <pubDate>Tue, 17 Nov 2026 12:43:31 GMT</pubDate>
+            <description><![CDATA[<b>Status: Resolved</b><br/><br/>This issue is now resolved.]]></description>
+            <content:encoded><![CDATA[<b>Status: Resolved</b><br/><br/>This issue is now resolved.]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[‘Project not specified’ errors reported for users in ap-northeast-2]]></title>
+            <link>https://status.supabase.com//incidents/01M7M28VB7RPQ89T93T9T1SBZ2</link>
+            <guid>https://status.supabase.com//incidents/01M7M28VB7RPQ89T93T9T1SBZ2</guid>
+            <pubDate>Tue, 17 Nov 2026 09:26:02 GMT</pubDate>
+            <description><![CDATA[<b>Status: Resolved</b><br/><br/>Projects in ap-northeast-2 have recovered and this issue is now resolved.<br/><br/><b>Affected components</b>
+          <ul>
+          <li>ap-northeast-2 (Operational)</li>
+          </ul>]]></description>
+            <content:encoded><![CDATA[<b>Status: Resolved</b><br/><br/>Projects in ap-northeast-2 have recovered and this issue is now resolved.<br/><br/><b>Affected components</b>
+          <ul>
+          <li>ap-northeast-2 (Operational)</li>
+          </ul>]]></content:encoded>
+        </item>
+</channel>
+</rss>

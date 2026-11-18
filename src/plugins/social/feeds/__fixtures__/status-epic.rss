@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Epic Games Public Status - Incident History</title>
+    <link>https://status.epicgames.com</link>
+    <description>Statuspage</description>
+    <pubDate>Wed, 18 Nov 2026 18:41:15 +0000</pubDate>
+    <item>
+      <title>Fortnite Login and Matchmaking Issues</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;18&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:41&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re actively working to resolve an issue impacting logins and matchmaking in Fortnite.&lt;br /&gt;&lt;br /&gt;We&apos;ll share an update as soon as this resolved, or we have more information to share. &lt;/p&gt;      </description>
+      <pubDate>Wed, 18 Nov 2026 18:41:15 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/57jvsbk07xvm</link>
+      <guid>https://status.epicgames.com/incidents/57jvsbk07xvm</guid>
+    </item>
+    <item>
+      <title>EOS Easy Anti-Cheat Issue</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - We encountered and fixed an issue where Easy Anti-Cheat service was degraded for a small window of time. Service has returned to normal. &lt;/p&gt;      </description>
+      <pubDate>Sat, 14 Nov 2026 19:00:00 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/yflbq40410k3</link>
+      <guid>https://status.epicgames.com/incidents/yflbq40410k3</guid>
+    </item>
+    <item>
+      <title>Fortnite: Downtime for v43.10 Update</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;12&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:49&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;12&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:49&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - ⏰ Scheduled downtime for v43.10 begins at 4 AM ET (9 AM UTC). &lt;br /&gt;&lt;br /&gt;Matchmaking will be disabled 30 minutes prior. &lt;/p&gt;      </description>
+      <pubDate>Thu, 12 Nov 2026 10:49:20 +0000</pubDate>
+      <maintenanceEndDate>Thu, 12 Nov 2026 10:30:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/mpp1cbb204zr</link>
+      <guid>https://status.epicgames.com/incidents/mpp1cbb204zr</guid>
+    </item>
+    <item>
+      <title>EOS session search by attribute value may fail for large integer values</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:41&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:26&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are looking into an issue where EOS session searches by attribute value may fail for large integer values &lt;/p&gt;      </description>
+      <pubDate>Tue, 10 Nov 2026 22:41:45 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/tz43my3bl0n3</link>
+      <guid>https://status.epicgames.com/incidents/tz43my3bl0n3</guid>
+    </item>
+    <item>
+      <title>EOS Maintenance</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:30&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:29&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - Epic Online Services is scheduled for maintenance on Tuesday 10 November 2026, 6 am UTC. During the maintenance window, there will be degraded availability for up to 90 minutes for the following services:&lt;br /&gt;- Sessions&lt;br /&gt;- Lobbies&lt;br /&gt;&lt;br /&gt;During this window, existing player sessions will time out and clients will be disconnected. New session creation, invites, searching, and matchmaking will also be temporarily unavailable during that time. We expect (our built-in) retry functionality to limit the impact of this disruption, but session/lobby invites may fail. &lt;/p&gt;      </description>
+      <pubDate>Tue, 10 Nov 2026 07:30:12 +0000</pubDate>
+      <maintenanceEndDate>Tue, 10 Nov 2026 07:30:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/qc24h961567p</link>
+      <guid>https://status.epicgames.com/incidents/qc24h961567p</guid>
+    </item>
+    <item>
+      <title>Epic Games Store iOS Issue</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:04&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This issue has been resolved and all impacted games are now available again. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:10&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - Several games - including Rocket League Sideswipe and Fall Guys - are temporarily unavailable on Epic Games Store for iOS while we work to resolve an issue. &lt;/p&gt;      </description>
+      <pubDate>Tue, 03 Nov 2026 23:04:21 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/8g1qhh25b9s3</link>
+      <guid>https://status.epicgames.com/incidents/8g1qhh25b9s3</guid>
+    </item>
+    <item>
+      <title>Fortnite: Downtime for v43.00 Update</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:12&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Nov &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;05:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:04&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - ⏰ Scheduled downtime for v43.00 begins at 1 AM ET (5 AM UTC). &lt;br /&gt;&lt;br /&gt;Matchmaking will be disabled 30 minutes prior. &lt;/p&gt;      </description>
+      <pubDate>Sun, 01 Nov 2026 08:12:54 +0000</pubDate>
+      <maintenanceEndDate>Sun, 01 Nov 2026 08:00:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/npy10q9x5m8d</link>
+      <guid>https://status.epicgames.com/incidents/npy10q9x5m8d</guid>
+    </item>
+    <item>
+      <title>EOS Sessions and Lobbies</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;23:17&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:32&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Identified&lt;/strong&gt; - The issue has been identified and a fix is being implemented. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:20&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - Multiplayer sessions and lobbies may experience brief instability while we restart services to correct an issue. This should be back online and operational momentarily. &lt;/p&gt;      </description>
+      <pubDate>Fri, 16 Oct 2026 23:17:53 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/gkdv8wksf334</link>
+      <guid>https://status.epicgames.com/incidents/gkdv8wksf334</guid>
+    </item>
+    <item>
+      <title>Fortnite: Downtime for v42.40 Update</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;15&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:02&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;15&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:12&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - ⏰ Scheduled downtime for v42.40 begins at 4 AM ET (8 AM UTC). &lt;br /&gt;&lt;br /&gt;Matchmaking will be disabled 30 minutes prior. &lt;/p&gt;      </description>
+      <pubDate>Thu, 15 Oct 2026 10:02:57 +0000</pubDate>
+      <maintenanceEndDate>Thu, 15 Oct 2026 09:30:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/dk4g00b92mb6</link>
+      <guid>https://status.epicgames.com/incidents/dk4g00b92mb6</guid>
+    </item>
+    <item>
+      <title>Fortnite: Downtime for v42.30 Update</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:31&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Oct &lt;var data-var=&apos;date&apos;&gt; 1&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;30&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:14&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - ⏰ Scheduled downtime for v42.30 begins at 4 AM ET (8 AM UTC). &lt;br /&gt;&lt;br /&gt;Matchmaking will be disabled 30 minutes prior. &lt;/p&gt;      </description>
+      <pubDate>Thu, 01 Oct 2026 10:31:09 +0000</pubDate>
+      <maintenanceEndDate>Thu, 01 Oct 2026 09:30:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/zg64lm0j279p</link>
+      <guid>https://status.epicgames.com/incidents/zg64lm0j279p</guid>
+    </item>
+    <item>
+      <title>EOS Maintenance</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;07:30&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;22&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;26&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:57&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - Epic Online Services is scheduled for maintenance on Tuesday, 22 September 2026, 6 am UTC. During the maintenance window, there will be degraded availability for up to 90 minutes for the following services:&lt;br /&gt;- Sessions&lt;br /&gt;- Lobbies&lt;br /&gt;&lt;br /&gt;During this window, existing player sessions will time out and clients will be disconnected. New session creation, invites, searching, and matchmaking will also be temporarily unavailable during that time. We expect (our built-in) retry functionality to limit the impact of this disruption, but session/lobby invites may fail. &lt;/p&gt;      </description>
+      <pubDate>Tue, 22 Sep 2026 07:30:07 +0000</pubDate>
+      <maintenanceEndDate>Tue, 22 Sep 2026 07:30:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/djsq84vjvp45</link>
+      <guid>https://status.epicgames.com/incidents/djsq84vjvp45</guid>
+    </item>
+    <item>
+      <title>Trader Verification outage</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;18&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:17&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;21:10&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - The Trader Verification process is currently broken and is impacting EGS Dev Portal and FAB. &lt;/p&gt;      </description>
+      <pubDate>Fri, 18 Sep 2026 14:17:18 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/mzyrl3lh7rhn</link>
+      <guid>https://status.epicgames.com/incidents/mzyrl3lh7rhn</guid>
+    </item>
+    <item>
+      <title>Matchmaking issues in Fortnite</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:39&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;17:16&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - The matchmaking issues are being resolved, and players should now be able to get into matches. If you&apos;re still experiencing an issue, try requeuing again. &lt;/p&gt;      </description>
+      <pubDate>Thu, 17 Sep 2026 17:39:33 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/3fdnrtkg0nt3</link>
+      <guid>https://status.epicgames.com/incidents/3fdnrtkg0nt3</guid>
+    </item>
+    <item>
+      <title>Fortnite: Downtime for v42.20 Update</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:53&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;21:27&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - ⏰ Scheduled downtime for v42.20 begins at 4 AM ET (8 AM UTC). &lt;br /&gt;&lt;br /&gt;Matchmaking will be disabled 30 minutes prior. &lt;/p&gt;      </description>
+      <pubDate>Thu, 17 Sep 2026 09:53:03 +0000</pubDate>
+      <maintenanceEndDate>Thu, 17 Sep 2026 09:30:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/m58hlj2pclbc</link>
+      <guid>https://status.epicgames.com/incidents/m58hlj2pclbc</guid>
+    </item>
+    <item>
+      <title>Fortnite Login Issues on Xbox</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:43&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - Fortnite login issues affecting players on Xbox have been resolved.&lt;br /&gt;&lt;br /&gt;As part of the fix, you may be prompted to redownload the game before jumping back in. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt;16&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;15:09&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re investigating an issue that is preventing players on Xbox from logging into Fortnite.&lt;br /&gt;&lt;br /&gt;We will let you know as soon as this is resolved. &lt;/p&gt;      </description>
+      <pubDate>Wed, 16 Sep 2026 15:43:02 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/1db07kjp533m</link>
+      <guid>https://status.epicgames.com/incidents/1db07kjp533m</guid>
+    </item>
+    <item>
+      <title>Fortnite: Downtime for v42.10 Update</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;10:44&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 3&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Sep &lt;var data-var=&apos;date&apos;&gt; 2&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;21:52&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - ⏰ Scheduled downtime for v42.10 begins at 4 AM ET (8 AM UTC). &lt;br /&gt;&lt;br /&gt;Matchmaking will be disabled 30 minutes prior. &lt;/p&gt;      </description>
+      <pubDate>Thu, 03 Sep 2026 10:44:21 +0000</pubDate>
+      <maintenanceEndDate>Thu, 03 Sep 2026 09:30:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/fsr6cszzwm7s</link>
+      <guid>https://status.epicgames.com/incidents/fsr6cszzwm7s</guid>
+    </item>
+    <item>
+      <title>Fortnite Login Issues on PlayStation 4 and PlayStation 5</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;28&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:32&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - Login services on PlayStation 4 and 5 have returned to normal. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;28&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;13:55&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re investigating an issue that may prevent players from logging into Fortnite on PlayStation 4 and PlayStation 5. We&apos;ll provide an update once we have more information. &lt;/p&gt;      </description>
+      <pubDate>Fri, 28 Aug 2026 14:32:33 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/tsz8bfd4nyql</link>
+      <guid>https://status.epicgames.com/incidents/tsz8bfd4nyql</guid>
+    </item>
+    <item>
+      <title>Fab Plugin Issue</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;13:36&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;19&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:08&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to investigate this issue. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;19&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:07&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - Epic Games Launcher users may not see Fab plugins they have installed in their Launcher. We&apos;re working to resolve this and will provide an update this is fixed. &lt;/p&gt;      </description>
+      <pubDate>Thu, 27 Aug 2026 13:36:08 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/yyzqzftm48n5</link>
+      <guid>https://status.epicgames.com/incidents/yyzqzftm48n5</guid>
+    </item>
+    <item>
+      <title>Support-A-Creator Website Down</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;09:44&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - The Support-A-Creator website has been restored. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;00:57&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to monitor for any further issues. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;00:57&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Monitoring&lt;/strong&gt; - The Support-A-Creator website has been restored and we are monitoring. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;00:51&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to investigate this issue. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;27&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;00:50&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We are currently investigating an issue with http://sac.epicgames.com. &lt;/p&gt;      </description>
+      <pubDate>Thu, 27 Aug 2026 09:44:34 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/9lv8xw25ybz0</link>
+      <guid>https://status.epicgames.com/incidents/9lv8xw25ybz0</guid>
+    </item>
+    <item>
+      <title>Error When Installing or Updating on Epic Games Store</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;20&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:47&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - We&apos;ve fixed an issue with the Epic Games Launcher where players were unable to update or install games, or where they saw it appear blank. &lt;br /&gt;&lt;br /&gt;This fix is out now, and if your launcher still appears blank please follow these steps:&lt;br /&gt;https://epic.gm/LibraryMissing &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;17&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;19:16&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re working to resolve an error some Epic Games Store players on Windows 10 have seen when updating or installing games. We&apos;ll share an update as soon as we have a fix. &lt;/p&gt;      </description>
+      <pubDate>Thu, 20 Aug 2026 19:47:30 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/mxrqg4v602mn</link>
+      <guid>https://status.epicgames.com/incidents/mxrqg4v602mn</guid>
+    </item>
+    <item>
+      <title>Fortnite: Downtime for v42.00 Update</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;20&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;11:31&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;20&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;19&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;22:30&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - ⏰ Scheduled downtime for v42.00 begins at 2 AM ET (6 AM UTC). &lt;br /&gt;&lt;br /&gt;Matchmaking will be disabled 30 minutes prior. &lt;/p&gt;      </description>
+      <pubDate>Thu, 20 Aug 2026 11:31:51 +0000</pubDate>
+      <maintenanceEndDate>Thu, 20 Aug 2026 11:00:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/b0jf1mxvlc2l</link>
+      <guid>https://status.epicgames.com/incidents/b0jf1mxvlc2l</guid>
+    </item>
+    <item>
+      <title>Fortnite Login Issues</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;03:10&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;02:36&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re investigating login issues that may affect some players in the Mexico region. We’ll update this issue as we have more info. &lt;/p&gt;      </description>
+      <pubDate>Fri, 14 Aug 2026 03:10:09 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/5khxdqmxls0t</link>
+      <guid>https://status.epicgames.com/incidents/5khxdqmxls0t</guid>
+    </item>
+    <item>
+      <title>Matchmaking &amp; Parties Fortnite Issue</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;00:27&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - Matchmaking and partying up are returned to normal. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;14&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;00:13&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - Matchmaking and joining parties are currently experiencing issues and we&apos;re working to resolve them. &lt;/p&gt;      </description>
+      <pubDate>Fri, 14 Aug 2026 00:27:05 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/dffr390wc265</link>
+      <guid>https://status.epicgames.com/incidents/dffr390wc265</guid>
+    </item>
+    <item>
+      <title>EOS Maintenance</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;08:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Completed&lt;/strong&gt; - The scheduled maintenance has been completed. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;13&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;06:00&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;In progress&lt;/strong&gt; - Scheduled maintenance is currently in progress. We will provide updates as necessary. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;20:12&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Scheduled&lt;/strong&gt; - Epic Online Services is scheduled for maintenance on August 11th, 2026 at 6:00 AM UTC. During the maintenance window, there will be slightly degraded availability for up to 2 hours for the following services:&lt;br /&gt;&lt;br /&gt;- Sessions&lt;br /&gt;- Lobbies&lt;br /&gt;- Notifications&lt;br /&gt;&lt;br /&gt;We expect (our built-in) retry functionality to limit the impact of this disruption. &lt;/p&gt;      </description>
+      <pubDate>Thu, 13 Aug 2026 08:00:13 +0000</pubDate>
+      <maintenanceEndDate>Thu, 13 Aug 2026 08:00:00 +0000</maintenanceEndDate>
+      <link>https://status.epicgames.com/incidents/pld3p6cfk38s</link>
+      <guid>https://status.epicgames.com/incidents/pld3p6cfk38s</guid>
+    </item>
+    <item>
+      <title>Mouse Input Issue in Fall Guys and Other Titles</title>
+      <description>
+&lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:13&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Resolved&lt;/strong&gt; - This incident has been resolved. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;11&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;18:13&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Update&lt;/strong&gt; - We are continuing to investigate this issue. &lt;/p&gt; &lt;p&gt; &lt;small&gt;Aug &lt;var data-var=&apos;date&apos;&gt;10&lt;/var&gt;, &lt;var data-var=&apos;time&apos;&gt;14:20&lt;/var&gt; UTC&lt;/small&gt;&lt;br&gt; &lt;strong&gt;Investigating&lt;/strong&gt; - We&apos;re aware of an issue affecting mouse use in Fall Guys and other titles when the polling rate is higher than 125 Hz. &lt;br /&gt;&lt;br /&gt;We&apos;re working on a fix and will update you when this is resolved. &lt;/p&gt;      </description>
+      <pubDate>Tue, 11 Aug 2026 18:13:52 +0000</pubDate>
+      <link>https://status.epicgames.com/incidents/8cjh34k68h0k</link>
+      <guid>https://status.epicgames.com/incidents/8cjh34k68h0k</guid>
+    </item>
+  </channel>
+</rss>

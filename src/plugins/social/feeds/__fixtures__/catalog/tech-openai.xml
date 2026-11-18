@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[OpenAI News]]></title>
+        <description><![CDATA[The OpenAI blog]]></description>
+        <link>https://openai.com/news</link>
+        <image>
+            <url>https://openai.com/apple-icon.png</url>
+            <title>OpenAI News</title>
+            <link>https://openai.com/news</link>
+        </image>
+        <generator>OpenAI</generator>
+        <lastBuildDate>Wed, 18 Nov 2026 20:56:52 GMT</lastBuildDate>
+        <atom:link href="https://openai.com/news/rss.xml" rel="self" type="application/rss+xml"/>
+        <language><![CDATA[en-US]]></language>
+        <item>
+            <title><![CDATA[Inside the Codex sandbox]]></title>
+            <description><![CDATA[See how Codex runs commands on your machine while enforcing the filesystem and network limits you control across macOS, Linux, and Windows.]]></description>
+            <link>https://openai.com/index/inside-the-codex-sandbox</link>
+            <guid isPermaLink="true">https://openai.com/index/inside-the-codex-sandbox</guid>
+            <category><![CDATA[Engineering]]></category>
+            <pubDate>Wed, 18 Nov 2026 08:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Managing frontier AI risk: From training to deployment]]></title>
+            <description><![CDATA[OpenAI explains how it manages frontier AI risk from training through deployment with model alignment, sandboxing, blocking safeguards, and monitoring.]]></description>
+            <link>https://openai.com/index/managing-frontier-ai-risk</link>
+            <guid isPermaLink="true">https://openai.com/index/managing-frontier-ai-risk</guid>
+            <category><![CDATA[Safety]]></category>
+            <pubDate>Wed, 18 Nov 2026 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Le Groupe Figaro and OpenAI partner to bring Le Figaro journalism to ChatGPT]]></title>
+            <description><![CDATA[Le Groupe Figaro and OpenAI partner to bring Le Figaro’s journalism to ChatGPT through summaries and excerpts, with links to original stories.]]></description>
+            <link>https://openai.com/index/le-groupe-figaro-and-openai-announce-partnership</link>
+            <guid isPermaLink="true">https://openai.com/index/le-groupe-figaro-and-openai-announce-partnership</guid>
+            <category><![CDATA[Company]]></category>
+            <pubDate>Wed, 18 Nov 2026 00:00:00 GMT</pubDate>
+        </item>
+</channel>
+</rss>
