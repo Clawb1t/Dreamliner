@@ -100,7 +100,8 @@ export async function handleSuggestModalSubmit(
   }
 
   const member = interaction.member as import("discord.js").GuildMember;
-  const ephemeral = resolveEphemeral(guildConfig);
+  // Anonymous submissions always answer privately, or the reply would show who sent it.
+  const ephemeral = resolveEphemeral(guildConfig) || anonymous;
 
   if (
     !(await hasPermission(

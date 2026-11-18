@@ -162,7 +162,7 @@ export async function handleReviewModalSubmit(
   }
 
   const member = interaction.member as import("discord.js").GuildMember;
-  const ephemeral = resolveEphemeral(guildConfig);
+  let ephemeral = resolveEphemeral(guildConfig);
 
   if (
     !(await hasPermission(
@@ -187,6 +187,8 @@ export async function handleReviewModalSubmit(
   const pluginConfig = zReviewsConfig.parse(
     await resolveEffectivePluginConfig(interaction.guildId!, "reviews", member, guildConfig),
   );
+  // Anonymous reviews always answer privately, or the reply would show who wrote it.
+  if (pluginConfig.anonymous) ephemeral = true;
 
   const existing = await getActiveReviewByUser(interaction.guildId!, member.id);
   if (existing && !pluginConfig.allow_edit) {

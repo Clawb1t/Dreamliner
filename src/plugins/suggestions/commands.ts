@@ -64,12 +64,14 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       if (!auth) return;
       const config = zSuggestionsConfig.parse(auth.pluginConfig);
       const anon = ctx.interaction.options.getBoolean("anonymous") ?? false;
+      // Anonymous means every reply stays private, whatever the server's public-reply setting.
+      const ephemeral = ctx.ephemeral || anon;
       if (anon && !config.anonymous) {
         await ctx.interaction.reply(
           resultReply(
             ctx.t("suggestions.anonDisabledTitle", "Anonymous disabled"),
             ctx.t("suggestions.anonDisabledBody", "Anonymous suggestions are not enabled."),
-            ctx.ephemeral,
+            ephemeral,
             slashResultOptions(ctx, { tone: "warning" }),
           ),
         );
@@ -77,7 +79,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       }
       if (await isBlocked(ctx.interaction.guildId!, auth.member.id)) {
         await ctx.interaction.reply(
-          resultReply(ctx.t("suggestions.blockedTitle", "Blocked"), ctx.t("suggestions.blockedBody", "You are blocked from suggesting."), ctx.ephemeral, slashResultOptions(ctx, { tone: "error" })),
+          resultReply(ctx.t("suggestions.blockedTitle", "Blocked"), ctx.t("suggestions.blockedBody", "You are blocked from suggesting."), ephemeral, slashResultOptions(ctx, { tone: "error" })),
         );
         return;
       }
@@ -100,7 +102,7 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
       });
       if (!eligibility.ok) {
         await ctx.interaction.reply(
-          resultReply(ctx.t("suggestions.notEligibleTitle", "Not eligible"), eligibility.message, ctx.ephemeral, slashResultOptions(ctx, { tone: "warning" })),
+          resultReply(ctx.t("suggestions.notEligibleTitle", "Not eligible"), eligibility.message, ephemeral, slashResultOptions(ctx, { tone: "warning" })),
         );
         return;
       }
@@ -552,15 +554,17 @@ export const suggestionsCommands: SlashCommandDefinition[] = [
         const num = ctx.interaction.options.getInteger("id", true);
         const text = ctx.interaction.options.getString("text", true);
         const anonymous = ctx.interaction.options.getBoolean("anonymous") ?? false;
+        // An anonymous comment must not be traceable through a public "comment added" reply.
+        const ephemeral = ctx.ephemeral || anonymous;
         const found = await getSuggestionByNumber(guildId, num);
         const suggestion = found && (await visibleTo(auth.member, found.status)) ? found : null;
         if (!suggestion) {
           await ctx.interaction.reply(
-            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ctx.ephemeral, slashResultOptions(ctx)),
+            resultReply(ctx.t("suggestions.notFoundTitle", "Not found"), ctx.t("suggestions.notFoundBody", "Suggestion #{num} was not found.", { num }), ephemeral, slashResultOptions(ctx)),
           );
           return;
         }
-        await ctx.interaction.deferReply({ ephemeral: ctx.ephemeral });
+        await ctx.interaction.deferReply({ ephemeral });
         const result = await addSuggestionComment({
           client: ctx.interaction.client,
           guild,
