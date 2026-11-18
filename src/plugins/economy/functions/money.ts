@@ -14,6 +14,12 @@ function now() {
 
 // ── Global (bot-wide) account ────────────────────────────────────────────────
 
+/** Older databases can hold NULL balances/streaks (the NOT NULL came later and SQLite doesn't
+ *  backfill it), so every account read goes through this: missing numbers read as 0. */
+function normalizeAccount<T extends { balance: number | null; dailyStreak: number | null }>(row: T): T & { balance: number; dailyStreak: number } {
+  return { ...row, balance: Number(row.balance) || 0, dailyStreak: Number(row.dailyStreak) || 0 };
+}
+
 export function ensureGlobalAccount(userId: string) {
   const db = getDb();
   const existing = db
@@ -21,11 +27,11 @@ export function ensureGlobalAccount(userId: string) {
     .from(economyGlobalAccounts)
     .where(eq(economyGlobalAccounts.userId, userId))
     .get();
-  if (existing) return existing;
+  if (existing) return normalizeAccount(existing);
   db.insert(economyGlobalAccounts)
     .values({ userId, balance: 0, dailyStreak: 0, createdAt: now(), updatedAt: now() })
     .run();
-  return db.select().from(economyGlobalAccounts).where(eq(economyGlobalAccounts.userId, userId)).get()!;
+  return normalizeAccount(db.select().from(economyGlobalAccounts).where(eq(economyGlobalAccounts.userId, userId)).get()!);
 }
 
 export function getGlobalBalance(userId: string): number {
@@ -162,15 +168,17 @@ export function ensureServerAccount(guildId: string, userId: string) {
     .from(economyServerAccounts)
     .where(and(eq(economyServerAccounts.guildId, guildId), eq(economyServerAccounts.userId, userId)))
     .get();
-  if (existing) return existing;
+  if (existing) return normalizeAccount(existing);
   db.insert(economyServerAccounts)
     .values({ guildId, userId, balance: 0, dailyStreak: 0, createdAt: now(), updatedAt: now() })
     .run();
-  return db
-    .select()
-    .from(economyServerAccounts)
-    .where(and(eq(economyServerAccounts.guildId, guildId), eq(economyServerAccounts.userId, userId)))
-    .get()!;
+  return normalizeAccount(
+    db
+      .select()
+      .from(economyServerAccounts)
+      .where(and(eq(economyServerAccounts.guildId, guildId), eq(economyServerAccounts.userId, userId)))
+      .get()!,
+  );
 }
 
 export function getServerBalance(guildId: string, userId: string): number {
