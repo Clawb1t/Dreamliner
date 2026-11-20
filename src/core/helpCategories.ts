@@ -155,11 +155,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "fun",
     label: "Fun",
-    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, images, and AI characters.",
+    blurb: "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, quizzes and live trivia, birthdays, images, and AI characters.",
     include: [
       { plugin: "economy" },
       { plugin: "counting" },
       { plugin: "giveaways" },
+      { plugin: "quizzes" },
       { plugin: "birthdays" },
       { plugin: "images" },
       { plugin: "characters" },
@@ -402,7 +403,13 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     key: "giveaways",
     name: "Giveaways",
     description:
-      "Dashboard-built giveaways with button or reaction entry, role requirements, bonus entries, a winner claim window, and reusable templates. Staff can reroll, end, pause, or cancel from Discord.",
+      "Giveaways with a live entry count, entry requirements (roles, account and server age, messages, Passport), bonus entries, several winners, a claim window, scheduled and repeating giveaways, and a verifiable draw. Start, edit, extend, pause, end or reroll from Discord or the dashboard.",
+  },
+  quizzes: {
+    key: "quizzes",
+    name: "Quizzes",
+    description:
+      "Build graded and personality quizzes on the dashboard, post them with a Start button, and members play privately with timers, streaks and instant feedback. Scores, leaderboards, role rewards, per-question analytics, and live trivia games with speed points and a podium.",
   },
   economy: {
     key: "economy",
@@ -510,6 +517,7 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   economy: "fun",
   counting: "fun",
   giveaways: "fun",
+  quizzes: "fun",
   birthdays: "fun",
   images: "fun",
   characters: "fun",

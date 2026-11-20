@@ -8,6 +8,7 @@ import { zReviewsPluginSection } from "./reviews.js";
 import { zSuggestionsPluginSection } from "./suggestions.js";
 import { zTicketsPluginSection } from "./tickets.js";
 import { zGiveawaysPluginSection } from "./giveaways.js";
+import { zQuizzesPluginSection } from "./quizzes.js";
 import { zScamProtectPluginSection } from "./scamProtect.js";
 import { zPassportPluginSection } from "./passport.js";
 import { zAppealsPluginSection } from "./appeals.js";
@@ -346,6 +347,7 @@ export const zGuildConfig = z.strictObject({
       suggestions: zSuggestionsPluginSection.default({}),
       tickets: zTicketsPluginSection.default({}),
       giveaways: zGiveawaysPluginSection.default({}),
+      quizzes: zQuizzesPluginSection.default({}),
       social: zSocialPluginSection.default({}),
       bluesky: zBlueskyPluginSection.default({}),
       images: zImagesPluginSection.default({}),

@@ -485,6 +485,13 @@ const BUILDERS: Record<LogEventType, (ctx: TestCtx) => LogCard> = {
       null,
       "modDefault",
     ),
+  dashboard_quiz: (ctx) =>
+    buildGenericServerLog(
+      "Quiz Admin",
+      [`Actor: <@${ctx.actor.id}>`, "Source: Web dashboard", "Published a quiz."],
+      null,
+      "edit",
+    ),
   dashboard_incident_response: (ctx) =>
     buildGenericServerLog(
       "Incident Response Update",

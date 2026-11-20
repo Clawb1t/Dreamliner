@@ -52,7 +52,22 @@ export const zGiveawaysConfig = z.strictObject({
     .default(0)
     .describe("Default server currency awarded to a winner when they claim their prize. 0 disables."),
   ping_role_id: roleId("Default role pinged when a giveaway starts, if the giveaway has no override."),
+  default_channel_id: channelId("Channel /giveaway start posts in when no channel is picked. Empty uses the channel the command is run in."),
+  default_min_account_age_days: z
+    .number()
+    .int()
+    .min(0)
+    .max(3650)
+    .default(0)
+    .describe("Anti-alt default: entrants' Discord accounts must be at least this many days old. 0 disables."),
+  default_require_passport: z
+    .boolean()
+    .default(false)
+    .describe("Anti-alt default: only members verified with Passport can enter (ignored while Passport is off)."),
   can_create_via_dashboard: boolPerm("create giveaways from the dashboard"),
+  can_start: boolPerm("start a giveaway with /giveaway start"),
+  can_edit: boolPerm("edit or extend a giveaway that hasn't ended"),
+  can_manage_entrants: boolPerm("see and remove entrants, and block members from giveaways"),
   can_reroll: boolPerm("manually reroll a giveaway's winner(s)"),
   can_end: boolPerm("end a giveaway immediately"),
   can_pause: boolPerm("pause or resume a giveaway"),

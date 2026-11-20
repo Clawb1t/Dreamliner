@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-18T21:58:50.216Z",
+  "generatedAt": "2026-11-20T16:01:39.470Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -306,7 +306,7 @@
     {
       "id": "fun",
       "label": "Fun",
-      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, birthdays, images, and AI characters.",
+      "description": "Games and light server extras: a global and server economy, plane and airline trading cards, counting channels, giveaways, quizzes and live trivia, birthdays, images, and AI characters.",
       "plugins": [
         {
           "key": "economy",
@@ -321,7 +321,12 @@
         {
           "key": "giveaways",
           "name": "Giveaways",
-          "description": "Dashboard-built giveaways with button or reaction entry, role requirements, bonus entries, a winner claim window, and reusable templates. Staff can reroll, end, pause, or cancel from Discord."
+          "description": "Giveaways with a live entry count, entry requirements (roles, account and server age, messages, Passport), bonus entries, several winners, a claim window, scheduled and repeating giveaways, and a verifiable draw. Start, edit, extend, pause, end or reroll from Discord or the dashboard."
+        },
+        {
+          "key": "quizzes",
+          "name": "Quizzes",
+          "description": "Build graded and personality quizzes on the dashboard, post them with a Start button, and members play privately with timers, streaks and instant feedback. Scores, leaderboards, role rewards, per-question analytics, and live trivia games with speed points and a podium."
         },
         {
           "key": "birthdays",
@@ -677,7 +682,14 @@
     {
       "key": "giveaways",
       "name": "Giveaways",
-      "description": "Dashboard-built giveaways with button or reaction entry, role requirements, bonus entries, a winner claim window, and reusable templates. Staff can reroll, end, pause, or cancel from Discord.",
+      "description": "Giveaways with a live entry count, entry requirements (roles, account and server age, messages, Passport), bonus entries, several winners, a claim window, scheduled and repeating giveaways, and a verifiable draw. Start, edit, extend, pause, end or reroll from Discord or the dashboard.",
+      "category": "Fun",
+      "categoryId": "fun"
+    },
+    {
+      "key": "quizzes",
+      "name": "Quizzes",
+      "description": "Build graded and personality quizzes on the dashboard, post them with a Start button, and members play privately with timers, streaks and instant feedback. Scores, leaderboards, role rewards, per-question analytics, and live trivia games with speed points and a podium.",
       "category": "Fun",
       "categoryId": "fun"
     },

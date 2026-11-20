@@ -89,10 +89,13 @@ import {
 import {
   GIVEAWAY_CLAIM_PREFIX,
   GIVEAWAY_ENTER_PREFIX,
+  GIVEAWAY_LEAVE_PREFIX,
   handleGiveawayAutocomplete,
   handleGiveawayClaimButton,
   handleGiveawayEnterButton,
+  handleGiveawayLeaveButton,
 } from "./plugins/giveaways/index.js";
+import { QUIZ_PREFIX, handleQuizAutocomplete, handleQuizButton, handleQuizModal, handleQuizSelect } from "./plugins/quizzes/index.js";
 import {
   handleWelcomeWaveButtonInteraction,
   WELCOME_WAVE_CUSTOM_ID,
@@ -371,6 +374,12 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
           log.error("Giveaway autocomplete error:", error);
         });
       }
+      if (interaction.commandName === "quiz") {
+        await handleQuizAutocomplete(interaction).catch((error) => {
+          log.error("Quiz autocomplete error:", error);
+        });
+        return;
+      }
       if (interaction.commandName === "characters") {
         await handleCharacterAutocomplete(interaction).catch((error) => {
           log.error("Character autocomplete error:", error);
@@ -459,6 +468,14 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Giveaway enter button", () => handleGiveawayEnterButton(interaction));
         if (handled) return;
       }
+      if (interaction.customId.startsWith(GIVEAWAY_LEAVE_PREFIX)) {
+        const handled = await safeHandle(interaction, "Giveaway leave button", () => handleGiveawayLeaveButton(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(QUIZ_PREFIX)) {
+        const handled = await safeHandle(interaction, "Quiz button", () => handleQuizButton(interaction));
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(GIVEAWAY_CLAIM_PREFIX)) {
         const handled = await safeHandle(interaction, "Giveaway claim button", () => handleGiveawayClaimButton(interaction));
         if (handled) return;
@@ -523,6 +540,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Message Kit select", () => handleKitSelect(interaction));
         if (handled) return;
       }
+      if (interaction.customId.startsWith(QUIZ_PREFIX)) {
+        const handled = await safeHandle(interaction, "Quiz select", () => handleQuizSelect(interaction));
+        if (handled) return;
+      }
       const companionSelect = await safeHandle(interaction, "Companion select", () => handleCompanionSelectInteraction(interaction));
       if (companionSelect) return;
       await safeHandle(interaction, "Help select", () => handleHelpSelectInteraction(configManager, interaction));
@@ -547,6 +568,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       }
       if (interaction.customId.startsWith(TEAM_PREFIX)) {
         const handled = await safeHandle(interaction, "Team Control modal", () => handleTeamModal(interaction));
+        if (handled) return;
+      }
+      if (interaction.customId.startsWith(QUIZ_PREFIX)) {
+        const handled = await safeHandle(interaction, "Quiz modal", () => handleQuizModal(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(MK_PREFIX)) {

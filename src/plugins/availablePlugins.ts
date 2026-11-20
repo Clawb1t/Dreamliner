@@ -41,6 +41,7 @@ import { passportPlugin } from "../plugins/passport/index.js";
 import { economyPlugin } from "../plugins/economy/index.js";
 import { ticketsPlugin } from "../plugins/tickets/index.js";
 import { giveawaysPlugin } from "../plugins/giveaways/index.js";
+import { quizzesPlugin } from "../plugins/quizzes/index.js";
 import { socialPlugin } from "../plugins/social/index.js";
 import { blueskyPlugin } from "../plugins/bluesky/index.js";
 import { imagesPlugin } from "../plugins/images/index.js";
@@ -100,6 +101,7 @@ export const availablePlugins: DreamlinerPlugin[] = [
   suggestionsPlugin,
   ticketsPlugin,
   giveawaysPlugin,
+  quizzesPlugin,
   socialPlugin,
   blueskyPlugin,
   imagesPlugin,

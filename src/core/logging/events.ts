@@ -115,6 +115,7 @@ export const LOG_EVENT_TYPES = [
   "dashboard_economy",
   "dashboard_ticket",
   "dashboard_giveaway",
+  "dashboard_quiz",
   "dashboard_tts",
   "dashboard_permission_role",
   // Music
@@ -244,6 +245,7 @@ export const LOG_EVENT_META: Record<
   dashboard_economy: { label: "Economy change", category: "server", group: "Dashboard" },
   dashboard_ticket: { label: "Ticket admin", category: "moderation", group: "Dashboard" },
   dashboard_giveaway: { label: "Giveaway admin", category: "moderation", group: "Dashboard" },
+  dashboard_quiz: { label: "Quiz admin", category: "server", group: "Dashboard" },
   dashboard_tts: { label: "TTS admin", category: "moderation", group: "Dashboard" },
   dashboard_permission_role: { label: "Dreamliner Role change", category: "server", group: "Dashboard" },
   music_play: { label: "Track played/queued", category: "server", group: "Music" },

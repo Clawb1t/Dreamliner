@@ -105,6 +105,11 @@ export function bucketFor(method: string, pathname: string): Bucket {
   if (method !== "GET" && /\/suggestions\/bulk$/.test(pathname)) return "send";
   // Ticket replies post in Discord; bulk ticket actions close, claim or delete up to 25 per call.
   if (method !== "GET" && /\/tickets\/(?:\d+\/reply|bulk)$/.test(pathname)) return "send";
+  // Quizzes: Autopilot question drafts spend an AI call; posting a panel or starting a live game posts in Discord.
+  if (method !== "GET" && /\/quizzes\/generate$/.test(pathname)) return "ai";
+  if (method !== "GET" && /\/quizzes\/\d+\/(?:post|live)$/.test(pathname)) return "send";
+  // Ending or rerolling a giveaway posts the winners and DMs each of them.
+  if (method !== "GET" && /\/giveaways\/\d+\/(?:end|reroll)$/.test(pathname)) return "send";
   if (method !== "GET" && /\/(?:assets|images|evidence|upload|avatar|banner|brand-art)(?:\/|$)/.test(pathname)) return "upload";
   // Notifications: a test send posts in Discord; a source preview only reads (it has its own
   // per-user limiter in feeds.ts on top, since it fetches other sites).

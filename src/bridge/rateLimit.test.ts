@@ -92,6 +92,26 @@ describe("bridgeRateLimit", () => {
     assert.equal(bucketFor("POST", `${base}/ai/test`), "ai");
   });
 
+  it("puts giveaway end and reroll in the send bucket, other giveaway actions in write", () => {
+    const base = "/bridge/guilds/123456789012345678/giveaways";
+    assert.equal(bucketFor("POST", `${base}/12/end`), "send");
+    assert.equal(bucketFor("POST", `${base}/12/reroll`), "send");
+    assert.equal(bucketFor("POST", `${base}/12/pause`), "write");
+    assert.equal(bucketFor("POST", `${base}/12/extend`), "write");
+    assert.equal(bucketFor("DELETE", `${base}/12/entrants/123456789012345678`), "write");
+    assert.equal(bucketFor("GET", `${base}/12/entrants`), "read");
+  });
+
+  it("puts quiz Autopilot drafts in the ai bucket and panel posts and live games in send", () => {
+    const base = "/bridge/guilds/123456789012345678/quizzes";
+    assert.equal(bucketFor("POST", `${base}/generate`), "ai");
+    assert.equal(bucketFor("POST", `${base}/12/post`), "send");
+    assert.equal(bucketFor("POST", `${base}/12/live`), "send");
+    assert.equal(bucketFor("POST", `${base}/import`), "write");
+    assert.equal(bucketFor("PATCH", `${base}/12`), "write");
+    assert.equal(bucketFor("GET", `${base}/12/analytics`), "read");
+  });
+
   it("caps a server's Message Kits sends at 30 a minute even without a userId", () => {
     const url = new URL("http://x/bridge/guilds/223456789012345678/message-kits/kits/1/send");
     let limitedAt = -1;

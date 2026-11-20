@@ -13907,11 +13907,64 @@
                     "setup": "Enable Developer Mode in Discord, then right-click the role → Copy Role ID."
                   }
                 },
+                "default_channel_id": {
+                  "type": "string",
+                  "description": "Channel /giveaway start posts in when no channel is picked. Empty uses the channel the command is run in. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Default Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "default_min_account_age_days": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3650,
+                  "default": 0,
+                  "description": "Anti-alt default: entrants' Discord accounts must be at least this many days old. 0 disables.",
+                  "title": "Default Min Account Age Days"
+                },
+                "default_require_passport": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Anti-alt default: only members verified with Passport can enter (ignored while Passport is off).",
+                  "title": "Default Require Passport"
+                },
                 "can_create_via_dashboard": {
                   "type": "boolean",
                   "default": false,
                   "description": "Allow members to create giveaways from the dashboard.",
                   "title": "Create Via Dashboard",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_start": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to start a giveaway with /giveaway start.",
+                  "title": "Start",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_edit": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to edit or extend a giveaway that hasn't ended.",
+                  "title": "Edit",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage_entrants": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to see and remove entrants, and block members from giveaways.",
+                  "title": "Manage Entrants",
                   "x-dreamliner": {
                     "kind": "permission",
                     "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
@@ -14002,7 +14055,12 @@
                 "default_booster_bonus_weight": 0,
                 "default_entry_cost": 0,
                 "default_win_bonus": 0,
+                "default_min_account_age_days": 0,
+                "default_require_passport": false,
                 "can_create_via_dashboard": false,
+                "can_start": false,
+                "can_edit": false,
+                "can_manage_entrants": false,
                 "can_reroll": false,
                 "can_end": false,
                 "can_pause": false,
@@ -14015,6 +14073,201 @@
           "additionalProperties": false,
           "default": {},
           "title": "Giveaways"
+        },
+        "quizzes": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Turn this plugin on or off for the server.",
+              "title": "Enabled"
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "results_channel_id": {
+                  "type": "string",
+                  "description": "Default channel where finished quiz results are posted. A quiz can pick its own or turn it off. Empty posts nowhere. Paste a Discord channel ID (Developer Mode → right-click channel → Copy Channel ID).",
+                  "title": "Results Channel Id",
+                  "x-dreamliner": {
+                    "kind": "channel",
+                    "setup": "Enable Developer Mode in Discord (User Settings → Advanced), then right-click the channel → Copy Channel ID."
+                  }
+                },
+                "default_question_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 600,
+                  "default": 0,
+                  "description": "Default time limit per question for new quizzes, in seconds. 0 means no limit.",
+                  "title": "Default Question Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "default_shuffle_questions": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "New quizzes ask their questions in a random order for each attempt.",
+                  "title": "Default Shuffle Questions"
+                },
+                "default_shuffle_answers": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "New quizzes shuffle the answer options for each attempt.",
+                  "title": "Default Shuffle Answers"
+                },
+                "default_reveal_mode": {
+                  "type": "string",
+                  "enum": [
+                    "each",
+                    "end",
+                    "never"
+                  ],
+                  "default": "each",
+                  "description": "When members see the right answers in new quizzes: after each question, at the end, or never.",
+                  "title": "Default Reveal Mode"
+                },
+                "default_max_attempts": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "default": 0,
+                  "description": "Default attempts per member for new quizzes. 0 means unlimited.",
+                  "title": "Default Max Attempts"
+                },
+                "default_cooldown_minutes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 43200,
+                  "default": 0,
+                  "description": "Default wait between attempts for new quizzes, in minutes.",
+                  "title": "Default Cooldown Minutes"
+                },
+                "leaderboards_public": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Members can see quiz leaderboards with /quiz leaderboard and the panel button. Off limits them to staff who can view results.",
+                  "title": "Leaderboards Public"
+                },
+                "live_question_seconds": {
+                  "type": "integer",
+                  "minimum": 5,
+                  "maximum": 120,
+                  "default": 20,
+                  "description": "Live trivia: seconds to answer each question.",
+                  "title": "Live Question Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "live_lobby_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 300,
+                  "default": 30,
+                  "description": "Live trivia: countdown before the first question, so people can get ready.",
+                  "title": "Live Lobby Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "live_reveal_seconds": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 30,
+                  "default": 6,
+                  "description": "Live trivia: seconds the answer and scores show before the next question.",
+                  "title": "Live Reveal Seconds",
+                  "x-dreamliner": {
+                    "kind": "seconds",
+                    "setup": "Enter seconds. 60 = 1 minute · 3,600 = 1 hour."
+                  }
+                },
+                "live_max_questions": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50,
+                  "default": 10,
+                  "description": "Live trivia: default number of questions per game.",
+                  "title": "Live Max Questions"
+                },
+                "live_speed_bonus": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Live trivia: faster right answers score more points.",
+                  "title": "Live Speed Bonus"
+                },
+                "can_take": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to take quizzes, see their own results and view leaderboards.",
+                  "title": "Take",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_host_live": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to start and stop live trivia games.",
+                  "title": "Host Live",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_view_results": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to see other members' quiz attempts.",
+                  "title": "View Results",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to post quiz panels, reset or delete attempts and manage quizzes on the dashboard.",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "default_question_seconds": 0,
+                "default_shuffle_questions": true,
+                "default_shuffle_answers": true,
+                "default_reveal_mode": "each",
+                "default_max_attempts": 0,
+                "default_cooldown_minutes": 0,
+                "leaderboards_public": true,
+                "live_question_seconds": 20,
+                "live_lobby_seconds": 30,
+                "live_reveal_seconds": 6,
+                "live_max_questions": 10,
+                "live_speed_bonus": true,
+                "can_take": false,
+                "can_host_live": false,
+                "can_view_results": false,
+                "can_manage": false
+              },
+              "title": "Config"
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "title": "Quizzes"
         },
         "social": {
           "type": "object",

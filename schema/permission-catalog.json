@@ -329,6 +329,76 @@
     ]
   },
   {
+    "plugin": "giveaways",
+    "pluginName": "Giveaways",
+    "pluginDescription": "Giveaways with a live entry count, entry requirements (roles, account and server age, messages, Passport), bonus entries, several winners, a claim window, scheduled and repeating giveaways, and a verifiable draw. Start, edit, extend, pause, end or reroll from Discord or the dashboard.",
+    "entries": [
+      {
+        "plugin": "giveaways",
+        "permission": "can_cancel",
+        "grantKey": "giveaways.can_cancel",
+        "title": "Cancel",
+        "description": "Allow members to cancel or delete a giveaway."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_create_via_dashboard",
+        "grantKey": "giveaways.can_create_via_dashboard",
+        "title": "Create Via Dashboard",
+        "description": "Allow members to create giveaways from the dashboard."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_edit",
+        "grantKey": "giveaways.can_edit",
+        "title": "Edit",
+        "description": "Allow members to edit or extend a giveaway that hasn't ended."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_end",
+        "grantKey": "giveaways.can_end",
+        "title": "End",
+        "description": "Allow members to end a giveaway immediately."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_manage_entrants",
+        "grantKey": "giveaways.can_manage_entrants",
+        "title": "Manage Entrants",
+        "description": "Allow members to see and remove entrants, and block members from giveaways."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_pause",
+        "grantKey": "giveaways.can_pause",
+        "title": "Pause",
+        "description": "Allow members to pause or resume a giveaway."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_reroll",
+        "grantKey": "giveaways.can_reroll",
+        "title": "Reroll",
+        "description": "Allow members to manually reroll a giveaway's winner(s)."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_start",
+        "grantKey": "giveaways.can_start",
+        "title": "Start",
+        "description": "Allow members to start a giveaway with /giveaway start."
+      },
+      {
+        "plugin": "giveaways",
+        "permission": "can_view_all",
+        "grantKey": "giveaways.can_view_all",
+        "title": "View All",
+        "description": "Allow members to view all giveaways and entrants in the dashboard queue and /giveaway list."
+      }
+    ]
+  },
+  {
     "plugin": "images",
     "pluginName": "Images",
     "pluginDescription": "Random anime, Blåhaj, and animal images (cats, dogs, foxes, ducks, capybaras, birds) with /image, plus daily image drops into any channel.",
@@ -640,6 +710,41 @@
         "grantKey": "passport.can_test",
         "title": "Test",
         "description": "Allow members to check a member's Passport verification status."
+      }
+    ]
+  },
+  {
+    "plugin": "quizzes",
+    "pluginName": "Quizzes",
+    "pluginDescription": "Build graded and personality quizzes on the dashboard, post them with a Start button, and members play privately with timers, streaks and instant feedback. Scores, leaderboards, role rewards, per-question analytics, and live trivia games with speed points and a podium.",
+    "entries": [
+      {
+        "plugin": "quizzes",
+        "permission": "can_host_live",
+        "grantKey": "quizzes.can_host_live",
+        "title": "Host Live",
+        "description": "Allow members to start and stop live trivia games."
+      },
+      {
+        "plugin": "quizzes",
+        "permission": "can_manage",
+        "grantKey": "quizzes.can_manage",
+        "title": "Manage",
+        "description": "Allow members to post quiz panels, reset or delete attempts and manage quizzes on the dashboard."
+      },
+      {
+        "plugin": "quizzes",
+        "permission": "can_take",
+        "grantKey": "quizzes.can_take",
+        "title": "Take",
+        "description": "Allow members to take quizzes, see their own results and view leaderboards."
+      },
+      {
+        "plugin": "quizzes",
+        "permission": "can_view_results",
+        "grantKey": "quizzes.can_view_results",
+        "title": "View Results",
+        "description": "Allow members to see other members' quiz attempts."
       }
     ]
   },

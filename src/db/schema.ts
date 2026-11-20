@@ -2386,6 +2386,24 @@ export const giveaways = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
     endedAt: integer("ended_at", { mode: "timestamp" }),
+    /** Entrants need at least this many messages in the server (0 = off). */
+    minMessages: integer("min_messages", { mode: "number" }).notNull().default(0),
+    /** Shown as "Hosted by" on the post. */
+    hostId: text("host_id"),
+    /** Optional sponsor line ("Sponsored by ..."). */
+    sponsor: text("sponsor").notNull().default(""),
+    /** none | daily | weekly: a fresh copy is scheduled when this one ends. */
+    recurrence: text("recurrence").notNull().default("none"),
+    recurrenceParentId: integer("recurrence_parent_id", { mode: "number" }),
+    /** Set once the next occurrence exists, so it's never scheduled twice. */
+    recurrenceNextId: integer("recurrence_next_id", { mode: "number" }),
+    /** embed (posted before 0150) | v2 (Components V2). Decides how the post is edited. */
+    messageFormat: text("message_format").notNull().default("embed"),
+    /** The winners announcement posted under the giveaway when it ends. */
+    announceMessageId: text("announce_message_id"),
+    /** Last problem posting or editing in Discord (channel gone, missing permissions). */
+    lastError: text("last_error"),
+    cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
   },
   (table) => [
     index("giveaways_guild").on(table.guildId),
@@ -2401,6 +2419,8 @@ export const giveawayEntries = sqliteTable(
     /** Resolved role-weight * booster bonus at entry time; not recalculated retroactively. */
     weight: real("weight").notNull().default(1),
     enteredAt: integer("entered_at", { mode: "timestamp" }).notNull(),
+    /** Server currency paid to enter, refunded if they leave before it ends. */
+    paid: real("paid").notNull().default(0),
   },
   (table) => [
     primaryKey({ columns: [table.giveawayId, table.userId] }),
@@ -2421,8 +2441,65 @@ export const giveawayWinners = sqliteTable(
     rerolledAt: integer("rerolled_at", { mode: "timestamp" }),
     /** Set when this row exists because it replaced a rerolled/expired winner. */
     replacesWinnerId: integer("replaces_winner_id", { mode: "number" }),
+    /** The draw (giveaway_draws row) that picked this winner. */
+    drawId: integer("draw_id", { mode: "number" }),
   },
   (table) => [index("giveaway_winners_giveaway").on(table.giveawayId)],
+);
+
+/**
+ * Every draw, reroll and claim-window auto-reroll, with what's needed to check it: the random
+ * seed, a hash of the exact pool (entrants and weights, sorted) and who was picked. At most one
+ * "draw" row per giveaway (partial unique index in 0150), which is what makes ending idempotent.
+ */
+export const giveawayDraws = sqliteTable(
+  "giveaway_draws",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    giveawayId: integer("giveaway_id", { mode: "number" }).notNull(),
+    /** draw | reroll | auto_reroll */
+    kind: text("kind").notNull(),
+    /** Hex seed; null for draws made before 0150. */
+    seed: text("seed"),
+    poolHash: text("pool_hash"),
+    poolSize: integer("pool_size", { mode: "number" }).notNull().default(0),
+    totalWeight: real("total_weight").notNull().default(0),
+    /** JSON string[] */
+    pickedUserIds: text("picked_user_ids").notNull().default("[]"),
+    /** JSON string[]: winners this draw replaced (rerolls). */
+    replacedUserIds: text("replaced_user_ids").notNull().default("[]"),
+    actorId: text("actor_id"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("giveaway_draws_giveaway").on(table.giveawayId)],
+);
+
+/** What happened to a giveaway and who did it, for the dashboard timeline. */
+export const giveawayEvents = sqliteTable(
+  "giveaway_events",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    giveawayId: integer("giveaway_id", { mode: "number" }).notNull(),
+    /** created | started | paused | resumed | extended | edited | ended | rerolled | claimed | cancelled | entrant_removed | error */
+    kind: text("kind").notNull(),
+    actorId: text("actor_id"),
+    detail: text("detail"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("giveaway_events_giveaway").on(table.giveawayId)],
+);
+
+/** Members staff have blocked from entering any giveaway in the server. */
+export const giveawayBlacklist = sqliteTable(
+  "giveaway_blacklist",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    reason: text("reason"),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
 );
 
 export const giveawayTemplates = sqliteTable(
@@ -3585,4 +3662,200 @@ export const aviaUsage = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.subject, table.day] }), index("avia_usage_day").on(table.day)],
+);
+
+// -- Quizzes (0151) ------------------------------------------------------------------------------
+
+/** A dashboard-built quiz. Questions are their own rows so per-question analytics stay queryable. */
+export const quizzes = sqliteTable(
+  "quizzes",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    /** graded | personality */
+    kind: text("kind").notNull().default("graded"),
+    /** draft | published | closed | archived */
+    status: text("status").notNull().default("draft"),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    coverImageUrl: text("cover_image_url").notNull().default(""),
+    color: integer("color", { mode: "number" }),
+    category: text("category").notNull().default(""),
+    /** JSON: string[] */
+    tags: text("tags").notNull().default("[]"),
+    /** JSON: QuizSettings */
+    settings: text("settings").notNull().default("{}"),
+    /** JSON: QuizOutcome[] (personality) */
+    outcomes: text("outcomes").notNull().default("[]"),
+    opensAt: integer("opens_at", { mode: "timestamp_ms" }),
+    closesAt: integer("closes_at", { mode: "timestamp_ms" }),
+    panelChannelId: text("panel_channel_id"),
+    panelMessageId: text("panel_message_id"),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    publishedAt: integer("published_at", { mode: "timestamp_ms" }),
+    lastError: text("last_error"),
+  },
+  (table) => [index("quizzes_guild").on(table.guildId, table.status), index("quizzes_schedule").on(table.status, table.opensAt, table.closesAt)],
+);
+
+export const quizQuestions = sqliteTable(
+  "quiz_questions",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    quizId: integer("quiz_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    position: integer("position", { mode: "number" }).notNull().default(0),
+    /** single | multi | truefalse | text | number */
+    type: text("type").notNull().default("single"),
+    prompt: text("prompt").notNull(),
+    imageUrl: text("image_url").notNull().default(""),
+    explanation: text("explanation").notNull().default(""),
+    points: integer("points", { mode: "number" }).notNull().default(1),
+    timeLimitSec: integer("time_limit_sec", { mode: "number" }).notNull().default(0),
+    /** JSON: QuizOption[] */
+    options: text("options").notNull().default("[]"),
+    /** JSON: string[] */
+    accepted: text("accepted").notNull().default("[]"),
+    numberAnswer: real("number_answer"),
+    numberTolerance: real("number_tolerance").notNull().default(0),
+    partialCredit: integer("partial_credit", { mode: "boolean" }).notNull().default(false),
+    typoTolerance: integer("typo_tolerance", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("quiz_questions_quiz").on(table.quizId, table.position)],
+);
+
+/** One member's run through a quiz. A partial unique index keeps one in_progress per member per quiz. */
+export const quizAttempts = sqliteTable(
+  "quiz_attempts",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    quizId: integer("quiz_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    /** in_progress | completed | expired */
+    status: text("status").notNull().default("in_progress"),
+    seed: text("seed").notNull(),
+    /** JSON: number[] question ids in the order this attempt asks them. */
+    questionOrder: text("question_order").notNull().default("[]"),
+    currentIndex: integer("current_index", { mode: "number" }).notNull().default(0),
+    questionStartedAt: integer("question_started_at", { mode: "timestamp_ms" }),
+    awaitingNext: integer("awaiting_next", { mode: "boolean" }).notNull().default(false),
+    score: real("score").notNull().default(0),
+    maxScore: real("max_score").notNull().default(0),
+    percent: real("percent").notNull().default(0),
+    passed: integer("passed", { mode: "boolean" }),
+    outcomeId: text("outcome_id"),
+    correctCount: integer("correct_count", { mode: "number" }).notNull().default(0),
+    streak: integer("streak", { mode: "number" }).notNull().default(0),
+    bestStreak: integer("best_streak", { mode: "number" }).notNull().default(0),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
+    deadlineAt: integer("deadline_at", { mode: "timestamp_ms" }),
+    finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+    durationMs: integer("duration_ms", { mode: "number" }),
+    rewardRoleId: text("reward_role_id"),
+  },
+  (table) => [
+    index("quiz_attempts_leaderboard").on(table.quizId, table.status, table.score, table.durationMs),
+    index("quiz_attempts_member").on(table.guildId, table.userId, table.quizId),
+    index("quiz_attempts_guild_time").on(table.guildId, table.startedAt),
+  ],
+);
+
+/** One answer per question per attempt (the primary key is what makes answering idempotent). */
+export const quizAttemptAnswers = sqliteTable(
+  "quiz_attempt_answers",
+  {
+    attemptId: integer("attempt_id", { mode: "number" }).notNull(),
+    questionId: integer("question_id", { mode: "number" }).notNull(),
+    quizId: integer("quiz_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    position: integer("position", { mode: "number" }).notNull(),
+    /** JSON: AnswerValue */
+    answer: text("answer").notNull().default("{}"),
+    correct: integer("correct", { mode: "boolean" }),
+    credit: real("credit").notNull().default(0),
+    points: real("points").notNull().default(0),
+    timeMs: integer("time_ms", { mode: "number" }).notNull().default(0),
+    late: integer("late", { mode: "boolean" }).notNull().default(false),
+    timedOut: integer("timed_out", { mode: "boolean" }).notNull().default(false),
+    answeredAt: integer("answered_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.attemptId, table.questionId] }), index("quiz_attempt_answers_question").on(table.quizId, table.questionId)],
+);
+
+/** A live trivia game in one channel (partial unique index: one running game per channel). */
+export const quizLiveGames = sqliteTable(
+  "quiz_live_games",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    quizId: integer("quiz_id", { mode: "number" }).notNull(),
+    channelId: text("channel_id").notNull(),
+    messageId: text("message_id"),
+    hostId: text("host_id").notNull(),
+    /** lobby | question | reveal | finished | cancelled */
+    status: text("status").notNull().default("lobby"),
+    questionOrder: text("question_order").notNull().default("[]"),
+    /** JSON: { [questionId]: optionId[] } the shuffled option order every player sees. */
+    optionOrders: text("option_orders").notNull().default("{}"),
+    currentIndex: integer("current_index", { mode: "number" }).notNull().default(-1),
+    questionStartedAt: integer("question_started_at", { mode: "timestamp_ms" }),
+    phaseEndsAt: integer("phase_ends_at", { mode: "timestamp_ms" }),
+    questionSeconds: integer("question_seconds", { mode: "number" }).notNull().default(20),
+    revealSeconds: integer("reveal_seconds", { mode: "number" }).notNull().default(6),
+    speedBonus: integer("speed_bonus", { mode: "boolean" }).notNull().default(true),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
+    endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+    endReason: text("end_reason"),
+  },
+  (table) => [index("quiz_live_games_guild").on(table.guildId, table.startedAt)],
+);
+
+export const quizLivePlayers = sqliteTable(
+  "quiz_live_players",
+  {
+    gameId: integer("game_id", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    score: integer("score", { mode: "number" }).notNull().default(0),
+    correctCount: integer("correct_count", { mode: "number" }).notNull().default(0),
+    answeredCount: integer("answered_count", { mode: "number" }).notNull().default(0),
+    streak: integer("streak", { mode: "number" }).notNull().default(0),
+    bestStreak: integer("best_streak", { mode: "number" }).notNull().default(0),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.gameId, table.userId] })],
+);
+
+export const quizLiveAnswers = sqliteTable(
+  "quiz_live_answers",
+  {
+    gameId: integer("game_id", { mode: "number" }).notNull(),
+    questionIndex: integer("question_index", { mode: "number" }).notNull(),
+    userId: text("user_id").notNull(),
+    optionId: text("option_id").notNull(),
+    correct: integer("correct", { mode: "boolean" }).notNull().default(false),
+    points: integer("points", { mode: "number" }).notNull().default(0),
+    timeMs: integer("time_ms", { mode: "number" }).notNull().default(0),
+    answeredAt: integer("answered_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.gameId, table.questionIndex, table.userId] })],
+);
+
+/** Quiz timeline for the dashboard (created, published, posted, live games, resets...). */
+export const quizEvents = sqliteTable(
+  "quiz_events",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    quizId: integer("quiz_id", { mode: "number" }).notNull(),
+    guildId: text("guild_id").notNull(),
+    kind: text("kind").notNull(),
+    actorId: text("actor_id"),
+    detail: text("detail"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("quiz_events_quiz").on(table.quizId, table.createdAt)],
 );

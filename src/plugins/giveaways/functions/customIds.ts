@@ -26,3 +26,16 @@ export function parseGiveawayClaimCustomId(customId: string): { giveawayId: numb
   if (!Number.isFinite(giveawayId) || !Number.isFinite(winnerRowId)) return null;
   return { giveawayId, winnerRowId };
 }
+
+export const GIVEAWAY_LEAVE_PREFIX = "dl:giveaway:leave:";
+
+export function buildGiveawayLeaveCustomId(giveawayId: number): string {
+  return `${GIVEAWAY_LEAVE_PREFIX}${giveawayId}`;
+}
+
+export function parseGiveawayLeaveCustomId(customId: string): { giveawayId: number } | null {
+  if (!customId.startsWith(GIVEAWAY_LEAVE_PREFIX)) return null;
+  const giveawayId = Number(customId.slice(GIVEAWAY_LEAVE_PREFIX.length));
+  if (!Number.isFinite(giveawayId)) return null;
+  return { giveawayId };
+}

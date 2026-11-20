@@ -51,6 +51,6 @@ export const giveawaysPlugin = definePlugin({
   },
 });
 
-export { handleGiveawayEnterButton, handleGiveawayClaimButton } from "./functions/handlers.js";
-export { GIVEAWAY_ENTER_PREFIX, GIVEAWAY_CLAIM_PREFIX } from "./functions/customIds.js";
+export { handleGiveawayEnterButton, handleGiveawayLeaveButton, handleGiveawayClaimButton } from "./functions/handlers.js";
+export { GIVEAWAY_ENTER_PREFIX, GIVEAWAY_LEAVE_PREFIX, GIVEAWAY_CLAIM_PREFIX } from "./functions/customIds.js";
 export { handleGiveawayAutocomplete } from "./commands.js";

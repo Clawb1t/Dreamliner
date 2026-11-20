@@ -23,6 +23,8 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // birthdays
     "birthdays.can_set",
     "birthdays.can_view",
+    // quizzes (taking quizzes, own results, leaderboards)
+    "quizzes.can_take",
     // team_control (the roster and staff profiles, and rating staff)
     "team_control.can_view_team",
     "team_control.can_rate",
@@ -141,6 +143,10 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "giveaways.can_reroll",
     "giveaways.can_end",
     "giveaways.can_pause",
+    "giveaways.can_edit",
+    // quizzes
+    "quizzes.can_host_live",
+    "quizzes.can_view_results",
     // incident_response
     "incident_response.can_manage",
     // impersonation (alert list / resolve / dismiss; nobody had it by default)
@@ -245,6 +251,10 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "giveaways.can_cancel",
     "giveaways.can_view_all",
     "giveaways.can_create_via_dashboard",
+    "giveaways.can_start",
+    "giveaways.can_manage_entrants",
+    // quizzes
+    "quizzes.can_manage",
     // infractions
     "infractions.can_ban",
     "infractions.can_delete",

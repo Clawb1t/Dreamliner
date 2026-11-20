@@ -1,35 +1,10 @@
 import { loadEconomyConfig } from "../../economy/functions/config.js";
+import { createSeed, poolHash, verifyDraw, type WeightedEntrant } from "./fairness.js";
 import * as store from "./store.js";
-import type { Giveaway, WinnerStatus } from "./store.js";
+import type { Giveaway, GiveawayDraw, WinnerStatus } from "./store.js";
 
-export type WeightedEntrant = { userId: string; weight: number };
-
-/** Cumulative-weight sampling without replacement. Zero/negative weights never win. */
-export function weightedPick(entries: WeightedEntrant[], count: number, exclude: Set<string>): string[] {
-  const pool = entries.filter((e) => !exclude.has(e.userId) && e.weight > 0);
-  const picks: string[] = [];
-
-  while (picks.length < count && pool.length > 0) {
-    const totalWeight = pool.reduce((sum, e) => sum + e.weight, 0);
-    if (totalWeight <= 0) break;
-
-    const target = Math.random() * totalWeight;
-    let cumulative = 0;
-    let index = pool.length - 1;
-    for (let i = 0; i < pool.length; i++) {
-      cumulative += pool[i]!.weight;
-      if (target < cumulative) {
-        index = i;
-        break;
-      }
-    }
-
-    picks.push(pool[index]!.userId);
-    pool.splice(index, 1);
-  }
-
-  return picks;
-}
+export { weightedPick } from "./fairness.js";
+export type { WeightedEntrant } from "./fairness.js";
 
 /** Credits the giveaway's win bonus, only while Economy is enabled. Never throws. */
 async function payWinBonus(giveaway: Giveaway, userId: string): Promise<void> {
@@ -39,111 +14,144 @@ async function payWinBonus(giveaway: Giveaway, userId: string): Promise<void> {
     const { creditServer } = await import("../../economy/functions/money.js");
     creditServer(giveaway.guildId, userId, giveaway.winBonus);
   } catch {
-    // Economy unavailable or errored - never block a draw or claim on it.
+    // Economy unavailable or errored: never block a draw or claim on it.
   }
 }
 
-export async function drawWinners(giveaway: Giveaway): Promise<string[]> {
-  const entries = await store.listEntries(giveaway.id);
-  const picks = weightedPick(
-    entries.map((e) => ({ userId: e.userId, weight: e.weight })),
-    giveaway.winnerCount,
-    new Set(),
-  );
-
-  const now = new Date();
-  for (const userId of picks) {
-    await store.insertWinner({ giveawayId: giveaway.id, userId, status: "won", selectedAt: now, replacesWinnerId: null });
-    // No claim window means there's no claim step, so pay the bonus on the draw itself.
-    if (giveaway.claimWindowMinutes <= 0) await payWinBonus(giveaway, userId);
-  }
-
-  return picks;
+async function loadPool(giveawayId: number): Promise<WeightedEntrant[]> {
+  return (await store.listEntries(giveawayId)).map((e) => ({ userId: e.userId, weight: e.weight }));
 }
 
-export type RerollResult = { oldWinnerIds: string[]; newWinnerIds: string[] };
+function totalOf(pool: WeightedEntrant[]): number {
+  return Math.round(pool.reduce((sum, e) => sum + (Number.isFinite(e.weight) ? e.weight : 0), 0) * 1000) / 1000;
+}
+
+export type DrawResult = { winnerIds: string[]; draw: GiveawayDraw | null; alreadyDrawn: boolean };
 
 /**
- * `winnerRowId: null` rerolls every current "won" row for this giveaway (no 1:1 replacement
- * mapping, per the product decision, see the plan). A specific `winnerRowId` rerolls just that
- * one, with the new winner's `replacesWinnerId` pointing back at it. `oldStatus` lets
- * `expireUnclaimedWinners` reuse this same draw path while marking the lapsed row
- * "expired_unclaimed" instead of "rerolled".
+ * The giveaway's one and only initial draw. Safe to call any number of times (two ticks, a restart
+ * mid-end, a dashboard click racing the poller): once a draw exists, later calls return its
+ * winners instead of drawing again.
  */
-export async function rerollWinner(
-  giveaway: Giveaway,
-  winnerRowId: number | null,
-  oldStatus: WinnerStatus = "rerolled",
-): Promise<RerollResult> {
-  const now = new Date();
-  let oldWinnerIds: string[];
-  let drawCount: number;
+export async function drawWinners(giveaway: Giveaway, actorId: string | null = null): Promise<DrawResult> {
+  const existing = await store.getInitialDraw(giveaway.id);
+  if (existing) return { winnerIds: existing.pickedUserIds, draw: existing, alreadyDrawn: true };
 
-  if (winnerRowId === null) {
-    const current = await store.listWinnersByStatus(giveaway.id, "won");
-    for (const winner of current) {
-      await store.updateWinner(winner.id, { status: oldStatus, rerolledAt: now });
-    }
-    oldWinnerIds = current.map((w) => w.userId);
-    drawCount = current.length;
-  } else {
-    const all = await store.listWinners(giveaway.id);
-    const winner = all.find((w) => w.id === winnerRowId);
-    if (!winner) return { oldWinnerIds: [], newWinnerIds: [] };
-    await store.updateWinner(winner.id, { status: oldStatus, rerolledAt: now });
-    oldWinnerIds = [winner.userId];
-    drawCount = 1;
+  const pool = await loadPool(giveaway.id);
+  const seed = createSeed();
+  const picks = verifyDraw(seed, pool, Math.max(1, giveaway.winnerCount));
+  const recorded = store.recordDraw({
+    giveawayId: giveaway.id,
+    kind: "draw",
+    seed,
+    poolHash: poolHash(pool),
+    poolSize: pool.length,
+    totalWeight: totalOf(pool),
+    pickedUserIds: picks,
+    actorId,
+  });
+  if (!recorded) {
+    const raced = await store.getInitialDraw(giveaway.id);
+    return { winnerIds: raced?.pickedUserIds ?? [], draw: raced, alreadyDrawn: true };
   }
 
-  if (drawCount === 0) return { oldWinnerIds, newWinnerIds: [] };
+  // No claim window means no claim step, so the bonus is paid on the draw itself.
+  if (giveaway.claimWindowMinutes <= 0) {
+    for (const userId of picks) await payWinBonus(giveaway, userId);
+  }
+  return { winnerIds: picks, draw: recorded.draw, alreadyDrawn: false };
+}
 
-  const pastWinnerIds = new Set((await store.listWinners(giveaway.id)).map((w) => w.userId));
-  const entries = await store.listEntries(giveaway.id);
-  const newWinnerIds = weightedPick(
-    entries.map((e) => ({ userId: e.userId, weight: e.weight })),
-    drawCount,
-    pastWinnerIds,
+export type RerollResult = { oldWinnerIds: string[]; newWinnerIds: string[]; draw: GiveawayDraw | null };
+
+/**
+ * Replaces winners with fresh draws from the same pool. `winnerRowIds: null` rerolls every current
+ * winner; otherwise only those rows. Nobody who has ever won this giveaway can be drawn again.
+ * Each retired row is changed only while it's still current, so two rerolls at once can't both
+ * replace the same winner.
+ */
+export async function rerollWinners(
+  giveaway: Giveaway,
+  winnerRowIds: number[] | null,
+  options: { kind?: "reroll" | "auto_reroll"; actorId?: string | null; oldStatus?: WinnerStatus } = {},
+): Promise<RerollResult> {
+  const kind = options.kind ?? "reroll";
+  const oldStatus = options.oldStatus ?? "rerolled";
+  const all = await store.listWinners(giveaway.id);
+  const eligible = all.filter((w) => (kind === "auto_reroll" ? w.status === "won" : w.status === "won" || w.status === "claimed"));
+  const targets = winnerRowIds === null ? eligible : eligible.filter((w) => winnerRowIds.includes(w.id));
+
+  const now = new Date();
+  const retired: store.GiveawayWinner[] = [];
+  for (const winner of targets) {
+    if (await store.retireWinnerRow(winner.id, oldStatus, now, kind === "auto_reroll" ? ["won"] : ["won", "claimed"])) retired.push(winner);
+  }
+  const oldWinnerIds = retired.map((w) => w.userId);
+  if (!retired.length) return { oldWinnerIds, newWinnerIds: [], draw: null };
+
+  const everWon = new Set(all.map((w) => w.userId));
+  const pool = await loadPool(giveaway.id);
+  const seed = createSeed();
+  const picks = verifyDraw(seed, pool, retired.length, everWon);
+  const replaces = new Map<string, number | null>(picks.map((userId, i) => [userId, retired[i]?.id ?? null]));
+  const recorded = store.recordDraw(
+    {
+      giveawayId: giveaway.id,
+      kind,
+      seed,
+      poolHash: poolHash(pool),
+      poolSize: pool.length,
+      totalWeight: totalOf(pool),
+      pickedUserIds: picks,
+      replacedUserIds: oldWinnerIds,
+      actorId: options.actorId ?? null,
+    },
+    { selectedAt: now, replaces },
   );
 
-  for (const userId of newWinnerIds) {
-    await store.insertWinner({
-      giveawayId: giveaway.id,
-      userId,
-      status: "won",
-      selectedAt: now,
-      replacesWinnerId: winnerRowId,
-    });
-    if (giveaway.claimWindowMinutes <= 0) await payWinBonus(giveaway, userId);
+  if (giveaway.claimWindowMinutes <= 0) {
+    for (const userId of picks) await payWinBonus(giveaway, userId);
   }
-
-  return { oldWinnerIds, newWinnerIds };
+  return { oldWinnerIds, newWinnerIds: picks, draw: recorded?.draw ?? null };
 }
 
-export async function claimWinner(giveaway: Giveaway, userId: string): Promise<boolean> {
-  const wonWinners = await store.listWinnersByStatus(giveaway.id, "won");
-  const winner = wonWinners.find((w) => w.userId === userId);
-  if (!winner) return false;
+/** One winner by row id; kept for callers that reroll a single winner. */
+export async function rerollWinner(giveaway: Giveaway, winnerRowId: number | null, oldStatus: WinnerStatus = "rerolled"): Promise<RerollResult> {
+  return rerollWinners(giveaway, winnerRowId === null ? null : [winnerRowId], { oldStatus });
+}
+
+export function claimDeadline(giveaway: Pick<Giveaway, "claimWindowMinutes">, selectedAt: Date): Date | null {
+  return giveaway.claimWindowMinutes > 0 ? new Date(selectedAt.getTime() + giveaway.claimWindowMinutes * 60_000) : null;
+}
+
+export type ClaimResult = { ok: true } | { ok: false; reason: "not_winner" | "already_claimed" | "expired" };
+
+export async function claimWinner(giveaway: Giveaway, userId: string): Promise<ClaimResult> {
+  const rows = (await store.listWinners(giveaway.id)).filter((w) => w.userId === userId);
+  const winner = rows.find((w) => w.status === "won");
+  if (!winner) return { ok: false, reason: rows.some((w) => w.status === "claimed") ? "already_claimed" : rows.length ? "expired" : "not_winner" };
   // Past the claim window the prize is gone, even before the sweep rerolls it.
-  const windowMs = giveaway.claimWindowMinutes * 60_000;
-  if (windowMs > 0 && winner.selectedAt && Date.now() > winner.selectedAt.getTime() + windowMs) return false;
-  if (!(await store.claimWinnerRow(winner.id, new Date()))) return false;
+  const deadline = claimDeadline(giveaway, winner.selectedAt);
+  if (deadline && Date.now() > deadline.getTime()) return { ok: false, reason: "expired" };
+  if (!(await store.claimWinnerRow(winner.id, new Date()))) return { ok: false, reason: "already_claimed" };
 
   await payWinBonus(giveaway, userId);
-
-  return true;
+  await store.addEvent(giveaway.id, "claimed", userId).catch(() => null);
+  return { ok: true };
 }
 
-/** Marks any "won" row past its claim deadline "expired_unclaimed" and draws one replacement
- *  per expired row, via the same single-winner reroll path `/giveaway reroll [winner]` uses. */
-export async function expireUnclaimedWinners(giveaway: Giveaway): Promise<void> {
-  if (giveaway.claimWindowMinutes <= 0) return;
-
-  const wonWinners = await store.listWinnersByStatus(giveaway.id, "won");
-  const nowMs = Date.now();
-
-  for (const winner of wonWinners) {
-    const deadline = winner.selectedAt.getTime() + giveaway.claimWindowMinutes * 60_000;
-    if (nowMs < deadline) continue;
-    await rerollWinner(giveaway, winner.id, "expired_unclaimed");
-  }
+/** Every "won" row past its claim deadline becomes "expired_unclaimed" and gets one replacement. */
+export async function expireUnclaimedWinners(giveaway: Giveaway, now: Date = new Date()): Promise<RerollResult> {
+  if (giveaway.claimWindowMinutes <= 0) return { oldWinnerIds: [], newWinnerIds: [], draw: null };
+  const expired = (await store.listWinners(giveaway.id)).filter((w) => {
+    if (w.status !== "won") return false;
+    const deadline = claimDeadline(giveaway, w.selectedAt);
+    return deadline !== null && now.getTime() >= deadline.getTime();
+  });
+  if (!expired.length) return { oldWinnerIds: [], newWinnerIds: [], draw: null };
+  return rerollWinners(
+    giveaway,
+    expired.map((w) => w.id),
+    { kind: "auto_reroll", oldStatus: "expired_unclaimed" },
+  );
 }

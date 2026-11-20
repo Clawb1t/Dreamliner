@@ -1037,12 +1037,36 @@ plugins:
       default_booster_bonus_weight: 0
       default_entry_cost: 0
       default_win_bonus: 0
+      default_min_account_age_days: 0
+      default_require_passport: false
       can_create_via_dashboard: false
+      can_start: false
+      can_edit: false
+      can_manage_entrants: false
       can_reroll: false
       can_end: false
       can_pause: false
       can_cancel: false
       can_view_all: false
+  quizzes:
+    enabled: false
+    config:
+      default_question_seconds: 0
+      default_shuffle_questions: true
+      default_shuffle_answers: true
+      default_reveal_mode: each
+      default_max_attempts: 0
+      default_cooldown_minutes: 0
+      leaderboards_public: true
+      live_question_seconds: 20
+      live_lobby_seconds: 30
+      live_reveal_seconds: 6
+      live_max_questions: 10
+      live_speed_bonus: true
+      can_take: false
+      can_host_live: false
+      can_view_results: false
+      can_manage: false
   social:
     enabled: false
     config:

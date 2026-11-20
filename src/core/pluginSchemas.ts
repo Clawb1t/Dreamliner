@@ -6,6 +6,8 @@ import { zStarboardConfig } from "../config/schemas/starboard.js";
 import { zReviewsConfig } from "../config/schemas/reviews.js";
 import { zSuggestionsConfig } from "../config/schemas/suggestions.js";
 import { zTicketsConfig } from "../config/schemas/tickets.js";
+import { zGiveawaysConfig } from "../config/schemas/giveaways.js";
+import { zQuizzesConfig } from "../config/schemas/quizzes.js";
 import { zScamProtectConfig } from "../config/schemas/scamProtect.js";
 import { zPassportConfig } from "../config/schemas/passport.js";
 import { zEconomyConfig } from "../config/schemas/economy.js";
@@ -93,6 +95,8 @@ export const pluginConfigSchemas: Record<string, ZodType> = {
   reviews: zReviewsConfig,
   suggestions: zSuggestionsConfig,
   tickets: zTicketsConfig,
+  giveaways: zGiveawaysConfig,
+  quizzes: zQuizzesConfig,
   tts: zTtsConfig,
   clipping: zClippingConfig,
   music: zMusicConfig,
