@@ -250,6 +250,27 @@ export const statsCommands: SlashCommandDefinition[] = [
 
       const started = Date.now();
       await ctx.interaction.deferReply(deferReplyOptions(ctx.ephemeral));
+      // Safety net: if the card still isn't out after 20s, say so instead of "thinking" forever. A
+      // card that finishes later still replaces this message.
+      let replied = false;
+      const watchdog = setTimeout(() => {
+        if (replied) return;
+        log.warn(`[profile] no reply after 20s for ${user.id}`);
+        void ctx.interaction
+          .editReply({
+            content: ctx.t("stats.profileSlow", "Your profile card is taking longer than usual. Please try again in a moment."),
+            components: [],
+            files: [],
+            allowedMentions: { parse: [] },
+          })
+          .catch(() => null);
+      }, 20_000);
+      watchdog.unref?.();
+      const markReplied = () => {
+        replied = true;
+        clearTimeout(watchdog);
+      };
+      try {
       const result = await renderUserProfileCard(ctx.client, user, ctx.interaction.user.id);
       if (!result.ok) {
         await ctx.interaction.editReply({
@@ -271,9 +292,13 @@ export const statsCommands: SlashCommandDefinition[] = [
           allowedMentions: { parse: [] },
         },
         () => {
+          markReplied();
           if (Date.now() - started > 5_000) log.warn(`[profile] slow reply: ${Date.now() - started}ms`);
         },
       );
+      } finally {
+        markReplied();
+      }
     },
   },
 ];

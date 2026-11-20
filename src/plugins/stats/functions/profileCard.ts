@@ -11,6 +11,28 @@ import { canViewCrossServerData } from "../../../core/privacy/ghostMode.js";
 import { filterBadgesForAccess } from "../../../core/privacy/policy.js";
 import { getProgressionBadges, loadBadgeImage } from "../../../core/progressionBadges/index.js";
 import { getLogger } from "../../../core/logger.js";
+
+const profileLog = getLogger("profile-card");
+
+/**
+ * Resolves to `fallback` (and logs which step it was) if `work` hasn't settled within `ms`, so one
+ * stalled network call (Discord's user fetch, a badge metric, an avatar download) can never leave
+ * /profile "thinking" forever. The step keeps running in the background; its result is ignored.
+ */
+async function withTimeout<T>(step: string, ms: number, work: Promise<T>, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      profileLog.warn(`[profile] ${step} took over ${ms}ms; continuing without it`);
+      resolve(fallback);
+    }, ms);
+  });
+  try {
+    return await Promise.race([work.catch(() => fallback), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 import { getEquippedStyle } from "../../../core/cosmetics/equip.js";
 import type { CosmeticStyle } from "../../../core/cosmetics/types.js";
 import { animatedCardKey, cachedAnimatedCard, hasBackgroundFrames, renderAnimatedProfileCard } from "./animatedCards.js";
@@ -557,14 +579,17 @@ export type ProfileCardResult =
 /** Everything the site's profile hero shows, for one user, rendered as the /profile card. */
 export async function renderUserProfileCard(client: Client, user: User, viewerId: string): Promise<ProfileCardResult> {
   // Banners aren't on cached users: a forced fetch is needed to see one.
-  const fetched = await client.users.fetch(user.id, { force: true }).catch(() => user);
+  const fetched = await withTimeout("user fetch", 4_000, client.users.fetch(user.id, { force: true }), user);
   const displayName = fetched.globalName ?? fetched.username;
   const [profile, badges, progression, stats] = await Promise.all([
     getUserProfile(user.id),
-    listDisplayedUserBadges(user.id),
-    getProgressionBadges(client, user.id)
-      .then((list) => filterBadgesForAccess(list, canViewCrossServerData(viewerId, user.id)))
-      .catch(() => []),
+    withTimeout("displayed badges", 4_000, listDisplayedUserBadges(user.id), []),
+    withTimeout(
+      "progression badges",
+      5_000,
+      getProgressionBadges(client, user.id).then((list) => filterBadgesForAccess(list, canViewCrossServerData(viewerId, user.id))),
+      [],
+    ),
     // Viewer-aware: live for yourself, a 00:00 UTC snapshot for others, nothing under Ghost Mode.
     Promise.resolve()
       .then(() => globalStatsFor(viewerId, user.id))
@@ -576,13 +601,13 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
   const avatarURL = fetched.displayAvatarURL({ size: 512, extension: "png" });
   let accent = profile.accentColor;
   if (!accent) {
-    const avatar = await loadImageMaybeDataUri(fetched.displayAvatarURL({ size: 128, extension: "png" })).catch(() => null);
+    const avatar = await withTimeout("avatar colour", 4_000, loadImageMaybeDataUri(fetched.displayAvatarURL({ size: 128, extension: "png" })), null);
     accent = avatar ? dominantColor(avatar) : SITE.defaultAccent;
   }
 
   const progressionIcons: ProfileCardData["progressionIcons"] = [];
   for (const badge of progression) {
-    const art = await loadBadgeImage(badge.imageKey).catch(() => null);
+    const art = await withTimeout("badge art", 3_000, loadBadgeImage(badge.imageKey), null);
     if (!art) continue;
     // The site draws Dreamliner One as its own bolt glyph (0.8rem, accent colored) and every
     // other badge as its art at 13.2px (.lb-hero-name-row .progression-badge-img).
