@@ -7,8 +7,8 @@ import { checkEligibility, quizIsOpen } from "./functions/rules.js";
 import { parseCsv, parseQuestionCsv, parseQuestionText } from "./functions/importParser.js";
 import { cleanQuizInput, normalizeQuestion, publishProblem } from "./functions/validate.js";
 import { parseQuizId, quizId } from "./functions/customIds.js";
-import { progressBar } from "./functions/render.js";
-import { DEFAULT_QUIZ_SETTINGS, type Quiz, type QuizOutcome, type QuizQuestion } from "./functions/types.js";
+import { progressBar, reviewPayload } from "./functions/render.js";
+import { DEFAULT_QUIZ_SETTINGS, type Quiz, type QuizAttempt, type QuizOutcome, type QuizQuestion } from "./functions/types.js";
 
 function q(partial: Partial<QuizQuestion> & { id: number }): QuizQuestion {
   return {
@@ -485,4 +485,29 @@ describe("progress bar", () => {
     assert.equal(progressBar(3, 10), "▰▰▰▱▱▱▱▱▱▱");
     assert.equal(progressBar(100, 100), "▰▰▰▰▰▰▰▰▰▰");
   });
+});
+
+describe("review screen components", () => {
+  function customIds(node: unknown, out: string[] = []): string[] {
+    if (Array.isArray(node)) node.forEach((n) => customIds(n, out));
+    else if (node && typeof node === "object") {
+      const rec = node as Record<string, unknown>;
+      if (typeof rec.custom_id === "string") out.push(rec.custom_id);
+      Object.values(rec).forEach((v) => customIds(v, out));
+    }
+    return out;
+  }
+  const quiz = { id: 1, title: "Test", kind: "graded", color: null, settings: { ...DEFAULT_QUIZ_SETTINGS } } as unknown as Quiz;
+  const attempt = (count: number) => ({ id: 7, questionOrder: Array.from({ length: count }, (_, i) => i + 1) }) as unknown as QuizAttempt;
+  const questions = (count: number) => Array.from({ length: count }, (_, i) => q({ id: i + 1, options: [opt("a", "A", true), opt("b", "B")] }));
+
+  // Discord rejects a message whose components share a custom id (COMPONENT_CUSTOM_ID_DUPLICATED).
+  for (const count of [1, 3, 25]) {
+    it(`never repeats a custom id (${count} question${count === 1 ? "" : "s"})`, () => {
+      for (let page = 0; page < 6; page++) {
+        const ids = customIds(reviewPayload({ quiz, attempt: attempt(count), questions: questions(count), answers: [], page, outcomes: [] as QuizOutcome[] }).components);
+        assert.equal(new Set(ids).size, ids.length, `duplicate ids on page ${page}: ${ids.join(", ")}`);
+      }
+    });
+  }
 });

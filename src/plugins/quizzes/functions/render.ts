@@ -3,6 +3,7 @@
  * feedback, results, review, leaderboard), the results-channel post and the live trivia message.
  * App emoji only (QUIZ_EMOJI); the progress bar is plain text blocks.
  */
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 import {
   ButtonStyle,
   ComponentType,
@@ -66,7 +67,8 @@ export const LETTER_EMOJI = [
   "<:icons_j:1544418028597411890>",
 ] as const;
 
-export const RANK_EMOJI = ["<:icons_1:1544417676762292264>", "<:icons_2:1544417991813238868>", "<:icons_3:1544417993449013308>"] as const;
+/** Podium places: the same 1st/2nd/3rd app emojis as the Team Control roster board. */
+export const RANK_EMOJI = [APP_EMOJI.first, APP_EMOJI.second, APP_EMOJI.third] as const;
 
 export const DEFAULT_QUIZ_COLOR = 0x5662f5;
 
@@ -489,11 +491,16 @@ export function reviewPayload(input: { quiz: Quiz; attempt: QuizAttempt; questio
     text(blocks.join("\n\n") || "Nothing to show."),
   ];
   if (quiz.kind === "graded" && quiz.settings.revealMode === "never") children.push(text("-# This quiz keeps its right answers hidden."));
-  const nav: APIButtonComponent[] = [
-    button(quizId({ kind: "review", attemptId: attempt.id, page: Math.max(0, page - 1) }), "Previous", { emoji: QUIZ_EMOJI.left, disabled: page === 0 }),
-    button(quizId({ kind: "review", attemptId: attempt.id, page: Math.min(pages - 1, page + 1) }), "Next", { emoji: QUIZ_EMOJI.right, disabled: page >= pages - 1 }),
-    button(quizId({ kind: "results", attemptId: attempt.id }), "Back to results", { emoji: QUIZ_EMOJI.trophy }),
-  ];
+  // Discord rejects two components with the same custom id. With a single page, Previous and Next
+  // would both point at page 0, so the arrows only appear when there's somewhere to go.
+  const nav: APIButtonComponent[] = [];
+  if (pages > 1) {
+    nav.push(
+      button(quizId({ kind: "review", attemptId: attempt.id, page: Math.max(0, page - 1) }), "Previous", { emoji: QUIZ_EMOJI.left, disabled: page === 0 }),
+      button(quizId({ kind: "review", attemptId: attempt.id, page: Math.min(pages - 1, page + 1) }), "Next", { emoji: QUIZ_EMOJI.right, disabled: page >= pages - 1 }),
+    );
+  }
+  nav.push(button(quizId({ kind: "results", attemptId: attempt.id }), "Back to results", { emoji: QUIZ_EMOJI.trophy }));
   children.push(separator(false), ...rows(nav));
   return payload(children, quiz.color, true);
 }
