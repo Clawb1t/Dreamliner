@@ -24,7 +24,8 @@ import { decodeSnowflake } from "../../../core/datetime.js";
 import { getMemberPermissionRoles, hasAdminBypass } from "../../../core/permissionRoles.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { countUserInfractions, countUserInfractionsGlobal } from "../../infraction/functions/infractions.js";
-import { getGlobalMessageCount, getGuildMessageCount } from "./messageCounts.js";
+import { getGuildMessageCount } from "./messageCounts.js";
+import { globalMessageCountFor } from "../../../core/privacy/crossServer.js";
 import {
   baseEmbed,
   codeBlock,
@@ -76,7 +77,8 @@ export async function buildUserInfoEmbed(
     countUserInfractions(guildId, user.id),
     countUserInfractionsGlobal(user.id),
     getGuildMessageCount(guildId, user.id),
-    getGlobalMessageCount(user.id),
+    // Anonymous view (the reply can be public): 00:00 UTC snapshot, null under Ghost Mode.
+    Promise.resolve(globalMessageCountFor(null, user.id)),
   ]);
 
   const activityBody = t(
@@ -86,7 +88,7 @@ export async function buildUserInfoEmbed(
       guildInfractions,
       globalInfractions,
       guildMessages: guildMessages.toLocaleString(),
-      globalMessages: globalMessages.toLocaleString(),
+      globalMessages: globalMessages === null ? t("utility.info.ghostModeShort", "private (Ghost Mode)") : globalMessages.toLocaleString(),
     },
   );
 

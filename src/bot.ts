@@ -115,6 +115,7 @@ import {
 } from "./plugins/companion_channels/functions/interface.js";
 import { handleTranslateAutocomplete } from "./plugins/translation/commands.js";
 import { LANGUAGE_SELECT_PREFIX, handleLanguageSelectInteraction } from "./plugins/language/index.js";
+import { handleGhostButton, handleGhostSelect, isGhostComponent } from "./plugins/stats/functions/ghostModeUi.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
 import { handleTimeAutocomplete } from "./plugins/utility/functions/time.js";
 import { handleHangarButton, handleHangarModal, handlePlanesAutocomplete, isHangarComponent } from "./plugins/economy/index.js";
@@ -512,6 +513,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Role panel button", () => handleRolePanelButtonInteraction(interaction));
         if (handled) return;
       }
+      if (isGhostComponent(interaction.customId)) {
+        const handled = await safeHandle(interaction, "Ghost Mode button", () => handleGhostButton(interaction));
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(`${STATS_PREFIX}:`)) {
         const handled = await safeHandle(interaction, "Stats button", () => handleStatsButtonInteraction(configManager, interaction));
         if (handled) return;
@@ -526,6 +531,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     if (interaction.isStringSelectMenu()) {
       if (interaction.customId === LANGUAGE_SELECT_PREFIX) {
         const handled = await safeHandle(interaction, "Language select", () => handleLanguageSelectInteraction(interaction));
+        if (handled) return;
+      }
+      if (isGhostComponent(interaction.customId)) {
+        const handled = await safeHandle(interaction, "Ghost Mode select", () => handleGhostSelect(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(TICKET_PREFIX)) {

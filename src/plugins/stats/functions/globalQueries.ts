@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { offloaded } from "../../../core/offload.js";
 import { cachedSwr } from "../../../bridge/responseCache.js";
 import { getDb } from "../../../db/client.js";
@@ -199,13 +199,17 @@ export const getFilledGlobalDailyStats = offloaded("plugins/stats/functions/glob
 export const getTopGlobalUsersByDaily = offloaded("plugins/stats/functions/globalQueries", "getTopGlobalUsersByDaily", async function getTopGlobalUsersByDaily(
   days = 14,
   limit = 15,
+  /** End the window at 00:00 UTC today instead of now (the window keeps its length): what other
+   *  people are shown, see core/privacy. */
+  excludeToday = false,
 ): Promise<Array<{ userId: string; count: number }>> {
   if (isAllTimeWindow(days)) {
     return getTopGlobalMessagers(limit);
   }
 
   const db = getDb();
-  const since = windowSince(days);
+  const today = statDate();
+  const since = excludeToday ? dateRange(days, new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000))[0]! : windowSince(days);
   const query = db
     .select({
       userId: guildStatsUserDaily.userId,
@@ -214,7 +218,7 @@ export const getTopGlobalUsersByDaily = offloaded("plugins/stats/functions/globa
     .from(guildStatsUserDaily);
 
   const rows = await (since
-    ? query.where(gte(guildStatsUserDaily.statDate, since))
+    ? query.where(excludeToday ? and(gte(guildStatsUserDaily.statDate, since), lt(guildStatsUserDaily.statDate, today)) : gte(guildStatsUserDaily.statDate, since))
     : query
   )
     .groupBy(guildStatsUserDaily.userId)

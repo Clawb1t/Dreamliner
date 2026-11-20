@@ -10,6 +10,7 @@ import { configManager } from "../../../config/manager.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { parsePluginConfig } from "../../../core/pluginSchemas.js";
+import { channelInList, type ChannelScopeSource } from "../../../core/channelMatch.js";
 
 export const PLUGIN = "activity_rewards";
 
@@ -114,9 +115,9 @@ export function managedRoleIds(config: ActivityRewardsConfig): Set<string> {
   return new Set(activeMilestones(config).flatMap((m) => m.roles));
 }
 
-export function isIgnoredChannel(config: ActivityRewardsConfig, ...ids: Array<string | null | undefined>): boolean {
-  if (config.ignored_channels.length === 0) return false;
-  return ids.some((id) => Boolean(id) && config.ignored_channels.includes(id!));
+/** The channel, its category, or (for a thread) its parent channel or that channel's category. */
+export function isIgnoredChannel(config: Pick<ActivityRewardsConfig, "ignored_channels">, channel: ChannelScopeSource): boolean {
+  return channelInList(config.ignored_channels, channel);
 }
 
 export function hasIgnoredRole(config: ActivityRewardsConfig, roleIds: Iterable<string>): boolean {

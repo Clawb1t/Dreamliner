@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { getEditorPluginCategories } from "../core/helpCategories.js";
 import { getPermissionCatalog } from "../core/permissionCatalog.js";
+import { CATEGORY_CHANNEL_FIELDS } from "./categoryChannelFields.js";
 import { getDefaultConfigPath, loadDefaultConfigRaw } from "./default.js";
 import { enrichJsonSchemaForEditor } from "./schemaHelp.js";
 import { zGuildConfig } from "./schemas/guild.js";
@@ -41,6 +42,8 @@ export type GuildConfigEditorArtifacts = {
       category: string;
       categoryId: string;
     }>;
+    /** Channel-list fields that also accept whole categories (see categoryChannelFields.ts). */
+    categoryChannelFields: string[];
   };
   templateYaml: string;
 };
@@ -87,6 +90,7 @@ export function buildGuildConfigEditorArtifacts(): GuildConfigEditorArtifacts {
         categoryId: category.id,
       })),
     ),
+    categoryChannelFields: [...CATEGORY_CHANNEL_FIELDS],
   };
 
   return {

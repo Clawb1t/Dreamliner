@@ -41,6 +41,10 @@ import { getUserState } from "../state.js";
 import { createTrade, listTrades } from "../trades.js";
 import { copyView, viewContext, type HangarCopyView } from "../view.js";
 import { HE } from "./emojis.js";
+import { canViewCrossServerData, listHiddenFromGlobalBoards } from "../../../../core/privacy/ghostMode.js";
+import { withoutHidden } from "../../../../core/privacy/policy.js";
+import { APP_EMOJI } from "../../../../core/appEmojis.js";
+import { resultReply, slashResultOptions } from "../../../../core/responses.js";
 import { buildHangarPage, buildTradeMessage, buildTradeRow } from "./pages.js";
 import {
   HANGAR_PREFIX,
@@ -369,11 +373,26 @@ async function execute(ctx: SlashCommandContext): Promise<void> {
   const userId = i.user.id;
 
   const need = async (flag: string) => Boolean(await requirePluginPermission(ctx, "economy", flag));
+  /** The Hangar is one collection across every server: someone else's under Ghost Mode stays
+   *  private (core/privacy). Replies and returns true when blocked. */
+  const ghosted = async (target: { id: string }) => {
+    if (target.id === userId || canViewCrossServerData(userId, target.id) !== "hidden") return false;
+    await i.reply(
+      resultReply(
+        t("economy.ghostTitle", "Ghost Mode is on"),
+        t("economy.hangar.ghostBody", "<@{user}> has chosen to keep their activity across servers private, including their Hangar.", { user: target.id }),
+        true,
+        slashResultOptions(ctx, { emoji: APP_EMOJI.locked }),
+      ),
+    );
+    return true;
+  };
 
   // ── /planes hangar ──
   if (!group && name === "hangar") {
     if (!(await need("can_view"))) return;
     const target = i.options.getUser("user") ?? i.user;
+    if (await ghosted(target)) return;
     await i.deferReply({ flags: ctx.ephemeral ? MessageFlags.Ephemeral : undefined });
     await guarded(ctx, async () => {
       const page = await buildHangarPage({ viewerId: userId, targetId: target.id, targetName: target.displayName, index: 0, t });
@@ -493,6 +512,7 @@ async function execute(ctx: SlashCommandContext): Promise<void> {
   if (!group && name === "rank") {
     if (!(await need("can_view"))) return;
     const target = i.options.getUser("user") ?? i.user;
+    if (await ghosted(target)) return;
     const state = getUserState(target.id);
     const fleet = state?.fleetValue ?? 0;
     const rank = pilotRankView(fleet);
@@ -517,7 +537,8 @@ async function execute(ctx: SlashCommandContext): Promise<void> {
     const scope = i.options.getString("scope") ?? "global";
     await i.deferReply({ flags: ctx.ephemeral ? MessageFlags.Ephemeral : undefined });
     const memberIds = scope === "server" && i.guild ? await hangarMembersOf(i.guild) : null;
-    const entries = leaderboard(board, { memberIds, limit: 15 });
+    // Ghost Mode users are left off and the rest renumbered.
+    const entries = withoutHidden(leaderboard(board, { memberIds, limit: 40 }), listHiddenFromGlobalBoards(), 15);
     const lines = entries.length
       ? entries.map((e) => `\`#${e.rank}\` <@${e.userId}>  \`${e.value.toLocaleString("en-US")}\``)
       : [t("economy.hangar.leaderboard.empty", "Nobody here yet. Open a pack to get started.")];
@@ -530,6 +551,7 @@ async function execute(ctx: SlashCommandContext): Promise<void> {
   if (!group && name === "sets") {
     if (!(await need("can_view"))) return;
     const target = i.options.getUser("user") ?? i.user;
+    if (await ghosted(target)) return;
     const sets = setsProgress(target.id);
     const lines = sets.length
       ? sets.map(

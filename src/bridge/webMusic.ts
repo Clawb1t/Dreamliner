@@ -294,7 +294,7 @@ export async function joinWebVoiceSession(guild: Guild, userId: string): Promise
   if (!voiceChannelId) {
     return { ok: false, status: 400, error: "Join a voice channel first." };
   }
-  const channelBlock = musicChannelBlock(auth.config, voiceChannelId);
+  const channelBlock = musicChannelBlock(auth.config, guild, voiceChannelId);
   if (channelBlock) return { ok: false, status: 403, error: channelBlock };
 
   const guildConfig = await configManager.getEffectiveConfig(guild.id);

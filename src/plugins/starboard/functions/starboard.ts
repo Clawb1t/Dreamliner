@@ -28,6 +28,7 @@ import {
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
 import { pluginEnabled } from "../../../core/pluginCommand.js";
+import { channelInList } from "../../../core/channelMatch.js";
 
 const processingLocks = new Map<string, Promise<void>>();
 
@@ -287,7 +288,8 @@ async function processBoard(
   if (!message.guild || !board.enabled || !board.channel_id) return;
   const channelIds = sourceChannelIds(message);
   if (channelIds.some((id) => starboardChannelIds.has(id))) return;
-  if (channelIds.some((id) => board.ignored_channels.includes(id))) return;
+  // May hold category ids: a message in an ignored category (or a thread under one) is skipped.
+  if (channelInList(board.ignored_channels, message.channel)) return;
   if (!board.allow_nsfw && isNsfwSourceChannel(message)) return;
   if (message.author?.bot && !board.allow_bot_messages) return;
   if (await authorHasIgnoredRole(message, board.ignored_roles)) return;

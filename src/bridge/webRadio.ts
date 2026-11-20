@@ -186,7 +186,7 @@ export async function webTuneRadio(guild: Guild, userId: string, stationId: stri
 
   const voiceChannelId = auth.member.voice.channelId;
   if (!voiceChannelId) return { ok: false, status: 400, error: "Join a voice channel first." };
-  const block = musicChannelBlock(auth.config, voiceChannelId);
+  const block = musicChannelBlock(auth.config, guild, voiceChannelId);
   if (block) return { ok: false, status: 403, error: block };
 
   const textChannelId = auth.config.announce_channel_id || guild.systemChannelId || guild.id;

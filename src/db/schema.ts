@@ -252,6 +252,12 @@ export const userMessageCounts = sqliteTable(
     count: integer("count").notNull().default(0),
     /** When this user last sent a tracked message, for public-profile "last seen". */
     lastMessageAt: integer("last_message_at", { mode: "timestamp" }),
+    /** Ghost Mode / cross-server privacy: `count` and `lastMessageAt` as they were at 00:00 UTC on
+     *  `dayStartDate`. Kept by SQLite triggers (migration 0152), never written by app code. Other
+     *  people see these instead of the live values. */
+    dayStartCount: integer("day_start_count"),
+    dayStartLastAt: integer("day_start_last_at", { mode: "timestamp" }),
+    dayStartDate: text("day_start_date"),
   },
   // Global rank and the global top list order by count; without this they scan every user.
   (table) => [index("user_message_counts_count").on(table.count)],
@@ -986,7 +992,32 @@ export const userProfiles = sqliteTable("user_profiles", {
   hideServersSection: integer("hide_servers_section", { mode: "boolean" }).notNull().default(false),
   /** Show Avia, the help assistant, on dashboard pages. On by default; turned off in account settings. */
   aviaDashboard: integer("avia_dashboard", { mode: "boolean" }).notNull().default(true),
+  /** Ghost Mode: hide this user's cross-server activity from other people. Display only: nothing
+   *  stops being tracked. Expires on its own once `ghostUntil` passes (null = until turned off). */
+  ghostMode: integer("ghost_mode", { mode: "boolean" }).notNull().default(false),
+  ghostUntil: integer("ghost_until", { mode: "timestamp" }),
+  /** Leave this user off the global leaderboards, with or without Ghost Mode. */
+  ghostHideLeaderboards: integer("ghost_hide_leaderboards", { mode: "boolean" }).notNull().default(false),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+/** People who still see a Ghost Mode user's live data (capped per user, see core/privacy). */
+export const ghostModeAllowlist = sqliteTable(
+  "ghost_mode_allowlist",
+  {
+    userId: text("user_id").notNull(),
+    viewerId: text("viewer_id").notNull(),
+    addedAt: integer("added_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.viewerId] }), index("ghost_mode_allowlist_viewer").on(table.viewerId)],
+);
+
+/** The global leaderboards, frozen once per UTC day (core/privacy/boardSnapshots.ts). */
+export const globalBoardSnapshots = sqliteTable("global_board_snapshots", {
+  board: text("board").primaryKey(),
+  snapshotDate: text("snapshot_date").notNull(),
+  payload: text("payload").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
 /** Platform-wide badge definitions (Developer, Dreamliner One Supporter, etc.), superuser-managed. */
@@ -1010,6 +1041,9 @@ export const userHourlyActivity = sqliteTable(
     userId: text("user_id").notNull(),
     hourUtc: integer("hour_utc", { mode: "number" }).notNull(),
     count: integer("count", { mode: "number" }).notNull().default(0),
+    /** `count` at 00:00 UTC on `dayStartDate` (trigger-maintained, migration 0152). */
+    dayStartCount: integer("day_start_count", { mode: "number" }),
+    dayStartDate: text("day_start_date"),
   },
   (table) => [primaryKey({ columns: [table.userId, table.hourUtc] })],
 );
@@ -1204,6 +1238,12 @@ export const economyGlobalAccounts = sqliteTable("economy_global_accounts", {
   lastMessageAt: integer("last_message_at", { mode: "timestamp" }),
   lastDailyAt: integer("last_daily_at", { mode: "timestamp" }),
   dailyStreak: integer("daily_streak", { mode: "number" }).notNull().default(0),
+  /** Balance/streak as of 00:00 UTC on `dayStartDate`, shown to other people (trigger-maintained,
+   *  migration 0152). */
+  dayStartBalance: real("day_start_balance"),
+  dayStartStreak: integer("day_start_streak", { mode: "number" }),
+  dayStartLastDailyAt: integer("day_start_last_daily_at", { mode: "timestamp" }),
+  dayStartDate: text("day_start_date"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });

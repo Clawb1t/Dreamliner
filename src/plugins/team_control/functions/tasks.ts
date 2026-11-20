@@ -26,6 +26,7 @@ import {
   pruneGuildHistory,
   setInactivityAlert,
 } from "./store.js";
+import { channelInList } from "../../../core/channelMatch.js";
 
 const log = getLogger("team_control");
 
@@ -64,8 +65,8 @@ export async function countStaffMessage(message: Message): Promise<void> {
   if (!runtime || !runtime.config.activity.enabled) return;
   const channels = runtime.config.activity.staff_channel_ids;
   if (channels.length === 0) return;
-  const channelId = message.channel.isThread() ? (message.channel.parentId ?? message.channelId) : message.channelId;
-  if (!channels.includes(channelId) && !channels.includes(message.channelId)) return;
+  // May hold category ids: the channel, its category, or a thread's parent channel or category.
+  if (!channelInList(channels, message.channel)) return;
   if (!isOnTeam(message.member, runtime.config.ranks)) return;
   const key = `${message.guildId}:${message.author.id}:${dayKey(Date.now())}`;
   messageBuffer.set(key, (messageBuffer.get(key) ?? 0) + 1);

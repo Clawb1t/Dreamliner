@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-20T16:01:39.470Z",
+  "generatedAt": "2026-11-20T20:10:39.034Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -728,5 +728,26 @@
       "category": "Support",
       "categoryId": "support"
     }
+  ],
+  "categoryChannelFields": [
+    "automod.ignored_channels",
+    "automod.rules.*.ignored_channels",
+    "activity_rewards.ignored_channels",
+    "reviews.ignored_channels",
+    "suggestions.ignored_channels",
+    "suggestions.command_channels",
+    "starboard.ignored_channels",
+    "starboard.boards.*.ignored_channels",
+    "music.allowed_voice_channels",
+    "music.allowed_text_channels",
+    "team_control.activity.staff_channel_ids",
+    "translation.ignored_channels",
+    "characters.allowed_channels",
+    "characters.blocked_channels",
+    "slowmode.rules.*.channels",
+    "autoreactions.rules.*.channel_id",
+    "autoreplies.rules.*.channel_id",
+    "autothreads.rules.*.channel_id",
+    "autodelete.rules.*.channel_id"
   ]
 }

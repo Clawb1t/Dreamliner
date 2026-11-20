@@ -36,6 +36,7 @@ import {
   userMessageCounts,
   usernameSnapshots,
   userProfiles,
+  ghostModeAllowlist,
   welcomeJoinMessages,
 } from "../db/schema.js";
 
@@ -170,6 +171,18 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       rows: serializable([
         ...(await db.select().from(birthdayCelebrations).where(eq(birthdayCelebrations.userId, userId)).all()),
         ...(await db.select().from(birthdayWishes).where(eq(birthdayWishes.userId, userId)).all()),
+      ]),
+    },
+    ghost_mode: {
+      label: "Ghost Mode",
+      description: "Your Ghost Mode switch, when it ends, whether you're hidden from global leaderboards, and the people on your allow list.",
+      rows: serializable([
+        ...(await db
+          .select({ ghostMode: userProfiles.ghostMode, ghostUntil: userProfiles.ghostUntil, ghostHideLeaderboards: userProfiles.ghostHideLeaderboards })
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, userId))
+          .all()),
+        ...(await db.select().from(ghostModeAllowlist).where(eq(ghostModeAllowlist.userId, userId)).all()),
       ]),
     },
     username_snapshots: {

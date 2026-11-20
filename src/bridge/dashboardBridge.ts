@@ -16,6 +16,8 @@ import { isDashboardSuperuser } from "./superuser.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
 import { bridgeRateLimit, clipPasswordFailures } from "./rateLimit.js";
 import { getLogger } from "../core/logger.js";
+import { invalidateCached as dropCached } from "./responseCache.js";
+import { onGhostModeChange } from "../core/privacy/ghostMode.js";
 import type { WebMusicTrack } from "./webMusic.js";
 
 const log = getLogger("bridge");
@@ -149,6 +151,25 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
     "Content-Length": Buffer.byteLength(payload),
   });
   res.end(payload);
+}
+
+/**
+ * Who is looking at a public profile part: the website passes the signed-in viewer's id (from its
+ * Auth.js session, never from the browser) as `?viewer=`. Absent = anonymous. The cross-server
+ * privacy gate (core/privacy) decides what that viewer may see.
+ */
+function profileViewerId(url: URL): string | null {
+  const raw = url.searchParams.get("viewer");
+  return raw && /^\d{15,22}$/.test(raw) ? raw : null;
+}
+
+/** Drops every cached public view of one user (all viewers), plus the shared boards they can be on. */
+function invalidatePublicProfileCaches(userId: string): void {
+  for (const prefix of ["pp", "pp-id", "pp-stats", "pp-act", "pp-hours", "pp-servers", "pp-cards"]) {
+    dropCached(`${prefix}:${userId}:`);
+  }
+  dropCached("leaderboard:");
+  dropCached("stats:global:");
 }
 
 function sendBinary(
@@ -305,6 +326,10 @@ async function buildEntities(guild: Guild, fresh = false) {
       name: ch.name,
       type: channelKind(ch.type),
       parentId: "parentId" in ch ? (ch.parentId ?? null) : null,
+      // Discord's sidebar order (categories and channels) and the raw channel type, so the
+      // dashboard picker can group by category and show announcement/stage/forum icons.
+      position: "rawPosition" in ch ? ch.rawPosition : 0,
+      discordType: ch.type,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -356,6 +381,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   const port = getDashboardBridgePort();
 
   if (server) return;
+
+  // Ghost Mode on/off or an allow list change: nothing cached may keep showing the old view.
+  onGhostModeChange((userId) => invalidatePublicProfileCaches(userId));
 
   server = http.createServer((req, res) => {
     const requestStart = process.hrtime.bigint();
@@ -786,6 +814,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
         const ttsPreviewMatch = /^\/bridge\/users\/(\d+)\/tts\/preview$/.exec(url.pathname);
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
+        // Ghost Mode (webGhostMode.ts): user-scoped, the signed-in user's id is in the path.
+        const ghostModeMatch = /^\/bridge\/users\/(\d{15,22})\/ghost-mode(?:\/(allow|people)(?:\/(\d{15,22}))?)?$/.exec(url.pathname);
         const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
         const storeMatch = /^\/bridge\/users\/(\d+)\/store(?:\/(claim|servers|purchase|reminders))?$/.exec(url.pathname);
         const storeVoteMatch = url.pathname === "/bridge/store/votes";
@@ -857,6 +887,54 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (ghostModeMatch) {
+          const ghostUserId = ghostModeMatch[1]!;
+          const sub = ghostModeMatch[2];
+          const target = ghostModeMatch[3];
+          const ghost = await import("./webGhostMode.js");
+          const readJson = async (): Promise<Record<string, unknown> | null> => {
+            try {
+              return JSON.parse(await readBody(req)) as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return null;
+            }
+          };
+          const finish = async (result: { ok: true } | { ok: false; status: number; error: string }) => {
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true, ghostMode: await ghost.getGhostModeForWeb(client, ghostUserId) });
+          };
+          if (!sub && !target && req.method === "GET") {
+            sendJson(res, 200, { ok: true, ghostMode: await ghost.getGhostModeForWeb(client, ghostUserId) });
+            return;
+          }
+          if (!sub && !target && req.method === "PUT") {
+            const body = await readJson();
+            if (!body) return;
+            await finish(ghost.updateGhostModeForWeb(ghostUserId, body));
+            return;
+          }
+          if (sub === "allow" && !target && req.method === "POST") {
+            const body = await readJson();
+            if (!body) return;
+            await finish(ghost.addGhostAllowForWeb(ghostUserId, body.viewerId));
+            return;
+          }
+          if (sub === "allow" && target && req.method === "DELETE") {
+            await finish(ghost.removeGhostAllowForWeb(ghostUserId, target));
+            return;
+          }
+          if (sub === "people" && !target && req.method === "GET") {
+            sendJson(res, 200, { ok: true, people: ghost.searchGhostPeople(client, ghostUserId, url.searchParams.get("q") ?? "") });
+            return;
+          }
+          sendJson(res, 404, { error: "Not found" });
           return;
         }
 
@@ -1535,9 +1613,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
           const profile = await upsertUserProfileFields(profileMatch[1]!, patch);
           // The public profile is served from cache: drop it so the change shows on the next view.
-          const { invalidateCached } = await import("./responseCache.js");
-          invalidateCached(`pp-id:${profileMatch[1]!}`);
-          invalidateCached(`pp:${profileMatch[1]!}`);
+          invalidatePublicProfileCaches(profileMatch[1]!);
           sendJson(res, 200, { ok: true, profile });
           return;
         }
@@ -1905,7 +1981,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (publicProfileMatch && req.method === "GET") {
           const { buildPublicUserProfile } = await import("./userPublicProfile.js");
           const { cached } = await import("./responseCache.js");
-          const profile = await cached(`pp:${publicProfileMatch[1]!}`, 30_000, () => buildPublicUserProfile(client, publicProfileMatch[1]!));
+          const profile = await cached(`pp:${publicProfileMatch[1]!}:anon`, 30_000, () => buildPublicUserProfile(client, publicProfileMatch[1]!));
           if (!profile) {
             sendJson(res, 404, { error: "User not found." });
             return;
@@ -1920,12 +1996,15 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (publicProfileIdentityMatch && req.method === "GET") {
           const { buildPublicProfileIdentity, ProfileBusyError } = await import("./userPublicProfile.js");
           const { cachedSwr, invalidateCached } = await import("./responseCache.js");
-          const key = `pp-id:${publicProfileIdentityMatch[1]!}`;
+          // Viewer-aware (Ghost Mode, core/privacy): one cache entry per viewer, dropped on any
+          // Ghost Mode change (see onGhostModeChange below).
+          const viewerId = profileViewerId(url);
+          const key = `pp-id:${publicProfileIdentityMatch[1]!}:${viewerId ?? "anon"}`;
           // Fresh for a minute, then served instantly from memory while it refreshes in the
           // background: a profile view never waits on Discord after the first one.
           let identity;
           try {
-            identity = await cachedSwr(key, 60_000, 6 * 60 * 60_000, () => buildPublicProfileIdentity(client, publicProfileIdentityMatch[1]!));
+            identity = await cachedSwr(key, 60_000, 6 * 60 * 60_000, () => buildPublicProfileIdentity(client, publicProfileIdentityMatch[1]!, viewerId));
           } catch (error) {
             if (error instanceof ProfileBusyError) {
               sendJson(res, 503, { error: error.message, retry: true });
@@ -1949,7 +2028,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (publicProfileStatsMatch && req.method === "GET") {
           const { buildPublicProfileStats } = await import("./userPublicProfile.js");
           const { cached } = await import("./responseCache.js");
-          const stats = await cached(`pp-stats:${publicProfileStatsMatch[1]!}`, 30_000, async () => buildPublicProfileStats(publicProfileStatsMatch[1]!));
+          const viewerId = profileViewerId(url);
+          const stats = await cached(`pp-stats:${publicProfileStatsMatch[1]!}:${viewerId ?? "anon"}`, 30_000, async () => buildPublicProfileStats(publicProfileStatsMatch[1]!, viewerId));
           sendJson(res, 200, { ok: true, stats });
           return;
         }
@@ -1960,7 +2040,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (publicProfileActivityMatch && req.method === "GET") {
           const { buildPublicProfileActivity } = await import("./userPublicProfile.js");
           const { cached } = await import("./responseCache.js");
-          const daily = await cached(`pp-act:${publicProfileActivityMatch[1]!}`, 60_000, async () => buildPublicProfileActivity(publicProfileActivityMatch[1]!));
+          const viewerId = profileViewerId(url);
+          const daily = await cached(`pp-act:${publicProfileActivityMatch[1]!}:${viewerId ?? "anon"}`, 60_000, async () => buildPublicProfileActivity(publicProfileActivityMatch[1]!, viewerId));
           sendJson(res, 200, { ok: true, daily });
           return;
         }
@@ -1971,7 +2052,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (publicProfileHoursMatch && req.method === "GET") {
           const { buildPublicProfileHours } = await import("./userPublicProfile.js");
           const { cached } = await import("./responseCache.js");
-          const activeHoursUtc = await cached(`pp-hours:${publicProfileHoursMatch[1]!}`, 60_000, async () => buildPublicProfileHours(publicProfileHoursMatch[1]!));
+          const viewerId = profileViewerId(url);
+          const activeHoursUtc = await cached(`pp-hours:${publicProfileHoursMatch[1]!}:${viewerId ?? "anon"}`, 60_000, async () => buildPublicProfileHours(publicProfileHoursMatch[1]!, viewerId));
           sendJson(res, 200, { ok: true, activeHoursUtc });
           return;
         }
@@ -1982,7 +2064,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (publicProfileServersMatch && req.method === "GET") {
           const { buildPublicProfileServers } = await import("./userPublicProfile.js");
           const { cached } = await import("./responseCache.js");
-          const guilds = await cached(`pp-servers:${publicProfileServersMatch[1]!}`, 60_000, () => buildPublicProfileServers(client, publicProfileServersMatch[1]!));
+          const viewerId = profileViewerId(url);
+          const guilds = await cached(`pp-servers:${publicProfileServersMatch[1]!}:${viewerId ?? "anon"}`, 60_000, () => buildPublicProfileServers(client, publicProfileServersMatch[1]!, viewerId));
           sendJson(res, 200, { ok: true, guilds });
           return;
         }
@@ -1993,7 +2076,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         if (publicProfileCardsMatch && req.method === "GET") {
           const { buildPublicProfileCards } = await import("./userPublicProfile.js");
           const { cached } = await import("./responseCache.js");
-          const cards = await cached(`pp-cards:${publicProfileCardsMatch[1]!}`, 30_000, async () => buildPublicProfileCards(publicProfileCardsMatch[1]!));
+          const viewerId = profileViewerId(url);
+          const cards = await cached(`pp-cards:${publicProfileCardsMatch[1]!}:${viewerId ?? "anon"}`, 30_000, async () => buildPublicProfileCards(publicProfileCardsMatch[1]!, viewerId));
           sendJson(res, 200, { ok: true, ...cards });
           return;
         }

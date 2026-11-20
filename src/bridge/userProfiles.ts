@@ -23,6 +23,7 @@ import {
   suggestionVotes,
   userMessageCounts,
   usernameSnapshots,
+  ghostModeAllowlist,
   userCosmeticsEquipped,
   userProfiles,
   userProgressionBadgeHidden,
@@ -304,6 +305,14 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       ),
     },
     {
+      key: "ghost_mode_allowlist",
+      label: "Ghost Mode allow list",
+      description: "People you chose to still see your live activity while Ghost Mode is on. Your Ghost Mode switch itself is part of your profile preferences.",
+      total: countRows(() =>
+        db.select({ total: count() }).from(ghostModeAllowlist).where(eq(ghostModeAllowlist.userId, userId)).get(),
+      ),
+    },
+    {
       key: "username_snapshots",
       label: "Username snapshots",
       description: "Stored username snapshots for change tracking.",
@@ -552,6 +561,13 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   await wipe(
     "username_snapshots",
     db.delete(usernameSnapshots).where(eq(usernameSnapshots.userId, userId)).returning(),
+  );
+  // Ghost Mode: the switch lives on user_profiles (wiped above, so it turns off like every other
+  // profile preference) and the user's own allow list goes here. Entries naming this user on
+  // OTHER people's allow lists are those people's choices and stay.
+  await wipe(
+    "ghost_mode_allowlist",
+    db.delete(ghostModeAllowlist).where(eq(ghostModeAllowlist.userId, userId)).returning(),
   );
   const { deleteUserInviteData } = await import("../plugins/invite_tracker/functions/store.js");
   deleted.invite_tracker = deleteUserInviteData(userId);

@@ -2,12 +2,10 @@ import type { Guild, User } from "discord.js";
 import { renderRankCard, type RankCardRow } from "./charts.js";
 import { formatSharePct, sharePctValue } from "./analysis.js";
 import { getActiveMessagerCount, getTotalGuildMessages, getUserMessageCount, getUserMessageRank } from "./queries.js";
-import {
-  getGlobalActiveMessagerCount,
-  getGlobalTrackedMessagesTotal,
-  getGlobalUserMessageCount,
-  getGlobalUserMessageRank,
-} from "./globalQueries.js";
+import { getGlobalTrackedMessagesTotal } from "./globalQueries.js";
+import { globalStatsFor } from "../../../core/privacy/crossServer.js";
+import { canViewCrossServerData } from "../../../core/privacy/ghostMode.js";
+import { filterBadgesForAccess } from "../../../core/privacy/policy.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
 import { getProgressionBadges, loadBadgeImage } from "../../../core/progressionBadges/index.js";
@@ -21,6 +19,7 @@ const log = getLogger("stats");
 export type RankScope = "server" | "global";
 
 export type RankResult = {
+  ghost?: false;
   buffer: Buffer;
   rank: number;
   totalRanked: number;
@@ -28,6 +27,9 @@ export type RankResult = {
   /** When the equipped background is animated: renders the card as a GIF (null if that fails). */
   animate?: () => Promise<Buffer | null>;
 };
+
+/** A global rank asked for someone in Ghost Mode: no card, the command says so instead. */
+export type GhostRankResult = { ghost: true };
 
 /** The still card, plus its GIF version when the member's background has animation frames. */
 async function renderCard(userId: string, row: RankCardRow, t: Translator): Promise<{ buffer: Buffer; animate?: () => Promise<Buffer | null> }> {
@@ -81,7 +83,13 @@ export async function renderUserRankCard(
   guild: Guild,
   user: User,
   t: Translator = defaultTranslator,
-): Promise<RankResult> {
+  /** Who ran the command. Global numbers go through the cross-server gate (core/privacy). */
+  viewerId: string | null = null,
+): Promise<RankResult | GhostRankResult> {
+  // Global scope is activity across every server: someone else's is a 00:00 UTC snapshot, or
+  // nothing at all under Ghost Mode. Server scope is this server's own data and stays live.
+  const access = scope === "global" ? canViewCrossServerData(viewerId, user.id) : "live";
+  if (access === "hidden") return { ghost: true };
   // Banners aren't included on cached User objects — a forced fetch is required to see one.
   // Retried a few times: a single rate limit or network blip here used to mean the card just
   // rendered with no banner, since there was nothing to fall back to and nothing that retried.
@@ -95,7 +103,9 @@ export async function renderUserRankCard(
     ),
     getUserProfile(user.id),
     listDisplayedUserBadges(user.id),
-    getProgressionBadges(guild.client, user.id).catch(() => []),
+    getProgressionBadges(guild.client, user.id)
+      .then((list) => filterBadgesForAccess(list, canViewCrossServerData(viewerId, user.id)))
+      .catch(() => []),
   ]);
   const name = displayName(member, user);
   // Sized for the 4x card: the avatar draws at 256px and the banner spans 1840px.
@@ -111,12 +121,12 @@ export async function renderUserRankCard(
   const cosmetics = safeCosmetics(user.id);
 
   if (scope === "global") {
-    const [count, total, activeUsers] = await Promise.all([
-      getGlobalUserMessageCount(user.id),
-      getGlobalTrackedMessagesTotal(),
-      getGlobalActiveMessagerCount(),
-    ]);
-    const rank = count > 0 ? await getGlobalUserMessageRank(count) : activeUsers + 1;
+    const view = globalStatsFor(viewerId, user.id);
+    if (view.access === "hidden") return { ghost: true };
+    const total = await getGlobalTrackedMessagesTotal();
+    const count = view.totalMessages;
+    const activeUsers = view.activeMessagers;
+    const rank = view.globalRank ?? activeUsers + 1;
     const row: RankCardRow = {
       rank,
       name,

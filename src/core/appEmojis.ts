@@ -27,6 +27,10 @@ export const APP_EMOJI = {
   join: "<:icons_join:1544417310780166154>",
   leave: "<:icons_leave:1544417327335088148>",
   clock: "<:icons_clock:1544417185336664114>",
+  /** Ghost Mode on (and other privacy replies). */
+  locked: "<:icons_locked:1544417721612247171>",
+  /** Ghost Mode off. */
+  unlock: "<:icons_unlock:1544417749617610852>",
   first: "<:1_:1570990883984384050>",
   second: "<:icons_2:1544417991813238868>",
   third: "<:icons_3:1544417993449013308>",

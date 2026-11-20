@@ -57,43 +57,6 @@ export async function guildTrafficTotal(guildId: string): Promise<number> {
   return Number(row?.total ?? 0);
 }
 
-/** Lightweight global message-count + rank lookup, shared with the public profile builder. */
-export async function getGlobalMessageStats(userId: string): Promise<{
-  totalMessages: number;
-  globalRank: number | null;
-  activeMessagers: number;
-  serverCount: number;
-  lastActiveAt: Date | null;
-}> {
-  const db = getDb();
-  const [globalRow, activeRow, serverRow] = await Promise.all([
-    db.select().from(userMessageCounts).where(eq(userMessageCounts.userId, userId)).get(),
-    db.select({ total: count() }).from(userMessageCounts).where(gte(userMessageCounts.count, 1)).get(),
-    db.select({ total: count() }).from(guildMessageCounts).where(eq(guildMessageCounts.userId, userId)).get(),
-  ]);
-  const totalMessages = Number(globalRow?.count ?? 0);
-  const activeMessagers = Number(activeRow?.total ?? 0);
-  const serverCount = Number(serverRow?.total ?? 0);
-
-  let globalRank: number | null = null;
-  if (totalMessages > 0) {
-    const higher = await db
-      .select({ total: count() })
-      .from(userMessageCounts)
-      .where(gt(userMessageCounts.count, totalMessages))
-      .get();
-    globalRank = Number(higher?.total ?? 0) + 1;
-  }
-
-  return {
-    totalMessages,
-    globalRank,
-    activeMessagers,
-    serverCount,
-    lastActiveAt: globalRow?.lastMessageAt ?? null,
-  };
-}
-
 export async function buildUserPersonalStats(
   client: Client,
   userId: string,

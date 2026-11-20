@@ -150,7 +150,7 @@ export const playlistCommand: SlashCommandDefinition = {
       await interaction.reply(lineReply(`${MUSIC_EMOJI.error} Join a voice channel first.`, ephemeral));
       return;
     }
-    const channelBlock = musicChannelBlock(auth.config, voiceChannelId, interaction.channelId);
+    const channelBlock = musicChannelBlock(auth.config, interaction.guild, voiceChannelId, interaction.channelId);
     if (channelBlock) {
       await interaction.reply(lineReply(`${MUSIC_EMOJI.error} ${channelBlock}`, ephemeral));
       return;

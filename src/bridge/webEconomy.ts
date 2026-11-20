@@ -7,6 +7,7 @@ import { ensureGlobalAccount, ensureServerAccount, round2 } from "../plugins/eco
 import { getDb } from "../db/client.js";
 import { economyGlobalAccounts } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import { globalEconomyFor } from "../core/privacy/crossServer.js";
 
 export type BridgeResult<T> = ({ ok: true } & T) | { ok: false; error: string; status: number };
 
@@ -61,7 +62,9 @@ export async function getEconomyAccount(
 ): Promise<
   BridgeResult<{
     userId: string;
-    global: { balance: number; lastMessageAt: string | null; lastDailyAt: string | null; dailyStreak: number };
+    /** Activity across every server, seen by server staff: the 00:00 UTC balance and streak, no
+     *  exact times, and `hidden` under Ghost Mode (core/privacy). */
+    global: { balance: number; lastMessageAt: string | null; lastDailyAt: string | null; dailyStreak: number; hidden?: boolean };
     server: { balance: number; lastMessageAt: string | null; lastDailyAt: string | null; dailyStreak: number };
   }>
 > {
@@ -70,17 +73,15 @@ export async function getEconomyAccount(
   const target = userId.trim();
   if (!isValidUserId(target)) return { ok: false, error: "Invalid userId.", status: 400 };
 
-  const global = ensureGlobalAccount(target);
+  ensureGlobalAccount(target);
+  const global = globalEconomyFor(null, target);
   const server = ensureServerAccount(guildId, target);
   return {
     ok: true,
     userId: target,
-    global: {
-      balance: global.balance,
-      lastMessageAt: toIso(global.lastMessageAt),
-      lastDailyAt: toIso(global.lastDailyAt),
-      dailyStreak: global.dailyStreak,
-    },
+    global: global
+      ? { balance: global.balance, lastMessageAt: null, lastDailyAt: null, dailyStreak: global.streak }
+      : { balance: 0, lastMessageAt: null, lastDailyAt: null, dailyStreak: 0, hidden: true },
     server: {
       balance: server.balance,
       lastMessageAt: toIso(server.lastMessageAt),

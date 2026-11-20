@@ -4,6 +4,7 @@ import { getGuildMessageCount } from "../utility/functions/messageCounts.js";
 import { parseDuration } from "../infraction/functions/duration.js";
 import { translatorFor, type Translator } from "../../i18n/index.js";
 import { checkPassportRequirement } from "../../core/verifiedOnly.js";
+import { channelInList, guildChannelScope } from "../../core/channelMatch.js";
 
 export type EligibilityConfig = {
   min_messages?: number;
@@ -54,12 +55,15 @@ export async function checkFeedbackEligibility(options: {
   const { member, channelId, config, lastActionAt } = options;
   const { t } = await translatorFor(member.id);
 
-  if (channelId && config.ignored_channels?.includes(channelId)) {
+  // Both lists may hold category ids; the channel is looked up in this member's own guild only.
+  const channel = guildChannelScope(member.guild, channelId);
+
+  if (channel && channelInList(config.ignored_channels, channel)) {
     return { ok: false, message: t("feedback.channelIgnored", "This command cannot be used in this channel.") };
   }
 
-  if (channelId && config.command_channels && config.command_channels.length > 0) {
-    if (!config.command_channels.includes(channelId)) {
+  if (channel && config.command_channels && config.command_channels.length > 0) {
+    if (!channelInList(config.command_channels, channel)) {
       return {
         ok: false,
         message: t("feedback.channelNotDesignated", "This command can only be used in designated channels."),

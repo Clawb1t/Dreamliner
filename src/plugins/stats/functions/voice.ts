@@ -1,4 +1,4 @@
-import { and, countDistinct, desc, eq, gte, sql } from "drizzle-orm";
+import { and, countDistinct, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { offloaded } from "../../../core/offload.js";
 import { cachedSwr } from "../../../bridge/responseCache.js";
 import type { Client, VoiceState } from "discord.js";
@@ -727,6 +727,26 @@ export const computeTopGlobalVoiceUsers = offloaded("plugins/stats/functions/voi
   const rows = await db
     .select({ userId: guildStatsUserVoiceDaily.userId, seconds: total })
     .from(guildStatsUserVoiceDaily)
+    .groupBy(guildStatsUserVoiceDaily.userId)
+    .having(sql`${total} > 0`)
+    .orderBy(desc(total), guildStatsUserVoiceDaily.userId)
+    .limit(limit);
+  return rows.map((row) => ({ userId: row.userId, minutes: Math.round(Number(row.seconds) / 60), seconds: Number(row.seconds) }));
+});
+
+/** Top all-time voice users counting only days before `beforeDate` (YYYY-MM-DD, UTC): the frozen
+ *  global Voice board, so nothing from today shows (core/privacy). */
+export const computeTopGlobalVoiceUsersBefore = offloaded("plugins/stats/functions/voice", "computeTopGlobalVoiceUsersBefore", async function computeTopGlobalVoiceUsersBefore(
+  limit: number,
+  beforeDate: string,
+): Promise<{ userId: string; minutes: number; seconds: number }[]> {
+  const db = getDb();
+  const secondsExpr = effectiveSecondsExpr(guildStatsUserVoiceDaily.seconds, guildStatsUserVoiceDaily.minutes);
+  const total = sql<number>`coalesce(sum(${secondsExpr}), 0)`;
+  const rows = await db
+    .select({ userId: guildStatsUserVoiceDaily.userId, seconds: total })
+    .from(guildStatsUserVoiceDaily)
+    .where(lt(guildStatsUserVoiceDaily.statDate, beforeDate))
     .groupBy(guildStatsUserVoiceDaily.userId)
     .having(sql`${total} > 0`)
     .orderBy(desc(total), guildStatsUserVoiceDaily.userId)

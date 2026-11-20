@@ -10,7 +10,7 @@ import {
 } from "discord.js";
 import { canViewStatsChannel } from "../functions/ui/channelAccess.js";
 import type { SlashCommandContext, SlashCommandDefinition } from "../../../core/types.js";
-import { deferReplyOptions, resultReply, slashResultOptions } from "../../../core/responses.js";
+import { deferReplyOptions, resultEdit, resultReply, slashResultOptions } from "../../../core/responses.js";
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
 import { getGlobalLeaderboardUrl, getGuildStatsDashboardUrl, getPublicProfileUrl } from "../../../core/docsUrl.js";
 import { publicLeaderboardUrl } from "../../../core/publicLeaderboard.js";
@@ -21,6 +21,10 @@ import { renderUserProfileCard, type ProfileStatsSummary } from "../functions/pr
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { getLogger } from "../../../core/logger.js";
 import { claimMessageView, replyWithCard, upgradeToGif } from "../functions/animatedReply.js";
+import { GHOST_NOTICE, ghostModeButton } from "../functions/ghostModeUi.js";
+import { getGhostState } from "../../../core/privacy/ghostMode.js";
+import { isGhostActive } from "../../../core/privacy/policy.js";
+import { APP_EMOJI } from "../../../core/appEmojis.js";
 
 const log = getLogger("stats");
 
@@ -172,8 +176,19 @@ export const statsCommands: SlashCommandDefinition[] = [
         throw error;
       });
       const deferredMs = Date.now() - started;
-      const result = await renderUserRankCard(scope, guild, user, ctx.t);
+      const result = await renderUserRankCard(scope, guild, user, ctx.t, ctx.interaction.user.id);
       const renderedMs = Date.now() - started;
+      if (result.ghost) {
+        // Ghost Mode: their activity across servers is private. Nothing to render.
+        await ctx.interaction.editReply(
+          resultEdit(
+            ctx.t("stats.ghostRankTitle", GHOST_NOTICE.title),
+            ctx.t("stats.ghostRankBody", GHOST_NOTICE.body, { user: user.id }),
+            slashResultOptions(ctx, { emoji: APP_EMOJI.locked }),
+          ),
+        );
+        return;
+      }
 
       const leaderboardUrl =
         scope === "global"
@@ -252,7 +267,7 @@ export const statsCommands: SlashCommandDefinition[] = [
         "profile",
         {
           content: "",
-          components: [profileButtonsRow(result.stats, getPublicProfileUrl(user.id), ctx.t)],
+          components: [profileButtonsRow(result.stats, getPublicProfileUrl(user.id), ctx.t, isSelf ? isGhostActive(getGhostState(user.id)) : null)],
           allowedMentions: { parse: [] },
         },
         () => {
@@ -272,7 +287,29 @@ const PROFILE_BUTTON_EMOJIS = {
 
 /** The row under the /profile card: disabled buttons used as stat labels (messages, servers,
  *  global rank), then a link to the full profile on the site. */
-function profileButtonsRow(stats: ProfileStatsSummary, profileUrl: string, t: SlashCommandContext["t"]): ActionRowBuilder<ButtonBuilder> {
+function profileButtonsRow(
+  stats: ProfileStatsSummary,
+  profileUrl: string,
+  t: SlashCommandContext["t"],
+  /** Own profile only: Ghost Mode's state, for the button that opens its controls. */
+  ownGhost: boolean | null,
+): ActionRowBuilder<ButtonBuilder> {
+  // Someone else in Ghost Mode: no cross-server numbers, just the link.
+  if (stats.hidden) {
+    return new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId("dl:profile:stat:ghost")
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji(APP_EMOJI.locked)
+        .setLabel(t("stats.profileGhostLabel", "Ghost Mode is on"))
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setStyle(ButtonStyle.Link)
+        .setURL(profileUrl)
+        .setEmoji(PROFILE_BUTTON_EMOJIS.profile)
+        .setLabel(t("stats.profileViewFull", "View Full Profile")),
+    );
+  }
   const count = (value: number) => value.toLocaleString("en-US");
   const label = (id: keyof typeof PROFILE_BUTTON_EMOJIS, style: ButtonStyle, text: string) =>
     new ButtonBuilder()
@@ -308,6 +345,7 @@ function profileButtonsRow(stats: ProfileStatsSummary, profileUrl: string, t: Sl
       .setURL(profileUrl)
       .setEmoji(PROFILE_BUTTON_EMOJIS.profile)
       .setLabel(t("stats.profileViewFull", "View Full Profile")),
+    ...(ownGhost === null ? [] : [ghostModeButton(ownGhost)]),
   );
 }
 

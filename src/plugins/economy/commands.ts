@@ -7,6 +7,8 @@ import { baseEmbed, memberAccentColor } from "../../core/embeds.js";
 import { resolveEmojiForContent } from "../../core/emoji.js";
 import type { Translator } from "../../i18n/index.js";
 import { zEconomyConfig } from "../../config/schemas/economy.js";
+import { globalEconomyFor } from "../../core/privacy/crossServer.js";
+import { APP_EMOJI } from "../../core/appEmojis.js";
 import {
   GLOBAL_DAILY_AMOUNT,
   SERVER_DAILY_AMOUNT,
@@ -65,8 +67,26 @@ export const economyCommands: SlashCommandDefinition[] = [
       const which = i.options.getString("currency", true) as "global" | "server";
       const targetMember = await i.guild!.members.fetch(target.id).catch(() => null);
 
-      const description =
-        which === "global" ? formatGlobal(getGlobalBalance(target.id)) : formatServer(getServerBalance(guildId, target.id), config.server);
+      // A global balance moves with activity in every server: someone else's is the 00:00 UTC
+      // figure, and hidden under Ghost Mode (core/privacy). Server balances are this server's own.
+      let description: string;
+      if (which === "global") {
+        const view = target.id === i.user.id ? null : globalEconomyFor(i.user.id, target.id);
+        if (target.id !== i.user.id && !view) {
+          await i.reply(
+            resultReply(
+              ctx.t("economy.ghostTitle", "Ghost Mode is on"),
+              ctx.t("economy.ghostBody", "<@{user}> has chosen to keep their activity across servers private, including their global balance.", { user: target.id }),
+              true,
+              slashResultOptions(ctx, { emoji: APP_EMOJI.locked }),
+            ),
+          );
+          return;
+        }
+        description = formatGlobal(view ? view.balance : getGlobalBalance(target.id));
+      } else {
+        description = formatServer(getServerBalance(guildId, target.id), config.server);
+      }
 
       const embed = baseEmbed()
         .setTitle(target.displayName)

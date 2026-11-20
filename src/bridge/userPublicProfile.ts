@@ -1,15 +1,12 @@
 import type { Client } from "discord.js";
 import { invalidateCached } from "./responseCache.js";
-import { getGlobalMessageStats } from "./userStats.js";
 import { getUserProfile } from "./userProfiles.js";
+import { canViewCrossServerData, getGhostState, type CrossServerAccess } from "../core/privacy/ghostMode.js";
+import { dailyActivityFor, globalStatsFor, hourlyActivityFor } from "../core/privacy/crossServer.js";
+import { filterBadgesForAccess, isGhostActive } from "../core/privacy/policy.js";
 import { listDisplayedUserBadges, type UserBadge } from "./userBadges.js";
 import { getProgressionBadges, type ProgressionBadge } from "../core/progressionBadges/index.js";
-import {
-  getUserDailyActivity,
-  getUserHourlyActivity,
-  listUserGuildSummaries,
-  type UserGuildSummary,
-} from "./userActivity.js";
+import { listUserGuildSummaries, type UserGuildSummary } from "./userActivity.js";
 import { RARITIES, type Rarity } from "../plugins/economy/hangar/constants.js";
 import { getShowcase, listUserCopies } from "../plugins/economy/hangar/copies.js";
 import { pilotRankView } from "../plugins/economy/hangar/score.js";
@@ -55,6 +52,12 @@ export type PublicProfileIdentity = {
   progressionBadges: ProgressionBadge[];
   /** Store cosmetics the user has equipped, resolved (an empty object when none). */
   cosmetics: CosmeticStyle;
+  /** What this viewer may see of their activity across servers (core/privacy): "hidden" while
+   *  Ghost Mode is on, "snapshot" (00:00 UTC numbers) for everyone else, "live" for themselves and
+   *  the people they allow. */
+  crossServerAccess: CrossServerAccess;
+  /** Only on the owner's own view: their Ghost Mode state (until null = until turned off). */
+  ghostMode: { on: boolean; until: string | null } | null;
 };
 
 const TIMED_OUT = Symbol("timed-out");
@@ -133,10 +136,11 @@ async function profileUser(client: Client, userId: string, onLateFull: () => voi
 export async function buildPublicProfileIdentity(
   client: Client,
   userId: string,
+  viewerId: string | null = null,
 ): Promise<PublicProfileIdentity | null> {
   const discordUser = await profileUser(client, userId, () => {
-    invalidateCached(`pp-id:${userId}`);
-    invalidateCached(`pp:${userId}`);
+    invalidateCached(`pp-id:${userId}:`);
+    invalidateCached(`pp:${userId}:`);
   });
   if (!discordUser) return null;
 
@@ -151,7 +155,14 @@ export async function buildPublicProfileIdentity(
   const profile = profileResult.value;
   const badges = badgesResult.status === "fulfilled" ? badgesResult.value : [];
   const oneOwnerSince = oneOwnerResult.status === "fulfilled" ? oneOwnerResult.value : null;
-  const progressionBadges = progressionResult.status === "fulfilled" ? progressionResult.value : [];
+  const access = canViewCrossServerData(viewerId, userId);
+  const progressionBadges = filterBadgesForAccess(progressionResult.status === "fulfilled" ? progressionResult.value : [], access);
+  let ghostMode: PublicProfileIdentity["ghostMode"] = null;
+  if (viewerId === userId) {
+    const state = getGhostState(userId);
+    const on = isGhostActive(state);
+    ghostMode = { on, until: on && state.until ? state.until.toISOString() : null };
+  }
 
   return {
     userId,
@@ -170,6 +181,8 @@ export async function buildPublicProfileIdentity(
     oneOwnerSince,
     progressionBadges,
     cosmetics: safeCosmetics(userId),
+    crossServerAccess: access,
+    ghostMode,
   };
 }
 
@@ -195,45 +208,62 @@ async function resolveOneOwnerSince(client: Client, userId: string): Promise<str
 }
 
 export type PublicProfileStats = {
+  /** "hidden": Ghost Mode, every number below is zero/null and the page shows a note instead. */
+  access: CrossServerAccess;
   totalMessages: number;
   globalRank: number | null;
-  /** Size of the global ranked pool `globalRank` is out of (everyone with >= 1 tracked message). */
+  /** Size of the global ranked pool `globalRank` is out of. */
   activeMessagers: number;
-  /** How many servers this user has any tracked message activity in — always shown, independent
-   *  of the profile's `hideServersSection` setting, since it's just a count, not identifying. */
+  /** How many servers this user has any tracked message activity in. Just a count, never names. */
   serverCount: number;
-  /** ISO timestamp of the user's most recent tracked message, for "last seen". */
+  /** Most recent tracked message, for "Active now" / "Last seen 5m ago". Null under Ghost Mode
+   *  (unless the viewer is the user or on their allow list). */
   lastActiveAt: string | null;
+  /** When the numbers were taken (00:00 UTC today), null when live. */
+  asOf: string | null;
 };
 
-export async function buildPublicProfileStats(userId: string): Promise<PublicProfileStats> {
-  const stats = await getGlobalMessageStats(userId);
+export async function buildPublicProfileStats(userId: string, viewerId: string | null = null): Promise<PublicProfileStats> {
+  const view = globalStatsFor(viewerId, userId);
+  if (view.access === "hidden") {
+    return { access: "hidden", totalMessages: 0, globalRank: null, activeMessagers: 0, serverCount: 0, lastActiveAt: null, asOf: null };
+  }
   return {
-    totalMessages: stats.totalMessages,
-    globalRank: stats.globalRank,
-    activeMessagers: stats.activeMessagers,
-    serverCount: stats.serverCount,
-    lastActiveAt: stats.lastActiveAt ? stats.lastActiveAt.toISOString() : null,
+    access: view.access,
+    totalMessages: view.totalMessages,
+    globalRank: view.globalRank,
+    activeMessagers: view.activeMessagers,
+    serverCount: view.serverCount,
+    lastActiveAt: view.lastActiveAt ? view.lastActiveAt.toISOString() : null,
+    asOf: view.asOf,
   };
 }
 
+/** Daily totals for the activity graph: others get days up to yesterday, nothing under Ghost Mode. */
 export async function buildPublicProfileActivity(
   userId: string,
+  viewerId: string | null = null,
 ): Promise<Array<{ date: string; messages: number }>> {
-  return getUserDailyActivity(userId, ACTIVITY_DAYS);
+  return dailyActivityFor(viewerId, userId, ACTIVITY_DAYS).daily;
 }
 
-export async function buildPublicProfileHours(userId: string): Promise<number[]> {
-  return getUserHourlyActivity(userId);
+/** Active hours: 00:00 UTC values for others, empty under Ghost Mode. */
+export async function buildPublicProfileHours(userId: string, viewerId: string | null = null): Promise<number[]> {
+  return hourlyActivityFor(viewerId, userId).hours;
 }
 
+/** "As seen in these servers": the user's own opt-out applies to everyone but themselves, and
+ *  Ghost Mode hides it from everyone they haven't allowed. */
 export async function buildPublicProfileServers(
   client: Client,
   userId: string,
+  viewerId: string | null = null,
 ): Promise<UserGuildSummary[]> {
+  const access = canViewCrossServerData(viewerId, userId);
+  if (access === "hidden") return [];
   const profile = await getUserProfile(userId);
-  if (profile.hideServersSection) return [];
-  return listUserGuildSummaries(client, userId);
+  if (profile.hideServersSection && viewerId !== userId) return [];
+  return listUserGuildSummaries(client, userId, 12, access);
 }
 
 export type PublicProfileCard = {
@@ -283,7 +313,7 @@ export type PublicProfileCards = {
  * A user's card collection for the profile page, rarest-first. Enforces the showTradingCards
  * opt-in here on the bot side, so the endpoint never leaks a hidden collection.
  */
-export async function buildPublicProfileCards(userId: string): Promise<PublicProfileCards> {
+export async function buildPublicProfileCards(userId: string, viewerId: string | null = null): Promise<PublicProfileCards> {
   const profile = await getUserProfile(userId);
   const empty: PublicProfileCards = {
     visible: false,
@@ -298,6 +328,9 @@ export async function buildPublicProfileCards(userId: string): Promise<PublicPro
     cards: [],
   };
   if (!profile.showTradingCards || !profile.profileVisible) return empty;
+  // Ghost Mode hides the Hangar collection (Fleet Value and Pilot Rank move with activity) from
+  // everyone but the owner and the people they allow.
+  if (canViewCrossServerData(viewerId, userId) === "hidden") return empty;
 
   const ctx = viewContext();
   const copies = listUserCopies(userId);
@@ -370,6 +403,7 @@ export async function buildPublicUserProfile(
   const identity = await buildPublicProfileIdentity(client, userId);
   if (!identity) return null;
 
+  // The public JSON API: always the anonymous view.
   const [stats, daily, activeHoursUtc, guilds, cards] = await Promise.all([
     buildPublicProfileStats(userId),
     buildPublicProfileActivity(userId),

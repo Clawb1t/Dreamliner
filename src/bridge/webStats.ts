@@ -28,7 +28,6 @@ import {
   getFilledVoiceDailyStats,
   getGlobalVoiceTotals,
   getGuildTotalVoiceMinutes,
-  getTopGlobalVoiceUsers,
   getTopVoiceChannels,
   getTopVoiceUsers,
 } from "../plugins/stats/functions/voice.js";
@@ -83,13 +82,16 @@ import {
   getUserMessageRank,
 } from "../plugins/stats/functions/queries.js";
 import {
-  getGlobalMessageCount,
   getGuildMessageCount,
 } from "../plugins/utility/functions/messageCounts.js";
 import { mapWithConcurrency } from "../core/concurrency.js";
 import { retryAsync } from "../core/retry.js";
 import { getLogger } from "../core/logger.js";
 import { createPruner } from "../core/mapPrune.js";
+import { crossServerAccessForMany, listHiddenFromGlobalBoards } from "../core/privacy/ghostMode.js";
+import { filterBadgesForAccess, utcDate, withoutHidden } from "../core/privacy/policy.js";
+import { frozenDaily } from "../core/privacy/boardSnapshots.js";
+import { globalMessageCountFor, snapshotGlobalMessages } from "../core/privacy/crossServer.js";
 
 const log = getLogger("stats");
 
@@ -308,6 +310,7 @@ async function resolvePeople(
     getDisplayedBadgesForUsers(userIds),
     getProgressionBadgesForUsers(guild.client, userIds).catch(() => new Map()),
   ]);
+  const badgeAccess = crossServerAccessForMany(userIds);
   const startedAt = process.hrtime.bigint();
   let apiFetches = 0;
   const within = makeBudget(RESOLVE_BUDGET_MS);
@@ -343,7 +346,9 @@ async function resolvePeople(
       shareLabel: formatSharePct(entry.count, trafficTotal),
       accentColor: accents.get(entry.userId) ?? null,
       badges: badgesByUser.get(entry.userId) ?? [],
-      progressionBadges: progressionByUser.get(entry.userId) ?? [],
+      // Badge tiers stay, their live cross-server progress numbers don't; Ghost Mode drops the
+      // activity badges entirely (policy.ts).
+      progressionBadges: filterBadgesForAccess(progressionByUser.get(entry.userId) ?? [], badgeAccess.get(entry.userId) ?? "snapshot"),
       cosmetics: cosmeticsByUser.get(entry.userId) ?? null,
     };
   });
@@ -559,6 +564,7 @@ async function resolveGlobalPeople(
     getDisplayedBadgesForUsers(userIds),
     getProgressionBadgesForUsers(client, userIds).catch(() => new Map()),
   ]);
+  const badgeAccess = crossServerAccessForMany(userIds);
   const startedAt = process.hrtime.bigint();
   let apiFetches = 0;
   const within = makeBudget(RESOLVE_BUDGET_MS);
@@ -582,7 +588,9 @@ async function resolveGlobalPeople(
       shareLabel: formatSharePct(entry.count, trafficTotal),
       accentColor: accents.get(entry.userId) ?? null,
       badges: badgesByUser.get(entry.userId) ?? [],
-      progressionBadges: progressionByUser.get(entry.userId) ?? [],
+      // Badge tiers stay, their live cross-server progress numbers don't; Ghost Mode drops the
+      // activity badges entirely (policy.ts).
+      progressionBadges: filterBadgesForAccess(progressionByUser.get(entry.userId) ?? [], badgeAccess.get(entry.userId) ?? "snapshot"),
       cosmetics: cosmeticsByUser.get(entry.userId) ?? null,
     };
   });
@@ -621,15 +629,39 @@ async function resolveGlobalChannels(
   }));
 }
 
-/** Public all-time global messagers leaderboard across every tracked guild. */
+/** Rows kept in each frozen global board: the 50 a page shows plus room for Ghost Mode removals. */
+const FROZEN_BOARD_ROWS = 80;
+
+type FrozenEntries = { entries: Array<{ userId: string; count: number; seconds?: number }> };
+
+/**
+ * Top global messagers as of 00:00 UTC today, frozen for the day. Ordered by each user's day-start
+ * count, so nothing sent today moves anyone (see core/privacy).
+ */
+async function frozenGlobalMessagers(): Promise<FrozenEntries & { total: number; activeMessagers: number }> {
+  return frozenDaily("messages", async () => {
+    const [top, total, activeMessagers] = await Promise.all([
+      getTopGlobalMessagers(FROZEN_BOARD_ROWS * 2),
+      getGlobalTrackedMessagesTotal(),
+      getGlobalActiveMessagerCount(),
+    ]);
+    const entries = top
+      .map((row) => ({ userId: row.userId, count: snapshotGlobalMessages(row.userId).count }))
+      .filter((row) => row.count > 0)
+      .sort((a, b) => b.count - a.count || a.userId.localeCompare(b.userId))
+      .slice(0, FROZEN_BOARD_ROWS);
+    return { entries, total, activeMessagers };
+  });
+}
+
+/** Public all-time global messagers leaderboard across every tracked guild. Frozen daily at 00:00
+ *  UTC; Ghost Mode users are left out and the rest renumbered. */
 export async function buildWebGlobalPublicMessagerLeaderboard(client: Client, limit = 25) {
   const capped = Math.min(50, Math.max(5, limit));
-  const [top, allTimeTrafficTotal, activeMessagers] = await Promise.all([
-    getTopGlobalMessagers(capped),
-    getGlobalTrackedMessagesTotal(),
-    getGlobalActiveMessagerCount(),
-  ]);
-  const leaders = await resolveGlobalPeople(client, top, allTimeTrafficTotal);
+  const frozen = await frozenGlobalMessagers();
+  const hidden = listHiddenFromGlobalBoards();
+  const top = withoutHidden(frozen.entries, hidden, capped);
+  const leaders = await resolveGlobalPeople(client, top, frozen.total);
 
   return {
     scope: "global" as const,
@@ -642,8 +674,10 @@ export async function buildWebGlobalPublicMessagerLeaderboard(client: Client, li
     title: "Top messagers",
     subtitle: "Global all-time message leaderboard",
     windowLabel: "All time · all servers",
-    totalMessages: allTimeTrafficTotal,
-    activeMessagers,
+    totalMessages: frozen.total,
+    activeMessagers: Math.max(0, frozen.activeMessagers - hidden.size),
+    /** The numbers are from this moment (00:00 UTC today) and refresh once a day. */
+    snapshotAt: `${utcDate()}T00:00:00.000Z`,
     leaders,
     partial: leaders.some((row) => "unresolved" in row),
   };
@@ -660,45 +694,51 @@ export function isGlobalPublicBoard(value: string): value is GlobalPublicBoard {
 /**
  * One of the public global boards, per user across every server. Rows carry only a user's own
  * totals (no server names or per-server splits), same as the global messages board.
- * - voice: all-time voice time summed across servers
- * - streaks: longest live global /daily streaks
- * - fleet: Hangar Fleet Value
+ * - voice: all-time voice time summed across servers, up to the end of yesterday (UTC)
+ * - streaks: longest live global /daily streaks, as of their start-of-day value
+ * - fleet: Hangar Fleet Value, as of the first build of the day
+ * Each is frozen once per UTC day; Ghost Mode users are left out at serve time.
  */
 export async function buildWebGlobalPublicBoard(client: Client, board: GlobalPublicBoard, limit = 25) {
   const capped = Math.min(50, Math.max(5, limit));
-  let entries: Array<{ userId: string; count: number; seconds?: number }>;
-  let shareBase: number;
-  let total: number;
-  let ranked: number;
-  if (board === "voice") {
-    const [top, totals] = await Promise.all([getTopGlobalVoiceUsers(capped), getGlobalVoiceTotals()]);
-    entries = top.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds }));
-    shareBase = totals.minutes;
-    total = totals.minutes;
-    ranked = totals.users;
-  } else if (board === "streaks") {
-    const { topLiveGlobalDailyStreaks } = await import("../plugins/economy/functions/money.js");
-    const top = topLiveGlobalDailyStreaks(capped);
-    entries = top.map((row) => ({ userId: row.userId, count: row.streak }));
-    // Streaks don't add up to a meaningful whole, so each row's ring shows it against the leader's.
-    shareBase = top[0]?.streak ?? 0;
-    total = top[0]?.streak ?? 0;
-    ranked = top.length;
-  } else {
+  const frozen = await frozenDaily(board, async (): Promise<FrozenEntries & { shareBase: number; total: number; ranked: number }> => {
+    if (board === "voice") {
+      const { computeTopGlobalVoiceUsersBefore } = await import("../plugins/stats/functions/voice.js");
+      const [top, totals] = await Promise.all([computeTopGlobalVoiceUsersBefore(FROZEN_BOARD_ROWS, utcDate()), getGlobalVoiceTotals()]);
+      return {
+        entries: top.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds })),
+        shareBase: totals.minutes,
+        total: totals.minutes,
+        ranked: totals.users,
+      };
+    }
+    if (board === "streaks") {
+      const { topLiveGlobalDailyStreaks } = await import("../plugins/economy/functions/money.js");
+      const { globalEconomyFor } = await import("../core/privacy/crossServer.js");
+      const top = topLiveGlobalDailyStreaks(Math.min(100, FROZEN_BOARD_ROWS))
+        .map((row) => ({ userId: row.userId, count: globalEconomyFor(null, row.userId)?.streak ?? row.streak }))
+        .filter((row) => row.count > 0)
+        .sort((a, b) => b.count - a.count || a.userId.localeCompare(b.userId));
+      // Streaks don't add up to a meaningful whole, so each row's ring shows it against the leader's.
+      return { entries: top, shareBase: top[0]?.count ?? 0, total: top[0]?.count ?? 0, ranked: top.length };
+    }
     const { leaderboard, globalFleetTotals } = await import("../plugins/economy/hangar/leaderboards.js");
-    const top = leaderboard("fleet_value", { limit: capped });
+    const top = leaderboard("fleet_value", { limit: FROZEN_BOARD_ROWS });
     const totals = globalFleetTotals();
-    entries = top.map((row) => ({ userId: row.userId, count: row.value }));
-    shareBase = totals.total;
-    total = totals.total;
-    ranked = totals.players;
-  }
+    return { entries: top.map((row) => ({ userId: row.userId, count: row.value })), shareBase: totals.total, total: totals.total, ranked: totals.players };
+  });
+  const hidden = listHiddenFromGlobalBoards();
+  const entries = withoutHidden(frozen.entries, hidden, capped);
+  // Totals leave out the Ghost Mode users too, so a near-empty board can't give their value away.
+  const hiddenSum = frozen.entries.filter((row) => hidden.has(row.userId)).reduce((sum, row) => sum + row.count, 0);
+  const shareBase = board === "streaks" ? (entries[0]?.count ?? 0) : Math.max(0, frozen.shareBase - hiddenSum);
   const leaders = await resolveGlobalPeople(client, entries, shareBase);
   return {
     scope: "global" as const,
     board,
-    total,
-    ranked,
+    total: board === "streaks" ? shareBase : Math.max(0, frozen.total - hiddenSum),
+    ranked: Math.max(0, frozen.ranked - frozen.entries.filter((row) => hidden.has(row.userId)).length),
+    snapshotAt: `${utcDate()}T00:00:00.000Z`,
     leaders,
     partial: leaders.some((row) => "unresolved" in row),
   };
@@ -730,8 +770,13 @@ export async function buildWebGlobalStats(client: Client, query: WebStatsQuery) 
     getFilledGlobalDailyStats(query.days),
     getGlobalDailyTotals(),
     getGlobalTrackedMessagesTotal(),
-    getTopGlobalMessagers(15),
-    allTime ? getTopGlobalMessagers(15) : getTopGlobalUsersByDaily(query.days, 15),
+    // People lists: frozen at 00:00 UTC like the global boards, Ghost Mode users left out.
+    frozenGlobalMessagers().then((frozen) => withoutHidden(frozen.entries, listHiddenFromGlobalBoards(), 15)),
+    allTime
+      ? frozenGlobalMessagers().then((frozen) => withoutHidden(frozen.entries, listHiddenFromGlobalBoards(), 15))
+      : frozenDaily(`messages:${query.days}`, async () => ({ entries: await getTopGlobalUsersByDaily(query.days, FROZEN_BOARD_ROWS, true) })).then((frozen) =>
+          withoutHidden(frozen.entries, listHiddenFromGlobalBoards(), 15),
+        ),
     // Over-fetch: channels members can't see are dropped before the top 15 is shown.
     getTopGlobalChannelsByDaily(query.days, 60),
     getGlobalActiveMessagerCount(),
@@ -1381,7 +1426,9 @@ export async function buildWebUserStats(guild: Guild, userId: string, query: Web
   ] = await Promise.all([
     getFilledUserDailyStats(guildId, userId, query.days),
     getGuildMessageCount(guildId, userId),
-    getGlobalMessageCount(userId),
+    // Server staff looking at a member: activity elsewhere is the 00:00 UTC snapshot, or null
+    // under Ghost Mode (core/privacy). This server's own numbers stay live.
+    Promise.resolve(globalMessageCountFor(null, userId)),
     getTotalGuildMessages(guildId),
     getActiveMessagerCount(guildId),
     getTrackedMessagesTotal(guildId, query.days),

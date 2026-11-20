@@ -6,7 +6,9 @@ import { canvasGlyphSupport, cleanCanvasName, firstGrapheme, stripUnsupportedGly
 import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect, tintedImage, type CardLayers, type CardMode } from "./charts.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
-import { getGlobalMessageStats } from "../../../bridge/userStats.js";
+import { globalStatsFor } from "../../../core/privacy/crossServer.js";
+import { canViewCrossServerData } from "../../../core/privacy/ghostMode.js";
+import { filterBadgesForAccess } from "../../../core/privacy/policy.js";
 import { getProgressionBadges, loadBadgeImage } from "../../../core/progressionBadges/index.js";
 import { getLogger } from "../../../core/logger.js";
 import { getEquippedStyle } from "../../../core/cosmetics/equip.js";
@@ -533,6 +535,8 @@ async function composeProfileCard(
 }
 
 export type ProfileStatsSummary = {
+  /** Ghost Mode: the viewer may not see this user's activity across servers. */
+  hidden?: boolean;
   totalMessages: number;
   serverCount: number;
   /** Null when they have no tracked messages yet. */
@@ -558,8 +562,13 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
   const [profile, badges, progression, stats] = await Promise.all([
     getUserProfile(user.id),
     listDisplayedUserBadges(user.id),
-    getProgressionBadges(client, user.id).catch(() => []),
-    getGlobalMessageStats(user.id).catch(() => null),
+    getProgressionBadges(client, user.id)
+      .then((list) => filterBadgesForAccess(list, canViewCrossServerData(viewerId, user.id)))
+      .catch(() => []),
+    // Viewer-aware: live for yourself, a 00:00 UTC snapshot for others, nothing under Ghost Mode.
+    Promise.resolve()
+      .then(() => globalStatsFor(viewerId, user.id))
+      .catch(() => null),
   ]);
   // Same rule as the site: a private profile is only visible to its owner.
   if (!profile.profileVisible && viewerId !== user.id) return { ok: false, reason: "private", displayName };
@@ -597,7 +606,8 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
       iconImageUrl: badge.iconImageUrl,
       colorHex: badge.colorHex,
     })),
-    lastActiveAt: stats?.lastActiveAt ?? null,
+    // Ghost Mode (for this viewer) leaves the "Active now / Last seen" pill off.
+    lastActiveAt: stats && stats.access !== "hidden" ? stats.lastActiveAt : null,
     cosmetics: (() => {
       try {
         return getEquippedStyle(user.id);
@@ -621,11 +631,14 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
     buffer,
     animate,
     displayName,
-    stats: {
-      totalMessages: stats?.totalMessages ?? 0,
-      serverCount: stats?.serverCount ?? 0,
-      globalRank: stats?.globalRank ?? null,
-    },
+    stats:
+      stats?.access === "hidden"
+        ? { hidden: true, totalMessages: 0, serverCount: 0, globalRank: null }
+        : {
+            totalMessages: stats?.totalMessages ?? 0,
+            serverCount: stats?.serverCount ?? 0,
+            globalRank: stats?.globalRank ?? null,
+          },
   };
 }
 

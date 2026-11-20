@@ -21,10 +21,7 @@ export async function handleActivityMessage(message: Message): Promise<void> {
   const config = await loadActiveActivityRewards(message.guildId);
   if (!config) return;
 
-  const channel = message.channel;
-  const parentId = "parentId" in channel ? channel.parentId : null;
-  const categoryId = channel.isThread() ? channel.parent?.parentId : null;
-  if (isIgnoredChannel(config, message.channelId, parentId, categoryId)) return;
+  if (isIgnoredChannel(config, message.channel)) return;
 
   const member = message.member ?? (await message.guild.members.fetch(message.author.id).catch(() => null));
   if (!member || hasIgnoredRole(config, member.roles.cache.keys())) return;
@@ -53,7 +50,7 @@ function voiceStateCounts(state: VoiceState, config: ActivityRewardsConfig, huma
   const channel = state.channel;
   if (!member || member.user.bot || !channel) return false;
   if (config.voice_ignore_afk && channel.id === state.guild.afkChannelId) return false;
-  if (isIgnoredChannel(config, channel.id, channel.parentId)) return false;
+  if (isIgnoredChannel(config, channel)) return false;
   if (hasIgnoredRole(config, member.roles.cache.keys())) return false;
   if (config.voice_ignore_muted && (state.mute || state.deaf)) return false;
   if (config.voice_require_others && humansInChannel < 2) return false;

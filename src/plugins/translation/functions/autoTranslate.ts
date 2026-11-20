@@ -22,6 +22,7 @@ import { getAutoTranslateWebhook } from "./webhook.js";
 import { isDreamlinerOneActive } from "../../../bridge/dreamlinerOne.js";
 import { getLogger } from "../../../core/logger.js";
 import { translatorFor } from "../../../i18n/index.js";
+import { channelInList, type ChannelScopeSource } from "../../../core/channelMatch.js";
 const log = getLogger("translation");
 
 const recentlyTranslated = new Map<string, number>();
@@ -182,7 +183,7 @@ export const autoTranslateEvents = [
 ];
 
 /** Ignored channels also cover the threads inside them. */
-function isIgnoredChannel(ignored: string[], channel: { id: string; isThread(): boolean; parentId?: string | null }): boolean {
-  if (ignored.includes(channel.id)) return true;
-  return channel.isThread() && Boolean(channel.parentId) && ignored.includes(channel.parentId!);
+/** The channel, its category, or (for a thread) its parent channel or that channel's category. */
+function isIgnoredChannel(ignored: string[], channel: ChannelScopeSource): boolean {
+  return channelInList(ignored, channel);
 }

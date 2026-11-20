@@ -14,6 +14,7 @@ import {
 } from "./rules.js";
 import { shouldTriggerAutothreadByCadence } from "./state.js";
 import { translatorFor } from "../../../i18n/index.js";
+import { channelInList } from "../../../core/channelMatch.js";
 
 const ALL_CHANNELS = "*";
 const THREAD_NAME_MAX = 100;
@@ -49,7 +50,10 @@ export async function handleAutothreadMessage(message: Message): Promise<void> {
   );
 
   const rules = normalizeAutothreadRules(pluginConfig.rules).filter(
-    (rule) => rule.channel_id === ALL_CHANNELS || rule.channel_id === message.channel.id,
+    // A category rule covers every channel in it. Messages inside threads never match a channel or
+    // category rule (a thread can't start threads).
+    (rule) =>
+      rule.channel_id === ALL_CHANNELS || (!message.channel.isThread() && channelInList([rule.channel_id], message.channel)),
   );
 
   const channel = message.channel as TextChannel;

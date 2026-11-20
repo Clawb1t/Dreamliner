@@ -5,6 +5,7 @@ import { pluginEnabled } from "../../../core/pluginCommand.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
 import { messagePassesFilters, normalizeAutoreactionRules, AUTOREACTION_ALL_CHANNELS } from "./rules.js";
 import { shouldTriggerByCadence } from "./state.js";
+import { channelInList } from "../../../core/channelMatch.js";
 
 export async function handleAutoreactionMessage(message: Message): Promise<void> {
   if (!message.guild || message.author.bot) return;
@@ -19,9 +20,8 @@ export async function handleAutoreactionMessage(message: Message): Promise<void>
   const rules = normalizeAutoreactionRules(pluginConfig.rules).filter(
     (rule) =>
       rule.channel_id === AUTOREACTION_ALL_CHANNELS ||
-      rule.channel_id === message.channel.id ||
-      // A channel rule also covers that channel's threads.
-      (message.channel.isThread() && rule.channel_id === message.channel.parentId),
+      // A channel rule also covers that channel's threads; a category rule covers its channels.
+      channelInList([rule.channel_id], message.channel),
   );
 
   for (const rule of rules) {

@@ -231,8 +231,8 @@ function parseBoard(raw: string | null): LeaderboardBoard {
 }
 
 function invalidateProfile(userId: string): void {
-  invalidateCached(`pp-cards:${userId}`);
-  invalidateCached(`pp:${userId}`);
+  invalidateCached(`pp-cards:${userId}:`);
+  invalidateCached(`pp:${userId}:`);
 }
 
 export type UserHangarRequest = {

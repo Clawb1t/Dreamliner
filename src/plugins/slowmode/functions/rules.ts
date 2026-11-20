@@ -2,6 +2,7 @@ import type { GuildMember } from "discord.js";
 import type { SlowmodeConfig, SlowmodeRuleTarget } from "../../../config/schemas/plugins.js";
 import { formatDuration } from "../../../core/datetime.js";
 import type { Translator } from "../../../i18n/index.js";
+import { channelInList, guildChannelScope, type ChannelScopeSource } from "../../../core/channelMatch.js";
 
 export const ALL_CHANNELS = "*";
 
@@ -48,8 +49,9 @@ export function nextSlowmodeRuleId(rules: NormalizedSlowmodeRule[]): number {
   return rules.reduce((max, rule) => Math.max(max, rule.id), 0) + 1;
 }
 
-export function ruleAppliesToChannel(rule: NormalizedSlowmodeRule, channelId: string): boolean {
-  return rule.channels.includes(ALL_CHANNELS) || rule.channels.includes(channelId);
+/** Rule channels may hold category ids: a category covers every channel in it (and their threads). */
+export function ruleAppliesToChannel(rule: NormalizedSlowmodeRule, channel: ChannelScopeSource | string): boolean {
+  return rule.channels.includes(ALL_CHANNELS) || channelInList(rule.channels, channel);
 }
 
 export function formatChannelScope(channels: string[], t: Translator): string {
@@ -73,7 +75,9 @@ export function resolveIndividualDelay(
   member: GuildMember,
   channelId: string,
 ): ResolvedSlowmodeDelay {
-  const rules = normalizeSlowmodeRules(config.rules).filter((rule) => ruleAppliesToChannel(rule, channelId));
+  // Resolved in the member's own guild only, so a category rule matches its channels.
+  const channel = guildChannelScope(member.guild, channelId) ?? channelId;
+  const rules = normalizeSlowmodeRules(config.rules).filter((rule) => ruleAppliesToChannel(rule, channel));
 
   const userRule = rules.find((rule) => rule.target === "user" && rule.target_id === member.id);
   if (userRule) {

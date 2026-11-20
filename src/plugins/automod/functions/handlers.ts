@@ -15,20 +15,26 @@ import { mergeCensorDbRulesIntoConfig, parseAutomodConfig } from "./migrate.js";
 import { countAutomodHits, recordAutomodHit } from "./strikes.js";
 import { RAID_SIGNAL_WEIGHT, weightForAutomodRule } from "../../incident_response/functions/weights.js";
 import { getLogger } from "../../../core/logger.js";
+import { channelInList, type ChannelScopeSource } from "../../../core/channelMatch.js";
 const log = getLogger("automod");
 
-function isIgnored(member: GuildMember | null, config: AutomodConfig, channelId?: string): boolean {
-  if (channelId && config.ignored_channels.includes(channelId)) return true;
+/** Ignored channels may hold category ids too: a channel in an ignored category is ignored. */
+export function isIgnored(
+  member: GuildMember | null,
+  config: Pick<AutomodConfig, "ignored_channels" | "ignored_roles">,
+  channel?: ChannelScopeSource | null,
+): boolean {
+  if (channel && channelInList(config.ignored_channels, channel)) return true;
   if (!member) return false;
   return config.ignored_roles.some((roleId) => member.roles.cache.has(roleId));
 }
 
-function isRuleIgnored(
+export function isRuleIgnored(
   member: GuildMember | null,
-  rule: AutomodRuleConfig,
-  channelId?: string,
+  rule: Pick<AutomodRuleConfig, "ignored_channels" | "ignored_roles">,
+  channel?: ChannelScopeSource | null,
 ): boolean {
-  if (channelId && (rule.ignored_channels ?? []).includes(channelId)) return true;
+  if (channel && channelInList(rule.ignored_channels, channel)) return true;
   if (!member) return false;
   return (rule.ignored_roles ?? []).some((roleId) => member.roles.cache.has(roleId));
 }
@@ -55,7 +61,7 @@ export async function handleAutomodMessage(message: Message): Promise<void> {
   if (!loaded) return;
   const { guildConfig, config } = loaded;
 
-  if (isIgnored(message.member, config, message.channel.id)) return;
+  if (isIgnored(message.member, config, message.channel)) return;
 
   const ctx = buildMessageContext(message, config);
   const hit = await runMessageDetectors(ctx);
@@ -63,7 +69,7 @@ export async function handleAutomodMessage(message: Message): Promise<void> {
 
   const rule = config.rules[hit.ruleId];
   if (!rule) return;
-  if (isRuleIgnored(message.member, rule, message.channel.id)) return;
+  if (isRuleIgnored(message.member, rule, message.channel)) return;
 
   await recordAutomodHit({
     guildId: message.guild.id,

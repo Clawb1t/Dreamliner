@@ -13,7 +13,8 @@ import { getGlobalLeaderboardUrl } from "../../../../core/docsUrl.js";
 import { containerEdit, type ContainerPayload } from "../../../../core/responses.js";
 import { publicLeaderboardUrl } from "../../../../core/publicLeaderboard.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines, type ResultContainer } from "../../../../core/embeds.js";
-import { getGuildMessageCount, getGlobalMessageCount } from "../../../utility/functions/messageCounts.js";
+import { getGuildMessageCount } from "../../../utility/functions/messageCounts.js";
+import { globalMessageCountFor } from "../../../../core/privacy/crossServer.js";
 import {
   formatStatsWindowLabel,
   formatStatsWindowLong,
@@ -168,7 +169,9 @@ async function buildHomeFields(state: StatsState, guild: Guild, t: Translator) {
     const userId = state.scope.userId;
     const [guildCount, globalCount, daily, serverTotal, activeUsers] = await Promise.all([
       getGuildMessageCount(guildId, userId),
-      getGlobalMessageCount(userId),
+      // The panel can be opened and paged by anyone in the channel, so this is the anonymous view:
+      // a 00:00 UTC snapshot, or null under Ghost Mode (core/privacy).
+      Promise.resolve(globalMessageCountFor(null, userId)),
       getFilledUserDailyStats(guildId, userId, days),
       getTotalGuildMessages(guildId),
       getActiveMessagerCount(guildId),
@@ -191,7 +194,7 @@ async function buildHomeFields(state: StatsState, guild: Guild, t: Translator) {
             {
               guildCount: guildCount.toLocaleString(),
               pct: pct(guildCount, serverTotal),
-              globalCount: globalCount.toLocaleString(),
+              globalCount: globalCount === null ? t("stats.ghostModeShort", "private (Ghost Mode)") : globalCount.toLocaleString(),
               rank: rank || "—",
               activeUsers: activeUsers.toLocaleString(),
             },
