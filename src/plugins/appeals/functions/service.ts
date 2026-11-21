@@ -298,18 +298,19 @@ async function liftBlockedReason(
   if (appeal.option && appeal.infractionType !== "ban") return null;
   const member = await guild.members.fetch(reviewerId).catch(() => null);
   if (!member) return "You need to be in the server to lift a punishment.";
-  if (member.permissions.has(PermissionFlagsBits.Administrator) || member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-    return null;
-  }
+  // Unbans and timeout removals are Discord actions the bot performs for the reviewer, so they need
+  // the reviewer's own Discord permission, exactly like /unban and /unmute (Manage Server or a
+  // Dreamliner flag alone isn't enough). Administrator passes through permissions.has.
   const type = appeal.infractionType ?? "ban";
   const [discordFlag, dreamlinerFlag, what] =
     type === "ban" || type === "tempban" || appeal.kind === "manual"
-      ? ([PermissionFlagsBits.BanMembers, "can_unban", "unban people"] as const)
+      ? ([PermissionFlagsBits.BanMembers, null, "unban people"] as const)
       : type === "mute" || type === "tempmute"
-        ? ([PermissionFlagsBits.ModerateMembers, "can_mute", "remove timeouts"] as const)
+        ? ([PermissionFlagsBits.ModerateMembers, null, "remove timeouts"] as const)
         : ([PermissionFlagsBits.ModerateMembers, "can_warn", "revoke cases"] as const);
   if (member.permissions.has(discordFlag)) return null;
-  if (await hasPermission(guild.id, "infractions", dreamlinerFlag, member, guildConfig)) return null;
+  // Revoking a warning only changes Dreamliner's own records, so the Dreamliner flag still counts.
+  if (dreamlinerFlag && (await hasPermission(guild.id, "infractions", dreamlinerFlag, member, guildConfig))) return null;
   return `You don't have permission to ${what}, so you can't lift this one. Untick "Lift the punishment" to approve it without changing anything, or ask someone who can.`;
 }
 

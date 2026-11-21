@@ -21,6 +21,8 @@ import { configManager } from "../../config/manager.js";
 import { rollbackToSnapshot } from "../../config/snapshotRollback.js";
 import { createSnapshot } from "../../config/snapshots.js";
 import { getLogger } from "../logger.js";
+import { ACTOR_UNRESOLVED_MESSAGE, actorAboveHierarchy, actorRoleProblem, resolveActor, type ActorInfo } from "../actorPermissions.js";
+import { autoGrantableRoleIds } from "../roles.js";
 import { backupCounts, computeRestorePlan, parseBackupStructure, serializeBackup, type BackupOverwrite } from "./backup.js";
 import { postStarterMessage } from "./messages.js";
 import { computePlan, pluginLabel, type ChannelAction, type IdMap, type StoredOverwrite } from "./plan.js";
@@ -275,6 +277,35 @@ function channelOf(guild: Guild, id: string | null | undefined): GuildChannel | 
   return channel && !channel.isThread() ? (channel as GuildChannel) : null;
 }
 
+// ── Actor ───────────────────────────────────────────────────────────────────
+
+/**
+ * The member a build or restore runs for, from the live guild. Everything the job does is limited
+ * to what they could do themselves (see actorPermissions.ts); if they can't be found, nothing runs.
+ */
+async function jobActor(guild: Guild, userId: string): Promise<ActorInfo> {
+  const actor = await resolveActor(guild, userId);
+  if (!actor) throw new Error(ACTOR_UNRESOLVED_MESSAGE);
+  return actor;
+}
+
+/** Highest position roles may be moved to: below the bot and, unless they're the owner, the member. */
+async function roleCeiling(guild: Guild, userId: string): Promise<number> {
+  const botTop = (guild.members.me?.roles.highest.position ?? 1) - 1;
+  // Fresh: creating roles shifts positions, so the member is looked up again here.
+  const actor = await resolveActor(guild, userId);
+  if (!actor) return 0;
+  return actorAboveHierarchy(actor) ? botTop : Math.min(botTop, actor.highestPosition - 1);
+}
+
+/** Role ids Dreamliner may hand out for this member: auto-grantable and ones they could give. */
+function grantableFor(guild: Guild, actor: ActorInfo, ids: string[]): string[] {
+  return autoGrantableRoleIds(guild, ids).filter((id) => {
+    const role = guild.roles.cache.get(id);
+    return role && !actorRoleProblem(actor, { id: role.id, name: role.name, position: role.position, managed: role.managed, permissions: role.permissions.bitfield }, guild.id);
+  });
+}
+
 // ── Build ───────────────────────────────────────────────────────────────────
 
 type BuildInputs = { template: SATemplate; mode: SAMode; keep: { channelIds: string[]; roleIds: string[] } };
@@ -295,7 +326,9 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
   const snap = await freshSnapshot(guild);
   for (const [key, id] of Object.entries(job.idMap.roles)) if (!guild.roles.cache.has(id)) delete job.idMap.roles[key];
   for (const [key, id] of Object.entries(job.idMap.channels)) if (!guild.channels.cache.has(id)) delete job.idMap.channels[key];
-  const { plan, resolved } = computePlan({ ...inputs, snap, idMap: job.idMap });
+  // Re-checked here, right before anything runs: the member's permissions at execution time.
+  const actor = await jobActor(guild, userId);
+  const { plan, resolved } = computePlan({ ...inputs, snap, idMap: job.idMap, actor });
   job.save({ plan: JSON.stringify(plan) });
   if (plan.blockers.length) throw new Error(plan.blockers[0]);
 
@@ -507,7 +540,7 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
     if (positions.length) await guild.channels.setPositions(positions);
   });
   await job.op("order", "Couldn't reorder roles", async () => {
-    const top = (guild.members.me?.roles.highest.position ?? 1) - 1;
+    const top = await roleCeiling(guild, userId);
     const ids = resolved.roleOrder.map((key) => job.idMap.roles[key]).filter((id): id is string => Boolean(id));
     const movable = ids.filter((id) => {
       const role = guild.roles.cache.get(id);
@@ -573,6 +606,7 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
       return null;
     },
     staffRoleIds: inputs.template.roles.filter((r) => isStaffPreset(r.preset)).map((r) => roleId(r.key)).filter((id): id is string => Boolean(id)),
+    grantable: (ids: string[]) => grantableFor(guild, actor, ids),
   };
   if (resolved.plugins.length) {
     job.begin("plugins", resolved.plugins.length);
@@ -596,6 +630,7 @@ async function runTemplateBuild(job: Job, client: Client, inputs: BuildInputs): 
           roles: inputs.template.roles,
           channelId: (key) => channelId(key),
           roleId: (key) => roleId(key),
+          grantable: (ids) => grantableFor(guild, actor, ids),
           actor: userId,
         });
         return true;
@@ -629,7 +664,10 @@ async function runRestore(job: Job, options: RestoreOptions): Promise<SABuildRes
   if (!row || !backup) throw new Error("That backup no longer exists.");
 
   const snap = await freshSnapshot(guild);
-  const plan = computeRestorePlan(backup, snap, options.removeAdded);
+  // Re-checked here, right before anything runs: the member's permissions at execution time.
+  const actor = await jobActor(guild, userId);
+  const plan = computeRestorePlan(backup, snap, options.removeAdded, actor);
+  if (plan.blockers.length) throw new Error(plan.blockers[0]);
   for (const warning of plan.warnings) job.errors.push({ step: "roles", message: warning });
 
   job.begin("backup", 1);
@@ -780,7 +818,7 @@ async function runRestore(job: Job, options: RestoreOptions): Promise<SABuildRes
     if (positions.length) await guild.channels.setPositions(positions);
   });
   await job.op("order", "Couldn't reorder roles", async () => {
-    const top = (guild.members.me?.roles.highest.position ?? 1) - 1;
+    const top = await roleCeiling(guild, userId);
     const ordered = [...plan.roles]
       .sort((a, b) => b.position - a.position)
       .map((r) => roleIdFor(r.backupId))

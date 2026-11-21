@@ -1,7 +1,8 @@
 /**
  * Server Autopilot starter messages: each template message becomes a Message Kit (folder
  * "Server Autopilot") and is sent to its channel. Role pickers get one toggle button per self role
- * of their group, limited to roles the bot may hand out (autoGrantableRoleIds).
+ * of their group, limited to roles the bot may hand out (autoGrantableRoleIds) that the member running
+ * the build could give themselves.
  */
 import type { Client, Guild } from "discord.js";
 import { configManager } from "../../config/manager.js";
@@ -74,6 +75,8 @@ export async function postStarterMessage(input: {
   roles: SARole[];
   channelId: (key: string) => string | null;
   roleId: (key: string) => string | null;
+  /** Role ids the member running the build may hand out (defaults to autoGrantableRoleIds). */
+  grantable?: (ids: string[]) => string[];
   actor: string;
 }): Promise<void> {
   const { client, guild, message } = input;
@@ -85,7 +88,7 @@ export async function postStarterMessage(input: {
   if (message.kind === "role_picker") {
     const groupRoles = input.roles.filter((r) => r.self_assignable && r.group === message.role_group);
     const ids = groupRoles.map((r) => input.roleId(r.key)).filter((id): id is string => Boolean(id));
-    const allowed = new Set(autoGrantableRoleIds(guild, ids));
+    const allowed = new Set(input.grantable ? input.grantable(ids) : autoGrantableRoleIds(guild, ids));
     buttons = groupRoles
       .map((r) => ({ roleId: input.roleId(r.key) ?? "", name: guild.roles.cache.get(input.roleId(r.key) ?? "")?.name ?? r.name }))
       .filter((b) => allowed.has(b.roleId));

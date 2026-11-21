@@ -2,8 +2,9 @@ import { PermissionFlagsBits, type Client, type Guild } from "discord.js";
 import { AI_ONE_REQUIRED, consumeAiGate } from "../core/ai/gate.js";
 import { AI_FREE_USES_LIMIT, getAiGateStatus } from "../core/ai/usage.js";
 import { getLogger } from "../core/logger.js";
+import { ACTOR_UNRESOLVED_MESSAGE, actorHas, resolveActor, type ActorInfo } from "../core/actorPermissions.js";
 import { parseAnswers } from "../core/serverAutopilot/answers.js";
-import { backupCounts, backupStructureView, parseBackupStructure } from "../core/serverAutopilot/backup.js";
+import { backupCounts, backupStructureView, computeRestorePlan, parseBackupStructure } from "../core/serverAutopilot/backup.js";
 import { createBackup, freshSnapshot, initialSteps, isGuildBusy, runBuildJob } from "../core/serverAutopilot/build.js";
 import { detectNaming } from "../core/serverAutopilot/detect.js";
 import { runGeneration } from "../core/serverAutopilot/generate.js";
@@ -114,6 +115,34 @@ function toBuild(row: BuildRow, people: Map<string, SAPerson>): SABuild {
   };
 }
 
+// ── Actor ───────────────────────────────────────────────────────────────────
+
+/**
+ * The dashboard user as a member of this guild, from the live cache. Builds and restores are
+ * limited to what they could do themselves in Discord; Manage Server alone only opens the page.
+ */
+async function actorFor(guild: Guild, userId: string): Promise<ActorInfo> {
+  const actor = await resolveActor(guild, userId);
+  if (!actor) throw new SABridgeError(ACTOR_UNRESOLVED_MESSAGE, 403, { code: "actor_unresolved" });
+  return actor;
+}
+
+/** What the scan page shows about the member's own permissions (the bot re-checks on build). */
+function actorSummary(actor: ActorInfo) {
+  return {
+    owner: actor.owner,
+    administrator: actor.administrator || actor.superuser,
+    manageChannels: actorHas(actor, PermissionFlagsBits.ManageChannels),
+    manageRoles: actorHas(actor, PermissionFlagsBits.ManageRoles),
+    highestRolePosition: actor.owner || actor.superuser ? null : actor.highestPosition,
+  };
+}
+
+function refuseMissing(plan: { blockers: string[]; missingPermissions?: string[]; permissions?: unknown }): void {
+  if (!plan.missingPermissions?.length) return;
+  throw new SABridgeError(plan.blockers[0]!, 403, { code: "missing_permissions", missing: plan.missingPermissions, permissions: plan.permissions, blockers: plan.blockers });
+}
+
 // ── Inputs ──────────────────────────────────────────────────────────────────
 
 function parseMode(value: unknown): SAMode {
@@ -150,7 +179,8 @@ function audit(client: Client, guildId: string, userId: string, title: string, s
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
-async function scanRoute(guild: Guild): Promise<SABridgeResponse> {
+async function scanRoute(guild: Guild, userId: string): Promise<SABridgeResponse> {
+  const actor = await actorFor(guild, userId);
   const snap = await freshSnapshot(guild);
   const detected = detectNaming({
     text: snap.channels.filter((c) => c.kind === "text" || c.kind === "announcement" || c.kind === "forum").map((c) => c.name),
@@ -179,6 +209,7 @@ async function scanRoute(guild: Guild): Promise<SABridgeResponse> {
       administrator: snap.bot.administrator,
       highestRolePosition: snap.bot.highestPosition,
     },
+    actor: actorSummary(actor),
     ai: { oneActive: ai.oneActive, freeUsesRemaining: ai.freeUsesRemaining, freeUsesLimit: AI_FREE_USES_LIMIT },
     limits: SA_LIMITS,
     running: { generationId: generation?.id ?? null, buildId: build?.id ?? null },
@@ -232,11 +263,13 @@ async function generationsRoute(guild: Guild): Promise<SABridgeResponse> {
   });
 }
 
-async function planRoute(guild: Guild, body: Record<string, unknown>): Promise<SABridgeResponse> {
+async function planRoute(guild: Guild, body: Record<string, unknown>, userId: string): Promise<SABridgeResponse> {
   const template = parseTemplate(body.template);
   const mode = parseMode(body.mode);
+  const actor = await actorFor(guild, userId);
   const snap = await freshSnapshot(guild);
-  const { plan } = computePlan({ template, mode, keep: keepInGuild(snap, parseKeep(body.keep)), snap });
+  // Planned for this member: what they can't do is trimmed or listed in plan.permissions/blockers.
+  const { plan } = computePlan({ template, mode, keep: keepInGuild(snap, parseKeep(body.keep)), snap, actor });
   return ok({ plan, template });
 }
 
@@ -244,9 +277,11 @@ async function buildRoute(client: Client, guild: Guild, body: Record<string, unk
   if (activeBuild(guild.id) || isGuildBusy(guild.id)) throw new SABridgeError("A build is already running on this server.", 409, { code: "busy" });
   const template = parseTemplate(body.template);
   const mode = parseMode(body.mode);
+  const actor = await actorFor(guild, userId);
   const snap = await freshSnapshot(guild);
   const keep = keepInGuild(snap, parseKeep(body.keep));
-  const { plan } = computePlan({ template, mode, keep, snap });
+  const { plan } = computePlan({ template, mode, keep, snap, actor });
+  refuseMissing(plan);
   if (plan.blockers.length) throw new SABridgeError(plan.blockers[0]!, 400, { code: "blocked", blockers: plan.blockers });
   if (plan.requiresConfirm && !confirmMatches(guild, body.confirmName)) {
     throw new SABridgeError("This build removes channels or roles. Type the server name to confirm.", 400, { code: "confirm_required" });
@@ -356,6 +391,17 @@ async function restoreRoute(client: Client, guild: Guild, id: number, body: Reco
   if (activeBuild(guild.id) || isGuildBusy(guild.id)) throw new SABridgeError("A build is already running on this server.", 409, { code: "busy" });
   const removeAdded = body.removeAdded === true;
   const restoreConfig = body.restoreConfig === true;
+  // Same checks as a build: the member's own permissions, re-checked again when it runs.
+  const actor = await actorFor(guild, userId);
+  const restorePlan = computeRestorePlan(parseBackupStructure(row.structure)!, await freshSnapshot(guild), removeAdded, actor);
+  if (restorePlan.blockers.length) {
+    throw new SABridgeError(restorePlan.blockers[0]!, 403, {
+      code: "missing_permissions",
+      missing: restorePlan.permissions.filter((p) => !p.met).map((p) => p.label),
+      permissions: restorePlan.permissions,
+      blockers: restorePlan.blockers,
+    });
+  }
   if (removeAdded && !confirmMatches(guild, body.confirmName)) {
     throw new SABridgeError("Removing what was added deletes channels and roles. Type the server name to confirm.", 400, { code: "confirm_required" });
   }
@@ -390,7 +436,8 @@ function deleteBackupRoute(client: Client, guild: Guild, id: number, userId: str
 
 /**
  * Routes under /bridge/guilds/:guildId/server-autopilot/. The bridge has already checked
- * Manage Server for `userId`.
+ * Manage Server for `userId`; that only opens the page. Plans, builds and restores are limited to
+ * the member's own Discord permissions (actorPermissions.ts), checked here and again at run time.
  */
 export async function handleServerAutopilotBridge(
   client: Client,
@@ -406,7 +453,7 @@ export async function handleServerAutopilotBridge(
     if (idPart && id === null) throw new SABridgeError("Not found", 404);
     switch (area) {
       case "scan":
-        if (method === "GET" && !idPart) return await scanRoute(guild);
+        if (method === "GET" && !idPart) return await scanRoute(guild, userId);
         break;
       case "generate":
         if (method === "POST" && !idPart) return await generateRoute(client, guild, body, userId);
@@ -416,7 +463,7 @@ export async function handleServerAutopilotBridge(
         if (method === "GET" && id !== null && !action) return await generationRoute(guild, id);
         break;
       case "plan":
-        if (method === "POST" && !idPart) return await planRoute(guild, body);
+        if (method === "POST" && !idPart) return await planRoute(guild, body, userId);
         break;
       case "build":
         if (method === "POST" && !idPart) return await buildRoute(client, guild, body, userId);

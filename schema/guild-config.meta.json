@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-20T22:55:45.664Z",
+  "generatedAt": "2026-11-21T17:43:53.619Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -749,5 +749,35 @@
     "autoreplies.rules.*.channel_id",
     "autothreads.rules.*.channel_id",
     "autodelete.rules.*.channel_id"
+  ],
+  "grantableRoleFields": [
+    "autorole.roles",
+    "autorole.bot_roles",
+    "activity_rewards.milestones.*.roles",
+    "activity_rewards.milestones.*.remove_roles",
+    "booster_roles.tiers.*.role_id",
+    "birthdays.role.role_id",
+    "role_panels.panels.*.roles.*.role_id",
+    "roles.rules.*.give_roles",
+    "roles.rules.*.remove_roles",
+    "passport.unverified_role_id",
+    "passport.grant_role_ids",
+    "passport.remove_role_ids",
+    "applications.openings.*.accept_roles",
+    "applications.openings.*.accept_remove_roles",
+    "suggestions.approved_role",
+    "suggestions.implemented_role",
+    "team_control.ranks.*.role_id",
+    "team_control.shifts.duty_role_id",
+    "team_control.leave.loa_role_id",
+    "team_control.leave.ra_role_id",
+    "team_control.actions.suspended_role_id",
+    "companion_channels.join_role_id"
+  ],
+  "managedChannelFields": [
+    "counters.counters.*.channel_id",
+    "companion_channels.setups.*.hub_channel_id",
+    "companion_channels.setups.*.category_id",
+    "tickets.panels.*.categories.*.category_channel_id"
   ]
 }

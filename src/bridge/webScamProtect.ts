@@ -115,7 +115,8 @@ export async function disableWebScamProtect(
     guild.id,
     "scam_protect",
     { channel_id: null, warning_message_id: null },
-    userId,
+    // A system write: the honeypot ids are bot-owned, and saves made for a person keep them.
+    "system:scam_protect",
   );
 
   const status = await buildWebScamProtectStatus(guild, configManager);

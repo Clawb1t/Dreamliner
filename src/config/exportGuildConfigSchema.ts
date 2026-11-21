@@ -5,6 +5,8 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { getEditorPluginCategories } from "../core/helpCategories.js";
 import { getPermissionCatalog } from "../core/permissionCatalog.js";
 import { CATEGORY_CHANNEL_FIELDS } from "./categoryChannelFields.js";
+import { GRANTABLE_ROLE_FIELDS } from "./grantableRoleFields.js";
+import { MANAGED_CHANNEL_FIELDS } from "./managedChannelFields.js";
 import { getDefaultConfigPath, loadDefaultConfigRaw } from "./default.js";
 import { enrichJsonSchemaForEditor } from "./schemaHelp.js";
 import { zGuildConfig } from "./schemas/guild.js";
@@ -44,6 +46,10 @@ export type GuildConfigEditorArtifacts = {
     }>;
     /** Channel-list fields that also accept whole categories (see categoryChannelFields.ts). */
     categoryChannelFields: string[];
+    /** Role fields the bot gives or takes; the saver must be able to give them (grantableRoleFields.ts). */
+    grantableRoleFields: string[];
+    /** Channel fields the bot creates channels in or renames; the saver needs Manage Channels (managedChannelFields.ts). */
+    managedChannelFields: string[];
   };
   templateYaml: string;
 };
@@ -91,6 +97,8 @@ export function buildGuildConfigEditorArtifacts(): GuildConfigEditorArtifacts {
       })),
     ),
     categoryChannelFields: [...CATEGORY_CHANNEL_FIELDS],
+    grantableRoleFields: [...GRANTABLE_ROLE_FIELDS],
+    managedChannelFields: [...MANAGED_CHANNEL_FIELDS],
   };
 
   return {

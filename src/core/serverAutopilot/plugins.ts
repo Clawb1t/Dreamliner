@@ -10,7 +10,6 @@ import { zAutomodConfig } from "../../config/schemas/automod.js";
 import { applyPresetToConfig } from "../../plugins/automod/functions/presets.js";
 import { getPluginSettings } from "../permissionRoles.js";
 import { parsePluginConfig } from "../pluginSchemas.js";
-import { autoGrantableRoleIds } from "../roles.js";
 import type { SAPluginSetup, SAPurpose } from "./types.js";
 
 export type PluginTargets = {
@@ -21,6 +20,11 @@ export type PluginTargets = {
   channelByPurpose: (purposes: SAPurpose[]) => string | null;
   /** Ids of the template's staff-preset roles. */
   staffRoleIds: string[];
+  /**
+   * The ids Dreamliner may hand out for the member running the build: auto-grantable (not staff,
+   * below the bot) and roles that member could give themselves (actorPermissions.ts).
+   */
+  grantable: (ids: string[]) => string[];
 };
 
 const rec = (value: unknown): Record<string, unknown> => (value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {});
@@ -102,8 +106,8 @@ export async function configurePlugin(guild: Guild, setup: SAPluginSetup, target
       return review ? `Suggestions post in ${mention(channel)} after staff review in ${mention(review)}.` : `Suggestions post straight to ${mention(channel)}.`;
     }
     case "autorole": {
-      const grantable = role ? autoGrantableRoleIds(guild, [role]) : [];
-      if (!grantable.length) throw new Error("The autorole has staff permissions or sits above Dreamliner, so it can't be given automatically.");
+      const grantable = role ? targets.grantable([role]) : [];
+      if (!grantable.length) throw new Error("The autorole has staff permissions, or sits above Dreamliner or your own highest role, so it can't be given automatically.");
       const roles = Array.isArray(current.roles) ? (current.roles as Array<Record<string, unknown>>) : [];
       if (!roles.some((r) => r.role === grantable[0])) await patch({ roles: [...roles, { role: grantable[0] }] });
       await enable();
@@ -111,7 +115,7 @@ export async function configurePlugin(guild: Guild, setup: SAPluginSetup, target
     }
     case "passport": {
       if (!channel) throw new Error("No verify channel was built.");
-      const grant = role ? autoGrantableRoleIds(guild, [role]) : [];
+      const grant = role ? targets.grantable([role]) : [];
       await patch({ channel_id: channel, grant_role_ids: [...new Set([...strings(current.grant_role_ids), ...grant])] });
       await enable();
       return `Passport verification runs in ${mention(channel)}${grant.length ? ` and grants <@&${grant[0]}>` : ""}.`;
@@ -119,7 +123,7 @@ export async function configurePlugin(guild: Guild, setup: SAPluginSetup, target
     case "birthdays": {
       if (!channel) throw new Error("No birthday channel was built.");
       const values: Record<string, unknown> = { announcement: { ...rec(current.announcement), enabled: true, channel_id: channel } };
-      const grant = role ? autoGrantableRoleIds(guild, [role]) : [];
+      const grant = role ? targets.grantable([role]) : [];
       if (grant.length) values.role = { ...rec(current.role), enabled: true, role_id: grant[0] };
       await patch(values);
       await enable();

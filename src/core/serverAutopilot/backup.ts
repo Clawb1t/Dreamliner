@@ -2,7 +2,18 @@
  * Server Autopilot structure backups: serialising a guild's roles and channels (with every
  * permission overwrite) and planning a restore from one. Pure; the build runner does the Discord work.
  */
-import { protectedChannelIds, roleEditable, structureOf, type GuildSnapshot, type SnapChannel, type SnapKind, type SnapRole } from "./snapshot.js";
+import {
+  actorAboveHierarchy,
+  actorGrantablePermissions,
+  actorHasAllPermissions,
+  actorOutranksPosition,
+  missingActorPermissions,
+  missingPermissionMessage,
+  permissionLabel,
+  type ActorInfo,
+  type PermName,
+} from "../actorPermissions.js";
+import { protectedChannelIds, roleEditable, structureOf, type GuildSnapshot, type SnapChannel, type SnapKind, type SnapOverwrite, type SnapRole } from "./snapshot.js";
 import type { SAStructure } from "./types.js";
 
 export type BackupRole = Omit<SnapRole, "members">;
@@ -114,7 +125,39 @@ export type RestorePlan = {
   deleteChannels: Array<{ id: string; name: string; kind: SnapKind }>;
   deleteRoles: Array<{ id: string; name: string }>;
   warnings: string[];
+  /** What the member restoring needs (empty without an actor). Unmet ones are in `blockers`. */
+  permissions: Array<{ permission: string; label: string; reason: string; met: boolean }>;
+  blockers: string[];
 };
+
+/** Removing what was added since a backup deletes channels and roles: Administrator or the owner. */
+export const REMOVE_ADDED_NEEDS_ADMIN = "Removing what was added since the backup deletes channels and roles, so it needs Administrator or the server owner. Restore without removing, or ask an administrator.";
+
+/**
+ * Overwrites limited to what can be granted: bits outside `grant` stay as they are on the live
+ * channel (or off, for a new one), the same way Discord stops a member changing permissions they
+ * don't have.
+ */
+export function clampRestoreOverwrites(wanted: BackupOverwrite[], live: SnapOverwrite[], grant: bigint, grantAll: boolean): BackupOverwrite[] {
+  if (grantAll) return wanted;
+  const liveById = new Map(live.map((o) => [o.id, o]));
+  const out: BackupOverwrite[] = [];
+  const seen = new Set<string>();
+  for (const o of wanted) {
+    seen.add(o.id);
+    const current = liveById.get(o.id);
+    const allow = (BigInt(o.allow) & grant) | (BigInt(current?.allow ?? "0") & ~grant);
+    const deny = (BigInt(o.deny) & grant) | (BigInt(current?.deny ?? "0") & ~grant);
+    if (allow !== 0n || deny !== 0n) out.push({ ...o, allow: allow.toString(), deny: deny.toString() });
+  }
+  for (const current of live) {
+    if (seen.has(current.id)) continue;
+    const allow = BigInt(current.allow) & ~grant;
+    const deny = BigInt(current.deny) & ~grant;
+    if (allow !== 0n || deny !== 0n) out.push({ id: current.id, type: current.type, roleName: null, allow: allow.toString(), deny: deny.toString() });
+  }
+  return out;
+}
 
 /** Bits the bot can't set stay as they are now (or off, for a role being recreated). */
 function clampPermissions(wanted: bigint, current: bigint, botPerms: bigint, botAdmin: boolean): bigint {
@@ -127,21 +170,32 @@ function clampPermissions(wanted: bigint, current: bigint, botPerms: bigint, bot
  * missing ones are recreated. Things added after the backup are only removed with `removeAdded`.
  * Discord-managed, protected and above-the-bot items are never touched.
  */
-export function computeRestorePlan(backup: SABackupStructure, snap: GuildSnapshot, removeAdded: boolean): RestorePlan {
+export function computeRestorePlan(backup: SABackupStructure, snap: GuildSnapshot, removeAdded: boolean, actor?: ActorInfo): RestorePlan {
   const warnings: string[] = [];
-  const botPerms = BigInt(snap.bot.permissions);
-  const botAdmin = snap.bot.administrator;
+  const realBotPerms = BigInt(snap.bot.permissions);
+  const realBotAdmin = snap.bot.administrator;
+  // Limited to the member's own permissions too (see actorPermissions.ts).
+  const actorAll = actor ? actorHasAllPermissions(actor) : true;
+  const botAdmin = realBotAdmin && actorAll;
+  const botPerms = !actor ? realBotPerms : realBotAdmin ? actorGrantablePermissions(actor) : actorAll ? realBotPerms : realBotPerms & actor.permissions;
+  const actorCanEdit = (position: number) => !actor || actorOutranksPosition(actor, position);
   const liveRoles = new Map(snap.roles.map((r) => [r.id, r]));
   const liveChannels = new Map(snap.channels.map((c) => [c.id, c]));
 
   const roles: RestoreRoleAction[] = [];
   let skippedRoles = 0;
+  let aboveActor = 0;
   for (const role of backup.roles) {
     if (role.isEveryone || role.managed || role.isBooster) continue;
     const live = liveRoles.get(role.id);
     const base = { backupId: role.id, name: role.name, color: role.color, hoist: role.hoist, mentionable: role.mentionable, position: role.position };
     if (!live) {
       roles.push({ ...base, action: "create", roleId: null, permissions: clampPermissions(BigInt(role.permissions), 0n, botPerms, botAdmin).toString(), changes: [] });
+      continue;
+    }
+    if (roleEditable(snap, live) && !actorCanEdit(live.position)) {
+      aboveActor += 1;
+      roles.push({ ...base, action: "skip", roleId: live.id, permissions: live.permissions, changes: [] });
       continue;
     }
     if (!roleEditable(snap, live)) {
@@ -159,6 +213,7 @@ export function computeRestorePlan(backup: SABackupStructure, snap: GuildSnapsho
     roles.push({ ...base, action: changes.length ? "update" : "skip", roleId: live.id, permissions: permissions.toString(), changes });
   }
   if (skippedRoles) warnings.push(`${skippedRoles} role${skippedRoles === 1 ? " is" : "s are"} above Dreamliner's role and can't be restored.`);
+  if (aboveActor) warnings.push(`${aboveActor} role${aboveActor === 1 ? " is" : "s are"} at or above your highest role, so ${aboveActor === 1 ? "it was" : "they were"} left as ${aboveActor === 1 ? "it is" : "they are"}.`);
 
   const toAction = (channel: BackupChannel): RestoreChannelAction => {
     const live = liveChannels.get(channel.id);
@@ -174,7 +229,7 @@ export function computeRestorePlan(backup: SABackupStructure, snap: GuildSnapsho
       bitrate: channel.bitrate,
       userLimit: channel.userLimit,
       position: channel.position,
-      overwrites: channel.overwrites,
+      overwrites: clampRestoreOverwrites(channel.overwrites, live?.overwrites ?? [], botPerms, botAdmin),
     };
     if (!live) return { ...base, action: "create", channelId: null, changes: [] };
     const changes: string[] = [];
@@ -185,7 +240,7 @@ export function computeRestorePlan(backup: SABackupStructure, snap: GuildSnapsho
     if (live.userLimit !== channel.userLimit) changes.push("user limit");
     if ((live.parentId ?? null) !== (channel.parentId ?? null)) changes.push("move");
     const sig = (list: Array<{ id: string; allow: string; deny: string }>) => list.map((o) => `${o.id}:${o.allow}:${o.deny}`).sort().join("|");
-    if (sig(live.overwrites) !== sig(channel.overwrites)) changes.push("permissions");
+    if (sig(live.overwrites) !== sig(base.overwrites)) changes.push("permissions");
     return { ...base, action: changes.length ? "update" : "skip", channelId: live.id, changes };
   };
   const restorable = backup.channels.filter((c) => c.kind !== "other");
@@ -204,9 +259,25 @@ export function computeRestorePlan(backup: SABackupStructure, snap: GuildSnapsho
     deleteChannels.sort((a, b) => Number(a.kind === "category") - Number(b.kind === "category"));
     const backupRoleIds = new Set(backup.roles.map((r) => r.id));
     for (const r of snap.roles) {
-      if (backupRoleIds.has(r.id) || !roleEditable(snap, r)) continue;
+      if (backupRoleIds.has(r.id) || !roleEditable(snap, r) || !actorCanEdit(r.position)) continue;
       deleteRoles.push({ id: r.id, name: r.name });
     }
   }
-  return { roles, categories, channels, deleteChannels, deleteRoles, warnings };
+
+  const permissions: RestorePlan["permissions"] = [];
+  const blockers: string[] = [];
+  if (actor) {
+    const needs: Array<{ permission: PermName; reason: string; met?: boolean }> = [];
+    const channelWork = [...categories, ...channels].some((c) => c.action !== "skip") || deleteChannels.length > 0;
+    const roleWork = roles.some((r) => r.action !== "skip") || deleteRoles.length > 0 || [...categories, ...channels].some((c) => c.action !== "skip" && c.overwrites.length > 0);
+    if (channelWork) needs.push({ permission: "ManageChannels", reason: "restore channels and categories" });
+    if (roleWork) needs.push({ permission: "ManageRoles", reason: "restore roles and channel permissions" });
+    if (removeAdded && (deleteChannels.length || deleteRoles.length)) needs.push({ permission: "Administrator", reason: "remove what was added", met: actorAboveHierarchy(actor) || actor.administrator });
+    for (const n of needs) {
+      const met = n.met ?? missingActorPermissions(actor, [n.permission]).length === 0;
+      permissions.push({ permission: n.permission, label: permissionLabel(n.permission), reason: n.reason, met });
+      if (!met) blockers.push(n.permission === "Administrator" ? REMOVE_ADDED_NEEDS_ADMIN : missingPermissionMessage([n.permission], n.reason));
+    }
+  }
+  return { roles, categories, channels, deleteChannels, deleteRoles, warnings, permissions, blockers };
 }

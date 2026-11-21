@@ -1,3 +1,4 @@
+import { ACTOR_UNRESOLVED_MESSAGE, grantableRoleProblems, grantableRolesMessage, resolveActor } from "../../../core/actorPermissions.js";
 import { ChannelType, PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
 import { fetchGuildChannel } from "../../../core/guildChannel.js";
 import { getLogger } from "../../../core/logger.js";
@@ -85,6 +86,14 @@ export async function createTrackedLink(guild: Guild, input: CreateTrackedLinkIn
       ok: false,
       error: `Dreamliner can't give <@&${blocked}>: it must exist, sit below Dreamliner's highest role, and have no staff permissions.`,
     };
+  }
+  // The person making the link must be able to give these roles themselves (it can be made with
+  // a Dreamliner permission alone, and the bot gives the roles to everyone who joins through it).
+  if (roleIds.length) {
+    const actor = await resolveActor(guild, input.createdBy);
+    if (!actor) return { ok: false, error: ACTOR_UNRESOLVED_MESSAGE };
+    const problems = grantableRoleProblems(guild, actor, roleIds);
+    if (problems.length) return { ok: false, error: grantableRolesMessage(problems) };
   }
 
   const invite = await channel

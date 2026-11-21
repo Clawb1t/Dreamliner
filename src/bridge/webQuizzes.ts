@@ -11,6 +11,7 @@ import { consumeAiGate } from "../core/ai/gate.js";
 import { getAiGateStatus, refundFreeAiUse } from "../core/ai/usage.js";
 import { configManager } from "../config/manager.js";
 import { hasPermission } from "../core/permissionRoles.js";
+import { ACTOR_UNRESOLVED_MESSAGE, grantableRoleProblems, grantableRolesMessage, resolveActor } from "../core/actorPermissions.js";
 import { fetchGuildTextChannel, isGuildChannel } from "../core/guildChannel.js";
 import { getLogger } from "../core/logger.js";
 import { generateQuizDraft, parseGenerateRequest } from "../plugins/quizzes/functions/ai.js";
@@ -196,6 +197,25 @@ async function targetsProblem(guild: Guild, clean: CleanQuiz): Promise<string | 
   const ch = clean.settings.resultsChannelId;
   if (ch && ch !== "none" && !(await isGuildChannel(guild.client, guild.id, ch))) return "The results channel isn't in this server.";
   return null;
+}
+
+/** Roles the bot hands out for a quiz: the pass role and personality outcome roles. */
+const rewardRoleIds = (clean: CleanQuiz | null): string[] =>
+  clean ? [clean.settings.passRoleId, ...clean.outcomes.map((o) => o.roleId)].filter((id): id is string => Boolean(id)) : [];
+
+/**
+ * Newly added reward roles must be roles the editor could give themselves (Manage Roles, below
+ * their highest role, no permissions they lack): quizzes can be managed with a Dreamliner flag
+ * alone, and the bot gives these roles to everyone who passes. Unchanged roles aren't rechecked.
+ */
+async function rewardRolesRefusal(guild: Guild, userId: string, next: CleanQuiz, previous: CleanQuiz | null): Promise<Reply | null> {
+  const before = new Set(rewardRoleIds(previous));
+  const added = rewardRoleIds(next).filter((id) => !before.has(id));
+  if (!added.length) return null;
+  const actor = await resolveActor(guild, userId);
+  if (!actor) return bad(ACTOR_UNRESOLVED_MESSAGE, 403);
+  const problems = grantableRoleProblems(guild, actor, added);
+  return problems.length ? { status: 403, body: { error: grantableRolesMessage(problems), code: "role_hierarchy", problems } } : null;
 }
 
 // -- Reads -------------------------------------------------------------------------------------------
@@ -505,6 +525,8 @@ async function create(guild: Guild, userId: string, body: Record<string, unknown
   if (!clean.ok) return bad(clean.error);
   const problem = await targetsProblem(guild, clean.quiz);
   if (problem) return bad(problem);
+  const refusal = await rewardRolesRefusal(guild, userId, clean.quiz, null);
+  if (refusal) return refusal;
   const quiz = store.createQuiz(guild.id, clean.quiz, userId, status);
   store.addEvent(guild.id, quiz.id, "created", userId, status === "published" ? "Published straight away" : null);
   return { ...ok({ quiz: fullQuiz(quiz) }), quiz };
@@ -515,6 +537,8 @@ async function update(guild: Guild, userId: string, quiz: Quiz, body: Record<str
   if (!clean.ok) return bad(clean.error);
   const problem = await targetsProblem(guild, clean.quiz);
   if (problem) return bad(problem);
+  const refusal = await rewardRolesRefusal(guild, userId, clean.quiz, asClean(quiz));
+  if (refusal) return refusal;
   const updated = store.updateQuizFields(guild.id, quiz.id, clean.quiz, body.questions !== undefined);
   if (!updated) return bad("Quiz not found", 404);
   store.addEvent(guild.id, quiz.id, "edited", userId, body.questions !== undefined ? `${clean.quiz.questions.length} questions` : null);

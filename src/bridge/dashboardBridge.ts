@@ -6,6 +6,8 @@ import http from "node:http";
 import type { Client, Guild } from "discord.js";
 import { ChannelType, PermissionFlagsBits } from "discord.js";
 import type { ConfigManager } from "../config/manager.js";
+import { ROLE_GRANT_REFUSED } from "../config/manager.js";
+import { ActorPermissionError, requireActorPermissions, type PermName } from "../core/actorPermissions.js";
 import {
   getDashboardBridgePort,
   getDashboardBridgeSecret,
@@ -242,6 +244,30 @@ async function memberCanManage(guild: Guild, userId: string): Promise<boolean> {
     if (manageCache.size > 5000) manageCache.clear();
   }
   return allowed;
+}
+
+/**
+ * The dashboard gate (memberCanManage) only opens a page. Anything that makes the bot change
+ * Discord for the user also needs the user's own Discord permission for it (actorPermissions.ts).
+ * Sends the 403 and returns false when they lack it.
+ */
+async function actorAllowed(
+  res: http.ServerResponse,
+  guild: Guild,
+  userId: string,
+  perms: readonly PermName[],
+  action: string,
+): Promise<boolean> {
+  try {
+    await requireActorPermissions(guild, userId, perms, action);
+    return true;
+  } catch (error) {
+    if (error instanceof ActorPermissionError) {
+      sendJson(res, error.status, error.toJson());
+      return false;
+    }
+    throw error;
+  }
 }
 
 /** Lighter than memberCanManage - just "is this Discord user actually in the server", for the
@@ -7163,6 +7189,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
+            if (!(await actorAllowed(res, guild, userId, ["ManageChannels"], "create the Scam Protect channel"))) return;
             const result = await setupWebScamProtect(guild, configManager, userId, body.channelName);
             if (!result.ok) {
               sendJson(res, 400, { error: result.error });
@@ -7198,6 +7225,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Missing Manage Server permission." });
               return;
             }
+            if (!(await actorAllowed(res, guild, userId, ["ManageChannels"], "remove the Scam Protect channel"))) return;
             const result = await disableWebScamProtect(guild, configManager, userId);
             if (!result.ok) {
               sendJson(res, 400, { error: result.error });
@@ -10325,8 +10353,23 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const beforeConfig = await configManager.getEffectiveConfig(guildId);
+          // Turning Scam Protect on makes the bot create its honeypot channel: Manage Channels.
+          if (beforeConfig.plugins.scam_protect?.enabled !== true) {
+            let turnsOn = false;
+            try {
+              turnsOn = configManager.mergePreview(yaml).plugins.scam_protect?.enabled === true;
+            } catch {
+              turnsOn = false; // invalid YAML: saveGuildConfig below reports it
+            }
+            if (turnsOn && !(await actorAllowed(res, guild, userId, ["ManageChannels"], "turn on Scam Protect (it creates a channel)"))) return;
+          }
           const result = await configManager.saveGuildConfig(guildId, yaml, userId);
           if (!result.success) {
+            if (result.code === ROLE_GRANT_REFUSED) {
+              // Refused by the role-grant check (grantableRoleFields.ts): the saver can't give that role.
+              sendJson(res, 403, { error: result.errors[0], code: result.code, errors: result.errors });
+              return;
+            }
             sendJson(res, 400, { error: "Validation failed", errors: result.errors });
             return;
           }

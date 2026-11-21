@@ -14,18 +14,78 @@ import {
 import type { GuildConfig } from "./schemas/guild.js";
 import { migrateLegacyEmojisInGuildConfig, migrateLegacyEmojisInObject } from "./emojiMigration.js";
 import { getLogger } from "../core/logger.js";
+import { actorFromUpdatedBy, addedGrantableRoleIds } from "./grantableRoleFields.js";
+import { addedManagedChannelIds } from "./managedChannelFields.js";
 const log = getLogger("config");
 
 const cache = new Map<string, GuildConfig>();
 
-type SaveResult = { success: true; data: GuildConfig } | { success: false; errors: string[] };
+type SaveResult = { success: true; data: GuildConfig } | { success: false; errors: string[]; code?: string };
+
+/**
+ * Checks that `actorId` could do themselves what newly added settings make the bot do: hand out
+ * these roles (grantableRoleFields.ts) and create in or rename these channels
+ * (managedChannelFields.ts). Returns the problems, empty when allowed. Installed at boot by the bot
+ * (it needs the live guild); without one (tests, scripts) saves aren't checked.
+ */
+export type RoleGrantGuard = (guildId: string, actorId: string, added: { roleIds: string[]; channelIds: string[] }) => Promise<string[]>;
+
+/** Error code on a SaveResult refused because the saver couldn't do what the new settings make the bot do. */
+export const ROLE_GRANT_REFUSED = "actor_permissions";
 
 /** `previous` is the guild's config from just before this save (null when it had none), so a
  *  listener can react to what was removed, e.g. clean up Discord posts for deleted entries. */
 type ConfigSaveListener = (guildId: string, config: GuildConfig, previous: GuildConfig | null) => void;
 
+/**
+ * Ids only the bot itself writes: the Scam Protect honeypot channel it creates, and its warning
+ * message. The bot renames, moves and deletes that channel and softbans anyone who posts in it, so
+ * a dashboard save pointing it at an existing channel would turn the bot on that channel. Saves
+ * made for a person (actorFromUpdatedBy) always keep the bot's current values.
+ */
+const BOT_OWNED_FIELDS: ReadonlyArray<readonly [plugin: string, key: string]> = [
+  ["scam_protect", "channel_id"],
+  ["scam_protect", "warning_message_id"],
+];
+
+function pluginConfigOf(root: Record<string, unknown>, plugin: string, create: boolean): Record<string, unknown> | null {
+  const plugins = root.plugins as Record<string, unknown> | undefined;
+  if (!plugins || typeof plugins !== "object") {
+    if (!create) return null;
+    root.plugins = {};
+    return pluginConfigOf(root, plugin, create);
+  }
+  let section = plugins[plugin] as Record<string, unknown> | undefined;
+  if (!section || typeof section !== "object") {
+    if (!create) return null;
+    section = plugins[plugin] = {};
+  }
+  let config = section.config as Record<string, unknown> | undefined;
+  if (!config || typeof config !== "object") {
+    if (!create) return null;
+    config = section.config = {};
+  }
+  return config;
+}
+
+function keepBotOwnedFields(previous: GuildConfig | null, merged: GuildConfig, user: Record<string, unknown>): void {
+  for (const [plugin, key] of BOT_OWNED_FIELDS) {
+    const before = previous ? pluginConfigOf(previous as unknown as Record<string, unknown>, plugin, false)?.[key] : undefined;
+    const mergedConfig = pluginConfigOf(merged as unknown as Record<string, unknown>, plugin, false);
+    if (before === undefined || before === null || before === "") {
+      if (mergedConfig && key in mergedConfig) delete mergedConfig[key];
+      const userConfig = pluginConfigOf(user, plugin, false);
+      if (userConfig) delete userConfig[key];
+      continue;
+    }
+    if (mergedConfig) mergedConfig[key] = before;
+    pluginConfigOf(user, plugin, true)![key] = before;
+  }
+}
+
 export class ConfigManager {
   private saveListeners = new Set<ConfigSaveListener>();
+  private roleGrantGuard: RoleGrantGuard | null = null;
   // Guilds with no row in guild_configs at all — a normal, expected state (never
   // ran /config upload), not an error. Tracked so getEffectiveConfig can tell
   // that apart from a stored config that actually failed to validate.
@@ -46,6 +106,11 @@ export class ConfigManager {
       if (this.writeQueues.get(guildId) === settled) this.writeQueues.delete(guildId);
     });
     return next;
+  }
+
+  /** Installs (or, with null, removes) the check every save runs on newly added grantable roles. */
+  setRoleGrantGuard(guard: RoleGrantGuard | null): void {
+    this.roleGrantGuard = guard;
   }
 
   onSave(listener: ConfigSaveListener): () => void {
@@ -235,15 +300,30 @@ export class ConfigManager {
     }
 
     const previous = await this.getGuildConfig(guildId).catch(() => null);
+
+    // Roles the bot will give or take: whoever adds one must be able to give it themselves.
+    // Only newly added ids are checked, so roles already saved by someone else keep working.
+    const actorId = actorFromUpdatedBy(updatedBy);
+    if (actorId && this.roleGrantGuard) {
+      const before = previous ?? loadDefaultConfig();
+      const added = { roleIds: addedGrantableRoleIds(before, result.data), channelIds: addedManagedChannelIds(before, result.data) };
+      if (added.roleIds.length || added.channelIds.length) {
+        const problems = await this.roleGrantGuard(guildId, actorId, added);
+        if (problems.length) return { success: false, errors: problems, code: ROLE_GRANT_REFUSED };
+      }
+    }
+
     const defaultsSnapshotJson = JSON.stringify(loadDefaultConfig());
-    let userConfigJson: string;
+    let parsedUser: Record<string, unknown>;
     try {
-      const parsed = parseYamlConfig(userYaml);
-      userConfigJson = JSON.stringify(parsed ?? {});
+      parsedUser = (parseYamlConfig(userYaml) ?? {}) as Record<string, unknown>;
     } catch {
       // Shouldn't happen — validateMergedConfig above already parsed this same YAML successfully.
-      userConfigJson = "{}";
+      parsedUser = {};
     }
+    // Saves made for a person can't move ids only the bot writes (see BOT_OWNED_FIELDS).
+    if (actorId) keepBotOwnedFields(previous, result.data, parsedUser);
+    const userConfigJson = JSON.stringify(parsedUser);
     const configJson = JSON.stringify(result.data);
 
     const db = getDb();

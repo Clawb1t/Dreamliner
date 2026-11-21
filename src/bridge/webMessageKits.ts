@@ -1,6 +1,7 @@
 import { ChannelType, MessageFlags, PermissionFlagsBits, type Channel, type Client, type Guild, type GuildBasedChannel, type Message } from "discord.js";
 import { fetchGuildChannel, fetchGuildTextChannel } from "../core/guildChannel.js";
 import { autoGrantableRoleIds } from "../core/roles.js";
+import { ACTOR_UNRESOLVED_MESSAGE, actorHas, actorRoleProblem, resolveActor } from "../core/actorPermissions.js";
 import { isOwnWebhookId, webhookTarget } from "../core/webhooks.js";
 import { deleteKitAsset, isImageAsset, KitAssetError, listKitAssets, readKitAsset, saveKitAsset } from "../plugins/message_kits/functions/assets.js";
 import { KIT_LIMITS } from "../plugins/message_kits/functions/constants.js";
@@ -366,12 +367,77 @@ export async function serverIssues(client: Client, guild: Guild, doc: KitDocumen
   return issues;
 }
 
+/** Role ids a document's role buttons/menus give or take. */
+function docRoleIds(doc: KitDocument | null): Set<string> {
+  const ids = new Set<string>();
+  if (!doc) return ids;
+  for (const { action } of listActionRefs(doc)) if (action.type === "role") for (const id of action.role_ids) ids.add(id);
+  return ids;
+}
+
+/**
+ * Role buttons the editor adds must give roles they could give themselves (Manage Roles, below
+ * their highest role, no permissions they lack). Roles already in the kit aren't rechecked.
+ */
+async function actorRoleIssues(guild: Guild, doc: KitDocument, userId: string, previous: KitDocument | null): Promise<KitIssue[]> {
+  const before = docRoleIds(previous);
+  const refs = listActionRefs(doc).filter((r) => r.action.type === "role");
+  if (!refs.some((r) => r.action.type === "role" && r.action.role_ids.some((id) => !before.has(id)))) return [];
+  const actor = await resolveActor(guild, userId);
+  if (!actor) throw new KitBridgeError(ACTOR_UNRESOLVED_MESSAGE, 403, { code: "actor_unresolved" });
+  const issues: KitIssue[] = [];
+  for (const { action, path } of refs) {
+    if (action.type !== "role") continue;
+    action.role_ids.forEach((roleId, i) => {
+      if (before.has(roleId)) return;
+      const role = guild.roles.cache.get(roleId);
+      if (!role) return; // serverIssues reports it
+      const problem = actorRoleProblem(actor, { id: role.id, name: role.name, position: role.position, managed: role.managed, permissions: role.permissions.bitfield }, guild.id);
+      if (problem) issues.push({ path: formatIssuePath([...path, "role_ids", i]), message: `${problem} You can only add roles you could give yourself.` });
+    });
+  }
+  return issues;
+}
+
 /** Parses and checks a document from the dashboard, throwing 422 with every issue. Saves accept
- *  drafts (parts may still be empty); `strict` also requires a sendable message. */
-async function requireDocument(client: Client, guild: Guild, raw: unknown, strict = false): Promise<KitDocument> {
+ *  drafts (parts may still be empty); `strict` also requires a sendable message. With `actor`,
+ *  newly added role buttons must give roles that user could give themselves. */
+async function requireDocument(
+  client: Client,
+  guild: Guild,
+  raw: unknown,
+  strict = false,
+  actor?: { userId: string; previous: string | null },
+): Promise<KitDocument> {
   const parsed = strict ? parseKitDocument(raw) : parseKitDraft(raw);
   if (!parsed.ok) throw invalid(parsed.issues);
   const issues = await serverIssues(client, guild, parsed.document);
+  if (actor) {
+    let previous: KitDocument | null = null;
+    if (actor.previous) {
+      try {
+        const prev = parseKitDraft(JSON.parse(actor.previous));
+        previous = prev.ok ? prev.document : null;
+      } catch {
+        previous = null;
+      }
+    }
+    issues.push(...(await actorRoleIssues(guild, parsed.document, actor.userId, previous)));
+    // A custom identity posts through a webhook under any name and avatar: Manage Webhooks, as in
+    // Discord. Unchanged identities already saved by someone else aren't rechecked.
+    const identity = parsed.document.identity;
+    const prevIdentity = previous?.identity;
+    const identityChanged =
+      identity.mode === "webhook" &&
+      (prevIdentity?.mode !== "webhook" || prevIdentity.name !== identity.name || prevIdentity.avatar_url !== identity.avatar_url);
+    if (identityChanged) {
+      const who = await resolveActor(guild, actor.userId);
+      if (!who) throw new KitBridgeError(ACTOR_UNRESOLVED_MESSAGE, 403, { code: "actor_unresolved" });
+      if (!actorHas(who, PermissionFlagsBits.ManageWebhooks)) {
+        issues.push({ path: formatIssuePath(["identity", "mode"]), message: "You need Manage Webhooks to send as a custom name and avatar. Ask someone with that permission, or send as Dreamliner." });
+      }
+    }
+  }
   if (issues.length) throw invalid(issues);
   return parsed.document;
 }
@@ -490,7 +556,7 @@ async function kitRoutes(client: Client, guild: Guild, method: string, rest: str
     const name = text(body, "name", KIT_LIMITS.kitName, { required: true, label: "Name" })!;
     const folder = text(body, "folder", KIT_LIMITS.folderName, { label: "Folder" }) ?? "";
     const description = text(body, "description", KIT_LIMITS.description, { label: "Description" }) ?? "";
-    const doc = await requireDocument(client, guild, body.document);
+    const doc = await requireDocument(client, guild, body.document, false, { userId, previous: null });
     const now = new Date();
     const kit = insertKit({ guildId: guild.id, name, folder, description, document: JSON.stringify(doc), createdBy: userId, updatedBy: userId, createdAt: now, updatedAt: now, note: "Created" });
     audit("Message kit created", `Message kit "${kit.name}" was created.`, { kitId: kit.id });
@@ -520,7 +586,7 @@ async function kitRoutes(client: Client, guild: Guild, method: string, rest: str
         if (typeof body.archived !== "boolean") throw new KitBridgeError("archived must be true or false.");
         patch.archived = body.archived;
       }
-      if (body.document !== undefined) patch.document = JSON.stringify(await requireDocument(client, guild, body.document));
+      if (body.document !== undefined) patch.document = JSON.stringify(await requireDocument(client, guild, body.document, false, { userId, previous: kit.document }));
       patch.note = text(body, "note", 200, { label: "Note" }) ?? "";
       const updated = updateKit(kit, patch, userId);
       const changed = updated.version !== kit.version;

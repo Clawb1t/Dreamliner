@@ -190,6 +190,13 @@ export type SAPlan = {
   blockers: string[];
   requiresConfirm: boolean;
   estimatedSeconds: number;
+  /**
+   * The Discord permissions the member running the build needs, and whether they have them
+   * (empty when the plan wasn't computed for a member). Unmet ones are also in `blockers`.
+   */
+  permissions?: Array<{ permission: string; label: string; reason: string; met: boolean }>;
+  /** Labels of the unmet `permissions`, e.g. ["Manage Roles"]. */
+  missingPermissions?: string[];
 };
 
 export type SAStepId = "backup" | "roles" | "categories" | "channels" | "permissions" | "order" | "cleanup" | "plugins" | "messages";

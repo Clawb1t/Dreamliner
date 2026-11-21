@@ -118,6 +118,7 @@ import { LANGUAGE_SELECT_PREFIX, handleLanguageSelectInteraction } from "./plugi
 import { handleGhostButton, handleGhostSelect, isGhostComponent } from "./plugins/stats/functions/ghostModeUi.js";
 import { handleTtsAutocomplete } from "./plugins/tts/commands.js";
 import { handleTimeAutocomplete } from "./plugins/utility/functions/time.js";
+import { createRoleGrantGuard } from "./core/actorPermissions.js";
 import { handleHangarButton, handleHangarModal, handlePlanesAutocomplete, isHangarComponent } from "./plugins/economy/index.js";
 import { applyBotPresence } from "./core/presence.js";
 import { loadDefaultConfig } from "./config/default.js";
@@ -199,6 +200,8 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
     // Bounded caches + periodic sweeps; without them memory grows for as long as the bot runs.
     ...clientCacheOptions,
   });
+  // Config saves that add a role the bot will hand out must come from someone who could give it.
+  configManager.setRoleGrantGuard(createRoleGrantGuard(client));
 
   client.on(Events.Error, (error) => {
     log.error("[discord] Client error:", error);

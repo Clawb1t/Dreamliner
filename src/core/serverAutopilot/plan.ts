@@ -4,6 +4,17 @@
  * manager reviews and the work the build does always agree, and every rule is tested.
  */
 import { PermissionFlagsBits } from "discord.js";
+import {
+  actorAboveHierarchy,
+  actorGrantablePermissions,
+  actorHasAllPermissions,
+  actorOutranksPosition,
+  missingActorPermissions,
+  missingPermissionMessage,
+  permissionLabel,
+  type ActorInfo,
+  type PermName,
+} from "../actorPermissions.js";
 import { detectPurpose, detectRolePreset, normalizeName } from "./detect.js";
 import { formatName } from "./naming.js";
 import {
@@ -89,7 +100,51 @@ export type PlanInput = {
   snap: GuildSnapshot;
   /** Ids a previous (interrupted) run of the same template created, reused first. */
   idMap?: IdMap;
+  /**
+   * The member the build runs for. When given, the plan is limited to what they could do
+   * themselves: roles they can't manage are used as they are, role permissions and overwrites
+   * never include bits they lack, and missing Discord permissions become blockers.
+   */
+  actor?: ActorInfo;
 };
+
+/** One Discord permission a plan needs from the member running it. */
+export type PlanPermissionNeed = { permission: string; label: string; reason: string; met: boolean };
+
+/** Administrator, or the server owner, for fresh builds (they remove everything else). */
+export const FRESH_NEEDS_ADMIN = "A fresh build removes channels and roles, so it needs Administrator or the server owner. Use add or merge mode, or ask an administrator.";
+
+/**
+ * The Discord permissions the member running this plan needs, and whether they have them. Pure.
+ * Channels (create, edit, reorder, delete) need Manage Channels; roles and channel permissions need
+ * Manage Roles; a fresh build needs Administrator or the owner.
+ */
+export function planPermissionNeeds(resolved: ResolvedPlan, mode: SAMode, actor: ActorInfo): PlanPermissionNeed[] {
+  const needs: Array<{ permission: PermName; reason: string; met?: boolean }> = [];
+  const touchesChannels = resolved.categories.length + resolved.channels.length + resolved.deleteChannels.length > 0;
+  const touchesRoles = resolved.roles.some((r) => r.action !== "reuse" || r.editable) || resolved.deleteRoles.length > 0;
+  const setsOverwrites = [...resolved.categories, ...resolved.channels].some((c) => c.action !== "reuse" && c.overwrites.length > 0);
+  if (touchesChannels) needs.push({ permission: "ManageChannels", reason: "build channels and categories" });
+  if (touchesRoles || setsOverwrites) needs.push({ permission: "ManageRoles", reason: touchesRoles ? "build roles" : "set channel permissions" });
+  if (mode === "fresh") needs.push({ permission: "Administrator", reason: "run a fresh build", met: actorAboveHierarchy(actor) || actor.administrator });
+  return needs.map((n) => ({
+    permission: n.permission,
+    label: permissionLabel(n.permission),
+    reason: n.reason,
+    met: n.met ?? missingActorPermissions(actor, [n.permission]).length === 0,
+  }));
+}
+
+/** Blocker sentences for unmet needs, e.g. "You need Manage Roles to build roles. ..." */
+export function permissionBlockers(needs: PlanPermissionNeed[]): string[] {
+  return needs
+    .filter((n) => !n.met)
+    .map((n) => {
+      if (n.permission === "Administrator") return FRESH_NEEDS_ADMIN;
+      if (n.permission === "ManageRoles") return `${missingPermissionMessage([n.permission], n.reason).replace(/\.$/, "")}, or remove the roles and channel permissions from the template.`;
+      return missingPermissionMessage([n.permission], n.reason);
+    });
+}
 
 const TEXT_GROUP = new Set<SnapKind>(["text", "announcement"]);
 
@@ -144,6 +199,13 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
   const botPerms = BigInt(snap.bot.permissions);
   const botAdmin = snap.bot.administrator;
   const botHas = (flag: bigint) => botAdmin || (botPerms & flag) !== 0n;
+  // What can actually be granted: the bot's permissions, further limited to the member's own.
+  const actor = input.actor;
+  const actorAll = actor ? actorHasAllPermissions(actor) : true;
+  const grantAdmin = botAdmin && actorAll;
+  const grantPerms = !actor ? botPerms : botAdmin ? actorGrantablePermissions(actor) : actorAll ? botPerms : botPerms & actor.permissions;
+  /** Existing roles at or above the member's highest role are never edited or removed. */
+  const actorCanEdit = (position: number) => !actor || actorOutranksPosition(actor, position);
 
   if (!botHas(PermissionFlagsBits.ManageChannels)) blockers.push("Dreamliner needs the Manage Channels permission to build channels.");
   if (!botHas(PermissionFlagsBits.ManageRoles)) blockers.push("Dreamliner needs the Manage Roles permission to create roles and set channel permissions.");
@@ -183,9 +245,14 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
 
   const roles: RoleAction[] = [];
   for (const role of template.roles) {
-    const desired = rolePermissions(role, botPerms, botAdmin);
-    if (desired.dropped.length) {
-      warnings.push(`"${role.name}" won't get ${desired.dropped.slice(0, 4).join(", ")}${desired.dropped.length > 4 ? "…" : ""}: Dreamliner doesn't have ${desired.dropped.length === 1 ? "that permission" : "those permissions"} itself.`);
+    const botLimited = rolePermissions(role, botPerms, botAdmin);
+    const desired = rolePermissions(role, grantPerms, grantAdmin);
+    if (botLimited.dropped.length) {
+      warnings.push(`"${role.name}" won't get ${botLimited.dropped.slice(0, 4).join(", ")}${botLimited.dropped.length > 4 ? "…" : ""}: Dreamliner doesn't have ${botLimited.dropped.length === 1 ? "that permission" : "those permissions"} itself.`);
+    }
+    const actorDropped = desired.dropped.filter((name) => !botLimited.dropped.includes(name));
+    if (actorDropped.length) {
+      warnings.push(`"${role.name}" won't get ${actorDropped.slice(0, 4).join(", ")}${actorDropped.length > 4 ? "…" : ""}: you don't have ${actorDropped.length === 1 ? "that permission" : "those permissions"} yourself.`);
     }
     const existingId = roleMatch.get(role.key);
     const existing = existingId ? roleById.get(existingId) : undefined;
@@ -204,7 +271,8 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
       });
       continue;
     }
-    const editable = roleEditable(snap, existing) && !keepRoles.has(existing.id);
+    const aboveActor = !actorCanEdit(existing.position);
+    const editable = roleEditable(snap, existing) && !keepRoles.has(existing.id) && !aboveActor;
     const current = BigInt(existing.permissions);
     const merged = current | desired.permissions;
     const changes: string[] = [];
@@ -218,7 +286,9 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
       warnings.push(
         keepRoles.has(existing.id)
           ? `@${existing.name} is on your keep list, so it's used as it is.`
-          : `@${existing.name} is above Dreamliner's highest role (or managed), so it's used as it is.`,
+          : aboveActor && roleEditable(snap, existing)
+            ? `@${existing.name} is at or above your highest role, so it's used as it is.`
+            : `@${existing.name} is above Dreamliner's highest role (or managed), so it's used as it is.`,
       );
     }
     roles.push({
@@ -315,7 +385,7 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
   const plannedByCategory = new Map<string, PlannedOverwrite[]>();
   for (const cat of template.categories) {
     const name = formatName(template.naming, "category", cat.base, cat.emoji);
-    const planned = clampOverwrites(planCategoryOverwrites({ access: cat.access, roleKeys: cat.role_keys, rules: cat.rules ?? [] }, overwriteCtxRoles), botPerms, botAdmin);
+    const planned = clampOverwrites(planCategoryOverwrites({ access: cat.access, roleKeys: cat.role_keys, rules: cat.rules ?? [] }, overwriteCtxRoles), grantPerms, grantAdmin);
     plannedByCategory.set(cat.key, planned);
     const existingId = categoryMatch.get(cat.key);
     const existing = existingId ? channelById.get(existingId) : undefined;
@@ -350,8 +420,8 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
         overwriteCtxRoles,
         voice,
       ),
-      botPerms,
-      botAdmin,
+      grantPerms,
+      grantAdmin,
     );
     const syncWithParent = category !== null && samePlannedOverwrites(planned, categoryPlanned);
     const existingId = channelMatch.get(channel.key);
@@ -414,11 +484,13 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
     if (protectedKept) warnings.push(`${protectedKept} Community, system or log channel${protectedKept === 1 ? " is" : "s are"} kept even in a fresh build.`);
     const usedRoleIds = new Set(roleMatch.values());
     for (const role of snap.roles) {
-      if (usedRoleIds.has(role.id) || keepRoles.has(role.id) || !roleEditable(snap, role)) continue;
+      if (usedRoleIds.has(role.id) || keepRoles.has(role.id) || !roleEditable(snap, role) || !actorCanEdit(role.position)) continue;
       deleteRoles.push({ id: role.id, name: role.name });
     }
     const skippedRoles = snap.roles.filter((r) => !r.isEveryone && !usedRoleIds.has(r.id) && !keepRoles.has(r.id) && !roleEditable(snap, r)).length;
     if (skippedRoles) warnings.push(`${skippedRoles} role${skippedRoles === 1 ? "" : "s"} can't be removed (managed by an integration, the booster role, or above Dreamliner) and will stay.`);
+    const aboveActorRoles = snap.roles.filter((r) => !usedRoleIds.has(r.id) && !keepRoles.has(r.id) && roleEditable(snap, r) && !actorCanEdit(r.position)).length;
+    if (aboveActorRoles) warnings.push(`${aboveActorRoles} role${aboveActorRoles === 1 ? " is" : "s are"} at or above your highest role, so ${aboveActorRoles === 1 ? "it stays" : "they stay"}.`);
   }
   if (keepChannels.size || keepRoles.size) {
     const keptChannelCount = [...keepChannels].filter((id) => channelById.has(id)).length;
@@ -484,28 +556,36 @@ export function computePlan(input: PlanInput): { plan: SAPlan; resolved: Resolve
   const channelOrder: Record<string, string[]> = { "": template.uncategorized.map((c) => c.key) };
   for (const cat of template.categories) channelOrder[cat.key] = cat.channels.map((c) => c.key);
 
+  const resolved: ResolvedPlan = {
+    roles,
+    categories: categoryActions,
+    channels: channelActions,
+    deleteChannels,
+    deleteRoles,
+    roleOrder: template.roles.map((r) => r.key),
+    categoryOrder: template.categories.map((c) => c.key),
+    channelOrder,
+    plugins: template.plugins,
+    messages: template.messages,
+  };
+
+  // The member's own Discord permissions: any missing one refuses the whole build.
+  const permissions = actor ? planPermissionNeeds(resolved, mode, actor) : [];
+  const actorBlockers = permissionBlockers(permissions);
+
   return {
     plan: {
       mode,
       ops,
       counts,
       warnings: [...new Set(warnings)],
-      blockers,
+      blockers: [...actorBlockers, ...blockers],
       requiresConfirm: counts.delete > 0,
       estimatedSeconds: Math.round(5 + counts.create * 1.2 + counts.update * 1 + counts.delete * 0.8 + counts.plugins * 0.5 + counts.messages * 2),
+      permissions,
+      missingPermissions: permissions.filter((n) => !n.met).map((n) => n.label),
     },
-    resolved: {
-      roles,
-      categories: categoryActions,
-      channels: channelActions,
-      deleteChannels,
-      deleteRoles,
-      roleOrder: template.roles.map((r) => r.key),
-      categoryOrder: template.categories.map((c) => c.key),
-      channelOrder,
-      plugins: template.plugins,
-      messages: template.messages,
-    },
+    resolved,
   };
 }
 
