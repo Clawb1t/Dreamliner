@@ -245,7 +245,27 @@ describe("frozen global boards", () => {
     assert.deepEqual(await boards.frozenDaily("test", build, new Date("2026-11-20T23:59:00Z")), { n: 1 });
     boards.resetFrozenBoardMemo(); // a restart: still today's stored copy
     assert.deepEqual(await boards.frozenDaily("test", build, new Date("2026-11-20T12:00:00Z")), { n: 1 });
-    assert.deepEqual(await boards.frozenDaily("test", build, new Date("2026-11-21T00:01:00Z")), { n: 2 });
+    // A new day: yesterday's copy is served at once while today's builds in the background...
+    const day2 = new Date("2026-11-21T00:01:00Z");
+    assert.deepEqual(await boards.frozenDaily("test", build, day2), { n: 1 });
+    await new Promise((resolve) => setImmediate(resolve));
+    // ...and once built, today's copy is what everyone gets.
+    assert.deepEqual(await boards.frozenDaily("test", build, day2), { n: 2 });
+  });
+
+  it("a failed or slow rebuild keeps serving the last copy instead of nothing", async () => {
+    const day1 = new Date("2026-11-20T00:03:00Z");
+    assert.deepEqual(await boards.frozenDaily("slow", async () => ({ v: "old" }), day1), { v: "old" });
+    const day2 = new Date("2026-11-21T00:01:00Z");
+    const failing = async (): Promise<{ v: string }> => {
+      throw new Error("aggregation timed out");
+    };
+    assert.deepEqual(await boards.frozenDaily("slow", failing, day2), { v: "old" });
+    await new Promise((resolve) => setImmediate(resolve));
+    // Still the old copy after the failure, and the next request retries.
+    assert.deepEqual(await boards.frozenDaily("slow", async () => ({ v: "new" }), day2), { v: "old" });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(await boards.frozenDaily("slow", async () => ({ v: "newer" }), day2), { v: "new" });
   });
 
   it("Ghost Mode users leave the board at once, numbers stay frozen", () => {
