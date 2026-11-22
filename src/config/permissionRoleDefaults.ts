@@ -137,6 +137,7 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "bot_customisation.can_display_name",
     "bot_customisation.can_nickname",
     // dream_commands
+    "dream_commands.can_manage",
     "dream_commands.can_edit",
     "dream_commands.can_remove",
     // giveaways

@@ -1,44 +1,43 @@
-# Custom commands
+# Custom Commands (v3)
 
-Custom commands are guild-scoped **slash** commands (`/name`, max 10 per server) that reply with a message or an embed. They are built on the website's dashboard, on the Commands page (list plus an in-place editor with a live preview, deep-linkable as `?section=commands&command=<name>` or `&command=new`): no scripting involved.
+Guild slash commands built on the dashboard like a shortcut: a command has typed **options**, **access rules**, **cooldowns / daily limits**, and an ordered list of **steps**. Steps are actions (reply, give a role, create a channel, random image...) or blocks with nested steps (If, Repeat, Random branch, Buttons, Menu, Form). Code: `src/plugins/dream_commands/` (`engine/` is the builder runtime).
 
-## Building one
+## Limits
+- 25 commands per server, 100 with Dreamliner One (Discord's guild limit is 100; Dreamliner registers no other guild commands). Commands over the cap stay saved but aren't registered (dashboard shows "over the limit").
+- Per program: 120 steps, nesting depth 6, 64 KB JSON, 25 options.
+- Per run: 50 executed steps, 25 s of work (waits excluded), 25 Discord API calls, 3 created channels/roles/threads, 3 DMs, 15 minutes of waiting in total. Repeat ≤ 10, for-each ≤ 25.
+- Per server: 20 created channels/roles/threads per hour, 5 concurrent runs, 60 runs/minute; per user 10 runs/minute. 500 stored follow-ups, 100 paused runs.
+- Buttons/menus work for 24 hours; forms for 30 minutes.
 
-Open a server's dashboard, go to Commands, and click Add command (or pick one of the starters on an empty list). Fill in:
-
-- **Name** - the slash command: lowercase letters, numbers, and underscores only, 1-32 characters. It can't be a built-in Dreamliner command name, and it can't be changed after the command is made (duplicate it instead).
-- **Description** - shown under the command in Discord, 1-100 characters.
-- **Live in Discord** - off keeps the command saved but takes it out of Discord's command list (`enabled` on the row).
-- **Only the person who ran it sees the reply** - an ephemeral reply.
-- **Reply** - one of:
-  - **Text message**: up to 2000 characters.
-  - **Embed**: title (+ link), description, colour (or none), author (name, link, icon), thumbnail, image, footer text, timestamp. Needs a title, description, or author name.
-  - **Random reply**: up to 10 text messages; one is picked at random each time.
-
-The dashboard list also shows each command's uses (total, last 7 and 30 days, last used day) and who made it.
+## Program format
+`engine/types.ts` (copied to the site's `src/lib/customCommands.ts`). Steps: `{ id: "step3", type, label?, continueOnError?, disabled?, config }`. Validation is `engine/validate.ts` (strict zod per action, built from the field list in each action definition: unknown types and keys are rejected). Old version 2 programs (one reply) are converted by migration 0153 and, for anything still arriving in the old shape, by `engine/legacy.ts`.
 
 ## Variables
+`{user}`, `{user.mention|id|name|display_name|avatar_url|bot|created_at|joined_at}`, `{server}`, `{server.name|id|icon_url|owner|owner_id|member_count|verification_level|boosts|joined_at}`, `{channel}`, `{channel.name|id|type}`, `{option.<name>}` (+ `.id`, `.mention`, `.name`; attachments `.url`), `{<stepId>.<output>}`, `{var.<name>}`, `{loop.item}`, `{loop.index}`, `{form.<id>}`, `{press.user.*}`, `{random:1-100}`, `{time}`, `{date}`, `{timestamp}`, `{timestamp:R}`, `{runs}`, `{command}`. Fallbacks: `{option.reason|No reason}`. Old `{mention}` became `{user.mention}`.
 
-These tokens work in text content and in every embed text field:
+## Security model
+| Protection | Where |
+|---|---|
+| Builder's perms, capped: the saver must hold every permission the steps need and outrank roles they give/edit; stored as `last_editor_id` and re-checked on every run (refused + flagged "needs re-saving" if lost) | `engine/permissions.ts` (`builderReport`), `bridge/dreamCommands.ts` (`checkSave`), `functions/run.ts` (`prepareBuilder`) |
+| Dreamliner's own permissions and hierarchy | `botReport`, `runtime.ts` (`checkRoleManageable`, `checkMemberActionable`, `requireBotPermission`) |
+| Builder's channel-level permissions for channel actions | `runtime.ts` (`checkBuilderChannelPermission`) |
+| Moderation (kick, ban, unban, timeout, bulk delete) also needs the RUNNER's permission and hierarchy; targets only a user option | `runtime.ts` (`checkRunnerModerates`, `checkOptionTarget`), `validate.ts` |
+| No foreign ids: picked ids checked against this guild on save and before each run; run-time ids (typed, options, variables) resolved only through this guild | `permissions.ts` (`checkGuildIds`), `runtime.ts` (`resolveMember/Role/Channel`) |
+| Typed user ids refused; targets are a single variable (runner, option, step output) | `validate.ts` (`checkTargets`) |
+| DMs only to the runner or a user option, ≤ 3 per run, never ping | `actions/messages.ts` |
+| Delete channel only for channels created earlier in the same run | `actions/channels.ts`, `validate.ts` |
+| No role deletion, mass ban/kick/prune, server settings, @everyone server-wide perms, web requests | not in the catalogue |
+| Created roles: only perms the builder and bot have, never Administrator / Manage Server / Manage Roles / Ban / Kick / Webhooks / Mention Everyone | `actions/roles.ts` |
+| Webhook names that impersonate Discord, Dreamliner or staff refused | `actions/messages.ts` |
+| Mentions: `allowedMentions` empty by default; users/roles listed explicitly; role and @everyone pings need the builder's Mention Everyone | `message.ts`, `permissions.ts` |
+| Person-provided values escaped (@everyone/@here, role/user mentions, markdown links), control/bidi chars stripped, links http(s) only, Discord length limits applied before sending | `vars.ts`, `message.ts` |
+| Caps: steps, time, API calls, creations, waits, repeats, list sizes, string/var sizes, program size | `types.ts` `LIMITS`, `interpreter.ts`, `limits.ts` |
+| "Matches" is a linear glob (`*`, `?`), never a user regex | `conditions.ts` |
+| Restart-safe waits (DB queue polled every 5 s) and follow-ups (DB, TTL, guild-scoped lookup, stale after edits) | `state.ts`, `functions/run.ts` |
+| Each step wrapped; Discord errors become friendly messages; a crash never escapes the handler | `interpreter.ts`, `runtime.ts` (`friendlyError`) |
+| Registration: one debounced bulk PUT per guild, reserved names, cap | `functions/guildSlash.ts` |
+| Anti-mint: no step creates coins; "Charge coins" only spends | `actions/plugins.ts`, test |
+| Dashboard: Manage Server or `dream_commands.can_manage`; per-user bridge rate limits | `bridge/dreamCommands.ts`, `bridge/rateLimit.ts` |
 
-| Token | Resolves to |
-|-------|-------------|
-| `{user}` | The invoker's username |
-| `{mention}` | A mention of the invoker |
-| `{server}` | The server's name |
-| `{channel}` | The channel the command was run in |
-
-## Architecture (bot)
-
-- Program shape + validation: `src/plugins/dream_commands/functions/program.ts`
-- Reply rendering: `src/plugins/dream_commands/functions/run.ts`
-- Storage: SQLite `dream_commands` table, `program` column holds the JSON program
-- Usage numbers for the dashboard: `src/plugins/dream_commands/functions/usage.ts` (reads the Stats `command_usage_daily` / `command_usage_totals` tables by command name)
-- Bridge API for the website: `src/bridge/dreamCommands.ts` (`GET /bridge/guilds/:id/commands` also returns per-command `usage` and `creator`, overall `usage` with a 30-day `daily` series, and `reservedNames`)
-
-## Design rules
-
-1. Guild-contained only.
-2. Always exactly one reply: a message or an embed, never both, never a sequence of actions.
-3. Validated on save (`validateProgram`), before the row is written.
-4. Website builds the same JSON program the bot stores and runs.
+## Bridge
+`/bridge/guilds/:id/commands` with `?userId=`: `GET ''` list, `POST ''` create, `GET catalog`, `GET templates`, `POST validate` (dry run), `POST import`, `GET|PUT|DELETE c/:name`, `POST c/:name/duplicate`, `GET c/:name/runs`, `POST c/:name/test`, `GET c/:name/export`.

@@ -862,6 +862,7 @@ plugins:
   dream_commands:
     enabled: false
     config:
+      can_manage: false
       can_edit: false
       can_remove: false
       can_list: false

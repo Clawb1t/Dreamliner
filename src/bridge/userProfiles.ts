@@ -24,6 +24,7 @@ import {
   userMessageCounts,
   usernameSnapshots,
   ghostModeAllowlist,
+  dashboardPins,
   userCosmeticsEquipped,
   userProfiles,
   userProgressionBadgeHidden,
@@ -569,6 +570,7 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     "ghost_mode_allowlist",
     db.delete(ghostModeAllowlist).where(eq(ghostModeAllowlist.userId, userId)).returning(),
   );
+  await wipe("dashboard_pins", db.delete(dashboardPins).where(eq(dashboardPins.userId, userId)).returning());
   const { deleteUserInviteData } = await import("../plugins/invite_tracker/functions/store.js");
   deleted.invite_tracker = deleteUserInviteData(userId);
   const { deleteUserTeamData } = await import("../plugins/team_control/functions/store.js");

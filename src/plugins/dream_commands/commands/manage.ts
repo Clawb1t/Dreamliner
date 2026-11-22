@@ -4,24 +4,22 @@ import { embedReply, resultReply, slashResultOptions } from "../../../core/respo
 import { requirePluginPermission } from "../../../core/pluginCommand.js";
 import { baseEmbed, commandHeader, setEmbedAuthor, trimLines } from "../../../core/embeds.js";
 import { getGuildCommandsDashboardUrl, linkButton } from "../../../core/docsUrl.js";
-import {
-  deleteDreamCommand,
-  getDreamCommand,
-  listDreamCommands,
-  MAX_DREAM_COMMANDS,
-  updateDreamCommand,
-} from "../functions/store.js";
-import { syncGuildDreamSlashCommands } from "../functions/guildSlash.js";
-import { formatTriggerLabel } from "../functions/run.js";
+import { deleteDreamCommand, getDreamCommand, listDreamCommands, updateDreamCommand, type DreamCommandRow } from "../functions/store.js";
+import { commandCap, guildHasOne, syncGuildDreamSlashCommands } from "../functions/guildSlash.js";
+import { deleteCommandState } from "../engine/state.js";
+
+function formatTriggerLabel(row: DreamCommandRow): string {
+  return `/${row.name}`;
+}
 import { getLogger } from "../../../core/logger.js";
 import type { Translator } from "../../../i18n/index.js";
 const log = getLogger("dream_commands");
 
-function listStatRow(t: Translator, total: number): ActionRowBuilder<ButtonBuilder> {
+function listStatRow(t: Translator, total: number, max: number): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("dl:dreamcmd:stat:total")
-      .setLabel(t("dream_commands.statTotal", "{total}/{max} commands", { total, max: MAX_DREAM_COMMANDS }))
+      .setLabel(t("dream_commands.statTotal", "{total}/{max} commands", { total, max }))
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
   );
@@ -58,7 +56,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
             ctx.t("dream_commands.buildTitle", "Build a custom command"),
             ctx.t(
               "dream_commands.buildDescription",
-              "Custom commands are built on the dashboard: a name, a description, and a reply, either a message or an embed. Open the dashboard's Commands section for this server to get started.",
+              "Custom commands are built on the dashboard from steps, like a shortcut: reply, give roles, create channels, pick random images and much more. Open the dashboard's Commands section for this server to get started.",
             ),
             ctx.ephemeral,
             slashResultOptions(ctx, { emoji: "<:icons_cmd:1544418082867384360>" }),
@@ -77,7 +75,9 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
         if (!auth) return;
 
         const name = ctx.interaction.options.getString("name", true);
-        const deleted = await deleteDreamCommand(guildId, name);
+        const existingForRemove = await getDreamCommand(guildId, name);
+        const deleted = existingForRemove ? await deleteDreamCommand(guildId, name) : null;
+        if (deleted) deleteCommandState(guildId, deleted.name);
         if (!deleted) {
           await ctx.interaction.reply(
             resultReply(
@@ -205,7 +205,7 @@ export const dreamCommandManageCommands: SlashCommandDefinition[] = [
           commandHeader(ctx.guildConfig, { emoji: "<:icons_list:1544417562325164173>" }),
         ).setDescription(trimLines(lines.join("\n")));
 
-        await ctx.interaction.reply(embedReply(embed, ctx.ephemeral, [listStatRow(ctx.t, rows.length)]));
+        await ctx.interaction.reply(embedReply(embed, ctx.ephemeral, [listStatRow(ctx.t, rows.length, commandCap(await guildHasOne(guildId)))]));
       }
     },
   },

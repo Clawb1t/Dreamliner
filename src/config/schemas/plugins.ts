@@ -535,6 +535,7 @@ export const zStatsConfig = z.strictObject({
 });
 
 export const zDreamCommandsConfig = z.strictObject({
+  can_manage: boolPerm("build, edit and delete custom commands on the dashboard (saving still needs the Discord permissions the steps use)"),
   can_edit: boolPerm("toggle custom commands on or off"),
   can_remove: boolPerm("remove custom commands"),
   can_list: boolPerm("list custom commands"),

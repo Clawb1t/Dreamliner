@@ -111,6 +111,16 @@ export function assertDecodableImage(buf: Buffer): ImageDimensions {
 /** Downloads an image URL with a size cap and timeout. http(s) only, never to private addresses
  *  (DNS is resolved and pinned, and every redirect re-checked: see core/safeFetch.ts). */
 export async function fetchImageBuffer(url: string, maxBytes = MAX_IMAGE_BYTES): Promise<Buffer> {
+  // A Server Files link on our own site: read it from disk (same bytes, no network round trip,
+  // and it works in local dev where the site isn't reachable from here). Still decoded safely.
+  if (url.includes("/api/files/")) {
+    const { readServerFileByUrl } = await import("./serverFiles/store.js");
+    const local = readServerFileByUrl(url);
+    if (local) {
+      if (local.length > maxBytes) throw new UnsafeImageError("Image file is too large.");
+      return local;
+    }
+  }
   try {
     const result = await safeFetch(url, { timeoutMs: FETCH_TIMEOUT_MS, maxBytes, maxRedirects: 5 });
     return result.body;

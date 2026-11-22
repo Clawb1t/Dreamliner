@@ -746,8 +746,96 @@ export const dreamCommands = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    /** Who first built the command. */
+    ownerId: text("owner_id"),
+    /** Whose Discord permissions the command runs with (re-checked on every run). */
+    lastEditorId: text("last_editor_id"),
+    /** Set when a run was refused because the builder lost a permission; cleared on save. */
+    healthJson: text("health_json"),
   },
   (table) => [primaryKey({ columns: [table.guildId, table.name] })],
+);
+
+/** Recent runs of each custom command (pruned to the last 50 per command). */
+export const dreamCommandRuns = sqliteTable(
+  "dream_command_runs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    commandName: text("command_name").notNull(),
+    userId: text("user_id").notNull(),
+    channelId: text("channel_id"),
+    trigger: text("trigger").notNull(),
+    status: text("status").notNull(),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
+    durationMs: integer("duration_ms").notNull().default(0),
+    steps: integer("steps").notNull().default(0),
+    failedStepId: text("failed_step_id"),
+    error: text("error"),
+  },
+  (table) => [
+    index("dream_command_runs_cmd").on(table.guildId, table.commandName, table.id),
+    index("dream_command_runs_started").on(table.guildId, table.startedAt),
+  ],
+);
+
+/** Buttons, menus and forms a custom command posted, with their saved run state. */
+export const dreamCommandFollowups = sqliteTable(
+  "dream_command_followups",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    commandName: text("command_name").notNull(),
+    kind: text("kind").notNull(),
+    messageId: text("message_id"),
+    state: text("state").notNull(),
+    uses: integer("uses").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("dream_command_followups_guild").on(table.guildId, table.createdAt),
+    index("dream_command_followups_expiry").on(table.expiresAt),
+  ],
+);
+
+/** Custom command runs paused by a long Wait step. */
+export const dreamCommandJobs = sqliteTable(
+  "dream_command_jobs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    commandName: text("command_name").notNull(),
+    resumeAt: integer("resume_at", { mode: "timestamp_ms" }).notNull(),
+    state: text("state").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("dream_command_jobs_due").on(table.resumeAt)],
+);
+
+/** Daily use counters for custom command usage limits (user_id "" = the whole server). */
+export const dreamCommandDailyUses = sqliteTable(
+  "dream_command_daily_uses",
+  {
+    guildId: text("guild_id").notNull(),
+    commandName: text("command_name").notNull(),
+    userId: text("user_id").notNull(),
+    day: text("day").notNull(),
+    uses: integer("uses").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.commandName, table.userId, table.day] })],
+);
+
+/** Channels and roles custom commands created, for the per-server hourly cap. */
+export const dreamCommandCreations = sqliteTable(
+  "dream_command_creations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    kind: text("kind").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("dream_command_creations_guild").on(table.guildId, table.createdAt)],
 );
 
 /** Persisted audit log events for Discord channel + dashboard Logs. */
@@ -3899,3 +3987,71 @@ export const quizEvents = sqliteTable(
   },
   (table) => [index("quiz_events_quiz").on(table.quizId, table.createdAt)],
 );
+
+// ── Server Files (one image library per server, src/core/serverFiles/) ─────────
+
+/**
+ * One image in a server's file library. Bytes are on disk under data/guild-assets/<guildId>/<storage>;
+ * files from older per-feature stores (Message Kits, Welcomer, page backgrounds, character avatars) are
+ * indexed in place (`source` + `legacyRef`), so their old links keep working. Usage is computed on demand.
+ */
+export const serverFiles = sqliteTable(
+  "server_files",
+  {
+    id: text("id").primaryKey(),
+    guildId: text("guild_id").notNull(),
+    displayName: text("display_name").notNull(),
+    originalName: text("original_name").notNull(),
+    contentType: text("content_type").notNull(),
+    extension: text("extension").notNull(),
+    size: integer("size", { mode: "number" }).notNull(),
+    width: integer("width", { mode: "number" }).notNull(),
+    height: integer("height", { mode: "number" }).notNull(),
+    frames: integer("frames", { mode: "number" }).notNull().default(1),
+    sha256: text("sha256").notNull(),
+    folder: text("folder"),
+    storage: text("storage").notNull(),
+    source: text("source").notNull().default("upload"),
+    legacyRef: text("legacy_ref"),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("server_files_guild").on(table.guildId, table.createdAt),
+    uniqueIndex("server_files_storage").on(table.guildId, table.storage),
+    index("server_files_hash").on(table.guildId, table.sha256),
+  ],
+);
+
+/** Dashboard sidebar favourites: the pages a user pinned to the top of one server's sidebar, in
+ *  their order (a JSON array of section ids, capped in bridge/webDashboardPins.ts). */
+export const dashboardPins = sqliteTable(
+  "dashboard_pins",
+  {
+    userId: text("user_id").notNull(),
+    guildId: text("guild_id").notNull(),
+    pins: text("pins").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.guildId] })],
+);
+
+/** First-run dashboard setup ("onboarding", bridge/webOnboarding.ts): one row per server once
+ *  anyone has opened, skipped or finished it, plus the one-time welcome message marker. A server
+ *  with no row is new unless its stored config is already customised. */
+export const guildOnboarding = sqliteTable("guild_onboarding", {
+  guildId: text("guild_id").primaryKey(),
+  /** pending | in_progress | skipped | completed */
+  status: text("status").notNull(),
+  step: text("step"),
+  answersJson: text("answers_json"),
+  startedBy: text("started_by"),
+  updatedBy: text("updated_by"),
+  completedBy: text("completed_by"),
+  startedAt: integer("started_at", { mode: "timestamp_ms" }),
+  completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  welcomeSentAt: integer("welcome_sent_at", { mode: "timestamp_ms" }),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

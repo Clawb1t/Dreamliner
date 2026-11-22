@@ -146,6 +146,13 @@
       },
       {
         "plugin": "dream_commands",
+        "permission": "can_manage",
+        "grantKey": "dream_commands.can_manage",
+        "title": "Manage",
+        "description": "Allow members to build, edit and delete custom commands on the dashboard (saving still needs the Discord permissions the steps use)."
+      },
+      {
+        "plugin": "dream_commands",
         "permission": "can_remove",
         "grantKey": "dream_commands.can_remove",
         "title": "Remove",

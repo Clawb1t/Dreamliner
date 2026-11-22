@@ -1,12 +1,12 @@
 import { Events } from "discord.js";
 import { definePlugin } from "../../core/plugin.js";
 import { zDreamCommandsConfig } from "../../config/schemas/plugins.js";
+import { registerIntervalTask } from "../../core/scheduler.js";
 import { dreamCommandManageCommands } from "./commands/manage.js";
-import {
-  dreamCommandsNeedResync,
-  syncAllGuildDreamSlashCommands,
-  syncGuildDreamSlashCommands,
-} from "./functions/guildSlash.js";
+import { dreamCommandsNeedResync, syncAllGuildDreamSlashCommands, syncGuildDreamSlashCommands } from "./functions/guildSlash.js";
+import { processDueDreamCommandJobs } from "./functions/run.js";
+import { pruneFollowups } from "./engine/state.js";
+import { pruneCreations, pruneDailyUses } from "./engine/limits.js";
 import { pluginEnabled } from "../../core/pluginCommand.js";
 import { getLogger } from "../../core/logger.js";
 const log = getLogger("dream_commands");
@@ -25,6 +25,17 @@ export const dreamCommandsPlugin = definePlugin({
         log.error(`[dream_commands] Re-sync after config save failed for ${guildId}:`, error);
       });
     });
+    // Runs paused by a long Wait step are stored in the database and resumed here (restart-safe).
+    registerIntervalTask({ id: "dream_commands:waits", intervalMs: 5_000, run: processDueDreamCommandJobs });
+    registerIntervalTask({
+      id: "dream_commands:prune",
+      intervalMs: 30 * 60_000,
+      run: async () => {
+        pruneFollowups();
+        pruneCreations();
+        pruneDailyUses();
+      },
+    });
   },
   events: [
     {
@@ -32,7 +43,6 @@ export const dreamCommandsPlugin = definePlugin({
       once: true,
       execute: async (client) => {
         const c = client as import("discord.js").Client;
-        // Ensure application id is available for guild command routes.
         await c.application?.fetch().catch(() => null);
         await syncAllGuildDreamSlashCommands(c);
         log.info("[dream_commands] Synced guild custom slash commands.");
@@ -52,4 +62,4 @@ export const dreamCommandsPlugin = definePlugin({
   ],
 });
 
-export { handleDreamCommandSlash } from "./functions/run.js";
+export { handleDreamCommandSlash, handleDreamCommandAutocomplete, handleDreamCommandComponent, isDreamCommandComponent } from "./functions/run.js";

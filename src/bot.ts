@@ -123,7 +123,7 @@ import { handleHangarButton, handleHangarModal, handlePlanesAutocomplete, isHang
 import { applyBotPresence } from "./core/presence.js";
 import { loadDefaultConfig } from "./config/default.js";
 import type { BotContext, ContextMenuCommandDefinition, SlashCommandDefinition } from "./core/types.js";
-import { handleDreamCommandSlash } from "./plugins/dream_commands/index.js";
+import { handleDreamCommandSlash, handleDreamCommandAutocomplete, handleDreamCommandComponent, isDreamCommandComponent } from "./plugins/dream_commands/index.js";
 import { startDashboardBridge } from "./bridge/dashboardBridge.js";
 import { setStatusInventory, startStatusMonitor } from "./core/statusMonitor.js";
 import { getLogger } from "./core/logger.js";
@@ -350,6 +350,13 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
 
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction.isAutocomplete()) {
+      // Guild-scoped custom commands aren't in the global command map.
+      if (!ctx.commands.has(interaction.commandName)) {
+        await handleDreamCommandAutocomplete(interaction).catch((error) => {
+          log.error("Custom command autocomplete error:", error);
+        });
+        return;
+      }
       if (interaction.commandName === "translate") {
         await handleTranslateAutocomplete(interaction).catch((error) => {
           log.error("Translate autocomplete error:", error);
@@ -422,6 +429,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isButton()) {
+      if (isDreamCommandComponent(interaction.customId)) {
+        const handled = await safeHandle(interaction, "Custom command button", () => handleDreamCommandComponent(interaction));
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(VOTE_REMINDER_PREFIX)) {
         const handled = await safeHandle(interaction, "Vote reminder button", () =>
           handleVoteReminderButton(interaction),
@@ -532,6 +543,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isStringSelectMenu()) {
+      if (isDreamCommandComponent(interaction.customId)) {
+        const handled = await safeHandle(interaction, "Custom command menu", () => handleDreamCommandComponent(interaction));
+        if (handled) return;
+      }
       if (interaction.customId === LANGUAGE_SELECT_PREFIX) {
         const handled = await safeHandle(interaction, "Language select", () => handleLanguageSelectInteraction(interaction));
         if (handled) return;
@@ -566,6 +581,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
       return;
     }
     if (interaction.isModalSubmit()) {
+      if (isDreamCommandComponent(interaction.customId)) {
+        const handled = await safeHandle(interaction, "Custom command form", () => handleDreamCommandComponent(interaction));
+        if (handled) return;
+      }
       if (interaction.customId.startsWith(TICKET_PREFIX)) {
         const handled = await safeHandle(interaction, "Ticket modal", () => handleTicketModalSubmit(interaction));
         if (handled) return;

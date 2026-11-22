@@ -485,6 +485,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+
         // Avia (help centre assistant): daily message limits. The site hashes visitors' IPs before
         // sending them, so the bot never sees a raw address.
         if (url.pathname === "/bridge/avia/usage") {
@@ -842,6 +843,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const languageMatch = /^\/bridge\/users\/(\d+)\/language$/.exec(url.pathname);
         // Ghost Mode (webGhostMode.ts): user-scoped, the signed-in user's id is in the path.
         const ghostModeMatch = /^\/bridge\/users\/(\d{15,22})\/ghost-mode(?:\/(allow|people)(?:\/(\d{15,22}))?)?$/.exec(url.pathname);
+        // Dashboard sidebar favourites (webDashboardPins.ts): the signed-in user's own, per server.
+        const dashboardPinsMatch = /^\/bridge\/users\/(\d{15,22})\/dashboard-pins\/(\d{15,22})$/.exec(url.pathname);
         const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
         const storeMatch = /^\/bridge\/users\/(\d+)\/store(?:\/(claim|servers|purchase|reminders))?$/.exec(url.pathname);
         const storeVoteMatch = url.pathname === "/bridge/store/votes";
@@ -913,6 +916,34 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (dashboardPinsMatch) {
+          const pinsUserId = dashboardPinsMatch[1]!;
+          const pinsGuildId = dashboardPinsMatch[2]!;
+          const { getDashboardPins, setDashboardPins } = await import("./webDashboardPins.js");
+          if (req.method === "GET") {
+            sendJson(res, 200, { ok: true, pins: getDashboardPins(pinsUserId, pinsGuildId) });
+            return;
+          }
+          if (req.method === "PUT") {
+            let body: { pins?: unknown };
+            try {
+              body = JSON.parse(await readBody(req)) as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const result = setDashboardPins(pinsUserId, pinsGuildId, body.pins);
+            if (!result.ok) {
+              sendJson(res, result.status, { error: result.error });
+              return;
+            }
+            sendJson(res, 200, { ok: true, pins: result.pins });
+            return;
+          }
+          sendJson(res, 405, { error: "Method not allowed" });
           return;
         }
 
@@ -3483,10 +3514,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           /^\/bridge\/guilds\/(\d+)\/stats\/(insights|activity|members|channels|moderation|timeline|correlations)$/.exec(
             url.pathname,
           );
-        const commandOneMatch = /^\/bridge\/guilds\/(\d+)\/commands\/([a-z0-9_]{1,32})$/i.exec(
-          url.pathname,
-        );
-        const commandsMatch = /^\/bridge\/guilds\/(\d+)\/commands$/.exec(url.pathname);
+        // Custom commands: /commands, /commands/catalog|templates|validate|import, /commands/c/:name[/runs|test|export|duplicate].
+        const commandsMatch = /^\/bridge\/guilds\/(\d+)\/commands(?:\/((?:[a-z0-9_-]{1,40}\/?){1,3}))?$/i.exec(url.pathname);
         const feedsCollectionMatch = /^\/bridge\/guilds\/(\d+)\/feeds$/.exec(url.pathname);
         const feedsExtraMatch = /^\/bridge\/guilds\/(\d+)\/feeds\/(preview|search|bulk)$/.exec(url.pathname);
         const feedOneMatch = /^\/bridge\/guilds\/(\d+)\/feeds\/(\d+)$/.exec(url.pathname);
@@ -3598,6 +3627,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const charactersMatch = /^\/bridge\/guilds\/(\d+)\/characters(?:\/(assets|\d+)(?:\/(greet|test|role))?)?$/.exec(url.pathname);
         // A character's uploaded avatar (binary, no userId: Discord loads it through the website's proxy).
         const characterAvatarMatch = /^\/bridge\/guilds\/(\d+)\/characters\/avatar\/([a-zA-Z0-9_-]{1,64})$/.exec(url.pathname);
+        // Server Files: the library, uploads, one file (/:id, /:id/replace, /:id/touch), /bulk, and
+        // /raw/:id.:ext (binary, no userId: the website serves it to Discord and browsers).
+        const filesMatch = /^\/bridge\/guilds\/(\d+)\/files(?:\/((?:raw\/[a-f0-9]{32}\.(?:png|jpg|gif|webp))|bulk|[a-f0-9]{32}(?:\/(?:replace|touch))?))?$/.exec(url.pathname);
         const giveawayActionMatch =
           /^\/bridge\/guilds\/(\d+)\/giveaways\/(\d+)\/(end|reroll|pause|resume|cancel|extend)$/.exec(url.pathname);
         // Entrants of one giveaway (GET, paged + search) and removing one (DELETE /entrants/:userId).
@@ -3643,6 +3675,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Server Autopilot: scan, generate, generations[/:id], plan, build, builds[/:id[/cancel]],
         // backups[/:id[/restore]].
         const serverAutopilotMatch = /^\/bridge\/guilds\/(\d+)\/server-autopilot\/([a-z]+(?:\/[a-z0-9]{1,20}){0,2})$/.exec(url.pathname);
+        // First-run setup (webOnboarding.ts): state (GET/PUT) and "Create one for me" (POST create).
+        const onboardingMatch = /^\/bridge\/guilds\/(\d+)\/onboarding(?:\/(create))?$/.exec(url.pathname);
         const rolePanelsPreviewMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/preview$/.exec(url.pathname);
         const rolePanelsTestMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/test$/.exec(url.pathname);
         const rolePanelsValidateMatch = /^\/bridge\/guilds\/(\d+)\/role-panels\/validate$/.exec(url.pathname);
@@ -3733,7 +3767,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !customChartsMatch &&
           !entityStatsMatch &&
           !statsIntelMatch &&
-          !commandOneMatch &&
           !commandsMatch &&
           !feedsCollectionMatch &&
           !feedsExtraMatch &&
@@ -3791,6 +3824,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !ticketAiMatch &&
           !charactersMatch &&
           !characterAvatarMatch &&
+          !filesMatch &&
           !giveawayActionMatch &&
           !giveawayEntrantsMatch &&
           !giveawayBlacklistMatch &&
@@ -3811,6 +3845,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !teamKioskMatch &&
           !messageKitsMatch &&
           !serverAutopilotMatch &&
+          !onboardingMatch &&
           !birthdaysMatch &&
           !rolePanelsPreviewMatch &&
           !rolePanelsTestMatch &&
@@ -3871,7 +3906,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           customChartsMatch?.[1] ??
           entityStatsMatch?.[1] ??
           statsIntelMatch?.[1] ??
-          commandOneMatch?.[1] ??
           commandsMatch?.[1] ??
           feedsCollectionMatch?.[1] ??
           feedsExtraMatch?.[1] ??
@@ -3929,6 +3963,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           ticketAiMatch?.[1] ??
           charactersMatch?.[1] ??
           characterAvatarMatch?.[1] ??
+          filesMatch?.[1] ??
           giveawayActionMatch?.[1] ??
           giveawayEntrantsMatch?.[1] ??
           giveawayBlacklistMatch?.[1] ??
@@ -3949,6 +3984,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           teamKioskMatch?.[1] ??
           messageKitsMatch?.[1] ??
           serverAutopilotMatch?.[1] ??
+          onboardingMatch?.[1] ??
           birthdaysMatch?.[1] ??
           rolePanelsPreviewMatch?.[1] ??
           rolePanelsTestMatch?.[1] ??
@@ -5194,6 +5230,58 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           } catch (error) {
             log.error("Message Kits bridge request failed:", error);
             sendJson(res, 500, { error: "Message Kits request failed" });
+          }
+          return;
+        }
+
+        if (onboardingMatch) {
+          const method = req.method ?? "GET";
+          const isCreate = onboardingMatch[2] === "create";
+          if (isCreate ? method !== "POST" : !["GET", "PUT"].includes(method)) {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> = {};
+          if (method !== "GET") {
+            try {
+              const parsed = JSON.parse((await readBody(req)) || "{}") as unknown;
+              body = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+          }
+          const userId = (typeof body.userId === "string" ? body.userId : url.searchParams.get("userId"))?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          const { createOnboardingEntity, getOnboardingState, onboardingActor, updateOnboardingState } = await import(
+            "./webOnboarding.js"
+          );
+          try {
+            if (isCreate) {
+              const result = await createOnboardingEntity(guild, userId, body);
+              if (result.ok) sendJson(res, 200, { ok: true, created: result.created });
+              else sendJson(res, result.status, { error: result.error, ...(result.code ? { code: result.code } : {}) });
+            } else if (method === "GET") {
+              sendJson(res, 200, { ok: true, state: getOnboardingState(guild.id), actor: await onboardingActor(guild, userId) });
+            } else {
+              const result = updateOnboardingState(guild.id, userId, body);
+              if (result.ok) sendJson(res, 200, { ok: true, state: result.state });
+              else sendJson(res, result.status, { error: result.error });
+            }
+          } catch (error) {
+            if (error instanceof ActorPermissionError) {
+              sendJson(res, error.status, error.toJson());
+              return;
+            }
+            log.error("Onboarding bridge request failed:", error);
+            sendJson(res, 500, { error: isCreate ? "Couldn't create that. Check Dreamliner's role is high enough." : "Setup request failed" });
           }
           return;
         }
@@ -8869,6 +8957,47 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (filesMatch) {
+          const { handleFilesRequest } = await import("./webFiles.js");
+          try {
+            const result = await handleFilesRequest({
+              guild,
+              method: req.method ?? "GET",
+              rest: filesMatch[2] ? filesMatch[2].split("/") : [],
+              query: url.searchParams,
+              userId: url.searchParams.get("userId")?.trim() || null,
+              managesServer: (userId) => memberCanManage(guild, userId),
+              pluginManager: async (userId, plugin) => {
+                try {
+                  const { hasPermission } = await import("../core/permissionRoles.js");
+                  const member = guild.members.cache.get(userId) ?? (await guild.members.fetch(userId));
+                  return await hasPermission(guild.id, plugin, "can_manage", member, await configManager.getEffectiveConfig(guild.id));
+                } catch {
+                  return false;
+                }
+              },
+              readJson: async () => {
+                try {
+                  const parsed = JSON.parse((await readBody(req)) || "{}") as unknown;
+                  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+                } catch {
+                  return null;
+                }
+              },
+            });
+            if ("binary" in result) {
+              res.writeHead(result.status, result.headers);
+              res.end(req.method === "HEAD" ? undefined : result.binary);
+            } else {
+              sendJson(res, result.status, result.json);
+            }
+          } catch (error) {
+            log.error("Server Files bridge request failed:", error);
+            sendJson(res, 500, { error: "Server Files request failed" });
+          }
+          return;
+        }
+
         if (characterAvatarMatch) {
           if (req.method !== "GET") {
             sendJson(res, 405, { error: "Method not allowed" });
@@ -9806,175 +9935,31 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (commandsMatch || commandOneMatch) {
-          const userId =
-            req.method === "GET" || req.method === "DELETE"
-              ? url.searchParams.get("userId")?.trim()
-              : undefined;
-
-          if (commandsMatch && req.method === "GET") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const {
-              listBridgeDreamCommands,
-            } = await import("./dreamCommands.js");
-            const result = await listBridgeDreamCommands(configManager, guildId, guild);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            sendJson(res, 200, {
-              guild: { id: guild.id, name: guild.name, icon: guild.icon },
-              commands: result.commands,
-              count: result.count,
-              maxCommands: result.maxCommands,
-              usage: result.usage,
-              reservedNames: result.reservedNames,
-            });
+        if (commandsMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId || !/^\d{15,22}$/.test(userId)) {
+            sendJson(res, 400, { error: "userId is required" });
             return;
           }
-
-          if (commandsMatch && req.method === "POST") {
-            let body: { userId?: string; name?: string; program?: unknown };
-            try {
-              body = JSON.parse(await readBody(req)) as typeof body;
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return;
-            }
-            const requesterId = body.userId?.trim();
-            if (!requesterId || typeof body.name !== "string" || typeof body.program !== "object" || body.program === null) {
-              sendJson(res, 400, { error: "userId, name, and program are required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, requesterId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { createBridgeDreamCommand } = await import("./dreamCommands.js");
-            const result = await createBridgeDreamCommand(client, configManager, guildId, {
-              userId: requesterId,
-              name: body.name,
-              program: body.program,
-            });
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, requesterId, {
-              eventType: "dashboard_command",
-              title: "Custom command created",
-              summary: `Custom command \`/${result.command.name}\` was created from the dashboard.`,
-              targetId: result.command.name,
-              payload: { name: result.command.name },
-            });
-            sendJson(res, 200, { ok: true, command: result.command });
-            return;
-          }
-
-          if (commandOneMatch && req.method === "GET") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { getBridgeDreamCommand } = await import("./dreamCommands.js");
-            const result = await getBridgeDreamCommand(
-              configManager,
-              guildId,
-              commandOneMatch[2]!,
-            );
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            sendJson(res, 200, { command: result.command });
-            return;
-          }
-
-          if (commandOneMatch && req.method === "PUT") {
-            let body: { userId?: string; program?: unknown; enabled?: unknown };
-            try {
-              body = JSON.parse(await readBody(req)) as typeof body;
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return;
-            }
-            const requesterId = body.userId?.trim();
-            // Either a new program, or just `enabled` to switch the command on/off.
-            const hasProgram = typeof body.program === "object" && body.program !== null;
-            if (!requesterId || (!hasProgram && typeof body.enabled !== "boolean")) {
-              sendJson(res, 400, { error: "userId and program (or enabled) are required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, requesterId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { updateBridgeDreamCommand } = await import("./dreamCommands.js");
-            const result = await updateBridgeDreamCommand(
-              client,
-              configManager,
-              guildId,
-              commandOneMatch[2]!,
-              { program: body.program, enabled: body.enabled },
-            );
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, requesterId, {
-              eventType: "dashboard_command",
-              title: "Custom command updated",
-              summary: `Custom command \`/${result.command.name}\` was updated from the dashboard.`,
-              targetId: result.command.name,
-              payload: { name: result.command.name },
-            });
-            sendJson(res, 200, { ok: true, command: result.command });
-            return;
-          }
-
-          if (commandOneMatch && req.method === "DELETE") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { deleteBridgeDreamCommand } = await import("./dreamCommands.js");
-            const result = await deleteBridgeDreamCommand(
-              client,
-              configManager,
-              guildId,
-              commandOneMatch[2]!,
-            );
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, userId, {
-              eventType: "dashboard_command",
-              title: "Custom command deleted",
-              summary: `Custom command \`/${result.command.name}\` was deleted from the dashboard.`,
-              targetId: result.command.name,
-              payload: { name: result.command.name },
-            });
-            sendJson(res, 200, { ok: true, command: result.command });
-            return;
-          }
-
-          sendJson(res, 405, { error: "Method not allowed" });
+          const { handleCommandsRequest } = await import("./dreamCommands.js");
+          const result = await handleCommandsRequest({
+            client,
+            guild,
+            userId,
+            method: req.method ?? "GET",
+            subPath: commandsMatch[2] ?? "",
+            managesServer: await memberCanManage(guild, userId),
+            readJson: async () => {
+              try {
+                const raw = await readBody(req);
+                const parsed = raw.trim() ? (JSON.parse(raw) as unknown) : {};
+                return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+              } catch {
+                return null;
+              }
+            },
+          });
+          sendJson(res, result.status, result.status === 200 && result.body && typeof result.body === "object" ? { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...(result.body as object) } : result.body);
           return;
         }
 

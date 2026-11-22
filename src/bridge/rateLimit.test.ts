@@ -73,6 +73,15 @@ describe("bridgeRateLimit", () => {
     assert.equal(bucketFor("GET", `${base}/kits/5`), "read");
   });
 
+  it("puts Server Files uploads, replaces and deletes in the upload bucket, the public file in read", () => {
+    const base = "/bridge/guilds/123456789012345678/files";
+    assert.equal(bucketFor("POST", base), "upload");
+    assert.equal(bucketFor("POST", `${base}/${"a".repeat(32)}/replace`), "upload");
+    assert.equal(bucketFor("DELETE", `${base}/${"a".repeat(32)}`), "upload");
+    assert.equal(bucketFor("GET", base), "read");
+    assert.equal(bucketFor("GET", `${base}/raw/${"a".repeat(32)}.png`), "read");
+  });
+
   it("puts bulk suggestion actions in the send bucket, single actions in write", () => {
     const base = "/bridge/guilds/123456789012345678/suggestions";
     assert.equal(bucketFor("POST", `${base}/bulk`), "send");
@@ -122,5 +131,17 @@ describe("bridgeRateLimit", () => {
       }
     }
     assert.equal(limitedAt, 30);
+  });
+
+  it("limits dashboard pin writes per user, from the id in the path", () => {
+    const url = new URL("http://x/bridge/users/900000000000000077/dashboard-pins/123456789012345678");
+    let limitedAt = -1;
+    for (let i = 0; i < 300; i++) {
+      if (bridgeRateLimit("PUT", url) !== null) {
+        limitedAt = i;
+        break;
+      }
+    }
+    assert.equal(limitedAt, 240);
   });
 });

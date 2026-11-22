@@ -60,19 +60,21 @@ function linkButton(label: string, url: string) {
   };
 }
 
-/** Components V2 onboarding message for newly added guilds. */
-export async function buildGuildOnboardingPayload(guild: Guild): Promise<MessageCreateOptions> {
-  const guildId = guild.id;
-  const dashboardUrl = getGuildDashboardUrl(guildId);
+/** Where the welcome message's main button goes: the dashboard, opening the first-run setup. */
+export function guildSetupUrl(guildId: string): string {
+  return `${getGuildDashboardUrl(guildId)}?onboarding=1`;
+}
 
-  const heading = "<:dreamlinerlogo:1536010087468892161> Welcome to Dreamliner";
+/** Components V2 welcome message for newly added guilds, pointing at the dashboard's setup flow. */
+export async function buildGuildOnboardingPayload(guild: Guild): Promise<MessageCreateOptions> {
+  const heading = `## <:dreamlinerlogo:1536010087468892161> Dreamliner \u00d7 ${guild.name}`;
   const description = [
-    "Dreamliner is a moderation and utility bot with a web dashboard for easy configuration.",
-    "Configure roles, channels, automod, tags, stats, and more from your server dashboard.",
-  ].join(" ");
+    `Everything your server needs. Connected.\nSet up Dreamliner for **${guild.name}** in about two minutes.`,
+    "-# Only people with Manage Server can open the dashboard. This is the only message Dreamliner sends here on its own.",
+  ].join("\n\n");
 
   const buttons = [
-    linkButton("Dashboard", dashboardUrl),
+    linkButton("Get started", guildSetupUrl(guild.id)),
     linkButton("Support", SUPPORT_URL),
   ];
 
@@ -92,7 +94,13 @@ export async function buildGuildOnboardingPayload(guild: Guild): Promise<Message
   } as MessageCreateOptions;
 }
 
+/**
+ * Posts the welcome message once per server, ever: claimWelcomeMessage records it before
+ * sending, so a rejoin, a retried GuildCreate or a second shard never posts it again.
+ */
 export async function sendGuildOnboardingMessage(guild: Guild): Promise<void> {
+  const { claimWelcomeMessage } = await import("../bridge/webOnboarding.js");
+  if (!claimWelcomeMessage(guild.id)) return;
   const channel = await findFirstSpeakableChannel(guild);
   if (!channel) return;
   const payload = await buildGuildOnboardingPayload(guild);

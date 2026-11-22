@@ -11577,6 +11577,16 @@
             "config": {
               "type": "object",
               "properties": {
+                "can_manage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Allow members to build, edit and delete custom commands on the dashboard (saving still needs the Discord permissions the steps use).",
+                  "title": "Manage",
+                  "x-dreamliner": {
+                    "kind": "permission",
+                    "setup": "These are base permissions. Grant them to a Dreamliner Role on the Roles page instead of enabling them here directly."
+                  }
+                },
                 "can_edit": {
                   "type": "boolean",
                   "default": false,
@@ -11610,6 +11620,7 @@
               },
               "additionalProperties": false,
               "default": {
+                "can_manage": false,
                 "can_edit": false,
                 "can_remove": false,
                 "can_list": false

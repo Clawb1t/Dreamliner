@@ -112,9 +112,13 @@ export function bucketFor(method: string, pathname: string): Bucket {
   // Quizzes: Autopilot question drafts spend an AI call; posting a panel or starting a live game posts in Discord.
   if (method !== "GET" && /\/quizzes\/generate$/.test(pathname)) return "ai";
   if (method !== "GET" && /\/quizzes\/\d+\/(?:post|live)$/.test(pathname)) return "send";
+  // Custom commands: importing or duplicating creates a command and re-registers the server's commands in Discord.
+  if (method !== "GET" && /\/commands\/(?:import|c\/[a-z0-9_-]{1,32}\/duplicate)$/.test(pathname)) return "send";
   // Ending or rerolling a giveaway posts the winners and DMs each of them.
   if (method !== "GET" && /\/giveaways\/\d+\/(?:end|reroll)$/.test(pathname)) return "send";
-  if (method !== "GET" && /\/(?:assets|images|evidence|upload|avatar|banner|brand-art)(?:\/|$)/.test(pathname)) return "upload";
+  // First-run setup: "Create one for me" makes a channel or role in Discord.
+  if (method === "POST" && /\/onboarding\/create$/.test(pathname)) return "send";
+  if (method !== "GET" && /\/(?:assets|images|evidence|uploads?|files|avatar|banner|brand-art)(?:\/|$)/.test(pathname)) return "upload";
   // Notifications: a test send posts in Discord; a source preview only reads (it has its own
   // per-user limiter in feeds.ts on top, since it fetches other sites).
   if (method !== "GET" && /\/feeds\/\d+\/test$/.test(pathname)) return "send";
@@ -128,10 +132,10 @@ export function bucketFor(method: string, pathname: string): Bucket {
  */
 export function bridgeRateLimit(method: string, url: URL): number | null {
   const bucket = bucketFor(method, url.pathname);
-  // Hangar and Ghost Mode routes carry the signed-in user in the path (/bridge/users/:id/hangar/...),
+  // Hangar, Ghost Mode and dashboard pin routes carry the signed-in user in the path (/bridge/users/:id/hangar/...),
   // not the query.
   const userId =
-    url.searchParams.get("userId")?.trim() || /^\/bridge\/users\/(\d{15,22})\/(?:hangar|ghost-mode)(?:\/|$)/.exec(url.pathname)?.[1];
+    url.searchParams.get("userId")?.trim() || /^\/bridge\/users\/(\d{15,22})\/(?:hangar|ghost-mode|dashboard-pins)(?:\/|$)/.exec(url.pathname)?.[1];
   if (userId && /^\d{15,22}$/.test(userId)) {
     const result = USER_BUCKETS[bucket].take(userId);
     return result.ok ? null : Math.ceil(result.retryAfterMs / 1000);
