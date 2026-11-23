@@ -4082,3 +4082,36 @@ export const guildOnboarding = sqliteTable("guild_onboarding", {
   welcomeSentAt: integer("welcome_sent_at", { mode: "timestamp_ms" }),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+/** Public changelog: one row per release window of bot commits, rewritten by Autopilot (core/changelog/). */
+export const changelogUpdates = sqliteTable(
+  "changelog_updates",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    slug: text("slug").notNull(),
+    windowStart: integer("window_start", { mode: "number" }).notNull(),
+    windowEnd: integer("window_end", { mode: "number" }).notNull(),
+    /** JSON array of commit SHAs. */
+    commitShas: text("commit_shas").notNull(),
+    /** JSON ChangelogCommit[] (messages, dates, areas). Operators only, never public. */
+    commitsJson: text("commits_json").notNull(),
+    commitCount: integer("commit_count", { mode: "number" }).notNull().default(0),
+    /** JSON ChangelogContent; null until generated. */
+    contentJson: text("content_json"),
+    /** published | draft | hidden */
+    status: text("status").notNull().default("draft"),
+    model: text("model"),
+    /** Commit-set key the content was generated from (idempotency guard). */
+    generatedFor: text("generated_for"),
+    generatedAt: integer("generated_at", { mode: "number" }),
+    generationError: text("generation_error"),
+    editedBy: text("edited_by"),
+    editedAt: integer("edited_at", { mode: "number" }),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("changelog_updates_slug_idx").on(table.slug),
+    index("changelog_updates_status_end_idx").on(table.status, table.windowEnd),
+  ],
+);

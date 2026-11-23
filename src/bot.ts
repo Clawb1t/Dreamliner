@@ -258,6 +258,19 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
             logMemoryReport(client);
           },
         });
+        // Public changelog: new commits are grouped into release windows and written up by Autopilot
+        // once a window goes quiet. Every 3 hours (and once shortly after boot); production only by
+        // default (CHANGELOG_SYNC overrides), so a development bot never spends AI calls on it.
+        void import("./core/changelog/service.js").then(({ changelogSyncEnabled, getChangelogService }) => {
+          if (!changelogSyncEnabled(process.env, getDreamlinerEnv())) return;
+          const runSync = async () => {
+            const { checkRepoAccess } = await import("./core/changelog/commits.js");
+            await checkRepoAccess();
+            await (await getChangelogService()).sync();
+          };
+          setTimeout(() => void runSync().catch((error) => log.warn("[changelog] Boot sync failed:", error)), 2 * 60_000);
+          registerIntervalTask({ id: "changelog:sync", intervalMs: 3 * 60 * 60_000, run: runSync });
+        });
         if (!isVoteHistoryConfigured()) return;
         setTimeout(() => void syncVoteHistory({ force: true }), 30_000);
         registerIntervalTask({

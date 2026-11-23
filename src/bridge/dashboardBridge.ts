@@ -3148,6 +3148,24 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Public changelog (Autopilot-written release notes) and its operator tools ----------
+        if (url.pathname.startsWith("/bridge/public/changelog") || url.pathname.startsWith("/bridge/platform/changelog")) {
+          const [{ handleChangelogRoute }, { getChangelogService }, responseCache] = await Promise.all([
+            import("./changelogRoutes.js"),
+            import("../core/changelog/service.js"),
+            import("./responseCache.js"),
+          ]);
+          const handled = await handleChangelogRoute(req, res, url, {
+            getService: getChangelogService,
+            readBody,
+            sendJson,
+            isSuperuser: isDashboardSuperuser,
+            cached: responseCache.cached,
+            invalidate: responseCache.invalidateCached,
+          });
+          if (handled) return;
+        }
+
         // --- Sidebar tags: superuser-managed "New"/"Beta"/custom pills in the dashboard sidebar ---
 
         if (url.pathname === "/bridge/platform/sidebar-tags") {
