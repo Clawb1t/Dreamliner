@@ -16,7 +16,6 @@ runMigrations();
 const policy = await import("./policy.js");
 const ghost = await import("./ghostMode.js");
 const cross = await import("./crossServer.js");
-const boards = await import("./boardSnapshots.js");
 const { PROTECTED_SURFACES, GLOBAL_ACTIVITY_TABLES, GLOBAL_TABLE_INTERNALS } = await import("./surfaces.js");
 const { getDb } = await import("../../db/client.js");
 const schema = await import("../../db/schema.js");
@@ -45,10 +44,9 @@ const DAVE = "100000000000000004"; // someone else on the boards
 
 function reset() {
   const db = raw();
-  for (const table of ["user_profiles", "ghost_mode_allowlist", "user_message_counts", "guild_message_counts", "guild_stats_user_daily", "user_hourly_activity", "economy_global_accounts", "global_board_snapshots"]) {
+  for (const table of ["user_profiles", "ghost_mode_allowlist", "user_message_counts", "guild_message_counts", "guild_stats_user_daily", "user_hourly_activity", "economy_global_accounts", "leaderboard_cache"]) {
     db.exec(`DELETE FROM ${table}`);
   }
-  boards.resetFrozenBoardMemo();
 }
 
 /** Pretends the row last changed on an earlier day, so the next change is "first of the day". */
@@ -234,41 +232,18 @@ describe("the gate: canViewCrossServerData", () => {
   });
 });
 
-describe("frozen global boards", () => {
+describe("leaderboards", () => {
   beforeEach(reset);
 
-  it("built once per UTC day, rebuilt the next", async () => {
-    let builds = 0;
-    const build = async () => ({ n: ++builds });
-    const day1 = new Date("2026-11-20T00:03:00Z");
-    assert.deepEqual(await boards.frozenDaily("test", build, day1), { n: 1 });
-    assert.deepEqual(await boards.frozenDaily("test", build, new Date("2026-11-20T23:59:00Z")), { n: 1 });
-    boards.resetFrozenBoardMemo(); // a restart: still today's stored copy
-    assert.deepEqual(await boards.frozenDaily("test", build, new Date("2026-11-20T12:00:00Z")), { n: 1 });
-    // A new day: yesterday's copy is served at once while today's builds in the background...
-    const day2 = new Date("2026-11-21T00:01:00Z");
-    assert.deepEqual(await boards.frozenDaily("test", build, day2), { n: 1 });
-    await new Promise((resolve) => setImmediate(resolve));
-    // ...and once built, today's copy is what everyone gets.
-    assert.deepEqual(await boards.frozenDaily("test", build, day2), { n: 2 });
+  it("are live: no once-a-day freeze is left anywhere", () => {
+    const srcRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+    for (const file of ["bridge/leaderboards.ts", "bridge/leaderboardCache.ts", "bridge/webStats.ts"]) {
+      const source = readFileSync(join(srcRoot, file), "utf-8");
+      assert.doesNotMatch(source, /frozenDaily|boardSnapshots|snapshotAt/, `${file} still freezes boards`);
+    }
   });
 
-  it("a failed or slow rebuild keeps serving the last copy instead of nothing", async () => {
-    const day1 = new Date("2026-11-20T00:03:00Z");
-    assert.deepEqual(await boards.frozenDaily("slow", async () => ({ v: "old" }), day1), { v: "old" });
-    const day2 = new Date("2026-11-21T00:01:00Z");
-    const failing = async (): Promise<{ v: string }> => {
-      throw new Error("aggregation timed out");
-    };
-    assert.deepEqual(await boards.frozenDaily("slow", failing, day2), { v: "old" });
-    await new Promise((resolve) => setImmediate(resolve));
-    // Still the old copy after the failure, and the next request retries.
-    assert.deepEqual(await boards.frozenDaily("slow", async () => ({ v: "new" }), day2), { v: "old" });
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.deepEqual(await boards.frozenDaily("slow", async () => ({ v: "newer" }), day2), { v: "new" });
-  });
-
-  it("Ghost Mode users leave the board at once, numbers stay frozen", () => {
+  it("Ghost Mode users leave the board at once", () => {
     const frozen = [
       { userId: DAVE, count: 500 },
       { userId: ALICE, count: 100 },
@@ -292,12 +267,19 @@ describe("frozen global boards", () => {
 describe("protected surfaces", () => {
   const srcRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
   const read = (file: string) => readFileSync(join(srcRoot, file), "utf-8");
-  const GATE = /canViewCrossServerData|crossServerAccessForMany|listHiddenFromGlobalBoards|globalStatsFor|globalMessageCountFor|globalEconomyFor|guildCountsFor|dailyActivityFor|hourlyActivityFor|snapshotGlobalMessages/;
+  const GATE = /canViewCrossServerData|crossServerAccessForMany|listHiddenFromGlobalBoards|listHiddenFromLeaderboards|globalStatsFor|globalMessageCountFor|globalEconomyFor|guildCountsFor|dailyActivityFor|hourlyActivityFor|snapshotGlobalMessages/;
   const TABLES = new RegExp(`\\b(${GLOBAL_ACTIVITY_TABLES.join("|")})\\b`);
 
   it("every gated surface goes through the cross-server gate", () => {
     for (const surface of PROTECTED_SURFACES.filter((s) => s.kind === "gated")) {
       assert.match(read(surface.file), GATE, `${surface.name} (${surface.file}) must use the gate in core/privacy`);
+    }
+  });
+
+  it("every leaderboard leaves Ghost Mode users out", () => {
+    const LEAVES_OUT = /listHiddenFromLeaderboards|listHiddenFromGlobalBoards|presentBoard|pickResolved/;
+    for (const surface of PROTECTED_SURFACES.filter((s) => s.kind === "leaderboard")) {
+      assert.match(read(surface.file), LEAVES_OUT, `${surface.name} (${surface.file}) must leave Ghost Mode users out`);
     }
   });
 
@@ -369,14 +351,15 @@ describe("last seen gate (Active now / Last seen)", () => {
   });
 });
 
-describe("global board responses", () => {
-  it("drop anyone now hidden and renumber the rest", async () => {
-    const { withoutHiddenLeaders } = await import("../../bridge/leaderboardCache.js");
+describe("board responses", () => {
+  it("drop anyone now hidden and renumber the rest, on global and per-server boards alike", async () => {
+    const { presentBoard } = await import("../../bridge/leaderboardCache.js");
     ghost.setGhostMode(ALICE, "24h");
-    const payload = { board: "voice", leaders: [{ id: DAVE, rank: 1 }, { id: ALICE, rank: 2 }, { id: BOB, rank: 3 }] };
-    const shown = withoutHiddenLeaders(payload);
-    assert.deepEqual(shown.leaders.map((row) => [row.id, row.rank]), [[DAVE, 1], [BOB, 2]]);
+    for (const scope of ["global", "server"]) {
+      const payload = { scope, leaders: [{ id: DAVE, rank: 1 }, { id: ALICE, rank: 2 }, { id: BOB, rank: 3 }] };
+      const shown = presentBoard(payload, 25);
+      assert.deepEqual(shown.leaders.map((row) => [row.id, row.rank]), [[DAVE, 1], [BOB, 2]]);
+    }
     ghost.setGhostMode(ALICE, null);
   });
 });
-

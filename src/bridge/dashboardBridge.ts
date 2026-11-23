@@ -1,5 +1,5 @@
-import { timingSafeEqual } from "node:crypto";
-import { LEADERBOARD_TTL_MS, PREWARM_INTERVAL_MS, leaderboardCached, leaderboardKeys, prewarmLeaderboards, withoutHiddenLeaders } from "./leaderboardCache.js";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { GLOBAL_BOARD_IDS, GUILD_BOARD_IDS, clampBoardLimit, markBoardsStale, serveGlobalBoard, serveGuildBoard, startLeaderboardWarmer, type GlobalBoardId, type GuildBoardId } from "./leaderboardCache.js";
 import { fetchMemberCached } from "./people.js";
 import { validateGuildTargets } from "../core/guildChannel.js";
 import http from "node:http";
@@ -18,7 +18,7 @@ import { isDashboardSuperuser } from "./superuser.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
 import { bridgeRateLimit, clipPasswordFailures } from "./rateLimit.js";
 import { getLogger } from "../core/logger.js";
-import { invalidateCached as dropCached, invalidateCachedWhere as dropCachedWhere, markCachedStale } from "./responseCache.js";
+import { invalidateCached as dropCached } from "./responseCache.js";
 import { onGhostModeChange } from "../core/privacy/ghostMode.js";
 import type { WebMusicTrack } from "./webMusic.js";
 
@@ -156,6 +156,31 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
 }
 
 /**
+ * A public leaderboard response. Served from the leaderboard cache (memory or the stored copy), so
+ * this is normally a few milliseconds; null means the board has never been built and its first build
+ * is still running, answered with 503 + `warming` so the site shows a loading state and retries.
+ * ETag lets the site (or a proxy) skip an unchanged body.
+ */
+function sendLeaderboard(req: http.IncomingMessage, res: http.ServerResponse, served: { payload: unknown; builtAt: number } | null): void {
+  if (!served) {
+    const body = JSON.stringify({ error: "This leaderboard is still loading.", warming: true });
+    res.writeHead(503, { "Content-Type": "application/json; charset=utf-8", "Content-Length": Buffer.byteLength(body), "Retry-After": "2" });
+    res.end(body);
+    return;
+  }
+  const body = JSON.stringify(served.payload);
+  const etag = `W/"${createHash("sha1").update(body).digest("base64url").slice(0, 22)}"`;
+  const headers = { ETag: etag, "X-Leaderboard-Built-At": new Date(served.builtAt).toISOString() };
+  if (req.headers["if-none-match"] === etag) {
+    res.writeHead(304, headers);
+    res.end();
+    return;
+  }
+  res.writeHead(200, { ...headers, "Content-Type": "application/json; charset=utf-8", "Content-Length": Buffer.byteLength(body) });
+  res.end(body);
+}
+
+/**
  * Who is looking at a public profile part: the website passes the signed-in viewer's id (from its
  * Auth.js session, never from the browser) as `?viewer=`. Absent = anonymous. The cross-server
  * privacy gate (core/privacy) decides what that viewer may see.
@@ -170,12 +195,10 @@ function invalidatePublicProfileCaches(userId: string): void {
   for (const prefix of ["pp", "pp-id", "pp-stats", "pp-act", "pp-hours", "pp-servers", "pp-cards"]) {
     dropCached(`${prefix}:${userId}:`);
   }
-  // The global boards are re-filtered for Ghost Mode on every response (withoutHiddenLeaders), so
-  // they only need refreshing, not dropping: dropping made the next visitor wait on a full rebuild
-  // and the site showed the board as unavailable. Per-server boards and global stats carry
-  // per-user extras (activity badges) that aren't re-filtered, so those are still dropped.
-  markCachedStale("leaderboard:global:");
-  dropCachedWhere((key) => key.startsWith("leaderboard:") && !key.startsWith("leaderboard:global:"));
+  // Leaderboards drop Ghost Mode users on every response (presentBoard), cached and stored copies
+  // included, so nothing has to be dropped here: the boards are just rebuilt in the background to
+  // pick up the change (accent colour, badges, totals) while the current copy keeps being served.
+  markBoardsStale();
   dropCached("stats:global:");
 }
 
@@ -3442,29 +3465,21 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (req.method === "GET" && url.pathname === "/bridge/stats/global/public-leaderboard") {
-          const { buildWebGlobalPublicMessagerLeaderboard } = await import("./webStats.js");
-          const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          const payload = await leaderboardCached(leaderboardKeys.global(limit), LEADERBOARD_TTL_MS, () =>
-            buildWebGlobalPublicMessagerLeaderboard(client, limit),
-          );
-          sendJson(res, 200, withoutHiddenLeaders(payload));
+          const limit = clampBoardLimit(url.searchParams.get("limit"));
+          sendLeaderboard(req, res, await serveGlobalBoard(client, "messages", limit));
           return;
         }
 
         // Public global boards besides Messages: per-user totals across every server.
         const globalBoardMatch = /^\/bridge\/stats\/global\/public-leaderboard\/([a-z]+)$/.exec(url.pathname);
         if (globalBoardMatch && req.method === "GET") {
-          const { buildWebGlobalPublicBoard, isGlobalPublicBoard } = await import("./webStats.js");
           const board = globalBoardMatch[1]!;
-          if (!isGlobalPublicBoard(board)) {
+          if (!(GLOBAL_BOARD_IDS as readonly string[]).includes(board)) {
             sendJson(res, 404, { error: "Unknown leaderboard" });
             return;
           }
-          const limit = Math.min(50, Math.max(5, Number(url.searchParams.get("limit") ?? 25) || 25));
-          const payload = await leaderboardCached(leaderboardKeys.globalBoard(board, limit), LEADERBOARD_TTL_MS, () =>
-            buildWebGlobalPublicBoard(client, board, limit),
-          );
-          sendJson(res, 200, withoutHiddenLeaders(payload));
+          const limit = clampBoardLimit(url.searchParams.get("limit"));
+          sendLeaderboard(req, res, await serveGlobalBoard(client, board as GlobalBoardId, limit));
           return;
         }
 
@@ -7402,54 +7417,18 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (publicLeaderboardMatch) {
+        if (publicLeaderboardMatch || publicVoiceLeaderboardMatch || publicBoardMatch) {
           if (req.method !== "GET") {
             sendJson(res, 405, { error: "Method not allowed" });
             return;
           }
-          const { buildWebPublicMessagerLeaderboard } = await import("./webStats.js");
-          const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          // All-time rankings barely move minute to minute, and the expensive part
-          // (buildWebPublicMessagerLeaderboard's per-row Discord identity resolution) is now
-          // also cached on its own, longer-lived terms — see identityCache in webStats.ts — so
-          // this payload-level TTL mostly just saves repeat visitors the DB round trips.
-          const payload = await leaderboardCached(leaderboardKeys.guild(guild.id, limit), LEADERBOARD_TTL_MS, () =>
-            buildWebPublicMessagerLeaderboard(guild, limit),
-          );
-          sendJson(res, 200, payload);
-          return;
-        }
-
-        if (publicVoiceLeaderboardMatch) {
-          if (req.method !== "GET") {
-            sendJson(res, 405, { error: "Method not allowed" });
-            return;
-          }
-          const { buildWebPublicVoiceLeaderboard } = await import("./webStats.js");
-          const limit = Number(url.searchParams.get("limit") ?? 25) || 25;
-          const payload = await leaderboardCached(leaderboardKeys.voice(guild.id, limit), LEADERBOARD_TTL_MS, () =>
-            buildWebPublicVoiceLeaderboard(guild, limit),
-          );
-          sendJson(res, 200, payload);
-          return;
-        }
-
-        if (publicBoardMatch) {
-          if (req.method !== "GET") {
-            sendJson(res, 405, { error: "Method not allowed" });
-            return;
-          }
-          const { buildWebPublicGuildBoard, isGuildPublicBoard } = await import("./webStats.js");
-          const board = publicBoardMatch[2]!;
-          if (!isGuildPublicBoard(board)) {
+          const board = publicLeaderboardMatch ? "messages" : publicVoiceLeaderboardMatch ? "voice" : publicBoardMatch![2]!;
+          if (!(GUILD_BOARD_IDS as readonly string[]).includes(board)) {
             sendJson(res, 404, { error: "Unknown leaderboard" });
             return;
           }
-          const limit = Math.min(50, Math.max(5, Number(url.searchParams.get("limit") ?? 25) || 25));
-          const payload = await leaderboardCached(leaderboardKeys.guildBoard(guild.id, board, limit), LEADERBOARD_TTL_MS, () =>
-            buildWebPublicGuildBoard(guild, board, limit),
-          );
-          sendJson(res, 200, payload);
+          const limit = clampBoardLimit(url.searchParams.get("limit"));
+          sendLeaderboard(req, res, await serveGuildBoard(guild, board as GuildBoardId, limit));
           return;
         }
 
@@ -10420,21 +10399,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   server.requestTimeout = 30_000;
   server.keepAliveTimeout = 65_000;
 
-  // Keep the busiest leaderboards warm: a first pass shortly after boot (once guilds are cached),
-  // then every few minutes. Small on purpose (see prewarmLeaderboards): it shares Discord's
-  // request queue with every other page.
-  let prewarmRunning = false;
-  const prewarm = () => {
-    if (prewarmRunning) return;
-    prewarmRunning = true;
-    void prewarmLeaderboards(client)
-      .catch(() => null)
-      .finally(() => {
-        prewarmRunning = false;
-      });
-  };
-  setTimeout(prewarm, 30_000).unref();
-  setInterval(prewarm, PREWARM_INTERVAL_MS).unref();
+  // Public leaderboards: load the stored copies (a restart serves them at once), then keep the
+  // global boards and recently visited servers' boards fresh in the background.
+  startLeaderboardWarmer(client);
 
   server.listen(port, "0.0.0.0", () => {
     log.success(

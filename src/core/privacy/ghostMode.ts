@@ -155,7 +155,7 @@ function ghostedAmong(subjectIds: readonly string[], now: Date): Set<string> {
   return new Set(rows.map((row) => row.userId));
 }
 
-/** Everyone currently left off the global leaderboards (Ghost Mode active, or the separate switch). */
+/** Everyone currently left off the leaderboards (Ghost Mode active, or the separate switch). Same set as listHiddenFromLeaderboards. */
 export function listHiddenFromGlobalBoards(now = new Date()): Set<string> {
   const rows = getDb()
     .select({ userId: userProfiles.userId })
@@ -168,4 +168,14 @@ export function listHiddenFromGlobalBoards(now = new Date()): Set<string> {
     )
     .all();
   return new Set(rows.map((row) => row.userId));
+}
+
+/**
+ * Everyone left off EVERY leaderboard others see (global and per-server boards, Discord's
+ * leaderboard images and top lists, stats-page top lists): Ghost Mode active, or "hide me from
+ * leaderboards" on. Leaderboards apply this on every response, cached copies included. A user's
+ * own rank card (/rank for themselves) is unaffected.
+ */
+export function listHiddenFromLeaderboards(now = new Date()): Set<string> {
+  return listHiddenFromGlobalBoards(now);
 }

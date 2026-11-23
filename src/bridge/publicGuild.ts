@@ -3,7 +3,7 @@ import { channelPubliclyVisible, publicAudienceRoleIds } from "./publicChannels.
 import { configManager } from "../config/manager.js";
 import { getDreamlinerOnePublicStatusWithRefresh } from "./dreamlinerOne.js";
 import { getTopChannelsByDaily } from "../plugins/stats/functions/queries.js";
-import { buildWebPublicMessagerLeaderboard } from "./webStats.js";
+import { serveGuildBoard } from "./leaderboardCache.js";
 import { activeAppealsConfig } from "../plugins/appeals/functions/config.js";
 
 function colorIntToHex(value: number): string {
@@ -71,12 +71,11 @@ function buildBoostStatus(guild: Guild) {
   };
 }
 
-/** Top 5 all-time messagers, reusing the exact same builder (and so the exact same row shape —
- *  avatar, badges, accent color, banner) as the full public leaderboard page, instead of a
- *  second, slightly-different implementation just for this preview. */
+/** Top 5 all-time messagers: the full public leaderboard's Messages board (same cached copy, same
+ *  row shape and the same Ghost Mode and identity rules), cut to 5. Empty while it's first built. */
 async function buildLeaderboardPreview(guild: Guild) {
-  const { leaders } = await buildWebPublicMessagerLeaderboard(guild, 5);
-  return leaders;
+  const served = await serveGuildBoard(guild, "messages", 5);
+  return ((served?.payload as { leaders?: unknown[] } | undefined)?.leaders ?? []) as Array<Record<string, unknown>>;
 }
 
 const MAX_EMOJIS = 60;

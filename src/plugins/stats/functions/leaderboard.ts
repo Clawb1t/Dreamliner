@@ -8,6 +8,7 @@ import { animatedCardKey, cachedAnimatedCard, hasBackgroundFrames, recordTransla
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { getEquippedCosmeticsForUsers } from "../../../core/cosmetics/equip.js";
 import { leaderboardCosmetics } from "../../../core/cosmetics/types.js";
+import { listHiddenFromLeaderboards } from "../../../core/privacy/ghostMode.js";
 
 /** Each member row's leaderboard cosmetics (flair, name style, icon, frame, bar), in one lookup. */
 function withCosmetics(rows: LeaderboardRow[], userIds: string[]): LeaderboardRow[] {
@@ -43,19 +44,26 @@ function windowCaption(days: number, kind: string, t: Translator): string {
   return t("stats.captionKindWindow", "{kind} · {window}", { kind, window: formatStatsWindowLong(days, t).toLowerCase() });
 }
 
+/** Ranked users fetched per leaderboard image: Ghost Mode and unresolvable users are skipped and the
+ *  next ones fill in. */
+const USER_CANDIDATES = 25;
+const USER_ROWS = 10;
+
 async function resolveUserRow(
   guild: Guild,
   rank: number,
   userId: string,
   count: number,
   total: number,
-  t: Translator,
-): Promise<LeaderboardRow> {
+): Promise<LeaderboardRow | null> {
   const member = await guild.members.fetch(userId).catch(() => null);
   const user = member?.user ?? (await guild.client.users.fetch(userId).catch(() => null));
+  const label = member?.displayName ?? user?.globalName ?? user?.username;
+  // Deleted or unknown accounts are left off rather than shown as an ID.
+  if (!label || /^deleted_user_[0-9a-f]+$/i.test(user?.username ?? "")) return null;
   return {
     rank,
-    label: member?.displayName ?? user?.username ?? t("stats.unknownUserFallback", "User {suffix}", { suffix: userId.slice(-4) }),
+    label,
     count,
     shareLabel: formatSharePct(count, total),
     sharePct: sharePctValue(count, total),
@@ -84,6 +92,27 @@ async function resolveChannelRow(
   };
 }
 
+/**
+ * The leaderboard's user rows: Ghost Mode users (and anyone hidden from leaderboards) left out,
+ * unresolvable accounts skipped, the rest renumbered 1..n, filled to USER_ROWS from further down.
+ */
+async function userRows(guild: Guild, top: Array<{ userId: string; count: number }>, total: number): Promise<{ rows: LeaderboardRow[]; userIds: string[] }> {
+  const hidden = listHiddenFromLeaderboards();
+  const eligible = top.filter((entry) => !hidden.has(entry.userId));
+  const rows: LeaderboardRow[] = [];
+  const userIds: string[] = [];
+  for (let i = 0; i < eligible.length && rows.length < USER_ROWS; i += USER_ROWS) {
+    const batch = eligible.slice(i, i + USER_ROWS);
+    const resolved = await Promise.all(batch.map((entry) => resolveUserRow(guild, 0, entry.userId, entry.count, total)));
+    resolved.forEach((row, index) => {
+      if (!row || rows.length >= USER_ROWS) return;
+      rows.push({ ...row, rank: rows.length + 1 });
+      userIds.push(batch[index]!.userId);
+    });
+  }
+  return { rows, userIds };
+}
+
 export async function renderUsersLeaderboard(
   guild: Guild,
   days: number,
@@ -93,13 +122,11 @@ export async function renderUsersLeaderboard(
 ): Promise<LeaderboardImage> {
   const guildId = guild.id;
   const [top, total] = await Promise.all([
-    isAllTimeWindow(days) ? getTopMessagers(guildId, 10) : getTopUsersByDaily(guildId, days, 10),
+    isAllTimeWindow(days) ? getTopMessagers(guildId, USER_CANDIDATES) : getTopUsersByDaily(guildId, days, USER_CANDIDATES),
     getTrackedMessagesTotal(guildId, days),
   ]);
-  const rows = withCosmetics(
-    await Promise.all(top.map((entry, i) => resolveUserRow(guild, i + 1, entry.userId, entry.count, total, t))),
-    top.map((entry) => entry.userId),
-  );
+  const people = await userRows(guild, top, total);
+  const rows = withCosmetics(people.rows, people.userIds);
   return {
     ...(await renderImage(guildId, { title, subtitle, rows, accentColor: DREAMLINER_ACCENT_HEX }, t)),
     caption: windowCaption(days, t("stats.leaderboardTopMessagers", "Top messagers"), t),
@@ -134,11 +161,9 @@ export async function renderAllTimeUsersLeaderboard(
   t: Translator = defaultTranslator,
 ): Promise<LeaderboardImage> {
   const guildId = guild.id;
-  const [top, total] = await Promise.all([getTopMessagers(guildId, 10), getTrackedMessagesTotal(guildId, 0)]);
-  const rows = withCosmetics(
-    await Promise.all(top.map((entry, i) => resolveUserRow(guild, i + 1, entry.userId, entry.count, total, t))),
-    top.map((entry) => entry.userId),
-  );
+  const [top, total] = await Promise.all([getTopMessagers(guildId, USER_CANDIDATES), getTrackedMessagesTotal(guildId, 0)]);
+  const people = await userRows(guild, top, total);
+  const rows = withCosmetics(people.rows, people.userIds);
   return {
     ...(await renderImage(guildId, { title, subtitle, rows, accentColor: DREAMLINER_ACCENT_HEX }, t)),
     caption: t("stats.captionAllTimeTopMessagers", "All-time top messagers"),

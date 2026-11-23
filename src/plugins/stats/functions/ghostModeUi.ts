@@ -58,16 +58,16 @@ function statusLine(userId: string, now = new Date()): string {
     : "Nobody is on your allow list yet. You can add people on the website.";
   if (!isGhostActive(state, now)) {
     return [
-      "**Off.** Other people see your activity across servers as a daily snapshot taken at 00:00 UTC, never live.",
+      "**Off.** Other people see your activity across servers on your profile and rank as a daily snapshot taken at 00:00 UTC, never live.",
       "",
-      "Turn Ghost Mode on to hide your global stats, your place on global leaderboards and the servers you're active in from everyone else. Your stats are still tracked as normal, and your rank inside each server is unchanged.",
+      "Turn Ghost Mode on to hide your global stats, the servers you're active in and your place on every leaderboard (global and in each server) from everyone else. Your stats are still tracked as normal, and you can still check your own rank.",
     ].join("\n");
   }
   const until = state.until ? `until <t:${Math.floor(state.until.getTime() / 1000)}:f> (<t:${Math.floor(state.until.getTime() / 1000)}:R>)` : "until you turn it off";
   return [
     `**On** ${until}.`,
     "",
-    "Other people can't see your global stats, your place on global leaderboards or the servers you're active in. Your stats are still tracked as normal, and your rank inside each server is unchanged.",
+    "Other people can't see your global stats, the servers you're active in or your place on any leaderboard (global or in a server). Your stats are still tracked as normal, and you can still check your own rank.",
     "",
     allowedLine,
   ].join("\n");

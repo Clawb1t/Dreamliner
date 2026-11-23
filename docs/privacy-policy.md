@@ -71,6 +71,7 @@ Depending on which plugins a server has enabled, we may create and store:
 - **Message archives** produced by tools like `/clean` or `/source` (author tags, message content, and attachment URLs, kept until an operator deletes them)
 - **Aggregate activity statistics** (message counts, join/leave counts, voice minutes, and similar counters), typically without retaining full message bodies
 - **Username and nickname change history**
+- **Leaderboard identity cache** (your Discord username, display name, avatar and banner hashes, refreshed from Discord about once a day, so public leaderboards can show your name and picture without asking Discord on every view), plus the last built copy of each public leaderboard
 - **Member identity snapshots** (a per-server nickname, role IDs, and any active timeout expiry, kept so those specific fields can be restored if a member is re-added after a false-positive kick/ban or a raid cleanup)
 - **Starboard** message references and star/reaction counts
 - **Role panel** message-to-role mappings
@@ -222,6 +223,7 @@ Retention depends on the feature involved and on whether administrators or membe
 | **Name / username history** | Kept while the related plugins remain in use and records are not cleared |
 | **Birthdays** | Until the member removes it with `/birthday remove` or erases their data. Celebration records are kept per server until the member erases their data |
 | **Member identity snapshots** | Kept while Member Identity is in use (latest snapshot per member per server) until overwritten or deleted |
+| **Leaderboard identity cache and built leaderboards** | Identities are refreshed about daily and deleted when you erase your data; built leaderboards are replaced every few minutes and dropped after 30 days without a rebuild |
 | **Stats & counters** | Kept as aggregate history until cleared or removed |
 | **Tags, reminders, panels, stickies, aliases, tickets, suggestions, reviews, economy records, etc.** | Until removed by commands or operators |
 | **Image Scanning blocklist fingerprints** | Platform-wide, not per-server; kept until removed by a Dreamliner operator |

@@ -1,4 +1,6 @@
 import type { Client, Guild } from "discord.js";
+import { listHiddenFromLeaderboards } from "../core/privacy/ghostMode.js";
+import { withoutHidden } from "../core/privacy/policy.js";
 import { CatalogError, getPlaneTypeById } from "../plugins/economy/functions/catalog.js";
 import {
   DEFAULT_LIVERY_ODDS,
@@ -212,7 +214,8 @@ async function listingViews(client: Client, rows: { listing: ListingRow; copy: C
 }
 
 async function leaderboardView(client: Client, board: LeaderboardBoard, memberIds: string[] | null, limit: number) {
-  const entries = leaderboard(board, { memberIds, limit });
+  // Ghost Mode users are left off every leaderboard others see (renumbered, filled from headroom).
+  const entries = withoutHidden(leaderboard(board, { memberIds, limit: Math.min(50, limit + 15) }), listHiddenFromLeaderboards(), limit);
   const users = await userBriefs(client, entries.map((e) => e.userId));
   const rarestIds = entries.map((e) => e.rarestCopyId).filter((id): id is number => typeof id === "number");
   const ctx = viewContext();

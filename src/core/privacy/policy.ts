@@ -4,12 +4,16 @@
  * else goes through `resolveCrossServerAccess` (via `canViewCrossServerData`).
  *
  * Two layers:
- * - For everyone, always: another person's global numbers are a snapshot taken at 00:00 UTC
- *   ("snapshot"), never live, so polling a profile, /rank or a global board can't tell whether
- *   someone is posting in some other server right now. "Active now" / "Last seen 5m ago" stays
- *   visible to everyone by design.
+ * - For everyone, always: another person's global numbers on their profile, /rank and similar
+ *   person-centred views are a snapshot taken at 00:00 UTC ("snapshot"), never live, so polling
+ *   one person can't tell whether they're posting in some other server right now. "Active now" /
+ *   "Last seen 5m ago" stays visible to everyone by design.
+ *   Leaderboards are the exception, by product decision: they show the most recent build
+ *   (refreshed every minute or two), not a daily snapshot. Their rows carry only all-time totals
+ *   and no per-server breakdown, and anyone who wants out has Ghost Mode.
  * - Ghost Mode (opt-in, optionally timed): other people see nothing cross-server at all
- *   ("hidden"), including Active now / Last seen, and the user is left off the global leaderboards.
+ *   ("hidden"), including Active now / Last seen, and the user is left off EVERY leaderboard
+ *   (global and per-server, website and Discord), applied on every response.
  *
  * The user themselves and the people on their allow list always get "live".
  *
@@ -24,7 +28,7 @@ export type GhostState = {
   enabled: boolean;
   /** When it turns itself off, null = until the user turns it off. */
   until: Date | null;
-  /** Leave the user off the global leaderboards (implied while Ghost Mode is active). */
+  /** Leave the user off every leaderboard (implied while Ghost Mode is active). */
   hideLeaderboards: boolean;
 };
 
@@ -69,7 +73,7 @@ export function isGhostActive(state: GhostState | null | undefined, now = new Da
   return state.until === null || state.until.getTime() > now.getTime();
 }
 
-/** Left off the global leaderboards: while Ghost Mode is active, or by the separate switch. */
+/** Left off every leaderboard: while Ghost Mode is active, or by the separate switch. */
 export function isHiddenFromGlobalBoards(state: GhostState | null | undefined, now = new Date()): boolean {
   return Boolean(state?.hideLeaderboards) || isGhostActive(state, now);
 }
@@ -120,8 +124,9 @@ export function dayStartValue<T>(row: { live: T; dayStart: T | null; dayStartDat
 // --- Leaderboards ------------------------------------------------------------------------------
 
 /**
- * Drops hidden users from a ranked list and renumbers it, so ranks stay 1..n with no gaps and
- * someone's position never hints that a hidden user sits above them.
+ * Drops hidden users (Ghost Mode, or hidden from leaderboards) from a ranked list and renumbers it,
+ * so ranks stay 1..n with no gaps and someone's position never hints that a hidden user sits above
+ * them. Callers over-fetch so the list still fills to `limit`.
  */
 export function withoutHidden<T extends { userId: string }>(entries: readonly T[], hidden: ReadonlySet<string>, limit = Infinity): Array<T & { rank: number }> {
   const out: Array<T & { rank: number }> = [];

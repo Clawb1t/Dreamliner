@@ -150,6 +150,8 @@ function fakeUser(id: string) {
     id,
     bot: false,
     username: `user_${id.slice(-6)}`,
+    avatar: Number(id.slice(-1)) % 3 === 0 ? null : `hash${id.slice(-6)}`,
+    banner: null,
     globalName: `User ${id.slice(-6)}`,
     displayName: `User ${id.slice(-6)}`,
     accentColor: null,
@@ -197,10 +199,16 @@ function fakeGuild(index: number) {
     client,
     members: {
       cache: memberCache,
-      fetch: async (arg: string | { user: string }) => {
-        const userId = typeof arg === "string" ? arg : arg.user;
+      fetch: async (arg: string | { user: string | string[] }) => {
         restCalls++;
         await sleep(REST_MS);
+        if (typeof arg !== "string" && Array.isArray(arg.user)) {
+          // Gateway member request: one call for many users (half of them still members).
+          const found = new Map<string, unknown>();
+          for (const userId of arg.user) if (Number(userId.slice(-1)) % 2 === 0) found.set(userId, fakeMember(userId));
+          return found;
+        }
+        const userId = typeof arg === "string" ? arg : (arg.user as string);
         const member = fakeMember(userId);
         memberCache.set(userId, member);
         return member;
@@ -252,41 +260,61 @@ async function main() {
 
   const mega = fakeGuild(0);
   const big = fakeGuild(1);
-  const mid = fakeGuild(5);
+  fakeGuild(5);
   const small = fakeGuild(GUILDS - 1);
 
   const webStats = await import("../bridge/webStats.js");
   const userStats = await import("../bridge/userStats.js");
   const publicProfile = await import("../bridge/userPublicProfile.js");
   const userActivity = await import("../bridge/userActivity.js");
-  const { cached } = await import("../bridge/responseCache.js");
   const probeUser = snowflake(3);
 
-  const clearIdentity = async () => {
-    const { invalidateCached } = await import("../bridge/responseCache.js");
-    invalidateCached();
+  // --- Leaderboards: build, serve from memory, serve after a restart ---------------------------
+  const lb = await import("../bridge/leaderboardCache.js");
+  const boards = await import("../bridge/leaderboards.js");
+  const identities = await import("../bridge/identityStore.js");
+  for (const board of lb.GLOBAL_BOARD_IDS) {
+    await measure(`BUILD global ${board} (cold identities)`, () => lb.refreshBoard(lb.leaderboardKeys.global(board), boards.globalBoardBuilder(client, board)));
+  }
+  for (const [label, guild] of [["mega", mega], ["small", small]] as const) {
+    for (const board of ["messages", "voice"] as const) {
+      await measure(`BUILD ${label} ${board}`, () => lb.refreshBoard(lb.leaderboardKeys.guild(guild.id, board), boards.guildBoardBuilder(guild, board)));
+    }
+  }
+  const serveMany = async (label: string, fn: () => Promise<unknown>, times = 1000) => {
+    const start = process.hrtime.bigint();
+    for (let i = 0; i < times; i++) await fn();
+    const each = Number(process.hrtime.bigint() - start) / 1e6 / times;
+    console.log(`  ${label}: ${each.toFixed(3)}ms per request (avg of ${times})`);
   };
+  console.log("\nServing (memory):");
+  await serveMany("global messages, 50 rows", () => lb.serveGlobalBoard(client, "messages", 50));
+  await serveMany("mega server messages, 25 rows", () => lb.serveGuildBoard(mega, "messages", 25));
+  await serveMany("global messages + JSON.stringify", async () => JSON.stringify(await lb.serveGlobalBoard(client, "messages", 50)));
 
-  const leaderboard = (label: string, guild: import("discord.js").Guild) =>
-    measure(`messages leaderboard: ${label}`, () => webStats.buildWebPublicMessagerLeaderboard(guild, 25));
-  const voice = (label: string, guild: import("discord.js").Guild) =>
-    measure(`voice leaderboard: ${label}`, () => webStats.buildWebPublicVoiceLeaderboard(guild, 25));
+  console.log("\nSimulated restart:");
+  lb.resetBoardMemory();
+  identities.resetIdentityMemory();
+  const loadStart = process.hrtime.bigint();
+  const loaded = lb.loadPersistedBoards();
+  console.log(`  loaded ${loaded} stored boards in ${(Number(process.hrtime.bigint() - loadStart) / 1e6).toFixed(1)}ms`);
+  const restBefore = restCalls;
+  const firstStart = process.hrtime.bigint();
+  const first = await lb.serveGlobalBoard(client, "messages", 50);
+  console.log(`  first request after restart: ${(Number(process.hrtime.bigint() - firstStart) / 1e6).toFixed(2)}ms, ${restCalls - restBefore} REST, ${(first?.payload as { leaders: unknown[] }).leaders.length} rows`);
+  lb.resetBoardMemory();
+  const dbStart = process.hrtime.bigint();
+  await lb.serveGuildBoard(mega, "voice", 25);
+  console.log(`  board read back from the table on demand: ${(Number(process.hrtime.bigint() - dbStart) / 1e6).toFixed(2)}ms`);
 
-  // The background pre-warmer: one full pass over the global board and the 25 biggest servers.
-  for (let i = 0; i < 25; i++) fakeGuild(i);
-  const { prewarmLeaderboards } = await import("../bridge/leaderboardCache.js");
-  const { invalidateCached } = await import("../bridge/responseCache.js");
-  invalidateCached();
-  await measure("PREWARM pass (global + 25 servers x2 boards)", () => prewarmLeaderboards(client, 25));
+  console.log("\nCold board, 20 concurrent visitors (never built):");
+  const coldStart = Date.now();
+  const coldRest = restCalls;
+  const answers = await Promise.all(Array.from({ length: 20 }, () => lb.serveGuildBoard(big, "messages", 25)));
+  console.log(`  answered in ${Date.now() - coldStart}ms, ${restCalls - coldRest} REST so far, rows: ${(answers[0]?.payload as { leaders?: unknown[] } | undefined)?.leaders?.length ?? "warming"}`);
+  await lb.refreshBoard(lb.leaderboardKeys.guild(big.id, "messages"), boards.guildBoardBuilder(big, "messages"));
+  console.log(`  full build landed after ${Date.now() - coldStart}ms, ${restCalls - coldRest} REST total`);
 
-  await measure("GLOBAL messages leaderboard", () => webStats.buildWebGlobalPublicMessagerLeaderboard(client, 25));
-  await leaderboard("mega server (800k)", mega);
-  await leaderboard("big server (400k)", big);
-  await leaderboard("mid server (80k)", mid);
-  await leaderboard("small server", small);
-  await voice("mega server", mega);
-  await voice("big server", big);
-  await voice("small server", small);
   if (process.env.BENCH_QUERIES === "1") {
     const g = await import("../plugins/stats/functions/globalQueries.js");
     const q = (name: string, fn: () => Promise<unknown>) => measure(`  query: ${name}`, fn);
@@ -324,23 +352,6 @@ async function main() {
   await measure("profile: public stats", () => publicProfile.buildPublicProfileStats(probeUser));
   await measure("profile: public activity", () => publicProfile.buildPublicProfileActivity(probeUser));
   await measure("profile: public servers", () => userActivity.listUserGuildSummaries(client, probeUser, 12));
-
-  // The same thing as production sees it: the page cache in front of the builder, with 20 visitors
-  // arriving at once on a cold cache, then again right after.
-  await clearIdentity();
-  const burst = async (label: string, guild: import("discord.js").Guild) => {
-    const start = Date.now();
-    await Promise.all(
-      Array.from({ length: 20 }, () => cached(`bench:${label}`, 60_000, () => webStats.buildWebPublicMessagerLeaderboard(guild, 25))),
-    );
-    const cold = Date.now() - start;
-    const start2 = Date.now();
-    await Promise.all(Array.from({ length: 20 }, () => cached(`bench:${label}`, 60_000, () => webStats.buildWebPublicMessagerLeaderboard(guild, 25))));
-    console.log(`  20 concurrent visitors, ${label}: first wave ${cold}ms, second wave ${Date.now() - start2}ms`);
-  };
-  console.log("\nConcurrent visitors through the page cache:");
-  await burst("mega server", mega);
-  await burst("small server", small);
 
   // --- Report ---
   const pad = (s: string, w: number) => s.padEnd(w);

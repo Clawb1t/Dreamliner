@@ -175,7 +175,7 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
     },
     ghost_mode: {
       label: "Ghost Mode",
-      description: "Your Ghost Mode switch, when it ends, whether you're hidden from global leaderboards, and the people on your allow list.",
+      description: "Your Ghost Mode switch, when it ends, whether you're hidden from leaderboards, and the people on your allow list.",
       rows: serializable([
         ...(await db
           .select({ ghostMode: userProfiles.ghostMode, ghostUntil: userProfiles.ghostUntil, ghostHideLeaderboards: userProfiles.ghostHideLeaderboards })

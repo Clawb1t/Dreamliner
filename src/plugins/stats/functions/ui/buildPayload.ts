@@ -15,6 +15,8 @@ import { publicLeaderboardUrl } from "../../../../core/publicLeaderboard.js";
 import { baseEmbed, commandHeader, embedField, setEmbedAuthor, trimLines, type ResultContainer } from "../../../../core/embeds.js";
 import { getGuildMessageCount } from "../../../utility/functions/messageCounts.js";
 import { globalMessageCountFor } from "../../../../core/privacy/crossServer.js";
+import { listHiddenFromLeaderboards } from "../../../../core/privacy/ghostMode.js";
+import { withoutHidden } from "../../../../core/privacy/policy.js";
 import {
   formatStatsWindowLabel,
   formatStatsWindowLong,
@@ -79,8 +81,9 @@ async function buildHomeFields(state: StatsState, guild: Guild, t: Translator) {
       getFilledDailyStats(guildId, days),
       getDailyTotals(guildId),
       getTotalGuildMessages(guildId),
-      getTopMessagers(guildId, 5),
-      getTopUsersByDaily(guildId, days, 5),
+      // Over-fetched: Ghost Mode users are left off every list others see.
+      getTopMessagers(guildId, 15).then((rows) => withoutHidden(rows, listHiddenFromLeaderboards(), 5)),
+      getTopUsersByDaily(guildId, days, 15).then((rows) => withoutHidden(rows, listHiddenFromLeaderboards(), 5)),
       getTopChannelsByDaily(guildId, days, 5),
       getActiveMessagerCount(guildId),
     ]);

@@ -1091,7 +1091,7 @@ export const userProfiles = sqliteTable("user_profiles", {
    *  stops being tracked. Expires on its own once `ghostUntil` passes (null = until turned off). */
   ghostMode: integer("ghost_mode", { mode: "boolean" }).notNull().default(false),
   ghostUntil: integer("ghost_until", { mode: "timestamp" }),
-  /** Leave this user off the global leaderboards, with or without Ghost Mode. */
+  /** Leave this user off every leaderboard (global and per-server), with or without Ghost Mode. */
   ghostHideLeaderboards: integer("ghost_hide_leaderboards", { mode: "boolean" }).notNull().default(false),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
@@ -1107,12 +1107,25 @@ export const ghostModeAllowlist = sqliteTable(
   (table) => [primaryKey({ columns: [table.userId, table.viewerId] }), index("ghost_mode_allowlist_viewer").on(table.viewerId)],
 );
 
-/** The global leaderboards, frozen once per UTC day (core/privacy/boardSnapshots.ts). */
-export const globalBoardSnapshots = sqliteTable("global_board_snapshots", {
-  board: text("board").primaryKey(),
-  snapshotDate: text("snapshot_date").notNull(),
+/** The last complete build of each public leaderboard, served after a restart (bridge/leaderboardCache.ts). */
+export const leaderboardCache = sqliteTable("leaderboard_cache", {
+  key: text("key").primaryKey(),
   payload: text("payload").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  builtAt: integer("built_at", { mode: "number" }).notNull(),
+});
+
+/** Durable Discord identity cache for leaderboard rows (bridge/identityStore.ts). */
+export const userIdentityCache = sqliteTable("user_identity_cache", {
+  userId: text("user_id").primaryKey(),
+  username: text("username"),
+  globalName: text("global_name"),
+  avatar: text("avatar"),
+  banner: text("banner"),
+  /** Deleted or unknown account: never shown. */
+  gone: integer("gone", { mode: "boolean" }).notNull().default(false),
+  /** Last full Discord API fetch (ms); 0 = only seen in the gateway cache, banner not known yet. */
+  fetchedAt: integer("fetched_at", { mode: "number" }).notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "number" }).notNull(),
 });
 
 /** Platform-wide badge definitions (Developer, Dreamliner One Supporter, etc.), superuser-managed. */

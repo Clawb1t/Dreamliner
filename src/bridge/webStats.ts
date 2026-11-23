@@ -1,7 +1,6 @@
-import type { Client, Guild, User } from "discord.js";
+import type { Client, Guild } from "discord.js";
 import { publicChannelChecker } from "./publicChannels.js";
-import { leaderboardCosmetics, type LeaderboardCosmetics } from "../core/cosmetics/types.js";
-import { fetchMemberCached } from "./people.js";
+import { resolveTopPeople } from "./leaderboards.js";
 import {
   analyzeSeries,
   computeServerPulse,
@@ -24,10 +23,7 @@ import {
   type StatsWindow,
 } from "../plugins/stats/functions/daily.js";
 import {
-  getActiveVoiceUserCount,
   getFilledVoiceDailyStats,
-  getGlobalVoiceTotals,
-  getGuildTotalVoiceMinutes,
   getTopVoiceChannels,
   getTopVoiceUsers,
 } from "../plugins/stats/functions/voice.js";
@@ -84,19 +80,12 @@ import {
 import {
   getGuildMessageCount,
 } from "../plugins/utility/functions/messageCounts.js";
-import { mapWithConcurrency } from "../core/concurrency.js";
-import { retryAsync } from "../core/retry.js";
-import { getLogger } from "../core/logger.js";
-import { createPruner } from "../core/mapPrune.js";
-import { crossServerAccessForMany, listHiddenFromGlobalBoards } from "../core/privacy/ghostMode.js";
-import { filterBadgesForAccess, utcDate, withoutHidden } from "../core/privacy/policy.js";
-import { frozenDaily } from "../core/privacy/boardSnapshots.js";
-import { globalMessageCountFor, snapshotGlobalMessages } from "../core/privacy/crossServer.js";
+import { globalMessageCountFor } from "../core/privacy/crossServer.js";
 
-const log = getLogger("stats");
-
-/** How many leaderboard rows to resolve (Discord fetch + profile lookups) at once. */
-const PEOPLE_RESOLVE_CONCURRENCY = 10;
+/** Rows in the stats pages' top-people lists, and how many ranked users are fetched to fill them
+ *  (Ghost Mode and unresolvable users are skipped, see resolveTopPeople in leaderboards.ts). */
+const TOP_PEOPLE = 15;
+const TOP_PEOPLE_CANDIDATES = 45;
 
 function resolveCommandLeaders(
   entries: Array<{ commandName: string; count: number }>,
@@ -150,215 +139,6 @@ function weekdaySeries(totals: number[]) {
   return WEEKDAY_LABELS.map((day, i) => ({ day, value: totals[i] ?? 0 }));
 }
 
-function colorIntToHex(value: number): string {
-  return `#${Math.max(0, Math.min(0xffffff, Math.floor(value)))
-    .toString(16)
-    .padStart(6, "0")}`;
-}
-
-/**
- * Unconditionally forces a full REST user fetch so `user.bannerURL()` is reliable. This used to
- * skip the re-fetch whenever `user.banner !== undefined`, on the assumption that only a genuine
- * full user fetch ever populates that field — but a guild member's *embedded* user resource (from
- * `guild.members.fetch()`, the leaderboard's main path) also carries a `banner` key, just always
- * `null` regardless of the user's real profile, since Discord doesn't fully hydrate it there. That
- * satisfied the `!== undefined` check and skipped the real fetch every time, so leaderboard rows
- * for guild members never showed a banner even when the member had one set. Always forcing here
- * costs one extra REST call — see `identityCache` below for how that cost is amortized across
- * requests instead of paid on every single leaderboard render.
- */
-async function ensureBannerLoaded(user: User | null): Promise<{ user: User | null; forced: boolean }> {
-  if (!user) return { user, forced: false };
-  const fetched = await retryAsync(() => user.fetch(true), {
-    attempts: 2,
-    delayMs: 300,
-    onError: (error, attempt) =>
-      log.debug(`Banner fetch for user ${user.id} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
-  });
-  return { user: fetched ?? user, forced: fetched !== null };
-}
-
-type CachedIdentity = {
-  username: string | null;
-  globalName: string | null;
-  avatar: string | null;
-  bannerUrl: string | null;
-};
-
-/**
- * Process-wide cache of resolved user identity (username/avatar/banner), independent of the
- * bridge's own per-endpoint payload cache (`responseCache.ts`, keyed by guild+limit and much
- * shorter-lived). `ensureBannerLoaded` above forces a real Discord REST call per user — without
- * this, every leaderboard render (messages *and* voice, every guild, every repeat visit past the
- * payload cache's TTL) re-forces that fetch for every single row, which is what actually made
- * these pages slow to load. Usernames/avatars/banners don't change minute to minute, so caching
- * them here for a while lets a request that misses the payload cache still skip the network round
- * trip entirely for anyone resolved recently — including the same user showing up on both the
- * messages and voice leaderboards in one page load.
- */
-const identityCache = new Map<string, { value: CachedIdentity; complete: boolean; expiresAt: number }>();
-const IDENTITY_CACHE_TTL_MS = 30 * 60 * 1000;
-/** An identity missing its banner (the forced fetch failed) is only remembered briefly, so the next
- *  visit tries again instead of showing a bannerless row for half an hour. */
-const INCOMPLETE_IDENTITY_TTL_MS = 45 * 1000;
-const pruneIdentityCache = createPruner(identityCache, (entry, now) => entry.expiresAt <= now);
-
-function identityOf(user: User | null): CachedIdentity {
-  return {
-    username: user?.username ?? null,
-    globalName: user?.globalName ?? null,
-    avatar: user?.displayAvatarURL({ size: 64 }) ?? null,
-    bannerUrl: user?.bannerURL({ size: 512, extension: "png" }) ?? null,
-  };
-}
-
-async function resolveUserIdentity(
-  client: Client,
-  userId: string,
-  knownUser: User | null,
-): Promise<CachedIdentity & { apiFetch: boolean; complete: boolean }> {
-  const cached = identityCache.get(userId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return { ...cached.value, apiFetch: false, complete: cached.complete };
-  }
-  const base =
-    knownUser ??
-    client.users.cache.get(userId) ??
-    (await retryAsync(() => client.users.fetch(userId), {
-      onError: (error, attempt) =>
-        log.debug(`User fetch for ${userId} failed (attempt ${attempt}): ${error instanceof Error ? error.message : error}`),
-    }));
-  const { user, forced } = await ensureBannerLoaded(base);
-  const value = identityOf(user);
-  // Only a user we actually got, with its banner fetched, counts as complete. A failed lookup is
-  // never remembered (the old code cached "nobody" for 30 minutes), and a missing banner only briefly.
-  if (user) {
-    pruneIdentityCache();
-    identityCache.set(userId, {
-      value,
-      complete: forced,
-      expiresAt: Date.now() + (forced ? IDENTITY_CACHE_TTL_MS : INCOMPLETE_IDENTITY_TTL_MS),
-    });
-  }
-  return { ...value, apiFetch: true, complete: forced };
-}
-
-/**
- * A leaderboard row needs a member lookup, a user lookup and a forced banner fetch: up to three
- * Discord requests in a row, per row, with a cold cache. A 25-row board could take many seconds
- * (and a rate-limited Discord longer), which is what made these pages time out. Each rebuild gets a
- * time budget: rows not resolved in time are returned with a placeholder name while their lookups
- * carry on in the background and fill the identity cache, and the payload is marked `partial` so
- * the next visit rebuilds with everyone filled in.
- */
-const RESOLVE_BUDGET_MS = 5000;
-const TIMED_OUT = Symbol("timed-out");
-
-function makeBudget(ms: number) {
-  const deadline = Date.now() + ms;
-  return async function within<T>(work: Promise<T>): Promise<T | typeof TIMED_OUT> {
-    work.catch(() => undefined); // keeps running in the background if the budget runs out
-    const left = deadline - Date.now();
-    if (left <= 0) return TIMED_OUT;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
-      timer = setTimeout(() => resolve(TIMED_OUT), left);
-    });
-    try {
-      return await Promise.race([work, timeout]);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  };
-}
-
-/** Whatever identity is already known for a user (even if stale), for rows that ran out of budget. */
-function knownIdentity(client: Client, userId: string): CachedIdentity {
-  const remembered = identityCache.get(userId)?.value;
-  if (remembered) return remembered;
-  // Not resolved in time: still show the avatar and name straight from Discord's cache if the bot
-  // has seen this user (avatars need no extra request; only banners do).
-  return identityOf(client.users.cache.get(userId) ?? null);
-}
-
-/** Each user's leaderboard cosmetics (name font/colour, frame, icon, flair, bar), batched. */
-async function leaderboardCosmeticsFor(userIds: string[]): Promise<Map<string, LeaderboardCosmetics | null>> {
-  const out = new Map<string, LeaderboardCosmetics | null>();
-  try {
-    const { getEquippedCosmeticsForUsers } = await import("../core/cosmetics/equip.js");
-    for (const [userId, style] of getEquippedCosmeticsForUsers(userIds)) out.set(userId, leaderboardCosmetics(style));
-  } catch (error) {
-    log.debug(`Leaderboard cosmetics lookup failed: ${error instanceof Error ? error.message : error}`);
-  }
-  return out;
-}
-
-async function resolvePeople(
-  guild: Guild,
-  entries: Array<{ userId: string; count: number; seconds?: number }>,
-  trafficTotal: number,
-  options?: { includeAccents?: boolean },
-) {
-  const includeAccents = options?.includeAccents !== false;
-  const userIds = entries.map((entry) => entry.userId);
-  const { getAccentColorsForUsers } = await import("./userProfiles.js");
-  const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
-  const { getProgressionBadgesForUsers } = await import("../core/progressionBadges/index.js");
-  const cosmeticsByUser = await leaderboardCosmeticsFor(userIds);
-  const [accents, badgesByUser, progressionByUser] = await Promise.all([
-    includeAccents ? getAccentColorsForUsers(userIds) : Promise.resolve(new Map<string, string>()),
-    getDisplayedBadgesForUsers(userIds),
-    getProgressionBadgesForUsers(guild.client, userIds).catch(() => new Map()),
-  ]);
-  const badgeAccess = crossServerAccessForMany(userIds);
-  const startedAt = process.hrtime.bigint();
-  let apiFetches = 0;
-  const within = makeBudget(RESOLVE_BUDGET_MS);
-  const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
-    // Cache-first: the gateway keeps guild member/user caches warm for anyone who's been
-    // active, so this is normally an instant local lookup. Only genuinely uncached
-    // entries (rare — a member who left, or a very first-time computation) hit the API.
-    const done = await within(
-      (async () => {
-        const found = await fetchMemberCached(guild, entry.userId);
-        return { member: found, identity: await resolveUserIdentity(guild.client, entry.userId, found?.user ?? null) };
-      })(),
-    );
-    const timedOut = done === TIMED_OUT;
-    const unresolved = timedOut || !done.identity.complete;
-    const member = timedOut ? (guild.members.cache.get(entry.userId) ?? null) : done.member;
-    const identity = unresolved ? { ...knownIdentity(guild.client, entry.userId), apiFetch: false, complete: false } : done.identity;
-    if (identity.apiFetch) apiFetches++;
-    return {
-      ...(unresolved ? { unresolved: true as const } : {}),
-      rank: index + 1,
-      id: entry.userId,
-      name: member?.displayName ?? identity.username ?? entry.userId,
-      username: identity.username,
-      avatar: identity.avatar,
-      bannerUrl: identity.bannerUrl,
-      count: entry.count,
-      // Exact seconds, voice leaderboard rows only (undefined -> null for messages rows, which
-      // have no such concept) — lets the website show a precise "Xm Ys"/"Xh Ym" instead of just
-      // the rounded whole-minute count.
-      seconds: entry.seconds ?? null,
-      sharePct: sharePctValue(entry.count, trafficTotal),
-      shareLabel: formatSharePct(entry.count, trafficTotal),
-      accentColor: accents.get(entry.userId) ?? null,
-      badges: badgesByUser.get(entry.userId) ?? [],
-      // Badge tiers stay, their live cross-server progress numbers don't; Ghost Mode drops the
-      // activity badges entirely (policy.ts).
-      progressionBadges: filterBadgesForAccess(progressionByUser.get(entry.userId) ?? [], badgeAccess.get(entry.userId) ?? "snapshot"),
-      cosmetics: cosmeticsByUser.get(entry.userId) ?? null,
-    };
-  });
-  const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
-  log.debug(
-    `Resolved ${entries.length} leaderboard row(s) for guild ${guild.id} in ${durationMs.toFixed(1)}ms (${apiFetches} identity cache miss(es), batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
-  );
-  return result;
-}
-
 function resolveChannels(
   guild: Guild,
   entries: Array<{ channelId: string; count: number }>,
@@ -375,230 +155,6 @@ function resolveChannels(
       shareLabel: formatSharePct(entry.count, trafficTotal),
     };
   });
-}
-
-/** Public all-time messagers leaderboard for shareable website pages. */
-export async function buildWebPublicMessagerLeaderboard(guild: Guild, limit = 25) {
-  const capped = Math.min(50, Math.max(5, limit));
-  const { configManager } = await import("../config/manager.js");
-  const { getDreamlinerOnePublicStatusWithRefresh } = await import("./dreamlinerOne.js");
-  const [top, allTimeTrafficTotal, activeMessagers, guildConfig, oneStatus] = await Promise.all([
-    getTopMessagers(guild.id, capped),
-    getTrackedMessagesTotal(guild.id, 0),
-    getActiveMessagerCount(guild.id),
-    configManager.getEffectiveConfig(guild.id),
-    getDreamlinerOnePublicStatusWithRefresh(guild.id),
-  ]);
-  const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
-  const accentColor = colorIntToHex(guildConfig.server_accent_color);
-  const leaders = await resolvePeople(guild, top, allTimeTrafficTotal, {
-    includeAccents: !overrideUserAccents,
-  });
-
-  return {
-    scope: "server" as const,
-    guild: {
-      id: guild.id,
-      name: guild.name,
-      icon: guild.icon,
-      memberCount: guild.memberCount,
-    },
-    title: "Top messagers",
-    subtitle: "All-time message leaderboard",
-    windowLabel: "All time",
-    totalMessages: allTimeTrafficTotal,
-    activeMessagers,
-    theme: {
-      accentColor,
-      overrideUserAccents,
-    },
-    oneActive: oneStatus.active,
-    oneActiveSince: oneStatus.since,
-    leaders,
-    partial: leaders.some((row) => "unresolved" in row),
-  };
-}
-
-/** Public all-time voice-time leaderboard for shareable website pages — the voice counterpart of
- *  `buildWebPublicMessagerLeaderboard` just above, sharing the same `resolvePeople` plumbing. */
-export async function buildWebPublicVoiceLeaderboard(guild: Guild, limit = 25) {
-  const capped = Math.min(50, Math.max(5, limit));
-  const { configManager } = await import("../config/manager.js");
-  const { getDreamlinerOnePublicStatusWithRefresh } = await import("./dreamlinerOne.js");
-  const [top, totalVoiceMinutes, activeVoiceMembers, guildConfig, oneStatus] = await Promise.all([
-    getTopVoiceUsers(guild.id, 0, capped),
-    getGuildTotalVoiceMinutes(guild.id),
-    getActiveVoiceUserCount(guild.id),
-    configManager.getEffectiveConfig(guild.id),
-    getDreamlinerOnePublicStatusWithRefresh(guild.id),
-  ]);
-  const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
-  const accentColor = colorIntToHex(guildConfig.server_accent_color);
-  const entries = top.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds }));
-  const leaders = await resolvePeople(guild, entries, totalVoiceMinutes, {
-    includeAccents: !overrideUserAccents,
-  });
-
-  return {
-    scope: "server" as const,
-    guild: {
-      id: guild.id,
-      name: guild.name,
-      icon: guild.icon,
-      memberCount: guild.memberCount,
-    },
-    title: "Top voice members",
-    subtitle: "All-time voice leaderboard",
-    windowLabel: "All time",
-    totalVoiceMinutes,
-    activeVoiceMembers,
-    theme: {
-      accentColor,
-      overrideUserAccents,
-    },
-    oneActive: oneStatus.active,
-    oneActiveSince: oneStatus.since,
-    leaders,
-    partial: leaders.some((row) => "unresolved" in row),
-  };
-}
-
-/** The server leaderboard's boards besides Messages and Voice (which keep their own builders). */
-export const GUILD_PUBLIC_BOARDS = ["streaks", "fleet"] as const;
-export type GuildPublicBoard = (typeof GUILD_PUBLIC_BOARDS)[number];
-
-export function isGuildPublicBoard(value: string): value is GuildPublicBoard {
-  return (GUILD_PUBLIC_BOARDS as readonly string[]).includes(value);
-}
-
-/**
- * One of the extra public server boards, the per-server counterpart of buildWebGlobalPublicBoard.
- * - streaks: longest live `/daily server` streaks in this guild (economy_server_accounts)
- * - fleet: this guild's current members ranked by their (global) Hangar Fleet Value, each row with
- *   its Pilot Rank. Membership is resolved by hangarMembersOf and applied in SQL, so the board
- *   never includes anyone outside this guild.
- * Both are part of the economy plugin, so with it disabled in this guild the board comes back
- * `available: false` and empty.
- */
-export async function buildWebPublicGuildBoard(guild: Guild, board: GuildPublicBoard, limit = 25) {
-  const capped = Math.min(50, Math.max(5, limit));
-  const { configManager } = await import("../config/manager.js");
-  const { pluginEnabled } = await import("../core/pluginCommand.js");
-  const { getDreamlinerOnePublicStatusWithRefresh } = await import("./dreamlinerOne.js");
-  const [guildConfig, oneStatus] = await Promise.all([
-    configManager.getEffectiveConfig(guild.id),
-    getDreamlinerOnePublicStatusWithRefresh(guild.id),
-  ]);
-  const overrideUserAccents = Boolean(guildConfig.leaderboard_override_user_accents);
-  const available = pluginEnabled(guildConfig, "economy");
-
-  let entries: Array<{ userId: string; count: number }> = [];
-  let shareBase = 0;
-  let total = 0;
-  let ranked = 0;
-  let pilotRanks: Map<string, { key: string; label: string; color: string }> | null = null;
-  if (available && board === "streaks") {
-    const { topLiveServerDailyStreaks } = await import("../plugins/economy/functions/money.js");
-    const { rows, live } = topLiveServerDailyStreaks(guild.id, capped);
-    entries = rows.map((row) => ({ userId: row.userId, count: row.streak }));
-    // Streaks don't add up to a meaningful whole, so each row's ring shows it against the leader's.
-    shareBase = rows[0]?.streak ?? 0;
-    total = rows[0]?.streak ?? 0;
-    ranked = live;
-  } else if (available && board === "fleet") {
-    const { hangarMembersOf } = await import("../plugins/economy/hangar/guildMembers.js");
-    const { leaderboard, globalFleetTotals } = await import("../plugins/economy/hangar/leaderboards.js");
-    const { pilotRankView } = await import("../plugins/economy/hangar/score.js");
-    const memberIds = await hangarMembersOf(guild);
-    const top = leaderboard("fleet_value", { limit: capped, memberIds });
-    const totals = globalFleetTotals(memberIds);
-    entries = top.map((row) => ({ userId: row.userId, count: row.value }));
-    shareBase = totals.total;
-    total = totals.total;
-    ranked = totals.players;
-    pilotRanks = new Map(
-      top.map((row) => {
-        const rank = pilotRankView(row.value);
-        return [row.userId, { key: rank.key, label: rank.label, color: rank.color }];
-      }),
-    );
-  }
-
-  const people = await resolvePeople(guild, entries, shareBase, { includeAccents: !overrideUserAccents });
-  const leaders = pilotRanks ? people.map((row) => ({ ...row, pilotRank: pilotRanks.get(row.id) ?? null })) : people;
-  return {
-    scope: "server" as const,
-    board,
-    available,
-    guild: {
-      id: guild.id,
-      name: guild.name,
-      icon: guild.icon,
-      memberCount: guild.memberCount,
-    },
-    total,
-    ranked,
-    theme: {
-      accentColor: colorIntToHex(guildConfig.server_accent_color),
-      overrideUserAccents,
-    },
-    oneActive: oneStatus.active,
-    oneActiveSince: oneStatus.since,
-    leaders,
-    partial: leaders.some((row) => "unresolved" in row),
-  };
-}
-
-async function resolveGlobalPeople(
-  client: Client,
-  entries: Array<{ userId: string; count: number; seconds?: number }>,
-  trafficTotal: number,
-) {
-  const userIds = entries.map((entry) => entry.userId);
-  const { getAccentColorsForUsers } = await import("./userProfiles.js");
-  const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
-  const { getProgressionBadgesForUsers } = await import("../core/progressionBadges/index.js");
-  const cosmeticsByUser = await leaderboardCosmeticsFor(userIds);
-  const [accents, badgesByUser, progressionByUser] = await Promise.all([
-    getAccentColorsForUsers(userIds),
-    getDisplayedBadgesForUsers(userIds),
-    getProgressionBadgesForUsers(client, userIds).catch(() => new Map()),
-  ]);
-  const badgeAccess = crossServerAccessForMany(userIds);
-  const startedAt = process.hrtime.bigint();
-  let apiFetches = 0;
-  const within = makeBudget(RESOLVE_BUDGET_MS);
-  const result = await mapWithConcurrency(entries, PEOPLE_RESOLVE_CONCURRENCY, async (entry, index) => {
-    // Cache-first — see resolveUserIdentity() above for why this normally never touches the network.
-    const done = await within(resolveUserIdentity(client, entry.userId, null));
-    const unresolved = done === TIMED_OUT;
-    const identity = unresolved ? { ...knownIdentity(client, entry.userId), apiFetch: false, complete: false } : done;
-    if (identity.apiFetch) apiFetches++;
-    return {
-      ...(unresolved ? { unresolved: true as const } : {}),
-      rank: index + 1,
-      id: entry.userId,
-      name: identity.globalName ?? identity.username ?? entry.userId,
-      username: identity.username,
-      avatar: identity.avatar,
-      bannerUrl: identity.bannerUrl,
-      count: entry.count,
-      seconds: entry.seconds ?? null,
-      sharePct: sharePctValue(entry.count, trafficTotal),
-      shareLabel: formatSharePct(entry.count, trafficTotal),
-      accentColor: accents.get(entry.userId) ?? null,
-      badges: badgesByUser.get(entry.userId) ?? [],
-      // Badge tiers stay, their live cross-server progress numbers don't; Ghost Mode drops the
-      // activity badges entirely (policy.ts).
-      progressionBadges: filterBadgesForAccess(progressionByUser.get(entry.userId) ?? [], badgeAccess.get(entry.userId) ?? "snapshot"),
-      cosmetics: cosmeticsByUser.get(entry.userId) ?? null,
-    };
-  });
-  const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
-  log.debug(
-    `Resolved ${entries.length} global leaderboard row(s) in ${durationMs.toFixed(1)}ms (${apiFetches} identity cache miss(es), batches of ${PEOPLE_RESOLVE_CONCURRENCY})`,
-  );
-  return result;
 }
 
 /** Global top channels for the public stats page: only channels an ordinary member of that server
@@ -629,121 +185,6 @@ async function resolveGlobalChannels(
   }));
 }
 
-/** Rows kept in each frozen global board: the 50 a page shows plus room for Ghost Mode removals. */
-const FROZEN_BOARD_ROWS = 80;
-
-type FrozenEntries = { entries: Array<{ userId: string; count: number; seconds?: number }> };
-
-/**
- * Top global messagers as of 00:00 UTC today, frozen for the day. Ordered by each user's day-start
- * count, so nothing sent today moves anyone (see core/privacy).
- */
-async function frozenGlobalMessagers(): Promise<FrozenEntries & { total: number; activeMessagers: number }> {
-  return frozenDaily("messages", async () => {
-    const [top, total, activeMessagers] = await Promise.all([
-      getTopGlobalMessagers(FROZEN_BOARD_ROWS * 2),
-      getGlobalTrackedMessagesTotal(),
-      getGlobalActiveMessagerCount(),
-    ]);
-    const entries = top
-      .map((row) => ({ userId: row.userId, count: snapshotGlobalMessages(row.userId).count }))
-      .filter((row) => row.count > 0)
-      .sort((a, b) => b.count - a.count || a.userId.localeCompare(b.userId))
-      .slice(0, FROZEN_BOARD_ROWS);
-    return { entries, total, activeMessagers };
-  });
-}
-
-/** Public all-time global messagers leaderboard across every tracked guild. Frozen daily at 00:00
- *  UTC; Ghost Mode users are left out and the rest renumbered. */
-export async function buildWebGlobalPublicMessagerLeaderboard(client: Client, limit = 25) {
-  const capped = Math.min(50, Math.max(5, limit));
-  const frozen = await frozenGlobalMessagers();
-  const hidden = listHiddenFromGlobalBoards();
-  const top = withoutHidden(frozen.entries, hidden, capped);
-  const leaders = await resolveGlobalPeople(client, top, frozen.total);
-
-  return {
-    scope: "global" as const,
-    guild: {
-      id: "global",
-      name: "Dreamliner",
-      icon: null as string | null,
-      memberCount: client.guilds.cache.size,
-    },
-    title: "Top messagers",
-    subtitle: "Global all-time message leaderboard",
-    windowLabel: "All time · all servers",
-    totalMessages: frozen.total,
-    activeMessagers: Math.max(0, frozen.activeMessagers - hidden.size),
-    /** The numbers are from this moment (00:00 UTC today) and refresh once a day. */
-    snapshotAt: `${utcDate()}T00:00:00.000Z`,
-    leaders,
-    partial: leaders.some((row) => "unresolved" in row),
-  };
-}
-
-/** The global leaderboard's boards besides Messages (which keeps its own builder above). */
-export const GLOBAL_PUBLIC_BOARDS = ["voice", "streaks", "fleet"] as const;
-export type GlobalPublicBoard = (typeof GLOBAL_PUBLIC_BOARDS)[number];
-
-export function isGlobalPublicBoard(value: string): value is GlobalPublicBoard {
-  return (GLOBAL_PUBLIC_BOARDS as readonly string[]).includes(value);
-}
-
-/**
- * One of the public global boards, per user across every server. Rows carry only a user's own
- * totals (no server names or per-server splits), same as the global messages board.
- * - voice: all-time voice time summed across servers, up to the end of yesterday (UTC)
- * - streaks: longest live global /daily streaks, as of their start-of-day value
- * - fleet: Hangar Fleet Value, as of the first build of the day
- * Each is frozen once per UTC day; Ghost Mode users are left out at serve time.
- */
-export async function buildWebGlobalPublicBoard(client: Client, board: GlobalPublicBoard, limit = 25) {
-  const capped = Math.min(50, Math.max(5, limit));
-  const frozen = await frozenDaily(board, async (): Promise<FrozenEntries & { shareBase: number; total: number; ranked: number }> => {
-    if (board === "voice") {
-      const { computeTopGlobalVoiceUsersBefore } = await import("../plugins/stats/functions/voice.js");
-      const [top, totals] = await Promise.all([computeTopGlobalVoiceUsersBefore(FROZEN_BOARD_ROWS, utcDate()), getGlobalVoiceTotals()]);
-      return {
-        entries: top.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds })),
-        shareBase: totals.minutes,
-        total: totals.minutes,
-        ranked: totals.users,
-      };
-    }
-    if (board === "streaks") {
-      const { topLiveGlobalDailyStreaks } = await import("../plugins/economy/functions/money.js");
-      const { globalEconomyFor } = await import("../core/privacy/crossServer.js");
-      const top = topLiveGlobalDailyStreaks(Math.min(100, FROZEN_BOARD_ROWS))
-        .map((row) => ({ userId: row.userId, count: globalEconomyFor(null, row.userId)?.streak ?? row.streak }))
-        .filter((row) => row.count > 0)
-        .sort((a, b) => b.count - a.count || a.userId.localeCompare(b.userId));
-      // Streaks don't add up to a meaningful whole, so each row's ring shows it against the leader's.
-      return { entries: top, shareBase: top[0]?.count ?? 0, total: top[0]?.count ?? 0, ranked: top.length };
-    }
-    const { leaderboard, globalFleetTotals } = await import("../plugins/economy/hangar/leaderboards.js");
-    const top = leaderboard("fleet_value", { limit: FROZEN_BOARD_ROWS });
-    const totals = globalFleetTotals();
-    return { entries: top.map((row) => ({ userId: row.userId, count: row.value })), shareBase: totals.total, total: totals.total, ranked: totals.players };
-  });
-  const hidden = listHiddenFromGlobalBoards();
-  const entries = withoutHidden(frozen.entries, hidden, capped);
-  // Totals leave out the Ghost Mode users too, so a near-empty board can't give their value away.
-  const hiddenSum = frozen.entries.filter((row) => hidden.has(row.userId)).reduce((sum, row) => sum + row.count, 0);
-  const shareBase = board === "streaks" ? (entries[0]?.count ?? 0) : Math.max(0, frozen.shareBase - hiddenSum);
-  const leaders = await resolveGlobalPeople(client, entries, shareBase);
-  return {
-    scope: "global" as const,
-    board,
-    total: board === "streaks" ? shareBase : Math.max(0, frozen.total - hiddenSum),
-    ranked: Math.max(0, frozen.ranked - frozen.entries.filter((row) => hidden.has(row.userId)).length),
-    snapshotAt: `${utcDate()}T00:00:00.000Z`,
-    leaders,
-    partial: leaders.some((row) => "unresolved" in row),
-  };
-}
-
 /** JSON stats payload for website analytics (global / cross-guild scope). */
 export async function buildWebGlobalStats(client: Client, query: WebStatsQuery) {
   const windowLabel = formatStatsWindowLong(query.days);
@@ -770,13 +211,10 @@ export async function buildWebGlobalStats(client: Client, query: WebStatsQuery) 
     getFilledGlobalDailyStats(query.days),
     getGlobalDailyTotals(),
     getGlobalTrackedMessagesTotal(),
-    // People lists: frozen at 00:00 UTC like the global boards, Ghost Mode users left out.
-    frozenGlobalMessagers().then((frozen) => withoutHidden(frozen.entries, listHiddenFromGlobalBoards(), 15)),
-    allTime
-      ? frozenGlobalMessagers().then((frozen) => withoutHidden(frozen.entries, listHiddenFromGlobalBoards(), 15))
-      : frozenDaily(`messages:${query.days}`, async () => ({ entries: await getTopGlobalUsersByDaily(query.days, FROZEN_BOARD_ROWS, true) })).then((frozen) =>
-          withoutHidden(frozen.entries, listHiddenFromGlobalBoards(), 15),
-        ),
+    // People lists: live, over-fetched so Ghost Mode and unresolvable users can be skipped
+    // (resolveTopPeople leaves both out and fills to 15).
+    getTopGlobalMessagers(TOP_PEOPLE_CANDIDATES),
+    allTime ? getTopGlobalMessagers(TOP_PEOPLE_CANDIDATES) : getTopGlobalUsersByDaily(query.days, TOP_PEOPLE_CANDIDATES),
     // Over-fetch: channels members can't see are dropped before the top 15 is shown.
     getTopGlobalChannelsByDaily(query.days, 60),
     getGlobalActiveMessagerCount(),
@@ -866,8 +304,8 @@ export async function buildWebGlobalStats(client: Client, query: WebStatsQuery) 
   });
 
   const [topRecentResolved, topAllTimeResolved] = await Promise.all([
-    resolveGlobalPeople(client, topRecent, windowTrafficTotal),
-    resolveGlobalPeople(client, topAllTime, allTimeTrafficTotal),
+    resolveTopPeople(client, topRecent, windowTrafficTotal, { limit: TOP_PEOPLE }),
+    resolveTopPeople(client, topAllTime, allTimeTrafficTotal, { limit: TOP_PEOPLE }),
   ]);
 
   const commandDates = commandDaily.map((r) => r.statDate);
@@ -1025,8 +463,8 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     getFilledDailyStats(guildId, query.days),
     getDailyTotals(guildId),
     getTotalGuildMessages(guildId),
-    getTopMessagers(guildId, 15),
-    allTime ? getTopMessagers(guildId, 15) : getTopUsersByDaily(guildId, query.days, 15),
+    getTopMessagers(guildId, TOP_PEOPLE_CANDIDATES),
+    allTime ? getTopMessagers(guildId, TOP_PEOPLE_CANDIDATES) : getTopUsersByDaily(guildId, query.days, TOP_PEOPLE_CANDIDATES),
     getTopChannelsByDaily(guildId, query.days, 15),
     getActiveMessagerCount(guildId),
     getFilledDailyActiveUsers(guildId, query.days),
@@ -1041,7 +479,7 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
     getGuildHourlyHeatmap(guildId),
     getFilledVoiceDailyStats(guildId, query.days),
     getTopVoiceChannels(guildId, query.days, 15),
-    getTopVoiceUsers(guildId, query.days, 15),
+    getTopVoiceUsers(guildId, query.days, TOP_PEOPLE_CANDIDATES),
     getFilledModCaseDaily(guildId, query.days),
     getFilledAutomodHitDaily(guildId, query.days),
     getTopAutomodRules(guildId, query.days, 5),
@@ -1183,12 +621,13 @@ export async function buildWebServerStats(guild: Guild, query: WebStatsQuery) {
   });
 
   const [topRecentResolved, topAllTimeResolved, voiceTopUsersResolved] = await Promise.all([
-    resolvePeople(guild, topRecent, windowTrafficTotal),
-    resolvePeople(guild, topAllTime, allTimeTrafficTotal),
-    resolvePeople(
-      guild,
+    resolveTopPeople(guild.client, topRecent, windowTrafficTotal, { limit: TOP_PEOPLE, guild }),
+    resolveTopPeople(guild.client, topAllTime, allTimeTrafficTotal, { limit: TOP_PEOPLE, guild }),
+    resolveTopPeople(
+      guild.client,
       voiceTopUsers.map((row) => ({ userId: row.userId, count: row.minutes, seconds: row.seconds })),
       voiceAnalysis.total,
+      { limit: TOP_PEOPLE, guild },
     ),
   ]);
   const voiceTopChannelsResolved = resolveChannels(

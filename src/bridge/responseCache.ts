@@ -63,11 +63,6 @@ export async function cachedSwr<T>(key: string, freshMs: number, staleMs: number
   return refresh(key, freshMs, staleMs, compute);
 }
 
-/** Recomputes `key` now (sharing any refresh already running) and stores the result. */
-export function refreshCached<T>(key: string, ttlMs: number, compute: () => Promise<T>): Promise<T> {
-  return refresh(key, ttlMs, Math.min(ttlMs * 10, MAX_STALE_MS), compute);
-}
-
 /** Cached for `ttlMs`, then served stale (up to 10x longer, at most 10 minutes) while it refreshes. */
 export function cached<T>(key: string, ttlMs: number, compute: () => Promise<T>): Promise<T> {
   return cachedSwr(key, ttlMs, Math.min(ttlMs * 10, MAX_STALE_MS), compute);
@@ -80,13 +75,6 @@ export function cached<T>(key: string, ttlMs: number, compute: () => Promise<T>)
 export function markCachedStale(prefix: string): void {
   for (const [key, entry] of store) {
     if (key.startsWith(prefix)) entry.freshUntil = 0;
-  }
-}
-
-/** Clears cached entries whose key matches `test`. */
-export function invalidateCachedWhere(test: (key: string) => boolean): void {
-  for (const key of [...store.keys()]) {
-    if (test(key)) store.delete(key);
   }
 }
 

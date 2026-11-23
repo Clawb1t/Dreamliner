@@ -6,6 +6,7 @@ import {
   type ActivityTrackedMetric,
 } from "../../config/schemas/activityRewards.js";
 import { requirePluginPermission } from "../../core/pluginCommand.js";
+import { listHiddenFromLeaderboards } from "../../core/privacy/ghostMode.js";
 import { resultReply, slashResultOptions } from "../../core/responses.js";
 import type { SlashCommandContext, SlashCommandDefinition } from "../../core/types.js";
 import {
@@ -207,7 +208,9 @@ export const activityRewardsCommands: SlashCommandDefinition[] = [
         const auth = await requirePluginPermission(ctx, PLUGIN, "can_view");
         if (!auth) return;
         const metric = (ctx.interaction.options.getString("track") ?? "messages") as ActivityTrackedMetric;
-        const rows = topMembers(guildId, metric, 10);
+        // Ghost Mode users are left off every leaderboard others see; the next ones fill in.
+        const hidden = listHiddenFromLeaderboards();
+        const rows = topMembers(guildId, metric, 25).filter((row) => !hidden.has(row.userId)).slice(0, 10);
         if (rows.length === 0) {
           await reply(ctx, title, t("activity_rewards.noActivity", "No activity has been tracked yet."));
           return;

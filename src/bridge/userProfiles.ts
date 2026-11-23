@@ -23,6 +23,7 @@ import {
   suggestionVotes,
   userMessageCounts,
   usernameSnapshots,
+  userIdentityCache,
   ghostModeAllowlist,
   dashboardPins,
   userCosmeticsEquipped,
@@ -563,6 +564,12 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     "username_snapshots",
     db.delete(usernameSnapshots).where(eq(usernameSnapshots.userId, userId)).returning(),
   );
+  // Cached Discord name/avatar for leaderboard rows (re-fetched from Discord if they rank again).
+  await wipe(
+    "user_identity_cache",
+    db.delete(userIdentityCache).where(eq(userIdentityCache.userId, userId)).returning(),
+  );
+  (await import("./identityStore.js")).forgetIdentity(userId);
   // Ghost Mode: the switch lives on user_profiles (wiped above, so it turns off like every other
   // profile preference) and the user's own allow list goes here. Entries naming this user on
   // OTHER people's allow lists are those people's choices and stay.
