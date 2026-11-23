@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { cached, cachedSwr, invalidateCached } from "./responseCache.js";
+import { cached, cachedSwr, invalidateCached, markCachedStale } from "./responseCache.js";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -64,5 +64,18 @@ describe("response cache (stale-while-revalidate)", () => {
     await cachedSwr("expired", 5, 10, async () => "old");
     await sleep(30);
     await assert.rejects(cachedSwr("expired", 5, 10, async () => Promise.reject(new Error("down"))), /down/);
+  });
+
+  it("marking stale keeps serving the old value while it refreshes", async () => {
+    invalidateCached();
+    let calls = 0;
+    const compute = async () => `v${++calls}`;
+    assert.equal(await cached("lb:test", 60_000, compute), "v1");
+    markCachedStale("lb:");
+    // Still answered instantly with the old value (no wait on the rebuild)...
+    assert.equal(await cached("lb:test", 60_000, compute), "v1");
+    await sleep(5);
+    // ...and the refreshed value is what comes next.
+    assert.equal(await cached("lb:test", 60_000, compute), "v2");
   });
 });

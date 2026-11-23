@@ -1,6 +1,7 @@
 import type { Client, Guild } from "discord.js";
 import { getLogger } from "../core/logger.js";
-import { cached, invalidateCached } from "./responseCache.js";
+import { cached, markCachedStale } from "./responseCache.js";
+import { listHiddenFromGlobalBoards } from "../core/privacy/ghostMode.js";
 
 const log = getLogger("leaderboards");
 
@@ -19,13 +20,29 @@ export const GLOBAL_PAGE_LIMIT = 50;
 
 /**
  * A leaderboard through the page cache. A payload with names still being looked up (`partial`) is
- * dropped from the cache a few seconds later, so the next visitor gets the filled-in version
- * instead of waiting out the full TTL on placeholders.
+ * marked stale a few seconds later: the next visitor still gets it instantly and the filled-in
+ * version is built behind it. (It used to be dropped, which made that next visitor wait on a full
+ * rebuild, Discord name lookups included, and the site gave up and showed the board as
+ * unavailable.)
  */
 export async function leaderboardCached<T extends { partial?: boolean }>(key: string, ttlMs: number, build: () => Promise<T>): Promise<T> {
   const payload = await cached(key, ttlMs, build);
-  if (payload.partial) setTimeout(() => invalidateCached(key), 4000).unref?.();
+  if (payload.partial) setTimeout(() => markCachedStale(key), 4000).unref?.();
   return payload;
+}
+
+/**
+ * A global board payload with anyone now in Ghost Mode (or hidden from global boards) taken out
+ * and the rest renumbered. Applied on every response, so a cached board never shows someone who
+ * just turned Ghost Mode on, while the board itself can be served from cache without a rebuild.
+ */
+export function withoutHiddenLeaders<T>(payload: T): T {
+  const leaders = (payload as { leaders?: Array<{ id?: string; rank?: number }> }).leaders;
+  if (!Array.isArray(leaders) || leaders.length === 0) return payload;
+  const hidden = listHiddenFromGlobalBoards();
+  if (hidden.size === 0 || !leaders.some((row) => row.id && hidden.has(row.id))) return payload;
+  const kept = leaders.filter((row) => !(row.id && hidden.has(row.id))).map((row, index) => ({ ...row, rank: index + 1 }));
+  return { ...payload, leaders: kept };
 }
 
 /**

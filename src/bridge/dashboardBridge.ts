@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { LEADERBOARD_TTL_MS, PREWARM_INTERVAL_MS, leaderboardCached, leaderboardKeys, prewarmLeaderboards } from "./leaderboardCache.js";
+import { LEADERBOARD_TTL_MS, PREWARM_INTERVAL_MS, leaderboardCached, leaderboardKeys, prewarmLeaderboards, withoutHiddenLeaders } from "./leaderboardCache.js";
 import { fetchMemberCached } from "./people.js";
 import { validateGuildTargets } from "../core/guildChannel.js";
 import http from "node:http";
@@ -18,7 +18,7 @@ import { isDashboardSuperuser } from "./superuser.js";
 import { trackDashboardAction } from "./dashboardAudit.js";
 import { bridgeRateLimit, clipPasswordFailures } from "./rateLimit.js";
 import { getLogger } from "../core/logger.js";
-import { invalidateCached as dropCached } from "./responseCache.js";
+import { invalidateCached as dropCached, invalidateCachedWhere as dropCachedWhere, markCachedStale } from "./responseCache.js";
 import { onGhostModeChange } from "../core/privacy/ghostMode.js";
 import type { WebMusicTrack } from "./webMusic.js";
 
@@ -170,7 +170,12 @@ function invalidatePublicProfileCaches(userId: string): void {
   for (const prefix of ["pp", "pp-id", "pp-stats", "pp-act", "pp-hours", "pp-servers", "pp-cards"]) {
     dropCached(`${prefix}:${userId}:`);
   }
-  dropCached("leaderboard:");
+  // The global boards are re-filtered for Ghost Mode on every response (withoutHiddenLeaders), so
+  // they only need refreshing, not dropping: dropping made the next visitor wait on a full rebuild
+  // and the site showed the board as unavailable. Per-server boards and global stats carry
+  // per-user extras (activity badges) that aren't re-filtered, so those are still dropped.
+  markCachedStale("leaderboard:global:");
+  dropCachedWhere((key) => key.startsWith("leaderboard:") && !key.startsWith("leaderboard:global:"));
   dropCached("stats:global:");
 }
 
@@ -3442,7 +3447,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const payload = await leaderboardCached(leaderboardKeys.global(limit), LEADERBOARD_TTL_MS, () =>
             buildWebGlobalPublicMessagerLeaderboard(client, limit),
           );
-          sendJson(res, 200, payload);
+          sendJson(res, 200, withoutHiddenLeaders(payload));
           return;
         }
 
@@ -3459,7 +3464,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           const payload = await leaderboardCached(leaderboardKeys.globalBoard(board, limit), LEADERBOARD_TTL_MS, () =>
             buildWebGlobalPublicBoard(client, board, limit),
           );
-          sendJson(res, 200, payload);
+          sendJson(res, 200, withoutHiddenLeaders(payload));
           return;
         }
 

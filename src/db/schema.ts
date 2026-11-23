@@ -590,7 +590,11 @@ export const guildStatsVoiceDaily = sqliteTable(
     sessions: integer("sessions").notNull().default(0),
     peakConcurrent: integer("peak_concurrent").notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.statDate] })],
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.statDate] }),
+    // Voice totals and daily voice charts (migration 0157).
+    index("guild_stats_voice_daily_date_secs").on(table.statDate, table.seconds, table.minutes),
+  ],
 );
 
 /** Per-user daily voice-channel activity, mirrors guildStatsUserDaily. `mutedSeconds`/
@@ -612,6 +616,9 @@ export const guildStatsUserVoiceDaily = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.guildId, table.userId, table.statDate] }),
     index("guild_stats_user_voice_daily_user").on(table.userId),
+    // Covering indexes for the global and per-server Voice boards (migration 0157).
+    index("guild_stats_user_voice_daily_user_date_secs").on(table.userId, table.statDate, table.seconds, table.minutes),
+    index("guild_stats_user_voice_daily_guild_user_secs").on(table.guildId, table.userId, table.statDate, table.seconds, table.minutes),
   ],
 );
 
@@ -1334,7 +1341,10 @@ export const economyGlobalAccounts = sqliteTable("economy_global_accounts", {
   dayStartDate: text("day_start_date"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
+}, (table) => [
+  // Streaks board (migration 0157).
+  index("economy_global_accounts_streak").on(table.dailyStreak, table.lastDailyAt),
+]);
 
 export const economyServerAccounts = sqliteTable(
   "economy_server_accounts",
@@ -1348,7 +1358,11 @@ export const economyServerAccounts = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.userId] })],
+  (table) => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    // Per-server Streaks board (migration 0157).
+    index("economy_server_accounts_guild_streak").on(table.guildId, table.dailyStreak, table.lastDailyAt),
+  ],
 );
 
 export const tickets = sqliteTable(

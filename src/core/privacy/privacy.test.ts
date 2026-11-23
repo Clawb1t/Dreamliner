@@ -368,3 +368,15 @@ describe("last seen gate (Active now / Last seen)", () => {
     assert.ok(await lastSeen(BOB));
   });
 });
+
+describe("global board responses", () => {
+  it("drop anyone now hidden and renumber the rest", async () => {
+    const { withoutHiddenLeaders } = await import("../../bridge/leaderboardCache.js");
+    ghost.setGhostMode(ALICE, "24h");
+    const payload = { board: "voice", leaders: [{ id: DAVE, rank: 1 }, { id: ALICE, rank: 2 }, { id: BOB, rank: 3 }] };
+    const shown = withoutHiddenLeaders(payload);
+    assert.deepEqual(shown.leaders.map((row) => [row.id, row.rank]), [[DAVE, 1], [BOB, 2]]);
+    ghost.setGhostMode(ALICE, null);
+  });
+});
+
