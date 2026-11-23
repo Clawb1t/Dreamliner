@@ -1,6 +1,6 @@
 import type { Client, Guild } from "discord.js";
 import { getLogger } from "../core/logger.js";
-import { cached, markCachedStale } from "./responseCache.js";
+import { cached, refreshCached } from "./responseCache.js";
 import { listHiddenFromGlobalBoards } from "../core/privacy/ghostMode.js";
 
 const log = getLogger("leaderboards");
@@ -18,16 +18,48 @@ export const LEADERBOARD_TTL_MS = 60_000;
 /** Rows the website's global leaderboard page asks for on every board (it pages through them). */
 export const GLOBAL_PAGE_LIMIT = 50;
 
+/** Background re-resolve passes for a board whose names were still being looked up. */
+const FILL_IN_DELAYS_MS = [2500, 6000, 15_000, 40_000];
+const fillingIn = new Set<string>();
+
 /**
- * A leaderboard through the page cache. A payload with names still being looked up (`partial`) is
- * marked stale a few seconds later: the next visitor still gets it instantly and the filled-in
- * version is built behind it. (It used to be dropped, which made that next visitor wait on a full
- * rebuild, Discord name lookups included, and the site gave up and showed the board as
- * unavailable.)
+ * Rebuilds a `partial` board in the background until every name and avatar is filled in. Name
+ * lookups that ran out of time keep going and land in the identity cache, so a rebuild a few
+ * seconds later normally resolves everyone from cache. The cached copy is replaced each pass, so
+ * visitors move from IDs to real names without waiting on anything.
+ */
+function fillIn<T extends { partial?: boolean }>(key: string, ttlMs: number, build: () => Promise<T>, pass = 0): void {
+  if (pass === 0) {
+    if (fillingIn.has(key)) return;
+    fillingIn.add(key);
+  }
+  const delay = FILL_IN_DELAYS_MS[pass];
+  if (delay === undefined) {
+    fillingIn.delete(key);
+    return;
+  }
+  setTimeout(() => {
+    refreshCached(key, ttlMs, build)
+      .then((next) => {
+        if (next.partial) fillIn(key, ttlMs, build, pass + 1);
+        else fillingIn.delete(key);
+      })
+      .catch((error: unknown) => {
+        log.debug(`filling in ${key} failed: ${error instanceof Error ? error.message : error}`);
+        fillIn(key, ttlMs, build, pass + 1);
+      });
+  }, delay).unref?.();
+}
+
+/**
+ * A leaderboard through the page cache (stale-while-revalidate). A payload with names still being
+ * looked up (`partial`) is rebuilt in the background a few times until it's complete (fillIn),
+ * instead of being dropped (dropping made the next visitor wait on a full rebuild, and the site
+ * gave up and showed the board as unavailable) or left showing IDs.
  */
 export async function leaderboardCached<T extends { partial?: boolean }>(key: string, ttlMs: number, build: () => Promise<T>): Promise<T> {
   const payload = await cached(key, ttlMs, build);
-  if (payload.partial) setTimeout(() => markCachedStale(key), 4000).unref?.();
+  if (payload.partial) fillIn(key, ttlMs, build);
   return payload;
 }
 
