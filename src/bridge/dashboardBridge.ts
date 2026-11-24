@@ -1623,6 +1623,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             profileVisible?: unknown;
             showTradingCards?: unknown;
             hideServersSection?: unknown;
+            showAvatarDecoration?: unknown;
             aviaDashboard?: unknown;
           };
           try {
@@ -1644,6 +1645,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             profileVisible?: boolean;
             showTradingCards?: boolean;
             hideServersSection?: boolean;
+            showAvatarDecoration?: boolean;
             aviaDashboard?: boolean;
           } = {};
 
@@ -1683,6 +1685,13 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             patch.hideServersSection = body.hideServersSection;
+          }
+          if ("showAvatarDecoration" in body) {
+            if (typeof body.showAvatarDecoration !== "boolean") {
+              sendJson(res, 400, { error: "showAvatarDecoration must be a boolean." });
+              return;
+            }
+            patch.showAvatarDecoration = body.showAvatarDecoration;
           }
           if ("aviaDashboard" in body) {
             if (typeof body.aviaDashboard !== "boolean") {

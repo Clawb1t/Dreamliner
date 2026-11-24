@@ -12,6 +12,7 @@ import {
   economyGlobalAccounts,
   guildMessageCounts,
   guildStatsUserDaily,
+  guildStatsUserVoiceDaily,
   userHourlyActivity,
   userMessageCounts,
 } from "../../db/schema.js";
@@ -175,6 +176,42 @@ export function dailyActivityFor(
     .all();
   const map = new Map(rows.map((row) => [row.date, Number(row.messages ?? 0)]));
   return { access, daily: dates.map((date) => ({ date, messages: map.get(date) ?? 0 })) };
+}
+
+/** Voice minutes per day across every server, same days and gating as `dailyActivityFor`. */
+export function dailyVoiceFor(
+  viewerId: string | null | undefined,
+  subjectId: string,
+  days: number,
+  now = new Date(),
+): { access: CrossServerAccess; daily: Array<{ date: string; minutes: number }> } {
+  const access = canViewCrossServerData(viewerId, subjectId, now);
+  if (access === "hidden") return { access, daily: [] };
+  const end = access === "live" ? utcDayStart(now) : new Date(utcDayStart(now).getTime() - 86_400_000);
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) dates.push(utcDate(new Date(end.getTime() - i * 86_400_000)));
+  const rows = getDb()
+    .select({ date: guildStatsUserVoiceDaily.statDate, seconds: sql<number>`coalesce(sum(${guildStatsUserVoiceDaily.seconds}), 0)` })
+    .from(guildStatsUserVoiceDaily)
+    .where(and(eq(guildStatsUserVoiceDaily.userId, subjectId), gte(guildStatsUserVoiceDaily.statDate, dates[0]!), access === "live" ? undefined : lt(guildStatsUserVoiceDaily.statDate, utcDate(now))))
+    .groupBy(guildStatsUserVoiceDaily.statDate)
+    .all();
+  const map = new Map(rows.map((row) => [row.date, Math.round(Number(row.seconds ?? 0) / 60)]));
+  return { access, daily: dates.map((date) => ({ date, minutes: map.get(date) ?? 0 })) };
+}
+
+/** The first UTC day Dreamliner tracked this user anywhere (a message or voice time), as
+ *  "YYYY-MM-DD". Null when hidden or never seen. Others don't see a first day that is today. */
+export function firstSeenFor(viewerId: string | null | undefined, subjectId: string, now = new Date()): string | null {
+  const access = canViewCrossServerData(viewerId, subjectId, now);
+  if (access === "hidden") return null;
+  const db = getDb();
+  const msg = db.select({ first: sql<string | null>`min(${guildStatsUserDaily.statDate})` }).from(guildStatsUserDaily).where(eq(guildStatsUserDaily.userId, subjectId)).get()?.first ?? null;
+  const voice = db.select({ first: sql<string | null>`min(${guildStatsUserVoiceDaily.statDate})` }).from(guildStatsUserVoiceDaily).where(eq(guildStatsUserVoiceDaily.userId, subjectId)).get()?.first ?? null;
+  const first = [msg, voice].filter((d): d is string => Boolean(d)).sort()[0] ?? null;
+  if (!first) return null;
+  if (access !== "live" && first >= utcDate(now)) return null;
+  return first;
 }
 
 /** Lifetime messages per UTC hour (0-23). Others get the 00:00 UTC values. Empty when hidden. */

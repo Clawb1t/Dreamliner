@@ -2,7 +2,7 @@ import type { Client } from "discord.js";
 import { invalidateCached } from "./responseCache.js";
 import { getUserProfile } from "./userProfiles.js";
 import { canViewCrossServerData, getGhostState, type CrossServerAccess } from "../core/privacy/ghostMode.js";
-import { dailyActivityFor, globalStatsFor, hourlyActivityFor } from "../core/privacy/crossServer.js";
+import { dailyActivityFor, dailyVoiceFor, firstSeenFor, globalEconomyFor, globalStatsFor, hourlyActivityFor } from "../core/privacy/crossServer.js";
 import { filterBadgesForAccess, isGhostActive } from "../core/privacy/policy.js";
 import { listDisplayedUserBadges, type UserBadge } from "./userBadges.js";
 import { getProgressionBadges, type ProgressionBadge } from "../core/progressionBadges/index.js";
@@ -17,7 +17,8 @@ import type { CardType } from "../plugins/economy/functions/catalog.js";
 import { getEquippedStyle } from "../core/cosmetics/equip.js";
 import type { CosmeticStyle } from "../core/cosmetics/types.js";
 
-const ACTIVITY_DAYS = 30;
+/** Days of daily activity on the profile (its range picker offers 7, 30 and 90). */
+const ACTIVITY_DAYS = 90;
 
 /**
  * The public profile is split into independently-fetchable pieces (identity,
@@ -58,6 +59,9 @@ export type PublicProfileIdentity = {
   crossServerAccess: CrossServerAccess;
   /** Only on the owner's own view: their Ghost Mode state (until null = until turned off). */
   ghostMode: { on: boolean; until: string | null } | null;
+  /** Their own equipped Discord avatar decoration (animated APNG via passthrough), null when they
+   *  have none or turned it off (showAvatarDecoration). */
+  avatarDecorationUrl: string | null;
 };
 
 const TIMED_OUT = Symbol("timed-out");
@@ -183,7 +187,14 @@ export async function buildPublicProfileIdentity(
     cosmetics: safeCosmetics(userId),
     crossServerAccess: access,
     ghostMode,
+    avatarDecorationUrl: profile.showAvatarDecoration ? avatarDecorationUrl(discordUser.avatarDecorationData?.asset) : null,
   };
+}
+
+/** Discord's CDN form for an avatar decoration preset; `passthrough=true` keeps the animation. */
+function avatarDecorationUrl(asset: string | null | undefined): string | null {
+  if (!asset || !/^[\w-]+$/.test(asset)) return null;
+  return `https://cdn.discordapp.com/avatar-decoration-presets/${asset}.png?size=240&passthrough=true`;
 }
 
 function safeCosmetics(userId: string): CosmeticStyle {
@@ -221,12 +232,18 @@ export type PublicProfileStats = {
   lastActiveAt: string | null;
   /** When the numbers were taken (00:00 UTC today), null when live. */
   asOf: string | null;
+  /** First UTC day ("YYYY-MM-DD") Dreamliner tracked them anywhere, for "Member since". Null
+   *  under Ghost Mode or when never seen. */
+  firstSeenAt: string | null;
+  /** Their /daily streak (same gate as the rest), null under Ghost Mode. Shown as "Day streak" on
+   *  the profile Overview and the /profile card. */
+  dailyStreak: number | null;
 };
 
 export async function buildPublicProfileStats(userId: string, viewerId: string | null = null): Promise<PublicProfileStats> {
   const view = globalStatsFor(viewerId, userId);
   if (view.access === "hidden") {
-    return { access: "hidden", totalMessages: 0, globalRank: null, activeMessagers: 0, serverCount: 0, lastActiveAt: null, asOf: null };
+    return { access: "hidden", totalMessages: 0, globalRank: null, activeMessagers: 0, serverCount: 0, lastActiveAt: null, asOf: null, firstSeenAt: null, dailyStreak: null };
   }
   return {
     access: view.access,
@@ -236,15 +253,28 @@ export async function buildPublicProfileStats(userId: string, viewerId: string |
     serverCount: view.serverCount,
     lastActiveAt: view.lastActiveAt ? view.lastActiveAt.toISOString() : null,
     asOf: view.asOf,
+    firstSeenAt: firstSeenFor(viewerId, userId),
+    dailyStreak: dailyStreakFor(viewerId, userId),
   };
 }
 
-/** Daily totals for the activity graph: others get days up to yesterday, nothing under Ghost Mode. */
+function dailyStreakFor(viewerId: string | null, userId: string): number | null {
+  try {
+    return globalEconomyFor(viewerId, userId)?.streak ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Daily totals for the activity graph (messages and voice minutes): others get days up to
+ *  yesterday, nothing under Ghost Mode. */
 export async function buildPublicProfileActivity(
   userId: string,
   viewerId: string | null = null,
-): Promise<Array<{ date: string; messages: number }>> {
-  return dailyActivityFor(viewerId, userId, ACTIVITY_DAYS).daily;
+): Promise<Array<{ date: string; messages: number; voiceMinutes: number }>> {
+  const messages = dailyActivityFor(viewerId, userId, ACTIVITY_DAYS).daily;
+  const voice = new Map(dailyVoiceFor(viewerId, userId, ACTIVITY_DAYS).daily.map((d) => [d.date, d.minutes]));
+  return messages.map((d) => ({ ...d, voiceMinutes: voice.get(d.date) ?? 0 }));
 }
 
 /** Active hours: 00:00 UTC values for others, empty under Ghost Mode. */
@@ -416,7 +446,8 @@ export async function buildPublicUserProfile(
     ...identity,
     stats: { totalMessages: stats.totalMessages, globalRank: stats.globalRank },
     lastActiveAt: stats.lastActiveAt,
-    daily,
+    // The public JSON API keeps its original 30-day, messages-only shape.
+    daily: daily.slice(-30).map(({ date, messages }) => ({ date, messages })),
     activeHoursUtc,
     guilds,
     cards,

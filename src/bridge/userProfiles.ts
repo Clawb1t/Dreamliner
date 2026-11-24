@@ -43,6 +43,8 @@ export type UserProfile = {
   showTradingCards: boolean;
   /** Hide the "As seen in these servers" section on the public profile page. */
   hideServersSection: boolean;
+  /** Show the user's Discord avatar decoration over their avatar. On by default. */
+  showAvatarDecoration: boolean;
   /** Show Avia on dashboard pages. */
   aviaDashboard: boolean;
   updatedAt: string | null;
@@ -81,6 +83,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
     profileVisible: row?.profileVisible ?? true,
     showTradingCards: row?.showTradingCards ?? false,
     hideServersSection: row?.hideServersSection ?? false,
+    showAvatarDecoration: row?.showAvatarDecoration ?? true,
     aviaDashboard: row?.aviaDashboard ?? true,
     updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
   };
@@ -116,6 +119,7 @@ export type UpsertUserProfileInput = {
   profileVisible?: boolean;
   showTradingCards?: boolean;
   hideServersSection?: boolean;
+  showAvatarDecoration?: boolean;
   aviaDashboard?: boolean;
 };
 
@@ -141,6 +145,9 @@ export async function upsertUserProfileFields(
   }
   if ("hideServersSection" in fields && fields.hideServersSection !== undefined) {
     patch.hideServersSection = fields.hideServersSection;
+  }
+  if ("showAvatarDecoration" in fields && fields.showAvatarDecoration !== undefined) {
+    patch.showAvatarDecoration = fields.showAvatarDecoration;
   }
   if ("aviaDashboard" in fields && fields.aviaDashboard !== undefined) {
     patch.aviaDashboard = fields.aviaDashboard;

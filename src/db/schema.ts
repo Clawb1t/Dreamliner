@@ -1085,6 +1085,9 @@ export const userProfiles = sqliteTable("user_profiles", {
   showTradingCards: integer("show_trading_cards", { mode: "boolean" }).notNull().default(false),
   /** Hide the "As seen in these servers" section on the public profile page. Off by default. */
   hideServersSection: integer("hide_servers_section", { mode: "boolean" }).notNull().default(false),
+  /** Show the user's own Discord avatar decoration over their avatar (profile page and /profile
+   *  card). On by default (migration 0160). */
+  showAvatarDecoration: integer("show_avatar_decoration", { mode: "boolean" }).notNull().default(true),
   /** Show Avia, the help assistant, on dashboard pages. On by default; turned off in account settings. */
   aviaDashboard: integer("avia_dashboard", { mode: "boolean" }).notNull().default(true),
   /** Ghost Mode: hide this user's cross-server activity from other people. Display only: nothing

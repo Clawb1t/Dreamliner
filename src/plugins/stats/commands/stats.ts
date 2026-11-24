@@ -17,7 +17,7 @@ import { publicLeaderboardUrl } from "../../../core/publicLeaderboard.js";
 import { ALL_TIME_WINDOW, isValidStatsWindow, type StatsWindow } from "../functions/daily.js";
 import { buildStatsMessage, type StatsState } from "../functions/ui/index.js";
 import { renderUserRankCard, type RankScope } from "../functions/rank.js";
-import { renderUserProfileCard, type ProfileStatsSummary } from "../functions/profileCard.js";
+import { renderUserProfileCard } from "../functions/profileCard.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
 import { getLogger } from "../../../core/logger.js";
 import { claimMessageView, replyWithCard, upgradeToGif } from "../functions/animatedReply.js";
@@ -280,15 +280,15 @@ export const statsCommands: SlashCommandDefinition[] = [
         return;
       }
 
-      // Just the card: its stats and the full-profile link live in the buttons underneath. The
-      // still first; an animated background's GIF replaces it once rendered.
+      // Just the card (stats included); the full-profile link lives in the button underneath.
+      // The still first; an animated background's GIF replaces it once rendered.
       await replyWithCard(
         (options) => ctx.interaction.editReply(options),
         result,
         "profile",
         {
           content: "",
-          components: [profileButtonsRow(result.stats, getPublicProfileUrl(user.id), ctx.t, isSelf ? isGhostActive(getGhostState(user.id)) : null)],
+          components: [profileButtonsRow(getPublicProfileUrl(user.id), ctx.t, isSelf ? isGhostActive(getGhostState(user.id)) : null)],
           allowedMentions: { parse: [] },
         },
         () => {
@@ -304,67 +304,18 @@ export const statsCommands: SlashCommandDefinition[] = [
 ];
 
 const PROFILE_BUTTON_EMOJIS = {
-  messages: "<:icons_message:1544417564447350804>",
-  servers: "<:icons_serverinsight:1544417809109352489>",
-  rank: "<:icons_trophy:1544418249721126922>",
   profile: "<:icons_user_profile:1544418271355469885>",
 };
 
-/** The row under the /profile card: disabled buttons used as stat labels (messages, servers,
- *  global rank), then a link to the full profile on the site. */
+/** The row under the /profile card. The card itself now carries the stats (or the Ghost Mode
+ *  state), so this is just the link to the full profile page, plus Ghost Mode on your own. */
 function profileButtonsRow(
-  stats: ProfileStatsSummary,
   profileUrl: string,
   t: SlashCommandContext["t"],
   /** Own profile only: Ghost Mode's state, for the button that opens its controls. */
   ownGhost: boolean | null,
 ): ActionRowBuilder<ButtonBuilder> {
-  // Someone else in Ghost Mode: no cross-server numbers, just the link.
-  if (stats.hidden) {
-    return new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId("dl:profile:stat:ghost")
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji(APP_EMOJI.locked)
-        .setLabel(t("stats.profileGhostLabel", "Ghost Mode is on"))
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setStyle(ButtonStyle.Link)
-        .setURL(profileUrl)
-        .setEmoji(PROFILE_BUTTON_EMOJIS.profile)
-        .setLabel(t("stats.profileViewFull", "View Full Profile")),
-    );
-  }
-  const count = (value: number) => value.toLocaleString("en-US");
-  const label = (id: keyof typeof PROFILE_BUTTON_EMOJIS, style: ButtonStyle, text: string) =>
-    new ButtonBuilder()
-      .setCustomId(`dl:profile:stat:${id}`)
-      .setStyle(style)
-      .setEmoji(PROFILE_BUTTON_EMOJIS[id])
-      .setLabel(text)
-      .setDisabled(true);
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    label(
-      "messages",
-      ButtonStyle.Primary,
-      stats.totalMessages === 1
-        ? t("stats.profileMessagesOne", "1 Message")
-        : t("stats.profileMessages", "{count} Messages", { count: count(stats.totalMessages) }),
-    ),
-    label(
-      "servers",
-      ButtonStyle.Success,
-      stats.serverCount === 1
-        ? t("stats.profileServersOne", "1 Server")
-        : t("stats.profileServers", "{count} Servers", { count: count(stats.serverCount) }),
-    ),
-    label(
-      "rank",
-      ButtonStyle.Secondary,
-      stats.globalRank
-        ? t("stats.profileGlobalRank", "Global Rank #{rank}", { rank: count(stats.globalRank) })
-        : t("stats.profileGlobalRankNone", "Global Rank: unranked"),
-    ),
     new ButtonBuilder()
       .setStyle(ButtonStyle.Link)
       .setURL(profileUrl)
