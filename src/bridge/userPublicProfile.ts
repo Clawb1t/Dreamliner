@@ -1,4 +1,4 @@
-import type { Client } from "discord.js";
+import type { Client, User } from "discord.js";
 import { invalidateCached } from "./responseCache.js";
 import { getUserProfile } from "./userProfiles.js";
 import { canViewCrossServerData, getGhostState, type CrossServerAccess } from "../core/privacy/ghostMode.js";
@@ -90,13 +90,19 @@ export class ProfileBusyError extends Error {
  * banner: the user objects embedded in messages/members carry `banner: null` even when the user
  * has one (see `ensureBannerLoaded` in webStats.ts), so `user.banner !== undefined` proves nothing.
  */
-const fullyFetchedAt = new Map<string, number>();
+const fullyFetchedAt = new Map<string, { at: number; bannerUrl: string | null }>();
 const FULL_FETCH_TTL_MS = 30 * 60_000;
 const FULL_FETCH_MAX_ENTRIES = 5000;
 
-function rememberFullFetch(userId: string) {
-  fullyFetchedAt.delete(userId);
-  fullyFetchedAt.set(userId, Date.now());
+/**
+ * The banner is remembered from the forced fetch itself, not read back off the cached user later:
+ * user objects that arrive with messages and member updates patch the cached user with
+ * `banner: null`, so an active user's cached copy loses its banner within minutes, and the profile
+ * fell back to the blurred avatar even though they have one.
+ */
+function rememberFullFetch(user: User) {
+  fullyFetchedAt.delete(user.id);
+  fullyFetchedAt.set(user.id, { at: Date.now(), bannerUrl: user.bannerURL({ size: 1024, extension: "png" }) ?? null });
   if (fullyFetchedAt.size > FULL_FETCH_MAX_ENTRIES) {
     const oldest = fullyFetchedAt.keys().next().value;
     if (oldest !== undefined) fullyFetchedAt.delete(oldest);
@@ -113,12 +119,12 @@ function rememberFullFetch(userId: string) {
  */
 async function profileUser(client: Client, userId: string, onLateFull: () => void) {
   const known = client.users.cache.get(userId);
-  const fetchedAt = fullyFetchedAt.get(userId);
-  if (known && fetchedAt !== undefined && Date.now() - fetchedAt < FULL_FETCH_TTL_MS) return known;
+  const last = fullyFetchedAt.get(userId);
+  if (known && last !== undefined && Date.now() - last.at < FULL_FETCH_TTL_MS) return known;
 
   const full = client.users.fetch(userId, { force: true }).then(
     (user) => {
-      rememberFullFetch(userId);
+      rememberFullFetch(user);
       return user;
     },
     () => null,
@@ -173,7 +179,7 @@ export async function buildPublicProfileIdentity(
     username: discordUser.username,
     displayName: discordUser.globalName ?? discordUser.username,
     avatarUrl: discordUser.displayAvatarURL({ size: 256, extension: "png" }),
-    bannerUrl: discordUser.bannerURL({ size: 1024, extension: "png" }) ?? null,
+    bannerUrl: fullyFetchedAt.get(userId)?.bannerUrl ?? discordUser.bannerURL({ size: 1024, extension: "png" }) ?? null,
     // Falls back to the user's avatar's most pronounced color when they haven't set one
     // themselves (computed website-side, since it needs image decoding this process doesn't do).
     accentColor: profile.accentColor,
