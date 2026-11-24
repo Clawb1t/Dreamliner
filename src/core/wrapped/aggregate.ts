@@ -18,6 +18,7 @@ import { flushCommandUsage } from "./commands.js";
 import { flushEmojiUsage } from "./emoji.js";
 import { busiestDay, longestStreak, monthlyTotals, sharePercent, topPercent, weekdayTotals, yearHeatmap, type Streak } from "./summary.js";
 import { yearBounds } from "./window.js";
+import { buildExtras, yearVoiceTotals, type WrappedExtras } from "./extras.js";
 
 /** Music slides need at least this many plays. */
 export const MIN_MUSIC_PLAYS = 5;
@@ -93,6 +94,8 @@ export type WrappedPayload = {
   } | null;
   commands: { total: number; distinct: number; top: Array<{ name: string; uses: number }> } | null;
   badges: Array<{ id: string; name: string; tierName: string | null; imageKey: string; imageVersion: string; since: string | null }> | null;
+  /** The deeper stats, the month-by-month timeline and the overall personality (extras.ts). */
+  extras: WrappedExtras;
 };
 
 type Row = Record<string, unknown>;
@@ -128,6 +131,10 @@ export function yearMessageTotals(year: number): number[] {
 export type BuildWrappedOptions = {
   /** Supplies everyone's year totals (cached by the caller). Defaults to a fresh query. */
   yearTotals?: (year: number) => Promise<number[]> | number[];
+  /** Everyone's voice seconds for the year (cached by the caller). Defaults to a fresh query. */
+  voiceTotals?: (year: number) => Promise<number[]> | number[];
+  /** Command name to plugin name, for "favourite plugin". */
+  pluginOf?: (command: string) => string | undefined;
   now?: Date;
 };
 
@@ -162,9 +169,10 @@ export async function buildWrapped(client: Client, userId: string, year: number,
   const totalMessages = daily.reduce((sum, row) => sum + row.value, 0);
   const activeMessageDays = daily.filter((row) => row.value > 0);
 
+  let messageTotals: number[] | null = null;
   let messages: WrappedPayload["messages"] = null;
   if (totalMessages > 0) {
-    const totals = options.yearTotals ? await options.yearTotals(year) : yearMessageTotals(year);
+    const totals = messageTotals ?? (messageTotals = options.yearTotals ? await options.yearTotals(year) : yearMessageTotals(year));
     messages = {
       total: totalMessages,
       activeDays: activeMessageDays.length,
@@ -424,6 +432,31 @@ export async function buildWrapped(client: Client, userId: string, year: number,
       }))
     : null;
 
+  const extras = buildExtras({
+    client,
+    userId,
+    year,
+    now,
+    daily,
+    months: monthlyTotals(daily),
+    voiceDaily: voiceDaily.map((row) => ({ date: row.date, seconds: num(row.seconds), sessions: num(row.sessions) })),
+    hoursUtc: hours,
+    messageTotals: messageTotals ?? [],
+    voiceTotals: voiceSeconds > 0 ? (options.voiceTotals ? await options.voiceTotals(year) : yearVoiceTotals(year)) : [],
+    messagesTotal: totalMessages,
+    topServer: servers?.top[0] ? { id: servers.top[0].id, name: servers.top[0].name, share: servers.top[0].share } : null,
+    serverCount: perGuild.length,
+    longestStreak: longest ? { days: longest.days, start: longest.start } : null,
+    busiest: rhythm?.busiestDay ?? null,
+    longestVoiceDay: voice?.longestDay ?? null,
+    emojiTotal,
+    musicPlays: music?.plays ?? 0,
+    cardsCollected: hangar?.collected ?? 0,
+    communityCount: (community.quizzes?.taken ?? 0) + (community.giveaways?.entered ?? 0) + (community.starboard?.posts ?? 0) + invites,
+    commandRows: commandRows.map((row) => ({ name: row.name, uses: num(row.uses) })),
+    pluginOf: options.pluginOf,
+  });
+
   return {
     year,
     generatedAt: now.toISOString(),
@@ -443,5 +476,6 @@ export async function buildWrapped(client: Client, userId: string, year: number,
     community: communityFilled > 0 ? community : null,
     commands,
     badges,
+    extras,
   };
 }

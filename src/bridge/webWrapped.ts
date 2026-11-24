@@ -8,6 +8,7 @@
  */
 import type { Client } from "discord.js";
 import { buildWrapped, yearMessageTotals, type WrappedPayload } from "../core/wrapped/aggregate.js";
+import { yearVoiceTotals } from "../core/wrapped/extras.js";
 import { resolveWrappedAccess, wrappedWindow, type WrappedWindow } from "../core/wrapped/window.js";
 import { cachedSwr } from "./responseCache.js";
 import { isDashboardSuperuser } from "./superuser.js";
@@ -18,6 +19,20 @@ export type WrappedResponse =
   | { ok: true; status: "open"; preview: boolean; window: WrappedWindow; wrapped: WrappedPayload }
   | { ok: true; status: "closed"; window: WrappedWindow }
   | { ok: false; status: 400; error: string };
+
+/** Slash command name to the plugin that owns it (for "favourite plugin"), built once. */
+let pluginMap: Promise<(command: string) => string | undefined> | null = null;
+function commandPluginMap(): Promise<(command: string) => string | undefined> {
+  pluginMap ??= import("../plugins/availablePlugins.js").then(({ availablePlugins }) => {
+    const map = new Map<string, string>();
+    for (const plugin of availablePlugins) {
+      for (const command of plugin.slashCommands ?? []) map.set(command.data.name, plugin.name);
+      for (const command of plugin.contextMenuCommands ?? []) map.set(command.data.name.toLowerCase(), plugin.name);
+    }
+    return (command: string) => map.get(command);
+  });
+  return pluginMap;
+}
 
 export function parseWrappedYear(raw: string | null): number | null | "invalid" {
   if (raw === null || raw.trim() === "") return null;
@@ -34,9 +49,12 @@ export async function getWrappedForWeb(client: Client, userId: string, rawYear: 
     if (access.reason === "closed") return { ok: true, status: "closed", window };
     return { ok: false, status: 400, error: "That edition isn't available." };
   }
+  const pluginOf = await commandPluginMap().catch(() => undefined);
   const wrapped = await cachedSwr(`wrapped:${userId}:${access.year}`, HOUR, 2 * HOUR, () =>
     buildWrapped(client, userId, access.year, {
       yearTotals: (year) => cachedSwr(`wrapped:totals:${year}`, HOUR, 6 * HOUR, async () => yearMessageTotals(year)),
+      voiceTotals: (year) => cachedSwr(`wrapped:voice-totals:${year}`, HOUR, 6 * HOUR, async () => yearVoiceTotals(year)),
+      pluginOf,
     }),
   );
   return { ok: true, status: "open", preview: access.preview, window, wrapped };

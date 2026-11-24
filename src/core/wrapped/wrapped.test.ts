@@ -263,6 +263,10 @@ describe("buildWrapped", () => {
     assert.equal(w.voice, null);
     assert.equal(w.hangar, null);
     assert.equal(w.community, null);
+    assert.equal(w.extras.words.length, 3);
+    assert.equal(w.extras.rhythm?.averagePerActiveDay, 25);
+    assert.equal(w.extras.standings?.home?.rank, 2); // Bob sent more in g1
+    assert.ok(w.extras.events.some((e) => e.kind === "busiest_day"));
 
     const empty = await buildWrapped(client, BOB, 2025, { yearTotals: () => [] });
     assert.equal(empty.messages, null);
@@ -283,5 +287,56 @@ describe("buildWrapped", () => {
     flushEmojiUsage(); // the pending 🎉 must not come back
     assert.deepEqual(countUserWrappedData(ALICE), { emoji: 0, music: 0, commands: 0 });
     assert.equal(countUserWrappedData(BOB).commands, 1);
+  });
+});
+
+describe("deeper helpers", async () => {
+  const { busiestWeek, longestGap, weekendShare, quietestMonth, pickArchetype, yearInWords } = await import("./summary.js");
+  const { listeningPersonality } = await import("./extras.js");
+  const base = { messages: 0, activeDays: 0, voiceHours: 0, nightShare: 0, servers: 1, cards: 0, musicPlays: 0, emoji: 0, community: 0, longestStreak: 0, topShare: 0 };
+
+  it("busiest week starts on a Monday", () => {
+    const week = busiestWeek([
+      { date: "2026-03-02", value: 5 }, // Monday
+      { date: "2026-03-08", value: 5 }, // Sunday, same week
+      { date: "2026-03-09", value: 8 }, // next Monday
+    ]);
+    assert.deepEqual(week, { start: "2026-03-02", value: 10 });
+    assert.equal(busiestWeek([]), null);
+  });
+
+  it("longest gap and comeback", () => {
+    assert.deepEqual(longestGap(["2026-01-01", "2026-01-02", "2026-01-10", "2026-01-12"]), { days: 7, comeback: "2026-01-10" });
+    assert.equal(longestGap(["2026-01-01", "2026-01-02"]), null);
+  });
+
+  it("weekend share and quietest month", () => {
+    assert.equal(weekendShare([{ date: "2026-03-07", value: 1 }, { date: "2026-03-09", value: 3 }]), 25); // Sat vs Mon
+    assert.deepEqual(quietestMonth([0, 5, 2, 9, 0]), { month: 2, value: 2 });
+    assert.equal(quietestMonth([0, 4, 0]), null);
+  });
+
+  it("archetypes follow the strongest signal, quiet years stay calm", () => {
+    assert.equal(pickArchetype(base).key, "quiet");
+    assert.equal(pickArchetype({ ...base, voiceHours: 40, messages: 100 }).key, "voice");
+    assert.equal(pickArchetype({ ...base, messages: 2000, nightShare: 0.5, activeDays: 30 }).key, "night");
+    assert.equal(pickArchetype({ ...base, cards: 120 }).key, "collector");
+    assert.equal(pickArchetype({ ...base, activeDays: 200, longestStreak: 60, messages: 3000 }).key, "regular");
+    assert.equal(pickArchetype({ ...base, servers: 9, messages: 400 }).key, "socialite");
+    for (const a of [pickArchetype(base), pickArchetype({ ...base, cards: 120 })]) assert.doesNotMatch(a.line + a.label, /[!—]/);
+  });
+
+  it("three words, always three, never repeated", () => {
+    const words = yearInWords({ ...base, messages: 6000, longestStreak: 40, voiceHours: 30, activeDays: 100 });
+    assert.equal(words.length, 3);
+    assert.equal(new Set(words).size, 3);
+    assert.equal(yearInWords(base).length, 3);
+  });
+
+  it("listening personality", () => {
+    assert.equal(listeningPersonality({ plays: 100, distinct: 20, topArtistPlays: 10, peakHour: 15 }).key, "repeat");
+    assert.equal(listeningPersonality({ plays: 100, distinct: 90, topArtistPlays: 5, peakHour: 15 }).key, "explorer");
+    assert.equal(listeningPersonality({ plays: 100, distinct: 60, topArtistPlays: 40, peakHour: 15 }).key, "loyal");
+    assert.equal(listeningPersonality({ plays: 100, distinct: 60, topArtistPlays: 5, peakHour: 1 }).key, "night");
   });
 });
