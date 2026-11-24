@@ -706,7 +706,7 @@ async function runContextMenuCommandOutsideGuild(
       locale,
       t,
     });
-    trackCommandUsage(null, interaction.commandName);
+    trackCommandUsage(null, interaction.commandName, interaction.user.id);
     cmdLog.info(`${interaction.commandName} (context menu) used by ${interaction.user.tag} outside a guild (user app)`);
   } catch (error) {
     log.error(`Error in context menu ${interaction.commandName} (user app):`, error);
@@ -739,7 +739,7 @@ async function runSlashCommandOutsideGuild(
       locale,
       t,
     });
-    trackCommandUsage(null, interaction.commandName);
+    trackCommandUsage(null, interaction.commandName, interaction.user.id);
     cmdLog.info(`/${interaction.commandName} used by ${interaction.user.tag} outside a guild (user app)`);
   } catch (error) {
     log.error(`Error in /${interaction.commandName} (user app):`, error);
@@ -872,7 +872,7 @@ async function handleContextMenuCommand(
       locale,
       t,
     });
-    trackCommandUsage(interaction.guildId, interaction.commandName);
+    trackCommandUsage(interaction.guildId, interaction.commandName, interaction.user.id);
     cmdLog.info(
       `${interaction.commandName} (context menu) used by ${interaction.user.tag} in "${interaction.guild?.name ?? interaction.guildId}" (${interaction.guildId})`,
     );
@@ -999,7 +999,7 @@ async function handleSlashCommand(
       locale,
       t,
     });
-    trackCommandUsage(interaction.guildId, interaction.commandName);
+    trackCommandUsage(interaction.guildId, interaction.commandName, interaction.user.id);
     cmdLog.info(
       `/${interaction.commandName} used by ${interaction.user.tag} in "${interaction.guild?.name ?? interaction.guildId}" (${interaction.guildId})`,
     );

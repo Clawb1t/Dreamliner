@@ -167,6 +167,11 @@ export function getAccountStoreUrl(): string {
   return getStoreUrl();
 }
 
+/** Dreamliner Wrapped, the yearly recap (sign-in required; redirects to the current edition). */
+export function getWrappedUrl(): string {
+  return `${resolveSiteUrl()}/wrapped`;
+}
+
 /** Dreamliner Clips gallery — clips a member captured, and clips they appear in. */
 export function getClipsGalleryUrl(): string {
   return `${resolveSiteUrl()}/clips`;

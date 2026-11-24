@@ -4118,3 +4118,53 @@ export const changelogUpdates = sqliteTable(
     index("changelog_updates_status_end_idx").on(table.status, table.windowEnd),
   ],
 );
+
+/** Dreamliner Wrapped: emoji a user used in messages (unicode and custom) and reactions they added,
+ *  counted per user per UTC calendar year. Aggregate counts only, never message text. `emojiKey` is
+ *  the unicode emoji itself, or "c:<id>" for a custom emoji. Written in batches by core/wrapped/emoji.ts. */
+export const wrappedEmojiUsage = sqliteTable(
+  "wrapped_emoji_usage",
+  {
+    userId: text("user_id").notNull(),
+    year: integer("year", { mode: "number" }).notNull(),
+    emojiKey: text("emoji_key").notNull(),
+    emojiId: text("emoji_id"),
+    name: text("name").notNull(),
+    animated: integer("animated", { mode: "boolean" }).notNull().default(false),
+    messageCount: integer("message_count", { mode: "number" }).notNull().default(0),
+    reactionCount: integer("reaction_count", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.year, table.emojiKey] })],
+);
+
+/** Every track a user requested through the Music plugin, logged once per real play start (not per
+ *  queue add; autoplay picks and radio are left out). Feeds Wrapped's music slides. */
+export const musicPlayLog = sqliteTable(
+  "music_play_log",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    guildId: text("guild_id").notNull(),
+    title: text("title").notNull(),
+    author: text("author"),
+    uri: text("uri"),
+    artworkUrl: text("artwork_url"),
+    sourceName: text("source_name"),
+    durationMs: integer("duration_ms", { mode: "number" }).notNull().default(0),
+    /** Unix ms. */
+    playedAt: integer("played_at", { mode: "number" }).notNull(),
+  },
+  (table) => [index("music_play_log_user_time").on(table.userId, table.playedAt)],
+);
+
+/** Dreamliner commands a user ran, per user per UTC year (command_usage_* are per server only). */
+export const wrappedCommandUsage = sqliteTable(
+  "wrapped_command_usage",
+  {
+    userId: text("user_id").notNull(),
+    year: integer("year", { mode: "number" }).notNull(),
+    commandName: text("command_name").notNull(),
+    uses: integer("uses", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.year, table.commandName] })],
+);

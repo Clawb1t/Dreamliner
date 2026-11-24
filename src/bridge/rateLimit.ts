@@ -77,6 +77,8 @@ const USER_BUCKETS = {
   send: new SlidingWindowLimiter(15, MINUTE),
   /** Searches that scan the bot's member caches (Ghost Mode allow list picker). */
   search: new SlidingWindowLimiter(90, MINUTE),
+  /** Dreamliner Wrapped: a year of per-user aggregates whenever the cache is cold. */
+  wrapped: new SlidingWindowLimiter(30, MINUTE),
 };
 
 /** Per server, for writes that don't say who's asking (or carry it in the body): 4x the above. */
@@ -87,6 +89,7 @@ const GUILD_BUCKETS = {
   ai: new SlidingWindowLimiter(160, MINUTE),
   send: new SlidingWindowLimiter(30, MINUTE),
   search: new SlidingWindowLimiter(360, MINUTE),
+  wrapped: new SlidingWindowLimiter(120, MINUTE),
 };
 
 type Bucket = keyof typeof USER_BUCKETS;
@@ -101,6 +104,7 @@ const SERVER_AUTOPILOT_HEAVY = /\/server-autopilot\/(?:build|backups(?:\/\d+\/re
 
 export function bucketFor(method: string, pathname: string): Bucket {
   if (/^\/bridge\/users\/\d+\/ghost-mode\/people$/.test(pathname)) return "search";
+  if (/^\/bridge\/users\/\d+\/wrapped$/.test(pathname)) return "wrapped";
   if (method !== "GET" && SERVER_AUTOPILOT_AI.test(pathname)) return "ai";
   if (method !== "GET" && SERVER_AUTOPILOT_HEAVY.test(pathname)) return "send";
   if (/\/ai(?:\/|$)/.test(pathname) || /\/characters\/\d+\/test$/.test(pathname)) return "ai";
@@ -135,7 +139,7 @@ export function bridgeRateLimit(method: string, url: URL): number | null {
   // Hangar, Ghost Mode and dashboard pin routes carry the signed-in user in the path (/bridge/users/:id/hangar/...),
   // not the query.
   const userId =
-    url.searchParams.get("userId")?.trim() || /^\/bridge\/users\/(\d{15,22})\/(?:hangar|ghost-mode|dashboard-pins)(?:\/|$)/.exec(url.pathname)?.[1];
+    url.searchParams.get("userId")?.trim() || /^\/bridge\/users\/(\d{15,22})\/(?:hangar|ghost-mode|dashboard-pins|wrapped)(?:\/|$)/.exec(url.pathname)?.[1];
   if (userId && /^\d{15,22}$/.test(userId)) {
     const result = USER_BUCKETS[bucket].take(userId);
     return result.ok ? null : Math.ceil(result.retryAfterMs / 1000);

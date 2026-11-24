@@ -111,6 +111,20 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
         "Your plane card copies and their history, Parts and card coin movements, pack openings, flights, trades, market listings, sets and Pilot Rank state.",
       rows: serializable([(await import("../plugins/economy/hangar/erase.js")).exportUserHangarData(userId)]),
     },
+    wrapped: {
+      label: "Dreamliner Wrapped",
+      description: "Your emoji counts (per year, no message text), the tracks you requested through Dreamliner's music player, and your per-year command counts.",
+      rows: serializable(
+        await import("../core/wrapped/store.js").then(({ exportUserWrappedData }) => {
+          const data = exportUserWrappedData(userId);
+          return [
+            ...data.emoji.map((row) => ({ kind: "emoji", ...row })),
+            ...data.music.map((row) => ({ kind: "music_play", ...row })),
+            ...data.commands.map((row) => ({ kind: "command", ...row })),
+          ];
+        }),
+      ),
+    },
     avia_usage: {
       label: "Avia usage",
       description: "How many messages you sent Avia, the help centre assistant, each day. Conversations aren't stored.",

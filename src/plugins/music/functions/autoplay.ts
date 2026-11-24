@@ -158,6 +158,8 @@ export async function queueAutoplayTrack(
     }
 
     pick.requester = requester;
+    // Marked so Wrapped's play log can tell autoplay picks from tracks a member asked for.
+    pick.userData = { ...(pick.userData ?? {}), autoplay: 1 };
     rememberAutoplaySeen(player.guildId, pick);
     player.queue.add(pick);
 

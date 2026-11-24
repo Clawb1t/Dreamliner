@@ -864,6 +864,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
 
         const profileMatch = /^\/bridge\/users\/(\d+)\/profile$/.exec(url.pathname);
         const userStatsMatch = /^\/bridge\/users\/(\d+)\/stats$/.exec(url.pathname);
+        // Dreamliner Wrapped (webWrapped.ts): the signed-in user's own yearly recap, id from the site's session.
+        const wrappedMatch = /^\/bridge\/users\/(\d{15,22})\/wrapped$/.exec(url.pathname);
         const deleteDataMatch = /^\/bridge\/users\/(\d+)\/data$/.exec(url.pathname);
         const dataExportMatch = /^\/bridge\/users\/(\d+)\/data\/export$/.exec(url.pathname);
         const ttsVoiceMatch = /^\/bridge\/users\/(\d+)\/tts\/voice$/.exec(url.pathname);
@@ -1719,6 +1721,17 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             buildUserPersonalStats(client, userStatsMatch[1]!),
           );
           sendJson(res, 200, { ok: true, stats });
+          return;
+        }
+
+        if (wrappedMatch && req.method === "GET") {
+          const { getWrappedForWeb } = await import("./webWrapped.js");
+          const result = await getWrappedForWeb(client, wrappedMatch[1]!, url.searchParams.get("year"), url.searchParams.get("preview") === "1");
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, result);
           return;
         }
 

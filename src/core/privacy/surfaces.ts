@@ -51,6 +51,7 @@ export const PROTECTED_SURFACES: ProtectedSurface[] = [
   { name: "/names (name history)", file: "plugins/name_history/commands/names.ts", kind: "same-server" },
   { name: "Account stats (User Settings)", file: "bridge/userStats.ts", kind: "own" },
   { name: "Data export", file: "bridge/userDataExport.ts", kind: "own" },
+  { name: "Dreamliner Wrapped (website, the signed-in user's own recap)", file: "core/wrapped/aggregate.ts", kind: "own" },
   { name: "Dashboard economy member lookup (server staff)", file: "bridge/webEconomy.ts", kind: "gated" },
   { name: "Global Watchdog", file: "bridge/watchdogScoring.ts", kind: "platform" },
 ];

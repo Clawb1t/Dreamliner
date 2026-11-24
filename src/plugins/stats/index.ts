@@ -11,6 +11,8 @@ import {
   pruneOldHourlyBuckets,
   recordMessageActivity,
 } from "./functions/daily.js";
+import { parseMessageEmoji, reactionEmoji, recordEmojiUse } from "../../core/wrapped/emoji.js";
+import { wrappedCommands } from "./commands/wrapped.js";
 import { handleVoiceStateUpdate, snapshotActiveVoiceMembers, startVoiceHourlySampler } from "./functions/voice.js";
 
 async function statsActive(guildId: string): Promise<boolean> {
@@ -21,7 +23,7 @@ async function statsActive(guildId: string): Promise<boolean> {
 export const statsPlugin = definePlugin({
   name: "stats",
   configSchema: zStatsConfig,
-  slashCommands: statsCommands,
+  slashCommands: [...statsCommands, ...wrappedCommands],
   events: [
     {
       name: Events.MessageCreate,
@@ -36,6 +38,8 @@ export const statsPlugin = definePlugin({
           msg.attachments.size,
           msg.content,
         ).catch(() => null);
+        // Dreamliner Wrapped: emoji counts only (batched); the message text is never stored.
+        recordEmojiUse(msg.author.id, parseMessageEmoji(msg.content), "message", msg.createdTimestamp);
       },
     },
     {
@@ -75,6 +79,8 @@ export const statsPlugin = definePlugin({
         const message = react.message;
         if (!message.guild) return;
         if (!(await statsActive(message.guild.id))) return;
+        const used = reactionEmoji(react.emoji);
+        if (used && reactUser.id) recordEmojiUse(reactUser.id, [used], "reaction");
         await Promise.all([
           incrementDailyStat(message.guild.id, "reactions").catch(() => null),
           incrementHourlyBucketStat(message.guild.id, "reactions").catch(() => null),

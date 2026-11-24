@@ -461,6 +461,24 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
         return data.copies.length + data.state.length + data.flights.length + data.trades.length + data.listings.length;
       })(),
     },
+    {
+      key: "wrapped_emoji",
+      label: "Emoji counts",
+      description: "How often you used each emoji in messages and reactions, per year, for Dreamliner Wrapped. Message text isn't stored.",
+      total: import("../core/wrapped/store.js").then((m) => m.countUserWrappedData(userId).emoji),
+    },
+    {
+      key: "music_play_log",
+      label: "Music play history",
+      description: "Tracks you requested through Dreamliner's music player and when they played, for Dreamliner Wrapped.",
+      total: import("../core/wrapped/store.js").then((m) => m.countUserWrappedData(userId).music),
+    },
+    {
+      key: "wrapped_commands",
+      label: "Command counts",
+      description: "How many times you used each Dreamliner command, per year, for Dreamliner Wrapped.",
+      total: import("../core/wrapped/store.js").then((m) => m.countUserWrappedData(userId).commands),
+    },
   ];
 
   const items: UserDataInventoryItem[] = await Promise.all(
@@ -625,6 +643,13 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   );
   const { deleteUserHangarData } = await import("../plugins/economy/hangar/erase.js");
   deleted.plane_hangar = deleteUserHangarData(userId);
+  // Dreamliner Wrapped: emoji counts, music play history and command counts (plus the cached recap).
+  const { deleteUserWrappedData } = await import("../core/wrapped/store.js");
+  const wrappedDeleted = deleteUserWrappedData(userId);
+  deleted.wrapped_emoji = wrappedDeleted.emoji;
+  deleted.music_play_log = wrappedDeleted.music;
+  deleted.wrapped_commands = wrappedDeleted.commands;
+  (await import("./responseCache.js")).invalidateCached(`wrapped:${userId}:`);
   await wipe(
     "welcome_join_messages",
     db.delete(welcomeJoinMessages).where(eq(welcomeJoinMessages.memberId, userId)).returning(),

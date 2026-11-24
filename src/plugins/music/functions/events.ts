@@ -18,6 +18,7 @@ import { fetchGuildChannel } from "../../../core/guildChannel.js";
 import { radioTag } from "../radio/tags.js";
 import { getExistingPlayer } from "./manager.js";
 import { markRadioTrackFailed } from "../radio/controller.js";
+import { recordMusicPlay } from "../../../core/wrapped/musicPlays.js";
 
 /** destroy() reasons issued by our own commands/bridge - playerDestroy already gets its own
  *  music_stop log at those call sites, so the generic handler below skips these to avoid a
@@ -91,6 +92,24 @@ export function registerPlayerEvents(client: Client, manager: LavalinkManager): 
     // autoplay pick - keeps a long autoplay run from eventually looping back through the same
     // handful of "similar" tracks, or re-suggesting something the user queued themselves earlier.
     rememberAutoplaySeen(player.guildId, track);
+
+    // Dreamliner Wrapped: log tracks a member asked for, once per real play start (deduped in
+    // recordMusicPlay). Autoplay picks, radio stations and bot-requested tracks don't count.
+    const requesterId = (track.requester as { id?: string } | undefined)?.id;
+    const userData = track.userData as { autoplay?: number } | undefined;
+    if (requesterId && requesterId !== client.user?.id && !userData?.autoplay && !radioTag(track)) {
+      recordMusicPlay({
+        userId: requesterId,
+        guildId: player.guildId,
+        title: track.info.title,
+        author: track.info.author || null,
+        uri: track.info.uri || null,
+        artworkUrl: track.info.artworkUrl || null,
+        sourceName: track.info.sourceName || null,
+        durationMs: track.info.duration ?? 0,
+        isStream: Boolean(track.info.isStream),
+      });
+    }
 
     void (async () => {
       const guildConfig = await configManager.getEffectiveConfig(player.guildId).catch(() => null);
