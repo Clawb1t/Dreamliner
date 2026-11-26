@@ -58,7 +58,7 @@ flattens every plugin's commands/events into the shared `BotContext` (`commands`
 
 A typical plugin directory: `index.ts` (definePlugin + export), `commands.ts` (SlashCommandDefinition[]),
 `defaultOverrides.ts` (built-in permission grants, see below), `functions/` (implementation, DB access, modal/
-button handlers). Look at `src/plugins/tags/` for the minimal shape.
+button handlers). Look at `src/plugins/reminders/` for the minimal shape.
 
 ### Command dispatch & authorization (`src/bot.ts`)
 For every interaction, in order: resolve the command from `ctx.commands`/`ctx.contextMenuCommands` → guild-only
@@ -117,7 +117,7 @@ is in `functions/run.ts`. `docs/dreamcode/README.md` is the reference doc.
 `dashboardBridge.ts` starts a plain `node:http` server (port from `DASHBOARD_BRIDGE_PORT`, default 4080) guarded
 by a `Bearer <DASHBOARD_BRIDGE_SECRET>` check, only started if `isDashboardBridgeEnabled()`. Each `web*.ts` /
 other bridge file exposes one area of bot state to the external website (automod, economy, logs, passport,
-stats, tags, etc.) — these are the only integration points between the bot process and the dashboard site;
+stats, quizzes, etc.) — these are the only integration points between the bot process and the dashboard site;
 there's no shared code with the frontend. `superuser.ts` gates extra dashboard access by Discord user ID.
 `webAi.ts` exposes the dashboard's "Autopilot" features (OpenAI-backed, see `src/core/ai/`) — one-shot
 copywriting plus the conversational setup wizards in `src/core/ai/wizards.ts` (Companion Channels, Starboard,
@@ -129,7 +129,7 @@ user-facing brand is "Autopilot".
 ### Cross-cutting helpers worth knowing about (`src/core/`)
 - `responses.ts` — `resultReply`/`slashResultOptions`/`guildResultOptions` build the bot's consistent embed
   replies (title emoji from `guildConfig.emojis`, author always "Dreamliner").
-- `templates.ts` — `{user}`/`{username}`/`{guild}`/... placeholder rendering used by tags, welcome messages, etc.
+- `templates.ts` — `{user}`/`{username}`/`{guild}`/... placeholder rendering used by welcome messages, autoreplies, etc.
 - `docsUrl.ts` — resolves links back to the external site/docs, respecting `DREAMLINER_ENV`.
 - `scheduler.ts` — in-process scheduling for reminders/posts (`setSchedulerClient` wires it to the live client at
   boot).

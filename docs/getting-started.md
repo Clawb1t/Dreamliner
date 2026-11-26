@@ -44,7 +44,7 @@ This posts a link to this server's dashboard. Open it and sign in with Discord â
    * **Self-serve roles** - reaction, button, and panel roles
    * **Lookups** - name history, locate user, username saver
    * **Engagement** - welcomes, companion channels, starboard
-   * **Auto responses** - tags, autoreplies, autoreactions, translation
+   * **Auto responses** - autoreplies, autoreactions, translation
    * **Scheduling** - timed posts, reminders, counters
    * **Customization** - custom events, aliases, custom commands
    * **Utilities** - utility commands, stats, bot customisation, logs

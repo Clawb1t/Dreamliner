@@ -1057,48 +1057,6 @@
     ]
   },
   {
-    "plugin": "tags",
-    "pluginName": "Tags",
-    "pluginDescription": "Reusable text snippets.",
-    "entries": [
-      {
-        "plugin": "tags",
-        "permission": "can_create",
-        "grantKey": "tags.can_create",
-        "title": "Create",
-        "description": "Allow members to create tags."
-      },
-      {
-        "plugin": "tags",
-        "permission": "can_delete",
-        "grantKey": "tags.can_delete",
-        "title": "Delete",
-        "description": "Allow members to delete tags."
-      },
-      {
-        "plugin": "tags",
-        "permission": "can_edit",
-        "grantKey": "tags.can_edit",
-        "title": "Edit",
-        "description": "Allow members to edit tags."
-      },
-      {
-        "plugin": "tags",
-        "permission": "can_list",
-        "grantKey": "tags.can_list",
-        "title": "List",
-        "description": "Allow members to list tags."
-      },
-      {
-        "plugin": "tags",
-        "permission": "can_show",
-        "grantKey": "tags.can_show",
-        "title": "Show",
-        "description": "Allow members to show/use tags."
-      }
-    ]
-  },
-  {
     "plugin": "team_control",
     "pluginName": "Team Control",
     "pluginDescription": "Run your staff team: a rank ladder, shifts and a live roster, leave requests, promotions and discipline, activity quotas, profiles, feedback and onboarding.",

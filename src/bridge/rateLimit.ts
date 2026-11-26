@@ -127,6 +127,9 @@ export function bucketFor(method: string, pathname: string): Bucket {
   // per-user limiter in feeds.ts on top, since it fetches other sites).
   if (method !== "GET" && /\/feeds\/\d+\/test$/.test(pathname)) return "send";
   if (method === "POST" && /\/feeds\/preview$/.test(pathname)) return "read";
+  // Website notifications: the navbar bell asks for its count and list with a POST (it carries the
+  // user's own server list), but it only reads.
+  if (method === "POST" && /^\/bridge\/users\/\d+\/notifications\/feed$/.test(pathname)) return "read";
   return method === "GET" || method === "HEAD" ? "read" : "write";
 }
 
@@ -139,7 +142,7 @@ export function bridgeRateLimit(method: string, url: URL): number | null {
   // Hangar, Ghost Mode and dashboard pin routes carry the signed-in user in the path (/bridge/users/:id/hangar/...),
   // not the query.
   const userId =
-    url.searchParams.get("userId")?.trim() || /^\/bridge\/users\/(\d{15,22})\/(?:hangar|ghost-mode|dashboard-pins|wrapped)(?:\/|$)/.exec(url.pathname)?.[1];
+    url.searchParams.get("userId")?.trim() || /^\/bridge\/users\/(\d{15,22})\/(?:hangar|ghost-mode|dashboard-pins|wrapped|notifications)(?:\/|$)/.exec(url.pathname)?.[1];
   if (userId && /^\d{15,22}$/.test(userId)) {
     const result = USER_BUCKETS[bucket].take(userId);
     return result.ok ? null : Math.ceil(result.retryAfterMs / 1000);

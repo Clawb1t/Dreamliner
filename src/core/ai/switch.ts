@@ -154,7 +154,7 @@ export function buildImportDirective(source: SwitchSource, categoryName: string)
     "allows, including every option the notes show (ignored channels and roles, exempt roles, word lists, limits, " +
     "actions, embeds, buttons and so on): Dreamliner supports far more than the questions above suggest, so map " +
     "everything the schema can express and never claim something is unsupported when a field for it exists. When " +
-    "this setup can hold a list (rules, roles, tags, counters, milestones, categories), bring every entry over in " +
+    "this setup can hold a list (rules, roles, replies, counters, milestones, categories), bring every entry over in " +
     "this one result and set more_to_import to false. When it holds a single item per run (one board, one panel, " +
     "one sticky), set up the first entry not in the 'Already imported' list and set more_to_import to true if other " +
     "entries remain. Leave settings the notes don't show as null. Match channels and roles by name to the ids above. Answer with action " +

@@ -710,14 +710,6 @@ plugins:
           subtitle_size: 24
           avatar_ring_width: 6
         milestones: []
-  tags:
-    enabled: false
-    config:
-      can_create: false
-      can_edit: false
-      can_delete: false
-      can_list: false
-      can_show: false
   autodelete:
     enabled: false
     config:

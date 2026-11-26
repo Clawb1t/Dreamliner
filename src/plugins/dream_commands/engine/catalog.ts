@@ -1,7 +1,7 @@
 /**
  * The step catalog the dashboard builds its library and forms from: every action with its
  * fields, outputs, required permissions, and whether THIS user in THIS server can use it
- * (plugin on, permissions held). Dynamic choices (tags, quizzes, ticket types) are filled in
+ * (plugin on, permissions held). Dynamic choices (quizzes, ticket types) are filled in
  * from this guild only.
  */
 import { PermissionFlagsBits, type Guild } from "discord.js";
@@ -63,13 +63,7 @@ export type CatalogAction = {
 };
 
 async function dynamicOptions(guild: Guild): Promise<Record<string, { value: string; label: string }[]>> {
-  const out: Record<string, { value: string; label: string }[]> = { tag: [], quiz: [], category: [] };
-  try {
-    const { listTags } = await import("../../tags/functions/store.js");
-    out.tag = (await listTags(guild.id)).slice(0, 100).map((t: { name: string }) => ({ value: t.name, label: t.name }));
-  } catch {
-    /* plugin data unavailable */
-  }
+  const out: Record<string, { value: string; label: string }[]> = { quiz: [], category: [] };
   try {
     const store = await import("../../quizzes/functions/store.js");
     out.quiz = store

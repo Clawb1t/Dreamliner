@@ -35,7 +35,7 @@ export const configPlugin = definePlugin({
               "",
               t(
                 "config.dashboardFooter",
-                "Stats, leaderboards, tags, welcomer, and the rest of setup live in the same dashboard.",
+                "Stats, leaderboards, custom commands, welcomer, and the rest of setup live in the same dashboard.",
               ),
             ].join("\n"),
             ephemeral,

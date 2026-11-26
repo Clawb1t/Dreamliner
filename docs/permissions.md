@@ -63,7 +63,7 @@ Every server starts with three built-in roles:
 | **Moderator** | Nobody                 | Assign your mod role(s)/users to it. |
 | **Admin**     | Nobody                 | Assign your admin role(s)/users to it. |
 
-Member starts with every everyday, low-risk permission: using features (economy, music, suggestions, reviews, tags, reminders, translation, TTS), closing your own ticket, and read-only lookups (`/help`, info commands, stats, `/rolelist`). Nothing on it can act on other members, change server-wide settings, record voice, or reveal staff-only data such as bans, cases, name history, or deleted messages. Remove anything you'd rather keep staff-only.
+Member starts with every everyday, low-risk permission: using features (economy, music, suggestions, reviews, reminders, translation, TTS), closing your own ticket, and read-only lookups (`/help`, info commands, stats, `/rolelist`). Nothing on it can act on other members, change server-wide settings, record voice, or reveal staff-only data such as bans, cases, name history, or deleted messages. Remove anything you'd rather keep staff-only.
 
 Moderator and Admin ship with **zero assigned targets** — a server admin must assign their own Discord roles/users into them before anyone gets access through them. You can also create your own custom roles (e.g. "Support", "Trial Mod") with any name and permission set.
 

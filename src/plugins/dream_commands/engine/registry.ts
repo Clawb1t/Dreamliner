@@ -32,6 +32,6 @@ export const CATEGORIES: { key: ActionDef["category"]; label: string; descriptio
   { key: "logic", label: "Logic", description: "If, repeat, random, wait, stop" },
   { key: "variables", label: "Variables", description: "Remember values, maths, text" },
   { key: "interactions", label: "Buttons and forms", description: "Buttons, menus, pop-up forms" },
-  { key: "plugins", label: "Dreamliner plugins", description: "Images, tags, giveaways, economy and more" },
+  { key: "plugins", label: "Dreamliner plugins", description: "Images, giveaways, economy and more" },
   { key: "utilities", label: "Utilities", description: "Info, random picks, dice, polls, logs" },
 ];

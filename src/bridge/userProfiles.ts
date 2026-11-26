@@ -462,6 +462,12 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       })(),
     },
     {
+      key: "site_notifications",
+      label: "Website notifications",
+      description: "Which notifications from the navbar bell you saw, read or dismissed. The notifications themselves stay; erasing just makes them show as new again.",
+      total: import("./siteNotifications.js").then((m) => m.countUserNotificationState(userId)),
+    },
+    {
       key: "wrapped_emoji",
       label: "Emoji counts",
       description: "How often you used each emoji in messages and reactions, per year, for Dreamliner Wrapped. Message text isn't stored.",
@@ -650,6 +656,7 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   deleted.music_play_log = wrappedDeleted.music;
   deleted.wrapped_commands = wrappedDeleted.commands;
   (await import("./responseCache.js")).invalidateCached(`wrapped:${userId}:`);
+  deleted.site_notifications = (await import("./siteNotifications.js")).deleteUserNotificationState(userId);
   await wipe(
     "welcome_join_messages",
     db.delete(welcomeJoinMessages).where(eq(welcomeJoinMessages.memberId, userId)).returning(),

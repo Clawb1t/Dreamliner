@@ -366,7 +366,8 @@ export const roleButtonPanels = sqliteTable(
   (table) => [primaryKey({ columns: [table.guildId, table.messageId, table.roleId] })],
 );
 
-
+// Retired: the Tags plugin was removed (Custom Commands replaces it). The table and its rows are
+// kept on purpose so no data is lost; it can be dropped in a later migration.
 export const tags = sqliteTable(
   "tags",
   {
@@ -4167,4 +4168,48 @@ export const wrappedCommandUsage = sqliteTable(
     uses: integer("uses", { mode: "number" }).notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.userId, table.year, table.commandName] })],
+);
+
+// --- Website notifications (the bell in the site navbar) ------------------------------
+// Superuser-written notifications. The audience is JSON (bridge/siteNotificationsModel.ts) and is
+// matched when a user reads their notifications, so there are no per-user delivery rows: the only
+// per-user rows are the user's own seen/read/dismissed state. Migration 0163.
+export const siteNotifications = sqliteTable(
+  "site_notifications",
+  {
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    kind: text("kind").notNull().default("announcement"),
+    title: text("title").notNull(),
+    body: text("body").notNull().default(""),
+    linkUrl: text("link_url"),
+    linkLabel: text("link_label"),
+    icon: text("icon"),
+    audience: text("audience").notNull(),
+    status: text("status").notNull().default("draft"),
+    pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
+    /** Unix ms. Set when first published (kept across unpublish/republish edits). */
+    publishedAt: integer("published_at", { mode: "number" }),
+    /** Unix ms; null never expires. */
+    expiresAt: integer("expires_at", { mode: "number" }),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "number" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+  },
+  (table) => [index("site_notifications_status").on(table.status, table.publishedAt)],
+);
+
+/** One user's state for one notification: first shown in their list, read, dismissed (unix ms). */
+export const siteNotificationState = sqliteTable(
+  "site_notification_state",
+  {
+    userId: text("user_id").notNull(),
+    notificationId: integer("notification_id", { mode: "number" }).notNull(),
+    seenAt: integer("seen_at", { mode: "number" }),
+    readAt: integer("read_at", { mode: "number" }),
+    dismissedAt: integer("dismissed_at", { mode: "number" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.notificationId] }),
+    index("site_notification_state_notification").on(table.notificationId),
+  ],
 );

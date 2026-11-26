@@ -147,7 +147,7 @@ Dreamliner is organized into plugins under the `plugins:` key. Each plugin has i
 | Self-serve roles  | reaction\_roles, role\_buttons, role\_panels                                                     |
 | Lookups           | locate\_user, name\_history, username\_saver                                                     |
 | Engagement        | welcome\_message, companion\_channels, starboard                                                 |
-| Auto responses    | tags, autoreplies, autoreactions, translation                                                       |
+| Auto responses    | autoreplies, autoreactions, translation                                                             |
 | Scheduling        | reminders, counters                                                                               |
 | Customization     | dream\_commands                                                                                   |
 | Utilities         | utility, stats, bot\_customisation, logs                                                         |

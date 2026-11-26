@@ -77,7 +77,6 @@ Turn it on from the dashboard's Automod page (or `/automod native sync`). It req
 
 | Area | Capabilities |
 | --- | --- |
-| **Tags** | Reusable staff and helper responses |
 | **Autodelete / autoreactions / autoreplies** | Channel hygiene and lightweight automation |
 | **Translation** | On-demand and optional auto-translate for multilingual communities |
 | **Counters** | Live member, message, and custom counters |
@@ -151,7 +150,6 @@ Per-server emoji prefixes and bot customisation (avatar, banner, nickname, bio v
 <summary><strong>Automation</strong></summary>
 
 - [Welcome message](docs/plugins/welcome_message.md)
-- [Tags](docs/plugins/tags.md)
 - [Autodelete](docs/plugins/autodelete.md)
 - [Autoreactions](docs/plugins/autoreactions.md)
 - [Autoreplies](docs/plugins/autoreplies.md)

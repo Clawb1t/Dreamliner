@@ -384,7 +384,7 @@ export function firstReplyEphemeral(steps: Step[], fallback: boolean): boolean {
   for (const step of steps) {
     if (step.disabled) continue;
     const c = step.config as Record<string, unknown>;
-    if (["reply", "buttons", "select_menu", "tag_send"].includes(step.type)) {
+    if (["reply", "buttons", "select_menu"].includes(step.type)) {
       if (c.ephemeral === "yes" || c.ephemeral === true) return true;
       if (c.ephemeral === "no" || c.ephemeral === false) return false;
       return fallback;

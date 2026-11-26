@@ -28,7 +28,6 @@
     * [Slowmode plugin](docs/plugins/slowmode.md)
     * [Starboard plugin](docs/plugins/starboard.md)
     * [Stats plugin](docs/plugins/stats.md)
-    * [Tags plugin](docs/plugins/tags.md)
     * [Translation plugin](docs/plugins/translation.md)
     * [Username saver plugin](docs/plugins/username_saver.md)
     * [Utility plugin](docs/plugins/utility.md)

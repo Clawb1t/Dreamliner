@@ -125,6 +125,11 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
         }),
       ),
     },
+    site_notifications: {
+      label: "Website notifications",
+      description: "Which notifications from the navbar bell you saw, read or dismissed, and when.",
+      rows: serializable((await import("./siteNotifications.js")).exportUserNotificationState(userId)),
+    },
     avia_usage: {
       label: "Avia usage",
       description: "How many messages you sent Avia, the help centre assistant, each day. Conversations aren't stored.",

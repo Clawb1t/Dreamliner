@@ -60,7 +60,7 @@ const TABLE_META: Record<string, { label?: string; description?: string }> = {
   },
   tags: {
     label: "Tags",
-    description: "Saved tag responses for this server.",
+    description: "Saved tags from the retired Tags plugin. Kept for reference only.",
   },
   dream_commands: {
     label: "Commands",

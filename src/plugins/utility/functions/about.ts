@@ -48,7 +48,7 @@ export function buildAboutEmbed(client: Client, t: Translator): ResultContainer 
   return baseEmbed()
     .setDescription(
       trimLines(`
-        ${t("utility.about.description", "A Discord moderation and utility bot. Configure everything from the web dashboard, with granular permissions and plugins like stats, welcomer, tags, and automod.")}
+        ${t("utility.about.description", "A Discord moderation and utility bot. Configure everything from the web dashboard, with granular permissions and plugins like stats, welcomer, custom commands, and automod.")}
 
         ${SERVERS_EMOJI} ${t("utility.about.servers", "Servers")}: \`${guilds.toLocaleString()}\`
         ${USERS_EMOJI} ${t("utility.about.users", "Users")}: \`${users.toLocaleString()}\` ${t("utility.about.cached", "cached")}

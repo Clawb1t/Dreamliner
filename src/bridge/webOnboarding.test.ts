@@ -57,7 +57,7 @@ describe("isConfigCustomised", () => {
 
   it("spots real setup: a plugin on, plugin settings, or a server setting", () => {
     assert.equal(isConfigCustomised(JSON.stringify({ plugins: { tickets: { enabled: true } } })), true);
-    assert.equal(isConfigCustomised(JSON.stringify({ plugins: { tags: { config: { can_create: true } } } })), true);
+    assert.equal(isConfigCustomised(JSON.stringify({ plugins: { suggestions: { config: { can_suggest: true } } } })), true);
     assert.equal(isConfigCustomised(JSON.stringify({ server_log_channel_id: "123" })), true);
   });
 });

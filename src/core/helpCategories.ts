@@ -100,9 +100,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "respond",
     label: "Auto responses",
-    blurb: "Tags, replies, threads, reactions, and translation.",
+    blurb: "Replies, threads, reactions, and translation.",
     include: [
-      { plugin: "tags" },
       { plugin: "autoreplies" },
       { plugin: "autothreads" },
       { plugin: "autoreactions" },
@@ -273,7 +272,6 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
     name: "Welcomer",
     description: "Join, leave, and DM welcomes with embeds and image cards.",
   },
-  tags: { key: "tags", name: "Tags", description: "Reusable text snippets." },
   autodelete: {
     key: "autodelete",
     name: "Autodelete",
@@ -497,7 +495,6 @@ const PLUGIN_PRIMARY_CATEGORY: Record<string, string> = {
   tts: "engage",
   clipping: "engage",
   music: "engage",
-  tags: "respond",
   autoreplies: "respond",
   autothreads: "respond",
   autoreactions: "respond",

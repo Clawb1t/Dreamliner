@@ -9,7 +9,6 @@ import { pluginEnabled } from "../../../../core/pluginCommand.js";
 import { resolveEffectivePluginConfig } from "../../../../core/permissionRoles.js";
 import { resolveMember, resolveTextChannel, spendApi, StepError, type RunCtx } from "../runtime.js";
 import { interpolate } from "../vars.js";
-import { ephemeralField, remember, resolveEphemeral } from "./messages.js";
 
 function requirePlugin(ctx: RunCtx, plugin: string, label: string): void {
   if (!pluginEnabled(ctx.guildConfig, plugin)) throw new StepError(`The ${label} plugin is turned off in this server.`, "plugin_off");
@@ -51,35 +50,6 @@ export const pluginActions: ActionDef[] = [
         throw new StepError("The image service didn't answer. Try again.");
       });
       return { outputs: { url: image.url, credit: image.credit }, trusted: ["url"] };
-    },
-  },
-  {
-    type: "tag_send",
-    category: "plugins",
-    label: "Send a tag",
-    description: "Reply with one of this server's tags.",
-    icon: "tag",
-    plugin: "tags",
-    pluginLabel: "Tags",
-    fields: [{ key: "tag", label: "Tag", kind: "select", dynamic: true, required: true, options: [] }, ephemeralField],
-    outputs: [{ key: "message.id", label: "Message ID" }],
-    defaults: { tag: "", ephemeral: "default" },
-    summary: "Send the {tag} tag",
-    run: async (ctx, config, step) => {
-      requirePlugin(ctx, "tags", "Tags");
-      const { getTag } = await import("../../../tags/functions/store.js");
-      const tag = await getTag(ctx.guild.id, str(config, "tag"));
-      if (!tag) throw new StepError("That tag doesn't exist any more.");
-      const { renderTemplate } = await import("../../../../core/templates.js");
-      const { buildDynamicExtras, keysReferencedIn } = await import("../../../../core/templateExtras.js");
-      const extra = await buildDynamicExtras(ctx.runner, keysReferencedIn(tag.content));
-      const channel = ctx.guild.channels.cache.get(ctx.channelId);
-      const content = renderTemplate(tag.content, { member: ctx.runner, guild: ctx.guild, channel: channel && channel.isTextBased() ? (channel as never) : null, extra }).slice(0, 2000);
-      const ephemeral = resolveEphemeral(ctx, config.ephemeral);
-      spendApi(ctx);
-      const message = await ctx.responder.send({ content: content || "​", allowedMentions: { parse: [] } }, ephemeral);
-      if (!ephemeral) remember(ctx, step.id, message, true);
-      return { outputs: { "message.id": message?.id ?? "" }, trusted: ["message.id"] };
     },
   },
   {

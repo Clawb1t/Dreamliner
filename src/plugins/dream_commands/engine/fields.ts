@@ -45,7 +45,7 @@ export type CatalogField = {
   showIf?: { key: string; in: unknown[] };
   /** list: most items */
   maxItems?: number;
-  /** select whose choices come from this server (tags, quizzes, ticket panels), filled in per guild
+  /** select whose choices come from this server (quizzes, ticket panels), filled in per guild
    *  by the catalog and checked at run time. */
   dynamic?: boolean;
 };

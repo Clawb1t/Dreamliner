@@ -107,9 +107,6 @@ export function collectDocs(guildId: string, db: Database.Database = serverFiles
   for (const r of safeAll<{ name: string; settings: string }>(db, "SELECT name, settings FROM giveaway_templates WHERE guild_id = ?", guildId)) {
     docs.push({ label: `Giveaway template "${r.name}"`, section: "plugin:giveaways", text: r.settings ?? "" });
   }
-  for (const r of safeAll<{ name: string; content: string }>(db, "SELECT name, content FROM tags WHERE guild_id = ?", guildId)) {
-    docs.push({ label: `Tag "${r.name}"`, section: "plugin:tags", text: r.content ?? "" });
-  }
   for (const r of safeAll<{ message: string; options: string }>(db, "SELECT message, options FROM feed_subscriptions WHERE guild_id = ?", guildId)) {
     docs.push({ label: "Notifications feed", section: "plugin:social", text: `${r.message ?? ""} ${r.options ?? ""}` });
   }

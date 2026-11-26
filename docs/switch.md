@@ -9,7 +9,7 @@ Open it from your server's dashboard: **Server → Switch**.
 1. **Pick your old bot.** Switch lists only the parts of its dashboard it can bring over, using the same names that bot's dashboard uses.
 2. **Import a part.** Switch tells you which page to open. Screenshot it (up to 4 screenshots if it doesn't fit), paste or drop them in, and press **Read with Autopilot**.
 3. **Check what it found.** Autopilot lists every setting it read. Fix anything it got wrong.
-4. **Import.** Switch opens the matching Dreamliner page and runs that page's Autopilot with your settings, including ignored channels and roles, word lists, limits, punishments, embeds and buttons. Lists (rules, roles, tags, milestones) come over in one go; for pages that hold one item per run (a board, a panel, a sticky), press **Import next** until they're all in.
+4. **Import.** Switch opens the matching Dreamliner page and runs that page's Autopilot with your settings, including ignored channels and roles, word lists, limits, punishments, embeds and buttons. Lists (rules, roles, replies, milestones) come over in one go; for pages that hold one item per run (a board, a panel, a sticky), press **Import next** until they're all in.
 5. **Save.** Nothing goes live until you save with the bar at the bottom of the dashboard.
 
 A whole switch uses **one Autopilot use**, however many pages you import in the next 6 hours.
@@ -23,7 +23,7 @@ A whole switch uses **one Autopilot use**, however many pages you import in the 
 | Moderator | Automod |
 | Levels | Activity Rewards (see below) |
 | Starboards | Starboard |
-| Custom Commands | Tags |
+| Custom Commands | Autoreplies |
 | Ticketing | Tickets |
 | Automations | Autoreplies |
 | Achievements | Activity Rewards |
@@ -44,7 +44,7 @@ A whole switch uses **one Autopilot use**, however many pages you import in the 
 | Starboard | Starboard |
 | Giveaways | Giveaways |
 | Tickets | Tickets |
-| Custom Commands, Tags | Tags |
+| Custom Commands, Tags | Autoreplies |
 
 | YAGPDB | Dreamliner |
 |--------|------------|
@@ -61,7 +61,7 @@ A whole switch uses **one Autopilot use**, however many pages you import in the 
 | Automod | Automod |
 | Reaction roles | Role panels |
 | Autoroles | Autorole |
-| Tags | Tags |
+| Tags | Autoreplies |
 | Triggers | Autoreplies |
 | Greetings | Welcomer |
 | Starboard | Starboard |
@@ -76,7 +76,7 @@ A whole switch uses **one Autopilot use**, however many pages you import in the 
 | Welcomer/Goodbye | Welcomer and Autorole |
 | Role Management | Role panels and Autorole |
 | Moderation | Automod |
-| Custom Commands | Tags |
+| Custom Commands | Autoreplies |
 | Auto Responders | Autoreplies |
 | Counters | Counters |
 
@@ -107,7 +107,7 @@ A whole switch uses **one Autopilot use**, however many pages you import in the 
 | Auto Roles | Autorole |
 | Reaction Roles | Role panels |
 | Leveling (level rewards) | Activity Rewards |
-| Custom Commands | Tags |
+| Custom Commands | Autoreplies |
 
 Variables in messages from any of these bots (like `{user.mention}`, `{{.User.Mention}}` or `[user]`) are rewritten to Dreamliner's placeholders.
 

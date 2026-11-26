@@ -439,6 +439,11 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
   // Ghost Mode on/off or an allow list change: nothing cached may keep showing the old view.
   onGhostModeChange((userId) => invalidatePublicProfileCaches(userId));
 
+  // Website notifications: how the feed sees servers and members (built once, on first use).
+  let notifDeps: import("./siteNotifications.js").NotificationDeps | null = null;
+  const notificationDeps = (module: typeof import("./siteNotifications.js")) =>
+    (notifDeps ??= module.createNotificationDeps(client, configManager));
+
   server = http.createServer((req, res) => {
     const requestStart = process.hrtime.bigint();
     const method = req.method ?? "GET";
@@ -875,6 +880,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const ghostModeMatch = /^\/bridge\/users\/(\d{15,22})\/ghost-mode(?:\/(allow|people)(?:\/(\d{15,22}))?)?$/.exec(url.pathname);
         // Dashboard sidebar favourites (webDashboardPins.ts): the signed-in user's own, per server.
         const dashboardPinsMatch = /^\/bridge\/users\/(\d{15,22})\/dashboard-pins\/(\d{15,22})$/.exec(url.pathname);
+        // Website notifications (siteNotifications.ts): the signed-in user's own feed, id from the site's session.
+        const notificationsMatch = /^\/bridge\/users\/(\d{15,22})\/notifications\/(?:(feed|read)|(\d{1,10})\/dismiss)$/.exec(url.pathname);
         const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
         const storeMatch = /^\/bridge\/users\/(\d+)\/store(?:\/(claim|servers|purchase|reminders))?$/.exec(url.pathname);
         const storeVoteMatch = url.pathname === "/bridge/store/votes";
@@ -946,6 +953,39 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (notificationsMatch) {
+          if (req.method !== "POST") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const notifUserId = notificationsMatch[1]!;
+          let body: { view?: unknown; guilds?: unknown; ids?: unknown; all?: unknown };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const notifications = await import("./siteNotifications.js");
+          const deps = notificationDeps(notifications);
+          if (notificationsMatch[2] === "feed") {
+            const view = body.view === "list" ? "list" : "count";
+            const feed = await notifications.getUserFeed(notifUserId, view, deps, notifications.normalizeGuildHints(body.guilds));
+            sendJson(res, 200, { ok: true, ...feed });
+            return;
+          }
+          const result =
+            notificationsMatch[2] === "read"
+              ? await notifications.markRead(notifUserId, body, deps)
+              : await notifications.dismiss(notifUserId, Number(notificationsMatch[3]), deps);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true, ...result.value });
           return;
         }
 
@@ -3045,6 +3085,63 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // --- Website notifications: superuser composer (siteNotifications.ts) ---------------------
+
+        const platformNotificationMatch = /^\/bridge\/platform\/notifications(?:\/(estimate|\d{1,10}))?$/.exec(url.pathname);
+        if (platformNotificationMatch) {
+          const sub = platformNotificationMatch[1];
+          const notifications = await import("./siteNotifications.js");
+          if (req.method === "GET" && !sub) {
+            const requesterId = url.searchParams.get("userId")?.trim();
+            if (!requesterId || !isDashboardSuperuser(requesterId)) {
+              sendJson(res, 403, { error: "Platform access required." });
+              return;
+            }
+            const plugins = await notificationDeps(notifications).pluginNames();
+            sendJson(res, 200, { ok: true, notifications: notifications.listAdminNotifications(), plugins: [...plugins].sort() });
+            return;
+          }
+          const writes = sub === "estimate" ? ["POST"] : sub ? ["PUT", "DELETE"] : ["POST"];
+          if (!writes.includes(req.method ?? "")) {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: Record<string, unknown> & { userId?: unknown };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const actorId = typeof body.userId === "string" ? body.userId.trim() : "";
+          if (!actorId || !isDashboardSuperuser(actorId)) {
+            sendJson(res, 403, { error: "Platform access required." });
+            return;
+          }
+          const { userId: _actor, ...fields } = body;
+          if (sub === "estimate") {
+            const result = await notifications.estimateAudience(fields.audience, notificationDeps(notifications));
+            if (!result.ok) sendJson(res, result.status, { error: result.error });
+            else sendJson(res, 200, { ok: true, estimate: result.value });
+            return;
+          }
+          if (req.method === "DELETE") {
+            if (!notifications.deleteNotification(Number(sub))) {
+              sendJson(res, 404, { error: "Notification not found." });
+              return;
+            }
+            sendJson(res, 200, { ok: true });
+            return;
+          }
+          const result = sub ? notifications.updateNotification(Number(sub), fields) : notifications.createNotification(fields, actorId);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true, notification: result.value });
+          return;
+        }
+
         // Public: enabled + in-schedule banners for the website's home page. No superuser check —
         // this is marketing content meant to be visible to every visitor.
         if (url.pathname === "/bridge/banners/active" && req.method === "GET") {
@@ -3571,7 +3668,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           url.pathname,
         );
         const statsIntelMatch =
-          /^\/bridge\/guilds\/(\d+)\/stats\/(insights|activity|members|channels|moderation|timeline|correlations)$/.exec(
+          /^\/bridge\/guilds\/(\d+)\/stats\/(insights|activity|members|channels|moderation|timeline|correlations|range)$/.exec(
             url.pathname,
           );
         // Custom commands: /commands, /commands/catalog|templates|validate|import, /commands/c/:name[/runs|test|export|duplicate].
@@ -3585,10 +3682,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const blueskyFeedOneMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds\/(\d+)$/.exec(url.pathname);
         const blueskyFeedsMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/feeds$/.exec(url.pathname);
         const blueskyExtraMatch = /^\/bridge\/guilds\/(\d+)\/bluesky\/(showcase|search|import\/preview|import)$/.exec(url.pathname);
-        const tagOneMatch = /^\/bridge\/guilds\/(\d+)\/tags\/([a-z0-9][a-z0-9_-]{0,63})$/i.exec(
-          url.pathname,
-        );
-        const tagsMatch = /^\/bridge\/guilds\/(\d+)\/tags$/.exec(url.pathname);
         const dbRowMatch =
           /^\/bridge\/guilds\/(\d+)\/db\/tables\/([a-z0-9_]+)\/rows\/(.+)$/.exec(url.pathname);
         const dbTableMatch = /^\/bridge\/guilds\/(\d+)\/db\/tables\/([a-z0-9_]+)$/.exec(
@@ -3622,6 +3715,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           ? null
           : /^\/bridge\/guilds\/(\d+)\/raid-mesh\/links$/.exec(url.pathname);
         const logStatsMatch = /^\/bridge\/guilds\/(\d+)\/logs\/stats$/.exec(url.pathname);
+        const logOverviewMatch = /^\/bridge\/guilds\/(\d+)\/logs\/overview$/.exec(url.pathname);
         const logTestMatch = /^\/bridge\/guilds\/(\d+)\/logs\/test$/.exec(url.pathname);
         const logOneMatch = /^\/bridge\/guilds\/(\d+)\/logs\/([0-9a-fA-F-]{36})$/.exec(url.pathname);
         const logsMatch = /^\/bridge\/guilds\/(\d+)\/logs$/.exec(url.pathname);
@@ -3837,8 +3931,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !blueskyFeedOneMatch &&
           !blueskyFeedsMatch &&
           !blueskyExtraMatch &&
-          !tagOneMatch &&
-          !tagsMatch &&
           !dbRowMatch &&
           !dbTableMatch &&
           !dbTablesMatch &&
@@ -3854,6 +3946,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !raidMeshLinkMatch &&
           !raidMeshLinksMatch &&
           !logStatsMatch &&
+          !logOverviewMatch &&
           !logTestMatch &&
           !logOneMatch &&
           !logsMatch &&
@@ -3976,8 +4069,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           blueskyFeedOneMatch?.[1] ??
           blueskyFeedsMatch?.[1] ??
           blueskyExtraMatch?.[1] ??
-          tagOneMatch?.[1] ??
-          tagsMatch?.[1] ??
           dbRowMatch?.[1] ??
           dbTableMatch?.[1] ??
           dbTablesMatch?.[1] ??
@@ -3993,6 +4084,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           raidMeshLinkMatch?.[1] ??
           raidMeshLinksMatch?.[1] ??
           logStatsMatch?.[1] ??
+          logOverviewMatch?.[1] ??
           logTestMatch?.[1] ??
           logOneMatch?.[1] ??
           logsMatch?.[1] ??
@@ -8022,7 +8114,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (logsMatch || logOneMatch || logStatsMatch) {
+        if (logsMatch || logOneMatch || logStatsMatch || logOverviewMatch) {
           if (req.method !== "GET") {
             sendJson(res, 405, { error: "Method not allowed" });
             return;
@@ -8037,8 +8129,23 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
 
-          const { parseWebLogsQuery, listWebLogs, getWebLog, getWebLogStats } =
+          const { parseWebLogsQuery, listWebLogs, getWebLog, getWebLogStats, parseWebLogOverviewQuery, getWebLogOverview } =
             await import("./webLogs.js");
+
+          if (logOverviewMatch) {
+            // The Logs overview and category pages: validated, clamped date range, optional event
+            // type set, this guild's rows only, cached briefly per range key.
+            const overviewQuery = parseWebLogOverviewQuery(url);
+            if ("error" in overviewQuery) {
+              sendJson(res, 400, { error: overviewQuery.error });
+              return;
+            }
+            const { cached: cachedOverview } = await import("./responseCache.js");
+            const key = `logs-overview:${guild.id}:${overviewQuery.from}:${overviewQuery.to}:${overviewQuery.compare}:${(overviewQuery.eventTypes ?? []).join(",")}`;
+            const overview = await cachedOverview(key, 30_000, () => getWebLogOverview(guild, overviewQuery));
+            sendJson(res, 200, { guild: { id: guild.id, name: guild.name, icon: guild.icon }, ...overview });
+            return;
+          }
 
           if (logStatsMatch) {
             const days = Number(url.searchParams.get("days") ?? 14) || 14;
@@ -9807,158 +9914,6 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
-        if (tagsMatch || tagOneMatch) {
-          const userId =
-            req.method === "GET" || req.method === "DELETE"
-              ? url.searchParams.get("userId")?.trim()
-              : undefined;
-
-          if (tagsMatch && req.method === "GET") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { listBridgeTags } = await import("./webTags.js");
-            const result = await listBridgeTags(guildId);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            sendJson(res, 200, {
-              guild: { id: guild.id, name: guild.name, icon: guild.icon },
-              tags: result.tags,
-            });
-            return;
-          }
-
-          if (tagsMatch && req.method === "POST") {
-            let body: { userId?: string; name?: string; content?: string };
-            try {
-              body = JSON.parse(await readBody(req)) as typeof body;
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return;
-            }
-            const requesterId = body.userId?.trim();
-            if (!requesterId || typeof body.name !== "string" || typeof body.content !== "string") {
-              sendJson(res, 400, { error: "userId, name, and content are required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, requesterId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { createBridgeTag } = await import("./webTags.js");
-            const result = await createBridgeTag(guildId, {
-              userId: requesterId,
-              name: body.name,
-              content: body.content,
-            });
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, requesterId, {
-              eventType: "dashboard_tag",
-              title: "Tag created",
-              summary: `Tag \`${result.tag.name}\` was created from the dashboard.`,
-              targetId: result.tag.name,
-              payload: { name: result.tag.name },
-            });
-            sendJson(res, 200, { ok: true, tag: result.tag });
-            return;
-          }
-
-          if (tagOneMatch && req.method === "GET") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { getBridgeTag } = await import("./webTags.js");
-            const result = await getBridgeTag(guildId, tagOneMatch[2]!);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            sendJson(res, 200, { tag: result.tag });
-            return;
-          }
-
-          if (tagOneMatch && req.method === "PUT") {
-            let body: { userId?: string; content?: string };
-            try {
-              body = JSON.parse(await readBody(req)) as typeof body;
-            } catch {
-              sendJson(res, 400, { error: "Invalid JSON body" });
-              return;
-            }
-            const requesterId = body.userId?.trim();
-            if (!requesterId || typeof body.content !== "string") {
-              sendJson(res, 400, { error: "userId and content are required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, requesterId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const { updateBridgeTag } = await import("./webTags.js");
-            const result = await updateBridgeTag(guildId, tagOneMatch[2]!, {
-              content: body.content,
-            });
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, requesterId, {
-              eventType: "dashboard_tag",
-              title: "Tag updated",
-              summary: `Tag \`${result.tag.name}\` was updated from the dashboard.`,
-              targetId: result.tag.name,
-              payload: { name: result.tag.name },
-            });
-            sendJson(res, 200, { ok: true, tag: result.tag });
-            return;
-          }
-
-          if (tagOneMatch && req.method === "DELETE") {
-            if (!userId) {
-              sendJson(res, 400, { error: "userId is required" });
-              return;
-            }
-            if (!(await memberCanManage(guild, userId))) {
-              sendJson(res, 403, { error: "Missing Manage Server permission." });
-              return;
-            }
-            const tagName = tagOneMatch[2]!;
-            const { deleteBridgeTag } = await import("./webTags.js");
-            const result = await deleteBridgeTag(guildId, tagName);
-            if (!result.ok) {
-              sendJson(res, result.status, { error: result.error });
-              return;
-            }
-            trackDashboardAction(client, guildId, userId, {
-              eventType: "dashboard_tag",
-              title: "Tag deleted",
-              summary: `Tag \`${tagName}\` was deleted from the dashboard.`,
-              targetId: tagName,
-              payload: { name: tagName },
-            });
-            sendJson(res, 200, { ok: true });
-            return;
-          }
-
-          sendJson(res, 405, { error: "Method not allowed" });
-          return;
-        }
-
         if (commandsMatch) {
           const userId = url.searchParams.get("userId")?.trim();
           if (!userId || !/^\d{15,22}$/.test(userId)) {
@@ -10219,6 +10174,43 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           const section = statsIntelMatch[2]!;
+          if (section === "range") {
+            // The stats page's date-range view: explicit from/to (validated, clamped to this guild's
+            // own data and a max span), optional comparison range, cached per range key.
+            const { parseWebStatsRangeQuery, buildWebGuildStatsRange } = await import("./webStatsRange.js");
+            const { cached: cachedRange } = await import("./responseCache.js");
+            const rangeQuery = parseWebStatsRangeQuery(url);
+            if ("error" in rangeQuery) {
+              sendJson(res, 400, { error: rangeQuery.error });
+              return;
+            }
+            const rangeKey = `${guild.id}:${rangeQuery.from}:${rangeQuery.to}:${rangeQuery.compare}`;
+            // Member / channel detail views over the same range (?member=<id> or ?channel=<id>).
+            const memberParam = url.searchParams.get("member");
+            const channelParam = url.searchParams.get("channel");
+            if (memberParam || channelParam) {
+              const entityId = memberParam ?? channelParam ?? "";
+              if (!/^\d{17,20}$/.test(entityId)) {
+                sendJson(res, 400, { error: "Invalid id" });
+                return;
+              }
+              const { buildWebGuildMemberRange, buildWebGuildChannelRange } = await import("./webStatsEntityRange.js");
+              const payload = memberParam
+                ? await cachedRange(`stats-range-member:${rangeKey}:${entityId}`, 60_000, () =>
+                    buildWebGuildMemberRange(guild, entityId, rangeQuery),
+                  )
+                : await cachedRange(`stats-range-channel:${rangeKey}:${entityId}`, 60_000, () =>
+                    buildWebGuildChannelRange(guild, entityId, rangeQuery),
+                  );
+              sendJson(res, 200, payload);
+              return;
+            }
+            const payload = await cachedRange(`stats-range:${rangeKey}`, 60_000, () =>
+              buildWebGuildStatsRange(guild, rangeQuery),
+            );
+            sendJson(res, 200, payload);
+            return;
+          }
           const {
             parseWebStatsIntelQuery,
             buildWebGuildInsights,

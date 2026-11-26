@@ -188,14 +188,6 @@ export const zRoleButtonsConfig = z.strictObject({
   can_delete: boolPerm("delete button role panels"),
 });
 
-export const zTagsConfig = z.strictObject({
-  can_create: boolPerm("create tags"),
-  can_edit: boolPerm("edit tags"),
-  can_delete: boolPerm("delete tags"),
-  can_list: boolPerm("list tags"),
-  can_show: boolPerm("show/use tags"),
-});
-
 export const zAutoreactionTrigger = z.enum(["every_message", "contains", "starts_with", "exact", "regex"]);
 
 export const zAutoreactionsConfig = z.strictObject({
@@ -559,7 +551,6 @@ export const zReactionRolesPluginSection = zPluginSection(zReactionRolesConfig.s
 export const zRoleButtonsPluginSection = zPluginSection(zRoleButtonsConfig.shape);
 export const zRolePanelsPluginSection = zPluginSection(zRolePanelsConfig.shape);
 export const zWelcomeMessagePluginSection = zPluginSection(zWelcomeMessageConfig.shape);
-export const zTagsPluginSection = zPluginSection(zTagsConfig.shape);
 export const zAutodeletePluginSection = zPluginSection(zAutodeleteConfig.shape);
 export const zBoosterRolesPluginSection = zPluginSection(zBoosterRolesConfig.shape);
 export const zAutoreactionsPluginSection = zPluginSection(zAutoreactionsConfig.shape);
@@ -584,7 +575,6 @@ export const zBotCustomisationPluginSection = zPluginSection(zBotCustomisationCo
 export type SlowmodeConfig = z.infer<typeof zSlowmodeConfig>;
 export type SlowmodeRule = z.infer<typeof zSlowmodeRule>;
 export type SlowmodeRuleTarget = z.infer<typeof zSlowmodeRuleTarget>;
-export type TagsConfig = z.infer<typeof zTagsConfig>;
 export type RolesConfig = z.infer<typeof zRolesConfig>;
 export type ReactionRolesConfig = z.infer<typeof zReactionRolesConfig>;
 export type RoleButtonsConfig = z.infer<typeof zRoleButtonsConfig>;

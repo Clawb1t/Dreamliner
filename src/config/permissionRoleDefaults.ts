@@ -78,9 +78,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "suggestions.can_suggest",
     "suggestions.can_top",
     "suggestions.can_vote",
-    // tags
-    "tags.can_list",
-    "tags.can_show",
     // tickets (their own ticket only; closing others' is can_close_others)
     "tickets.can_close",
     // translation
@@ -206,10 +203,6 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     "suggestions.can_deny",
     "suggestions.can_manage",
     "suggestions.can_mark",
-    // tags
-    "tags.can_create",
-    "tags.can_delete",
-    "tags.can_edit",
     // tickets (was >=25)
     "tickets.can_add_remove_members",
     "tickets.can_claim",

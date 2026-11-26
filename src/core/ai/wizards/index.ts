@@ -26,7 +26,6 @@ import { roleRulesWizard } from "./roleRules.js";
 import { slowmodeWizard } from "./slowmode.js";
 import { starboardWizard } from "./starboard.js";
 import { suggestionsWizard } from "./suggestions.js";
-import { tagsWizard } from "./tags.js";
 import { teamControlWizard } from "./teamControl.js";
 import { ticketsWizard } from "./tickets.js";
 import { welcomeWizard } from "./welcome.js";
@@ -55,7 +54,6 @@ export const WIZARDS: Record<string, AiWizardDefinition> = {
   slowmode_setup: slowmodeWizard,
   starboard_setup: starboardWizard,
   suggestions_setup: suggestionsWizard,
-  tags_setup: tagsWizard,
   team_control_setup: teamControlWizard,
   tickets_setup: ticketsWizard,
   welcome_setup: welcomeWizard,

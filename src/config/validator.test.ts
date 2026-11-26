@@ -41,6 +41,20 @@ describe("repairGuildConfig", () => {
     }
   });
 
+  it("drops a removed plugin's stored section (Tags) and keeps the rest", () => {
+    const result = repairGuildConfig({
+      plugins: {
+        tags: { enabled: true, config: { can_create: true, can_show: true }, overrides: [{ level: ">=50", config: { can_delete: true } }] },
+        starboard: { enabled: false },
+      },
+    });
+    assert.equal(result.success, true);
+    if (result.success) {
+      assert.equal("tags" in result.data.plugins, false);
+      assert.equal(result.data.plugins.starboard?.enabled, false);
+    }
+  });
+
   it("strips only the broken fragment, not the whole plugin section", () => {
     const result = repairGuildConfig({
       plugins: {
