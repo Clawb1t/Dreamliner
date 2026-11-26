@@ -11,6 +11,7 @@ import { SlidingWindowLimiter } from "./rateLimit.js";
  *   GET  /bridge/platform/changelog?userId=         operators: every update with its commits
  *   POST /bridge/platform/changelog/check           operators: look for new commits now
  *   POST /bridge/platform/changelog/generate-older  operators: write the next older drafts
+ *   POST /bridge/platform/changelog/force           operators: close the open window and write it now
  *   POST /bridge/platform/changelog/merge           operators: merge neighbouring updates
  *   PUT  /bridge/platform/changelog/:id             operators: edit text and/or status
  *   POST /bridge/platform/changelog/:id/regenerate  operators: rewrite with Autopilot
@@ -21,7 +22,7 @@ import { SlidingWindowLimiter } from "./rateLimit.js";
  */
 
 export type ChangelogRouteDeps = {
-  getService(): Promise<Pick<ChangelogService, "listPublic" | "getPublic" | "listAdmin" | "sync" | "generateOlder" | "merge" | "edit" | "generate" | "split" | "toAdmin">>;
+  getService(): Promise<Pick<ChangelogService, "listPublic" | "getPublic" | "listAdmin" | "sync" | "forceRelease" | "generateOlder" | "merge" | "edit" | "generate" | "split" | "toAdmin">>;
   readBody(req: http.IncomingMessage): Promise<string>;
   sendJson(res: http.ServerResponse, status: number, body: unknown): void;
   isSuperuser(userId: string | null | undefined): boolean;
@@ -123,6 +124,13 @@ export async function handleChangelogRoute(
     if (method === "POST" && path === "/bridge/platform/changelog/check") {
       if (!takeAi()) return true;
       const result = await service.sync();
+      deps.invalidate(CACHE_PREFIX);
+      deps.sendJson(res, 200, { ok: true, result });
+      return true;
+    }
+    if (method === "POST" && path === "/bridge/platform/changelog/force") {
+      if (!takeAi()) return true;
+      const result = await service.forceRelease();
       deps.invalidate(CACHE_PREFIX);
       deps.sendJson(res, 200, { ok: true, result });
       return true;

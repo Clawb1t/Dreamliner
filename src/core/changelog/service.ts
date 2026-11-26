@@ -82,6 +82,8 @@ export type ChangelogSyncResult = {
   failed: number;
   openWindow: { commits: number; start: string; end: string } | null;
   error: string | null;
+  /** Set when an operator forced the open window closed ("Force a changelog"). */
+  forced?: boolean;
 };
 
 const iso = (ms: number | null) => (ms == null ? null : new Date(ms).toISOString());
@@ -226,10 +228,20 @@ export class ChangelogService {
     return updated!;
   }
 
+  /**
+   * "Force a changelog": closes the window that's still open (commits since the last update that
+   * would normally wait for a quiet period) and writes it now as its own update, separate from the
+   * ones before it. Waits for any sync already running, so the two never overlap.
+   */
+  async forceRelease(): Promise<ChangelogSyncResult> {
+    if (this.syncing) await this.syncing.catch(() => undefined);
+    return this.sync({ closeOpen: true });
+  }
+
   /** Looks for new commits, stores closed windows and writes the newest ones. Single-flight. */
-  sync(): Promise<ChangelogSyncResult> {
+  sync(options: { closeOpen?: boolean } = {}): Promise<ChangelogSyncResult> {
     if (this.syncing) return this.syncing;
-    this.syncing = this.runSync()
+    this.syncing = this.runSync(options.closeOpen === true)
       .then((result) => {
         this.lastSync = result;
         return result;
@@ -240,10 +252,11 @@ export class ChangelogService {
     return this.syncing;
   }
 
-  private async runSync(): Promise<ChangelogSyncResult> {
+  private async runSync(closeOpen = false): Promise<ChangelogSyncResult> {
     const { store, windowOptions, backfillLimit } = this.deps;
     const now = this.deps.now();
     const result: ChangelogSyncResult = { at: new Date(now).toISOString(), source: null, inserted: 0, generated: 0, failed: 0, openWindow: null, error: null };
+    if (closeOpen) result.forced = true;
 
     const rows = await store.list();
     const known = new Set(rows.flatMap((r) => r.commits.map((c) => c.sha)));
@@ -263,7 +276,8 @@ export class ChangelogService {
     const windows = groupCommitsIntoWindows(fresh, windowOptions);
     const taken = new Set(rows.map((r) => r.slug));
     for (const [index, window] of windows.entries()) {
-      if (!isWindowClosed(window, index === windows.length - 1, now, windowOptions)) {
+      // Forced: the open window counts as closed, so it becomes an update right away.
+      if (!closeOpen && !isWindowClosed(window, index === windows.length - 1, now, windowOptions)) {
         result.openWindow = { commits: window.commits.length, start: new Date(window.start).toISOString(), end: new Date(window.end).toISOString() };
         continue;
       }

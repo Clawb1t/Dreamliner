@@ -119,6 +119,37 @@ describe("ChangelogService.sync", () => {
   });
 });
 
+describe("ChangelogService.forceRelease", () => {
+  it("turns the open window into its own update, separate from the earlier ones", async () => {
+    const { store, service } = setup({ backfillLimit: 5 });
+    const normal = await service.sync();
+    // d1 (21 Nov) is still open on the 22nd, so a normal sync leaves it waiting.
+    assert.ok(normal.openWindow);
+    const before = await store.list();
+    assert.ok(!before.some((r) => r.commits.some((x) => x.sha === "d1")));
+
+    const forced = await service.forceRelease();
+    assert.equal(forced.forced, true);
+    assert.equal(forced.inserted, 1);
+    assert.equal(forced.openWindow, null);
+    const after = await store.list();
+    const newest = after.find((r) => r.commits.some((x) => x.sha === "d1"));
+    assert.ok(newest);
+    assert.deepEqual(newest.commits.map((x) => x.sha), ["d1"]);
+    assert.ok(newest.content, "the forced update is written straight away");
+    assert.equal(newest.status, "published");
+    // The earlier updates are untouched.
+    assert.equal(after.length, before.length + 1);
+  });
+
+  it("does nothing new when every commit is already in an update", async () => {
+    const { service } = setup();
+    await service.forceRelease();
+    const again = await service.forceRelease();
+    assert.equal(again.inserted, 0);
+  });
+});
+
 describe("ChangelogService public view", () => {
   it("only returns published updates with content, without commit details", async () => {
     const { store, service } = setup();
