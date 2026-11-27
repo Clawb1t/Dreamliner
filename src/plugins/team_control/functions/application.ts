@@ -29,7 +29,7 @@ export function acceptedApplicationFor(guildConfig: GuildConfig, guildId: string
     const row = getDb()
       .select()
       .from(applications)
-      .where(and(eq(applications.guildId, guildId), eq(applications.userId, userId), eq(applications.status, "accepted")))
+      .where(and(eq(applications.guildId, guildId), eq(applications.userId, userId), eq(applications.status, "accepted"), eq(applications.formKind, "application")))
       .orderBy(desc(applications.decidedAt), desc(applications.id))
       .limit(1)
       .get();

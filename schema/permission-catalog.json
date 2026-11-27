@@ -28,20 +28,6 @@
     ]
   },
   {
-    "plugin": "applications",
-    "pluginName": "Applications",
-    "pluginDescription": "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard.",
-    "entries": [
-      {
-        "plugin": "applications",
-        "permission": "can_review",
-        "grantKey": "applications.can_review",
-        "title": "Review",
-        "description": "Allow members to accept or deny applications from the review channel."
-      }
-    ]
-  },
-  {
     "plugin": "bluesky",
     "pluginName": "Bluesky",
     "pluginDescription": "Real-time Bluesky post notifications with Like and Repost buttons. Members connect their Bluesky account to like posts with a 💙 reaction and follow people from Discord.",
@@ -332,6 +318,20 @@
         "grantKey": "economy.can_view",
         "title": "View",
         "description": "Allow members to view hangars, cards, ranks, sets and leaderboards, and set their showcase."
+      }
+    ]
+  },
+  {
+    "plugin": "applications",
+    "pluginName": "Forms",
+    "pluginDescription": "Build any kind of form: applications, event RSVPs, questionnaires, polls, feedback, reports and sign-ups. Members fill them in from a post in any channel, and you review responses, see results and export them in Discord or on the dashboard.",
+    "entries": [
+      {
+        "plugin": "applications",
+        "permission": "can_review",
+        "grantKey": "applications.can_review",
+        "title": "Review",
+        "description": "Allow members to review form responses: accept, deny or change their status."
       }
     ]
   },

@@ -116,6 +116,9 @@ export function bucketFor(method: string, pathname: string): Bucket {
   // Quizzes: Autopilot question drafts spend an AI call; posting a panel or starting a live game posts in Discord.
   if (method !== "GET" && /\/quizzes\/generate$/.test(pathname)) return "ai";
   if (method !== "GET" && /\/quizzes\/\d+\/(?:post|live)$/.test(pathname)) return "send";
+  // Forms: bulk accept/deny gives roles and DMs up to 50 members; the CSV export reads up to 20,000 responses.
+  if (method !== "GET" && /\/applications\/bulk$/.test(pathname)) return "send";
+  if (/\/applications\/forms\/[0-9a-fA-F-]{36}\/export$/.test(pathname)) return "search";
   // Custom commands: importing or duplicating creates a command and re-registers the server's commands in Discord.
   if (method !== "GET" && /\/commands\/(?:import|c\/[a-z0-9_-]{1,32}\/duplicate)$/.test(pathname)) return "send";
   // Ending or rerolling a giveaway posts the winners and DMs each of them.

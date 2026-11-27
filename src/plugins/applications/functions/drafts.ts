@@ -1,9 +1,10 @@
 import type { Attachment } from "discord.js";
+import type { RsvpChoice } from "../../../config/schemas/applications.js";
 import type { FormAnswer } from "../../../core/formModal.js";
 
 /**
- * Answers from the pages of a multi-page application that have been submitted so far. Discord
- * can't open a modal straight from another modal's submit, so between pages the member clicks a
+ * Answers from the pages of a multi-page form that have been submitted so far. Discord can't
+ * open a modal straight from another modal's submit, so between pages the member clicks a
  * Continue button; their earlier pages wait here. Drafts live in memory only: a restart (or 30
  * idle minutes) just means starting the form again, which is fine for something this short-lived.
  */
@@ -12,6 +13,14 @@ export type ApplicationDraft = {
   files: Attachment[];
   /** Pages completed so far (the next page to show). */
   pagesDone: number;
+  /** Where each page starts in the question list (pages depend on earlier answers). */
+  cursors?: number[];
+  /** Editing this existing response instead of sending a new one. */
+  editingId?: number | null;
+  /** RSVP forms: the answer picked on the post, saved with the form. */
+  rsvp?: RsvpChoice | null;
+  /** A page that didn't pass validation: what was typed, by question id, to fill back in. */
+  retry?: { page: number; values: Record<string, string>; errors: string[] } | null;
   expiresAt: number;
 };
 

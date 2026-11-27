@@ -78,6 +78,7 @@ import { handleBlueskyButtonInteraction } from "./plugins/bluesky/functions/inte
 import {
   handleApplicationButtonInteraction,
   handleApplicationModalSubmit,
+  handleApplicationSelectMenu,
 } from "./plugins/applications/functions/interactions.js";
 import { IMAGE_ANOTHER_PREFIX } from "./plugins/images/functions/render.js";
 import { handleImageAnotherButton } from "./plugins/images/functions/buttons.js";
@@ -469,7 +470,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         if (handled) return;
       }
       if (interaction.customId.startsWith(APPLICATION_PREFIX)) {
-        const handled = await safeHandle(interaction, "Application button", () => handleApplicationButtonInteraction(interaction));
+        const handled = await safeHandle(interaction, "Form button", () => handleApplicationButtonInteraction(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(APPEAL_PREFIX)) {
@@ -584,6 +585,10 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         const handled = await safeHandle(interaction, "Quiz select", () => handleQuizSelect(interaction));
         if (handled) return;
       }
+      if (interaction.customId.startsWith(APPLICATION_PREFIX)) {
+        const handled = await safeHandle(interaction, "Form status select", () => handleApplicationSelectMenu(interaction));
+        if (handled) return;
+      }
       const companionSelect = await safeHandle(interaction, "Companion select", () => handleCompanionSelectInteraction(interaction));
       if (companionSelect) return;
       await safeHandle(interaction, "Help select", () => handleHelpSelectInteraction(configManager, interaction));
@@ -603,7 +608,7 @@ export async function createBot(configManager: ConfigManager): Promise<{ client:
         if (handled) return;
       }
       if (interaction.customId.startsWith(APPLICATION_PREFIX)) {
-        const handled = await safeHandle(interaction, "Application modal", () => handleApplicationModalSubmit(interaction));
+        const handled = await safeHandle(interaction, "Form modal", () => handleApplicationModalSubmit(interaction));
         if (handled) return;
       }
       if (interaction.customId.startsWith(APPEAL_PREFIX)) {

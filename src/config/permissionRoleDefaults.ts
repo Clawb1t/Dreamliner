@@ -121,7 +121,7 @@ export const BUILT_IN_ROLE_GRANTS: Record<BuiltInTier, string[]> = {
     // servers need them here too, or nobody but admins can review appeals)
     "appeals.can_review",
     "appeals.can_view",
-    // applications
+    // applications (Forms: review responses)
     "applications.can_review",
     // birthdays
     "birthdays.can_manage",

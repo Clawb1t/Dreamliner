@@ -296,6 +296,28 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       description: "Server reviews you submitted.",
       rows: serializable(await db.select().from(reviews).where(eq(reviews.userId, userId)).all()),
     },
+    form_responses: {
+      label: "Form responses",
+      description:
+        "Applications, RSVPs and other form responses you sent, with your answers. Anonymous responses are included: only you can be matched to them.",
+      rows: serializable(
+        (await import("../plugins/applications/functions/store.js")).responsesByMember(userId).map((r) => ({
+          id: r.id,
+          guildId: r.guildId,
+          form: r.openingName,
+          kind: r.formKind,
+          anonymous: r.anonymous,
+          status: r.status,
+          rsvp: r.rsvp,
+          waitlisted: r.waitlisted,
+          answers: r.answers,
+          reason: r.reason,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          decidedAt: r.decidedAt,
+        })),
+      ),
+    },
     suggestion_votes: {
       label: "Suggestion votes",
       description: "Upvotes / downvotes on suggestions.",

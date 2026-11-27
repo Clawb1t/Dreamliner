@@ -1,5 +1,6 @@
 import { count, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db/client.js";
+import { countResponsesByMember, deleteResponsesByMember } from "../plugins/applications/functions/store.js";
 import {
   blueskyAccounts,
   blueskyActions,
@@ -383,6 +384,12 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       ),
     },
     {
+      key: "form_responses",
+      label: "Form responses",
+      description: "Applications, RSVPs and other form responses you sent (anonymous ones too), with the staff notes on them.",
+      total: Promise.resolve(countResponsesByMember(userId)),
+    },
+    {
       key: "suggestion_votes",
       label: "Suggestion votes",
       description: "Upvotes / downvotes on suggestions.",
@@ -627,6 +634,10 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
     "reviews",
     db.delete(reviews).where(eq(reviews.userId, userId)).returning(),
   );
+  // Forms: every response they sent (anonymous ones are matched by their key) and the notes on them.
+  const forms = deleteResponsesByMember(userId);
+  deleted.form_responses = forms.responses;
+  deleted.form_response_notes = forms.notes;
   await wipe(
     "suggestion_votes",
     db.delete(suggestionVotes).where(eq(suggestionVotes.userId, userId)).returning(),

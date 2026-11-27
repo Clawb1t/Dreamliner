@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-27T17:10:15.029Z",
+  "generatedAt": "2026-11-27T20:06:02.330Z",
   "templatePath": "config/default.server.yaml",
   "schemaPath": "schema/guild-config.schema.json",
   "categories": [
@@ -352,8 +352,8 @@
         },
         {
           "key": "applications",
-          "name": "Applications",
-          "description": "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard."
+          "name": "Forms",
+          "description": "Build any kind of form: applications, event RSVPs, questionnaires, polls, feedback, reports and sign-ups. Members fill them in from a post in any channel, and you review responses, see results and export them in Discord or on the dashboard."
         }
       ]
     }
@@ -711,8 +711,8 @@
     },
     {
       "key": "applications",
-      "name": "Applications",
-      "description": "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard.",
+      "name": "Forms",
+      "description": "Build any kind of form: applications, event RSVPs, questionnaires, polls, feedback, reports and sign-ups. Members fill them in from a post in any channel, and you review responses, see results and export them in Discord or on the dashboard.",
       "category": "Support",
       "categoryId": "support"
     }
@@ -753,6 +753,13 @@
     "passport.remove_role_ids",
     "applications.openings.*.accept_roles",
     "applications.openings.*.accept_remove_roles",
+    "applications.openings.*.deny_roles",
+    "applications.openings.*.deny_remove_roles",
+    "applications.openings.*.submit_actions.add_roles",
+    "applications.openings.*.submit_actions.remove_roles",
+    "applications.openings.*.statuses.*.add_roles",
+    "applications.openings.*.statuses.*.remove_roles",
+    "applications.openings.*.event.going_roles",
     "suggestions.approved_role",
     "suggestions.implemented_role",
     "team_control.ranks.*.role_id",

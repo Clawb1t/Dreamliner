@@ -26,7 +26,15 @@ import type { TicketFormQuestion } from "../config/schemas/tickets.js";
  */
 
 export type FormQuestion = TicketFormQuestion;
-export type FormAnswer = { questionId: string; label: string; answer: string };
+/**
+ * One answer. `answer` is the readable text (option labels, names); `values` holds the raw
+ * values behind it (option values, ids, the typed text) for Forms' conditions and charts. Answers
+ * saved before `values` existed simply don't have it.
+ */
+export type FormAnswer = { questionId: string; label: string; answer: string; values?: string[] };
+
+/** Per-question extras a caller can add: help text under the label, and a prefilled text value. */
+export type FormFieldExtras = { description?: string; value?: string };
 
 export const MODAL_PAGE_SIZE = 5;
 
@@ -43,11 +51,15 @@ export function buildFormModal(options: {
   title: string;
   questions: FormQuestion[];
   fieldId: (index: number) => string;
+  /** Optional help text and prefilled values (Forms). Tickets pass nothing and render as before. */
+  extras?: (index: number) => FormFieldExtras | undefined;
 }): ModalBuilder {
   const modal = new ModalBuilder().setCustomId(options.customId).setTitle(options.title.slice(0, 45));
 
   for (const [index, question] of options.questions.slice(0, MODAL_PAGE_SIZE).entries()) {
     const fieldId = options.fieldId(index);
+    const extras = options.extras?.(index);
+    const description = extras?.description?.trim().slice(0, 100) || undefined;
 
     // Plain text input in a classic action row, exactly as questions saved before modal
     // component support existed (no `type`, defaulting to "text") have always rendered.
@@ -60,6 +72,12 @@ export function buildFormModal(options: {
         .setMaxLength(question.max_length);
       if (question.min_length > 0) field.setMinLength(Math.min(question.min_length, question.max_length));
       if (question.placeholder) field.setPlaceholder(question.placeholder);
+      if (extras?.value) field.setValue(extras.value.slice(0, question.max_length));
+      if (description) {
+        // Help text needs the Label wrapper (classic action rows have no description).
+        modal.addLabelComponents(new LabelBuilder().setLabel(question.label.slice(0, 45)).setDescription(description).setTextInputComponent(field));
+        continue;
+      }
       modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(field));
       continue;
     }
@@ -73,6 +91,7 @@ export function buildFormModal(options: {
     }
 
     const label = new LabelBuilder().setLabel(question.label.slice(0, 45));
+    if (description) label.setDescription(description);
     const min = question.min_values ?? (question.required ? 1 : 0);
     const max = question.max_values ?? 1;
     const choices = (question.options ?? []).slice(0, 25).map((option) => ({
@@ -163,6 +182,7 @@ function formatOptionValues(question: FormQuestion, values: readonly string[]): 
  */
 export function readFormAnswer(question: FormQuestion, fieldId: string, fields: ModalSubmitFields): FormAnswer | null {
   let answer = "";
+  let values: string[] = [];
 
   switch (question.type) {
     case "text_display":
@@ -170,29 +190,35 @@ export function readFormAnswer(question: FormQuestion, fieldId: string, fields: 
 
     case "text":
       answer = fields.getTextInputValue(fieldId).trim();
+      values = answer ? [answer] : [];
       break;
 
     case "string_select":
-      answer = formatOptionValues(question, fields.getStringSelectValues(fieldId));
+      values = [...fields.getStringSelectValues(fieldId)];
+      answer = formatOptionValues(question, values);
       break;
 
     case "radio_group": {
       const value = fields.getRadioGroup(fieldId);
+      values = value ? [value] : [];
       answer = value ? formatOptionValues(question, [value]) : "";
       break;
     }
 
     case "checkbox_group":
-      answer = formatOptionValues(question, fields.getCheckboxGroup(fieldId));
+      values = [...fields.getCheckboxGroup(fieldId)];
+      answer = formatOptionValues(question, values);
       break;
 
     case "checkbox":
       answer = fields.getCheckbox(fieldId) ? "Yes" : "No";
+      values = [answer === "Yes" ? "yes" : "no"];
       break;
 
     case "user_select": {
       const users = fields.getSelectedUsers(fieldId);
       answer = users ? [...users.values()].map((user) => user.username).join(", ") : "";
+      values = users ? [...users.keys()] : [];
       break;
     }
 
@@ -204,6 +230,7 @@ export function readFormAnswer(question: FormQuestion, fieldId: string, fields: 
             .filter((name): name is string => Boolean(name))
             .join(", ")
         : "";
+      values = roles ? [...roles.keys()] : [];
       break;
     }
 
@@ -214,12 +241,14 @@ export function readFormAnswer(question: FormQuestion, fieldId: string, fields: 
         : [];
       const userNames = selected ? [...selected.users.values()].map((user) => user.username) : [];
       answer = [...roleNames, ...userNames].join(", ");
+      values = selected ? [...selected.roles.keys(), ...selected.users.keys()] : [];
       break;
     }
 
     case "channel_select": {
       const channels = fields.getSelectedChannels(fieldId);
       answer = channels ? [...channels.values()].map((channel) => `#${channel.name}`).join(", ") : "";
+      values = channels ? [...channels.keys()] : [];
       break;
     }
 
@@ -230,7 +259,7 @@ export function readFormAnswer(question: FormQuestion, fieldId: string, fields: 
     }
   }
 
-  return { questionId: question.id, label: question.label, answer };
+  return { questionId: question.id, label: question.label, answer, ...(values.length ? { values } : {}) };
 }
 
 /** Files attached to a file_upload question, for callers that re-post them somewhere. */

@@ -3055,11 +3055,34 @@ export const applications = sqliteTable(
     reason: text("reason"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     decidedAt: integer("decided_at", { mode: "timestamp" }),
+    /** Forms (0164): the form's kind when submitted ("application" for everything older). */
+    formKind: text("form_kind").notNull().default("application"),
+    /** Anonymous responses store a keyed hash in `user_id` instead of the member's id. */
+    anonymous: integer("anonymous", { mode: "boolean" }).notNull().default(false),
+    /** RSVP forms: "going" | "maybe" | "not_going". */
+    rsvp: text("rsvp"),
+    /** RSVP forms: going, but waiting for a free spot. */
+    waitlisted: integer("waitlisted", { mode: "boolean" }).notNull().default(false),
+    /** When the member last edited their answers or changed their RSVP. */
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => [
     index("applications_guild_status").on(table.guildId, table.status),
     index("applications_guild_user").on(table.guildId, table.userId, table.openingId),
+    index("applications_guild_opening").on(table.guildId, table.openingId, table.createdAt),
   ],
+);
+
+/** Forms: RSVP reminders already sent (one per event start). */
+export const formReminders = sqliteTable(
+  "form_reminders",
+  {
+    guildId: text("guild_id").notNull(),
+    openingId: text("opening_id").notNull(),
+    startsAt: text("starts_at").notNull(),
+    sentAt: integer("sent_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.guildId, table.openingId, table.startsAt] })],
 );
 
 /** Applications activity log: staff notes on one application (the dashboard's timeline). */

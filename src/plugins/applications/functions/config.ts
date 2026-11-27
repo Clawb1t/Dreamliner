@@ -2,6 +2,7 @@ import {
   zApplicationsConfig,
   type ApplicationOpening,
   type ApplicationsConfig,
+  type FormKind,
 } from "../../../config/schemas/applications.js";
 import type { GuildConfig } from "../../../config/schemas/guild.js";
 import { getPluginSettings } from "../../../core/permissionRoles.js";
@@ -17,12 +18,25 @@ export function findOpening(config: ApplicationsConfig, openingId: string): Appl
   return config.openings.find((o) => o.id === openingId);
 }
 
-export function openingName(opening: Pick<ApplicationOpening, "name">): string {
-  return opening.name.trim() || "Application";
+/** What each kind of form is called in Discord messages. */
+export const FORM_KIND_NOUNS: Record<FormKind, string> = {
+  application: "application",
+  rsvp: "RSVP",
+  questionnaire: "response",
+  poll: "vote",
+  feedback: "feedback",
+  report: "report",
+  signup: "sign-up",
+  custom: "response",
+};
+
+export function openingName(opening: Pick<ApplicationOpening, "name"> & { kind?: FormKind }): string {
+  return opening.name.trim() || (opening.kind && opening.kind !== "application" ? "Form" : "Application");
 }
 
 export function modalTitle(opening: ApplicationOpening): string {
-  return (opening.modal_title.trim() || `${openingName(opening)} application`).slice(0, 45);
+  const fallback = opening.kind === "application" ? `${openingName(opening)} application` : openingName(opening);
+  return (opening.modal_title.trim() || fallback).slice(0, 45);
 }
 
 /** The opening's own review channel, else the plugin-wide default. */
@@ -30,7 +44,20 @@ export function reviewChannelFor(config: ApplicationsConfig, opening: Applicatio
   return opening.review_channel_id?.trim() || config.review_channel_id?.trim() || undefined;
 }
 
-/** Template vars every Applications message can use on top of the usual {user}/{guild}/... ones. */
+/** Template vars every Forms message can use on top of the usual {user}/{guild}/... ones. */
 export function openingVars(opening: ApplicationOpening): Record<string, string> {
-  return { opening: openingName(opening), opening_description: opening.description.trim() };
+  const vars: Record<string, string> = {
+    opening: openingName(opening),
+    opening_description: opening.description.trim(),
+    form: openingName(opening),
+    form_description: opening.description.trim(),
+  };
+  if (opening.kind === "rsvp") {
+    const start = Date.parse(opening.event.starts_at ?? "");
+    vars.event_time = Number.isFinite(start) ? `<t:${Math.floor(start / 1000)}:F>` : "";
+    vars.event_relative = Number.isFinite(start) ? `<t:${Math.floor(start / 1000)}:R>` : "";
+    vars.location = opening.event.location.trim();
+    vars.capacity = opening.event.capacity > 0 ? String(opening.event.capacity) : "";
+  }
+  return vars;
 }

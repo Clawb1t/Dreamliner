@@ -3729,6 +3729,8 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Applications: staff notes (/:id/notes[/:noteId]), stats and bulk accept/deny.
         const applicationNoteMatch = /^\/bridge\/guilds\/(\d+)\/applications\/(\d+)\/notes(?:\/(\d+))?$/.exec(url.pathname);
         const applicationExtraMatch = /^\/bridge\/guilds\/(\d+)\/applications\/(stats|bulk)$/.exec(url.pathname);
+        // Forms: one form's results (question summaries, RSVP lists) and its CSV export.
+        const formResultsMatch = /^\/bridge\/guilds\/(\d+)\/applications\/forms\/([0-9a-fA-F-]{36})\/(results|export)$/.exec(url.pathname);
         // Appeals: /page, /stats, /diagnostics, /assets (upload) and /background/:assetId (public
         // image); the appellant's /mine/:id[/reply|/withdraw];
         // staff /:id[/decision|/info|/note]; and the bare path (GET list, POST submit).
@@ -3737,7 +3739,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             url.pathname,
           );
         const applicationsMatch =
-          /^\/bridge\/guilds\/(\d+)\/applications(?:\/(\d+)(\/decision)?|\/openings\/([0-9a-fA-F-]{36})\/publish)?$/.exec(
+          /^\/bridge\/guilds\/(\d+)\/applications(?:\/(\d+)(\/(?:decision|status|rsvp))?|\/openings\/([0-9a-fA-F-]{36})\/publish)?$/.exec(
             url.pathname,
           );
         const suggestionActionMatch =
@@ -3957,6 +3959,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           !reviewStatsMatch &&
           !applicationNoteMatch &&
           !applicationExtraMatch &&
+          !formResultsMatch &&
           !applicationsMatch &&
           !appealsMatch &&
           !suggestionActionMatch &&
@@ -4095,6 +4098,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           reviewStatsMatch?.[1] ??
           applicationNoteMatch?.[1] ??
           applicationExtraMatch?.[1] ??
+          formResultsMatch?.[1] ??
           applicationsMatch?.[1] ??
           appealsMatch?.[1] ??
           suggestionActionMatch?.[1] ??
@@ -8375,6 +8379,47 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        if (formResultsMatch) {
+          const userId = url.searchParams.get("userId")?.trim();
+          if (!userId) {
+            sendJson(res, 400, { error: "userId is required" });
+            return;
+          }
+          if (!(await memberCanManage(guild, userId))) {
+            sendJson(res, 403, { error: "Missing Manage Server permission." });
+            return;
+          }
+          if (req.method !== "GET") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          const web = await import("./webApplications.js");
+          const [, , formId, kind] = formResultsMatch;
+          if (kind === "results") {
+            const results = await web.getWebFormResults(guild, formId!);
+            if (!results) {
+              sendJson(res, 404, { error: "Form not found" });
+              return;
+            }
+            sendJson(res, 200, results);
+            return;
+          }
+          const exported = await web.exportWebFormCsv(guild, formId!);
+          if (!exported) {
+            sendJson(res, 404, { error: "Form not found" });
+            return;
+          }
+          trackDashboardAction(client, guildId, userId, {
+            eventType: "dashboard_config",
+            title: "Form responses exported",
+            summary: `Exported ${exported.rows} response${exported.rows === 1 ? "" : "s"} from form \`${formId}\` as CSV on the dashboard.`,
+            targetId: formId,
+            payload: { action: "form_export", openingId: formId, rows: exported.rows },
+          });
+          sendJson(res, 200, exported);
+          return;
+        }
+
         if (applicationNoteMatch || applicationExtraMatch) {
           const userId = url.searchParams.get("userId")?.trim();
           if (!userId) {
@@ -8399,7 +8444,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           if (applicationExtraMatch) {
             const kind = applicationExtraMatch[2];
             if (kind === "stats" && req.method === "GET") {
-              sendJson(res, 200, web.getWebApplicationStats(guild));
+              sendJson(res, 200, web.getWebApplicationStats(guild, url.searchParams.get("opening")?.trim() || null));
               return;
             }
             if (kind === "bulk" && req.method === "POST") {
@@ -8515,6 +8560,52 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           }
 
           const applicationId = Number(applicationIdRaw);
+          if (decisionPath === "/status" || decisionPath === "/rsvp") {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Method not allowed" });
+              return;
+            }
+            let body: { status?: unknown; rsvp?: unknown; reason?: unknown } = {};
+            try {
+              body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const { setWebApplicationStatus, setWebRsvp } = await import("./webApplications.js");
+            if (decisionPath === "/status") {
+              const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 1000) || null : null;
+              const result = await setWebApplicationStatus(guild, applicationId, body.status, userId, reason);
+              if ("error" in result) {
+                sendJson(res, 409, { error: result.error });
+                return;
+              }
+              trackDashboardAction(client, guildId, userId, {
+                eventType: "dashboard_config",
+                title: "Form response status changed",
+                summary: `Response \`#${applicationId}\` is now ${result.application.statusLabel} (changed on the dashboard).`,
+                targetId: String(applicationId),
+                details: reason ? [`Reason: ${reason}`] : [],
+                payload: { action: "form_status", applicationId, status: result.application.status },
+              });
+              sendJson(res, 200, { ok: true, ...result });
+              return;
+            }
+            const result = await setWebRsvp(guild, applicationId, body.rsvp, userId);
+            if ("error" in result) {
+              sendJson(res, 409, { error: result.error });
+              return;
+            }
+            trackDashboardAction(client, guildId, userId, {
+              eventType: "dashboard_config",
+              title: "RSVP changed",
+              summary: `RSVP \`#${applicationId}\` was set to ${String(body.rsvp).replace("_", " ")} on the dashboard.`,
+              targetId: String(applicationId),
+              payload: { action: "form_rsvp", applicationId, rsvp: body.rsvp, promoted: result.promoted },
+            });
+            sendJson(res, 200, { ok: true, ...result });
+            return;
+          }
           if (decisionPath) {
             if (req.method !== "POST") {
               sendJson(res, 405, { error: "Method not allowed" });

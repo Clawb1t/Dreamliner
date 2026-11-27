@@ -388,9 +388,9 @@ export const PLUGIN_DISPLAY: Record<string, EditorPluginMeta> = {
   },
   applications: {
     key: "applications",
-    name: "Applications",
+    name: "Forms",
     description:
-      "Let members apply for roles and positions through custom forms posted in any channel, then review, accept, or deny each application in Discord or on the dashboard.",
+      "Build any kind of form: applications, event RSVPs, questionnaires, polls, feedback, reports and sign-ups. Members fill them in from a post in any channel, and you review responses, see results and export them in Discord or on the dashboard.",
   },
   tickets: {
     key: "tickets",

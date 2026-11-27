@@ -32,9 +32,16 @@ export const GRANTABLE_ROLE_FIELDS = [
   "passport.unverified_role_id",
   "passport.grant_role_ids",
   "passport.remove_role_ids",
-  // applications/functions/review.ts
+  // applications/functions/review.ts (Forms) and interactions.ts (RSVP going roles)
   "applications.openings.*.accept_roles",
   "applications.openings.*.accept_remove_roles",
+  "applications.openings.*.deny_roles",
+  "applications.openings.*.deny_remove_roles",
+  "applications.openings.*.submit_actions.add_roles",
+  "applications.openings.*.submit_actions.remove_roles",
+  "applications.openings.*.statuses.*.add_roles",
+  "applications.openings.*.statuses.*.remove_roles",
+  "applications.openings.*.event.going_roles",
   // suggestions/functions/service.ts
   "suggestions.approved_role",
   "suggestions.implemented_role",

@@ -31,7 +31,7 @@ const PLUGIN_LABELS: Record<string, string> = {
   passport: "Passport",
   appeals: "Appeals",
   team_control: "Team Control",
-  applications: "Applications",
+  applications: "Forms",
   birthdays: "Birthdays",
   activity_rewards: "Activity Rewards",
   message_kits: "Message Kits",
