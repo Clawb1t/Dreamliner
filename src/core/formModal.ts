@@ -66,7 +66,6 @@ export function buildFormModal(options: {
     if (question.type === "text") {
       const field = new TextInputBuilder()
         .setCustomId(fieldId)
-        .setLabel(question.label)
         .setStyle(question.style === "paragraph" ? TextInputStyle.Paragraph : TextInputStyle.Short)
         .setRequired(question.required)
         .setMaxLength(question.max_length);
@@ -74,10 +73,14 @@ export function buildFormModal(options: {
       if (question.placeholder) field.setPlaceholder(question.placeholder);
       if (extras?.value) field.setValue(extras.value.slice(0, question.max_length));
       if (description) {
-        // Help text needs the Label wrapper (classic action rows have no description).
+        // Help text needs the Label wrapper (classic action rows have no description). Discord
+        // rejects a TextInput that carries its own label inside a Label (50035,
+        // TEXT_INPUT_COMPONENT_LABEL_IN_LABEL_COMPONENT), so the label goes on the wrapper only.
         modal.addLabelComponents(new LabelBuilder().setLabel(question.label.slice(0, 45)).setDescription(description).setTextInputComponent(field));
         continue;
       }
+      // Classic action row: the TextInput carries its own label (Discord caps it at 45 characters).
+      field.setLabel(question.label.slice(0, 45));
       modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(field));
       continue;
     }
