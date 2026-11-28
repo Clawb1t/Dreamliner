@@ -2314,6 +2314,14 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
           return;
         }
 
+        // Every badge anyone can earn, with its tiers, what they take and how rare each is: the
+        // badge window's tier rows and its "Discover" list. Public, like the info route below.
+        if (url.pathname === "/bridge/progression-badges/catalog" && req.method === "GET") {
+          const { listPublicBadgeCatalog } = await import("../core/progressionBadges/index.js");
+          sendJson(res, 200, { ok: true, badges: await listPublicBadgeCatalog(client) });
+          return;
+        }
+
         // Everything about one progression badge (every tier, what it takes, how many hold it), for
         // the badge modal on the site. Public: it describes the badge, not any one user.
         const progressionBadgeInfoMatch = /^\/bridge\/progression-badges\/info\/([a-z0-9_]{2,32})$/.exec(url.pathname);
@@ -2566,6 +2574,22 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { ok: true, user });
+          return;
+        }
+
+        // Legacy platform badges are retired: progression badges are the only ones shown or
+        // assigned. The rows are kept (nothing is deleted), so reads answer empty and every write,
+        // assignment or display change is refused.
+        if (/^\/bridge\/users\/\d+\/badges(\/\d+|\/display)?$/.test(url.pathname)) {
+          if (req.method === "GET" || (req.method === "PUT" && url.pathname.endsWith("/display"))) {
+            sendJson(res, 200, { ok: true, badges: [] });
+            return;
+          }
+          sendJson(res, 410, { error: "Legacy badges have been retired. Use progression badges instead." });
+          return;
+        }
+        if (/^\/bridge\/platform\/badges(\/\d+)?$/.test(url.pathname) && req.method !== "GET") {
+          sendJson(res, 410, { error: "Legacy badges have been retired. Use progression badges instead." });
           return;
         }
 
@@ -2861,8 +2885,9 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               sendJson(res, 403, { error: "Platform access required." });
               return;
             }
+            // Read-only: the superuser dashboard lists retired badges and how many people hold each.
             const { listBadges } = await import("./badges.js");
-            sendJson(res, 200, { ok: true, badges: await listBadges() });
+            sendJson(res, 200, { ok: true, badges: await listBadges(), retired: true });
             return;
           }
           if (req.method === "POST") {

@@ -4,7 +4,7 @@ import { getUserProfile } from "./userProfiles.js";
 import { canViewCrossServerData, getGhostState, type CrossServerAccess } from "../core/privacy/ghostMode.js";
 import { dailyActivityFor, dailyVoiceFor, firstSeenFor, globalEconomyFor, globalStatsFor, hourlyActivityFor } from "../core/privacy/crossServer.js";
 import { filterBadgesForAccess, isGhostActive } from "../core/privacy/policy.js";
-import { listDisplayedUserBadges, type UserBadge } from "./userBadges.js";
+import type { UserBadge } from "./userBadges.js";
 import { getProgressionBadges, type ProgressionBadge } from "../core/progressionBadges/index.js";
 import { listUserGuildSummaries, type UserGuildSummary } from "./userActivity.js";
 import { RARITIES, type Rarity } from "../plugins/economy/hangar/constants.js";
@@ -41,6 +41,7 @@ export type PublicProfileIdentity = {
   profileVisible: boolean;
   /** Opt-in: show the plane/airline trading card collection section. Off by default. */
   showTradingCards: boolean;
+  /** Legacy platform badges: retired, always empty (kept so older site builds don't break). */
   badges: UserBadge[];
   /** True when this user owns at least one guild with an active Dreamliner One subscription —
    *  powers the small One icon + "subscribed for X" tooltip next to their name on their public
@@ -155,15 +156,14 @@ export async function buildPublicProfileIdentity(
   if (!discordUser) return null;
 
   // Each extra is optional: one failing query must not take the whole profile down.
-  const [profileResult, badgesResult, oneOwnerResult, progressionResult] = await Promise.allSettled([
+  const [profileResult, oneOwnerResult, progressionResult] = await Promise.allSettled([
     getUserProfile(userId),
-    listDisplayedUserBadges(userId),
     resolveOneOwnerSince(client, userId),
     getProgressionBadges(client, userId),
   ]);
   if (profileResult.status === "rejected") throw profileResult.reason;
   const profile = profileResult.value;
-  const badges = badgesResult.status === "fulfilled" ? badgesResult.value : [];
+  const badges: UserBadge[] = [];
   const oneOwnerSince = oneOwnerResult.status === "fulfilled" ? oneOwnerResult.value : null;
   const access = canViewCrossServerData(viewerId, userId);
   const progressionBadges = filterBadgesForAccess(progressionResult.status === "fulfilled" ? progressionResult.value : [], access);

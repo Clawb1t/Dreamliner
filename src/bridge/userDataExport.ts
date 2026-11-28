@@ -364,8 +364,8 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       ),
     },
     badges: {
-      label: "Badges",
-      description: "Platform badges assigned to your account.",
+      label: "Legacy badges",
+      description: "Platform badges assigned to your account before progression badges replaced them. They are no longer shown anywhere.",
       rows: serializable(await db.select().from(userBadges).where(eq(userBadges.userId, userId)).all()),
     },
     hidden_progression_badges: {

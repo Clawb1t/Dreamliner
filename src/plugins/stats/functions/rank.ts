@@ -7,7 +7,6 @@ import { globalStatsFor } from "../../../core/privacy/crossServer.js";
 import { canViewCrossServerData } from "../../../core/privacy/ghostMode.js";
 import { filterBadgesForAccess } from "../../../core/privacy/policy.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
-import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
 import { getProgressionBadges, loadBadgeImage } from "../../../core/progressionBadges/index.js";
 import { defaultTranslator, type Translator } from "../../../i18n/index.js";
 import { retryAsync } from "../../../core/retry.js";
@@ -93,7 +92,7 @@ export async function renderUserRankCard(
   // Banners aren't included on cached User objects — a forced fetch is required to see one.
   // Retried a few times: a single rate limit or network blip here used to mean the card just
   // rendered with no banner, since there was nothing to fall back to and nothing that retried.
-  const [member, bannerUser, profile, badges, progression] = await Promise.all([
+  const [member, bannerUser, profile, progression] = await Promise.all([
     withinBudget(guild.members.fetch(user.id).catch(() => null), BANNER_FETCH_BUDGET_MS),
     withinBudget(
       retryAsync(() => guild.client.users.fetch(user.id, { force: true }), {
@@ -102,7 +101,6 @@ export async function renderUserRankCard(
       BANNER_FETCH_BUDGET_MS,
     ),
     getUserProfile(user.id),
-    listDisplayedUserBadges(user.id),
     getProgressionBadges(guild.client, user.id)
       .then((list) => filterBadgesForAccess(list, canViewCrossServerData(viewerId, user.id)))
       .catch(() => []),
@@ -111,12 +109,8 @@ export async function renderUserRankCard(
   // Sized for the 4x card: the avatar draws at 256px and the banner spans 1840px.
   const avatarURL = user.displayAvatarURL({ size: 512, extension: "png" });
   const bannerURL = bannerUser?.bannerURL({ size: 2048, extension: "png" }) ?? null;
-  const rowBadges = badges.slice(0, 3).map((badge) => ({
-    name: badge.name,
-    icon: badge.icon,
-    iconImageUrl: badge.iconImageUrl,
-    colorHex: badge.colorHex,
-  }));
+  // Legacy platform badges are retired: only progression badges are shown.
+  const rowBadges: NonNullable<RankCardRow["badges"]> = [];
   const progressionIcons = await progressionIconBuffers(progression);
   const cosmetics = safeCosmetics(user.id);
 

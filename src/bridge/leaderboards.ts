@@ -141,12 +141,10 @@ export async function renderRows(
 ) {
   const userIds = picked.map((row) => row.userId);
   const { getAccentColorsForUsers } = await import("./userProfiles.js");
-  const { getDisplayedBadgesForUsers } = await import("./userBadges.js");
   const { getProgressionBadgesForUsers } = await import("../core/progressionBadges/index.js");
-  const [cosmetics, accents, badgesByUser, progressionByUser] = await Promise.all([
+  const [cosmetics, accents, progressionByUser] = await Promise.all([
     leaderboardCosmeticsFor(userIds),
     options.includeAccents === false ? Promise.resolve(new Map<string, string>()) : getAccentColorsForUsers(userIds),
-    getDisplayedBadgesForUsers(userIds),
     getProgressionBadgesForUsers(client, userIds).catch(() => new Map()),
   ]);
   const access = crossServerAccessForMany(userIds);
@@ -165,7 +163,8 @@ export async function renderRows(
       sharePct: sharePctValue(row.count, trafficTotal),
       shareLabel: formatSharePct(row.count, trafficTotal),
       accentColor: accents.get(row.userId) ?? null,
-      badges: badgesByUser.get(row.userId) ?? [],
+      // Legacy platform badges are retired; the field stays empty for older site builds.
+      badges: [] as never[],
       // Badge tiers stay, their live cross-server progress numbers don't (policy.ts).
       progressionBadges: filterBadgesForAccess(progressionByUser.get(row.userId) ?? [], access.get(row.userId) ?? "snapshot"),
       cosmetics: cosmetics.get(row.userId) ?? null,

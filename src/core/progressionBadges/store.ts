@@ -9,6 +9,7 @@ import {
   userProgressionBadgeHidden,
 } from "../../db/schema.js";
 import { getMetric, MANUAL_METRIC_ID } from "./metrics.js";
+import { generateTierArt } from "./glyphs.js";
 
 /** Progression badges made on the superuser dashboard, their tier art, and hand assignments. */
 
@@ -167,6 +168,14 @@ function newVersion(): string {
   return randomBytes(6).toString("hex");
 }
 
+/** Generated art's versions start with "g", so an edit knows to redraw it (the tier count, colour
+ *  or stat may have changed) rather than keep it. */
+const GENERATED_PREFIX = "g";
+
+export function isGeneratedArt(imageVersion: string): boolean {
+  return imageVersion.startsWith(GENERATED_PREFIX);
+}
+
 async function prepareTiers(raw: unknown, metric: string, existingBadgeId: number | null): Promise<PreparedTier[]> {
   if (!Array.isArray(raw) || raw.length === 0) throw new BadgeInputError("Add at least one tier.");
   if (raw.length > MAX_TIERS) throw new BadgeInputError(`A badge can have at most ${MAX_TIERS} tiers.`);
@@ -195,7 +204,11 @@ async function prepareTiers(raw: unknown, metric: string, existingBadgeId: numbe
         .get();
       if (row) image = { buffer: Buffer.from(row.image), contentType: row.contentType, imageVersion: row.imageVersion };
     }
-    if (!image) throw new BadgeInputError(`${label} needs an image.`);
+    if (!image || isGeneratedArt(image.imageVersion)) {
+      // No art uploaded: drawn below, once the tiers are in their final order.
+      prepared.push({ threshold, name, image: Buffer.alloc(0), contentType: "image/png", imageVersion: "" });
+      continue;
+    }
     prepared.push({ threshold, name, image: image.buffer, contentType: image.contentType, imageVersion: image.imageVersion });
   }
   if (!manual) {
@@ -206,6 +219,12 @@ async function prepareTiers(raw: unknown, metric: string, existingBadgeId: numbe
       }
     }
   }
+  // Tiers without art get the stat's icon on the tier's colour. An image can be uploaded later.
+  prepared.forEach((tier, index) => {
+    if (tier.imageVersion) return;
+    tier.image = generateTierArt(getMetric(metric)?.icon ?? "sparkle", index + 1, prepared.length);
+    tier.imageVersion = GENERATED_PREFIX + newVersion();
+  });
   return prepared;
 }
 

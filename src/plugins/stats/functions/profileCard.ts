@@ -5,7 +5,6 @@ import { siteFont } from "../../welcome_message/functions/cardFonts.js";
 import { canvasGlyphSupport, cleanCanvasName, firstGrapheme, stripUnsupportedGlyphs, truncateToFit } from "../../../core/canvasText.js";
 import { colorMix, ensureEmojiFont, loadImageMaybeDataUri, roundRect, tintedImage, type CardLayers, type CardMode } from "./charts.js";
 import { getUserProfile } from "../../../bridge/userProfiles.js";
-import { listDisplayedUserBadges } from "../../../bridge/userBadges.js";
 import { dailyActivityFor, dailyVoiceFor, firstSeenFor, globalEconomyFor, globalStatsFor, hourlyActivityFor } from "../../../core/privacy/crossServer.js";
 import { canViewCrossServerData } from "../../../core/privacy/ghostMode.js";
 import { filterBadgesForAccess } from "../../../core/privacy/policy.js";
@@ -1520,9 +1519,8 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
   // Banners aren't on cached users: a forced fetch is needed to see one.
   const fetched = await withTimeout("user fetch", 4_000, client.users.fetch(user.id, { force: true }), user);
   const displayName = fetched.globalName ?? fetched.username;
-  const [profile, badges, progression, stats, activity, economy, voice, hourly, firstSeen] = await Promise.all([
+  const [profile, progression, stats, activity, economy, voice, hourly, firstSeen] = await Promise.all([
     getUserProfile(user.id),
-    withTimeout("displayed badges", 4_000, listDisplayedUserBadges(user.id), []),
     withTimeout(
       "progression badges",
       5_000,
@@ -1597,12 +1595,8 @@ export async function renderUserProfileCard(client: Client, user: User, viewerId
     bannerURL: fetched.bannerURL({ size: 2048, extension: "png" }) ?? null,
     accent,
     progressionIcons,
-    badges: badges.map((badge) => ({
-      name: badge.name,
-      icon: badge.icon,
-      iconImageUrl: badge.iconImageUrl,
-      colorHex: badge.colorHex,
-    })),
+    // Legacy platform badges are retired: only progression badges are shown.
+    badges: [],
     // Ghost Mode (for this viewer) leaves the "Active now / Last seen" pill off.
     lastActiveAt: stats && stats.access !== "hidden" ? stats.lastActiveAt : null,
     cosmetics: (() => {

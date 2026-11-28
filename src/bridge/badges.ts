@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { badgeDefinitions, userBadges } from "../db/schema.js";
 
@@ -12,6 +12,8 @@ export type Badge = {
   colorHex: string | null;
   createdAt: string;
   updatedAt: string;
+  /** People holding it (listBadges only). */
+  holders?: number;
 };
 
 const KEY_RE = /^[a-z0-9][a-z0-9_-]{1,63}$/;
@@ -72,9 +74,19 @@ export function normalizeBadgeIconImage(raw: unknown): string | null | undefined
   return base64;
 }
 
+/** Legacy platform badges are retired (progression badges replaced them). Nothing reads these for
+ *  display any more; the superuser dashboard lists them read-only, with how many people hold each. */
 export async function listBadges(): Promise<Badge[]> {
   const rows = await getDb().select().from(badgeDefinitions).orderBy(badgeDefinitions.name).all();
-  return rows.map(toBadge);
+  const counts = new Map(
+    getDb()
+      .select({ badgeId: userBadges.badgeId, holders: sql<number>`COUNT(*)` })
+      .from(userBadges)
+      .groupBy(userBadges.badgeId)
+      .all()
+      .map((row) => [row.badgeId, Number(row.holders)]),
+  );
+  return rows.map((row) => ({ ...toBadge(row), holders: counts.get(row.id) ?? 0 }));
 }
 
 export async function getBadgeById(id: number): Promise<Badge | null> {

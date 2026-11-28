@@ -761,7 +761,7 @@ export const dreamCommands = sqliteTable(
     /** Set when a run was refused because the builder lost a permission; cleared on save. */
     healthJson: text("health_json"),
   },
-  (table) => [primaryKey({ columns: [table.guildId, table.name] })],
+  (table) => [primaryKey({ columns: [table.guildId, table.name] }), index("dream_commands_created_by").on(table.createdBy)],
 );
 
 /** Recent runs of each custom command (pruned to the last 50 per command). */
@@ -3070,6 +3070,7 @@ export const applications = sqliteTable(
     index("applications_guild_status").on(table.guildId, table.status),
     index("applications_guild_user").on(table.guildId, table.userId, table.openingId),
     index("applications_guild_opening").on(table.guildId, table.openingId, table.createdAt),
+    index("applications_user_status").on(table.userId, table.status),
   ],
 );
 
@@ -3432,6 +3433,19 @@ export const userProgressionBadgeHidden = sqliteTable(
     hiddenAt: integer("hidden_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.badgeKey] })],
+);
+
+/** When a user first reached each progression badge tier (migration 0166). Null for tiers they
+ *  already held when tracking began. */
+export const userProgressionBadgeUnlocks = sqliteTable(
+  "user_progression_badge_unlocks",
+  {
+    userId: text("user_id").notNull(),
+    badgeKey: text("badge_key").notNull(),
+    tier: integer("tier", { mode: "number" }).notNull(),
+    unlockedAt: integer("unlocked_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.badgeKey, table.tier] })],
 );
 
 /** Appeals against infractions (plugins/appeals), submitted from the website. */
