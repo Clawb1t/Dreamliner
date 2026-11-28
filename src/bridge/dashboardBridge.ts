@@ -881,7 +881,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         // Dashboard sidebar favourites (webDashboardPins.ts): the signed-in user's own, per server.
         const dashboardPinsMatch = /^\/bridge\/users\/(\d{15,22})\/dashboard-pins\/(\d{15,22})$/.exec(url.pathname);
         // Website notifications (siteNotifications.ts): the signed-in user's own feed, id from the site's session.
-        const notificationsMatch = /^\/bridge\/users\/(\d{15,22})\/notifications\/(?:(feed|read)|(\d{1,10})\/dismiss)$/.exec(url.pathname);
+        const notificationsMatch = /^\/bridge\/users\/(\d{15,22})\/notifications\/(?:(feed|read|prefs)|(\d{1,10})\/dismiss)$/.exec(url.pathname);
         const lastfmMatch = /^\/bridge\/users\/(\d+)\/lastfm$/.exec(url.pathname);
         const storeMatch = /^\/bridge\/users\/(\d+)\/store(?:\/(claim|servers|purchase|reminders))?$/.exec(url.pathname);
         const storeVoteMatch = url.pathname === "/bridge/store/votes";
@@ -953,6 +953,33 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
             return;
           }
           sendJson(res, 200, { ok: true });
+          return;
+        }
+
+        if (notificationsMatch && notificationsMatch[2] === "prefs") {
+          // The user's own muted kinds (User Settings > Notifications), id from the site's session.
+          const notifications = await import("./siteNotifications.js");
+          if (req.method === "GET") {
+            sendJson(res, 200, { ok: true, ...notifications.getNotificationPrefs(notificationsMatch[1]!) });
+            return;
+          }
+          if (req.method !== "PUT") {
+            sendJson(res, 405, { error: "Method not allowed" });
+            return;
+          }
+          let body: { mutedKinds?: unknown };
+          try {
+            body = JSON.parse((await readBody(req)) || "{}") as typeof body;
+          } catch {
+            sendJson(res, 400, { error: "Invalid JSON body" });
+            return;
+          }
+          const result = notifications.setNotificationPrefs(notificationsMatch[1]!, body);
+          if (!result.ok) {
+            sendJson(res, result.status, { error: result.error });
+            return;
+          }
+          sendJson(res, 200, { ok: true, ...result.value });
           return;
         }
 
@@ -3912,7 +3939,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         const guildMatch = /^\/bridge\/guilds\/(\d+)\/(config|entities|stats)$/.exec(
           url.pathname,
         );
-        const aiActionMatch = /^\/bridge\/guilds\/(\d+)\/ai\/(generate|status|wizard|character)$/.exec(url.pathname);
+        const aiActionMatch = /^\/bridge\/guilds\/(\d+)\/ai\/(generate|status|wizard|character|command)$/.exec(url.pathname);
         const switchActionMatch = /^\/bridge\/guilds\/(\d+)\/switch\/(status|read|mee6-levels)$/.exec(url.pathname);
         if (
           !publicLeaderboardMatch &&
@@ -5813,7 +5840,7 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
         }
 
         if (aiActionMatch) {
-          const { draftAiCharacter, generateAiCopy, getAiStatus, runAiWizard } = await import("./webAi.js");
+          const { draftAiCharacter, generateAiCopy, getAiStatus, runAiWizard, runDreamCommandAutopilot } = await import("./webAi.js");
           const action = aiActionMatch[2];
 
           if (action === "status" && req.method === "GET") {
@@ -5872,6 +5899,35 @@ export function startDashboardBridge(client: Client, configManager: ConfigManage
               return;
             }
             const result = await draftAiCharacter(guildId, body);
+            sendJson(res, result.ok ? 200 : result.status, result);
+            return;
+          }
+
+          // Custom Commands' Autopilot: { userId, answer, transcript?, sessionToken?, current? } ->
+          // a question, or a ready draft { name, program }. Never saved here: the builder saves it.
+          if (action === "command" && req.method === "POST") {
+            let body: Record<string, unknown>;
+            try {
+              body = JSON.parse(await readBody(req)) as Record<string, unknown>;
+            } catch {
+              sendJson(res, 400, { error: "Invalid JSON body" });
+              return;
+            }
+            const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+            if (!userId) {
+              sendJson(res, 400, { error: "userId is required" });
+              return;
+            }
+            if (!(await memberCanManage(guild, userId))) {
+              sendJson(res, 403, { error: "Missing Manage Server permission.", code: "missing_manage" });
+              return;
+            }
+            const result = await runDreamCommandAutopilot(guild, guildId, userId, {
+              sessionToken: body.sessionToken,
+              transcript: body.transcript,
+              answer: body.answer,
+              current: body.current,
+            });
             sendJson(res, result.ok ? 200 : result.status, result);
             return;
           }

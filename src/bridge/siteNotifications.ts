@@ -12,6 +12,8 @@
  *     POST   /bridge/users/:id/notifications/feed           { view: "count" | "list", guilds? } -> unread (+ items)
  *     POST   /bridge/users/:id/notifications/read           { ids?: number[], all?: true }
  *     POST   /bridge/users/:id/notifications/:nid/dismiss
+ *     GET    /bridge/users/:id/notifications/prefs          -> { mutedKinds, mutable }
+ *     PUT    /bridge/users/:id/notifications/prefs          { mutedKinds: string[] } -> { mutedKinds, mutable }
  *
  * Audiences are matched when a user asks for their feed, never fanned out per user. A user's
  * matched set is cached for a minute (and dropped on every write here); read state is read fresh
@@ -28,7 +30,7 @@ import { and, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Client, Guild } from "discord.js";
 import { PermissionFlagsBits } from "discord.js";
 import { getDb } from "../db/client.js";
-import { siteNotificationState, siteNotifications } from "../db/schema.js";
+import { siteNotificationPrefs, siteNotificationState, siteNotifications } from "../db/schema.js";
 import { capMap, createPruner } from "../core/mapPrune.js";
 import { cachedSwr, invalidateCached } from "./responseCache.js";
 import { SlidingWindowLimiter } from "./rateLimit.js";
@@ -201,7 +203,8 @@ export async function getUserFeed(
   const live = new Map(liveNotifications(now).map((n) => [n.id, n]));
   const visible = ids.map((id) => live.get(id)).filter((n): n is StoredNotification => Boolean(n));
   const state = stateRows(userId, visible.map((n) => n.id));
-  const shown = sortForFeed(visible.filter((n) => !state.get(n.id)?.dismissedAt));
+  const muted = new Set(getMutedKinds(userId));
+  const shown = sortForFeed(visible.filter((n) => !state.get(n.id)?.dismissedAt && !muted.has(n.kind)));
   const unread = shown.filter((n) => !state.get(n.id)?.readAt).length;
   if (view === "count") return { unread };
 
@@ -277,6 +280,48 @@ export async function dismiss(userId: string, notificationId: number, deps: Noti
     .run();
   const feed = await getUserFeed(userId, "count", deps, null, now);
   return { ok: true, value: { unread: feed.unread } };
+}
+
+// --- The user's settings (muted kinds) ----------------------------------------------------------
+
+/** Kinds a user may mute. Announcements always show: they can be about the service or their account. */
+export const MUTABLE_KINDS: readonly NotificationKind[] = NOTIFICATION_KINDS.filter((kind) => kind !== "announcement");
+
+export type NotificationPrefs = { mutedKinds: NotificationKind[]; mutable: NotificationKind[] };
+
+export function getMutedKinds(userId: string): NotificationKind[] {
+  const row = getDb().select().from(siteNotificationPrefs).where(eq(siteNotificationPrefs.userId, userId)).get();
+  if (!row) return [];
+  try {
+    const parsed: unknown = JSON.parse(row.mutedKinds);
+    return Array.isArray(parsed) ? MUTABLE_KINDS.filter((kind) => parsed.includes(kind)) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getNotificationPrefs(userId: string): NotificationPrefs {
+  return { mutedKinds: getMutedKinds(userId), mutable: [...MUTABLE_KINDS] };
+}
+
+/** Replaces the user's muted kinds. Unknown kinds (and announcements) are refused, not dropped. */
+export function setNotificationPrefs(userId: string, input: { mutedKinds?: unknown }, now = Date.now()): NotificationResult<NotificationPrefs> {
+  const raw = input.mutedKinds;
+  if (!Array.isArray(raw) || raw.length > NOTIFICATION_KINDS.length) return { ok: false, status: 400, error: "Send mutedKinds as a list." };
+  if (!raw.every((kind) => typeof kind === "string" && (MUTABLE_KINDS as readonly string[]).includes(kind))) {
+    return { ok: false, status: 400, error: "That kind of notification can't be muted." };
+  }
+  const mutedKinds = MUTABLE_KINDS.filter((kind) => raw.includes(kind));
+  if (mutedKinds.length === 0) {
+    getDb().delete(siteNotificationPrefs).where(eq(siteNotificationPrefs.userId, userId)).run();
+  } else {
+    getDb()
+      .insert(siteNotificationPrefs)
+      .values({ userId, mutedKinds: JSON.stringify(mutedKinds), updatedAt: now })
+      .onConflictDoUpdate({ target: siteNotificationPrefs.userId, set: { mutedKinds: JSON.stringify(mutedKinds), updatedAt: now } })
+      .run();
+  }
+  return { ok: true, value: { mutedKinds, mutable: [...MUTABLE_KINDS] } };
 }
 
 /** Cleans the website's guild hints: at most 250 snowflakes with a manager flag. */
@@ -441,6 +486,19 @@ export async function estimateAudience(raw: unknown, deps: NotificationDeps): Pr
 export function countUserNotificationState(userId: string): number {
   const row = getDb().select({ total: count() }).from(siteNotificationState).where(eq(siteNotificationState.userId, userId)).get();
   return Number(row?.total ?? 0);
+}
+
+export function countUserNotificationPrefs(userId: string): number {
+  const row = getDb().select({ total: count() }).from(siteNotificationPrefs).where(eq(siteNotificationPrefs.userId, userId)).get();
+  return Number(row?.total ?? 0);
+}
+
+export function deleteUserNotificationPrefs(userId: string): number {
+  return getDb().delete(siteNotificationPrefs).where(eq(siteNotificationPrefs.userId, userId)).returning().all().length;
+}
+
+export function exportUserNotificationPrefs(userId: string) {
+  return getDb().select().from(siteNotificationPrefs).where(eq(siteNotificationPrefs.userId, userId)).all();
 }
 
 export function deleteUserNotificationState(userId: string): number {

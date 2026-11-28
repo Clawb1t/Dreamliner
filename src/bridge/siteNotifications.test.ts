@@ -17,7 +17,7 @@ const { audienceMatches, isSafeNotificationLink, bodyLinksAreSafe } = await impo
 const { invalidateCached } = await import("./responseCache.js");
 const { bucketFor, bridgeRateLimit } = await import("./rateLimit.js");
 const { getDb } = await import("../db/client.js");
-const { siteNotifications, siteNotificationState } = await import("../db/schema.js");
+const { siteNotifications, siteNotificationPrefs, siteNotificationState } = await import("../db/schema.js");
 const { deleteUserPersonalData } = await import("./userProfiles.js");
 const { exportUserPersonalData } = await import("./userDataExport.js");
 
@@ -81,6 +81,7 @@ async function feedIds(userId: string) {
 
 beforeEach(() => {
   getDb().delete(siteNotificationState).run();
+  getDb().delete(siteNotificationPrefs).run();
   getDb().delete(siteNotifications).run();
   invalidateCached("notif-user:");
 });
@@ -217,6 +218,54 @@ describe("personal data", () => {
     await notifications.markRead(ALICE, { ids: [a.id] }, deps);
     assert.equal(notifications.deleteNotification(a.id), true);
     assert.equal(notifications.countUserNotificationState(ALICE), 0);
+  });
+});
+
+describe("muted kinds", () => {
+  it("hides muted kinds from that user's feed and count only", async () => {
+    create({ title: "news", kind: "announcement", audience: { type: "everyone" } });
+    create({ title: "tip", kind: "tip", audience: { type: "everyone" } });
+    create({ title: "feature", kind: "feature", audience: { type: "everyone" } });
+    const set = notifications.setNotificationPrefs(ALICE, { mutedKinds: ["tip", "feature"] });
+    assert.ok(set.ok);
+    assert.deepEqual(set.value.mutedKinds, ["feature", "tip"]);
+    assert.deepEqual(await feedIds(ALICE), ["news"]);
+    assert.equal((await notifications.getUserFeed(ALICE, "count", deps, null)).unread, 1);
+    // Another user's settings are their own.
+    assert.deepEqual(await feedIds(BOB), ["feature", "news", "tip"]);
+    assert.deepEqual(notifications.getNotificationPrefs(BOB).mutedKinds, []);
+  });
+
+  it("refuses announcements and unknown kinds", () => {
+    const announcement = notifications.setNotificationPrefs(ALICE, { mutedKinds: ["announcement"] });
+    assert.equal(announcement.ok, false);
+    assert.equal(notifications.setNotificationPrefs(ALICE, { mutedKinds: ["nope"] }).ok, false);
+    assert.equal(notifications.setNotificationPrefs(ALICE, { mutedKinds: "tip" }).ok, false);
+    assert.deepEqual(notifications.getNotificationPrefs(ALICE).mutedKinds, []);
+  });
+
+  it("unmuting everything removes the row", () => {
+    notifications.setNotificationPrefs(ALICE, { mutedKinds: ["tip"] });
+    assert.equal(notifications.countUserNotificationPrefs(ALICE), 1);
+    notifications.setNotificationPrefs(ALICE, { mutedKinds: [] });
+    assert.equal(notifications.countUserNotificationPrefs(ALICE), 0);
+  });
+
+  it("is exported and erased with the rest of the user's data", async () => {
+    notifications.setNotificationPrefs(ALICE, { mutedKinds: ["update"] });
+    notifications.setNotificationPrefs(BOB, { mutedKinds: ["tip"] });
+    const exported = await exportUserPersonalData(ALICE);
+    assert.equal(exported.sections.site_notification_prefs?.rows.length, 1);
+    const result = await deleteUserPersonalData(ALICE);
+    assert.equal(result.deleted.site_notification_prefs, 1);
+    assert.equal(notifications.countUserNotificationPrefs(ALICE), 0);
+    assert.deepEqual(notifications.getNotificationPrefs(BOB).mutedKinds, ["tip"]);
+  });
+
+  it("is limited per user, as a read and a write", () => {
+    assert.equal(bucketFor("GET", `/bridge/users/${ALICE}/notifications/prefs`), "read");
+    assert.equal(bucketFor("PUT", `/bridge/users/${ALICE}/notifications/prefs`), "write");
+    assert.equal(bridgeRateLimit("PUT", new URL(`http://x/bridge/users/${ALICE}/notifications/prefs`)), null);
   });
 });
 

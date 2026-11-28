@@ -101,6 +101,10 @@ describe("bridgeRateLimit", () => {
     assert.equal(bucketFor("POST", `${base}/ai/test`), "ai");
   });
 
+  it("puts Custom Commands' Autopilot in the ai bucket", () => {
+    assert.equal(bucketFor("POST", "/bridge/guilds/123456789012345678/ai/command"), "ai");
+  });
+
   it("puts giveaway end and reroll in the send bucket, other giveaway actions in write", () => {
     const base = "/bridge/guilds/123456789012345678/giveaways";
     assert.equal(bucketFor("POST", `${base}/12/end`), "send");

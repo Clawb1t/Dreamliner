@@ -41,3 +41,6 @@ Guild slash commands built on the dashboard like a shortcut: a command has typed
 
 ## Bridge
 `/bridge/guilds/:id/commands` with `?userId=`: `GET ''` list, `POST ''` create, `GET catalog`, `GET templates`, `POST validate` (dry run), `POST import`, `GET|PUT|DELETE c/:name`, `POST c/:name/duplicate`, `GET c/:name/runs`, `POST c/:name/test`, `GET c/:name/export`.
+
+## Autopilot
+`POST /bridge/guilds/:id/ai/command` (Manage Server, `ai` rate-limit bucket) builds a whole command from a description, or refines `current` ({ name, program }), in a short conversation (`core/ai/dreamCommand.ts`, runner in `bridge/webAi.ts`). The model answers in strict structured output: options, access, cooldowns and each step's id/type are typed (types limited to steps the member could save), a step's settings travel as `config_json` and nested lists as `children` (`b0`/`else`, `steps`, `r0`, `btn:<id>`, `opt:<id>`). Every draft runs `validateProgram`, `checkGuildIds` and `builderReport` against the requesting member, gets one automatic repair turn, then is refused with its issues. Nothing is saved: the dashboard loads the draft into the builder. Each generation costs one Autopilot use (`consumeAiGate`); clarifying questions before it are free, and failures are refunded.

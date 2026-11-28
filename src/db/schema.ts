@@ -4236,3 +4236,10 @@ export const siteNotificationState = sqliteTable(
     index("site_notification_state_notification").on(table.notificationId),
   ],
 );
+
+/** One user's website notification settings: the kinds they muted (JSON array). No row = none. */
+export const siteNotificationPrefs = sqliteTable("site_notification_prefs", {
+  userId: text("user_id").primaryKey(),
+  mutedKinds: text("muted_kinds").notNull().default("[]"),
+  updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+});

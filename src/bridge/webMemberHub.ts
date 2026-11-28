@@ -5,7 +5,7 @@ import type { GuildConfig } from "../config/schemas/guild.js";
 import { getLogger } from "../core/logger.js";
 import { pluginEnabled } from "../core/pluginCommand.js";
 import { getDb } from "../db/client.js";
-import { appeals, caseEvidenceFiles, evidenceMessages, modCases } from "../db/schema.js";
+import { appeals, applications, caseEvidenceFiles, evidenceMessages, modCases } from "../db/schema.js";
 import { fetchUserCached } from "./people.js";
 import { buildIdentityCard, currentGuildMember, type IdentityCardPayload } from "./webMemberIdentity.js";
 
@@ -20,6 +20,8 @@ const log = getLogger("member-hub");
 const CASE_LIMIT = 100;
 const TICKET_LIMIT = 25;
 const APPEAL_LIMIT = 25;
+/** Most recent form responses sent to the hub (the total is counted separately). */
+const FORM_RESPONSE_LIMIT = 25;
 const NAME_LIMIT = 25;
 
 export type MemberHubCase = {
@@ -66,6 +68,27 @@ export type MemberHubPayload = {
   appeals: {
     enabled: boolean;
     recent: Array<{ id: number; status: string; caseId: number | null; infractionType: string | null; reversed: boolean; createdAt: string; decidedAt: string | null }>;
+  };
+  /** Forms (the `applications` plugin): this member's own responses. Anonymous ones are never included. */
+  forms: {
+    enabled: boolean;
+    total: number;
+    /** Responses still waiting for a decision (pending, or a custom status that doesn't close). */
+    open: number;
+    recent: Array<{
+      id: number;
+      formId: string;
+      formName: string;
+      kind: string;
+      status: string;
+      /** Display label for the status (custom statuses resolve to the form's own label). */
+      statusLabel: string;
+      tone: "neutral" | "note" | "ok" | "caution" | "danger";
+      rsvp: string | null;
+      waitlisted: boolean;
+      createdAt: string;
+      decidedAt: string | null;
+    }>;
   };
   passport: { enabled: boolean; state: "verified" | "pending" | "unverified" | "off"; verifiedAt: string | null };
   names: Array<{ id: number; oldName: string; newName: string; changeType: string; changedAt: string }>;
@@ -233,6 +256,68 @@ function readAppeals(guildConfig: GuildConfig, guildId: string, userId: string):
   };
 }
 
+const BUILT_IN_FORM_STATUS: Record<string, { label: string; tone: MemberHubPayload["forms"]["recent"][number]["tone"]; closes: boolean }> = {
+  pending: { label: "Pending", tone: "caution", closes: false },
+  accepted: { label: "Accepted", tone: "ok", closes: true },
+  denied: { label: "Denied", tone: "danger", closes: true },
+  submitted: { label: "Submitted", tone: "neutral", closes: true },
+};
+
+/**
+ * This member's form responses in this server. Anonymous responses store a keyed hash in `user_id`
+ * rather than the member's id, so matching on the id can never surface them (by design).
+ */
+export async function readForms(guildConfig: GuildConfig, guildId: string, userId: string): Promise<MemberHubPayload["forms"]> {
+  const enabled = pluginEnabled(guildConfig, "applications");
+  const db = getDb();
+  const mine = and(eq(applications.guildId, guildId), eq(applications.userId, userId), eq(applications.anonymous, false));
+  const rows = db
+    .select({
+      id: applications.id,
+      openingId: applications.openingId,
+      openingName: applications.openingName,
+      formKind: applications.formKind,
+      status: applications.status,
+      rsvp: applications.rsvp,
+      waitlisted: applications.waitlisted,
+      createdAt: applications.createdAt,
+      decidedAt: applications.decidedAt,
+    })
+    .from(applications)
+    .where(mine)
+    .orderBy(desc(applications.id))
+    .all();
+
+  // Custom statuses live on each form (opening); resolve their labels, tones and whether they close.
+  const { loadApplicationsConfig, findOpening } = await import("../plugins/applications/functions/config.js");
+  const config = loadApplicationsConfig(guildConfig);
+  const describe = (openingId: string, status: string) => {
+    const custom = findOpening(config, openingId)?.statuses.find((s) => s.id === status);
+    if (custom) return { label: custom.label, tone: custom.tone, closes: custom.closes };
+    return BUILT_IN_FORM_STATUS[status] ?? { label: status, tone: "neutral" as const, closes: false };
+  };
+
+  const described = rows.map((r) => ({ row: r, meta: describe(r.openingId, r.status) }));
+  return {
+    enabled,
+    total: rows.length,
+    open: described.filter((d) => !d.meta.closes).length,
+    recent: described.slice(0, FORM_RESPONSE_LIMIT).map(({ row, meta }) => ({
+      id: row.id,
+      formId: row.openingId,
+      formName: row.openingName,
+      kind: row.formKind,
+      status: row.status,
+      statusLabel: meta.label,
+      tone: meta.tone,
+      rsvp: row.rsvp ?? null,
+      waitlisted: Boolean(row.waitlisted),
+      createdAt: row.createdAt.toISOString(),
+      decidedAt: iso(row.decidedAt),
+    })),
+  };
+}
+
 async function readPassport(guildConfig: GuildConfig, guildId: string, userId: string): Promise<MemberHubPayload["passport"]> {
   // Passport is opt-in (off by default), so only an explicit enable counts.
   if (guildConfig.plugins.passport?.enabled !== true) return { enabled: false, state: "off", verifiedAt: null };
@@ -329,13 +414,16 @@ export async function buildMemberHub(client: Client, guild: Guild, userId: strin
   if (!user) return null;
 
   const emptyCases: MemberHubPayload["cases"] = { total: 0, active: 0, overturned: 0, notes: 0, evidence: 0, recent: [] };
-  const [identity, cases, tickets, appealRows, passport, names, inviter, team, activity, watchdog] = await Promise.all([
+  const [identity, cases, tickets, appealRows, forms, passport, names, inviter, team, activity, watchdog] = await Promise.all([
     part("identity", null as IdentityCardPayload | null, () => buildIdentityCard(client, guild, userId, viewerId)),
     part("cases", emptyCases, () => readCases(guild.id, userId)),
     part("tickets", { enabled: pluginEnabled(guildConfig, "tickets"), total: 0, open: 0, recent: [] }, () =>
       readTickets(guildConfig, guild.id, userId),
     ),
     part("appeals", { enabled: false, recent: [] }, () => readAppeals(guildConfig, guild.id, userId)),
+    part("forms", { enabled: pluginEnabled(guildConfig, "applications"), total: 0, open: 0, recent: [] }, () =>
+      readForms(guildConfig, guild.id, userId),
+    ),
     part("passport", { enabled: false, state: "off" as const, verifiedAt: null }, () => readPassport(guildConfig, guild.id, userId)),
     part("names", [], () => readNames(guild.id, userId)),
     part(
@@ -377,6 +465,7 @@ export async function buildMemberHub(client: Client, guild: Guild, userId: strin
     cases,
     tickets,
     appeals: appealRows,
+    forms,
     passport,
     names,
     inviter,

@@ -130,6 +130,11 @@ export async function exportUserPersonalData(userId: string): Promise<UserDataEx
       description: "Which notifications from the navbar bell you saw, read or dismissed, and when.",
       rows: serializable((await import("./siteNotifications.js")).exportUserNotificationState(userId)),
     },
+    site_notification_prefs: {
+      label: "Notification settings",
+      description: "Which kinds of website notifications you muted in your settings.",
+      rows: serializable((await import("./siteNotifications.js")).exportUserNotificationPrefs(userId)),
+    },
     avia_usage: {
       label: "Avia usage",
       description: "How many messages you sent Avia, the help centre assistant, each day. Conversations aren't stored.",

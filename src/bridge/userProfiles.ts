@@ -475,6 +475,12 @@ export async function previewUserPersonalData(userId: string): Promise<UserDataI
       total: import("./siteNotifications.js").then((m) => m.countUserNotificationState(userId)),
     },
     {
+      key: "site_notification_prefs",
+      label: "Notification settings",
+      description: "Which kinds of website notifications you muted in your settings.",
+      total: import("./siteNotifications.js").then((m) => m.countUserNotificationPrefs(userId)),
+    },
+    {
       key: "wrapped_emoji",
       label: "Emoji counts",
       description: "How often you used each emoji in messages and reactions, per year, for Dreamliner Wrapped. Message text isn't stored.",
@@ -668,6 +674,7 @@ export async function deleteUserPersonalData(userId: string): Promise<DeleteUser
   deleted.wrapped_commands = wrappedDeleted.commands;
   (await import("./responseCache.js")).invalidateCached(`wrapped:${userId}:`);
   deleted.site_notifications = (await import("./siteNotifications.js")).deleteUserNotificationState(userId);
+  deleted.site_notification_prefs = (await import("./siteNotifications.js")).deleteUserNotificationPrefs(userId);
   await wipe(
     "welcome_join_messages",
     db.delete(welcomeJoinMessages).where(eq(welcomeJoinMessages.memberId, userId)).returning(),
